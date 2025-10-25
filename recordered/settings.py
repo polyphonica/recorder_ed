@@ -254,40 +254,18 @@ CKEDITOR_5_CONFIGS = {
         },
         "htmlSupport": {
             "allow": [
-                {"name": "hr", "attributes": True, "classes": True, "styles": True},
-                {"name": "div", "attributes": True, "classes": ["accordion", "accordion-item", "accordion-content"], "styles": True},
-                {"name": "button", "attributes": True, "classes": ["accordion-header"], "styles": True},
-                {"name": "span", "attributes": True, "classes": True, "styles": {"font-family": True, "font-size": True}},
-                {"name": "p", "attributes": True, "classes": True, "styles": {"font-family": True, "font-size": True}},
-                {"name": "table", "attributes": True, "classes": True, "styles": True},
-                {"name": "tr", "attributes": True, "classes": True, "styles": True},
-                {"name": "td", "attributes": True, "classes": True, "styles": True},
-                {"name": "th", "attributes": True, "classes": True, "styles": True},
-                {"name": "figure", "attributes": True, "classes": True, "styles": True},
-                {"name": "img", "attributes": True, "classes": True, "styles": True},
-                {"name": "audio", "attributes": True, "classes": True, "styles": True},
                 {
-                    "name": "video",
-                    "attributes": {
-                        "width": True,
-                        "height": True,
-                        "controls": True
-                    },
+                    "name": "hr",
+                    "attributes": True,
                     "classes": True,
                     "styles": True
                 },
                 {
-                    "name": "source",
-                    "attributes": {
-                        "src": True,
-                        "type": True
-                    },
+                    "name": "/.*/",
+                    "attributes": True,
                     "classes": True,
-                    "styles": True
-                },
-                {
-                    "name": "a",
-                    "attributes": ["href", "target", "rel", "class", "id", "style"]
+                    "styles": True,
+                    "children": True
                 }
             ]
         },
@@ -331,7 +309,156 @@ CKEDITOR_5_CONFIGS = {
             "tableCellProperties": {
                 "borderColors": customColorPalette,
                 "backgroundColors": customColorPalette
+            },
+        }
+    },
+    "comment": {
+        "language": {"ui": "en", "content": "en"},
+        "toolbar": [
+            "heading",
+            "|",
+            "bold",
+            "italic",
+            "link",
+            "bulletedList",
+            "numberedList",
+            "blockQuote"
+        ]
+    },
+    "extends": {
+        "language": "en",
+        "blockToolbar": [
+            "paragraph",
+            "heading1",
+            "heading2",
+            "heading3",
+            "|",
+            "bulletedList",
+            "numberedList",
+            "|",
+            "blockQuote"
+        ],
+        "toolbar": [
+            "heading",
+            "codeBlock",
+            "|",
+            "outdent",
+            "indent",
+            "|",
+            "bold",
+            "italic",
+            "link",
+            "underline",
+            "strikethrough",
+            "code",
+            "subscript",
+            "superscript",
+            "highlight",
+            "|",
+            "bulletedList",
+            "numberedList",
+            "todoList",
+            "|",
+            "blockQuote",
+            "insertImage",
+            "|",
+            "fontSize",
+            "fontFamily",
+            "fontColor",
+            "fontBackgroundColor",
+            "mediaEmbed",
+            "removeFormat",
+            "insertTable",
+            "sourceEditing"
+        ],
+        "image": {
+            "toolbar": [
+                "imageTextAlternative",
+                "|",
+                "imageStyle:full",
+                "imageStyle:alignLeft",
+                "imageStyle:alignRight",
+                "imageStyle:alignCenter",
+                "imageStyle:side",
+                "|",
+                "toggleImageCaption",
+                "|"
+            ],
+            "upload": {
+                'types': ['jpeg', 'png', 'gif', 'svg+xml']
+            },
+            "styles": [
+                "full",
+                "side",
+                "alignLeft",
+                "alignRight",
+                "alignCenter"
+            ]
+        },
+        "table": {
+            "contentToolbar": [
+                "tableColumn",
+                "tableRow",
+                "mergeTableCells",
+                "tableProperties",
+                "tableCellProperties"
+            ],
+            "tableProperties": {
+                "borderColors": customColorPalette,
+                "backgroundColors": customColorPalette
+            },
+            "tableCellProperties": {
+                "borderColors": customColorPalette,
+                "backgroundColors": customColorPalette
             }
+        },
+        "heading": {
+            "options": [
+                {
+                    "model": "paragraph",
+                    "title": "Paragraph",
+                    "class": "ck-heading_paragraph"
+                },
+                {
+                    "model": "heading1",
+                    "view": "h1",
+                    "title": "Heading 1",
+                    "class": "ck-heading_heading1"
+                },
+                {
+                    "model": "heading2",
+                    "view": "h2",
+                    "title": "Heading 2",
+                    "class": "ck-heading_heading2"
+                },
+                {
+                    "model": "heading3",
+                    "view": "h3",
+                    "title": "Heading 3",
+                    "class": "ck-heading_heading3"
+                }
+            ]
+        },
+        "list": {
+            "properties": {
+                "styles": True,
+                "startIndex": True,
+                "reversed": True
+            }
+        },
+        "htmlSupport": {
+            "allow": [
+                {"name": "/.*/", "attributes": True, "classes": True, "styles": True}
+            ]
         }
     }
 }
+
+# CKEditor 5 file upload settings
+CKEDITOR_5_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'jpg', 'png', 'gif', 'bmp', 'webp', 'svg']
+CKEDITOR_5_UPLOAD_FILE_VIEW_NAME = "ck_editor_5_upload_file"
+CKEDITOR_5_FILE_UPLOAD_PERMISSION = "any"  # Options: "staff", "authenticated", "any"
+# Upload to media/uploads/ (ensure this directory exists)
+import os
+CKEDITOR_5_UPLOADS_PATH = os.path.join(MEDIA_ROOT, "uploads/")
