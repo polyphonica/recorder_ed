@@ -1,6 +1,6 @@
 from django.urls import reverse
 from django.db import models
-from ckeditor_uploader.fields import RichTextUploadingField
+from django_ckeditor_5.fields import CKEditor5Field
 from django.conf import settings
 from django.core.mail import send_mail, EmailMessage
 from django.template.loader import render_to_string
@@ -98,7 +98,7 @@ class Lesson(models.Model):
     )
     
     # Lesson content
-    lesson_content = RichTextUploadingField(null=True, blank=True)
+    lesson_content = CKEditor5Field(config_name='default', null=True, blank=True)
     teacher_notes = models.TextField(null=True, blank=True)
     homework = models.TextField(null=True, blank=True)
     private_note = models.TextField(

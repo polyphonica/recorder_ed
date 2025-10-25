@@ -41,8 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     
     # Third party apps
-    'ckeditor',
-    'ckeditor_uploader',
+    'django_ckeditor_5',
     'django_filters',
     
     # Local apps
@@ -172,59 +171,167 @@ LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/workshops/'
 LOGOUT_REDIRECT_URL = '/'
 
-# CKEditor Configuration
-CKEDITOR_UPLOAD_PATH = "uploads/"
-CKEDITOR_IMAGE_BACKEND = "pillow"
-CKEDITOR_JQUERY_URL = 'https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js'
+# CKEditor 5 Configuration
+# Custom Color Palette for Table Styling
+customColorPalette = [
+    {'color': 'hsl(4, 90%, 58%)', 'label': 'Red'},
+    {'color': 'hsl(340, 82%, 52%)', 'label': 'Pink'},
+    {'color': 'hsl(291, 64%, 42%)', 'label': 'Purple'},
+    {'color': 'hsl(262, 52%, 47%)', 'label': 'Deep Purple'},
+    {'color': 'hsl(231, 48%, 48%)', 'label': 'Indigo'},
+    {'color': 'hsl(207, 90%, 54%)', 'label': 'Blue'},
+]
 
-CKEDITOR_CONFIGS = {
-    'default': {
-        'toolbar': 'Custom',
-        'toolbar_Custom': [
-            ['Bold', 'Italic', 'Underline'],
-            ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
-            ['Link', 'Unlink'],
-            ['RemoveFormat', 'Source']
+CKEDITOR_5_CONFIGS = {
+    "default": {
+        "toolbar": [
+            "heading",
+            "|",
+            "bold",
+            "italic",
+            "underline",
+            "strikethrough",
+            "subscript",
+            "superscript",
+            "link",
+            "bulletedList",
+            "numberedList",
+            "todoList",
+            "blockQuote",
+            "imageUpload",
+            "imageInsert",
+            "mediaEmbed",
+            "htmlEmbed",
+            "|",
+            "fontColor",
+            "fontBackgroundColor",
+            "fontFamily",
+            "fontSize",
+            "alignment",
+            "insertTable",
+            "horizontalLine",
+            "code",
+            "codeBlock",
+            "highlight",
+            "removeFormat",
+            "outdent",
+            "indent",
+            "sourceEditing"
         ],
-        'height': 300,
-        'width': '100%',
-        'toolbarCanCollapse': True,
-        'forcePasteAsPlainText': True
-    },
-    'lesson_content': {
-        'toolbar': 'Custom',
-        'toolbar_Custom': [
-            ['Format', 'Styles'],
-            ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript'],
-            ['FontSize', 'TextColor', 'BGColor'],
-            ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', 'Blockquote'],
-            ['JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
-            ['Link', 'Unlink', 'Anchor'],
-            ['Image', 'Table', 'HorizontalRule', 'SpecialChar'],
-            ['Copy', 'Paste', 'PasteText', 'PasteFromWord'],
-            ['Undo', 'Redo'],
-            ['Find', 'Replace'],
-            ['Maximize', 'ShowBlocks'],
-            ['RemoveFormat', 'Source']
-        ],
-        'format_tags': 'p;h1;h2;h3;h4;h5;h6;pre;address;div',
-        'fontSize_sizes': '8/8px;9/9px;10/10px;11/11px;12/12px;14/14px;16/16px;18/18px;20/20px;22/22px;24/24px;26/26px;28/28px;36/36px;48/48px;72/72px',
-        'height': 400,
-        'width': '100%',
-        'toolbarCanCollapse': True,
-        'extraPlugins': 'uploadimage,font,colorbutton,justify',
-        'uploadUrl': '/ckeditor/upload/',
-        'filebrowserUploadUrl': '/ckeditor/upload/',
-        'forcePasteAsPlainText': False,
-        'allowedContent': True,
-        'stylesSet': [
-            {'name': 'Normal', 'element': 'p'},
-            {'name': 'Heading 1', 'element': 'h1'},
-            {'name': 'Heading 2', 'element': 'h2'},
-            {'name': 'Heading 3', 'element': 'h3'},
-            {'name': 'Heading 4', 'element': 'h4'},
-            {'name': 'Preformatted', 'element': 'pre'},
-            {'name': 'Address', 'element': 'address'}
-        ]
-    },
+        "fontFamily": {
+            "options": [
+                {
+                    "title": "Default",
+                    "model": "Arial, Helvetica, sans-serif",
+                    "view": {
+                        "name": "span",
+                        "styles": {
+                            "font-family": "Arial, Helvetica, sans-serif"
+                        }
+                    }
+                },
+                "Opus, sans-serif",
+                "Times New Roman, Times, serif",
+                "Courier New, Courier, monospace"
+            ],
+            "supportAllValues": True
+        },
+        "fontSize": {
+            "options": [
+                {"model": "8pt", "title": "8", "view": {"name": "span", "styles": {"font-size": "8pt"}}},
+                {"model": "10pt", "title": "10", "view": {"name": "span", "styles": {"font-size": "10pt"}}},
+                {"model": "12pt", "title": "12", "view": {"name": "span", "styles": {"font-size": "12pt"}}},
+                {"model": "14pt", "title": "14", "view": {"name": "span", "styles": {"font-size": "14pt"}}},
+                {"model": "16pt", "title": "16", "view": {"name": "span", "styles": {"font-size": "16pt"}}},
+                {"model": "18pt", "title": "18", "view": {"name": "span", "styles": {"font-size": "18pt"}}},
+                {"model": "24pt", "title": "24", "view": {"name": "span", "styles": {"font-size": "24pt"}}},
+                {"model": "36pt", "title": "36", "view": {"name": "span", "styles": {"font-size": "36pt"}}}
+            ],
+            "supportAllValues": True
+        },
+        "mediaEmbed": {
+            "previewsInData": True
+        },
+        "htmlSupport": {
+            "allow": [
+                {"name": "hr", "attributes": True, "classes": True, "styles": True},
+                {"name": "div", "attributes": True, "classes": ["accordion", "accordion-item", "accordion-content"], "styles": True},
+                {"name": "button", "attributes": True, "classes": ["accordion-header"], "styles": True},
+                {"name": "span", "attributes": True, "classes": True, "styles": {"font-family": True, "font-size": True}},
+                {"name": "p", "attributes": True, "classes": True, "styles": {"font-family": True, "font-size": True}},
+                {"name": "table", "attributes": True, "classes": True, "styles": True},
+                {"name": "tr", "attributes": True, "classes": True, "styles": True},
+                {"name": "td", "attributes": True, "classes": True, "styles": True},
+                {"name": "th", "attributes": True, "classes": True, "styles": True},
+                {"name": "figure", "attributes": True, "classes": True, "styles": True},
+                {"name": "img", "attributes": True, "classes": True, "styles": True},
+                {"name": "audio", "attributes": True, "classes": True, "styles": True},
+                {
+                    "name": "video",
+                    "attributes": {
+                        "width": True,
+                        "height": True,
+                        "controls": True
+                    },
+                    "classes": True,
+                    "styles": True
+                },
+                {
+                    "name": "source",
+                    "attributes": {
+                        "src": True,
+                        "type": True
+                    },
+                    "classes": True,
+                    "styles": True
+                },
+                {
+                    "name": "a",
+                    "attributes": ["href", "target", "rel", "class", "id", "style"]
+                }
+            ]
+        },
+        "image": {
+            "toolbar": [
+                "imageTextAlternative",
+                "|",
+                "imageStyle:full",
+                "imageStyle:alignLeft",
+                "imageStyle:alignRight",
+                "imageStyle:alignCenter",
+                "imageStyle:side",
+                "|",
+                "toggleImageCaption",
+                "resizeImage",
+                "|"
+            ],
+            "upload": {
+                'types': ['jpeg', 'png', 'gif', 'svg+xml']
+            },
+            "styles": [
+                "full",
+                "side",
+                "alignLeft",
+                "alignRight",
+                "alignCenter"
+            ]
+        },
+        "table": {
+            "contentToolbar": [
+                "tableColumn",
+                "tableRow",
+                "mergeTableCells",
+                "tableProperties",
+                "tableCellProperties"
+            ],
+            "tableProperties": {
+                "borderColors": customColorPalette,
+                "backgroundColors": customColorPalette
+            },
+            "tableCellProperties": {
+                "borderColors": customColorPalette,
+                "backgroundColors": customColorPalette
+            }
+        }
+    }
 }

@@ -5,6 +5,9 @@
 
 {% block extra_head %}
 {{ form.media }}
+<link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/44.1.0/ckeditor5.css" />
+<link rel="stylesheet" href="{% static 'css/ckeditor_custom.css' %}" type="text/css">
+<link rel="stylesheet" href="{% static 'css/imagestyle.css' %}" type="text/css">
 <style>
 .lesson-header {
     background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
@@ -93,12 +96,15 @@
 /* Make content fields full width */
 .form-section textarea,
 .form-section .django-ckeditor-widget,
-.form-section .cke {
+.form-section .django-ckeditor-5,
+.form-section .cke,
+.form-section .ck-editor {
     width: 100% !important;
     min-width: 100% !important;
 }
 
-.form-section .cke_contents {
+.form-section .cke_contents,
+.form-section .ck-editor__editable {
     min-height: 200px !important;
 }
 

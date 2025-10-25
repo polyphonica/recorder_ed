@@ -1,0 +1,19 @@
+/* CKEditor 5 Image Styles */
+/* This is a placeholder file. Add your custom image styles here. */
+
+/* Example: Image alignment styles */
+.image-style-align-left {
+    /* float: left; */
+    /* margin-right: 1.5rem; */
+}
+
+.image-style-align-right {
+    /* float: right; */
+    /* margin-left: 1.5rem; */
+}
+
+.image-style-align-center {
+    /* display: block; */
+    /* margin-left: auto; */
+    /* margin-right: auto; */
+}

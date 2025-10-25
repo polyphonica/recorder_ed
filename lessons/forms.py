@@ -1,7 +1,6 @@
 from django import forms
 from django.conf import settings
 from django.forms import inlineformset_factory
-from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django.forms.widgets import Select
 
 from apps.private_teaching.models import Subject
@@ -30,7 +29,6 @@ class DataAttributesSelect(Select):
 
 
 class LessonForm(forms.ModelForm):
-    lesson_content = forms.CharField(required=False, widget=CKEditorUploadingWidget(config_name='lesson_content'))
     zoom_link = forms.URLField(required=False)
 
     def __init__(self, *args, **kwargs):
@@ -54,7 +52,6 @@ class LessonForm(forms.ModelForm):
             'teacher_notes', 'homework', 'private_note', 'status'
         )
         widgets = {
-            'lesson_content': CKEditorUploadingWidget(config_name='lesson_content'),
             'teacher_notes': forms.Textarea(attrs={'rows': 4}),
             'homework': forms.Textarea(attrs={'rows': 4}),
             'private_note': forms.Textarea(attrs={'rows': 4}),
