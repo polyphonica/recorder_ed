@@ -134,41 +134,59 @@
     height: 30px;
 }
 
-/* Heading Styles */
-.ck-content h1 {
-    font-size: 2em;
-    font-weight: bold;
-    margin: 0.67em 0;
+/* Heading Styles - Override Tailwind prose and other styles */
+.ck-content h1,
+.ck-content.prose h1,
+.prose .ck-content h1 {
+    font-size: 2em !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    margin: 0.67em 0 !important;
 }
 
-.ck-content h2 {
-    font-size: 1.5em;
-    font-weight: bold;
-    margin: 0.75em 0;
+.ck-content h2,
+.ck-content.prose h2,
+.prose .ck-content h2 {
+    font-size: 1.5em !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    margin: 0.75em 0 !important;
 }
 
-.ck-content h3 {
-    font-size: 1.17em;
-    font-weight: bold;
-    margin: 0.83em 0;
+.ck-content h3,
+.ck-content.prose h3,
+.prose .ck-content h3 {
+    font-size: 1.17em !important;
+    font-weight: 700 !important;
+    line-height: 1.4 !important;
+    margin: 0.83em 0 !important;
 }
 
-.ck-content h4 {
-    font-size: 1em;
-    font-weight: bold;
-    margin: 1.12em 0;
+.ck-content h4,
+.ck-content.prose h4,
+.prose .ck-content h4 {
+    font-size: 1em !important;
+    font-weight: 700 !important;
+    line-height: 1.5 !important;
+    margin: 1.12em 0 !important;
 }
 
-.ck-content h5 {
-    font-size: 0.83em;
-    font-weight: bold;
-    margin: 1.5em 0;
+.ck-content h5,
+.ck-content.prose h5,
+.prose .ck-content h5 {
+    font-size: 0.83em !important;
+    font-weight: 700 !important;
+    line-height: 1.5 !important;
+    margin: 1.5em 0 !important;
 }
 
-.ck-content h6 {
-    font-size: 0.67em;
-    font-weight: bold;
-    margin: 1.67em 0;
+.ck-content h6,
+.ck-content.prose h6,
+.prose .ck-content h6 {
+    font-size: 0.67em !important;
+    font-weight: 700 !important;
+    line-height: 1.5 !important;
+    margin: 1.67em 0 !important;
 }
 
 .ck-content p {
