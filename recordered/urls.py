@@ -26,13 +26,14 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),
     path('accounts/', include('apps.accounts.urls')),
+    path('core/', include('apps.core.urls')),  # Core demo pages
     path('workshops/', include('apps.workshops.urls')),
     path('cart/', include('apps.payments.urls')),
     path('private-teaching/', include('apps.private_teaching.urls')),
     path('lessons/', include('lessons.urls')),
     path('expenses/', include('apps.expenses.urls')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
-    path('', DomainSelectorView.as_view(), name='domain_selector'),  # Domain selector landing page
+    path('', DomainSelectorView.as_view(), name='domain_selector'),  # Landing page at root
 ]
 
 # Serve media files in development
