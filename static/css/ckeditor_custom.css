@@ -134,10 +134,45 @@
     height: 30px;
 }
 
-/* Ensure Opus font is applied to text within CKEditor */
-.ck-content p,
-.ck-content span {
-    font-family: "Opus Figured Bass", sans-serif;
+/* Heading Styles */
+.ck-content h1 {
+    font-size: 2em;
+    font-weight: bold;
+    margin: 0.67em 0;
+}
+
+.ck-content h2 {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 0.75em 0;
+}
+
+.ck-content h3 {
+    font-size: 1.17em;
+    font-weight: bold;
+    margin: 0.83em 0;
+}
+
+.ck-content h4 {
+    font-size: 1em;
+    font-weight: bold;
+    margin: 1.12em 0;
+}
+
+.ck-content h5 {
+    font-size: 0.83em;
+    font-weight: bold;
+    margin: 1.5em 0;
+}
+
+.ck-content h6 {
+    font-size: 0.67em;
+    font-weight: bold;
+    margin: 1.67em 0;
+}
+
+.ck-content p {
+    margin: 0 0 1em 0;
 }
 
 /* Responsive Adjustments for Tables in CKEditor */
