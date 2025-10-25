@@ -4,6 +4,9 @@
 {% block title %}{{ lesson.subject.subject }} - Lesson Details{% endblock %}
 
 {% block extra_head %}
+<link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/44.1.0/ckeditor5.css" />
+<link rel="stylesheet" href="{% static 'css/ckeditor_custom.css' %}" type="text/css">
+<link rel="stylesheet" href="{% static 'css/imagestyle.css' %}" type="text/css">
 <style>
 .lesson-header {
     background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
@@ -196,7 +199,7 @@
     {% if lesson.lesson_content %}
     <div class="content-section">
         <h3>Lesson Content</h3>
-        <div class="prose max-w-none">
+        <div class="ck-content prose max-w-none">
             {{ lesson.lesson_content|safe }}
         </div>
     </div>
