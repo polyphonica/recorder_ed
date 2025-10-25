@@ -2,6 +2,7 @@ from django import forms
 from django.conf import settings
 from django.forms import inlineformset_factory
 from django.forms.widgets import Select
+from django_ckeditor_5.widgets import CKEditor5Widget
 
 from apps.private_teaching.models import Subject
 
@@ -34,8 +35,10 @@ class LessonForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(LessonForm, self).__init__(*args, **kwargs)
         for visible in self.visible_fields():
-            visible.field.widget.attrs['class'] = 'form-control'
-            visible.field.widget.attrs['placeholder'] = visible.field.label
+            # Skip CKEditor field - it has its own styling
+            if visible.name != 'lesson_content':
+                visible.field.widget.attrs['class'] = 'form-control'
+                visible.field.widget.attrs['placeholder'] = visible.field.label
 
     def clean_zoom_link(self):
         """Ensure empty zoom links are saved as empty string, not invalid URL"""
@@ -52,6 +55,7 @@ class LessonForm(forms.ModelForm):
             'teacher_notes', 'homework', 'private_note', 'status'
         )
         widgets = {
+            'lesson_content': CKEditor5Widget(config_name='default'),
             'teacher_notes': forms.Textarea(attrs={'rows': 4}),
             'homework': forms.Textarea(attrs={'rows': 4}),
             'private_note': forms.Textarea(attrs={'rows': 4}),
