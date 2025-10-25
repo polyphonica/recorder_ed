@@ -1,0 +1,13 @@
+<div class="text-sm breadcrumbs">
+    <ul>
+        {% for item in items %}
+            <li>
+                {% if item.url and not forloop.last %}
+                    <a href="{{ item.url }}" class="link link-hover">{{ item.text }}</a>
+                {% else %}
+                    <span class="{% if forloop.last %}font-semibold{% endif %}">{{ item.text }}</span>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+</div>

@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Edit Session - {{ workshop.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="breadcrumbs text-sm">
+            <ul>
+                <li><a href="{% url 'workshops:instructor_dashboard' %}">Instructor Dashboard</a></li>
+                <li><a href="{% url 'workshops:instructor_workshops' %}">My Workshops</a></li>
+                <li><a href="{% url 'workshops:detail' workshop.slug %}">{{ workshop.title }}</a></li>
+                <li><a href="{% url 'workshops:manage_sessions' workshop.slug %}">Manage Sessions</a></li>
+                <li>Edit Session</li>
+            </ul>
+        </div>
+        
+        <div class="flex justify-between items-start mt-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Edit Session</h1>
+                <p class="text-lg text-gray-600 mt-2">{{ workshop.title }}</p>
+                <div class="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
+                    <span><i class="fas fa-calendar mr-1"></i>{{ object.start_datetime|date:"M j, Y" }}</span>
+                    <span><i class="fas fa-clock mr-1"></i>{{ object.start_datetime|time:"g:i A" }} - {{ object.end_datetime|time:"g:i A" }}</span>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="flex gap-2">
+                <a href="{% url 'workshops:manage_sessions' workshop.slug %}" class="btn btn-outline btn-sm">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Sessions
+                </a>
+                <a href="{% url 'workshops:session_registrations' object.id %}" class="btn btn-ghost btn-sm">
+                    <i class="fas fa-users mr-2"></i>View Participants
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Session Form -->
+    <div class="bg-base-100 rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">
+            <i class="fas fa-edit mr-2 text-primary"></i>Edit Session Details
+        </h2>
+        
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            
+            <!-- Date and Time -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Start Date & Time</span>
+                        <span class="label-text-alt text-error">*</span>
+                    </label>
+                    {{ form.start_datetime }}
+                    {% if form.start_datetime.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.start_datetime.errors.0 }}</div>
+                    {% endif %}
+                    <div class="label">
+                        <span class="label-text-alt">{{ form.start_datetime.help_text }}</span>
+                    </div>
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">End Date & Time</span>
+                        <span class="label-text-alt text-error">*</span>
+                    </label>
+                    {{ form.end_datetime }}
+                    {% if form.end_datetime.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.end_datetime.errors.0 }}</div>
+                    {% endif %}
+                    <div class="label">
+                        <span class="label-text-alt">{{ form.end_datetime.help_text }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timezone -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">Timezone</span>
+                    <span class="label-text-alt text-error">*</span>
+                </label>
+                {{ form.timezone_name }}
+                {% if form.timezone_name.errors %}
+                    <div class="text-error text-sm mt-1">{{ form.timezone_name.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Capacity and Settings -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Maximum Participants</span>
+                        <span class="label-text-alt text-error">*</span>
+                    </label>
+                    {{ form.max_participants }}
+                    {% if form.max_participants.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.max_participants.errors.0 }}</div>
+                    {% endif %}
+                    <div class="label">
+                        <span class="label-text-alt">{{ form.max_participants.help_text }}</span>
+                    </div>
+                </div>
+                
+                <div class="form-control">
+                    <label class="label cursor-pointer">
+                        <span class="label-text font-medium">Enable Waitlist</span>
+                        {{ form.waitlist_enabled }}
+                    </label>
+                    {% if form.waitlist_enabled.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.waitlist_enabled.errors.0 }}</div>
+                    {% endif %}
+                    <div class="label">
+                        <span class="label-text-alt">{{ form.waitlist_enabled.help_text }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Meeting Details -->
+            <div class="divider">
+                <span class="text-sm font-medium">Meeting Details</span>
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">Meeting URL</span>
+                </label>
+                {{ form.meeting_url }}
+                {% if form.meeting_url.errors %}
+                    <div class="text-error text-sm mt-1">{{ form.meeting_url.errors.0 }}</div>
+                {% endif %}
+                <div class="label">
+                    <span class="label-text-alt">{{ form.meeting_url.help_text }}</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Meeting ID</span>
+                    </label>
+                    {{ form.meeting_id }}
+                    {% if form.meeting_id.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.meeting_id.errors.0 }}</div>
+                    {% endif %}
+                    <div class="label">
+                        <span class="label-text-alt">{{ form.meeting_id.help_text }}</span>
+                    </div>
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Meeting Password</span>
+                    </label>
+                    {{ form.meeting_password }}
+                    {% if form.meeting_password.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.meeting_password.errors.0 }}</div>
+                    {% endif %}
+                    <div class="label">
+                        <span class="label-text-alt">{{ form.meeting_password.help_text }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session Notes -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">Session Notes</span>
+                </label>
+                {{ form.session_notes }}
+                {% if form.session_notes.errors %}
+                    <div class="text-error text-sm mt-1">{{ form.session_notes.errors.0 }}</div>
+                {% endif %}
+                <div class="label">
+                    <span class="label-text-alt">{{ form.session_notes.help_text }}</span>
+                </div>
+            </div>
+
+            <!-- Form Errors -->
+            {% if form.non_field_errors %}
+                <div class="alert alert-error">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                        {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Submit Button -->
+            <div class="flex justify-end gap-4 pt-4">
+                <a href="{% url 'workshops:manage_sessions' workshop.slug %}" class="btn btn-ghost">
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save mr-2"></i>Update Session
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

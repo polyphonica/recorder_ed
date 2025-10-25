@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Teacher Dashboard - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Teacher Dashboard</h1>
+                <p class="text-base-content/70">Welcome back! Here's what's happening today.</p>
+            </div>
+            <a href="{% url 'private_teaching:teacher_settings' %}" class="btn btn-outline">
+                <i class="fas fa-cog mr-2"></i>Settings
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="stat bg-primary text-primary-content rounded-lg shadow-lg">
+            <div class="stat-title text-white text-lg font-semibold">Pending Requests</div>
+            <div class="stat-value text-white text-4xl">{{ pending_count }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                {% if pending_count > 0 %}
+                    {% if pending_count == 1 %}1 request{% else %}{{ pending_count }} requests{% endif %} awaiting your response
+                {% else %}
+                    All caught up!
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="stat bg-info text-info-content rounded-lg shadow-lg">
+            <div class="stat-title text-white text-lg font-semibold">Today's Lessons</div>
+            <div class="stat-value text-white text-4xl">{{ today_lessons.count }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                {% if today_lessons.count > 0 %}
+                    Scheduled for {{ today|date:"F j, Y" }}
+                {% else %}
+                    No lessons today
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="stat bg-success text-success-content rounded-lg shadow-lg">
+            <div class="stat-title text-success-content/70">Quick Actions</div>
+            <div class="stat-actions mt-4">
+                <a href="{% url 'private_teaching:incoming_requests' %}" class="btn btn-sm btn-outline btn-success-content">Review Requests</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Pending Requests -->
+        <div class="card card-section shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title text-2xl">Recent Requests</h2>
+                    {% if pending_count > 3 %}
+                        <a href="{% url 'private_teaching:incoming_requests' %}" class="btn btn-sm btn-outline">View All</a>
+                    {% endif %}
+                </div>
+                
+                {% if pending_requests %}
+                    <div class="space-y-4">
+                        {% for request in pending_requests|slice:":3" %}
+                            <div class="border border-base-300 rounded-lg p-4">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="font-semibold">{{ request.student.get_full_name|default:request.student.username }}</h3>
+                                    <span class="badge badge-warning">{{ request.get_status_display }}</span>
+                                </div>
+                                
+                                <div class="text-sm text-base-content/70 mb-3">
+                                    <p><strong>Requested:</strong> {{ request.created_at|date:"M j, Y" }}</p>
+                                    <p><strong>Lessons:</strong> {{ request.proposed_slots.count }} slot{{ request.proposed_slots.count|pluralize }}</p>
+                                </div>
+                                
+                                <!-- Show proposed slots -->
+                                <div class="space-y-2 mb-3">
+                                    {% for slot in request.proposed_slots.all|slice:":2" %}
+                                        <div class="bg-base-200 rounded px-3 py-2 text-sm">
+                                            <span class="font-medium">{{ slot.subject }}</span> • 
+                                            {{ slot.get_location_preference_display }} • 
+                                            {{ slot.proposed_date|date:"M j" }} at {{ slot.proposed_time|time:"g:i A" }} 
+                                            ({{ slot.duration_minutes }}min)
+                                        </div>
+                                    {% endfor %}
+                                    {% if request.proposed_slots.count > 2 %}
+                                        <p class="text-xs text-base-content/50">+ {{ request.proposed_slots.count|add:"-2" }} more slot{{ request.proposed_slots.count|add:"-2"|pluralize }}</p>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="flex gap-2">
+                                    <a href="{% url 'private_teaching:incoming_requests' %}" class="btn btn-sm btn-section-primary">Review</a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <div class="text-6xl mb-4">✨</div>
+                        <h3 class="text-xl font-semibold mb-2">No pending requests</h3>
+                        <p class="text-base-content/70">All lesson requests have been processed.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Today's Schedule -->
+        <div class="card card-section shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title text-2xl">Today's Schedule</h2>
+                    <a href="{% url 'private_teaching:teacher_schedule' %}" class="btn btn-sm btn-outline">Full Schedule</a>
+                </div>
+                
+                {% if today_lessons %}
+                    <div class="space-y-3">
+                        {% for lesson in today_lessons %}
+                            <div class="flex items-center justify-between border border-base-300 rounded-lg p-4">
+                                <div>
+                                    <h3 class="font-semibold">{{ lesson.subject }}</h3>
+                                    <p class="text-sm text-base-content/70">
+                                        {{ lesson.lesson_request.student.get_full_name|default:lesson.lesson_request.student.username }}
+                                    </p>
+                                    <p class="text-sm text-base-content/70">
+                                        {{ lesson.get_location_preference_display }}
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-lg font-bold">{{ lesson.proposed_time|time:"g:i A" }}</div>
+                                    <div class="text-sm text-base-content/70">{{ lesson.duration_minutes }}min</div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <div class="text-6xl mb-4">🎵</div>
+                        <h3 class="text-xl font-semibold mb-2">No lessons today</h3>
+                        <p class="text-base-content/70">Enjoy your day off!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="mt-8">
+        <div class="card card-section shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-bolt mr-2"></i>Quick Links
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <a href="{% url 'private_teaching:teacher_library' %}" class="btn btn-outline btn-lg">
+                        <i class="fas fa-book mr-2"></i>Document Library
+                    </a>
+                    <a href="{% url 'private_teaching:calendar' %}" class="btn btn-outline btn-lg">
+                        <i class="fas fa-calendar mr-2"></i>View Calendar
+                    </a>
+                    <a href="{% url 'private_teaching:teacher_schedule' %}" class="btn btn-outline btn-lg">
+                        <i class="fas fa-clock mr-2"></i>Schedule
+                    </a>
+                    <a href="{% url 'private_teaching:teacher_settings' %}" class="btn btn-outline btn-lg">
+                        <i class="fas fa-cog mr-2"></i>Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

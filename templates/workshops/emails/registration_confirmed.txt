@@ -1,0 +1,23 @@
+Subject: Registration Confirmed - {{ session.workshop.title }}
+
+Hi {{ registration.student.first_name|default:registration.student.username }},
+
+Excellent! Your registration for "{{ session.workshop.title }}" has been confirmed.
+
+Session Details:
+- Workshop: {{ session.workshop.title }}
+- Date: {{ session.start_datetime|date:"l, F j, Y" }}
+- Time: {{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}
+- Instructor: {{ session.workshop.instructor.display_name }}
+{% if session.location %}- Location: {{ session.location }}{% endif %}
+{% if session.meeting_url %}- Meeting URL: {{ session.meeting_url }}{% endif %}
+
+What's Next:
+- Add this session to your calendar
+- Check for any pre-session materials: {{ materials_url }}
+- Prepare any questions you'd like to ask
+
+We look forward to seeing you in the workshop!
+
+Best regards,
+The {{ site_name }} Team

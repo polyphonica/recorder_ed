@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Successful - Private Lessons{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    {% if order %}
+        <!-- Success Message -->
+        <div class="text-center mb-8">
+            <div class="text-6xl text-green-500 mb-4">
+                ✅
+            </div>
+            <h1 class="text-3xl font-bold text-green-800 mb-2">Payment Successful!</h1>
+            <p class="text-gray-600">
+                Your lesson payment has been processed successfully.
+            </p>
+        </div>
+
+        <!-- Order Details -->
+        <div class="max-w-4xl mx-auto">
+            <div class="card card-section shadow-xl mb-6">
+                <div class="card-body">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="card-title text-2xl">Order Confirmation</h2>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-500">Order Number</div>
+                            <div class="font-mono text-lg font-bold">{{ order.order_number }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <h3 class="font-semibold text-gray-700 mb-2">Order Details</h3>
+                            <div class="space-y-1 text-sm">
+                                <div><span class="text-gray-500">Date:</span> {{ order.created_at|date:"M j, Y g:i A" }}</div>
+                                <div><span class="text-gray-500">Payment Method:</span> {{ order.payment_method|title }}</div>
+                                <div><span class="text-gray-500">Status:</span> 
+                                    <span class="badge badge-success">{{ order.get_payment_status_display }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="font-semibold text-gray-700 mb-2">Total Amount</h3>
+                            <div class="text-3xl font-bold text-green-600">
+                                ${{ order.total_amount|floatformat:2 }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Purchased Lessons -->
+            <div class="card card-section shadow-xl mb-6">
+                <div class="card-body">
+                    <h2 class="card-title text-xl mb-4">Your Lessons</h2>
+                    
+                    <div class="space-y-4">
+                        {% for item in order_items %}
+                        <div class="border border-gray-200 rounded-lg p-4 bg-white">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-lg text-green-800">
+                                        {{ item.lesson.subject.subject }}
+                                    </h3>
+                                    <div class="text-sm text-gray-600 mt-1">
+                                        <div class="flex items-center gap-4 flex-wrap">
+                                            <span>📅 {{ item.lesson.lesson_date|date:"M j, Y" }}</span>
+                                            <span>🕐 {{ item.lesson.lesson_time }}</span>
+                                            <span>⏱️ {{ item.lesson.duration_in_minutes }} minutes</span>
+                                            <span class="badge badge-success">Paid</span>
+                                        </div>
+                                    </div>
+                                    {% if item.lesson.location %}
+                                    <div class="text-sm text-gray-600 mt-1">
+                                        📍 {{ item.lesson.location }}
+                                    </div>
+                                    {% endif %}
+                                    {% if item.lesson.teacher %}
+                                    <div class="text-sm text-gray-600 mt-1">
+                                        👨‍🏫 {{ item.lesson.teacher.get_full_name }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="text-right ml-4">
+                                    <div class="text-lg font-semibold text-green-600">
+                                        ${{ item.price_paid|floatformat:0 }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Steps -->
+            <div class="card card-section shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-xl mb-4">What's Next?</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center p-4">
+                            <div class="text-3xl mb-2">📧</div>
+                            <h3 class="font-semibold mb-2">Confirmation Email</h3>
+                            <p class="text-sm text-gray-600">
+                                You'll receive a confirmation email with your lesson details.
+                            </p>
+                        </div>
+                        
+                        <div class="text-center p-4">
+                            <div class="text-3xl mb-2">👨‍🏫</div>
+                            <h3 class="font-semibold mb-2">Teacher Contact</h3>
+                            <p class="text-sm text-gray-600">
+                                Your teacher will contact you to confirm lesson logistics.
+                            </p>
+                        </div>
+                        
+                        <div class="text-center p-4">
+                            <div class="text-3xl mb-2">📅</div>
+                            <h3 class="font-semibold mb-2">Calendar Integration</h3>
+                            <p class="text-sm text-gray-600">
+                                Your lessons will appear in your student calendar.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="text-center mt-8">
+                <div class="flex gap-4 justify-center flex-wrap">
+                    <a href="{% url 'private_teaching:my_lessons' %}" class="btn btn-section-primary">
+                        <i class="fas fa-calendar mr-2"></i>View My Lessons
+                    </a>
+                    <a href="{% url 'private_teaching:student_dashboard' %}" class="btn btn-outline">
+                        <i class="fas fa-home mr-2"></i>Back to Dashboard
+                    </a>
+                    <a href="{% url 'private_teaching:request_lesson' %}" class="btn btn-outline">
+                        <i class="fas fa-plus mr-2"></i>Book More Lessons
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    {% else %}
+        <!-- Error State -->
+        <div class="card card-section shadow-xl max-w-2xl mx-auto">
+            <div class="card-body text-center py-16">
+                <div class="text-6xl text-red-500 mb-4">
+                    ❌
+                </div>
+                <h1 class="text-2xl font-bold text-red-600 mb-4">Order Not Found</h1>
+                <p class="text-gray-600 mb-6">
+                    The order you're looking for doesn't exist or doesn't belong to your account.
+                </p>
+                <a href="{% url 'private_teaching:student_dashboard' %}" class="btn btn-section-primary">
+                    <i class="fas fa-home mr-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

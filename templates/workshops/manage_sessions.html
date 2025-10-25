@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Manage Sessions - {{ workshop.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="breadcrumbs text-sm">
+            <ul>
+                <li><a href="{% url 'workshops:instructor_dashboard' %}">Instructor Dashboard</a></li>
+                <li><a href="{% url 'workshops:instructor_workshops' %}">My Workshops</a></li>
+                <li><a href="{% url 'workshops:detail' workshop.slug %}">{{ workshop.title }}</a></li>
+                <li>Manage Sessions</li>
+            </ul>
+        </div>
+        
+        <div class="flex justify-between items-start mt-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Manage Sessions</h1>
+                <p class="text-lg text-gray-600 mt-2">{{ workshop.title }}</p>
+                <div class="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
+                    <span><i class="fas fa-tag mr-1"></i>{{ workshop.category.name }}</span>
+                    <span><i class="fas fa-clock mr-1"></i>{{ workshop.duration_display }}</span>
+                    <span class="badge {% if workshop.status == 'published' %}badge-success{% else %}badge-warning{% endif %} badge-sm">
+                        {{ workshop.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="flex gap-2">
+                <a href="{% url 'workshops:detail' workshop.slug %}" class="btn btn-outline btn-sm">
+                    <i class="fas fa-eye mr-2"></i>Preview
+                </a>
+                <a href="{% url 'workshops:edit_workshop' workshop.slug %}" class="btn btn-ghost btn-sm">
+                    <i class="fas fa-edit mr-2"></i>Edit Workshop
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create New Session -->
+    <div class="bg-base-100 rounded-lg shadow p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">
+            <i class="fas fa-plus-circle mr-2 text-primary"></i>Create New Session
+        </h2>
+        
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_session">
+            
+            <!-- Display form errors at the top -->
+            {% if session_form.non_field_errors %}
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <h3>Form Errors:</h3>
+                        {{ session_form.non_field_errors }}
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Display all form errors for debugging -->
+            {% if session_form.errors %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <h3>Field Errors:</h3>
+                        <ul>
+                            {% for field, errors in session_form.errors.items %}
+                                <li><strong>{{ field }}:</strong> {{ errors|join:", " }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Start Date & Time</span>
+                    </label>
+                    {{ session_form.start_datetime }}
+                    {% if session_form.start_datetime.errors %}
+                        <div class="text-error text-sm mt-1">{{ session_form.start_datetime.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">End Date & Time</span>
+                    </label>
+                    {{ session_form.end_datetime }}
+                    {% if session_form.end_datetime.errors %}
+                        <div class="text-error text-sm mt-1">{{ session_form.end_datetime.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Timezone</span>
+                    </label>
+                    {{ session_form.timezone_name }}
+                    {% if session_form.timezone_name.errors %}
+                        <div class="text-error text-sm mt-1">{{ session_form.timezone_name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Max Participants</span>
+                    </label>
+                    {{ session_form.max_participants }}
+                    {% if session_form.max_participants.errors %}
+                        <div class="text-error text-sm mt-1">{{ session_form.max_participants.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-control lg:col-span-2">
+                    <label class="label">
+                        <span class="label-text font-medium">Meeting URL</span>
+                        <span class="label-text-alt">Zoom, Teams, etc.</span>
+                    </label>
+                    {{ session_form.meeting_url }}
+                    {% if session_form.meeting_url.errors %}
+                        <div class="text-error text-sm mt-1">{{ session_form.meeting_url.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-control">
+                    <label class="label cursor-pointer">
+                        {{ session_form.waitlist_enabled }}
+                        <span class="label-text font-medium">Enable Waitlist</span>
+                    </label>
+                    {% if session_form.waitlist_enabled.errors %}
+                        <div class="text-error text-sm mt-1">{{ session_form.waitlist_enabled.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-control lg:col-span-3">
+                    <label class="label">
+                        <span class="label-text font-medium">Session Notes</span>
+                        <span class="label-text-alt">Special instructions for this session</span>
+                    </label>
+                    {{ session_form.session_notes }}
+                    {% if session_form.session_notes.errors %}
+                        <div class="text-error text-sm mt-1">{{ session_form.session_notes.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="flex gap-4 pt-4 border-t">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-calendar-plus mr-2"></i>Create Session
+                </button>
+                <button type="button" onclick="document.querySelector('form').reset()" class="btn btn-ghost">
+                    <i class="fas fa-undo mr-2"></i>Reset Form
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Existing Sessions -->
+    <div class="bg-base-100 rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b">
+            <h2 class="text-xl font-semibold text-gray-900">
+                <i class="fas fa-calendar-alt mr-2 text-secondary"></i>
+                Scheduled Sessions ({{ sessions|length }})
+            </h2>
+        </div>
+        
+        {% if sessions %}
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Participants</th>
+                            <th>Status</th>
+                            <th>Registration Stats</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in sessions %}
+                        <tr>
+                            <td>
+                                <div>
+                                    <div class="font-semibold">
+                                        {{ session.start_datetime|date:"l, M j, Y" }}
+                                    </div>
+                                    <div class="text-sm text-gray-500">
+                                        {{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}
+                                    </div>
+                                    {% if session.meeting_url %}
+                                        <a href="{{ session.meeting_url }}" target="_blank" 
+                                           class="text-xs text-primary hover:underline">
+                                            <i class="fas fa-video mr-1"></i>Meeting Link
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            
+                            <td>
+                                <div class="text-center">
+                                    <div class="text-lg font-semibold">
+                                        {{ session.current_registrations }}/{{ session.max_participants }}
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        {% if session.spots_remaining > 0 %}
+                                            {{ session.spots_remaining }} spots left
+                                        {% else %}
+                                            {% if session.waitlist_enabled %}Waitlist available{% else %}Full{% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <td>
+                                {% if session.is_cancelled %}
+                                    <div class="badge badge-error">Cancelled</div>
+                                {% elif session.is_past %}
+                                    <div class="badge badge-ghost">Completed</div>
+                                {% elif session.is_ongoing %}
+                                    <div class="badge badge-warning">In Progress</div>
+                                {% else %}
+                                    <div class="badge badge-success">Upcoming</div>
+                                {% endif %}
+                            </td>
+                            
+                            <td>
+                                <div class="text-xs space-y-1">
+                                    <div>
+                                        <span class="badge badge-primary badge-xs mr-1"></span>
+                                        {{ session.registration_stats.registered }} registered
+                                    </div>
+                                    {% if session.registration_stats.waitlisted > 0 %}
+                                    <div>
+                                        <span class="badge badge-warning badge-xs mr-1"></span>
+                                        {{ session.registration_stats.waitlisted }} waitlisted
+                                    </div>
+                                    {% endif %}
+                                    {% if session.registration_stats.attended > 0 %}
+                                    <div>
+                                        <span class="badge badge-success badge-xs mr-1"></span>
+                                        {{ session.registration_stats.attended }} attended
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            
+                            <td>
+                                <div class="flex gap-1">
+                                    <!-- Always visible action buttons -->
+                                    <a href="{% url 'workshops:session_registrations' session.id %}" 
+                                       class="btn btn-ghost btn-xs" title="View Participants">
+                                        <i class="fas fa-users"></i>
+                                    </a>
+                                    <a href="{% url 'workshops:session_materials' session.id %}" 
+                                       class="btn btn-info btn-xs" title="Manage Materials">
+                                        <i class="fas fa-file-alt"></i>
+                                    </a>
+                                    <a href="{% url 'workshops:edit_session' session.id %}" 
+                                       class="btn btn-primary btn-xs" title="Edit Session">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if not session.is_past %}
+                                    <button onclick="return confirm('Are you sure you want to cancel this session? This action cannot be undone.')" 
+                                            class="btn btn-error btn-xs" title="Cancel Session">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-12">
+                <div class="text-gray-400 text-6xl mb-4">
+                    <i class="fas fa-calendar-plus"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-700 mb-2">No sessions scheduled yet</h3>
+                <p class="text-gray-600 mb-4">Create your first session to start accepting registrations.</p>
+                <button onclick="document.querySelector('input[name=start_datetime]').focus()" 
+                        class="btn btn-primary">
+                    <i class="fas fa-plus mr-2"></i>Schedule First Session
+                </button>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- Quick Tips -->
+    <div class="mt-8 bg-base-200 rounded-lg p-6">
+        <h3 class="font-semibold text-gray-900 mb-3">
+            <i class="fas fa-lightbulb mr-2 text-yellow-500"></i>Session Management Tips
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+            <div>
+                <strong>Scheduling:</strong> Allow buffer time between sessions for preparation and Q&A.
+            </div>
+            <div>
+                <strong>Capacity:</strong> Set realistic participant limits based on your teaching style.
+            </div>
+            <div>
+                <strong>Waitlists:</strong> Enable waitlists to capture demand and fill cancellations.
+            </div>
+            <div>
+                <strong>Meeting Links:</strong> Add Zoom/Teams links so participants can join easily.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function editSession(sessionId) {
+    // TODO: Implement session editing modal or redirect
+    alert('Session editing feature coming soon!');
+}
+
+function cancelSession(sessionId) {
+    if (confirm('Are you sure you want to cancel this session? This action cannot be undone.')) {
+        // TODO: Implement session cancellation
+        alert('Session cancellation feature coming soon!');
+    }
+}
+
+// Auto-calculate end time based on workshop duration
+document.addEventListener('DOMContentLoaded', function() {
+    const startInput = document.querySelector('input[name="start_datetime"]');
+    const endInput = document.querySelector('input[name="end_datetime"]');
+    const duration = 120; // Default 2 hours
+    
+    if (startInput && endInput) {
+        startInput.addEventListener('change', function() {
+            if (this.value && !endInput.value) {
+                const startDate = new Date(this.value);
+                const endDate = new Date(startDate.getTime() + duration * 60000);
+                
+                // Format for datetime-local input
+                const year = endDate.getFullYear();
+                const month = String(endDate.getMonth() + 1).padStart(2, '0');
+                const day = String(endDate.getDate()).padStart(2, '0');
+                const hours = String(endDate.getHours()).padStart(2, '0');
+                const minutes = String(endDate.getMinutes()).padStart(2, '0');
+                
+                endInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

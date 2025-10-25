@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}All Expenses{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">All Expenses</h1>
+                <p class="text-base-content/70">Manage your business expenses</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'expenses:expense_add' %}" class="btn btn-primary">
+                    <i class="fas fa-plus mr-2"></i>Add Expense
+                </a>
+                <a href="{% url 'expenses:dashboard' %}" class="btn btn-outline">
+                    <i class="fas fa-chart-line mr-2"></i>Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <form method="get">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    {{ filter_form.search }}
+                    {{ filter_form.business_area }}
+                    {{ filter_form.category }}
+                    {{ filter_form.date_from }}
+                    {{ filter_form.date_to }}
+                </div>
+                <div class="flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter mr-2"></i>Apply Filters
+                    </button>
+                    <a href="{% url 'expenses:expense_list' %}" class="btn btn-outline">Clear</a>
+                    <a href="{% url 'expenses:expense_export' %}?{{ request.GET.urlencode }}" class="btn btn-success">
+                        <i class="fas fa-download mr-2"></i>Export CSV
+                    </a>
+                </div>
+            </form>
+            <div class="mt-4 text-sm text-base-content/70">
+                Total: {{ page_obj.paginator.count }} expense{{ page_obj.paginator.count|pluralize }} |
+                Filtered Total: <span class="font-semibold">£{{ filtered_total|floatformat:2|intcomma }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expenses Table -->
+    {% if expenses %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Business Area</th>
+                            <th>Category</th>
+                            <th>Supplier</th>
+                            <th>Amount</th>
+                            <th>Receipt</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr>
+                            <td>{{ expense.date|date:"M j, Y" }}</td>
+                            <td>
+                                <div class="font-medium">{{ expense.description|truncatewords:10 }}</div>
+                                {% if expense.workshop %}
+                                <div class="text-xs text-base-content/70">
+                                    <i class="fas fa-users mr-1"></i>{{ expense.workshop.title|truncatewords:5 }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td><span class="badge badge-primary">{{ expense.get_business_area_display }}</span></td>
+                            <td>{{ expense.category.name }}</td>
+                            <td>{{ expense.supplier|truncatewords:5 }}</td>
+                            <td class="font-semibold">£{{ expense.amount|floatformat:2|intcomma }}</td>
+                            <td>
+                                {% if expense.receipt_file %}
+                                <a href="{{ expense.receipt_file.url }}" target="_blank" class="btn btn-xs btn-info">
+                                    <i class="fas fa-file"></i>
+                                </a>
+                                {% else %}
+                                <span class="text-base-content/30">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="flex gap-1">
+                                    <a href="{% url 'expenses:expense_edit' expense.pk %}" class="btn btn-xs btn-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'expenses:expense_delete' expense.pk %}" class="btn btn-xs btn-error">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="flex justify-center mt-6">
+                <div class="btn-group">
+                    {% if page_obj.has_previous %}
+                    <a href="?page=1&{{ request.GET.urlencode }}" class="btn btn-sm">«</a>
+                    <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}" class="btn btn-sm">‹</a>
+                    {% endif %}
+
+                    <button class="btn btn-sm btn-active">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</button>
+
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}" class="btn btn-sm">›</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}" class="btn btn-sm">»</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="text-center py-12">
+                <i class="fas fa-inbox text-6xl text-base-content/30 mb-4"></i>
+                <h3 class="text-2xl font-medium text-base-content/70 mb-2">No expenses found</h3>
+                <p class="text-base-content/50 mb-4">Start tracking your business expenses</p>
+                <a href="{% url 'expenses:expense_add' %}" class="btn btn-primary">
+                    <i class="fas fa-plus mr-2"></i>Add Your First Expense
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

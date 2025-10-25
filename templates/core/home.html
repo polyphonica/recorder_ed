@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% load design_system %}
+
+{% block title %}Home - {{ block.super }}{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero min-h-screen bg-gradient-to-r from-primary to-secondary text-primary-content">
+    <div class="hero-content text-center">
+        <div class="max-w-md">
+            <h1 class="mb-5 text-5xl font-bold">Learn. Grow. Succeed.</h1>
+            <p class="mb-5">Transform your career with our comprehensive educational platform. Expert-led courses, hands-on projects, and personalized learning paths.</p>
+            <button class="btn btn-outline btn-lg">Get Started</button>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Section -->
+<div class="py-16 bg-base-200">
+    <div class="container mx-auto">
+        <h2 class="text-3xl font-bold text-center mb-12">Platform Impact</h2>
+        <div class="stats stats-vertical lg:stats-horizontal shadow w-full">
+            {% for stat in stats %}
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title">{{ stat.label }}</div>
+                    <div class="stat-value text-{{ stat.color }}">{{ stat.value }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Featured Courses -->
+<div class="py-16">
+    <div class="container mx-auto">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold mb-4">Featured Courses</h2>
+            <p class="text-lg text-base-content/70">Discover our most popular and highly-rated courses</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for course in featured_courses %}
+                <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+                    {% if course.image %}
+                        <figure><img src="{{ course.image }}" alt="{{ course.title }}" class="h-48 w-full object-cover" /></figure>
+                    {% endif %}
+                    <div class="card-body">
+                        <h2 class="card-title">
+                            {{ course.title }}
+                            {% if course.price %}<div class="badge badge-secondary">${{ course.price }}</div>{% endif %}
+                        </h2>
+                        {% if course.description %}<p class="text-base-content/70">{{ course.description }}</p>{% endif %}
+                        
+                        {% if course.rating or course.students %}
+                            <div class="flex items-center gap-4 text-sm text-base-content/60 mt-2">
+                                {% if course.rating %}
+                                    <div class="flex items-center gap-1">
+                                        <span>⭐ {{ course.rating }}</span>
+                                    </div>
+                                {% endif %}
+                                {% if course.students %}
+                                    <div class="flex items-center gap-1">
+                                        <span>👥 {{ course.students }} students</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="card-actions justify-end mt-4">
+                            <button class="btn btn-primary">Enroll Now</button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <div class="text-center mt-12">
+            <button class="btn btn-primary btn-lg">View All Courses</button>
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section -->
+<div class="py-16 bg-primary text-primary-content">
+    <div class="container mx-auto text-center">
+        <h2 class="text-3xl font-bold mb-4">Ready to Start Learning?</h2>
+        <p class="text-lg mb-8">Join thousands of students who have transformed their careers</p>
+        <div class="flex gap-4 justify-center">
+            <button class="btn btn-outline btn-lg">Start Free Trial</button>
+            <button class="btn btn-ghost btn-lg">View Pricing</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

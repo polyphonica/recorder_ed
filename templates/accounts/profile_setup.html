@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if is_setup %}Complete Your Profile{% else %}Edit Profile{% endif %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title justify-center mb-6">
+                    {% if is_setup %}
+                        Complete Your Profile
+                    {% else %}
+                        Edit Profile
+                    {% endif %}
+                </h2>
+                
+                {% if is_setup %}
+                    <div class="alert alert-info mb-6">
+                        <span>Please complete your profile to continue using the platform.</span>
+                    </div>
+                {% endif %}
+                
+                {% if form.errors %}
+                    <div class="alert alert-error mb-4">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">First Name *</span>
+                            </label>
+                            {{ form.first_name }}
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Last Name *</span>
+                            </label>
+                            {{ form.last_name }}
+                        </div>
+                    </div>
+                    
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">Phone Number</span>
+                        </label>
+                        {{ form.phone }}
+                    </div>
+                    
+                    <div class="divider">Address Information</div>
+                    
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">Address Line 1</span>
+                        </label>
+                        {{ form.address_line_1 }}
+                    </div>
+                    
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">Address Line 2</span>
+                        </label>
+                        {{ form.address_line_2 }}
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">City</span>
+                            </label>
+                            {{ form.city }}
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">State/Province</span>
+                            </label>
+                            {{ form.state_province }}
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Postal Code</span>
+                            </label>
+                            {{ form.postal_code }}
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Country</span>
+                            </label>
+                            {{ form.country }}
+                        </div>
+                    </div>
+                    
+                    <div class="divider">Profile Image</div>
+                    
+                    <div class="form-control mb-6">
+                        <label class="label">
+                            <span class="label-text">Profile Photo (Optional)</span>
+                        </label>
+                        {{ form.profile_image }}
+                        <label class="label">
+                            <span class="label-text-alt">Upload a profile photo or leave blank for default avatar</span>
+                        </label>
+                    </div>
+                    
+                    <div class="form-control">
+                        <button type="submit" class="btn btn-primary">
+                            {% if is_setup %}
+                                Complete Profile
+                            {% else %}
+                                Update Profile
+                            {% endif %}
+                        </button>
+                    </div>
+                    
+                    {% if not is_setup %}
+                        <div class="form-control mt-4">
+                            <a href="{% url 'workshops:student_dashboard' %}" class="btn btn-outline">
+                                Back to Dashboard
+                            </a>
+                        </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

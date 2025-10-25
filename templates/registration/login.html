@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Login - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100 flex items-center justify-center">
+    <div class="card w-96 bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title justify-center mb-6">Login to Continue</h2>
+            
+            {% if form.errors %}
+                <div class="alert alert-error mb-4">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text">Email Address</span>
+                    </label>
+                    <input type="email" 
+                           name="username" 
+                           value="{{ form.username.value|default:'' }}"
+                           placeholder="Enter your email address" 
+                           class="input input-bordered" 
+                           required />
+                </div>
+                
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text">Password</span>
+                    </label>
+                    <input type="password" 
+                           name="password" 
+                           placeholder="Enter your password" 
+                           class="input input-bordered" 
+                           required />
+                    <label class="label">
+                        <a href="{% url 'password_reset' %}" class="label-text-alt link link-hover">Forgot password?</a>
+                    </label>
+                </div>
+                
+                <div class="form-control">
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </div>
+                
+                {% if next %}
+                    <input type="hidden" name="next" value="{{ next }}" />
+                {% endif %}
+            </form>
+            
+            <div class="divider">OR</div>
+            
+            <div class="text-center">
+                <p class="text-sm text-base-content/70 mb-4">
+                    Don't have an account yet?
+                </p>
+                <a href="{% url 'accounts:signup' %}" class="btn btn-outline btn-sm">
+                    Create Account
+                </a>
+                <p class="text-xs text-base-content/50 mt-2">
+                    Use your email address to log in
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    margin: 2rem auto;
+}
+</style>
+{% endblock %}

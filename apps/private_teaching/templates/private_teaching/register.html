@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Registration - RECORDERED{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-2xl w-full space-y-8">
+        <div class="card card-section shadow-xl">
+        <div class="card-body">
+            <h1 class="card-title text-3xl mb-6">Register as Student</h1>
+            <p class="mb-6">Join RECORDERED to request private music lessons from experienced instructors.</p>
+            
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Username -->
+                <div class="form-control">
+                    <label class="label" for="{{ form.username.id_for_label }}">
+                        <span class="label-text font-medium">Username *</span>
+                    </label>
+                    {{ form.username }}
+                    {% if form.username.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.username.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <!-- Personal Information -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label" for="{{ form.first_name.id_for_label }}">
+                            <span class="label-text font-medium">First Name *</span>
+                        </label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.first_name.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" for="{{ form.last_name.id_for_label }}">
+                            <span class="label-text font-medium">Last Name *</span>
+                        </label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.last_name.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Email and Phone -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label" for="{{ form.email.id_for_label }}">
+                            <span class="label-text font-medium">Email *</span>
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.email.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" for="{{ form.phone.id_for_label }}">
+                            <span class="label-text font-medium">Phone *</span>
+                        </label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.phone.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Age Verification -->
+                <div class="form-control">
+                    <label class="cursor-pointer label justify-start">
+                        {{ form.under_eighteen }}
+                        <span class="label-text ml-3">{{ form.under_eighteen.label }}</span>
+                    </label>
+                    {% if form.under_eighteen.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.under_eighteen.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <!-- Guardian Information (Initially Hidden) -->
+                <div id="guardian-section" class="space-y-4" style="display: none;">
+                    <div class="divider">Guardian Information</div>
+                    <p class="text-sm text-gray-600">Since you are under 18, we need your guardian's information.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label" for="{{ form.guardian_first_name.id_for_label }}">
+                                <span class="label-text font-medium">Guardian First Name *</span>
+                            </label>
+                            {{ form.guardian_first_name }}
+                            {% if form.guardian_first_name.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.guardian_first_name.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label" for="{{ form.guardian_last_name.id_for_label }}">
+                                <span class="label-text font-medium">Guardian Last Name *</span>
+                            </label>
+                            {{ form.guardian_last_name }}
+                            {% if form.guardian_last_name.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.guardian_last_name.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label" for="{{ form.guardian_email.id_for_label }}">
+                                <span class="label-text font-medium">Guardian Email *</span>
+                            </label>
+                            {{ form.guardian_email }}
+                            {% if form.guardian_email.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.guardian_email.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label" for="{{ form.guardian_phone.id_for_label }}">
+                                <span class="label-text font-medium">Guardian Phone *</span>
+                            </label>
+                            {{ form.guardian_phone }}
+                            {% if form.guardian_phone.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.guardian_phone.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Password Fields -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label" for="{{ form.password1.id_for_label }}">
+                            <span class="label-text font-medium">Password *</span>
+                        </label>
+                        {{ form.password1 }}
+                        {% if form.password1.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.password1.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" for="{{ form.password2.id_for_label }}">
+                            <span class="label-text font-medium">Confirm Password *</span>
+                        </label>
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.password2.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="card-actions justify-end">
+                    <a href="{% url 'private_teaching:home' %}" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-section-primary">Register</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Show/hide guardian fields based on under_eighteen checkbox
+document.addEventListener('DOMContentLoaded', function() {
+    const underEighteenCheckbox = document.getElementById('under_eighteen');
+    const guardianSection = document.getElementById('guardian-section');
+    const guardianFields = document.querySelectorAll('.guardian-field');
+
+    function toggleGuardianFields() {
+        if (underEighteenCheckbox.checked) {
+            guardianSection.style.display = 'block';
+            guardianFields.forEach(field => {
+                field.style.display = 'block';
+                field.required = true;
+            });
+        } else {
+            guardianSection.style.display = 'none';
+            guardianFields.forEach(field => {
+                field.style.display = 'none';
+                field.required = false;
+                field.value = '';
+            });
+        }
+    }
+
+    underEighteenCheckbox.addEventListener('change', toggleGuardianFields);
+    toggleGuardianFields(); // Run on page load
+});
+</script>
+{% endblock %}

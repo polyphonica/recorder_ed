@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Private Teaching - RECORDERED{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8">
+    <!-- Hero Section -->
+    <div class="hero hero-section rounded-lg mb-8">
+        <div class="hero-content text-center">
+            <div class="max-w-md">
+                <h1 class="text-5xl font-bold">Private Lessons</h1>
+                <p class="py-6">One-on-one music lessons tailored to your needs. Request lessons from experienced instructors.</p>
+                {% if user.is_authenticated and user.profile.is_student and user.profile.profile_completed %}
+                    <a href="{% url 'private_teaching:request_lesson' %}" class="btn btn-section-primary">Request a Lesson</a>
+                {% elif user.is_authenticated and not user.profile.profile_completed %}
+                    <a href="{% url 'private_teaching:profile_complete' %}" class="btn btn-warning">Complete Profile</a>
+                {% elif user.is_authenticated and not user.profile.is_student %}
+                    <div class="space-y-4">
+                        <p class="text-sm">You need to register as a student to access private teaching.</p>
+                        <a href="{% url 'private_teaching:register' %}" class="btn btn-section-primary">Register as Student</a>
+                    </div>
+                {% else %}
+                    <div class="space-y-4">
+                        <a href="{% url 'private_teaching:login' %}?next={% url 'private_teaching:home' %}" class="btn btn-section-primary">Login</a>
+                        <div class="divider">OR</div>
+                        <a href="{% url 'private_teaching:register' %}" class="btn btn-outline">Register as Student</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Available Subjects -->
+    <div class="mb-8">
+        <h2 class="text-3xl font-bold mb-6">Available Subjects</h2>
+        {% if subjects %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for subject in subjects %}
+                    <div class="card card-section shadow-xl">
+                        <div class="card-body">
+                            <h3 class="card-title">{{ subject.subject }}</h3>
+                            {% if subject.description %}
+                                <p>{{ subject.description }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <span>No subjects available at the moment. Check back soon!</span>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Requests (for authenticated students) -->
+    {% if user.is_authenticated and user.profile.is_student and user.profile.profile_completed and recent_requests %}
+        <div class="mb-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-bold">Your Recent Requests</h2>
+                <a href="{% url 'private_teaching:my_requests' %}" class="btn btn-outline">View All</a>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for request in recent_requests %}
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body">
+                            <h3 class="card-title">{{ request.subject }}</h3>
+                            <div class="badge badge-{{ request.status|default:'secondary' }}">{{ request.get_status_display }}</div>
+                            <p class="text-sm text-gray-600">{{ request.created_at|date:"M d, Y" }}</p>
+                            {% if request.preferred_day %}
+                                <p class="text-sm">Preferred: {{ request.get_preferred_day_display }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- How It Works -->
+    <div class="mb-8">
+        <h2 class="text-3xl font-bold mb-6">How It Works</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="text-center">
+                <div class="text-4xl mb-4">📝</div>
+                <h3 class="text-xl font-bold mb-2">1. Request Lessons</h3>
+                <p>Tell us what you want to learn and your preferences</p>
+            </div>
+            <div class="text-center">
+                <div class="text-4xl mb-4">🎓</div>
+                <h3 class="text-xl font-bold mb-2">2. Get Matched</h3>
+                <p>Our instructors will review your request and respond</p>
+            </div>
+            <div class="text-center">
+                <div class="text-4xl mb-4">🎵</div>
+                <h3 class="text-xl font-bold mb-2">3. Start Learning</h3>
+                <p>Begin your musical journey with personalized lessons</p>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

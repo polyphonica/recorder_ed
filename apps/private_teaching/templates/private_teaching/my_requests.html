@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Lesson Requests - RECORDERED{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-4xl font-bold">My Lesson Requests</h1>
+        <a href="{% url 'private_teaching:request_lesson' %}" class="btn btn-section-primary">New Request</a>
+    </div>
+
+    {% if lesson_requests %}
+        <div class="space-y-6">
+            {% for request in lesson_requests %}
+                <div class="card card-section shadow-xl">
+                    <div class="card-body">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h3 class="card-title text-2xl">
+                                    Lesson Request
+                                    {% if request.teacher %}
+                                        with {{ request.teacher.get_full_name|default:request.teacher.username }}
+                                    {% endif %}
+                                </h3>
+                                <div class="text-sm text-base-content/70 mt-1">
+                                    {{ request.lessons.count }} lesson{{ request.lessons.count|pluralize }}
+                                    • Submitted {{ request.created_at|date:"M d, Y" }}
+                                </div>
+                            </div>
+                            <a href="{% url 'private_teaching:student_request_detail' request.id %}" class="btn btn-sm btn-outline">
+                                View Details →
+                            </a>
+                        </div>
+
+                        <!-- Lessons Summary -->
+                        {% if request.lessons.all %}
+                            <div class="mt-4">
+                                {% with accepted_unpaid=request.lessons.all|dictsort:"approved_status" %}
+                                    {% for lesson in accepted_unpaid %}
+                                        {% if lesson.approved_status == 'Accepted' and lesson.payment_status == 'Not Paid' and not lesson.is_deleted %}
+                                            {% if forloop.first %}
+                                                <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="text-green-800">
+                                                            <i class="fas fa-check-circle mr-2"></i>
+                                                            You have approved lessons ready for payment!
+                                                        </div>
+                                                        <form method="post" action="{% url 'private_teaching:add_all_to_cart' request.id %}">
+                                                            {% csrf_token %}
+                                                            <button type="submit" class="btn btn-sm btn-success">
+                                                                <i class="fas fa-shopping-cart mr-1"></i>Add All to Cart
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endwith %}
+
+                                <div class="space-y-3">
+                                    {% for lesson in request.lessons.all %}
+                                        {% if not lesson.is_deleted %}
+                                        <div class="bg-base-200 p-4 rounded-lg">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex-1">
+                                                    <div class="flex items-center gap-3 text-sm">
+                                                        <span class="font-medium">{{ lesson.subject.subject }}</span>
+                                                        <span>📅 {{ lesson.lesson_date|date:"M d, Y" }}</span>
+                                                        <span>🕐 {{ lesson.lesson_time|time:"g:i A" }}</span>
+                                                        <span class="badge badge-outline">{{ lesson.duration_in_minutes }}min</span>
+                                                        {% if lesson.fee %}
+                                                            <span class="text-green-600 font-semibold">${{ lesson.fee|floatformat:2 }}</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="text-xs text-base-content/70 mt-1">
+                                                        📍 {{ lesson.location }}
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex items-center gap-3">
+                                                    <!-- Approval Status -->
+                                                    {% if lesson.approved_status == 'Accepted' %}
+                                                        <span class="badge badge-success">Accepted</span>
+                                                    {% elif lesson.approved_status == 'Rejected' %}
+                                                        <span class="badge badge-error">Rejected</span>
+                                                    {% else %}
+                                                        <span class="badge badge-warning">Pending</span>
+                                                    {% endif %}
+
+                                                    <!-- Payment Status -->
+                                                    {% if lesson.approved_status == 'Accepted' %}
+                                                        {% if lesson.payment_status == 'Paid' %}
+                                                            <span class="badge badge-success">Paid</span>
+                                                        {% else %}
+                                                            <span class="badge badge-warning">Not Paid</span>
+                                                            <!-- Add to Cart Button -->
+                                                            {% if lesson.in_cart %}
+                                                                <button type="button" class="btn btn-xs btn-outline btn-success" disabled>
+                                                                    <i class="fas fa-check mr-1"></i>In Cart
+                                                                </button>
+                                                            {% else %}
+                                                                <form method="post" action="{% url 'private_teaching:add_to_cart' lesson.id %}" class="inline">
+                                                                    {% csrf_token %}
+                                                                    <button type="submit" class="btn btn-xs btn-outline btn-primary">
+                                                                        <i class="fas fa-cart-plus mr-1"></i>Add to Cart
+                                                                    </button>
+                                                                </form>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Message Preview -->
+                        {% if request.messages.exists %}
+                            <div class="mt-4">
+                                <div class="text-sm text-base-content/70">
+                                    <i class="fas fa-comments mr-1"></i>
+                                    {{ request.messages.count }} message{{ request.messages.count|pluralize }}
+                                    • Last: {{ request.messages.last.created_at|timesince }} ago
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <div class="flex justify-center mt-8">
+                <div class="join">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1" class="join-item btn">«</a>
+                        <a href="?page={{ page_obj.previous_page_number }}" class="join-item btn">‹</a>
+                    {% endif %}
+
+                    <span class="join-item btn btn-active">{{ page_obj.number }}</span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="join-item btn">›</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}" class="join-item btn">»</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4">📝</div>
+            <h2 class="text-2xl font-bold mb-4">No lesson requests yet</h2>
+            <p class="mb-6">Ready to start your musical journey? Submit your first lesson request!</p>
+            <a href="{% url 'private_teaching:request_lesson' %}" class="btn btn-section-primary">Request Your First Lesson</a>
+        </div>
+    {% endif %}
+</div>
+</div>
+{% endblock %}

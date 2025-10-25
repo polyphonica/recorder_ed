@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load design_system %}
+
+{% block title %}Forms - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="prose max-w-none mb-8">
+    <h1>Form Examples</h1>
+    <p class="lead">Beautiful, accessible forms using Tailwind CSS and DaisyUI</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- Contact Form -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">Contact Form</h2>
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Name</span>
+                    </label>
+                    {{ form.name }}
+                </div>
+                
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Email</span>
+                    </label>
+                    {{ form.email }}
+                </div>
+                
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Subject</span>
+                    </label>
+                    {{ form.subject }}
+                </div>
+                
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Message</span>
+                    </label>
+                    {{ form.message }}
+                </div>
+                
+                <div class="form-control">
+                    <label class="label cursor-pointer">
+                        {{ form.newsletter }}
+                        <span class="label-text">Subscribe to newsletter</span>
+                    </label>
+                </div>
+                
+                <div class="card-actions justify-end">
+                    {% button "Send Message" variant="primary" color="primary" type="submit" %}
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Profile Form -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">Profile Settings</h2>
+            <form class="space-y-4">
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">First Name</span>
+                    </label>
+                    {{ profile_form.first_name }}
+                </div>
+                
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Last Name</span>
+                    </label>
+                    {{ profile_form.last_name }}
+                </div>
+                
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Email</span>
+                    </label>
+                    {{ profile_form.email }}
+                </div>
+                
+                <div class="card-actions justify-end">
+                    {% button "Update Profile" variant="primary" color="secondary" type="submit" %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Form -->
+<div class="card bg-base-100 shadow-xl mt-8">
+    <div class="card-body">
+        <h2 class="card-title">Course Filters</h2>
+        <form class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="form-control w-full">
+                <label class="label">
+                    <span class="label-text">Search</span>
+                </label>
+                {{ filter_form.search }}
+            </div>
+            
+            <div class="form-control w-full">
+                <label class="label">
+                    <span class="label-text">Category</span>
+                </label>
+                {{ filter_form.category }}
+            </div>
+            
+            <div class="form-control w-full">
+                <label class="label">
+                    <span class="label-text">Level</span>
+                </label>
+                {{ filter_form.level }}
+            </div>
+            
+            <div class="form-control w-full">
+                <label class="label">
+                    <span class="label-text">Price Range</span>
+                </label>
+                {{ filter_form.price_range }}
+                <div class="flex justify-between text-xs mt-1">
+                    <span>$0</span>
+                    <span>$500</span>
+                </div>
+            </div>
+            
+            <div class="form-control col-span-full">
+                {% button "Apply Filters" variant="primary" color="accent" type="submit" %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Expense Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Expense Dashboard</h1>
+                <p class="text-base-content/70">Overview of your business expenses</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'expenses:expense_add' %}" class="btn btn-primary">
+                    <i class="fas fa-plus mr-2"></i>Add Expense
+                </a>
+                <a href="{% url 'expenses:expense_list' %}" class="btn btn-outline">
+                    <i class="fas fa-list mr-2"></i>View All
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <form method="get" class="flex gap-4 items-end">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Date From</span>
+                    </label>
+                    <input type="date" name="date_from" value="{{ date_from }}" class="input input-bordered">
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Date To</span>
+                    </label>
+                    <input type="date" name="date_to" value="{{ date_to }}" class="input input-bordered">
+                </div>
+                <button type="submit" class="btn btn-primary">Filter</button>
+                {% if date_from or date_to %}
+                <a href="{% url 'expenses:dashboard' %}" class="btn btn-outline">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="stat bg-primary text-primary-content rounded-lg shadow-lg">
+            <div class="stat-title text-white text-lg font-semibold">Total Expenses</div>
+            <div class="stat-value text-white text-4xl">£{{ total_expenses|floatformat:2|intcomma }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                {{ expense_count }} expense{{ expense_count|pluralize }}
+            </div>
+        </div>
+
+        <div class="stat bg-info text-info-content rounded-lg shadow-lg">
+            <div class="stat-title text-white text-lg font-semibold">Categories</div>
+            <div class="stat-value text-white text-4xl">{{ by_category|length }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                Active categories
+            </div>
+        </div>
+
+        <div class="stat bg-success text-success-content rounded-lg shadow-lg">
+            <div class="stat-title text-white text-lg font-semibold">Quick Actions</div>
+            <div class="stat-actions mt-4">
+                <a href="{% url 'expenses:expense_export' %}?{{ request.GET.urlencode }}" class="btn btn-sm btn-outline text-white">
+                    <i class="fas fa-download mr-2"></i>Export CSV
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Expenses by Business Area -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-chart-pie mr-2"></i>By Business Area
+                </h2>
+                {% if by_business_area %}
+                <canvas id="businessAreaChart" class="mb-4"></canvas>
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th>Business Area</th>
+                                <th>Count</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for area in by_business_area %}
+                            <tr>
+                                <td>{{ area.business_area|title|default:"Private Teaching" }}</td>
+                                <td>{{ area.count }}</td>
+                                <td>£{{ area.total|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-chart-pie text-4xl text-base-content/30 mb-4"></i>
+                    <p class="text-base-content/70">No expenses yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Expenses by Category -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-tags mr-2"></i>Top Categories
+                </h2>
+                {% if by_category %}
+                <canvas id="categoryChart" class="mb-4"></canvas>
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Count</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cat in by_category %}
+                            <tr>
+                                <td>{{ cat.category__name }}</td>
+                                <td>{{ cat.count }}</td>
+                                <td>£{{ cat.total|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-tags text-4xl text-base-content/30 mb-4"></i>
+                    <p class="text-base-content/70">No expenses yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Trend -->
+    {% if monthly_expenses %}
+    <div class="card bg-base-100 shadow-xl mb-8">
+        <div class="card-body">
+            <h2 class="card-title text-2xl mb-4">
+                <i class="fas fa-chart-line mr-2"></i>Monthly Trend (Last 12 Months)
+            </h2>
+            <canvas id="monthlyTrendChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Expenses -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="card-title text-2xl">
+                    <i class="fas fa-clock mr-2"></i>Recent Expenses
+                </h2>
+                <a href="{% url 'expenses:expense_list' %}" class="btn btn-sm btn-outline">View All</a>
+            </div>
+            {% if recent_expenses %}
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Business Area</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in recent_expenses %}
+                        <tr>
+                            <td>{{ expense.date|date:"M j, Y" }}</td>
+                            <td>{{ expense.description|truncatewords:10 }}</td>
+                            <td><span class="badge badge-primary">{{ expense.get_business_area_display }}</span></td>
+                            <td>{{ expense.category.name }}</td>
+                            <td class="font-semibold">£{{ expense.amount|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <i class="fas fa-inbox text-4xl text-base-content/30 mb-4"></i>
+                <p class="text-base-content/70">No expenses yet</p>
+                <a href="{% url 'expenses:expense_add' %}" class="btn btn-primary mt-4">
+                    Add Your First Expense
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Business Area Chart
+    {% if by_business_area %}
+    const businessAreaCtx = document.getElementById('businessAreaChart');
+    if (businessAreaCtx) {
+        new Chart(businessAreaCtx, {
+            type: 'pie',
+            data: {
+                labels: [{% for area in by_business_area %}'{{ area.business_area|title }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+                datasets: [{
+                    data: [{% for area in by_business_area %}{{ area.total }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899'],
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+
+    // Category Chart
+    {% if by_category %}
+    const categoryCtx = document.getElementById('categoryChart');
+    if (categoryCtx) {
+        new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [{% for cat in by_category %}'{{ cat.category__name }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+                datasets: [{
+                    data: [{% for cat in by_category %}{{ cat.total }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'],
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+
+    // Monthly Trend Chart
+    {% if monthly_expenses %}
+    const monthlyTrendCtx = document.getElementById('monthlyTrendChart');
+    if (monthlyTrendCtx) {
+        new Chart(monthlyTrendCtx, {
+            type: 'bar',
+            data: {
+                labels: [{% for month in monthly_expenses %}'{{ month.month|date:"M Y" }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+                datasets: [{
+                    label: 'Monthly Expenses (£)',
+                    data: [{% for month in monthly_expenses %}{{ month.total }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    backgroundColor: '#3b82f6',
+                    borderColor: '#2563eb',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '£' + value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

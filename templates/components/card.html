@@ -1,0 +1,90 @@
+{% load design_system %}
+
+{% if variant == 'default' %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            {% if title %}<h2 class="card-title">{{ title }}</h2>{% endif %}
+            {% if content %}<p>{{ content }}</p>{% endif %}
+        </div>
+    </div>
+
+{% elif variant == 'course' %}
+    <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+        {% if image %}
+            <figure><img src="{{ image }}" alt="{{ title }}" class="h-48 w-full object-cover" /></figure>
+        {% endif %}
+        <div class="card-body">
+            <h2 class="card-title">
+                {{ title }}
+                {% if price %}<div class="badge badge-secondary">${{ price }}</div>{% endif %}
+            </h2>
+            {% if content %}<p class="text-base-content/70">{{ content }}</p>{% endif %}
+            
+            {% if rating or students %}
+                <div class="flex items-center gap-4 text-sm text-base-content/60 mt-2">
+                    {% if rating %}
+                        <div class="flex items-center gap-1">
+                            {% icon "star" size="w-4 h-4" extra_classes="text-yellow-500" %}
+                            <span>{{ rating }}</span>
+                        </div>
+                    {% endif %}
+                    {% if students %}
+                        <div class="flex items-center gap-1">
+                            {% icon "users" size="w-4 h-4" %}
+                            <span>{{ students }} students</span>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+            
+            <div class="card-actions justify-end mt-4">
+                <button class="btn btn-primary">Enroll Now</button>
+            </div>
+        </div>
+    </div>
+
+{% elif variant == 'testimonial' %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="flex items-center gap-4 mb-4">
+                {% if avatar %}
+                    <div class="avatar">
+                        <div class="w-12 rounded-full">
+                            <img src="{{ avatar }}" alt="{{ author }}" />
+                        </div>
+                    </div>
+                {% endif %}
+                <div>
+                    <h3 class="font-semibold">{{ author }}</h3>
+                    {% if role %}<p class="text-sm text-base-content/60">{{ role }}</p>{% endif %}
+                </div>
+            </div>
+            <blockquote class="text-base-content/80 italic">"{{ content }}"</blockquote>
+            <div class="flex mt-4">
+                {% for i in "12345" %}
+                    {% icon "star" size="w-4 h-4" extra_classes="text-yellow-500" %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+{% elif variant == 'notification' %}
+    <div class="alert {% if urgency == 'high' %}alert-warning{% else %}alert-info{% endif %} shadow-lg">
+        <div>
+            {% if urgency == 'high' %}
+                {% icon "warning" size="w-6 h-6" %}
+            {% else %}
+                {% icon "info" size="w-6 h-6" %}
+            {% endif %}
+            <div>
+                <h3 class="font-bold">{{ title }}</h3>
+                <div class="text-xs">{{ content }}</div>
+            </div>
+        </div>
+        {% if action_text %}
+            <div class="flex-none">
+                <button class="btn btn-sm">{{ action_text }}</button>
+            </div>
+        {% endif %}
+    </div>
+{% endif %}

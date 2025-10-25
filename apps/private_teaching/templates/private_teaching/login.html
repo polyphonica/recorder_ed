@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Login - Private Teaching - RECORDERED{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div class="card card-section shadow-xl">
+            <div class="card-body">
+                <h1 class="card-title text-3xl mb-6 text-center">Login to Private Teaching</h1>
+                <p class="text-center mb-6">Access your private lesson requests and manage your musical journey.</p>
+                
+                {% if form.errors %}
+                    <div class="alert alert-error mb-4">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+                    {% if next %}
+                        <input type="hidden" name="next" value="{{ next }}">
+                    {% endif %}
+                    
+                    <!-- Username/Email -->
+                    <div class="form-control">
+                        <label class="label" for="{{ form.username.id_for_label }}">
+                            <span class="label-text font-medium">Username or Email</span>
+                        </label>
+                        <input type="text" name="username" class="input input-bordered w-full" required 
+                               value="{{ form.username.value|default:'' }}" placeholder="Enter your username or email">
+                    </div>
+
+                    <!-- Password -->
+                    <div class="form-control">
+                        <label class="label" for="{{ form.password.id_for_label }}">
+                            <span class="label-text font-medium">Password</span>
+                        </label>
+                        <input type="password" name="password" class="input input-bordered w-full" required 
+                               placeholder="Enter your password">
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="form-control">
+                        <button type="submit" class="btn btn-section-primary w-full">Login</button>
+                    </div>
+                </form>
+                
+                <div class="divider">Don't have an account?</div>
+                
+                <div class="text-center">
+                    <a href="{% url 'private_teaching:register' %}" class="btn btn-outline w-full">Register as Student</a>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="{% url 'private_teaching:home' %}" class="link link-hover">← Back to Private Teaching</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

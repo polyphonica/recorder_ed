@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% load design_system %}
+
+{% block title %}Interactive - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="prose max-w-none mb-8">
+    <h1>Interactive Components</h1>
+    <p class="lead">Showcase of Alpine.js powered interactive features</p>
+</div>
+
+<!-- Tabs Section -->
+<section class="py-8">
+    <h2 class="text-2xl font-bold mb-6">Dynamic Tabs</h2>
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            {% tabs tabs %}
+        </div>
+    </div>
+</section>
+
+<!-- Modals Section -->
+<section class="py-8">
+    <h2 class="text-2xl font-bold mb-6">Modals</h2>
+    <div class="flex gap-4 mb-4">
+        <label for="modal-1" class="btn btn-primary">Open Basic Modal</label>
+        <label for="modal-2" class="btn btn-secondary">Open Large Modal</label>
+        <label for="modal-3" class="btn btn-accent">Open Form Modal</label>
+    </div>
+    
+    <!-- Modal 1: Basic -->
+    {% modal "modal-1" "Basic Modal" "This is a simple modal with basic content. You can put any content here." %}
+    
+    <!-- Modal 2: Large -->
+    {% modal "modal-2" "Large Modal" "This is a large modal with more space for content. Perfect for detailed information or complex forms." size="lg" %}
+    
+    <!-- Modal 3: Form -->
+    <input type="checkbox" id="modal-3" class="modal-toggle" />
+    <div class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg">Subscribe to Newsletter</h3>
+            <form class="py-4 space-y-4">
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Email</span>
+                    </label>
+                    <input type="email" placeholder="your.email@example.com" class="input input-bordered w-full" />
+                </div>
+                <div class="form-control">
+                    <label class="label cursor-pointer">
+                        <input type="checkbox" class="checkbox" />
+                        <span class="label-text">I agree to the terms and conditions</span>
+                    </label>
+                </div>
+            </form>
+            <div class="modal-action">
+                <button class="btn btn-primary">Subscribe</button>
+                <label for="modal-3" class="btn">Cancel</label>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Dropdowns Section -->
+<section class="py-8">
+    <h2 class="text-2xl font-bold mb-6">Dropdowns</h2>
+    <div class="flex gap-4">
+        {% dropdown "Profile Menu" items_profile %}
+        {% dropdown "Course Actions" items_course position="top" %}
+        {% dropdown "Settings" items_settings position="left" %}
+    </div>
+</section>
+
+<!-- Notifications/Toast Section -->
+<section class="py-8">
+    <h2 class="text-2xl font-bold mb-6">Live Notifications</h2>
+    <div class="space-y-4" x-data="{ notifications: {{ notifications|json_script }} }">
+        <div class="flex gap-4">
+            <button class="btn btn-success" @click="notifications.push({title: 'Success!', message: 'Operation completed successfully', type: 'success'})">Add Success</button>
+            <button class="btn btn-warning" @click="notifications.push({title: 'Warning!', message: 'Please check your input', type: 'warning'})">Add Warning</button>
+            <button class="btn btn-error" @click="notifications.push({title: 'Error!', message: 'Something went wrong', type: 'error'})">Add Error</button>
+        </div>
+        
+        <!-- Notifications Container -->
+        <div class="fixed top-4 right-4 z-50 space-y-2" style="max-width: 400px;">
+            <template x-for="(notification, index) in notifications" :key="index">
+                <div class="alert" :class="'alert-' + notification.type" 
+                     x-data="{ show: true }" 
+                     x-show="show" 
+                     x-transition>
+                    <div>
+                        <h3 class="font-bold" x-text="notification.title"></h3>
+                        <div class="text-xs" x-text="notification.message"></div>
+                    </div>
+                    <button class="btn btn-sm btn-ghost" @click="notifications.splice(index, 1)">
+                        {% icon "x" size="w-4 h-4" %}
+                    </button>
+                </div>
+            </template>
+        </div>
+    </div>
+</section>
+
+<!-- Accordion Section -->
+<section class="py-8">
+    <h2 class="text-2xl font-bold mb-6">FAQ Accordion</h2>
+    <div class="space-y-2" x-data="{ openItem: null }">
+        <div class="collapse collapse-arrow bg-base-200">
+            <input type="radio" name="faq-accordion" x-model="openItem" value="1" /> 
+            <div class="collapse-title text-xl font-medium">
+                How do I enroll in a course?
+            </div>
+            <div class="collapse-content"> 
+                <p>Simply browse our course catalog, select the course you're interested in, and click the "Enroll Now" button. You can pay securely online and get instant access.</p>
+            </div>
+        </div>
+        
+        <div class="collapse collapse-arrow bg-base-200">
+            <input type="radio" name="faq-accordion" x-model="openItem" value="2" /> 
+            <div class="collapse-title text-xl font-medium">
+                What if I'm not satisfied with a course?
+            </div>
+            <div class="collapse-content"> 
+                <p>We offer a 30-day money-back guarantee on all courses. If you're not completely satisfied, contact our support team for a full refund.</p>
+            </div>
+        </div>
+        
+        <div class="collapse collapse-arrow bg-base-200">
+            <input type="radio" name="faq-accordion" x-model="openItem" value="3" /> 
+            <div class="collapse-title text-xl font-medium">
+                Do I get a certificate upon completion?
+            </div>
+            <div class="collapse-content"> 
+                <p>Yes! Upon successful completion of any course, you'll receive a verified certificate that you can share on LinkedIn and add to your resume.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Sample data for dropdowns
+    const itemsProfile = [
+        {text: 'My Profile', url: '#'},
+        {text: 'Settings', url: '#'},
+        {text: 'Logout', url: '#'}
+    ];
+    
+    const itemsCourse = [
+        {text: 'Download Materials', url: '#'},
+        {text: 'Share Course', url: '#'},
+        {text: 'Report Issue', url: '#'}
+    ];
+    
+    const itemsSettings = [
+        {text: 'Preferences', url: '#'},
+        {text: 'Notifications', url: '#'},
+        {text: 'Privacy', url: '#'}
+    ];
+</script>
+{% endblock %}

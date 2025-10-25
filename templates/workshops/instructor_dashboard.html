@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Instructor Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Instructor Dashboard</h1>
+        <p class="text-lg text-gray-600">Welcome back, {{ user.display_name }}!</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-figure text-primary">
+                <i class="fas fa-chalkboard-teacher text-2xl"></i>
+            </div>
+            <div class="stat-title">Total Workshops</div>
+            <div class="stat-value text-primary">{{ stats.total_workshops }}</div>
+            <div class="stat-desc">{{ stats.published_workshops }} published</div>
+        </div>
+        
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-figure text-secondary">
+                <i class="fas fa-calendar-alt text-2xl"></i>
+            </div>
+            <div class="stat-title">Total Sessions</div>
+            <div class="stat-value text-secondary">{{ stats.total_sessions }}</div>
+            <div class="stat-desc">across all workshops</div>
+        </div>
+        
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-figure text-accent">
+                <i class="fas fa-users text-2xl"></i>
+            </div>
+            <div class="stat-title">Total Participants</div>
+            <div class="stat-value text-accent">{{ stats.total_registrations }}</div>
+            <div class="stat-desc">all-time registrations</div>
+        </div>
+        
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-figure text-success">
+                <i class="fas fa-chart-line text-2xl"></i>
+            </div>
+            <div class="stat-title">Active Sessions</div>
+            <div class="stat-value text-success">{{ upcoming_sessions|length }}</div>
+            <div class="stat-desc">upcoming sessions</div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div class="flex flex-wrap gap-4">
+            <a href="{% url 'workshops:create_workshop' %}" class="btn btn-primary">
+                <i class="fas fa-plus mr-2"></i>Create New Workshop
+            </a>
+            <a href="{% url 'workshops:instructor_workshops' %}" class="btn btn-outline">
+                <i class="fas fa-list mr-2"></i>Manage Workshops
+            </a>
+            <a href="{% url 'workshops:list' %}" class="btn btn-ghost">
+                <i class="fas fa-eye mr-2"></i>View Public Workshops
+            </a>
+        </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Upcoming Sessions -->
+        <div class="bg-base-100 rounded-lg shadow p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-900">Upcoming Sessions</h2>
+                <span class="text-sm text-gray-500">View sessions in workshop management</span>
+            </div>
+            
+            {% if upcoming_sessions %}
+                <div class="space-y-4">
+                    {% for session in upcoming_sessions %}
+                    <div class="card bg-base-200 compact">
+                        <div class="card-body">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-semibold">{{ session.workshop.title }}</h3>
+                                    <p class="text-sm text-gray-600">
+                                        <i class="fas fa-calendar mr-1"></i>
+                                        {{ session.start_datetime|date:"M j, Y" }} at {{ session.start_datetime|time:"g:i A" }}
+                                    </p>
+                                    {% if session.location %}
+                                        <p class="text-sm text-gray-600">
+                                            <i class="fas fa-map-marker-alt mr-1"></i>
+                                            {{ session.location }}
+                                        </p>
+                                    {% endif %}
+                                    <div class="mt-2">
+                                        <a href="{% url 'workshops:session_registrations' session.id %}" 
+                                           class="badge badge-primary badge-sm hover:badge-primary-focus transition-colors cursor-pointer">
+                                            <i class="fas fa-users mr-1"></i>
+                                            {{ session.current_registrations }}/{{ session.max_participants }} participants
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="dropdown dropdown-end">
+                                    <label tabindex="0" class="btn btn-ghost btn-sm">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </label>
+                                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+                                        <li><a href="{% url 'workshops:session_registrations' session.id %}">
+                                            <i class="fas fa-users"></i> View Participants
+                                        </a></li>
+                                        <li><a href="{% url 'workshops:detail' session.workshop.slug %}">
+                                            <i class="fas fa-eye"></i> View Workshop
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <div class="text-gray-400 text-4xl mb-4">
+                        <i class="fas fa-calendar-plus"></i>
+                    </div>
+                    <p class="text-gray-600">No upcoming sessions scheduled.</p>
+                    <a href="{% url 'workshops:create_workshop' %}" class="btn btn-primary btn-sm mt-2">
+                        Create Your First Workshop
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Recent Registrations -->
+        <div class="bg-base-100 rounded-lg shadow p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-900">Recent Registrations</h2>
+                <span class="text-sm text-gray-500">Recent participant activity</span>
+            </div>
+            
+            {% if recent_registrations %}
+                <div class="space-y-4">
+                    {% for registration in recent_registrations %}
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="avatar">
+                                <div class="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center text-sm">
+                                    {{ registration.student.first_name|first|default:registration.student.username|first }}
+                                </div>
+                            </div>
+                            <div>
+                                <p class="font-medium text-sm">
+                                    {% if registration.student.first_name %}
+                                        {{ registration.student.first_name }} {{ registration.student.last_name }}
+                                    {% else %}
+                                        {{ registration.student.username }}
+                                    {% endif %}
+                                </p>
+                                <p class="text-xs text-gray-600">{{ registration.session.workshop.title }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="badge 
+                                {% if registration.status == 'registered' %}badge-primary
+                                {% elif registration.status == 'attended' %}badge-success
+                                {% elif registration.status == 'waitlisted' %}badge-warning
+                                {% elif registration.status == 'cancelled' %}badge-error
+                                {% else %}badge-ghost{% endif %} badge-sm">
+                                {{ registration.get_status_display }}
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">{{ registration.registration_date|naturaltime }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <div class="text-gray-400 text-4xl mb-4">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <p class="text-gray-600">No recent registrations.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Workshop Management Section -->
+    <div class="mt-8">
+        <div class="bg-base-100 rounded-lg shadow p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-gray-900">Your Workshops</h2>
+                <a href="{% url 'workshops:instructor_workshops' %}" class="btn btn-outline btn-sm">
+                    Manage All <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+            </div>
+            
+            {% if workshops %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for workshop in workshops %}
+                    <div class="card bg-base-200 compact">
+                        <div class="card-body">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex-1">
+                                    <h3 class="card-title text-base">{{ workshop.title }}</h3>
+                                    <p class="text-sm text-gray-600 mb-2">{{ workshop.category.name }}</p>
+                                    <div class="flex gap-2">
+                                        <span class="badge 
+                                            {% if workshop.status == 'published' %}badge-success
+                                            {% elif workshop.status == 'draft' %}badge-warning
+                                            {% else %}badge-ghost{% endif %} badge-sm">
+                                            {{ workshop.get_status_display }}
+                                        </span>
+                                        <span class="badge badge-ghost badge-sm">
+                                            {{ workshop.total_sessions_count }} session{{ workshop.total_sessions_count|pluralize }}
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- Session registration info -->
+                                    {% if workshop.upcoming_sessions_list %}
+                                        <div class="mt-2 space-y-1">
+                                            {% for session in workshop.upcoming_sessions_list %}
+                                                <div class="flex items-center justify-between text-xs">
+                                                    <span class="text-gray-600">{{ session.start_datetime|date:"M j, Y" }}</span>
+                                                    <a href="{% url 'workshops:session_registrations' session.id %}" 
+                                                       class="badge badge-primary badge-xs hover:badge-primary-focus">
+                                                        {{ session.current_registrations }}/{{ session.max_participants }}
+                                                    </a>
+                                                </div>
+                                            {% endfor %}
+                                            {% if workshop.total_sessions_count > 3 %}
+                                                <div class="text-xs text-gray-500">
+                                                    +{{ workshop.total_sessions_count|add:"-3" }} more session{{ workshop.total_sessions_count|add:"-3"|pluralize }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <!-- Action Buttons -->
+                                <div class="dropdown dropdown-end">
+                                    <label tabindex="0" class="btn btn-ghost btn-xs">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </label>
+                                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-48 z-10">
+                                        <li><a href="{% url 'workshops:detail' workshop.slug %}">
+                                            <i class="fas fa-eye"></i> View
+                                        </a></li>
+                                        <li><a href="{% url 'workshops:edit_workshop' workshop.slug %}">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a></li>
+                                        <li><a href="{% url 'workshops:manage_sessions' workshop.slug %}">
+                                            <i class="fas fa-calendar"></i> Sessions
+                                        </a></li>
+                                        <li class="divider"></li>
+                                        <li class="menu-title">
+                                            <span class="text-xs">Quick Actions</span>
+                                        </li>
+                                        {% for session in workshop.upcoming_sessions_list %}
+                                        <li><a href="{% url 'workshops:session_registrations' session.id %}" class="text-xs">
+                                            <i class="fas fa-users"></i> {{ session.start_datetime|date:"M j" }} Participants
+                                        </a></li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- Always visible action buttons -->
+                            <div class="card-actions justify-end">
+                                <a href="{% url 'workshops:edit_workshop' workshop.slug %}" 
+                                   class="btn btn-outline btn-xs">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <a href="{% url 'workshops:manage_sessions' workshop.slug %}" 
+                                   class="btn btn-primary btn-xs">
+                                    <i class="fas fa-calendar"></i> Sessions
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <div class="text-gray-400 text-6xl mb-4">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">No workshops yet</h3>
+                    <p class="text-gray-600 mb-4">Get started by creating your first workshop.</p>
+                    <a href="{% url 'workshops:create_workshop' %}" class="btn btn-primary">
+                        <i class="fas fa-plus mr-2"></i>Create Your First Workshop
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

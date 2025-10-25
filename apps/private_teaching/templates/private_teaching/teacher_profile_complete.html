@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Complete Teacher Profile - Private Teaching - RECORDERED{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-2xl w-full space-y-8">
+        <div class="card card-section shadow-xl">
+            <div class="card-body">
+                <div class="text-center mb-8">
+                    <h1 class="card-title text-3xl mb-4">Complete Your Teacher Profile</h1>
+                    <p class="text-lg text-gray-600">
+                        Welcome to Private Teaching! Please complete your teacher profile to start receiving lesson requests from students.
+                    </p>
+                </div>
+                
+                {% if form.errors %}
+                    <div class="alert alert-error mb-6">
+                        <div class="flex flex-col space-y-2">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                    <span>{{ field|title }}: {{ error }}</span>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+                
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Basic Information Section -->
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- First Name -->
+                            <div class="form-control">
+                                <label class="label" for="{{ form.first_name.id_for_label }}">
+                                    <span class="label-text font-medium">First Name <span class="text-red-500">*</span></span>
+                                </label>
+                                {{ form.first_name }}
+                            </div>
+                            
+                            <!-- Last Name -->
+                            <div class="form-control">
+                                <label class="label" for="{{ form.last_name.id_for_label }}">
+                                    <span class="label-text font-medium">Last Name <span class="text-red-500">*</span></span>
+                                </label>
+                                {{ form.last_name }}
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <!-- Email -->
+                            <div class="form-control">
+                                <label class="label" for="{{ form.email.id_for_label }}">
+                                    <span class="label-text font-medium">Email <span class="text-red-500">*</span></span>
+                                </label>
+                                {{ form.email }}
+                            </div>
+                            
+                            <!-- Phone -->
+                            <div class="form-control">
+                                <label class="label" for="{{ form.phone.id_for_label }}">
+                                    <span class="label-text font-medium">Phone</span>
+                                </label>
+                                {{ form.phone }}
+                                <label class="label">
+                                    <span class="label-text-alt">{{ form.phone.help_text }}</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Public Profile Section -->
+                    <div class="border-b border-gray-200 pb-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Public Teacher Profile</h3>
+                        
+                        <!-- Biography -->
+                        <div class="form-control">
+                            <label class="label" for="{{ form.bio.id_for_label }}">
+                                <span class="label-text font-medium">Biography <span class="text-red-500">*</span></span>
+                            </label>
+                            {{ form.bio }}
+                            <label class="label">
+                                <span class="label-text-alt">{{ form.bio.help_text }}</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Website -->
+                        <div class="form-control mt-4">
+                            <label class="label" for="{{ form.website.id_for_label }}">
+                                <span class="label-text font-medium">Website</span>
+                            </label>
+                            {{ form.website }}
+                            <label class="label">
+                                <span class="label-text-alt">{{ form.website.help_text }}</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Professional Information Section -->
+                    <div class="pb-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Professional Information</h3>
+                        
+                        <!-- Teaching Experience -->
+                        <div class="form-control">
+                            <label class="label" for="{{ form.teaching_experience.id_for_label }}">
+                                <span class="label-text font-medium">Teaching Experience</span>
+                            </label>
+                            {{ form.teaching_experience }}
+                            <label class="label">
+                                <span class="label-text-alt">Years of experience, certifications, education background</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Specializations -->
+                        <div class="form-control mt-4">
+                            <label class="label" for="{{ form.specializations.id_for_label }}">
+                                <span class="label-text font-medium">Musical Specializations</span>
+                            </label>
+                            {{ form.specializations }}
+                            <label class="label">
+                                <span class="label-text-alt">Instruments, genres, styles, or areas of expertise you teach</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div class="form-control pt-6">
+                        <button type="submit" class="btn btn-section-primary w-full text-lg py-3">
+                            Complete Teacher Profile
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="text-center mt-6">
+                    <p class="text-sm text-gray-500">
+                        Once your profile is complete, you'll be able to receive and manage lesson requests from students.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

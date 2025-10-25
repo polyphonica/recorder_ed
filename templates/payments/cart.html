@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Shopping Cart{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
+        
+        {% if cart_items %}
+            <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                <!-- Cart Items -->
+                <div class="divide-y divide-gray-200">
+                    {% for item in cart_items %}
+                    <div class="p-6 flex items-center justify-between">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                {{ item.session.workshop.title }}
+                            </h3>
+                            <div class="mt-2 text-sm text-gray-600">
+                                <p><strong>Date:</strong> {{ item.session.start_date|date:"l, F j, Y" }}</p>
+                                <p><strong>Time:</strong> {{ item.session.start_date|time:"g:i A" }} - {{ item.session.end_date|time:"g:i A" }}</p>
+                                {% if item.session.location %}
+                                <p><strong>Location:</strong> {{ item.session.location }}</p>
+                                {% endif %}
+                                <p class="text-xs text-gray-400 mt-1">Added {{ item.added_at|naturaltime }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right">
+                                <div class="text-lg font-semibold text-gray-900">
+                                    ${{ item.price|floatformat:2 }}
+                                </div>
+                            </div>
+                            
+                            <form method="post" action="{% url 'payments:remove_from_cart' item.id %}">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                        class="btn btn-sm btn-outline btn-error"
+                                        onclick="return confirm('Remove this item from your cart?')">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                    Remove
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Cart Summary -->
+                <div class="bg-gray-50 px-6 py-4">
+                    <div class="flex justify-between items-center">
+                        <div class="text-lg font-semibold text-gray-900">
+                            Total ({{ cart_items.count }} item{{ cart_items.count|pluralize }})
+                        </div>
+                        <div class="text-2xl font-bold text-gray-900">
+                            ${{ total_amount|floatformat:2 }}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="px-6 py-4 bg-white border-t border-gray-200">
+                    <div class="flex flex-col sm:flex-row gap-4 justify-between">
+                        <a href="{% url 'workshops:list' %}" 
+                           class="btn btn-outline">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                            Continue Shopping
+                        </a>
+                        
+                        <a href="{% url 'payments:checkout' %}" 
+                           class="btn btn-primary">
+                            Proceed to Checkout
+                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <!-- Empty Cart -->
+            <div class="text-center py-12">
+                <div class="max-w-md mx-auto">
+                    <div class="mb-6">
+                        <svg class="w-24 h-24 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L8 21m0 0h8m-8 0v-2m8 2v-2"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-2">Your cart is empty</h2>
+                    <p class="text-gray-600 mb-6">Browse our workshops and add sessions to your cart.</p>
+                    <a href="{% url 'workshops:list' %}" class="btn btn-primary">
+                        Browse Workshops
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

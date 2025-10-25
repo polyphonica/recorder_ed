@@ -1,0 +1,14 @@
+<input type="checkbox" id="{{ id }}" class="modal-toggle" />
+<div class="modal">
+    <div class="modal-box {% if size == 'sm' %}max-w-md{% elif size == 'lg' %}max-w-4xl{% elif size == 'xl' %}max-w-6xl{% else %}max-w-2xl{% endif %}">
+        <h3 class="font-bold text-lg">{{ title }}</h3>
+        {% if content %}
+            <div class="py-4">
+                {{ content|safe }}
+            </div>
+        {% endif %}
+        <div class="modal-action">
+            <label for="{{ id }}" class="btn">Close</label>
+        </div>
+    </div>
+</div>

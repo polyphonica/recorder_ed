@@ -1,0 +1,21 @@
+{% load humanize %}
+Subject: Reminder - Confirm Your Spot: {{ session.workshop.title }}
+
+Hi {{ registration.student.first_name|default:registration.student.username }},
+
+This is a reminder that you have been offered a spot in "{{ session.workshop.title }}" but haven't confirmed yet.
+
+Your deadline to confirm is: {{ promotion.expires_at|date:"F j, Y" }} at {{ promotion.expires_at|time:"g:i A" }}
+Time remaining: {% if hours_remaining > 24 %}{{ hours_remaining|floatformat:0 }} hours{% elif hours_remaining > 1 %}{{ hours_remaining|floatformat:1 }} hours{% else %}Less than 1 hour{% endif %}
+
+Session Details:
+- Date: {{ session.start_datetime|date:"l, F j, Y" }}
+- Time: {{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}
+
+To confirm your registration, click here:
+{{ confirmation_url }}
+
+If you miss this deadline, your spot will be offered to the next person on the waitlist.
+
+Best regards,
+The {{ site_name }} Team

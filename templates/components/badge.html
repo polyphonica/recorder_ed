@@ -1,0 +1,3 @@
+{# Usage: {% include 'components/badge.html' with text='Active' color='green' %} #}
+
+<span class="badge badge-{{ color }} {% if size == 'sm' %}badge-sm{% elif size == 'lg' %}badge-lg{% endif %}">{{ text }}</span>

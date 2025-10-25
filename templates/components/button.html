@@ -1,0 +1,33 @@
+{# Usage: {% include 'components/button.html' with text='Click Me' variant='primary' color='teaching' url='#' %} #}
+
+{% if url %}
+    <a href="{{ url }}" 
+       class="ripple inline-flex items-center justify-center px-6 py-2 rounded-lg font-medium transition-colors
+              {% if variant == 'primary' %}
+                  bg-{{ color|default:'brand-500' }} text-white hover:bg-{{ color|default:'brand-600' }}
+              {% elif variant == 'secondary' %}
+                  border-2 border-{{ color|default:'brand-500' }} text-{{ color|default:'brand-500' }} hover:bg-{{ color|default:'brand-50' }}
+              {% elif variant == 'text' %}
+                  text-{{ color|default:'brand-500' }} hover:bg-{{ color|default:'brand-50' }}
+              {% else %}
+                  bg-gray-900 text-white hover:bg-gray-800
+              {% endif %}
+              {{ extra_classes }}">
+        {{ text }}
+    </a>
+{% else %}
+    <button type="{{ type|default:'button' }}"
+            class="ripple inline-flex items-center justify-center px-6 py-2 rounded-lg font-medium transition-colors
+                   {% if variant == 'primary' %}
+                       bg-{{ color|default:'brand-500' }} text-white hover:bg-{{ color|default:'brand-600' }}
+                   {% elif variant == 'secondary' %}
+                       border-2 border-{{ color|default:'brand-500' }} text-{{ color|default:'brand-500' }} hover:bg-{{ color|default:'brand-50' }}
+                   {% elif variant == 'text' %}
+                       text-{{ color|default:'brand-500' }} hover:bg-{{ color|default:'brand-50' }}
+                   {% else %}
+                       bg-gray-900 text-white hover:bg-gray-800
+                   {% endif %}
+                   {{ extra_classes }}">
+        {{ text }}
+    </button>
+{% endif %}

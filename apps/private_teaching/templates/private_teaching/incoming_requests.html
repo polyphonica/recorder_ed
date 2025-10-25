@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Incoming Requests - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold mb-2">Incoming Lesson Requests</h1>
+        <p class="text-base-content/70">Review and respond to student lesson requests</p>
+    </div>
+
+    {% if lesson_requests %}
+        <div class="mb-6">
+            <div class="stats shadow">
+                <div class="stat">
+                    <div class="stat-title">Total Requests</div>
+                    <div class="stat-value text-primary">{{ lesson_requests.count }}</div>
+                    <div class="stat-desc">From your students</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            {% for request in lesson_requests %}
+                <div class="card card-section shadow-xl">
+                    <div class="card-body">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-xl font-bold">{{ request.student.get_full_name|default:request.student.username }}</h3>
+                                <p class="text-sm text-base-content/70">{{ request.student.email }}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm text-base-content/70">{{ request.created_at|date:"M j, Y g:i A" }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Initial message if exists -->
+                        {% if request.messages.exists %}
+                            <div class="bg-base-200 rounded-lg p-4 mb-4">
+                                <h4 class="font-semibold mb-2">Latest Message:</h4>
+                                <p class="text-sm">{{ request.messages.last.message|truncatewords:30 }}</p>
+                                <p class="text-xs text-base-content/70 mt-1">
+                                    <i class="fas fa-comments mr-1"></i>{{ request.messages.count }} message{{request.messages.count|pluralize}}
+                                </p>
+                            </div>
+                        {% endif %}
+
+                        <!-- Requested lessons -->
+                        <div class="mb-6">
+                            <h4 class="font-semibold mb-3">Requested Lessons ({{ request.lessons.count }} lesson{{ request.lessons.count|pluralize }})</h4>
+                            <div class="overflow-x-auto">
+                                <table class="table table-compact w-full">
+                                    <thead>
+                                        <tr>
+                                            <th>Subject</th>
+                                            <th>Location</th>
+                                            <th>Date</th>
+                                            <th>Time</th>
+                                            <th>Duration</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for lesson in request.lessons.all %}
+                                            {% if not lesson.is_deleted %}
+                                            <tr>
+                                                <td><span class="badge badge-outline">{{ lesson.subject.subject }}</span></td>
+                                                <td>{{ lesson.location }}</td>
+                                                <td>{{ lesson.lesson_date|date:"M j, Y" }}</td>
+                                                <td>{{ lesson.lesson_time|time:"g:i A" }}</td>
+                                                <td>{{ lesson.duration_in_minutes }}min</td>
+                                                <td>
+                                                    {% if lesson.approved_status == 'Accepted' %}
+                                                        <span class="badge badge-success badge-sm">Accepted</span>
+                                                    {% elif lesson.approved_status == 'Rejected' %}
+                                                        <span class="badge badge-error badge-sm">Rejected</span>
+                                                    {% else %}
+                                                        <span class="badge badge-warning badge-sm">Pending</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Individual Actions -->
+                        <div class="card-actions justify-end">
+                            <a href="{% url 'private_teaching:lesson_request_detail' request.id %}" class="btn btn-section-primary">
+                                <i class="fas fa-edit mr-2"></i>Review & Respond
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <div class="flex justify-center mt-8">
+                <div class="join">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1" class="join-item btn">«</a>
+                        <a href="?page={{ page_obj.previous_page_number }}" class="join-item btn">‹</a>
+                    {% endif %}
+
+                    <span class="join-item btn btn-active">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="join-item btn">›</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}" class="join-item btn">»</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+    {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-16">
+            <div class="text-8xl mb-6">📮</div>
+            <h2 class="text-3xl font-bold mb-4">No Lesson Requests</h2>
+            <p class="text-lg text-base-content/70 mb-8">
+                All lesson requests have been processed. New requests will appear here.
+            </p>
+            <a href="{% url 'private_teaching:teacher_dashboard' %}" class="btn btn-section-primary">
+                Back to Dashboard
+            </a>
+        </div>
+    {% endif %}
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Lesson Request Details - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Lesson Request Details</h1>
+                <p class="text-base-content/70">Review and respond to lesson request from {{ lesson_request.student.get_full_name|default:lesson_request.student.username }}</p>
+            </div>
+            <div class="text-right">
+                <span class="text-sm text-base-content/70">Submitted {{ lesson_request.created_at|date:"M d, Y" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" id="lesson-request-form">
+        {% csrf_token %}
+
+        <!-- Student Information -->
+        <div class="card card-section shadow-xl mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">Student Information</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-medium">Student Name</span>
+                        </label>
+                        <div class="text-lg">{{ lesson_request.student.get_full_name|default:lesson_request.student.username }}</div>
+                    </div>
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-medium">Contact Email</span>
+                        </label>
+                        <div class="text-lg">{{ lesson_request.student.email }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Thread -->
+        {% if lesson_request.messages.exists %}
+        <div class="card card-section shadow-xl mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">Conversation</h2>
+                <div class="space-y-4">
+                    {% for message in lesson_request.messages.all %}
+                    <div class="bg-base-200 p-4 rounded-lg">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="font-medium">{{ message.author.get_full_name|default:message.author.username }}</span>
+                            <span class="text-xs text-base-content/70">{{ message.created_at|date:"M d, Y g:i A" }}</span>
+                        </div>
+                        <div>{{ message.message|linebreaks }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Lesson Slots -->
+        <div class="card card-section shadow-xl mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">Requested Lessons</h2>
+
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Base Price (60min)</th>
+                                <th>Duration</th>
+                                <th>Location</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Approval Status</th>
+                                <th>Payment Status</th>
+                                <th>Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ formset.management_form }}
+                            {% for form in formset %}
+                                <tr>
+                                    {% for hidden in form.hidden_fields %}
+                                        {{ hidden }}
+                                    {% endfor %}
+
+                                    <!-- Subject -->
+                                    <td>
+                                        {{ form.subject }}
+                                        {% if form.subject.errors %}
+                                            <div class="text-error text-xs">{{ form.subject.errors.0 }}</div>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Base Price (Display Only) -->
+                                    <td>
+                                        <div class="input-group">
+                                            <span class="text-sm">$</span>
+                                            {{ form.base_price }}
+                                        </div>
+                                        {% if form.base_price.errors %}
+                                            <div class="text-error text-xs">{{ form.base_price.errors.0 }}</div>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Duration -->
+                                    <td>
+                                        {{ form.duration_in_minutes }}
+                                        {% if form.duration_in_minutes.errors %}
+                                            <div class="text-error text-xs">{{ form.duration_in_minutes.errors.0 }}</div>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Location -->
+                                    <td>
+                                        {{ form.location }}
+                                        {% if form.location.errors %}
+                                            <div class="text-error text-xs">{{ form.location.errors.0 }}</div>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Date -->
+                                    <td>
+                                        {{ form.lesson_date }}
+                                        {% if form.lesson_date.errors %}
+                                            <div class="text-error text-xs">{{ form.lesson_date.errors.0 }}</div>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Time -->
+                                    <td>
+                                        {{ form.lesson_time }}
+                                        {% if form.lesson_time.errors %}
+                                            <div class="text-error text-xs">{{ form.lesson_time.errors.0 }}</div>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Approval Status -->
+                                    <td>
+                                        {{ form.approved_status }}
+                                        {% if form.approved_status.errors %}
+                                            <div class="text-error text-xs">{{ form.approved_status.errors.0 }}</div>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Payment Status -->
+                                    <td>
+                                        {{ form.payment_status }}
+                                        {% if form.payment_status.errors %}
+                                            <div class="text-error text-xs">{{ form.payment_status.errors.0 }}</div>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Delete -->
+                                    <td>
+                                        {% if form.DELETE %}
+                                            {{ form.DELETE }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                {% if form.non_field_errors %}
+                                    <tr>
+                                        <td colspan="9">
+                                            <div class="alert alert-error">
+                                                {{ form.non_field_errors }}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if formset.non_form_errors %}
+                    <div class="alert alert-error mt-4">
+                        {{ formset.non_form_errors }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Teacher Response -->
+        <div class="card card-section shadow-xl mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">Add Message to Conversation</h2>
+
+                <div class="form-control">
+                    <label class="label" for="{{ response_form.message.id_for_label }}">
+                        <span class="label-text font-medium">{{ response_form.message.label }}</span>
+                    </label>
+                    {{ response_form.message }}
+                    {% if response_form.message.errors %}
+                        <div class="text-error text-sm mt-1">{{ response_form.message.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-4 justify-between">
+            <a href="{% url 'private_teaching:incoming_requests' %}" class="btn btn-outline">
+                ← Back to Requests
+            </a>
+
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-section-primary">
+                    <i class="fas fa-save mr-2"></i>Save Changes & Notify Student
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+</div>
+{% endblock %}

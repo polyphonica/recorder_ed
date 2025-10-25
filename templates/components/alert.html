@@ -1,0 +1,32 @@
+<div class="alert alert-{{ type }} {% if dismissible %}alert-dismissible{% endif %} shadow-lg" 
+     {% if dismissible %}x-data="{ show: true }" x-show="show" x-transition{% endif %}>
+    <div class="flex items-center">
+        {% if icon %}
+            {% load design_system %}
+            {% icon icon size="w-5 h-5" extra_classes="mr-2" %}
+        {% else %}
+            {% if type == 'success' %}
+                {% load design_system %}
+                {% icon "check" size="w-5 h-5" extra_classes="mr-2" %}
+            {% elif type == 'warning' %}
+                {% load design_system %}
+                {% icon "warning" size="w-5 h-5" extra_classes="mr-2" %}
+            {% elif type == 'error' %}
+                {% load design_system %}
+                {% icon "x" size="w-5 h-5" extra_classes="mr-2" %}
+            {% else %}
+                {% load design_system %}
+                {% icon "info" size="w-5 h-5" extra_classes="mr-2" %}
+            {% endif %}
+        {% endif %}
+        <span>{{ message }}</span>
+    </div>
+    {% if dismissible %}
+        <div class="flex-none">
+            <button class="btn btn-sm btn-ghost" @click="show = false">
+                {% load design_system %}
+                {% icon "x" size="w-4 h-4" %}
+            </button>
+        </div>
+    {% endif %}
+</div>

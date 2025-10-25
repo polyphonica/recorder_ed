@@ -1,0 +1,437 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Calendar - Private Lessons{% endblock %}
+
+{% block extra_head %}
+<style>
+.calendar {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: #e5e7eb;
+    padding: 1px;
+}
+
+.calendar-day-header {
+    background: #f9fafb;
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: 600;
+    color: #374151;
+}
+
+.calendar-day {
+    background: white;
+    min-height: 80px;
+    padding: 8px;
+    position: relative;
+    cursor: pointer;
+    border: 1px solid #e5e7eb;
+}
+
+.calendar-day:hover {
+    background: #f9fafb;
+}
+
+.calendar-day.other-month {
+    color: #9ca3af;
+    background: #f9fafb;
+}
+
+.calendar-day.today {
+    background: #dbeafe;
+    border-color: #3b82f6;
+}
+
+.calendar-event {
+    background-color: #10b981;
+    color: white;
+    padding: 2px 6px;
+    margin: 2px 0;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+}
+
+.calendar-event:hover {
+    background-color: #059669;
+}
+
+.calendar-event.unpaid {
+    background-color: #f59e0b;
+}
+
+.calendar-event.unpaid:hover {
+    background-color: #d97706;
+}
+
+.calendar-event {
+    background: #10b981;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin: 1px 0;
+    cursor: pointer;
+}
+
+.calendar-event.unpaid {
+    background: #f59e0b;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-green-800">
+                {% if is_teacher %}
+                    Teaching Calendar
+                {% else %}
+                    My Lessons Calendar
+                {% endif %}
+            </h1>
+            <p class="text-gray-600 mt-2">
+                {% if is_teacher %}
+                    View all your approved lessons and manage your teaching schedule
+                {% else %}
+                    View your approved and paid lessons
+                {% endif %}
+            </p>
+        </div>
+        
+        <!-- Calendar Legend -->
+        <div class="card bg-white shadow-lg">
+            <div class="card-body p-4">
+                <h3 class="card-title text-sm mb-3">Legend</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 bg-green-500 rounded"></div>
+                        <span>Paid Lessons</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 bg-yellow-500 rounded"></div>
+                        <span>Approved (Unpaid)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar -->
+    <div class="calendar">
+        <div class="calendar-header">
+            <button onclick="changeMonth(-1)" class="btn btn-sm btn-outline">‹ Previous</button>
+            <h3 class="text-lg font-semibold" id="month-year">October 2025</h3>
+            <button onclick="changeMonth(1)" class="btn btn-sm btn-outline">Next ›</button>
+        </div>
+        <div class="calendar-grid" id="calendar-grid">
+            <!-- Day headers -->
+            <div class="calendar-day-header">Sun</div>
+            <div class="calendar-day-header">Mon</div>
+            <div class="calendar-day-header">Tue</div>
+            <div class="calendar-day-header">Wed</div>
+            <div class="calendar-day-header">Thu</div>
+            <div class="calendar-day-header">Fri</div>
+            <div class="calendar-day-header">Sat</div>
+            
+            <!-- Days will be populated by JavaScript -->
+        </div>
+    </div>
+
+    {% if calendar_events|length == 0 %}
+    <div class="text-center p-8 text-gray-500 mt-6">
+        <div class="text-lg mb-2">📅 No lessons scheduled yet</div>
+        <div>
+            {% if is_teacher %}
+                Your approved lessons will appear here when students book and pay for them.
+            {% else %}
+                Your approved and paid lessons will appear here.
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Lesson Details Modal -->
+    <dialog id="lessonModal" class="modal">
+        <div class="modal-box max-w-2xl">
+            <h3 class="font-bold text-2xl mb-4" id="modalTitle">Lesson Details</h3>
+
+            <div class="space-y-4" id="modalContent">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn btn-outline">Close</button>
+                </form>
+                <button id="modalGoToLessonButton" class="btn btn-section-primary" style="display: none;">
+                    Go To Lesson
+                </button>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+</div>
+
+<script>
+let currentMonth = 9; // October (0-based)
+let currentYear = 2025;
+let calendarEvents = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        calendarEvents = {{ calendar_events|safe }};
+        console.log('Calendar loaded with', calendarEvents.length, 'events');
+        
+        renderCalendar();
+        
+    } catch (error) {
+        console.error('Calendar error:', error);
+    }
+});
+
+function changeMonth(direction) {
+    currentMonth += direction;
+    if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    } else if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    }
+    renderCalendar();
+}
+
+function renderCalendar() {
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    document.getElementById('month-year').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+    
+    // Get calendar grid
+    const grid = document.getElementById('calendar-grid');
+    
+    // Remove existing day cells (keep headers)
+    const dayCells = grid.querySelectorAll('.calendar-day, .calendar-day.other-month, .calendar-day.today');
+    dayCells.forEach(cell => cell.remove());
+    
+    // Generate calendar days
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    const today = new Date();
+    
+    for (let i = 0; i < 42; i++) { // 6 weeks * 7 days
+        const cellDate = new Date(startDate);
+        cellDate.setDate(startDate.getDate() + i);
+        
+        const dayCell = document.createElement('div');
+        dayCell.className = 'calendar-day';
+        
+        if (cellDate.getMonth() !== currentMonth) {
+            dayCell.classList.add('other-month');
+        }
+        
+        if (cellDate.toDateString() === today.toDateString()) {
+            dayCell.classList.add('today');
+        }
+        
+        // Day number
+        const dayNumber = document.createElement('div');
+        dayNumber.textContent = cellDate.getDate();
+        dayNumber.style.fontWeight = '600';
+        dayCell.appendChild(dayNumber);
+        
+        // Add events for this day
+        const dayEvents = calendarEvents.filter(event => {
+            const eventDate = new Date(event.start);
+            return eventDate.toDateString() === cellDate.toDateString();
+        });
+        
+        dayEvents.forEach(event => {
+            const eventEl = document.createElement('div');
+            eventEl.className = 'calendar-event';
+            if (event.extendedProps && event.extendedProps.paymentStatus === 'unpaid') {
+                eventEl.classList.add('unpaid');
+            }
+            eventEl.textContent = event.title;
+
+            // Click to show lesson details modal
+            eventEl.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showLessonDetails(event);
+            };
+
+            dayCell.appendChild(eventEl);
+        });
+        
+        grid.appendChild(dayCell);
+    }
+}
+
+// Function to show lesson details in modal
+function showLessonDetails(event) {
+    const props = event.extendedProps || {};
+    const modal = document.getElementById('lessonModal');
+    const goToLessonButton = document.getElementById('modalGoToLessonButton');
+
+    // Set modal title
+    document.getElementById('modalTitle').textContent = event.title;
+
+    // Build modal content
+    const content = document.getElementById('modalContent');
+    content.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <div class="text-sm text-gray-500">Subject</div>
+                <div class="font-semibold">${props.subject || 'Unknown'}</div>
+            </div>
+
+            <div>
+                <div class="text-sm text-gray-500">Duration</div>
+                <div class="font-semibold">${props.duration || 60} minutes</div>
+            </div>
+
+            <div>
+                <div class="text-sm text-gray-500">Date</div>
+                <div class="font-semibold">${new Date(event.start).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                })}</div>
+            </div>
+
+            <div>
+                <div class="text-sm text-gray-500">Time</div>
+                <div class="font-semibold">${new Date(event.start).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit'
+                })}</div>
+            </div>
+
+            <div>
+                <div class="text-sm text-gray-500">Location</div>
+                <div class="font-semibold">${props.location || 'Not specified'}</div>
+            </div>
+
+            <div>
+                <div class="text-sm text-gray-500">Price</div>
+                <div class="font-semibold">$${props.price || '0'}</div>
+            </div>
+
+            {% if is_teacher %}
+            <div>
+                <div class="text-sm text-gray-500">Student</div>
+                <div class="font-semibold">${props.student || 'Unknown'}</div>
+            </div>
+            {% else %}
+            <div>
+                <div class="text-sm text-gray-500">Teacher</div>
+                <div class="font-semibold">${props.teacher || 'Not assigned'}</div>
+            </div>
+            {% endif %}
+
+            <div>
+                <div class="text-sm text-gray-500">Approval Status</div>
+                <div>
+                    <span class="badge ${props.approvedStatus === 'Accepted' ? 'badge-success' : props.approvedStatus === 'Rejected' ? 'badge-error' : 'badge-warning'}">
+                        ${props.approvedStatus || 'Pending'}
+                    </span>
+                </div>
+            </div>
+
+            <div>
+                <div class="text-sm text-gray-500">Payment Status</div>
+                <div>
+                    <span class="badge ${props.paymentStatus === 'Paid' ? 'badge-success' : 'badge-warning'}">
+                        ${props.paymentStatus || 'Not Paid'}
+                    </span>
+                </div>
+            </div>
+
+            <div>
+                <div class="text-sm text-gray-500">Content Status</div>
+                <div>
+                    <span class="badge ${props.status === 'Assigned' ? 'badge-success' : 'badge-info'}">
+                        ${props.status === 'Assigned' ? 'Ready' : 'In Progress'}
+                    </span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Handle "Go To Lesson" button
+    const lessonId = props.lessonId;
+    const lessonStatus = props.status;
+    const approvedStatus = props.approvedStatus;
+    const paymentStatus = props.paymentStatus;
+
+    {% if is_teacher %}
+        // Teachers can access lessons if approved (regardless of draft/assigned status)
+        if (lessonId && approvedStatus === 'Accepted') {
+            goToLessonButton.style.display = 'inline-block';
+            goToLessonButton.onclick = () => {
+                window.location.href = `/lessons/${lessonId}/edit/`;
+            };
+        } else {
+            goToLessonButton.style.display = 'none';
+        }
+    {% else %}
+        // Students can only access lessons that are Assigned (teacher has published content)
+        if (lessonId && approvedStatus === 'Accepted' && paymentStatus === 'Paid' && lessonStatus === 'Assigned') {
+            goToLessonButton.style.display = 'inline-block';
+            goToLessonButton.onclick = () => {
+                window.location.href = `/lessons/${lessonId}/`;
+            };
+        } else {
+            goToLessonButton.style.display = 'none';
+            // Add a helpful message for students
+            let message = '';
+            if (approvedStatus !== 'Accepted') {
+                message = '<div class="alert alert-info mt-4"><span>⏳ This lesson is still awaiting teacher approval.</span></div>';
+            } else if (paymentStatus !== 'Paid') {
+                message = '<div class="alert alert-warning mt-4"><span>💳 This lesson needs to be paid for before you can access it.</span></div>';
+            } else if (lessonStatus === 'Draft') {
+                message = '<div class="alert alert-info mt-4"><span>✏️ Your teacher is still preparing the lesson content. You will be notified when it\'s ready.</span></div>';
+            }
+            if (message) {
+                content.innerHTML += message;
+            }
+        }
+    {% endif %}
+
+    // Show the modal
+    modal.showModal();
+}
+
+</script>
+{% endblock %}

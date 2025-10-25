@@ -1,0 +1,195 @@
+
+/* Section-Specific Color Themes */
+/* ============================= */
+
+/* Workshops - Blue Theme (default) */
+.section-workshops {
+    --section-primary: #3b82f6;
+    --section-primary-content: #ffffff;
+    --section-secondary: #1e40af;
+    --section-accent: #60a5fa;
+    --section-neutral: #1f2937;
+    --section-base-100: #f8fafc;
+    --section-base-200: #f1f5f9;
+    --section-base-300: #e2e8f0;
+}
+
+/* Private Teaching - Green Theme */
+.section-private-teaching {
+    --section-primary: #059669;
+    --section-primary-content: #ffffff;
+    --section-secondary: #047857;
+    --section-accent: #34d399;
+    --section-neutral: #064e3b;
+    --section-base-100: #f0fdf4;
+    --section-base-200: #dcfce7;
+    --section-base-300: #bbf7d0;
+}
+
+/* Courses - Purple Theme (future) */
+.section-courses {
+    --section-primary: #7c3aed;
+    --section-primary-content: #ffffff;
+    --section-secondary: #5b21b6;
+    --section-accent: #a78bfa;
+    --section-neutral: #3730a3;
+    --section-base-100: #faf5ff;
+    --section-base-200: #f3e8ff;
+    --section-base-300: #e9d5ff;
+}
+
+/* Section-specific component styles */
+.section-workshops .btn-section-primary {
+    background-color: var(--section-primary);
+    color: var(--section-primary-content);
+    border-color: var(--section-primary);
+}
+
+.section-private-teaching .btn-section-primary {
+    background-color: var(--section-primary);
+    color: var(--section-primary-content);
+    border-color: var(--section-primary);
+}
+
+.section-courses .btn-section-primary {
+    background-color: var(--section-primary);
+    color: var(--section-primary-content);
+    border-color: var(--section-primary);
+}
+
+.section-workshops .hero-section {
+    background: linear-gradient(135deg, var(--section-base-200) 0%, var(--section-base-300) 100%);
+}
+
+.section-private-teaching .hero-section {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%) !important;
+}
+
+.section-courses .hero-section {
+    background: linear-gradient(135deg, var(--section-base-200) 0%, var(--section-base-300) 100%);
+}
+
+.section-private-teaching .card-section {
+    background-color: #f0fdf4 !important;
+    border: 1px solid #bbf7d0;
+}
+
+/* Additional Private Teaching specific overrides */
+.section-private-teaching .btn-section-primary {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+    border-color: #059669 !important;
+}
+
+.section-private-teaching .btn-section-primary:hover {
+    background-color: #047857 !important;
+    border-color: #047857 !important;
+}
+
+.section-private-teaching .nav-private-teaching {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+    border-radius: 0.5rem;
+}
+
+/* Navigation active states */
+.section-workshops .nav-workshops,
+.section-private-teaching .nav-private-teaching,
+.section-courses .nav-courses {
+    background-color: var(--section-primary);
+    color: var(--section-primary-content);
+    border-radius: 0.5rem;
+}
+
+/* Cards and content areas */
+.section-private-teaching .card-section {
+    background-color: var(--section-base-100);
+    border: 1px solid var(--section-base-300);
+}
+
+.section-private-teaching .badge-section-primary {
+    background-color: var(--section-primary);
+    color: var(--section-primary-content);
+}
+
+.section-private-teaching .badge-section-secondary {
+    background-color: var(--section-secondary);
+    color: var(--section-primary-content);
+}
+
+.section-private-teaching .alert-section-success {
+    background-color: var(--section-base-200);
+    border-color: var(--section-accent);
+    color: var(--section-neutral);
+}
+
+/* Form elements in sections */
+.section-private-teaching .input-section {
+    border-color: var(--section-base-300);
+}
+
+.section-private-teaching .input-section:focus {
+    border-color: var(--section-primary);
+    outline: 2px solid var(--section-primary);
+    outline-offset: 2px;
+    outline-color: transparent;
+}
+
+.section-private-teaching .select-section {
+    border-color: var(--section-base-300);
+}
+
+.section-private-teaching .select-section:focus {
+    border-color: var(--section-primary);
+    outline: 2px solid var(--section-primary);
+    outline-offset: 2px;
+    outline-color: transparent;
+}
+
+/* Ripple effect for Material Design feel */
+.ripple {
+    position: relative;
+    overflow: hidden;
+}
+
+.ripple:active::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    animation: ripple-animation 0.6s ease-out;
+}
+
+@keyframes ripple-animation {
+    to {
+        width: 200px;
+        height: 200px;
+        opacity: 0;
+    }
+}
+
+/* Smooth transitions */
+* {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+
+/* Django Template Structure Guide
+ * ===============================
+ * 
+ * This structure provides:
+ * 1. Reusable components for consistent design
+ * 2. Section-specific base templates
+ * 3. Context processors for automatic section detection
+ * 4. Custom template tags for easy component usage
+ * 5. Material Design principles with Tailwind CSS
+ * 
+ * See the code for complete implementation details.
+ */

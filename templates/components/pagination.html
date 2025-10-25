@@ -1,0 +1,19 @@
+<div class="btn-group">
+    {% if current_page > 1 %}
+        <a href="{{ url_pattern|stringformat:previous_page }}" class="btn">«</a>
+    {% endif %}
+    
+    {% for page in pages %}
+        {% if page == current_page %}
+            <button class="btn btn-active">{{ page }}</button>
+        {% elif page == '...' %}
+            <button class="btn btn-disabled">...</button>
+        {% else %}
+            <a href="{{ url_pattern|stringformat:page }}" class="btn">{{ page }}</a>
+        {% endif %}
+    {% endfor %}
+    
+    {% if current_page < total_pages %}
+        <a href="{{ url_pattern|stringformat:next_page }}" class="btn">»</a>
+    {% endif %}
+</div>

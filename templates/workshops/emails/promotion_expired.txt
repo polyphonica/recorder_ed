@@ -1,0 +1,16 @@
+Subject: Registration Deadline Passed - {{ session.workshop.title }}
+
+Hi {{ registration.student.first_name|default:registration.student.username }},
+
+Unfortunately, the deadline to confirm your spot in "{{ session.workshop.title }}" has passed.
+
+The spot has now been offered to the next person on the waitlist.
+
+If you're still interested in this workshop, you can:
+1. Check if there are other available sessions: {{ workshop_url }}
+2. Join the waitlist again if the session becomes full
+
+We hope to see you in a future workshop!
+
+Best regards,
+The {{ site_name }} Team

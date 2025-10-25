@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Workshops - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-primary/10 to-secondary/10 py-8">
+        <div class="container mx-auto px-4">
+            <h1 class="text-3xl font-bold">My Learning Dashboard</h1>
+            <p class="text-base-content/70 mt-2">Track your progress and manage your workshop registrations</p>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="stat bg-base-100 shadow rounded-lg">
+                <div class="stat-figure text-primary">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Registered</div>
+                <div class="stat-value text-primary">{{ registered_count }}</div>
+                <div class="stat-desc">Active workshops</div>
+            </div>
+            
+            <div class="stat bg-base-100 shadow rounded-lg">
+                <div class="stat-figure text-success">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Completed</div>
+                <div class="stat-value text-success">{{ completed_count }}</div>
+                <div class="stat-desc">Successfully finished</div>
+            </div>
+            
+            <div class="stat bg-base-100 shadow rounded-lg">
+                <div class="stat-figure text-warning">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Upcoming</div>
+                <div class="stat-value text-warning">{{ upcoming_count }}</div>
+                <div class="stat-desc">Sessions to attend</div>
+            </div>
+            
+            <div class="stat bg-base-100 shadow rounded-lg">
+                <div class="stat-figure text-info">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Waitlisted</div>
+                <div class="stat-value text-info">{{ waitlisted_count }}</div>
+                <div class="stat-desc">Waiting for spots</div>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="tabs tabs-boxed mb-6" x-data="{ activeTab: 'upcoming' }">
+            <a class="tab" 
+               :class="{ 'tab-active': activeTab === 'upcoming' }"
+               @click="activeTab = 'upcoming'">
+                Upcoming Sessions
+            </a>
+            <a class="tab" 
+               :class="{ 'tab-active': activeTab === 'registered' }"
+               @click="activeTab = 'registered'">
+                All Registered
+            </a>
+            <a class="tab" 
+               :class="{ 'tab-active': activeTab === 'completed' }"
+               @click="activeTab = 'completed'">
+                Completed
+            </a>
+            <a class="tab" 
+               :class="{ 'tab-active': activeTab === 'waitlisted' }"
+               @click="activeTab = 'waitlisted'">
+                Waitlisted
+            </a>
+        </div>
+
+        <!-- Tab Contents -->
+        <div x-data="{ activeTab: 'upcoming' }">
+            <!-- Upcoming Sessions -->
+            <div x-show="activeTab === 'upcoming'" x-transition:enter.duration.300ms>
+                {% if upcoming_sessions %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {% for registration in upcoming_sessions %}
+                            <div class="card bg-base-100 shadow-xl">
+                                <div class="card-body">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div class="badge badge-warning">Upcoming</div>
+                                        <div class="badge badge-outline">{{ registration.session.workshop.category.name }}</div>
+                                    </div>
+                                    
+                                    <h3 class="card-title text-lg">{{ registration.session.workshop.title }}</h3>
+                                    
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 9h12v8H4V9z"></path>
+                                            </svg>
+                                            <span>{{ registration.session.start_datetime|date:"M j, Y" }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"></path>
+                                            </svg>
+                                            <span>{{ registration.session.start_datetime|date:"g:i A" }} - {{ registration.session.end_datetime|date:"g:i A" }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012-2v-1a2 2 0 012-2h1.945M15 11l-3-3m0 0l-3 3m3-3v12"></path>
+                                            </svg>
+                                            <span>{{ registration.session.timezone_name }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="card-actions justify-between mt-4">
+                                        {% if registration.session.meeting_url %}
+                                            <a href="{{ registration.session.meeting_url }}" 
+                                               target="_blank"
+                                               class="btn btn-primary btn-sm">
+                                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M2 6a2 2 0 012-2h6l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
+                                                </svg>
+                                                Join Session
+                                            </a>
+                                        {% endif %}
+                                        <a href="{% url 'workshops:detail' registration.session.workshop.slug %}" 
+                                           class="btn btn-outline btn-sm">
+                                            View Details
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <svg class="w-16 h-16 mx-auto text-base-content/30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-base-content/70 mb-2">No upcoming sessions</h3>
+                        <p class="text-base-content/50 mb-4">You don't have any upcoming workshop sessions.</p>
+                        <a href="{% url 'workshops:list' %}" class="btn btn-primary">
+                            Browse Workshops
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- All Registered -->
+            <div x-show="activeTab === 'registered'" x-transition:enter.duration.300ms>
+                {% if all_registrations %}
+                    <div class="space-y-4">
+                        {% for registration in all_registrations %}
+                            <div class="card bg-base-100 shadow">
+                                <div class="card-body">
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-3 mb-2">
+                                                <h3 class="card-title">{{ registration.session.workshop.title }}</h3>
+                                                <div class="badge badge-outline">{{ registration.session.workshop.category.name }}</div>
+                                                {% if registration.status == 'confirmed' %}
+                                                    <div class="badge badge-success">Confirmed</div>
+                                                {% elif registration.status == 'waitlisted' %}
+                                                    <div class="badge badge-warning">Waitlisted</div>
+                                                {% elif registration.status == 'completed' %}
+                                                    <div class="badge badge-info">Completed</div>
+                                                {% elif registration.status == 'cancelled' %}
+                                                    <div class="badge badge-error">Cancelled</div>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-base-content/70">
+                                                <div>
+                                                    <strong>Session Date:</strong><br>
+                                                    {{ registration.session.start_datetime|date:"M j, Y" }}
+                                                </div>
+                                                <div>
+                                                    <strong>Time:</strong><br>
+                                                    {{ registration.session.start_datetime|date:"g:i A" }} - {{ registration.session.end_datetime|date:"g:i A" }}
+                                                </div>
+                                                <div>
+                                                    <strong>Registered:</strong><br>
+                                                    {{ registration.registered_at|date:"M j, Y" }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex gap-2">
+                                            <a href="{% url 'workshops:detail' registration.session.workshop.slug %}" 
+                                               class="btn btn-outline btn-sm">
+                                                View Workshop
+                                            </a>
+                                            {% if registration.session.meeting_url and registration.status == 'confirmed' %}
+                                                <a href="{{ registration.session.meeting_url }}" 
+                                                   target="_blank"
+                                                   class="btn btn-primary btn-sm">
+                                                    Join Session
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <svg class="w-16 h-16 mx-auto text-base-content/30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.239 0-4.236-.908-5.69-2.381C4.926 11.283 3.988 9.764 4 8c.012-1.764.988-3.283 2.31-4.619C7.764 1.908 9.761 1 12 1s4.236.908 5.69 2.381C19.012 4.717 19.988 6.236 20 8c.012 1.764-.926 3.283-2.31 4.619"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-base-content/70 mb-2">No workshop registrations</h3>
+                        <p class="text-base-content/50 mb-4">You haven't registered for any workshops yet.</p>
+                        <a href="{% url 'workshops:list' %}" class="btn btn-primary">
+                            Browse Workshops
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Completed -->
+            <div x-show="activeTab === 'completed'" x-transition:enter.duration.300ms>
+                {% if completed_registrations %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {% for registration in completed_registrations %}
+                            <div class="card bg-base-100 shadow-xl">
+                                <div class="card-body">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div class="badge badge-success">Completed</div>
+                                        <div class="badge badge-outline">{{ registration.session.workshop.category.name }}</div>
+                                    </div>
+                                    
+                                    <h3 class="card-title text-lg">{{ registration.session.workshop.title }}</h3>
+                                    
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 9h12v8H4V9z"></path>
+                                            </svg>
+                                            <span>{{ registration.session.start_datetime|date:"M j, Y" }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <span>Completed {{ registration.completed_at|date:"M j, Y"|default:"recently" }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="card-actions justify-between mt-4">
+                                        <a href="{% url 'workshops:detail' registration.session.workshop.slug %}" 
+                                           class="btn btn-outline btn-sm">
+                                            View Workshop
+                                        </a>
+                                        <!-- Future: Add certificate download or review link -->
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <svg class="w-16 h-16 mx-auto text-base-content/30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-base-content/70 mb-2">No completed workshops</h3>
+                        <p class="text-base-content/50 mb-4">Complete your first workshop to see it here.</p>
+                        <a href="{% url 'workshops:list' %}" class="btn btn-primary">
+                            Browse Workshops
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Waitlisted -->
+            <div x-show="activeTab === 'waitlisted'" x-transition:enter.duration.300ms>
+                {% if waitlisted_registrations %}
+                    <div class="space-y-4">
+                        {% for registration in waitlisted_registrations %}
+                            <div class="card bg-base-100 shadow">
+                                <div class="card-body">
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-3 mb-2">
+                                                <h3 class="card-title">{{ registration.session.workshop.title }}</h3>
+                                                <div class="badge badge-warning">Waitlisted</div>
+                                                <div class="badge badge-outline">{{ registration.session.workshop.category.name }}</div>
+                                            </div>
+                                            
+                                            <p class="text-sm text-base-content/70 mb-3">
+                                                We'll notify you by email if a spot becomes available for this session.
+                                            </p>
+                                            
+                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-base-content/70">
+                                                <div>
+                                                    <strong>Session Date:</strong><br>
+                                                    {{ registration.session.start_datetime|date:"M j, Y" }}
+                                                </div>
+                                                <div>
+                                                    <strong>Time:</strong><br>
+                                                    {{ registration.session.start_datetime|date:"g:i A" }} - {{ registration.session.end_datetime|date:"g:i A" }}
+                                                </div>
+                                                <div>
+                                                    <strong>Joined Waitlist:</strong><br>
+                                                    {{ registration.registered_at|date:"M j, Y" }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex gap-2">
+                                            <a href="{% url 'workshops:detail' registration.session.workshop.slug %}" 
+                                               class="btn btn-outline btn-sm">
+                                                View Workshop
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <svg class="w-16 h-16 mx-auto text-base-content/30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-base-content/70 mb-2">No waitlisted workshops</h3>
+                        <p class="text-base-content/50 mb-4">You're not currently on any waitlists.</p>
+                        <a href="{% url 'workshops:list' %}" class="btn btn-primary">
+                            Browse Workshops
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

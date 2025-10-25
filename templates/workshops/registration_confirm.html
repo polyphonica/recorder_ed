@@ -1,0 +1,350 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load workshop_tags %}
+
+{% block title %}{% if registration.status == 'promoted' %}Complete Registration{% elif registration.status == 'waitlisted' %}Added to Waitlist{% elif registration.status == 'registered' %}Registration Confirmed{% else %}Registration Status{% endif %} - {{ registration.session.workshop.title }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'core:home' %}">Home</a></li>
+            <li><a href="{% url 'workshops:list' %}">Workshops</a></li>
+            <li><a href="{% url 'workshops:detail' slug=registration.session.workshop.slug %}">{{ registration.session.workshop.title }}</a></li>
+            <li>{% if registration.status == 'promoted' %}Complete Registration{% elif registration.status == 'waitlisted' %}Added to Waitlist{% elif registration.status == 'registered' %}Registration Confirmed{% else %}Registration Status{% endif %}</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Success Message -->
+        <div class="text-center mb-8">
+            {% if registration.status == 'promoted' %}
+            <div class="bg-warning/10 border border-warning rounded-lg p-8 mb-6">
+                <div class="text-warning text-6xl mb-4">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-warning mb-2">Complete Your Registration</h1>
+                <p class="text-lg">You've been promoted from the waitlist! Complete your payment to secure your spot.</p>
+                <div class="bg-warning/20 rounded-lg p-4 mt-4">
+                    <p class="text-sm font-semibold">⏰ You have 48 hours to complete registration</p>
+                    <p class="text-xs text-warning/80">After this deadline, your spot may be offered to someone else</p>
+                </div>
+            </div>
+            {% elif registration.status == 'waitlisted' %}
+            <div class="bg-info/10 border border-info rounded-lg p-8 mb-6">
+                <div class="text-info text-6xl mb-4">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-info mb-2">Added to Waitlist</h1>
+                <p class="text-lg">You've been added to the waitlist for this workshop session.</p>
+                <div class="bg-info/20 rounded-lg p-4 mt-4">
+                    <p class="text-sm font-semibold">📋 We'll notify you if a spot becomes available</p>
+                    <p class="text-xs text-info/80">You'll receive an email if someone cancels or additional capacity is added</p>
+                </div>
+            </div>
+            {% elif registration.status == 'registered' %}
+            <div class="bg-success/10 border border-success rounded-lg p-8 mb-6">
+                <div class="text-success text-6xl mb-4">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-success mb-2">Registration Confirmed!</h1>
+                <p class="text-lg">You're all set for this workshop session.</p>
+            </div>
+            {% else %}
+            <div class="bg-base-300/10 border border-base-300 rounded-lg p-8 mb-6">
+                <div class="text-base-content text-6xl mb-4">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-base-content mb-2">Registration Status</h1>
+                <p class="text-lg">Your registration status: {{ registration.get_status_display }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Registration Details -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Workshop Information -->
+            <div class="card bg-base-200 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-xl mb-4">
+                        <i class="fas fa-book-open text-primary"></i>
+                        Workshop Details
+                    </h2>
+                    
+                    {% if registration.session.workshop.featured_image %}
+                        <figure class="mb-4">
+                            <img src="{{ registration.session.workshop.featured_image.url }}" 
+                                 alt="{{ registration.session.workshop.title }}"
+                                 class="w-full h-32 object-cover rounded-lg" />
+                        </figure>
+                    {% endif %}
+
+                    <h3 class="text-lg font-semibold mb-2">{{ registration.session.workshop.title }}</h3>
+                    
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Category:</span>
+                            <span class="badge badge-primary">{{ registration.session.workshop.category.name }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Difficulty:</span>
+                            <span class="badge badge-outline">{{ registration.session.workshop.get_difficulty_level_display }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Duration:</span>
+                            <span>{{ registration.session.workshop.duration_display }}</span>
+                        </div>
+                        {% if registration.session.workshop.price > 0 %}
+                            <div class="flex justify-between">
+                                <span class="text-base-content/70">Price:</span>
+                                <span class="font-semibold">${{ registration.session.workshop.price }}</span>
+                            </div>
+                        {% else %}
+                            <div class="flex justify-between">
+                                <span class="text-base-content/70">Price:</span>
+                                <span class="badge badge-success">Free</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    {% if registration.session.workshop.tags %}
+                        <div class="mt-4">
+                            <span class="text-base-content/70">Tags:</span>
+                            <div class="flex flex-wrap gap-1 mt-2">
+                                {% for tag in registration.session.workshop.tags|split:"," %}
+                                    <span class="badge badge-ghost badge-sm">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Session & Registration Info -->
+            <div class="card bg-base-200 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-xl mb-4">
+                        <i class="fas fa-calendar-alt text-secondary"></i>
+                        Session Information
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <!-- Session Details -->
+                        <div class="bg-base-100 rounded-lg p-4">
+                            <h4 class="font-semibold mb-3">{{ registration.session.title }}</h4>
+                            
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-calendar text-primary"></i>
+                                    <span>{{ registration.session.start_datetime|date:"F j, Y" }}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-clock text-primary"></i>
+                                    <span>{{ registration.session.start_datetime|time:"g:i A" }} - {{ registration.session.end_datetime|time:"g:i A" }}</span>
+                                </div>
+                                {% if registration.session.location %}
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-map-marker-alt text-primary"></i>
+                                        <span>{{ registration.session.location }}</span>
+                                    </div>
+                                {% endif %}
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-users text-primary"></i>
+                                    <span>{{ registration.session.current_registrations }}/{{ registration.session.max_participants }} participants</span>
+                                </div>
+                                {% if registration.session.meeting_url and registration.status in 'registered,promoted' %}
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-video text-primary"></i>
+                                        <a href="{{ registration.session.meeting_url }}" target="_blank" 
+                                           class="text-primary hover:underline font-medium">
+                                            Join Online Meeting
+                                        </a>
+                                    </div>
+                                {% endif %}
+                                {% if registration.session.meeting_id and registration.status in 'registered,promoted' %}
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-key text-primary"></i>
+                                        <span>Meeting ID: <code class="text-xs bg-base-300 px-1 rounded">{{ registration.session.meeting_id }}</code></span>
+                                    </div>
+                                {% endif %}
+                                {% if registration.session.meeting_password and registration.status in 'registered,promoted' %}
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-lock text-primary"></i>
+                                        <span>Password: <code class="text-xs bg-base-300 px-1 rounded">{{ registration.session.meeting_password }}</code></span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Registration Status -->
+                        <div class="bg-base-100 rounded-lg p-4">
+                            <h4 class="font-semibold mb-3">Your Registration</h4>
+                            
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-base-content/70">Registration ID:</span>
+                                    <code class="text-xs">{{ registration.id }}</code>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-base-content/70">Status:</span>
+                                    <span class="badge 
+                                        {% if registration.status == 'registered' %}badge-success
+                                        {% elif registration.status == 'promoted' %}badge-info
+                                        {% elif registration.status == 'waitlisted' %}badge-warning
+                                        {% elif registration.status == 'cancelled' %}badge-error
+                                        {% else %}badge-info{% endif %}">
+                                        {{ registration.get_status_display }}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-base-content/70">Registered:</span>
+                                    <span>{{ registration.created_at|date:"M j, Y g:i A" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- What's Next Section -->
+        <div class="card bg-base-200 shadow-xl mt-8">
+            <div class="card-body">
+                {% if registration.status == 'promoted' %}
+                <h2 class="card-title text-xl mb-4">
+                    <i class="fas fa-credit-card text-warning"></i>
+                    Complete Your Registration
+                </h2>
+                
+                <div class="bg-warning/10 border border-warning rounded-lg p-6 mb-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-warning mb-2">Payment Required</h3>
+                            <p class="text-sm">Complete your payment to secure your workshop spot.</p>
+                            {% if registration.promotion_expires_at %}
+                            <p class="text-xs text-warning/80 mt-1">
+                                Deadline: {{ registration.promotion_expires_at|date:"M j, Y g:i A" }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="text-right">
+                            <form method="post" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-warning btn-lg animate-pulse">
+                                    <i class="fas fa-credit-card"></i>
+                                    Pay Now
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-base-100 rounded-lg p-4 text-center">
+                        <div class="text-info text-2xl mb-2">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <h4 class="font-semibold mb-2">Time Remaining</h4>
+                        <p class="text-sm text-base-content/70">You have 48 hours from promotion to complete payment.</p>
+                    </div>
+                    
+                    <div class="bg-base-100 rounded-lg p-4 text-center">
+                        <div class="text-secondary text-2xl mb-2">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <h4 class="font-semibold mb-2">Check Your Email</h4>
+                        <p class="text-sm text-base-content/70">We've sent promotion details and payment instructions.</p>
+                    </div>
+                </div>
+                
+                {% else %}
+                
+                <h2 class="card-title text-xl mb-4">
+                    <i class="fas fa-arrow-right text-accent"></i>
+                    What's Next?
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-base-100 rounded-lg p-4 text-center">
+                        <div class="text-primary text-2xl mb-2">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <h4 class="font-semibold mb-2">Check Your Email</h4>
+                        <p class="text-sm text-base-content/70">We've sent a confirmation email with all the details and any pre-session materials.</p>
+                    </div>
+                    
+                    <div class="bg-base-100 rounded-lg p-4 text-center">
+                        <div class="text-secondary text-2xl mb-2">
+                            <i class="fas fa-download"></i>
+                        </div>
+                        <h4 class="font-semibold mb-2">Download Materials</h4>
+                        <p class="text-sm text-base-content/70">Access workshop materials and preparation guides from your dashboard.</p>
+                    </div>
+                    
+                    <div class="bg-base-100 rounded-lg p-4 text-center">
+                        <div class="text-accent text-2xl mb-2">
+                            <i class="fas fa-calendar-plus"></i>
+                        </div>
+                        <h4 class="font-semibold mb-2">Add to Calendar</h4>
+                        <p class="text-sm text-base-content/70">Don't forget to add this session to your calendar so you don't miss it!</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 mt-8 justify-center">
+            <a href="{% url 'workshops:dashboard' %}" class="btn btn-primary">
+                <i class="fas fa-tachometer-alt"></i>
+                View Dashboard
+            </a>
+            <a href="{% url 'workshops:detail' slug=registration.session.workshop.slug %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i>
+                Back to Workshop
+            </a>
+            <a href="{% url 'workshops:list' %}" class="btn btn-outline">
+                <i class="fas fa-search"></i>
+                Browse More Workshops
+            </a>
+        </div>
+
+        <!-- Need Help Section -->
+        <div class="text-center mt-8 p-6 bg-base-200 rounded-lg">
+            <h3 class="font-semibold mb-2">Need Help?</h3>
+            <p class="text-sm text-base-content/70 mb-4">
+                If you have any questions about your registration or need to make changes, we're here to help.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-2 justify-center">
+                <a href="mailto:support@recordered.com" class="btn btn-sm btn-ghost">
+                    <i class="fas fa-envelope"></i>
+                    Email Support
+                </a>
+                <button class="btn btn-sm btn-ghost" onclick="window.print()">
+                    <i class="fas fa-print"></i>
+                    Print Confirmation
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-scroll to top on page load
+window.scrollTo(0, 0);
+
+// Add some interactive feedback
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate the success icon
+    const successIcon = document.querySelector('.fa-check-circle');
+    if (successIcon) {
+        successIcon.style.transform = 'scale(0)';
+        setTimeout(() => {
+            successIcon.style.transition = 'transform 0.5s ease-out';
+            successIcon.style.transform = 'scale(1)';
+        }, 300);
+    }
+});
+</script>
+{% endblock %}

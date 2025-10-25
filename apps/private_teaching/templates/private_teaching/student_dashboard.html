@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Dashboard - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Student Dashboard</h1>
+                <p class="text-base-content/70">Welcome back! Here's an overview of your private lessons.</p>
+            </div>
+            <a href="{% url 'private_teaching:request_lesson' %}" class="btn btn-primary">
+                <i class="fas fa-plus mr-2"></i>Request New Lesson
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="stat rounded-lg shadow-lg" style="background-color: #3b82f6;">
+            <div class="stat-title text-lg font-semibold" style="color: white;">Recent Requests</div>
+            <div class="stat-value text-4xl" style="color: white;">{{ recent_requests.count }}</div>
+            <div class="stat-desc text-base mt-2" style="color: white;">
+                {% if recent_requests.count > 0 %}
+                    {% if recent_requests.count == 1 %}1 recent request{% else %}{{ recent_requests.count }} recent requests{% endif %}
+                {% else %}
+                    No recent requests
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="stat rounded-lg shadow-lg" style="background-color: #f59e0b;">
+            <div class="stat-title text-lg font-semibold" style="color: white;">Awaiting Payment</div>
+            <div class="stat-value text-4xl" style="color: white;">{{ awaiting_payment.count }}</div>
+            <div class="stat-desc text-base mt-2" style="color: white;">
+                {% if awaiting_payment.count > 0 %}
+                    {% if awaiting_payment.count == 1 %}1 lesson needs payment{% else %}{{ awaiting_payment.count }} lessons need payment{% endif %}
+                {% else %}
+                    All lessons paid
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="stat rounded-lg shadow-lg" style="background-color: #10b981;">
+            <div class="stat-title text-lg font-semibold" style="color: white;">Upcoming Lessons</div>
+            <div class="stat-value text-4xl" style="color: white;">{{ upcoming_lessons.count }}</div>
+            <div class="stat-desc text-base mt-2" style="color: white;">
+                {% if upcoming_lessons.count > 0 %}
+                    Next lesson coming up!
+                {% else %}
+                    No lessons scheduled
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Recent Lesson Requests -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-clock mr-2"></i>Recent Requests
+                </h2>
+                
+                {% if recent_requests %}
+                    <div class="space-y-4">
+                        {% for request in recent_requests %}
+                            <div class="border border-base-300 rounded-lg p-4">
+                                <div class="flex justify-between items-start mb-2">
+                                    {% with first_lesson=request.lessons.first %}
+                                        <h3 class="font-semibold text-lg">
+                                            {% if first_lesson and first_lesson.subject %}
+                                                {{ first_lesson.subject.subject }}
+                                            {% else %}
+                                                Lesson Request
+                                            {% endif %}
+                                        </h3>
+                                    {% endwith %}
+                                </div>
+
+                                {% if request.teacher %}
+                                    <p class="text-sm text-base-content/70 mb-2">
+                                        <i class="fas fa-user mr-1"></i>Teacher: {{ request.teacher.get_full_name }}
+                                    </p>
+                                {% endif %}
+
+                                <p class="text-sm text-base-content/70 mb-2">
+                                    <i class="fas fa-calendar mr-1"></i>Requested: {{ request.created_at|date:"M j, Y" }}
+                                </p>
+
+                                {% if request.lessons.exists %}
+                                    <p class="text-sm text-base-content/70 mb-3">
+                                        <i class="fas fa-list mr-1"></i>{{ request.lessons.count }} lesson{{ request.lessons.count|pluralize }}
+                                    </p>
+
+                                    <!-- Show lesson statuses -->
+                                    <div class="flex flex-wrap gap-2">
+                                        {% for lesson in request.lessons.all|slice:":3" %}
+                                            <div class="flex gap-1">
+                                                <span class="badge badge-sm
+                                                    {% if lesson.approved_status == 'Accepted' %}badge-success
+                                                    {% elif lesson.approved_status == 'Rejected' %}badge-error
+                                                    {% else %}badge-warning{% endif %}">
+                                                    {{ lesson.get_approved_status_display }}
+                                                </span>
+                                                {% if lesson.approved_status == 'Accepted' %}
+                                                    <span class="badge badge-sm
+                                                        {% if lesson.payment_status == 'Paid' %}badge-success
+                                                        {% else %}badge-warning{% endif %}">
+                                                        {{ lesson.get_payment_status_display }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                        {% if request.lessons.count > 3 %}
+                                            <span class="text-xs text-base-content/50">+{{ request.lessons.count|add:"-3" }} more</span>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+
+                                <div class="mt-3">
+                                    <a href="{% url 'private_teaching:my_requests' %}" class="btn btn-xs btn-outline">View Details</a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="card-actions justify-center mt-6">
+                        <a href="{% url 'private_teaching:my_requests' %}" class="btn btn-outline">View All Requests</a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-inbox text-4xl text-base-content/30 mb-4"></i>
+                        <p class="text-base-content/70">No lesson requests yet.</p>
+                        <a href="{% url 'private_teaching:request_lesson' %}" class="btn btn-primary mt-4">
+                            Request Your First Lesson
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Upcoming Lessons -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h2 class="card-title text-2xl">
+                            <i class="fas fa-calendar-alt mr-2"></i>Upcoming Lessons
+                        </h2>
+                        <p class="text-sm text-base-content/70 mt-1">Next 5 lessons</p>
+                    </div>
+                    <a href="{% url 'private_teaching:calendar' %}" class="btn btn-sm btn-outline">View All</a>
+                </div>
+                
+                {% if upcoming_lessons %}
+                    <div class="space-y-4">
+                        {% for lesson in upcoming_lessons %}
+                            <div class="border border-base-300 rounded-lg p-4">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="font-semibold text-lg">{{ lesson.subject.subject }}</h3>
+                                    <span class="badge badge-info">{{ lesson.duration_in_minutes }} min</span>
+                                </div>
+                                {% if lesson.subject %}
+                                    <p class="text-sm text-base-content/70 mb-2">
+                                        Teacher: {{ lesson.subject.teacher.get_full_name }}
+                                    </p>
+                                {% endif %}
+                                <p class="text-sm font-medium">
+                                    <i class="fas fa-calendar mr-1"></i>{{ lesson.lesson_date|date:"M j, Y" }}
+                                </p>
+                                <p class="text-sm font-medium">
+                                    <i class="fas fa-clock mr-1"></i>{{ lesson.lesson_time|time:"g:i A" }}
+                                </p>
+                                {% if lesson.location %}
+                                    <p class="text-sm text-base-content/70">
+                                        <i class="fas fa-map-marker-alt mr-1"></i>{{ lesson.get_location_display }}
+                                    </p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="card-actions justify-center mt-6">
+                        <a href="{% url 'private_teaching:calendar' %}" class="btn btn-outline">View Calendar</a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-calendar-times text-4xl text-base-content/30 mb-4"></i>
+                        <p class="text-base-content/70">No upcoming lessons scheduled.</p>
+                        <a href="{% url 'private_teaching:request_lesson' %}" class="btn btn-primary mt-4">
+                            Request a Lesson
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="mt-8">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-bolt mr-2"></i>Quick Actions
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <a href="{% url 'private_teaching:student_library' %}" class="btn btn-outline btn-lg">
+                        <i class="fas fa-book mr-2"></i>Document Library
+                    </a>
+                    <a href="{% url 'private_teaching:calendar' %}" class="btn btn-outline btn-lg">
+                        <i class="fas fa-calendar mr-2"></i>View Calendar
+                    </a>
+                    <a href="{% url 'private_teaching:my_requests' %}" class="btn btn-outline btn-lg">
+                        <i class="fas fa-list mr-2"></i>My Requests
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

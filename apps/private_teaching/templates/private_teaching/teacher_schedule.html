@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Schedule - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold mb-2">My Teaching Schedule</h1>
+        <p class="text-base-content/70">Your confirmed lessons for the next 30 days</p>
+    </div>
+
+    {% if scheduled_lessons %}
+        <div class="mb-6">
+            <div class="stats shadow">
+                <div class="stat">
+                    <div class="stat-title">Scheduled Lessons</div>
+                    <div class="stat-value text-primary">{{ scheduled_lessons.count }}</div>
+                    <div class="stat-desc">Next 30 days</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">Date Range</div>
+                    <div class="stat-value text-sm">{{ today|date:"M j" }} - {{ end_date|date:"M j" }}</div>
+                    <div class="stat-desc">{{ today.year }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter and View Options -->
+        <div class="mb-6">
+            <div class="flex flex-wrap gap-4 items-center">
+                <div class="flex gap-2">
+                    <button class="btn btn-sm btn-outline" onclick="filterLessons('all')">All</button>
+                    <button class="btn btn-sm btn-outline" onclick="filterLessons('Online')">Online</button>
+                    <button class="btn btn-sm btn-outline" onclick="filterLessons('Onsite')">Onsite</button>
+                </div>
+                <div class="flex gap-2">
+                    <button class="btn btn-sm btn-section-primary" onclick="toggleView('timeline')" id="timeline-btn">Timeline View</button>
+                    <button class="btn btn-sm btn-outline" onclick="toggleView('list')" id="list-btn">List View</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline View -->
+        <div id="timeline-view" class="space-y-8">
+            {% regroup scheduled_lessons by lesson_date as lessons_by_date %}
+            {% for date_group in lessons_by_date %}
+                <div class="lesson-date-group">
+                    <div class="flex items-center mb-4">
+                        <div class="bg-primary text-primary-content rounded-lg px-4 py-2">
+                            <div class="font-bold">{{ date_group.grouper|date:"l" }}</div>
+                            <div class="text-sm opacity-90">{{ date_group.grouper|date:"F j, Y" }}</div>
+                        </div>
+                        <div class="flex-1 h-px bg-base-300 ml-4"></div>
+                    </div>
+                    
+                    <div class="space-y-4 ml-8">
+                        {% for lesson in date_group.list %}
+                            <div class="lesson-card card bg-base-100 shadow-lg hover:shadow-xl transition-shadow duration-200 lesson-item"
+                                 data-location="{{ lesson.location }}"
+                                 onclick="openLessonDetails('{{ lesson.id }}')">
+                                <div class="card-body">
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <h3 class="card-title text-lg">
+                                                {{ lesson.subject.subject }}
+                                                <span class="badge badge-outline badge-sm">{{ lesson.get_location_display }}</span>
+                                            </h3>
+                                            <p class="text-base-content/70 mb-2">
+                                                <i class="fas fa-user mr-2"></i>
+                                                {{ lesson.student.get_full_name|default:lesson.student.username }}
+                                            </p>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-2xl font-bold text-primary">{{ lesson.lesson_time|time:"g:i A" }}</div>
+                                            <div class="text-sm text-base-content/70">{{ lesson.duration_in_minutes }} minutes</div>
+                                            {% if lesson.location == 'Online' %}
+                                                <div class="mt-2">
+                                                    <span class="badge badge-info badge-sm">
+                                                        <i class="fas fa-video mr-1"></i>Online
+                                                    </span>
+                                                </div>
+                                            {% else %}
+                                                <div class="mt-2">
+                                                    <span class="badge badge-success badge-sm">
+                                                        <i class="fas fa-map-marker-alt mr-1"></i>Onsite
+                                                    </span>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- List View (Hidden by default) -->
+        <div id="list-view" class="hidden">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Student</th>
+                            <th>Subject</th>
+                            <th>Location</th>
+                            <th>Duration</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lesson in scheduled_lessons %}
+                            <tr class="lesson-item hover:bg-base-200 cursor-pointer"
+                                data-location="{{ lesson.location }}"
+                                onclick="openLessonDetails('{{ lesson.id }}')">
+                                <td>
+                                    <div class="font-bold">{{ lesson.lesson_date|date:"M j, Y" }}</div>
+                                    <div class="text-sm text-base-content/70">{{ lesson.lesson_time|time:"g:i A" }}</div>
+                                </td>
+                                <td>
+                                    <div class="font-semibold">{{ lesson.student.get_full_name|default:lesson.student.username }}</div>
+                                </td>
+                                <td><span class="badge badge-outline">{{ lesson.subject.subject }}</span></td>
+                                <td>
+                                    {% if lesson.location == 'Online' %}
+                                        <span class="badge badge-info badge-sm">
+                                            <i class="fas fa-video mr-1"></i>Online
+                                        </span>
+                                    {% else %}
+                                        <span class="badge badge-success badge-sm">
+                                            <i class="fas fa-map-marker-alt mr-1"></i>Onsite
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ lesson.duration_in_minutes }} min</td>
+                                <td>
+                                    <button class="btn btn-xs btn-outline" onclick="event.stopPropagation(); openLessonDetails('{{ lesson.id }}')">
+                                        Details
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-16">
+            <div class="text-8xl mb-6">📅</div>
+            <h2 class="text-3xl font-bold mb-4">No Scheduled Lessons</h2>
+            <p class="text-lg text-base-content/70 mb-8">
+                You have no confirmed lessons in the next 30 days. Check your incoming requests to approve new lesson requests.
+            </p>
+            <a href="{% url 'private_teaching:incoming_requests' %}" class="btn btn-section-primary">
+                <i class="fas fa-inbox mr-2"></i>View Incoming Requests
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Lesson Details Modal -->
+<div id="lesson-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Lesson Details</h3>
+        <div id="lesson-details-content">
+            <!-- Details will be loaded here -->
+        </div>
+        <div class="modal-action">
+            <button class="btn" onclick="closeLessonModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// View switching
+function toggleView(view) {
+    const timelineView = document.getElementById('timeline-view');
+    const listView = document.getElementById('list-view');
+    const timelineBtn = document.getElementById('timeline-btn');
+    const listBtn = document.getElementById('list-btn');
+    
+    if (view === 'timeline') {
+        timelineView.classList.remove('hidden');
+        listView.classList.add('hidden');
+        timelineBtn.classList.add('btn-section-primary');
+        timelineBtn.classList.remove('btn-outline');
+        listBtn.classList.add('btn-outline');
+        listBtn.classList.remove('btn-section-primary');
+    } else {
+        timelineView.classList.add('hidden');
+        listView.classList.remove('hidden');
+        listBtn.classList.add('btn-section-primary');
+        listBtn.classList.remove('btn-outline');
+        timelineBtn.classList.add('btn-outline');
+        timelineBtn.classList.remove('btn-section-primary');
+    }
+}
+
+// Filter lessons by location
+function filterLessons(filter) {
+    const lessons = document.querySelectorAll('.lesson-item');
+    const buttons = document.querySelectorAll('[onclick^="filterLessons"]');
+    
+    // Update button states
+    buttons.forEach(btn => {
+        btn.classList.remove('btn-section-primary');
+        btn.classList.add('btn-outline');
+    });
+    event.target.classList.add('btn-section-primary');
+    event.target.classList.remove('btn-outline');
+    
+    // Filter lessons
+    lessons.forEach(lesson => {
+        if (filter === 'all' || lesson.dataset.location === filter) {
+            lesson.style.display = '';
+        } else {
+            lesson.style.display = 'none';
+        }
+    });
+}
+
+// Lesson details modal
+function openLessonDetails(lessonId) {
+    // For now, just show a placeholder. In a real implementation, 
+    // you'd fetch lesson details via AJAX
+    const modal = document.getElementById('lesson-modal');
+    const content = document.getElementById('lesson-details-content');
+    
+    content.innerHTML = `
+        <p>Lesson ID: ${lessonId}</p>
+        <p>Detailed lesson information would be loaded here...</p>
+        <div class="mt-4">
+            <button class="btn btn-outline btn-sm">Contact Student</button>
+            <button class="btn btn-outline btn-sm">Reschedule</button>
+            <button class="btn btn-outline btn-sm">Mark Complete</button>
+        </div>
+    `;
+    
+    modal.classList.add('modal-open');
+}
+
+function closeLessonModal() {
+    document.getElementById('lesson-modal').classList.remove('modal-open');
+}
+
+// Initialize with timeline view
+document.addEventListener('DOMContentLoaded', function() {
+    toggleView('timeline');
+    filterLessons('all');
+});
+</script>
+{% endblock %}

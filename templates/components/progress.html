@@ -1,0 +1,10 @@
+<div class="w-full">
+    {% if label %}
+        <div class="flex justify-between text-sm mb-1">
+            <span>{{ label }}</span>
+            <span>{{ value }}/{{ max_value }}</span>
+        </div>
+    {% endif %}
+    <progress class="progress progress-{{ color }} {% if size == 'sm' %}h-2{% elif size == 'lg' %}h-4{% else %}h-3{% endif %} w-full" 
+              value="{{ percentage }}" max="100"></progress>
+</div>

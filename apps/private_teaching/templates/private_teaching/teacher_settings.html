@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Settings - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Teacher Settings</h1>
+                <p class="text-base-content/70">Manage your subjects and pricing</p>
+            </div>
+            <a href="{% url 'private_teaching:teacher_dashboard' %}" class="btn btn-outline">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Default Zoom Link -->
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="card-title text-2xl mb-4">Default Zoom Link</h2>
+            <p class="text-base-content/70 mb-4">Set your default Zoom link that will be automatically applied to all online lessons</p>
+
+            <form method="post" action="{% url 'private_teaching:update_zoom_link' %}">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-end">
+                    <div class="form-control lg:col-span-2">
+                        <label class="label">
+                            <span class="label-text font-medium">Zoom Link URL</span>
+                        </label>
+                        <input type="url" name="default_zoom_link"
+                               value="{{ request.user.profile.default_zoom_link }}"
+                               class="input input-bordered w-full"
+                               placeholder="https://us05web.zoom.us/j/...">
+                        <label class="label">
+                            <span class="label-text-alt">This link will be used for all new online lessons</span>
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <button type="submit" class="btn btn-section-primary">
+                            <i class="fas fa-save mr-2"></i>Save Zoom Link
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add New Subject -->
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="card-title text-2xl mb-4">Add New Subject</h2>
+            
+            <form method="post" action="{% url 'private_teaching:subject_create' %}">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Subject Name -->
+                    <div class="form-control">
+                        <label class="label" for="{{ subject_form.subject.id_for_label }}">
+                            <span class="label-text font-medium">Subject Name</span>
+                        </label>
+                        {{ subject_form.subject }}
+                        {% if subject_form.subject.errors %}
+                            <div class="text-error text-sm mt-1">{{ subject_form.subject.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Base Price -->
+                    <div class="form-control">
+                        <label class="label" for="{{ subject_form.base_price_60min.id_for_label }}">
+                            <span class="label-text font-medium">{{ subject_form.base_price_60min.label }}</span>
+                        </label>
+                        {{ subject_form.base_price_60min }}
+                        {% if subject_form.base_price_60min.errors %}
+                            <div class="text-error text-sm mt-1">{{ subject_form.base_price_60min.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Active Status -->
+                    <div class="form-control">
+                        <label class="label" for="{{ subject_form.is_active.id_for_label }}">
+                            <span class="label-text font-medium">Status</span>
+                        </label>
+                        <div class="flex items-center space-x-2 mt-2">
+                            {{ subject_form.is_active }}
+                            <span class="label-text">{{ subject_form.is_active.label }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Add Button -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">&nbsp;</span>
+                        </label>
+                        <button type="submit" class="btn btn-section-primary">
+                            <i class="fas fa-plus mr-2"></i>Add Subject
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Description -->
+                <div class="form-control mt-4">
+                    <label class="label" for="{{ subject_form.description.id_for_label }}">
+                        <span class="label-text font-medium">Description (Optional)</span>
+                    </label>
+                    {{ subject_form.description }}
+                    {% if subject_form.description.errors %}
+                        <div class="text-error text-sm mt-1">{{ subject_form.description.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Current Subjects -->
+    <div class="card card-section shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-2xl mb-4">Your Subjects</h2>
+            
+            {% if subjects %}
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th class="w-1/4">Subject</th>
+                                <th class="w-1/3">Description</th>
+                                <th class="w-1/6 text-right">Base Price (60min)</th>
+                                <th class="w-1/8 text-center">Status</th>
+                                <th class="w-1/6 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subject in subjects %}
+                                <tr>
+                                    <td class="align-top">
+                                        <div class="font-medium">{{ subject.subject }}</div>
+                                        <div class="text-sm text-base-content/70">
+                                            Created {{ subject.created_at|date:"M j, Y" }}
+                                        </div>
+                                    </td>
+                                    <td class="align-top">
+                                        <div class="max-w-xs">
+                                            {{ subject.description|default:"No description" }}
+                                        </div>
+                                    </td>
+                                    <td class="align-top text-right">
+                                        <div class="font-medium text-lg text-green-600">${{ subject.base_price_60min|floatformat:0 }}</div>
+                                    </td>
+                                    <td class="align-top text-center">
+                                        {% if subject.is_active %}
+                                            <span class="badge badge-success">Active</span>
+                                        {% else %}
+                                            <span class="badge badge-error">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="align-top text-center">
+                                        <div class="flex gap-2 justify-center">
+                                            <!-- Edit Button -->
+                                            <button class="btn btn-outline btn-sm" onclick="editSubject{{ subject.id }}.showModal()">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            
+                                            <!-- Delete Button -->
+                                            <button class="btn btn-outline btn-error btn-sm" onclick="deleteSubject{{ subject.id }}.showModal()">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Edit Modal -->
+                                <dialog id="editSubject{{ subject.id }}" class="modal">
+                                    <div class="modal-box">
+                                        <h3 class="font-bold text-lg mb-4">Edit Subject: {{ subject.subject }}</h3>
+                                        
+                                        <form method="post" action="{% url 'private_teaching:subject_update' subject.id %}">
+                                            {% csrf_token %}
+                                            <div class="space-y-4">
+                                                <div class="form-control">
+                                                    <label class="label">
+                                                        <span class="label-text font-medium">Subject Name</span>
+                                                    </label>
+                                                    <input type="text" name="subject" value="{{ subject.subject }}" 
+                                                           class="input input-bordered w-full" required>
+                                                </div>
+                                                
+                                                <div class="form-control">
+                                                    <label class="label">
+                                                        <span class="label-text font-medium">Base Price (60 minutes)</span>
+                                                    </label>
+                                                    <div class="input-group">
+                                                        <span class="bg-base-200 px-3 py-2 rounded-l-lg border border-r-0">$</span>
+                                                        <input type="number" name="base_price_60min" value="{{ subject.base_price_60min }}" 
+                                                               step="0.01" min="0" class="input input-bordered w-full" required>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="form-control">
+                                                    <label class="label">
+                                                        <span class="label-text font-medium">Description</span>
+                                                    </label>
+                                                    <textarea name="description" class="textarea textarea-bordered w-full" rows="3">{{ subject.description }}</textarea>
+                                                </div>
+                                                
+                                                <div class="form-control">
+                                                    <label class="cursor-pointer label">
+                                                        <span class="label-text font-medium">Currently offering this subject</span>
+                                                        <input type="checkbox" name="is_active" class="checkbox checkbox-primary" 
+                                                               {% if subject.is_active %}checked{% endif %}>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="modal-action">
+                                                <button type="button" class="btn btn-outline" onclick="editSubject{{ subject.id }}.close()">Cancel</button>
+                                                <button type="submit" class="btn btn-section-primary">Save Changes</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <form method="dialog" class="modal-backdrop">
+                                        <button>close</button>
+                                    </form>
+                                </dialog>
+                                
+                                <!-- Delete Confirmation Modal -->
+                                <dialog id="deleteSubject{{ subject.id }}" class="modal">
+                                    <div class="modal-box">
+                                        <h3 class="font-bold text-lg mb-4">Delete Subject</h3>
+                                        <p class="mb-4">Are you sure you want to delete "{{ subject.subject }}"? This action cannot be undone.</p>
+                                        
+                                        <div class="modal-action">
+                                            <button type="button" class="btn btn-outline" onclick="deleteSubject{{ subject.id }}.close()">Cancel</button>
+                                            <form method="post" action="{% url 'private_teaching:subject_delete' subject.id %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-error">Delete Subject</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <form method="dialog" class="modal-backdrop">
+                                        <button>close</button>
+                                    </form>
+                                </dialog>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-music text-4xl text-base-content/30 mb-4"></i>
+                    <h3 class="text-xl font-medium text-base-content/70 mb-2">No subjects yet</h3>
+                    <p class="text-base-content/50">Add your first subject above to start accepting lesson requests.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

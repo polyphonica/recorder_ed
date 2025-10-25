@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if object %}Edit Workshop{% else %}Create New Workshop{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="breadcrumbs text-sm">
+            <ul>
+                <li><a href="{% url 'workshops:instructor_dashboard' %}">Instructor Dashboard</a></li>
+                <li><a href="{% url 'workshops:instructor_workshops' %}">My Workshops</a></li>
+                <li>{% if object %}Edit Workshop{% else %}Create Workshop{% endif %}</li>
+            </ul>
+        </div>
+        
+        <h1 class="text-3xl font-bold text-gray-900 mt-4">
+            {% if object %}
+                Edit Workshop: {{ object.title }}
+            {% else %}
+                Create New Workshop
+            {% endif %}
+        </h1>
+        <p class="text-lg text-gray-600 mt-2">
+            {% if object %}
+                Update your workshop details and settings.
+            {% else %}
+                Create a new workshop to share your knowledge with others.
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-base-100 rounded-lg shadow p-6">
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Basic Information -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="lg:col-span-2">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Basic Information</h2>
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Workshop Title *</span>
+                    </label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.title.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">URL Slug *</span>
+                        <span class="label-text-alt">Used in workshop URL</span>
+                    </label>
+                    {{ form.slug }}
+                    {% if form.slug.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.slug.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Category *</span>
+                    </label>
+                    {{ form.category }}
+                    {% if form.category.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.category.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Difficulty Level</span>
+                    </label>
+                    {{ form.difficulty_level }}
+                    {% if form.difficulty_level.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.difficulty_level.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="lg:col-span-2">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Short Description *</span>
+                            <span class="label-text-alt">Brief summary for workshop cards</span>
+                        </label>
+                        {{ form.short_description }}
+                        {% if form.short_description.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.short_description.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Detailed Description -->
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Workshop Details</h2>
+                
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-medium">Full Description *</span>
+                        <span class="label-text-alt">Detailed workshop information</span>
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.description.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-medium">Learning Objectives</span>
+                        <span class="label-text-alt">What will participants learn?</span>
+                    </label>
+                    {{ form.learning_objectives }}
+                    {% if form.learning_objectives.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.learning_objectives.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Prerequisites</span>
+                        </label>
+                        {{ form.prerequisites }}
+                        {% if form.prerequisites.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.prerequisites.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Materials Needed</span>
+                        </label>
+                        {{ form.materials_needed }}
+                        {% if form.materials_needed.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.materials_needed.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Media & Pricing -->
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Media & Pricing</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Featured Image</span>
+                        </label>
+                        {{ form.featured_image }}
+                        {% if form.featured_image.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.featured_image.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Promo Video URL</span>
+                        </label>
+                        {{ form.promo_video_url }}
+                        {% if form.promo_video_url.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.promo_video_url.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Workshop Duration</span>
+                            <span class="label-text-alt">How long is your workshop?</span>
+                        </label>
+                        <div class="flex gap-2">
+                            <div class="flex-1">
+                                {{ form.duration_value }}
+                                {% if form.duration_value.errors %}
+                                    <div class="text-error text-sm mt-1">{{ form.duration_value.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1">
+                                {{ form.duration_unit }}
+                                {% if form.duration_unit.errors %}
+                                    <div class="text-error text-sm mt-1">{{ form.duration_unit.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Tags</span>
+                            <span class="label-text-alt">Comma-separated</span>
+                        </label>
+                        {{ form.tags }}
+                        {% if form.tags.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.tags.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Pricing -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            {{ form.is_free }}
+                            <span class="label-text font-medium">Free Workshop</span>
+                        </label>
+                        {% if form.is_free.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.is_free.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Price</span>
+                            <span class="label-text-alt">Leave blank if free</span>
+                        </label>
+                        {{ form.price }}
+                        {% if form.price.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.price.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Delivery Method and Venue -->
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Delivery Method and Venue</h2>
+                
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-medium">Delivery Method *</span>
+                        <span class="label-text-alt">How will this workshop be delivered?</span>
+                    </label>
+                    {{ form.delivery_method }}
+                    {% if form.delivery_method.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.delivery_method.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Venue Information (shown for in-person and hybrid) -->
+                <div id="venue-fields" class="space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Venue Name</span>
+                                <span class="label-text-alt">Required for in-person workshops</span>
+                            </label>
+                            {{ form.venue_name }}
+                            {% if form.venue_name.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.venue_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">City</span>
+                            </label>
+                            {{ form.venue_city }}
+                            {% if form.venue_city.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.venue_city.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Address</span>
+                        </label>
+                        {{ form.venue_address }}
+                        {% if form.venue_address.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.venue_address.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Post Code</span>
+                            </label>
+                            {{ form.venue_postcode }}
+                            {% if form.venue_postcode.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.venue_postcode.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Max Venue Capacity</span>
+                                <span class="label-text-alt">Maximum in-person participants</span>
+                            </label>
+                            {{ form.max_venue_capacity }}
+                            {% if form.max_venue_capacity.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.max_venue_capacity.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Map Link</span>
+                            <span class="label-text-alt">Google Maps, Apple Maps, etc.</span>
+                        </label>
+                        {{ form.venue_map_link }}
+                        {% if form.venue_map_link.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.venue_map_link.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Venue Notes</span>
+                            <span class="label-text-alt">Parking, entrance, accessibility info</span>
+                        </label>
+                        {{ form.venue_notes }}
+                        {% if form.venue_notes.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.venue_notes.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Settings -->
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Workshop Settings</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Status</span>
+                        </label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.status.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            {{ form.is_featured }}
+                            <span class="label-text font-medium">Feature this workshop</span>
+                        </label>
+                        {% if form.is_featured.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.is_featured.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="flex flex-wrap gap-4 pt-6 border-t">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save mr-2"></i>
+                    {% if object %}Update Workshop{% else %}Create Workshop{% endif %}
+                </button>
+                
+                <a href="{% url 'workshops:instructor_workshops' %}" class="btn btn-outline">
+                    <i class="fas fa-times mr-2"></i>Cancel
+                </a>
+                
+                {% if object %}
+                    <a href="{% url 'workshops:detail' object.slug %}" class="btn btn-ghost">
+                        <i class="fas fa-eye mr-2"></i>Preview Workshop
+                    </a>
+                    <a href="{% url 'workshops:manage_sessions' object.slug %}" class="btn btn-secondary">
+                        <i class="fas fa-calendar mr-2"></i>Manage Sessions
+                    </a>
+                {% endif %}
+            </div>
+            
+            <!-- Next Steps Info for New Workshops -->
+            {% if not object %}
+            <div class="bg-info/10 border border-info/20 rounded-lg p-4 mt-4">
+                <div class="flex items-start space-x-3">
+                    <i class="fas fa-lightbulb text-info text-lg mt-1"></i>
+                    <div>
+                        <h4 class="font-semibold text-info-content">Next Steps</h4>
+                        <p class="text-sm text-info-content/80 mt-1">
+                            After creating your workshop, you'll be taken to session management where you can:
+                        </p>
+                        <ul class="text-sm text-info-content/80 mt-2 space-y-1">
+                            <li>• Schedule when your workshop will run</li>
+                            <li>• Set participant limits and locations</li>
+                            <li>• Configure meeting links and materials</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<script>
+// Auto-generate slug from title
+document.addEventListener('DOMContentLoaded', function() {
+    const titleInput = document.querySelector('input[name="title"]');
+    const slugInput = document.querySelector('input[name="slug"]');
+    
+    if (titleInput && slugInput && !slugInput.value) {
+        titleInput.addEventListener('input', function() {
+            const title = this.value;
+            const slug = title
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+            slugInput.value = slug;
+        });
+    }
+    
+    // Toggle price field based on is_free checkbox
+    const isFreeCheckbox = document.querySelector('input[name="is_free"]');
+    const priceField = document.querySelector('input[name="price"]');
+    
+    if (isFreeCheckbox && priceField) {
+        function togglePriceField() {
+            if (isFreeCheckbox.checked) {
+                priceField.disabled = true;
+                priceField.value = '';
+                priceField.closest('.form-control').style.opacity = '0.5';
+            } else {
+                priceField.disabled = false;
+                priceField.closest('.form-control').style.opacity = '1';
+            }
+        }
+        
+        isFreeCheckbox.addEventListener('change', togglePriceField);
+        togglePriceField(); // Initial state
+    }
+    
+    // Toggle venue fields based on delivery method
+    const deliveryMethodSelect = document.querySelector('select[name="delivery_method"]');
+    const venueFields = document.getElementById('venue-fields');
+    
+    if (deliveryMethodSelect && venueFields) {
+        function toggleVenueFields() {
+            const isOnlineOnly = deliveryMethodSelect.value === 'online';
+            if (isOnlineOnly) {
+                venueFields.style.display = 'none';
+            } else {
+                venueFields.style.display = 'block';
+            }
+        }
+        
+        deliveryMethodSelect.addEventListener('change', toggleVenueFields);
+        toggleVenueFields(); // Initial state
+    }
+});
+</script>
+{% endblock %}

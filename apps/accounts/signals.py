@@ -1,0 +1,1 @@
+# Signals are imported in models.py - this file ensures they're loaded

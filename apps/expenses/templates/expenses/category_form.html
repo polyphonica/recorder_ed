@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Category{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2">{% if form.instance.pk %}Edit{% else %}Add{% endif %} Category</h1>
+            <p class="text-base-content/70">Enter category details</p>
+        </div>
+
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Category Name *</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.name.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control mt-4">
+                        <label class="label">
+                            <span class="label-text font-medium">Description (Optional)</span>
+                        </label>
+                        {{ form.description }}
+                    </div>
+
+                    <div class="form-control mt-4">
+                        <label class="cursor-pointer label justify-start gap-2">
+                            {{ form.is_active }}
+                            <span class="label-text font-medium">Active</span>
+                        </label>
+                        <label class="label">
+                            <span class="label-text-alt">Inactive categories won't appear when adding expenses</span>
+                        </label>
+                    </div>
+
+                    <div class="card-actions justify-end mt-6">
+                        <a href="{% url 'expenses:category_list' %}" class="btn btn-outline">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-2"></i>Save Category
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

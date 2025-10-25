@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Session Materials - {{ session.workshop.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        
+        <!-- Header -->
+        <div class="bg-base-100 shadow-xl rounded-lg p-6 mb-6">
+            <!-- Workshop Title and Navigation -->
+            <div class="flex items-start justify-between mb-6">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="badge badge-primary">Workshop Materials</span>
+                        <span class="badge badge-outline">{{ registration.get_status_display }}</span>
+                    </div>
+                    <h1 class="text-3xl font-bold text-primary mb-2">{{ session.workshop.title }}</h1>
+                    <p class="text-lg text-base-content/80">
+                        by {{ session.workshop.instructor.display_name }}
+                    </p>
+                </div>
+                <a href="{% url 'workshops:my_registrations' %}" 
+                   class="btn btn-ghost btn-sm">
+                    ← Back to My Registrations
+                </a>
+            </div>
+
+            <!-- Session Details Banner -->
+            <div class="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-4 border border-primary/20">
+                <div class="flex items-center gap-3 mb-3">
+                    <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
+                    </svg>
+                    <h2 class="text-xl font-bold">Session Information</h2>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4" style="display: grid; grid-template-columns: 1fr 1fr;">
+                    <!-- First row: Date and Time -->
+                    <div class="bg-base-100/50 rounded-lg p-3">
+                        <h3 class="font-semibold text-sm text-primary uppercase tracking-wide">Date</h3>
+                        <p class="text-lg font-bold">{{ session.start_datetime|date:"F j, Y" }}</p>
+                        <p class="text-sm text-base-content/70">{{ session.start_datetime|date:"l" }}</p>
+                    </div>
+                    <div class="bg-base-100/50 rounded-lg p-3">
+                        <h3 class="font-semibold text-sm text-primary uppercase tracking-wide">Time</h3>
+                        <p class="text-lg font-bold">{{ session.start_datetime|time:"g:i A" }}</p>
+                        <p class="text-sm text-base-content/70">to {{ session.end_datetime|time:"g:i A" }}</p>
+                    </div>
+                    
+                    <!-- Second row: Duration and Location -->
+                    <div class="bg-base-100/50 rounded-lg p-3">
+                        <h3 class="font-semibold text-sm text-primary uppercase tracking-wide">Duration</h3>
+                        <p class="text-lg font-bold">{{ session.workshop.duration_display }}</p>
+                        <p class="text-sm text-base-content/70">{{ session.workshop.get_difficulty_level_display }}</p>
+                    </div>
+                    <div class="bg-base-100/50 rounded-lg p-3">
+                        <h3 class="font-semibold text-sm text-primary uppercase tracking-wide">Location</h3>
+                        {% if session.delivery_method == 'online' %}
+                            <p class="text-lg font-bold">Online</p>
+                            <p class="text-sm text-base-content/70">Virtual session</p>
+                        {% elif session.delivery_method == 'in_person' %}
+                            <p class="text-lg font-bold">In-Person</p>
+                            <p class="text-sm text-base-content/70">{{ session.venue_name|default:"TBA" }}</p>
+                        {% else %}
+                            <p class="text-lg font-bold">Hybrid</p>
+                            <p class="text-sm text-base-content/70">Online + In-person</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Materials Section -->
+        {% if materials %}
+            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+                <div class="flex items-center gap-3 mb-6">
+                    <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6zm2 2a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm0 4a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1z"></path>
+                    </svg>
+                    <h2 class="text-2xl font-bold">Available Materials</h2>
+                    <span class="badge badge-primary">{{ materials|length }} items</span>
+                </div>
+
+                <!-- Access Timing Info -->
+                <div class="alert alert-info mb-6">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div>
+                        <h3 class="font-bold">Material Access Information</h3>
+                        <div class="text-sm mt-1">
+                            <strong>Pre-Session:</strong> Available before the session starts<br>
+                            <strong>During Session:</strong> Available while the session is running<br>
+                            <strong>Post-Session:</strong> Available after the session ends<br>
+                            <strong>Always:</strong> Available at any time
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Materials List -->
+                <div class="space-y-4">
+                    {% for material in materials %}
+                        <div class="card bg-base-200 border border-base-300">
+                            <div class="card-body p-4">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-start gap-4 flex-1">
+                                        <!-- Material Type Icon -->
+                                        <div class="avatar placeholder flex-shrink-0">
+                                            <div class="bg-primary text-primary-content rounded w-12 h-12">
+                                                <span class="text-lg">
+                                                    {% if material.material_type == 'slides' %}📊
+                                                    {% elif material.material_type == 'handout' %}📄
+                                                    {% elif material.material_type == 'code' %}💻
+                                                    {% elif material.material_type == 'recording' %}🎥
+                                                    {% elif material.material_type == 'link' %}🔗
+                                                    {% else %}📁{% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Material Info -->
+                                        <div class="flex-1 min-w-0">
+                                            <h3 class="font-bold text-lg mb-1">{{ material.title }}</h3>
+                                            
+                                            {% if material.description %}
+                                                <p class="text-base-content/70 mb-3">{{ material.description }}</p>
+                                            {% endif %}
+
+                                            <!-- Material Metadata -->
+                                            <div class="flex flex-wrap gap-2 text-sm">
+                                                <span class="badge badge-outline">
+                                                    {{ material.get_material_type_display }}
+                                                </span>
+                                                <span class="badge badge-info">
+                                                    {{ material.get_access_timing_display }}
+                                                </span>
+                                                {% if material.file %}
+                                                    <span class="badge badge-ghost">
+                                                        {{ material.file_size_display }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Download/Access Button -->
+                                    <div class="flex-shrink-0 ml-4">
+                                        {% if material.file or material.external_url %}
+                                            <a href="{% url 'workshops:material_download' material.id %}" 
+                                               class="btn btn-primary" 
+                                               target="_blank">
+                                                {% if material.external_url %}
+                                                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"></path>
+                                                        <path d="M5 5a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2v-2a1 1 0 10-2 0v2H5V7h2a1 1 0 000-2H5z"></path>
+                                                    </svg>
+                                                    Open Link
+                                                {% else %}
+                                                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    Download
+                                                {% endif %}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-sm text-base-content/60">No file available</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Download All Section -->
+                {% if materials|length > 1 %}
+                    <div class="divider my-8"></div>
+                    <div class="text-center">
+                        <p class="text-base-content/70 mb-4">Need all materials? Download them individually using the buttons above.</p>
+                        <div class="text-sm text-base-content/60">
+                            <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                            External links will open in new tabs
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+        {% else %}
+            <!-- No Materials Available -->
+            <div class="bg-base-100 shadow-xl rounded-lg p-6 text-center">
+                <div class="py-12">
+                    <svg class="w-16 h-16 text-base-content/30 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6zm2 2a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm0 4a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1z"></path>
+                    </svg>
+                    <h3 class="text-xl font-semibold mb-2">No Materials Available</h3>
+                    <p class="text-base-content/70 mb-4">
+                        {% if now < session_start %}
+                            Materials may become available closer to the session date.
+                        {% elif now <= session_end %}
+                            The instructor hasn't uploaded any materials for this session yet.
+                        {% else %}
+                            No materials were provided for this session.
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'workshops:detail' slug=session.workshop.slug %}" 
+                       class="btn btn-primary">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Back to Workshop
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Workshop Info Card -->
+        <div class="bg-base-100 shadow-xl rounded-lg p-6 mt-6">
+            <h3 class="text-lg font-semibold mb-4">Workshop Information</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <h4 class="font-medium text-base-content/70">Instructor</h4>
+                    <p>{{ session.workshop.instructor.display_name }}</p>
+                </div>
+                <div>
+                    <h4 class="font-medium text-base-content/70">Category</h4>
+                    <span class="badge badge-primary">{{ session.workshop.category.name }}</span>
+                </div>
+                <div>
+                    <h4 class="font-medium text-base-content/70">Difficulty</h4>
+                    <span class="badge badge-outline">{{ session.workshop.get_difficulty_level_display }}</span>
+                </div>
+                <div>
+                    <h4 class="font-medium text-base-content/70">Duration</h4>
+                    <p>{{ session.workshop.duration_display }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

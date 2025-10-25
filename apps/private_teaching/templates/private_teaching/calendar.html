@@ -1,0 +1,419 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Calendar - Private Lessons{% endblock %}
+
+{% block extra_head %}
+<style>
+.calendar {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: #e5e7eb;
+    padding: 1px;
+}
+
+.calendar-day-header {
+    background: #f9fafb;
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: 600;
+    color: #374151;
+}
+
+.calendar-day {
+    background: white;
+    min-height: 80px;
+    padding: 8px;
+    position: relative;
+    cursor: pointer;
+}
+
+.calendar-day:hover {
+    background: #f9fafb;
+}
+
+.calendar-day.other-month {
+    color: #9ca3af;
+    background: #f9fafb;
+}
+
+.calendar-day.today {
+    background: #dbeafe;
+}
+
+.calendar-event {
+    background: #10b981;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin: 1px 0;
+    cursor: pointer;
+}
+
+.calendar-event.unpaid {
+    background: #f59e0b;
+}
+
+.calendar-event:hover {
+    opacity: 0.8;
+    /* Disable tooltips */
+    title: none !important;
+}
+
+/* Explicitly disable any tooltip behavior */
+.calendar-event[title] {
+    title: none !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-green-800">
+                {% if is_teacher %}
+                    Teaching Calendar
+                {% else %}
+                    My Lessons Calendar
+                {% endif %}
+            </h1>
+            <p class="text-gray-600 mt-2">
+                {% if is_teacher %}
+                    View all your approved lessons and manage your teaching schedule
+                {% else %}
+                    View your approved and paid lessons
+                {% endif %}
+            </p>
+        </div>
+        
+        <!-- Calendar Legend -->
+        <div class="card bg-white shadow-lg">
+            <div class="card-body p-4">
+                <h3 class="card-title text-sm mb-3">Legend</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 bg-green-500 rounded"></div>
+                        <span>Paid Lessons</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 bg-yellow-500 rounded"></div>
+                        <span>Approved (Unpaid)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Container -->
+    <div class="card card-section shadow-xl">
+        <div class="card-body">
+            <!-- Debug info -->
+            <div class="mb-4 p-4 bg-gray-100 rounded">
+                <h4 class="font-bold">Debug Info:</h4>
+                <p>User: {{ user.get_full_name }}</p>
+                <p>Is Teacher: {{ is_teacher }}</p>
+                <p>Events JSON Length: <span id="events-count">Loading...</span></p>
+                <p>JavaScript Status: <span id="js-status">Not loaded</span></p>
+                <p>Calendar Events Raw: {{ calendar_events }}</p>
+            </div>
+            <div id="calendar"></div>
+        </div>
+    </div>
+    
+    <!-- Lesson Details Modal -->
+    <div id="lessonModal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg mb-4" id="modalTitle">Lesson Details</h3>
+            
+            <div class="space-y-4" id="modalContent">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            
+            <div class="modal-action">
+                <button class="btn" onclick="lessonModal.close()">Close</button>
+                {% if not is_teacher %}
+                <a id="modalPayButton" href="#" class="btn btn-section-primary" style="display: none;">
+                    Pay for Lesson
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing custom calendar...');
+    
+    // Update JS status
+    const jsStatusEl = document.getElementById('js-status');
+    if (jsStatusEl) {
+        jsStatusEl.textContent = 'JavaScript running';
+        jsStatusEl.style.color = 'green';
+    }
+    
+    const calendarEl = document.getElementById('calendar');
+    
+    if (!calendarEl) {
+        console.error('Calendar element not found!');
+        if (jsStatusEl) jsStatusEl.textContent = 'Calendar element not found';
+        return;
+    }
+    
+    console.log('Calendar element found:', calendarEl);
+    
+    // Get calendar events - ensure it's always an array
+    const events = {{ calendar_events|safe }} || [];
+    console.log('Calendar events loaded:', events);
+    console.log('Number of events:', events.length);
+    
+    // Update debug info immediately
+    const eventsCountEl = document.getElementById('events-count');
+    if (eventsCountEl) {
+        eventsCountEl.textContent = events.length;
+        console.log('Updated events count display to:', events.length);
+    } else {
+        console.error('Events count element not found');
+    }
+    }
+    
+    // Create calendar
+    createCalendar(calendarEl, events);
+    
+    // Show message if no events
+    if (events.length === 0) {
+        const messageEl = document.createElement('div');
+        messageEl.className = 'text-center p-8 text-gray-500';
+        messageEl.innerHTML = `
+            <div class="text-lg mb-2">📅 No lessons scheduled yet</div>
+            <div>{% if is_teacher %}Your approved lessons will appear here{% else %}Your approved and paid lessons will appear here{% endif %}</div>
+        `;
+        calendarEl.appendChild(messageEl);
+    }
+    
+    function createCalendar(container, events) {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        
+        // Clear container
+        container.innerHTML = '';
+        
+        // Create calendar structure
+        const calendar = document.createElement('div');
+        calendar.className = 'calendar';
+        
+        // Header
+        const header = document.createElement('div');
+        header.className = 'calendar-header';
+        header.innerHTML = `
+            <button onclick="changeMonth(-1)" class="btn btn-sm btn-outline">‹ Prev</button>
+            <h3 class="text-lg font-semibold">${getMonthName(currentMonth)} ${currentYear}</h3>
+            <button onclick="changeMonth(1)" class="btn btn-sm btn-outline">Next ›</button>
+        `;
+        calendar.appendChild(header);
+        
+        // Calendar grid
+        const grid = document.createElement('div');
+        grid.className = 'calendar-grid';
+        
+        // Day headers
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        dayNames.forEach(day => {
+            const dayHeader = document.createElement('div');
+            dayHeader.className = 'calendar-day-header';
+            dayHeader.textContent = day;
+            grid.appendChild(dayHeader);
+        });
+        
+        // Generate calendar days
+        const firstDay = new Date(currentYear, currentMonth, 1);
+        const lastDay = new Date(currentYear, currentMonth + 1, 0);
+        const startDate = new Date(firstDay);
+        startDate.setDate(startDate.getDate() - firstDay.getDay());
+        
+        for (let i = 0; i < 42; i++) { // 6 weeks * 7 days
+            const cellDate = new Date(startDate);
+            cellDate.setDate(startDate.getDate() + i);
+            
+            const dayCell = document.createElement('div');
+            dayCell.className = 'calendar-day';
+            
+            if (cellDate.getMonth() !== currentMonth) {
+                dayCell.classList.add('other-month');
+            }
+            
+            if (cellDate.toDateString() === now.toDateString()) {
+                dayCell.classList.add('today');
+            }
+            
+            // Day number
+            const dayNumber = document.createElement('div');
+            dayNumber.textContent = cellDate.getDate();
+            dayNumber.style.fontWeight = '600';
+            dayCell.appendChild(dayNumber);
+            
+            // Add events for this day
+            const dayEvents = events.filter(event => {
+                const eventDate = new Date(event.start);
+                return eventDate.toDateString() === cellDate.toDateString();
+            });
+            
+            dayEvents.forEach(event => {
+                const eventEl = document.createElement('div');
+                eventEl.className = 'calendar-event';
+                if (event.extendedProps && event.extendedProps.paymentStatus === 'unpaid') {
+                    eventEl.classList.add('unpaid');
+                }
+                eventEl.textContent = event.title;
+                // Explicitly remove any title attribute that could create tooltips
+                eventEl.removeAttribute('title');
+                eventEl.title = '';
+                
+                eventEl.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    console.log('Event clicked!', event);
+                    console.log('Event extendedProps:', event.extendedProps);
+                    
+                    // Get the actual lesson ID from the event
+                    const actualLessonId = event.extendedProps?.actualLessonId;
+                    console.log('actualLessonId:', actualLessonId);
+                    
+                    if (actualLessonId) {
+                        console.log('Navigating to lesson edit page...');
+                        // Navigate directly to lesson edit page
+                        window.location.href = `/lessons/${actualLessonId}/edit/`;
+                    } else {
+                        console.log('No actualLessonId, showing modal...');
+                        // Fallback to modal if no actual lesson exists yet
+                        showLessonDetails(event);
+                    }
+                };
+                dayCell.appendChild(eventEl);
+            });
+            
+            grid.appendChild(dayCell);
+        }
+        
+        calendar.appendChild(grid);
+        container.appendChild(calendar);
+    }
+    
+    function getMonthName(month) {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+        return months[month];
+    }
+    
+    // Function to show lesson details in modal
+    function showLessonDetails(event) {
+        const props = event.extendedProps || {};
+        const modal = document.getElementById('lessonModal');
+        
+        document.getElementById('modalTitle').textContent = event.title;
+        
+        const content = document.getElementById('modalContent');
+        content.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <div class="text-sm text-gray-500">Subject</div>
+                    <div class="font-semibold">${props.subject || 'Unknown'}</div>
+                </div>
+                
+                <div>
+                    <div class="text-sm text-gray-500">Duration</div>
+                    <div class="font-semibold">${props.duration || 60} minutes</div>
+                </div>
+                
+                <div>
+                    <div class="text-sm text-gray-500">Date & Time</div>
+                    <div class="font-semibold">${new Date(event.start).toLocaleDateString()} at ${new Date(event.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                </div>
+                
+                <div>
+                    <div class="text-sm text-gray-500">Location</div>
+                    <div class="font-semibold">${props.location || 'Not specified'}</div>
+                </div>
+                
+                {% if is_teacher %}
+                <div>
+                    <div class="text-sm text-gray-500">Student</div>
+                    <div class="font-semibold">${props.student || 'Unknown'}</div>
+                </div>
+                {% else %}
+                <div>
+                    <div class="text-sm text-gray-500">Teacher</div>
+                    <div class="font-semibold">${props.teacher || 'Unknown'}</div>
+                </div>
+                {% endif %}
+                
+                <div>
+                    <div class="text-sm text-gray-500">Price</div>
+                    <div class="font-semibold">$${props.price || 'Not set'}</div>
+                </div>
+                
+                <div>
+                    <div class="text-sm text-gray-500">Payment Status</div>
+                    <div class="font-semibold">
+                        <span class="badge ${props.paymentStatus === 'paid' ? 'badge-success' : 'badge-warning'}">
+                            ${(props.paymentStatus || 'unpaid').charAt(0).toUpperCase() + (props.paymentStatus || 'unpaid').slice(1)}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Show/hide pay button for students with unpaid lessons
+        {% if not is_teacher %}
+        const payButton = document.getElementById('modalPayButton');
+        if (props.paymentStatus === 'unpaid') {
+            payButton.style.display = 'inline-block';
+            payButton.href = `/private-teaching/cart/add/${props.lessonId}/`;
+        } else {
+            payButton.style.display = 'none';
+        }
+        {% endif %}
+        
+        modal.showModal();
+    }
+    
+    // Global functions for calendar navigation
+    window.changeMonth = function(direction) {
+        // For now, just show an alert - we can implement proper navigation later
+        alert('Calendar navigation will be implemented in the next update!');
+    };
+});
+
+// Make showLessonDetails global so it can be called from event handlers
+window.showLessonDetails = function(event) {
+    // This will be overridden by the function above once DOM is loaded
+    console.log('showLessonDetails called before DOM ready:', event);
+};
+</script>
+{% endblock %}

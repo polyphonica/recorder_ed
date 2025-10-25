@@ -1,0 +1,24 @@
+<div class="tabs tabs-boxed" x-data="{ activeTab: '{{ active_tab|default:tabs.0.id }}' }">
+    {% for tab in tabs %}
+        <a class="tab" 
+           :class="{ 'tab-active': activeTab === '{{ tab.id }}' }"
+           @click="activeTab = '{{ tab.id }}'">
+            {{ tab.title }}
+        </a>
+    {% endfor %}
+</div>
+
+<div class="mt-4">
+    {% for tab in tabs %}
+        <div x-show="activeTab === '{{ tab.id }}'" x-transition>
+            {% if tab.content %}
+                {{ tab.content|safe }}
+            {% else %}
+                <div class="p-4 bg-base-200 rounded-lg">
+                    <h3 class="font-semibold">{{ tab.title }} Content</h3>
+                    <p class="mt-2 text-base-content/70">Content for {{ tab.title }} tab goes here.</p>
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>

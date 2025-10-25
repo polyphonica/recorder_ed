@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Lessons Calendar{% endblock %}
+
+{% block extra_head %}
+<style>
+.calendar {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: #e5e7eb;
+    padding: 1px;
+}
+
+.calendar-day-header {
+    background: #f9fafb;
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: 600;
+    color: #374151;
+}
+
+.calendar-day {
+    background: white;
+    min-height: 100px;
+    padding: 8px;
+    position: relative;
+}
+
+.calendar-day.other-month {
+    color: #9ca3af;
+    background: #f9fafb;
+}
+
+.calendar-day.today {
+    background: #dbeafe;
+    border: 2px solid #3b82f6;
+}
+
+.calendar-event {
+    color: white;
+    padding: 4px 8px;
+    margin: 2px 0;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.calendar-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    filter: brightness(0.9);
+}
+
+.lesson-counter {
+    background: #f3f4f6;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">Lessons Calendar</h1>
+            <p class="text-base-content/70 mt-2">
+                {% if is_teacher %}
+                    View and manage your lesson schedule. Click on any lesson to see details.
+                {% else %}
+                    View your lesson schedule. Click on any lesson to see details.
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Calendar Legend -->
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body p-4">
+                <h3 class="card-title text-sm mb-3">Legend</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 rounded" style="background-color: #1e40af;"></div>
+                        <span>Assigned</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 rounded" style="background-color: #3b82f6;"></div>
+                        <span>Paid</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 rounded" style="background-color: #10b981;"></div>
+                        <span>Accepted (Not Paid)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 rounded" style="background-color: #f59e0b;"></div>
+                        <span>Pending</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 rounded" style="background-color: #ef4444;"></div>
+                        <span>Rejected</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lesson Summary -->
+    {% if calendar_events|length > 0 %}
+    <div class="lesson-counter">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="text-center">
+                <div class="text-2xl font-bold" style="color: #1e40af;" id="assigned-count">0</div>
+                <div class="text-sm text-base-content/70">Assigned</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold" style="color: #3b82f6;" id="paid-count">0</div>
+                <div class="text-sm text-base-content/70">Paid</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold" style="color: #10b981;" id="accepted-count">0</div>
+                <div class="text-sm text-base-content/70">Accepted</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-base-content" id="total-count">0</div>
+                <div class="text-sm text-base-content/70">Total</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Calendar -->
+    <div class="calendar">
+        <div class="calendar-header">
+            <button onclick="changeMonth(-1)" class="btn btn-sm btn-outline">‹ Previous</button>
+            <h3 class="text-lg font-semibold" id="month-year">Loading...</h3>
+            <button onclick="changeMonth(1)" class="btn btn-sm btn-outline">Next ›</button>
+        </div>
+        <div class="calendar-grid" id="calendar-grid">
+            <!-- Day headers -->
+            <div class="calendar-day-header">Sun</div>
+            <div class="calendar-day-header">Mon</div>
+            <div class="calendar-day-header">Tue</div>
+            <div class="calendar-day-header">Wed</div>
+            <div class="calendar-day-header">Thu</div>
+            <div class="calendar-day-header">Fri</div>
+            <div class="calendar-day-header">Sat</div>
+
+            <!-- Days will be populated by JavaScript -->
+        </div>
+    </div>
+
+    {% if calendar_events|length == 0 %}
+    <div class="text-center p-8 text-base-content/70 mt-6">
+        <div class="text-lg mb-2">📅 No lessons scheduled yet</div>
+        <div>
+            Your lessons will appear here when they are created from lesson requests.
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Lesson Detail Modal -->
+<dialog id="lesson_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4" id="modal_title">Lesson Details</h3>
+
+        <div class="space-y-3" id="modal_content">
+            <!-- Content populated by JavaScript -->
+        </div>
+
+        <div class="modal-action">
+            <button class="btn btn-outline" onclick="lesson_modal.close()">Close</button>
+            <button id="go_to_lesson_btn" class="btn btn-primary" style="display: none;" onclick="goToLesson()">
+                Go To Lesson
+            </button>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<script>
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let calendarEvents = [];
+let selectedLesson = null;
+
+// User role variables
+const isTeacher = {{ is_teacher|default:"false"|yesno:"true,false" }};
+const isStudent = {{ is_student|default:"false"|yesno:"true,false" }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        calendarEvents = {{ calendar_events|safe }};
+        updateLessonCounts();
+        renderCalendar();
+    } catch (error) {
+        console.error('Calendar error:', error);
+    }
+});
+
+function updateLessonCounts() {
+    let assignedCount = 0;
+    let paidCount = 0;
+    let acceptedCount = 0;
+
+    calendarEvents.forEach(event => {
+        const props = event.extendedProps || {};
+        if (props.status === 'Assigned') {
+            assignedCount++;
+        } else if (props.paymentStatus === 'Paid') {
+            paidCount++;
+        } else if (props.approvedStatus === 'Accepted') {
+            acceptedCount++;
+        }
+    });
+
+    const assignedEl = document.getElementById('assigned-count');
+    const paidEl = document.getElementById('paid-count');
+    const acceptedEl = document.getElementById('accepted-count');
+    const totalEl = document.getElementById('total-count');
+
+    if (assignedEl) assignedEl.textContent = assignedCount;
+    if (paidEl) paidEl.textContent = paidCount;
+    if (acceptedEl) acceptedEl.textContent = acceptedCount;
+    if (totalEl) totalEl.textContent = calendarEvents.length;
+}
+
+function changeMonth(direction) {
+    currentMonth += direction;
+    if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    } else if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    }
+    renderCalendar();
+}
+
+function renderCalendar() {
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+
+    document.getElementById('month-year').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+    const grid = document.getElementById('calendar-grid');
+
+    // Remove existing day cells (keep headers)
+    const dayCells = grid.querySelectorAll('.calendar-day');
+    dayCells.forEach(cell => cell.remove());
+
+    // Generate calendar days
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+    const today = new Date();
+
+    for (let i = 0; i < 42; i++) { // 6 weeks * 7 days
+        const cellDate = new Date(startDate);
+        cellDate.setDate(startDate.getDate() + i);
+
+        const dayCell = document.createElement('div');
+        dayCell.className = 'calendar-day';
+
+        if (cellDate.getMonth() !== currentMonth) {
+            dayCell.classList.add('other-month');
+        }
+
+        if (cellDate.toDateString() === today.toDateString()) {
+            dayCell.classList.add('today');
+        }
+
+        // Day number
+        const dayNumber = document.createElement('div');
+        dayNumber.textContent = cellDate.getDate();
+        dayNumber.style.fontWeight = '600';
+        dayNumber.style.marginBottom = '4px';
+        dayCell.appendChild(dayNumber);
+
+        // Add events for this day
+        const dayEvents = calendarEvents.filter(event => {
+            const eventDate = new Date(event.start);
+            return eventDate.toDateString() === cellDate.toDateString();
+        });
+
+        dayEvents.forEach(event => {
+            const eventEl = document.createElement('div');
+            eventEl.className = 'calendar-event';
+            eventEl.textContent = event.title;
+            eventEl.style.backgroundColor = event.color;
+
+            eventEl.addEventListener('click', function() {
+                showLessonModal(event);
+            });
+
+            dayCell.appendChild(eventEl);
+        });
+
+        grid.appendChild(dayCell);
+    }
+}
+
+function showLessonModal(event) {
+    selectedLesson = event;
+    const props = event.extendedProps || {};
+
+    // Update modal title
+    document.getElementById('modal_title').textContent = props.subject || 'Lesson Details';
+
+    // Build modal content
+    const content = `
+        <div><strong>Subject:</strong> ${props.subject || 'N/A'}</div>
+        <div><strong>${isTeacher ? 'Student' : 'Teacher'}:</strong> ${isTeacher ? props.student : props.teacher}</div>
+        <div><strong>Duration:</strong> ${props.duration || 'N/A'} minutes</div>
+        <div><strong>Location:</strong> ${props.location || 'N/A'}</div>
+        <div><strong>Fee:</strong> $${props.fee || 'Not set'}</div>
+        <div class="mt-2">
+            <strong>Status:</strong><br/>
+            <span class="badge badge-sm ${props.approvedStatus === 'Accepted' ? 'badge-success' : props.approvedStatus === 'Rejected' ? 'badge-error' : 'badge-warning'}">${props.approvedStatus}</span>
+            <span class="badge badge-sm ${props.paymentStatus === 'Paid' ? 'badge-success' : 'badge-warning'}">${props.paymentStatus}</span>
+            <span class="badge badge-sm badge-info">${props.status}</span>
+        </div>
+    `;
+
+    document.getElementById('modal_content').innerHTML = content;
+
+    // Show/hide Go To Lesson button based on permissions
+    const goBtn = document.getElementById('go_to_lesson_btn');
+    let canGoToLesson = false;
+    let message = '';
+
+    if (isTeacher) {
+        // Teachers can access if approved_status is Accepted
+        canGoToLesson = props.approvedStatus === 'Accepted';
+        message = canGoToLesson ? '' : 'Lesson must be accepted first';
+    } else if (isStudent) {
+        // Students can access if Accepted AND Paid AND Assigned
+        canGoToLesson = props.approvedStatus === 'Accepted' &&
+                       props.paymentStatus === 'Paid' &&
+                       props.status === 'Assigned';
+        if (!canGoToLesson) {
+            if (props.approvedStatus !== 'Accepted') {
+                message = 'Lesson must be accepted by teacher';
+            } else if (props.paymentStatus !== 'Paid') {
+                message = 'Lesson must be paid for';
+            } else if (props.status !== 'Assigned') {
+                message = 'Lesson must be assigned';
+            }
+        }
+    }
+
+    if (canGoToLesson) {
+        goBtn.style.display = 'inline-flex';
+        goBtn.disabled = false;
+    } else {
+        goBtn.style.display = 'none';
+    }
+
+    if (message) {
+        document.getElementById('modal_content').innerHTML += `<div class="alert alert-warning mt-2">${message}</div>`;
+    }
+
+    // Show modal
+    document.getElementById('lesson_modal').showModal();
+}
+
+function goToLesson() {
+    if (!selectedLesson) return;
+
+    const lessonId = selectedLesson.extendedProps.lessonId;
+    if (lessonId) {
+        let lessonUrl;
+        if (isTeacher) {
+            lessonUrl = `/lessons/${lessonId}/edit/`;
+        } else {
+            lessonUrl = `/lessons/${lessonId}/`;
+        }
+        window.location.href = lessonUrl;
+    }
+}
+</script>
+{% endblock %}

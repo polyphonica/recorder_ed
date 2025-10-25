@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Expense{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2">{% if form.instance.pk %}Edit{% else %}Add{% endif %} Expense</h1>
+            <p class="text-base-content/70">Enter expense details</p>
+        </div>
+
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    {% if form.errors %}
+                    <div class="alert alert-error mb-4">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>Please correct the errors below.</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Date -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Date *</span>
+                            </label>
+                            {{ form.date }}
+                            {% if form.date.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.date.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- Business Area -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Business Area *</span>
+                            </label>
+                            {{ form.business_area }}
+                            {% if form.business_area.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.business_area.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <!-- Category -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Category *</span>
+                            </label>
+                            {{ form.category }}
+                            {% if form.category.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.category.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                            <label class="label">
+                                <span class="label-text-alt">Or create a new category below</span>
+                            </label>
+                        </div>
+
+                        <!-- New Category -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">New Category (Optional)</span>
+                            </label>
+                            {{ form.new_category }}
+                            <label class="label">
+                                <span class="label-text-alt">{{ form.new_category.help_text }}</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="form-control mt-4">
+                        <label class="label">
+                            <span class="label-text font-medium">Description *</span>
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.description.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <!-- Supplier -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Supplier/Vendor *</span>
+                            </label>
+                            {{ form.supplier }}
+                            {% if form.supplier.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.supplier.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- Amount -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Amount (£) *</span>
+                            </label>
+                            {{ form.amount }}
+                            {% if form.amount.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.amount.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <!-- Payment Method -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Payment Method *</span>
+                            </label>
+                            {{ form.payment_method }}
+                            {% if form.payment_method.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.payment_method.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- Workshop -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Workshop (Optional)</span>
+                            </label>
+                            {{ form.workshop }}
+                            <label class="label">
+                                <span class="label-text-alt">Link to specific workshop if applicable</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Receipt File -->
+                    <div class="form-control mt-4">
+                        <label class="label">
+                            <span class="label-text font-medium">Receipt File (Optional)</span>
+                        </label>
+                        {{ form.receipt_file }}
+                        {% if form.instance.receipt_file %}
+                        <label class="label">
+                            <span class="label-text-alt">
+                                Current: <a href="{{ form.instance.receipt_file.url }}" target="_blank" class="link link-primary">View Receipt</a>
+                            </span>
+                        </label>
+                        {% endif %}
+                        <label class="label">
+                            <span class="label-text-alt">Upload receipt image or PDF</span>
+                        </label>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-control mt-4">
+                        <label class="label">
+                            <span class="label-text font-medium">Notes (Optional)</span>
+                        </label>
+                        {{ form.notes }}
+                    </div>
+
+                    <div class="card-actions justify-end mt-6">
+                        <a href="{% url 'expenses:expense_list' %}" class="btn btn-outline">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-2"></i>Save Expense
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

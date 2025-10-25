@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Material - {{ session.workshop.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="breadcrumbs text-sm">
+            <ul>
+                <li><a href="{% url 'workshops:instructor_dashboard' %}">Instructor Dashboard</a></li>
+                <li><a href="{% url 'workshops:instructor_workshops' %}">My Workshops</a></li>
+                <li><a href="{% url 'workshops:manage_sessions' workshop.slug %}">{{ workshop.title }}</a></li>
+                <li><a href="{% url 'workshops:session_materials' session.id %}">Session Materials</a></li>
+                <li>Upload Material</li>
+            </ul>
+        </div>
+        
+        <h1 class="text-3xl font-bold text-gray-900 mt-4">
+            Upload New Material
+        </h1>
+        <p class="text-lg text-gray-600 mt-2">
+            {{ session.workshop.title }} - {{ session.start_datetime|date:"M j, Y g:i A" }}
+        </p>
+    </div>
+
+    <!-- Upload Form -->
+    <div class="card bg-base-100 shadow-xl max-w-4xl">
+        <div class="card-body">
+            <h2 class="card-title">Material Details</h2>
+            
+            <form method="post" enctype="multipart/form-data" class="space-y-6 mt-4">
+                {% csrf_token %}
+                
+                <!-- Basic Information -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Material Title *</span>
+                        </label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.title.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Material Type *</span>
+                        </label>
+                        {{ form.material_type }}
+                        {% if form.material_type.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.material_type.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Description</span>
+                        <span class="label-text-alt">Brief description of this material</span>
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.description.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- File or Link -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Upload File</span>
+                            <span class="label-text-alt">PDF, Word, PowerPoint, etc.</span>
+                        </label>
+                        {{ form.file }}
+                        {% if form.file.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.file.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Or External Link</span>
+                        </label>
+                        <label class="label">
+                            <span class="label-text-alt">Link to external resource</span>
+                        </label>
+                        {{ form.external_url }}
+                        {% if form.external_url.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.external_url.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Access Control -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Access Timing *</span>
+                        </label>
+                        <label class="label">
+                            <span class="label-text-alt">When can participants access this?</span>
+                        </label>
+                        {{ form.access_timing }}
+                        {% if form.access_timing.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.access_timing.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Display Order</span>
+                        </label>
+                        <label class="label">
+                            <span class="label-text-alt">0 = first, higher numbers appear later</span>
+                        </label>
+                        {{ form.order }}
+                        {% if form.order.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.order.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            {{ form.requires_registration }}
+                            <span class="label-text font-medium">Requires Registration</span>
+                        </label>
+                        {% if form.requires_registration.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.requires_registration.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Additional Options -->
+                <div class="form-control">
+                    <label class="label cursor-pointer">
+                        {{ form.is_downloadable }}
+                        <span class="label-text font-medium">Allow Download</span>
+                        <span class="label-text-alt">If unchecked, material will open in browser only</span>
+                    </label>
+                    {% if form.is_downloadable.errors %}
+                        <div class="text-error text-sm mt-1">{{ form.is_downloadable.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Access Timing Help -->
+                <div class="alert alert-info">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div>
+                        <h3 class="font-bold">Access Timing Options</h3>
+                        <div class="text-sm mt-1">
+                            <strong>Before Session:</strong> Available for preparation before session starts<br>
+                            <strong>During Session:</strong> Only accessible while session is live<br>
+                            <strong>After Session:</strong> Available for review after session ends<br>
+                            <strong>Always:</strong> Available to registered participants anytime
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Form Errors -->
+                {% if form.non_field_errors %}
+                    <div class="alert alert-error">
+                        {{ form.non_field_errors.0 }}
+                    </div>
+                {% endif %}
+                
+                <!-- Form Actions -->
+                <div class="flex flex-wrap gap-4 pt-6 border-t">
+                    <button type="submit" class="btn btn-primary">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        Upload Material
+                    </button>
+                    
+                    <a href="{% url 'workshops:session_materials' session.id %}" class="btn btn-outline">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11l3.707-3.707a1 1 0 011.414 1.414L5.414 11l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

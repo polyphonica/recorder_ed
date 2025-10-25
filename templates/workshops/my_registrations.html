@@ -1,0 +1,421 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load workshop_tags %}
+
+{% block title %}My Registrations - Workshop Platform{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'core:home' %}">Home</a></li>
+            <li><a href="{% url 'workshops:dashboard' %}">Dashboard</a></li>
+            <li>My Registrations</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Page Header -->
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-bold mb-2">My Workshop Registrations</h1>
+                <p class="text-base-content/70">Track all your workshop enrollments and attendance</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex gap-2">
+                <a href="{% url 'workshops:dashboard' %}" class="btn btn-outline">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Dashboard
+                </a>
+                <a href="{% url 'workshops:list' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    Find More Workshops
+                </a>
+            </div>
+        </div>
+
+        {% if registrations %}
+            <!-- Stats Summary -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-figure text-primary">
+                        <i class="fas fa-list-ul text-2xl"></i>
+                    </div>
+                    <div class="stat-title">Total Registrations</div>
+                    <div class="stat-value text-primary">{{ registrations|length }}</div>
+                </div>
+                
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-figure text-success">
+                        <i class="fas fa-check-circle text-2xl"></i>
+                    </div>
+                    <div class="stat-title">Confirmed</div>
+                    <div class="stat-value text-success">
+                        {% for reg in registrations %}{% if reg.status == 'registered' %}{{ forloop.counter0|add:1 }}{% endif %}{% empty %}0{% endfor %}
+                    </div>
+                </div>
+                
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-figure text-warning">
+                        <i class="fas fa-credit-card text-2xl"></i>
+                    </div>
+                    <div class="stat-title">Pending Payment</div>
+                    <div class="stat-value text-warning">
+                        {% for reg in registrations %}{% if reg.status == 'promoted' %}{{ forloop.counter0|add:1 }}{% endif %}{% empty %}0{% endfor %}
+                    </div>
+                </div>
+                
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-figure text-info">
+                        <i class="fas fa-graduation-cap text-2xl"></i>
+                    </div>
+                    <div class="stat-title">Attended</div>
+                    <div class="stat-value text-info">
+                        {% for reg in registrations %}{% if reg.attended %}{{ forloop.counter0|add:1 }}{% endif %}{% empty %}0{% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter and Sort Options -->
+            <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Filter by Status</span>
+                    </label>
+                    <select class="select select-bordered" id="statusFilter">
+                        <option value="all">All Statuses</option>
+                        <option value="registered">Confirmed</option>
+                        <option value="promoted">Pending Payment</option>
+                        <option value="waitlisted">Waitlisted</option>
+                        <option value="attended">Attended</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Sort by</span>
+                    </label>
+                    <select class="select select-bordered" id="sortOrder">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="workshop">Workshop Name</option>
+                        <option value="date">Session Date</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Registrations List -->
+            <div class="space-y-4" id="registrationsList">
+                {% for registration in registrations %}
+                    <div class="card bg-base-200 shadow-xl registration-item" 
+                         data-status="{{ registration.status }}" 
+                         data-workshop="{{ registration.session.workshop.title|lower }}"
+                         data-session-date="{{ registration.session.start_datetime|date:'Y-m-d' }}"
+                         data-reg-date="{{ registration.registration_date|date:'Y-m-d' }}">
+                        <div class="card-body">
+                            <div class="flex flex-col lg:flex-row gap-6">
+                                <!-- Workshop Info -->
+                                <div class="flex-1">
+                                    <div class="flex items-start gap-4">
+                                        <!-- Workshop Image -->
+                                        {% if registration.session.workshop.featured_image %}
+                                            <div class="avatar flex-shrink-0">
+                                                <div class="w-16 h-16 rounded-lg">
+                                                    <img src="{{ registration.session.workshop.featured_image.url }}" 
+                                                         alt="{{ registration.session.workshop.title }}" />
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <div class="avatar placeholder flex-shrink-0">
+                                                <div class="bg-neutral text-neutral-content rounded-lg w-16 h-16">
+                                                    <span class="text-xl">
+                                                        <i class="fas fa-chalkboard-teacher"></i>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+
+                                        <!-- Details -->
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <h3 class="font-bold text-lg truncate">
+                                                    {{ registration.session.workshop.title }}
+                                                </h3>
+                                                <span class="badge 
+                                                    {% if registration.status == 'registered' %}badge-success
+                                                    {% elif registration.status == 'promoted' %}badge-warning
+                                                    {% elif registration.status == 'waitlisted' %}badge-warning
+                                                    {% elif registration.status == 'attended' %}badge-info
+                                                    {% elif registration.status == 'cancelled' %}badge-error
+                                                    {% else %}badge-ghost{% endif %}">
+                                                    {{ registration.get_status_display }}
+                                                </span>
+                                                {% if registration.attended %}
+                                                    <span class="badge badge-success badge-outline">
+                                                        <i class="fas fa-check mr-1"></i>
+                                                        Attended
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Session Details -->
+                                            <div class="text-sm text-base-content/70 space-y-1">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-calendar-alt text-primary"></i>
+                                                    <span>{{ registration.session.start_datetime|date:"F j, Y" }}</span>
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-clock text-primary"></i>
+                                                    <span>{{ registration.session.start_datetime|time:"g:i A" }} - {{ registration.session.end_datetime|time:"g:i A" }}</span>
+                                                </div>
+                                                {% if registration.session.location %}
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="fas fa-map-marker-alt text-primary"></i>
+                                                        <span>{{ registration.session.location }}</span>
+                                                    </div>
+                                                {% endif %}
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-user-clock text-primary"></i>
+                                                    <span>Registered {{ registration.registration_date|timesince }} ago</span>
+                                                </div>
+                                                {% if registration.session.meeting_url and registration.status == 'registered' %}
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="fas fa-video text-primary"></i>
+                                                        <a href="{{ registration.session.meeting_url }}" target="_blank" 
+                                                           class="text-primary hover:underline font-medium text-sm">
+                                                            Join Meeting
+                                                        </a>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Workshop Tags -->
+                                            {% if registration.session.workshop.tags %}
+                                                <div class="mt-3">
+                                                    <div class="flex flex-wrap gap-1">
+                                                        {% for tag in registration.session.workshop.tags|split:"," %}
+                                                            <span class="badge badge-ghost badge-xs">{{ tag }}</span>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="flex flex-col gap-2 lg:w-48">
+                                    {% if registration.status == 'promoted' %}
+                                        <!-- Promoted status - needs completion -->
+                                        <div class="alert alert-warning alert-compact">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            <span class="text-xs">Complete registration within 48 hours</span>
+                                        </div>
+                                        <a href="{% url 'workshops:registration_confirm' registration_id=registration.id %}"
+                                           class="btn btn-sm btn-warning animate-pulse">
+                                            <i class="fas fa-credit-card"></i>
+                                            Complete Registration
+                                        </a>
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'workshops:detail' slug=registration.session.workshop.slug %}" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i>
+                                        View Workshop
+                                    </a>
+                                    
+                                    <a href="{% url 'workshops:registration_confirm' registration_id=registration.id %}"
+                                       class="btn btn-sm btn-outline">
+                                        <i class="fas fa-receipt"></i>
+                                        View Details
+                                    </a>
+
+                                    {% if registration.session.materials.exists %}
+                                        <a href="{% url 'workshops:participant_materials' session_id=registration.session.id %}" 
+                                           class="btn btn-sm btn-info">
+                                            <i class="fas fa-download"></i>
+                                            Materials
+                                        </a>
+                                    {% endif %}
+
+                                    {% if registration.status in 'registered,promoted' and registration.session.start_datetime > now %}
+                                        <button class="btn btn-sm btn-warning" 
+                                                onclick="confirmCancel('{{ registration.id }}', '{{ registration.session.workshop.title }}')">
+                                            <i class="fas fa-times"></i>
+                                            Cancel
+                                        </button>
+                                    {% endif %}
+
+                                    {% if registration.attended and not registration.rating %}
+                                        <button class="btn btn-sm btn-accent">
+                                            <i class="fas fa-star"></i>
+                                            Rate
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Additional Info (Expandable) -->
+                            {% if registration.expectations or registration.special_requirements %}
+                                <div class="collapse collapse-arrow mt-4">
+                                    <input type="checkbox" class="peer" />
+                                    <div class="collapse-title text-sm font-medium">
+                                        Additional Information
+                                    </div>
+                                    <div class="collapse-content">
+                                        {% if registration.expectations %}
+                                            <div class="mb-2">
+                                                <strong>Expectations:</strong>
+                                                <p class="text-sm text-base-content/70 mt-1">{{ registration.expectations }}</p>
+                                            </div>
+                                        {% endif %}
+                                        {% if registration.special_requirements %}
+                                            <div>
+                                                <strong>Special Requirements:</strong>
+                                                <p class="text-sm text-base-content/70 mt-1">{{ registration.special_requirements }}</p>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+                <div class="flex justify-center mt-8">
+                    <div class="btn-group">
+                        {% if page_obj.has_previous %}
+                            <a href="?page=1" class="btn btn-outline">«</a>
+                            <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline">‹</a>
+                        {% endif %}
+                        
+                        <span class="btn btn-active">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+                        
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="btn btn-outline">›</a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}" class="btn btn-outline">»</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+        {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-16">
+                <div class="text-base-content/40 text-6xl mb-6">
+                    <i class="fas fa-calendar-times"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-4">No Workshop Registrations</h2>
+                <p class="text-base-content/70 mb-8 max-w-md mx-auto">
+                    You haven't registered for any workshops yet. Explore our catalog to find workshops that match your interests and skill level.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="{% url 'workshops:list' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-search"></i>
+                        Browse Workshops
+                    </a>
+                    <a href="{% url 'workshops:dashboard' %}" class="btn btn-outline btn-lg">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Go to Dashboard
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Cancel Registration Modal -->
+<div id="cancelModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Cancel Registration</h3>
+        <p class="py-4">Are you sure you want to cancel your registration for <span id="workshopTitle" class="font-semibold"></span>?</p>
+        <div class="modal-action">
+            <button class="btn" onclick="document.getElementById('cancelModal').close()">Keep Registration</button>
+            <button class="btn btn-error" id="confirmCancelBtn">Yes, Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Filter and Sort Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const statusFilter = document.getElementById('statusFilter');
+    const sortOrder = document.getElementById('sortOrder');
+    const registrationsList = document.getElementById('registrationsList');
+    const items = Array.from(document.querySelectorAll('.registration-item'));
+
+    function filterAndSort() {
+        const statusValue = statusFilter.value;
+        const sortValue = sortOrder.value;
+
+        // Filter items
+        let visibleItems = items.filter(item => {
+            if (statusValue === 'all') return true;
+            return item.dataset.status === statusValue;
+        });
+
+        // Sort items
+        visibleItems.sort((a, b) => {
+            switch (sortValue) {
+                case 'newest':
+                    return new Date(b.dataset.regDate) - new Date(a.dataset.regDate);
+                case 'oldest':
+                    return new Date(a.dataset.regDate) - new Date(b.dataset.regDate);
+                case 'workshop':
+                    return a.dataset.workshop.localeCompare(b.dataset.workshop);
+                case 'date':
+                    return new Date(a.dataset.sessionDate) - new Date(b.dataset.sessionDate);
+                default:
+                    return 0;
+            }
+        });
+
+        // Hide all items
+        items.forEach(item => item.style.display = 'none');
+
+        // Show and reorder visible items
+        visibleItems.forEach((item, index) => {
+            item.style.display = 'block';
+            registrationsList.appendChild(item);
+        });
+
+        // Show "no results" message if needed
+        const noResults = document.getElementById('noResults');
+        if (visibleItems.length === 0 && !noResults) {
+            const message = document.createElement('div');
+            message.id = 'noResults';
+            message.className = 'text-center py-8';
+            message.innerHTML = `
+                <div class="text-base-content/40 text-4xl mb-4">
+                    <i class="fas fa-search"></i>
+                </div>
+                <p class="text-lg">No registrations match your current filters.</p>
+            `;
+            registrationsList.appendChild(message);
+        } else if (visibleItems.length > 0 && noResults) {
+            noResults.remove();
+        }
+    }
+
+    statusFilter.addEventListener('change', filterAndSort);
+    sortOrder.addEventListener('change', filterAndSort);
+});
+
+// Cancel Registration Function
+function confirmCancel(registrationId, workshopTitle) {
+    document.getElementById('workshopTitle').textContent = workshopTitle;
+    document.getElementById('confirmCancelBtn').onclick = function() {
+        // Here you would typically make an AJAX call to cancel the registration
+        // For now, we'll redirect to the cancel URL
+        window.location.href = `/workshops/registration/${registrationId}/cancel/`;
+    };
+    document.getElementById('cancelModal').showModal();
+}
+</script>
+{% endblock %}

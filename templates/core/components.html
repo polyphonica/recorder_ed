@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load design_system %}
+
+{% block title %}Components - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="prose max-w-none">
+    <h1>Design System Components</h1>
+    <p class="lead">Comprehensive showcase of all available UI components</p>
+</div>
+
+<!-- Stats Cards -->
+<section class="py-8">
+    <h2 class="text-2xl font-bold mb-6">Statistics Cards</h2>
+    <div class="stats stats-vertical lg:stats-horizontal shadow w-full">
+        {% stat_card icon="users" value="2,500+" label="Students" color="primary" %}
+        {% stat_card icon="book-open" value="45" label="Courses" color="secondary" %}
+        {% stat_card icon="award" value="98%" label="Success Rate" color="accent" %}
+        {% stat_card icon="calendar" value="8+" label="Years" color="info" %}
+    </div>
+</section>
+
+<!-- Buttons -->
+<section class="py-8">
+    <h2 class="text-2xl font-bold mb-6">Buttons</h2>
+    <div class="flex flex-wrap gap-4 mb-6">
+        {% for button_config in buttons %}
+            {% button text=button_config.text variant=button_config.variant color=button_config.color %}
+        {% endfor %}
+    </div>
+    
+    <h3 class="text-lg font-semibold mb-4">With Icons</h3>
+    <div class="flex flex-wrap gap-4">
+        {% button "Download" variant="primary" color="primary" icon="check" %}
+        {% button "Settings" variant="ghost" color="neutral" icon="menu" %}
+        {% button "Warning" variant="outline" color="warning" icon="warning" %}
+    </div>
+</section>
+
+<!-- Badges -->
+<section class="py-8">
+    <h2 class="text-2xl font-bold mb-6">Badges</h2>
+    <div class="flex flex-wrap gap-4">
+        {% for badge_config in badges %}
+            {% badge text=badge_config.text color=badge_config.color %}
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Cards -->
+<section class="py-8">
+    <h2 class="text-2xl font-bold mb-6">Cards</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for card_config in cards %}
+            {% card title=card_config.title content=card_config.content variant=card_config.variant image=card_config.image price=card_config.price rating=card_config.rating students=card_config.students author=card_config.author role=card_config.role avatar=card_config.avatar urgency=card_config.urgency action_text=card_config.action_text %}
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Progress Bars -->
+<section class="py-8">
+    <h2 class="text-2xl font-bold mb-6">Progress Indicators</h2>
+    <div class="space-y-4">
+        {% progress_bar value=75 max_value=100 color="primary" label="Course Progress" %}
+        {% progress_bar value=60 max_value=100 color="secondary" label="Skills Development" %}
+        {% progress_bar value=90 max_value=100 color="success" label="Assignment Completion" %}
+        {% progress_bar value=45 max_value=100 color="warning" label="Project Status" %}
+    </div>
+</section>
+
+<!-- Alerts -->
+<section class="py-8">
+    <h2 class="text-2xl font-bold mb-6">Alerts</h2>
+    <div class="space-y-4">
+        {% alert "Course successfully enrolled!" type="success" %}
+        {% alert "Assignment deadline approaching" type="warning" %}
+        {% alert "Please verify your email address" type="info" %}
+        {% alert "Failed to save changes" type="error" %}
+    </div>
+</section>
+{% endblock %}

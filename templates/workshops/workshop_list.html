@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Workshops - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Hero Section -->
+    <div class="hero bg-gradient-to-br from-primary/10 to-secondary/10 py-16">
+        <div class="hero-content text-center">
+            <div class="max-w-4xl">
+                <h1 class="text-5xl font-bold">
+                    Transform Your Skills with
+                    <span class="text-primary">Expert-Led Workshops</span>
+                </h1>
+                <p class="py-6 text-xl text-base-content/80">
+                    Hands-on learning experiences designed to advance your career and expand your horizons
+                </p>
+                
+                <!-- Search Bar -->
+                <div class="form-control w-full max-w-lg mx-auto">
+                    <form method="get" class="input-group">
+                        <input type="text" 
+                               name="search" 
+                               value="{{ request.GET.search }}"
+                               placeholder="Search workshops..." 
+                               class="input input-bordered flex-1" />
+                        <button class="btn btn-primary" type="submit">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Filters -->
+        <div class="bg-base-200 rounded-lg p-6 mb-8">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-4" x-data="{ showFilters: false }">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Category</span>
+                    </label>
+                    {{ filter_form.category }}
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Difficulty</span>
+                    </label>
+                    {{ filter_form.difficulty }}
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Delivery</span>
+                    </label>
+                    {{ filter_form.delivery_method }}
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Price</span>
+                    </label>
+                    {{ filter_form.price }}
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Sort By</span>
+                    </label>
+                    {{ filter_form.sort }}
+                </div>
+                
+                <div class="form-control flex-col justify-end">
+                    <button type="submit" class="btn btn-primary">
+                        Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Workshop Stats -->
+        <div class="stats stats-vertical lg:stats-horizontal shadow mb-8 w-full">
+            <div class="stat">
+                <div class="stat-figure text-primary">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Total Workshops</div>
+                <div class="stat-value text-primary">{{ total_workshops }}</div>
+                <div class="stat-desc">Available for registration</div>
+            </div>
+            
+            <div class="stat">
+                <div class="stat-figure text-secondary">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Active Students</div>
+                <div class="stat-value text-secondary">{{ total_registrations }}</div>
+                <div class="stat-desc">Currently enrolled</div>
+            </div>
+            
+            <div class="stat">
+                <div class="stat-figure text-accent">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Average Rating</div>
+                <div class="stat-value text-accent">4.8</div>
+                <div class="stat-desc">From 500+ reviews</div>
+            </div>
+        </div>
+
+        <!-- Workshop Grid -->
+        {% if workshops %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {% for workshop in workshops %}
+                    <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+                        {% if workshop.featured_image %}
+                            <figure>
+                                <img src="{{ workshop.featured_image.url }}" 
+                                     alt="{{ workshop.title }}"
+                                     class="w-full h-48 object-cover" />
+                            </figure>
+                        {% else %}
+                            <figure class="bg-gradient-to-br from-primary/20 to-secondary/20 h-48 flex items-center justify-center">
+                                <div class="text-center">
+                                    <svg class="w-16 h-16 mx-auto text-primary/60 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <p class="text-primary/60 font-medium">{{ workshop.category.name }}</p>
+                                </div>
+                            </figure>
+                        {% endif %}
+                        
+                        <div class="card-body">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex gap-1">
+                                    <div class="badge badge-primary badge-sm">{{ workshop.category.name }}</div>
+                                    {% if workshop.delivery_method == 'online' %}
+                                        <div class="badge badge-info badge-sm">Online</div>
+                                    {% elif workshop.delivery_method == 'in_person' %}
+                                        <div class="badge badge-success badge-sm">In-Person</div>
+                                    {% elif workshop.delivery_method == 'hybrid' %}
+                                        <div class="badge badge-accent badge-sm">Hybrid</div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex gap-1">
+                                    {% if workshop.is_featured %}
+                                        <div class="badge badge-secondary">Featured</div>
+                                    {% endif %}
+                                    {% if not workshop.has_upcoming_sessions %}
+                                        <div class="badge badge-warning">Coming Soon</div>
+                                    {% elif not workshop.has_available_sessions %}
+                                        <div class="badge badge-error">Full</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <h2 class="card-title text-lg">{{ workshop.title }}</h2>
+                            <p class="text-base-content/70 text-sm line-clamp-3">{{ workshop.short_description }}</p>
+                            
+                            <!-- Instructor Info -->
+                            <div class="flex items-center gap-2 text-sm text-base-content/60 mb-2">
+                                <div class="avatar placeholder">
+                                    <div class="bg-neutral text-neutral-content rounded-full w-6">
+                                        <span class="text-xs">
+                                            {% if workshop.instructor.first_name %}
+                                                {{ workshop.instructor.first_name|first|upper }}
+                                            {% else %}
+                                                {{ workshop.instructor.username|first|upper }}
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                                <span>{{ workshop.instructor.full_name_or_username }}</span>
+                            </div>
+                            
+                            <div class="flex items-center gap-4 text-sm text-base-content/60 my-3">
+                                <div class="flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"></path>
+                                    </svg>
+                                    <span>{{ workshop.duration_display }}</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                                    </svg>
+                                    <span>{{ workshop.get_difficulty_level_display }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between items-center">
+                                <div class="text-lg font-bold">
+                                    {% if workshop.is_free %}
+                                        <span class="text-success">Free</span>
+                                    {% else %}
+                                        <span class="text-primary">${{ workshop.price }}</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="card-actions">
+                                    {% if workshop.has_available_sessions %}
+                                        <a href="{% url 'workshops:detail' workshop.slug %}" 
+                                           class="btn btn-primary btn-sm">
+                                            View Sessions
+                                        </a>
+                                    {% elif workshop.has_upcoming_sessions %}
+                                        <a href="{% url 'workshops:detail' workshop.slug %}" 
+                                           class="btn btn-secondary btn-sm">
+                                            Join Waitlist
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'workshops:detail' workshop.slug %}" 
+                                           class="btn btn-warning btn-sm">
+                                            Notify Me
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Venue Info -->
+                            {% if not workshop.is_online_only and workshop.venue_name %}
+                            <div class="flex items-center gap-1 text-xs text-base-content/60 mt-2">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                <span class="truncate">{{ workshop.venue_name }}{% if workshop.venue_city %}, {{ workshop.venue_city }}{% endif %}</span>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Session Availability Info -->
+                            {% if workshop.has_available_sessions %}
+                                {% if workshop.next_session %}
+                                    <div class="alert alert-success py-2 mt-3">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 9h12v8H4V9z"></path>
+                                        </svg>
+                                        <span class="text-base font-semibold">Next: {{ workshop.next_session.start_datetime|date:"M j, g:i A" }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-info py-2 mt-3">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <span class="text-base font-semibold">Sessions available - check details</span>
+                                    </div>
+                                {% endif %}
+                            {% elif workshop.has_upcoming_sessions %}
+                                <div class="alert alert-error py-2 mt-3">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"></path>
+                                    </svg>
+                                    <span class="text-base font-semibold">{{ workshop.upcoming_sessions.count }} Session{{ workshop.upcoming_sessions.count|pluralize }} Full</span>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning py-2 mt-3">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"></path>
+                                    </svg>
+                                    <span class="text-base font-semibold">No sessions scheduled yet</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Pagination -->
+            {% if is_paginated %}
+                <div class="flex justify-center">
+                    <div class="btn-group">
+                        {% if page_obj.has_previous %}
+                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                               class="btn">«</a>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <a class="btn btn-active">{{ num }}</a>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}page={{ num }}" 
+                                   class="btn">{{ num }}</a>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                               class="btn">»</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+            
+        {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-16">
+                <svg class="w-24 h-24 mx-auto text-base-content/30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.239 0-4.236-.908-5.69-2.381C4.926 11.283 3.988 9.764 4 8c.012-1.764.988-3.283 2.31-4.619C7.764 1.908 9.761 1 12 1s4.236.908 5.69 2.381C19.012 4.717 19.988 6.236 20 8c.012 1.764-.926 3.283-2.31 4.619"></path>
+                </svg>
+                <h3 class="text-xl font-semibold text-base-content/70 mb-2">No workshops found</h3>
+                <p class="text-base-content/50 mb-6">
+                    {% if request.GET.search %}
+                        No workshops match your search criteria. Try adjusting your filters.
+                    {% else %}
+                        There are no workshops available at the moment. Check back soon!
+                    {% endif %}
+                </p>
+                {% if request.GET.search or request.GET.category %}
+                    <a href="{% url 'workshops:list' %}" class="btn btn-primary">
+                        Clear Filters
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+{% endblock %}

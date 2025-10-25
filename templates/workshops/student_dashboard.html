@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load workshop_tags %}
+
+{% block title %}My Dashboard - Workshop Platform{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Page Header -->
+    <div class="bg-gradient-to-r from-primary to-secondary text-primary-content">
+        <div class="container mx-auto px-4 py-8">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold mb-2">Welcome back, {{ user.profile.display_name|default:user.username }}!</h1>
+                    <p class="opacity-90">Track your learning journey and manage your workshop registrations</p>
+                </div>
+                <div class="mt-4 md:mt-0 flex gap-2">
+                    <a href="{% url 'workshops:list' %}" class="btn btn-accent">
+                        <i class="fas fa-plus"></i>
+                        Explore Workshops
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="card bg-primary text-primary-content shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center">
+                        <div class="flex-1">
+                            <h2 class="card-title text-2xl">{{ upcoming_registrations|length }}</h2>
+                            <p class="opacity-80">Upcoming Sessions</p>
+                        </div>
+                        <i class="fas fa-calendar-alt text-3xl opacity-60"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card bg-secondary text-secondary-content shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center">
+                        <div class="flex-1">
+                            <h2 class="card-title text-2xl">{{ stats.attended }}</h2>
+                            <p class="opacity-80">Completed</p>
+                        </div>
+                        <i class="fas fa-check-circle text-3xl opacity-60"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card bg-accent text-accent-content shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center">
+                        <div class="flex-1">
+                            <h2 class="card-title text-2xl">0</h2>
+                            <p class="opacity-80">Waitlisted</p>
+                        </div>
+                        <i class="fas fa-clock text-3xl opacity-60"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card bg-info text-info-content shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center">
+                        <div class="flex-1">
+                            <h2 class="card-title text-2xl">{{ stats.total_registered }}</h2>
+                            <p class="opacity-80">Total Enrolled</p>
+                        </div>
+                        <i class="fas fa-graduation-cap text-3xl opacity-60"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Upcoming Sessions -->
+            <div class="lg:col-span-2">
+                <div class="card bg-base-200 shadow-xl">
+                    <div class="card-body">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="card-title text-xl">
+                                <i class="fas fa-calendar-check text-primary"></i>
+                                Upcoming Sessions
+                            </h2>
+                            <a href="{% url 'workshops:my_registrations' %}" class="btn btn-sm btn-outline">
+                                View All
+                            </a>
+                        </div>
+                        
+                        {% if upcoming_registrations %}
+                            <div class="space-y-4">
+                                {% for registration in upcoming_registrations %}
+                                    <div class="card bg-base-100 border border-base-300">
+                                        <div class="card-body p-4">
+                                            <div class="flex flex-col sm:flex-row gap-4">
+                                                <!-- Workshop Info -->
+                                                <div class="flex-1">
+                                                    <div class="flex items-center gap-2 mb-2">
+                                                        <h3 class="font-semibold text-lg">{{ registration.session.workshop.title }}</h3>
+                                                        <span class="badge 
+                                                            {% if registration.status == 'confirmed' %}badge-success
+                                                            {% elif registration.status == 'waitlisted' %}badge-warning
+                                                            {% else %}badge-info{% endif %}">
+                                                            {{ registration.get_status_display }}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div class="text-sm text-base-content/70 space-y-1">
+                                                        <div class="flex items-center gap-2">
+                                                            <i class="fas fa-calendar"></i>
+                                                            <span>{{ registration.session.start_datetime|date:"F j, Y" }}</span>
+                                                        </div>
+                                                        <div class="flex items-center gap-2">
+                                                            <i class="fas fa-clock"></i>
+                                                            <span>{{ registration.session.start_datetime|time:"g:i A" }} - {{ registration.session.end_datetime|time:"g:i A" }}</span>
+                                                        </div>
+                                                        {% if registration.session.location %}
+                                                            <div class="flex items-center gap-2">
+                                                                <i class="fas fa-map-marker-alt"></i>
+                                                                <span>{{ registration.session.location }}</span>
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Actions -->
+                                                <div class="flex flex-col gap-2 sm:w-32">
+                                                    <a href="{% url 'workshops:detail' slug=registration.session.workshop.slug %}" 
+                                                       class="btn btn-sm btn-primary">
+                                                        <i class="fas fa-eye"></i>
+                                                        View
+                                                    </a>
+                                                    {% if registration.session.materials.exists %}
+                                                        <a href="{% url 'workshops:participant_materials' session_id=registration.session.id %}" 
+                                                           class="btn btn-sm btn-outline">
+                                                            <i class="fas fa-download"></i>
+                                                            Materials
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-8">
+                                <div class="text-base-content/40 text-4xl mb-4">
+                                    <i class="fas fa-calendar-plus"></i>
+                                </div>
+                                <h3 class="text-lg font-semibold mb-2">No upcoming sessions</h3>
+                                <p class="text-base-content/70 mb-4">You haven't registered for any workshops yet.</p>
+                                <a href="{% url 'workshops:list' %}" class="btn btn-primary">
+                                    <i class="fas fa-search"></i>
+                                    Browse Workshops
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Quick Actions -->
+                <div class="card bg-base-200 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-lg mb-4">
+                            <i class="fas fa-bolt text-accent"></i>
+                            Quick Actions
+                        </h2>
+                        
+                        <div class="space-y-2">
+                            <a href="{% url 'accounts:profile_edit' %}" class="btn btn-sm btn-block btn-outline">
+                                <i class="fas fa-user-edit"></i>
+                                Edit Profile
+                            </a>
+                            <a href="{% url 'workshops:list' %}" class="btn btn-sm btn-block btn-outline">
+                                <i class="fas fa-search"></i>
+                                Browse Workshops
+                            </a>
+                            <a href="{% url 'workshops:my_registrations' %}" class="btn btn-sm btn-block btn-outline">
+                                <i class="fas fa-list"></i>
+                                My Registrations
+                            </a>
+                            <button class="btn btn-sm btn-block btn-outline" onclick="window.print()">
+                                <i class="fas fa-print"></i>
+                                Print Schedule
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card bg-base-200 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-lg mb-4">
+                            <i class="fas fa-history text-secondary"></i>
+                            Recent Activity
+                        </h2>
+                        
+                        {% if recent_registrations %}
+                            <div class="space-y-3">
+                                {% for registration in recent_registrations %}
+                                    <div class="flex items-start gap-3 p-3 bg-base-100 rounded-lg">
+                                        <div class="flex-shrink-0 mt-1">
+                                            {% if registration.status == 'confirmed' %}
+                                                <i class="fas fa-check-circle text-success"></i>
+                                            {% elif registration.status == 'waitlisted' %}
+                                                <i class="fas fa-clock text-warning"></i>
+                                            {% else %}
+                                                <i class="fas fa-info-circle text-info"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium truncate">
+                                                {{ registration.session.workshop.title }}
+                                            </p>
+                                            <p class="text-xs text-base-content/70">
+                                                {{ registration.registration_date|timesince }} ago
+                                            </p>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <div class="text-base-content/40 text-2xl mb-2">
+                                    <i class="fas fa-history"></i>
+                                </div>
+                                <p class="text-sm text-base-content/70">No recent activity</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Learning Progress -->
+                <div class="card bg-base-200 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-lg mb-4">
+                            <i class="fas fa-chart-line text-info"></i>
+                            Learning Progress
+                        </h2>
+                        
+                        {% if stats.attended %}
+                            <div class="space-y-3">
+                                {% for registration in recent_registrations %}
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-shrink-0">
+                                            <i class="fas fa-medal text-warning"></i>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium truncate">
+                                                {{ registration.session.workshop.title }}
+                                            </p>
+                                            <div class="badge badge-success badge-xs">
+                                                {{ registration.get_status_display }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <div class="text-base-content/40 text-2xl mb-2">
+                                    <i class="fas fa-trophy"></i>
+                                </div>
+                                <p class="text-sm text-base-content/70">Start learning to see progress</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar Widget (Optional Enhancement) -->
+        <div class="card bg-base-200 shadow-xl mt-8">
+            <div class="card-body">
+                <h2 class="card-title text-xl mb-4">
+                    <i class="fas fa-calendar-alt text-primary"></i>
+                    Upcoming Schedule
+                </h2>
+                
+                {% if upcoming_registrations %}
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra w-full">
+                            <thead>
+                                <tr>
+                                    <th>Workshop</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for registration in upcoming_registrations %}
+                                    <tr>
+                                        <td>
+                                            <div class="font-medium">{{ registration.session.workshop.title }}</div>
+                                            <div class="text-xs text-base-content/70">{{ registration.session.title }}</div>
+                                        </td>
+                                        <td>{{ registration.session.start_datetime|date:"M j, Y" }}</td>
+                                        <td>{{ registration.session.start_datetime|time:"g:i A" }}</td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if registration.status == 'confirmed' %}badge-success
+                                                {% elif registration.status == 'waitlisted' %}badge-warning
+                                                {% else %}badge-info{% endif %}">
+                                                {{ registration.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="flex gap-1">
+                                                <a href="{% url 'workshops:detail' slug=registration.session.workshop.slug %}" 
+                                                   class="btn btn-xs btn-primary">View</a>
+                                                <a href="{% url 'workshops:registration_confirm' registration_id=registration.id %}"
+                                                   class="btn btn-xs btn-outline">Details</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <p class="text-base-content/70">No upcoming sessions to display.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

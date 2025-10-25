@@ -1,0 +1,443 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Session Participants - {{ session.workshop.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="breadcrumbs text-sm">
+            <ul>
+                <li><a href="{% url 'workshops:list' %}">Workshops</a></li>
+                <li><a href="{% url 'workshops:detail' session.workshop.slug %}">{{ session.workshop.title }}</a></li>
+                <li>Session Participants</li>
+            </ul>
+        </div>
+        
+        <div class="flex justify-between items-start mt-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Session Participants</h1>
+                <p class="text-lg text-gray-600 mt-2">{{ session.workshop.title }}</p>
+                
+                <!-- Prominent Session Details -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 mb-2">
+                    <h3 class="font-semibold text-blue-900 mb-2">Session Details</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        <div class="flex items-center text-blue-800">
+                            <i class="fas fa-calendar mr-2 text-blue-600"></i>
+                            <span class="font-medium">Date:</span>
+                            <span class="ml-2">{{ session.start_datetime|date:"l, F j, Y" }}</span>
+                        </div>
+                        <div class="flex items-center text-blue-800">
+                            <i class="fas fa-clock mr-2 text-blue-600"></i>
+                            <span class="font-medium">Time:</span>
+                            <span class="ml-2">{{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}</span>
+                        </div>
+                        <div class="flex items-center text-blue-800">
+                            <i class="fas fa-user mr-2 text-blue-600"></i>
+                            <span class="font-medium">Instructor:</span>
+                            <span class="ml-2">{{ session.workshop.instructor.display_name }}</span>
+                        </div>
+                        {% if session.location %}
+                        <div class="flex items-center text-blue-800">
+                            <i class="fas fa-map-marker-alt mr-2 text-blue-600"></i>
+                            <span class="font-medium">Location:</span>
+                            <span class="ml-2">{{ session.location }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex gap-2">
+                <button onclick="exportParticipants()" class="btn btn-outline">
+                    <i class="fas fa-download mr-2"></i>Export
+                </button>
+                <button onclick="sendBulkEmail()" class="btn btn-primary">
+                    <i class="fas fa-envelope mr-2"></i>Email All
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Total Registered</div>
+            <div class="stat-value text-primary">{{ stats.registered }}</div>
+        </div>
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Waitlisted</div>
+            <div class="stat-value text-info">{{ stats.waitlisted }}</div>
+            {% if waitlist_info.total_waitlisted > 0 %}
+            <div class="stat-desc">Next position: #{{ waitlist_info.next_position }}</div>
+            {% endif %}
+        </div>
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Attended</div>
+            <div class="stat-value text-success">{{ stats.attended }}</div>
+        </div>
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">No Shows</div>
+            <div class="stat-value text-warning">{{ stats.no_show }}</div>
+        </div>
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Cancelled</div>
+            <div class="stat-value text-error">{{ stats.cancelled }}</div>
+        </div>
+    </div>
+
+    <!-- Waitlist Summary -->
+    {% if waitlist_info.total_waitlisted > 0 %}
+    <div class="alert alert-info mb-6">
+        <div>
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <h3 class="font-bold">Waitlist Status</h3>
+                <div class="text-sm mt-1">
+                    {{ waitlist_info.total_waitlisted }} student{{ waitlist_info.total_waitlisted|pluralize }} currently waitlisted.
+                    {% if session.current_registrations < session.max_participants %}
+                        <strong>{{ session.spots_remaining }} spot{{ session.spots_remaining|pluralize }} available</strong> - 
+                        you can promote students from the waitlist.
+                    {% else %}
+                        Session is currently full ({{ session.current_registrations }}/{{ session.max_participants }}).
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filters and Search -->
+    <div class="bg-base-100 p-6 rounded-lg shadow mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- Search -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Search participants</span>
+                </label>
+                <input type="text" name="search" value="{{ request.GET.search }}" 
+                       placeholder="Name or email..." class="input input-bordered">
+            </div>
+            
+            <!-- Status Filter -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Status</span>
+                </label>
+                <select name="status" class="select select-bordered">
+                    <option value="">All statuses</option>
+                    <option value="registered" {% if request.GET.status == 'registered' %}selected{% endif %}>Registered</option>
+                    <option value="promoted" {% if request.GET.status == 'promoted' %}selected{% endif %}>Promoted</option>
+                    <option value="waitlisted" {% if request.GET.status == 'waitlisted' %}selected{% endif %}>Waitlisted</option>
+                    <option value="attended" {% if request.GET.status == 'attended' %}selected{% endif %}>Attended</option>
+                    <option value="no_show" {% if request.GET.status == 'no_show' %}selected{% endif %}>No Show</option>
+                    <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+            
+            <!-- Registration Date -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Registered after</span>
+                </label>
+                <input type="date" name="registered_after" value="{{ request.GET.registered_after }}" 
+                       class="input input-bordered">
+            </div>
+            
+            <!-- Actions -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">&nbsp;</span>
+                </label>
+                <div class="flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-1">Filter</button>
+                    <a href="?" class="btn btn-outline">Clear</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bulk Actions and Participants -->
+    <form id="bulkActionsForm" method="post">
+        {% csrf_token %}
+        
+        <!-- Bulk Actions -->
+        {% if registrations %}
+        <div class="bg-base-100 p-4 rounded-lg shadow mb-6">
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="selectAll" class="checkbox checkbox-primary">
+                    <label for="selectAll" class="text-sm font-medium">Select All</label>
+                </div>
+                
+                <select name="bulk_action" class="select select-bordered select-sm">
+                    <option value="">Choose action...</option>
+                    <option value="mark_attended">Mark as Attended</option>
+                    <option value="mark_no_show">Mark as No Show</option>
+                    <option value="move_to_registered">Mark as Registered</option>
+                    <option value="cancel_registration">Cancel Registration</option>
+                    {% if waitlist_info.total_waitlisted > 0 %}
+                    <option value="promote_from_waitlist">Promote from Waitlist</option>
+                    {% endif %}
+                </select>
+                
+                <button type="submit" class="btn btn-sm btn-primary">Apply to Selected</button>
+                <span id="selectedCount" class="text-sm text-gray-500">0 selected</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Participants Table -->
+        <div class="bg-base-100 rounded-lg shadow overflow-hidden">
+        {% if registrations %}
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" class="checkbox checkbox-primary" disabled></th>
+                            <th>Participant</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                            <th>Position</th>
+                            <th>Registered</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for registration in registrations %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" name="registration_ids" value="{{ registration.id }}" 
+                                       class="checkbox checkbox-primary participant-checkbox">
+                            </td>
+                            <td>
+                                <div class="flex items-center gap-3">
+                                    <div class="avatar">
+                                        <div class="w-10 h-10 rounded-full bg-primary text-primary-content flex items-center justify-center">
+                                            {{ registration.student.first_name|first|default:registration.student.username|first }}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold">
+                                            {% if registration.student.first_name %}
+                                                {{ registration.student.first_name }} {{ registration.student.last_name }}
+                                            {% else %}
+                                                {{ registration.student.username }}
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-sm text-gray-500">@{{ registration.student.username }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-sm">
+                                    <div>{{ registration.student.email }}</div>
+                                    {% if registration.emergency_contact %}
+                                        <div class="text-gray-500">Emergency: {{ registration.emergency_contact }}</div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if registration.status == 'registered' %}badge-success
+                                    {% elif registration.status == 'promoted' %}badge-info
+                                    {% elif registration.status == 'waitlisted' %}badge-warning
+                                    {% elif registration.status == 'attended' %}badge-success
+                                    {% elif registration.status == 'no_show' %}badge-warning
+                                    {% elif registration.status == 'cancelled' %}badge-error
+                                    {% else %}badge-ghost{% endif %}">
+                                    {{ registration.get_status_display }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if registration.status == 'waitlisted' and registration.waitlist_position %}
+                                    <div class="badge badge-info badge-outline">
+                                        #{{ registration.waitlist_position }}
+                                    </div>
+                                {% elif registration.promoted_at %}
+                                    <div class="badge badge-success badge-outline text-xs">
+                                        Promoted
+                                    </div>
+                                {% else %}
+                                    <span class="text-gray-400">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-sm text-gray-500">
+                                {{ registration.registration_date|naturaltime }}
+                            </td>
+                            <td>
+                                <div class="dropdown dropdown-end">
+                                    <label tabindex="0" class="btn btn-ghost btn-sm">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </label>
+                                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+                                        <li><a onclick="updateStatus('{{ registration.id }}', 'attended')">
+                                            <i class="fas fa-check text-success"></i> Mark Attended
+                                        </a></li>
+                                        <li><a onclick="updateStatus('{{ registration.id }}', 'no_show')">
+                                            <i class="fas fa-times text-warning"></i> Mark No Show
+                                        </a></li>
+                                        <li><a onclick="updateStatus('{{ registration.id }}', 'registered')">
+                                            <i class="fas fa-user text-primary"></i> Mark Registered
+                                        </a></li>
+                                        <li><a onclick="updateStatus('{{ registration.id }}', 'cancelled')">
+                                            <i class="fas fa-ban text-error"></i> Mark Cancelled
+                                        </a></li>
+                                        <li class="divider"></li>
+                                        <li><a href="mailto:{{ registration.student.email }}">
+                                            <i class="fas fa-envelope"></i> Send Email
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <div class="flex justify-center py-4">
+                <div class="join">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" 
+                           class="join-item btn btn-sm">First</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" 
+                           class="join-item btn btn-sm">Previous</a>
+                    {% endif %}
+                    
+                    <span class="join-item btn btn-sm btn-active">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" 
+                           class="join-item btn btn-sm">Next</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" 
+                           class="join-item btn btn-sm">Last</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-12">
+                <div class="text-6xl text-gray-300 mb-4">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-700 mb-2">No participants found</h3>
+                <p class="text-gray-500 mb-4">
+                    {% if request.GET.search or request.GET.status %}
+                        No participants match your current filters.
+                    {% else %}
+                        No one has registered for this session yet.
+                    {% endif %}
+                </p>
+                {% if request.GET.search or request.GET.status %}
+                    <a href="?" class="btn btn-primary">Clear Filters</a>
+                {% endif %}
+            </div>
+        {% endif %}
+        </div>
+    </form>
+</div>
+
+<script>
+// Select all functionality
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.participant-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+    updateSelectedCount();
+});
+
+// Update selected count
+function updateSelectedCount() {
+    const checked = document.querySelectorAll('.participant-checkbox:checked');
+    const countElement = document.getElementById('selectedCount');
+    countElement.textContent = checked.length + ' selected';
+}
+
+// Add event listeners to participant checkboxes
+document.querySelectorAll('.participant-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', updateSelectedCount);
+});
+
+// Update individual registration status
+function updateStatus(registrationId, status) {
+    if (confirm('Are you sure you want to update this participant status?')) {
+        fetch('', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: 'action=update_status&registration_id=' + registrationId + '&status=' + status
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error updating status: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the status.');
+        });
+    }
+}
+
+// Bulk actions form submission
+document.getElementById('bulkActionsForm').addEventListener('submit', function(e) {
+    const selectedCheckboxes = document.querySelectorAll('.participant-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        e.preventDefault();
+        alert('Please select at least one participant.');
+        return;
+    }
+    
+    const action = this.querySelector('[name="bulk_action"]').value;
+    if (!action) {
+        e.preventDefault();
+        alert('Please select an action.');
+        return;
+    }
+    
+    if (!confirm('Are you sure you want to apply this action to ' + selectedCheckboxes.length + ' participant(s)?')) {
+        e.preventDefault();
+    }
+});
+
+// Export participants
+function exportParticipants() {
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'csv');
+    window.location.href = '?' + params.toString();
+}
+
+// Send bulk email
+function sendBulkEmail() {
+    const participants = Array.from(document.querySelectorAll('.participant-checkbox:checked'))
+        .map(cb => {
+            const row = cb.closest('tr');
+            const email = row.querySelector('td:nth-child(3) div').textContent.trim();
+            return email;
+        });
+    
+    if (participants.length === 0) {
+        alert('Please select participants to email.');
+        return;
+    }
+    
+    const subject = encodeURIComponent('{{ session.workshop.title }} - Session Update');
+    const emails = participants.join(',');
+    window.location.href = 'mailto:' + emails + '?subject=' + subject;
+}
+</script>
+{% endblock %}

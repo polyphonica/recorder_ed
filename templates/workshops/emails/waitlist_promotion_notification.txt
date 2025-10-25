@@ -1,0 +1,29 @@
+{% load humanize %}
+Subject: Spot Available - {{ session.workshop.title }}
+
+Hi {{ registration.student.first_name|default:registration.student.username }},
+
+Great news! A spot has opened up in "{{ session.workshop.title }}" scheduled for {{ session.start_datetime|date:"l, F j, Y" }} at {{ session.start_datetime|time:"g:i A" }}.
+
+Session Details:
+- Workshop: {{ session.workshop.title }}
+- Date: {{ session.start_datetime|date:"l, F j, Y" }}
+- Time: {{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}
+- Instructor: {{ session.workshop.instructor.display_name }}
+{% if session.location %}- Location: {{ session.location }}{% endif %}
+{% if session.meeting_url %}- Meeting URL: {{ session.meeting_url }}{% endif %}
+
+IMPORTANT: You have until {{ promotion.expires_at|date:"F j, Y" }} at {{ promotion.expires_at|time:"g:i A" }} to confirm your registration.
+
+To secure your spot, please confirm your registration by clicking the link below:
+{{ confirmation_url }}
+
+If you don't confirm by the deadline, this spot will be offered to the next person on the waitlist.
+
+Workshop Description:
+{{ session.workshop.description|truncatewords:50 }}
+
+Questions? Reply to this email or contact your instructor.
+
+Best regards,
+The {{ site_name }} Team

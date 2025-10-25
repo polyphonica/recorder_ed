@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Complete Profile - RECORDERED{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    {% block content %}
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div class="card card-section shadow-xl">
+        <div class="card-body">
+            <h1 class="card-title text-3xl mb-6">Complete Your Profile</h1>
+            <p class="mb-6">Please complete your profile to access private teaching features.</p>
+            
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- First Name -->
+                <div class="form-control">
+                    <label class="label" for="{{ form.first_name.id_for_label }}">
+                        <span class="label-text font-medium">First Name *</span>
+                    </label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.first_name.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <!-- Last Name -->
+                <div class="form-control">
+                    <label class="label" for="{{ form.last_name.id_for_label }}">
+                        <span class="label-text font-medium">Last Name *</span>
+                    </label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.last_name.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <!-- Email -->
+                <div class="form-control">
+                    <label class="label" for="{{ form.email.id_for_label }}">
+                        <span class="label-text font-medium">Email *</span>
+                    </label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.email.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <!-- Phone -->
+                <div class="form-control">
+                    <label class="label" for="{{ form.phone.id_for_label }}">
+                        <span class="label-text font-medium">Phone *</span>
+                    </label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.phone.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <!-- Submit Button -->
+                <div class="card-actions justify-end">
+                    <button type="submit" class="btn btn-section-primary">Complete Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
