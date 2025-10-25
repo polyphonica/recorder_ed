@@ -1,12 +1,157 @@
-/* CKEditor 5 Custom Styles */
-/* This is a placeholder file. Add your custom CKEditor 5 styles here. */
-
-/* Example: Customize editor appearance */
-.ck-editor__editable {
-    /* min-height: 400px; */
+@font-face {
+    font-family: 'Opus';
+    src: url('../fonts/Opus.otf') format('opentype'),
+         url('../fonts/Opus.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap; /* Improves loading behavior on iOS */
 }
 
-/* Example: Customize toolbar */
-.ck-toolbar {
-    /* background-color: #f9fafb; */
+/* Set Arial as the default font for CKEditor content */
+.ck-content {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: inherit;
+}
+
+/* Only apply Opus font when explicitly set via inline style or class */
+.ck-content [style*="font-family: Opus"],
+.ck-content [style*="font-family:'Opus"],
+.ck-content [style*='font-family: "Opus'],
+.ck-content .opus-font {
+    font-family: "Opus", sans-serif !important;
+}
+
+/* static/css/custom.css */
+.ck-content a {
+    color: #007bff;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.ck-content a:hover {
+    color: #0056b3;
+}
+
+/* Improve font rendering on iOS Safari */
+.description {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Image styling within CKEditor */
+.ck-content .image {
+    min-width: 0 !important;
+    min-height: 0 !important;
+}
+
+.ck-content .image img {
+    min-width: 0 !important;
+    min-height: 0 !important;
+}
+
+/* Custom time signature styling */
+.custom-time-signature {
+    width: 3px !important;
+    max-width: 3px !important;
+}
+
+.custom-time-signature img {
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* Accordion styling */
+.accordion-header {
+    background-color: #f4f4f4;
+    padding: 10px;
+    cursor: pointer;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.accordion-header:hover {
+    background-color: #ddd;
+}
+
+.accordion-content {
+    display: none;
+    padding: 10px;
+    background-color: #fff;
+    border-top: 1px solid #ddd;
+}
+
+.accordion-content.active {
+    display: block;
+}
+
+/* Table Styling for CKEditor Content */
+.ck-content .ck-table {
+    width: 100%;
+    max-width: 600px;
+    border-collapse: collapse;
+}
+
+/* Allow CKEditor to override width when resizing */
+.ck-content .ck-table[style*="width"] {
+    width: auto !important;
+    max-width: none !important;
+}
+
+/* Ensure alignment styles are respected */
+.ck-content .ck-table[style*="margin-left: auto; margin-right: auto;"] {
+    margin: 0 auto;
+}
+
+.ck-content .ck-table[style*="margin-left: 0; margin-right: auto;"] {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+.ck-content .ck-table[style*="margin-left: auto; margin-right: 0;"] {
+    margin-left: auto;
+    margin-right: 0;
+}
+
+/* Table cell styling */
+.ck-content .ck-table td,
+.ck-content .ck-table th {
+    padding: 5px;
+    border: 1px solid #000;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* Media inside table cells */
+.ck-content .ck-table img {
+    width: 100%;
+    height: auto;
+}
+
+.ck-content .ck-table audio {
+    width: 100%;
+    height: 30px;
+}
+
+/* Ensure Opus font is applied to text within CKEditor */
+.ck-content p,
+.ck-content span {
+    font-family: "Opus Figured Bass", sans-serif;
+}
+
+/* Responsive Adjustments for Tables in CKEditor */
+@media (max-width: 600px) {
+    .ck-content .ck-table {
+        max-width: 100%;
+    }
+    .ck-content .ck-table td,
+    .ck-content .ck-table th {
+        width: 80px !important;
+        height: 40px !important;
+    }
+    .ck-content .ck-table img {
+        width: 80px;
+        height: auto;
+    }
 }
