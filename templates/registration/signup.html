@@ -21,7 +21,10 @@
             
             <form method="post">
                 {% csrf_token %}
-                
+                {% if request.GET.next %}
+                    <input type="hidden" name="next" value="{{ request.GET.next }}">
+                {% endif %}
+
                 <div class="form-control mb-4">
                     <label class="label">
                         <span class="label-text">Email Address</span>
@@ -69,7 +72,7 @@
                 <p class="text-sm text-base-content/70 mb-2">
                     Already have an account?
                 </p>
-                <a href="{% url 'login' %}" class="btn btn-outline btn-sm">
+                <a href="{% url 'login' %}{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}" class="btn btn-outline btn-sm">
                     Sign In
                 </a>
             </div>

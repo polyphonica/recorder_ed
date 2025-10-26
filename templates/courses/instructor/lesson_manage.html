@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manage Lessons - {{ topic.topic_title }} - Courses{% endblock %}
+
+{% block content %}
+<div class="section-courses">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="breadcrumbs text-sm mb-4">
+                <ul>
+                    <li><a href="{% url 'courses:instructor_dashboard' %}">Dashboard</a></li>
+                    <li><a href="{% url 'courses:manage_topics' course.slug %}">{{ course.title }}</a></li>
+                    <li>{{ topic.topic_title }}</li>
+                </ul>
+            </div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold mb-2">Manage Lessons</h1>
+                    <p class="text-base-content/70">{{ course.title }} - Topic {{ topic.topic_number }}: {{ topic.topic_title }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'courses:create_lesson' course.slug topic.topic_number %}" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Lesson
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lessons List -->
+        <div class="grid grid-cols-1 gap-4">
+            {% for lesson in lessons %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h2 class="card-title">
+                                <span class="badge badge-primary mr-2">Lesson {{ lesson.lesson_number }}</span>
+                                {{ lesson.lesson_title }}
+                            </h2>
+                            <div class="flex gap-2 mt-4">
+                                <span class="badge {% if lesson.status == 'published' %}badge-success{% else %}badge-warning{% endif %}">
+                                    {{ lesson.get_status_display }}
+                                </span>
+                                {% if lesson.is_preview %}
+                                    <span class="badge badge-info">Preview</span>
+                                {% endif %}
+                                {% if lesson.video_url %}
+                                    <span class="badge badge-ghost">Has Video</span>
+                                {% endif %}
+                                {% if lesson.attachments.exists %}
+                                    <span class="badge badge-ghost">{{ lesson.attachments.count }} attachment{{ lesson.attachments.count|pluralize }}</span>
+                                {% endif %}
+                                {% if lesson.duration_minutes %}
+                                    <span class="badge badge-ghost">{{ lesson.duration_minutes }} min</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <a href="{% url 'courses:manage_quiz' lesson.id %}"
+                               class="btn btn-sm btn-ghost">
+                                Quiz
+                            </a>
+                            <a href="{% url 'courses:edit_lesson' lesson.id %}"
+                               class="btn btn-sm btn-ghost">
+                                Edit
+                            </a>
+                            <a href="{% url 'courses:delete_lesson' lesson.id %}"
+                               class="btn btn-sm btn-error btn-ghost">
+                                Delete
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body text-center py-12">
+                    <h3 class="text-xl font-semibold mb-2">No lessons yet</h3>
+                    <p class="text-base-content/70 mb-4">Add lessons to this topic</p>
+                    <a href="{% url 'courses:create_lesson' course.slug topic.topic_number %}" class="btn btn-primary">Add First Lesson</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

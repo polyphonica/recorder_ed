@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Browse Courses{% endblock %}
+
+{% block content %}
+<div class="section-courses">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2">Available Courses</h1>
+            <p class="text-base-content/70">Explore our collection of music education courses</p>
+        </div>
+
+        <!-- Filters (Placeholder for Phase 3) -->
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body">
+                <div class="flex flex-wrap gap-4 items-center">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Grade Level</span>
+                        </label>
+                        <select class="select select-bordered">
+                            <option selected>All Grades</option>
+                            <option>Grade 1</option>
+                            <option>Grade 2</option>
+                            <option>Grade 3</option>
+                            <option>Grade 4</option>
+                            <option>Grade 5</option>
+                            <option>Grade 6</option>
+                            <option>Grade 7</option>
+                            <option>Grade 8</option>
+                        </select>
+                    </div>
+                    <div class="form-control flex-1">
+                        <label class="label">
+                            <span class="label-text">Search</span>
+                        </label>
+                        <input type="text" placeholder="Search courses..." class="input input-bordered w-full">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Grid -->
+        {% if courses %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for course in courses %}
+                <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                    {% if course.image %}
+                    <figure class="h-48 overflow-hidden">
+                        <img src="{{ course.image.url }}" alt="{{ course.title }}" class="w-full h-full object-cover">
+                    </figure>
+                    {% else %}
+                    <figure class="h-48 bg-base-200 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                    </figure>
+                    {% endif %}
+
+                    <div class="card-body">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="badge badge-primary">{{ course.get_grade_display }}</span>
+                            {% if course.is_featured %}
+                            <span class="badge badge-accent">Featured</span>
+                            {% endif %}
+                        </div>
+
+                        <h2 class="card-title">{{ course.title }}</h2>
+
+                        <div class="text-sm text-base-content/70 mb-4">
+                            By {{ course.instructor.get_full_name|default:course.instructor.username }}
+                        </div>
+
+                        <div class="prose prose-sm max-w-none line-clamp-3 mb-4">
+                            {{ course.description|striptags|truncatewords:20 }}
+                        </div>
+
+                        <div class="flex items-center gap-4 text-sm text-base-content/70 mb-4">
+                            <div class="flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                <span>{{ course.total_lessons }} lessons</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                <span>{{ course.total_enrollments }} students</span>
+                            </div>
+                        </div>
+
+                        <div class="card-actions justify-between items-center">
+                            <div class="text-2xl font-bold">${{ course.cost }}</div>
+                            <a href="{% url 'courses:detail' course.slug %}" class="btn btn-primary">View Course</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <div class="flex justify-center mt-8">
+                <div class="btn-group">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1" class="btn btn-sm">«</a>
+                        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm">‹</a>
+                    {% endif %}
+
+                    <button class="btn btn-sm btn-active">Page {{ page_obj.number }}</button>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm">›</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}" class="btn btn-sm">»</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+        {% else %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body text-center py-12">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    <h3 class="text-xl font-semibold mb-2">No courses available yet</h3>
+                    <p class="text-base-content/70">Check back soon for new courses!</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

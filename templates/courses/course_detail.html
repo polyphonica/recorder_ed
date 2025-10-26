@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ course.title }} - Courses{% endblock %}
+
+{% block content %}
+<div class="section-courses min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'domain_selector' %}">Home</a></li>
+            <li><a href="{% url 'courses:list' %}">Courses</a></li>
+            <li>{{ course.title }}</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Course Header -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <!-- Main Content -->
+            <div class="lg:col-span-2">
+                <!-- Featured Image or Video -->
+                {% if course.preview_video_url %}
+                    <div class="aspect-video mb-6">
+                        <iframe src="{{ course.preview_video_url }}"
+                                class="w-full h-full rounded-lg"
+                                allowfullscreen></iframe>
+                    </div>
+                {% elif course.image %}
+                    <figure class="mb-6">
+                        <img src="{{ course.image.url }}"
+                             alt="{{ course.title }}"
+                             class="w-full h-64 lg:h-80 object-cover rounded-lg" />
+                    </figure>
+                {% endif %}
+
+                <!-- Course Info Badges -->
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <div class="badge badge-primary">{{ course.get_grade_display }}</div>
+                    {% if course.is_featured %}
+                        <div class="badge badge-secondary">Featured</div>
+                    {% endif %}
+                    <div class="badge badge-ghost">
+                        <i class="fas fa-book-open mr-1"></i>{{ total_lessons }} lesson{{ total_lessons|pluralize }}
+                    </div>
+                    {% if total_duration %}
+                        <div class="badge badge-ghost">
+                            <i class="fas fa-clock mr-1"></i>{{ total_duration }} min
+                        </div>
+                    {% endif %}
+                </div>
+
+                <h1 class="text-4xl font-bold mb-4">{{ course.title }}</h1>
+
+                <!-- Instructor Info -->
+                <div class="flex items-center gap-3 mb-6 p-4 bg-base-200 rounded-lg">
+                    <div class="avatar placeholder">
+                        <div class="bg-primary text-primary-content rounded-full w-12">
+                            <span class="text-lg font-semibold">
+                                {% if course.instructor.first_name %}
+                                    {{ course.instructor.first_name|first|upper }}
+                                {% else %}
+                                    {{ course.instructor.username|first|upper }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-lg">
+                            {{ course.instructor.get_full_name|default:course.instructor.username }}
+                        </div>
+                        <div class="text-sm text-base-content/70">
+                            Course Instructor
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Course Description -->
+                <div class="prose prose-lg max-w-none mb-8 ck-content">
+                    {{ course.description|safe }}
+                </div>
+
+                <!-- Course Curriculum -->
+                <div class="card bg-base-200 mb-6">
+                    <div class="card-body">
+                        <h3 class="card-title text-2xl mb-4">
+                            <i class="fas fa-list-ul text-primary mr-2"></i>
+                            Course Curriculum
+                        </h3>
+
+                        {% if topics %}
+                            <div class="space-y-4">
+                                {% for topic in topics %}
+                                <div class="collapse collapse-arrow bg-base-100">
+                                    <input type="checkbox" {% if forloop.first %}checked{% endif %} />
+                                    <div class="collapse-title text-lg font-medium">
+                                        <div class="flex items-center justify-between">
+                                            <span>
+                                                <i class="fas fa-folder text-primary mr-2"></i>
+                                                Topic {{ topic.topic_number }}: {{ topic.topic_title }}
+                                            </span>
+                                            <span class="badge badge-ghost badge-sm">
+                                                {{ topic.lessons.count }} lesson{{ topic.lessons.count|pluralize }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="collapse-content">
+                                        {% if topic.description %}
+                                            <p class="text-sm text-base-content/70 mb-3">{{ topic.description }}</p>
+                                        {% endif %}
+                                        <ul class="menu menu-compact">
+                                            {% for lesson in topic.lessons.all %}
+                                                {% if lesson.status == 'published' or is_owner %}
+                                                <li>
+                                                    <div class="flex items-center justify-between">
+                                                        <span class="flex items-center gap-2">
+                                                            <i class="fas fa-play-circle text-sm"></i>
+                                                            {{ lesson.lesson_number }}. {{ lesson.lesson_title }}
+                                                            {% if lesson.is_preview %}
+                                                                <span class="badge badge-accent badge-xs">Preview</span>
+                                                            {% endif %}
+                                                            {% if lesson.status == 'draft' %}
+                                                                <span class="badge badge-warning badge-xs">Draft</span>
+                                                            {% endif %}
+                                                        </span>
+                                                        {% if lesson.duration_minutes %}
+                                                            <span class="text-xs text-base-content/50">{{ lesson.duration_minutes }} min</span>
+                                                        {% endif %}
+                                                    </div>
+                                                </li>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-base-content/70">Curriculum coming soon...</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="lg:col-span-1">
+                <div class="card bg-base-100 shadow-xl sticky top-4">
+                    <div class="card-body">
+                        <!-- Price -->
+                        <div class="text-center mb-4">
+                            <div class="text-4xl font-bold text-primary mb-2">
+                                ${{ course.cost }}
+                            </div>
+                            <div class="text-sm text-base-content/70">one-time payment</div>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <!-- Enrollment Status / Actions -->
+                        {% if is_enrolled %}
+                            <div class="alert alert-success mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                <span>You're enrolled!</span>
+                            </div>
+                            <a href="{% url 'courses:student_dashboard' %}" class="btn btn-primary btn-block mb-2">
+                                <i class="fas fa-play mr-2"></i>Go to My Courses
+                            </a>
+                            {% if enrollment %}
+                                <div class="text-center text-sm text-base-content/70">
+                                    {{ enrollment.progress_percentage }}% Complete
+                                </div>
+                            {% endif %}
+                        {% elif is_owner %}
+                            <div class="alert alert-info mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span>You own this course</span>
+                            </div>
+                            <a href="{% url 'courses:edit' course.slug %}" class="btn btn-outline btn-block mb-2">
+                                <i class="fas fa-edit mr-2"></i>Edit Course
+                            </a>
+                            <a href="{% url 'courses:manage_topics' course.slug %}" class="btn btn-outline btn-block">
+                                <i class="fas fa-list mr-2"></i>Manage Content
+                            </a>
+                        {% else %}
+                            {% if user.is_authenticated %}
+                                <form method="post" action="{% url 'courses:enroll' course.slug %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary btn-block mb-2">
+                                        <i class="fas fa-check-circle mr-2"></i>Enroll Now (FREE)
+                                    </button>
+                                </form>
+                                <div class="text-center text-xs text-base-content/70">
+                                    Note: Payment integration coming soon
+                                </div>
+                            {% else %}
+                                <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary btn-block mb-2">
+                                    <i class="fas fa-sign-in-alt mr-2"></i>Login to Enroll
+                                </a>
+                            {% endif %}
+                        {% endif %}
+
+                        <div class="divider"></div>
+
+                        <!-- Course Includes -->
+                        <h4 class="font-semibold mb-3">This course includes:</h4>
+                        <ul class="space-y-2 text-sm">
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check text-success mt-1"></i>
+                                <span>{{ total_lessons }} on-demand lessons</span>
+                            </li>
+                            {% if total_duration %}
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check text-success mt-1"></i>
+                                <span>{{ total_duration }} minutes of video content</span>
+                            </li>
+                            {% endif %}
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check text-success mt-1"></i>
+                                <span>Lifetime access</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check text-success mt-1"></i>
+                                <span>Certificate of completion</span>
+                            </li>
+                            {% if course.has_quiz %}
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check text-success mt-1"></i>
+                                <span>Quizzes and assessments</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CKEditor Custom Styles for description -->
+<link rel="stylesheet" type="text/css" href="{% static 'css/ckeditor_custom.css' %}">
+{% endblock %}

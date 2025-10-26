@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ask Teacher - {{ lesson.lesson_title }}{% endblock %}
+
+{% block content %}
+<div class="section-courses">
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <div class="breadcrumbs text-sm mb-4">
+            <ul>
+                <li><a href="{% url 'courses:student_dashboard' %}">My Courses</a></li>
+                <li><a href="{% url 'courses:detail' course.slug %}">{{ course.title }}</a></li>
+                <li><a href="{% url 'courses:view_lesson' lesson.id %}">{{ lesson.lesson_title }}</a></li>
+                <li>Ask Teacher</li>
+            </ul>
+        </div>
+
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-envelope mr-2"></i>Ask Your Teacher
+                </h2>
+
+                <div class="alert alert-info mb-6">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Your message will be sent to <strong>{{ course.instructor.get_full_name|default:course.instructor.username }}</strong></span>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <!-- Auto-populated Subject -->
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text font-semibold">About:</span>
+                        </label>
+                        <div class="bg-base-200 p-3 rounded-lg text-sm">
+                            <strong>{{ course.title }}</strong> > Topic {{ topic.topic_number }}: {{ topic.topic_title }} > Lesson {{ lesson.lesson_number }}: {{ lesson.lesson_title }}
+                        </div>
+                    </div>
+
+                    <!-- Category -->
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ form.category.label }}</span>
+                        </label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.category.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Message Body -->
+                    <div class="form-control mb-6">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ form.body.label }}</span>
+                        </label>
+                        {{ form.body }}
+                        {% if form.body.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.body.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex gap-4 justify-end">
+                        <a href="{% url 'courses:view_lesson' lesson.id %}" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane mr-2"></i>Send Message
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -10,8 +10,14 @@ from .models import UserProfile
 class SignUpView(CreateView):
     form_class = CustomUserCreationForm
     template_name = 'registration/signup.html'
-    success_url = reverse_lazy('accounts:profile_setup')
-    
+
+    def get_success_url(self):
+        # Store the 'next' parameter in session for use after profile setup
+        next_url = self.request.GET.get('next') or self.request.POST.get('next')
+        if next_url:
+            self.request.session['signup_next'] = next_url
+        return reverse_lazy('accounts:profile_setup')
+
     def form_valid(self, form):
         response = super().form_valid(form)
         # Log the user in after successful registration with explicit backend
@@ -23,25 +29,32 @@ class SignUpView(CreateView):
 def profile_setup_view(request):
     """Initial profile setup after registration"""
     profile = request.user.profile
-    
+
     if request.method == 'POST':
         form = UserProfileForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
             profile = form.save(commit=False)
             profile.profile_completed = True
             profile.save()
-            
+
             # Also update the User model with first_name and last_name
             user = request.user
             user.first_name = profile.first_name
             user.last_name = profile.last_name
             user.save()
-            
+
             messages.success(request, 'Profile completed successfully!')
+
+            # Check for stored 'next' URL from signup
+            next_url = request.session.pop('signup_next', None)
+            if next_url:
+                return redirect(next_url)
+
+            # Default fallback
             return redirect('workshops:student_dashboard')
     else:
         form = UserProfileForm(instance=profile)
-    
+
     return render(request, 'accounts/profile_setup.html', {
         'form': form,
         'is_setup': True

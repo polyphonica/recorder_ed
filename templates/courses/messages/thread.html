@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ message.subject }}{% endblock %}
+
+{% block content %}
+<div class="section-courses">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <div class="breadcrumbs text-sm mb-4">
+            <ul>
+                <li><a href="{% url 'courses:messages_inbox' %}">Messages</a></li>
+                <li>Conversation</li>
+            </ul>
+        </div>
+
+        <!-- Message Subject Header -->
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body">
+                <h1 class="text-2xl font-bold mb-2">{{ message.subject }}</h1>
+                <div class="flex flex-wrap gap-4 text-sm text-base-content/70">
+                    <div><i class="fas fa-book mr-1"></i>{{ message.course.title }}</div>
+                    {% if message.lesson %}
+                        <div><i class="fas fa-bookmark mr-1"></i>Lesson {{ message.lesson.lesson_number }}: {{ message.lesson.lesson_title }}</div>
+                    {% endif %}
+                    <div><span class="badge badge-sm badge-ghost">{{ message.get_category_display }}</span></div>
+                </div>
+
+                {% if message.lesson %}
+                    <div class="mt-4">
+                        <a href="{% url 'courses:view_lesson' message.lesson.id %}" class="btn btn-outline btn-sm">
+                            <i class="fas fa-eye mr-2"></i>View Lesson
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Original Message -->
+        <div class="card bg-base-100 shadow-xl mb-4">
+            <div class="card-body">
+                <div class="flex items-start gap-4 mb-4">
+                    <div class="avatar placeholder">
+                        <div class="bg-primary text-primary-content rounded-full w-12">
+                            <span>{{ message.sender.first_name|first|default:message.sender.username|first }}{{ message.sender.last_name|first|default:"" }}</span>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold">{{ message.sender.get_full_name|default:message.sender.username }}</div>
+                        <div class="text-sm text-base-content/70">{{ message.sent_at|naturaltime }}</div>
+                    </div>
+                </div>
+                <div class="prose max-w-none">
+                    {{ message.body|linebreaks }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Replies -->
+        {% for reply in replies %}
+        <div class="card bg-base-100 shadow-xl mb-4 {% if reply.sender == user %}ml-8{% else %}mr-8{% endif %}">
+            <div class="card-body">
+                <div class="flex items-start gap-4 mb-4">
+                    <div class="avatar placeholder">
+                        <div class="{% if reply.sender == message.course.instructor %}bg-secondary text-secondary-content{% else %}bg-neutral text-neutral-content{% endif %} rounded-full w-12">
+                            <span>{{ reply.sender.first_name|first|default:reply.sender.username|first }}{{ reply.sender.last_name|first|default:"" }}</span>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold">
+                            {{ reply.sender.get_full_name|default:reply.sender.username }}
+                            {% if reply.sender == message.course.instructor %}
+                                <span class="badge badge-secondary badge-sm ml-2">Instructor</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-base-content/70">{{ reply.sent_at|naturaltime }}</div>
+                    </div>
+                </div>
+                <div class="prose max-w-none">
+                    {{ reply.body|linebreaks }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Reply Form -->
+        {% if can_reply %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h3 class="card-title mb-4">Reply</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="form-control mb-4">
+                        {{ reply_form.body }}
+                        {% if reply_form.body.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ reply_form.body.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+                    <div class="flex gap-4 justify-end">
+                        <a href="{% url 'courses:messages_inbox' %}" class="btn btn-ghost">Back to Inbox</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-reply mr-2"></i>Send Reply
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

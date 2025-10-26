@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'apps.payments',
     'apps.private_teaching',
     'apps.expenses',
+    'apps.courses',
     'lessons',
 ]
 
@@ -79,6 +80,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'apps.private_teaching.context_processors.cart_context',
+                'apps.courses.context_processors.unread_messages',
             ],
         },
     },

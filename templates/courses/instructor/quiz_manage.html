@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manage Quiz - {{ lesson.lesson_title }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/ckeditor_custom.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="section-courses">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Breadcrumb -->
+        <div class="text-sm breadcrumbs mb-6">
+            <ul>
+                <li><a href="{% url 'courses:instructor_dashboard' %}">Dashboard</a></li>
+                <li><a href="{% url 'courses:manage_topics' course.slug %}">{{ course.title }}</a></li>
+                <li><a href="{% url 'courses:manage_lessons' course.slug topic.topic_number %}">{{ topic.topic_title }}</a></li>
+                <li>Quiz: {{ lesson.lesson_title }}</li>
+            </ul>
+        </div>
+
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold mb-2">Manage Quiz</h1>
+                    <p class="text-base-content/70">{{ lesson.lesson_title }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'courses:create_question' quiz.id %}" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Question
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Settings -->
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Quiz Settings</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Quiz Title</span>
+                        </label>
+                        <input type="text" value="{{ quiz.title }}" class="input input-bordered" id="quizTitle">
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Pass Percentage</span>
+                        </label>
+                        <input type="number" value="{{ quiz.pass_percentage }}" min="0" max="100" class="input input-bordered" id="quizPassPercentage">
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Status</span>
+                        </label>
+                        <select class="select select-bordered" id="quizStatus">
+                            <option value="draft" {% if quiz.status == 'draft' %}selected{% endif %}>Draft</option>
+                            <option value="published" {% if quiz.status == 'published' %}selected{% endif %}>Published</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-4">
+                    <button id="saveQuizSettings" class="btn btn-primary">Save Settings</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Questions List -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Questions ({{ questions.count }})</h2>
+
+                {% if questions %}
+                    <div class="space-y-4" id="questionsList">
+                        {% for question in questions %}
+                        <div class="card bg-base-200" data-question-id="{{ question.id }}">
+                            <div class="card-body">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <span class="badge badge-neutral">Q{{ question.order }}</span>
+                                            <span class="badge badge-outline">{{ question.points }} pts</span>
+                                        </div>
+                                        <div class="prose max-w-none ck-content mb-4">
+                                            {{ question.text|safe }}
+                                        </div>
+
+                                        <!-- Answers -->
+                                        <div class="space-y-2">
+                                            {% for answer in question.answers.all %}
+                                            <div class="flex items-center gap-2 p-2 rounded {% if answer.is_correct %}bg-success/10{% endif %}">
+                                                {% if answer.is_correct %}
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                {% else %}
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                {% endif %}
+                                                <span>{{ answer.text }}</span>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <!-- Actions -->
+                                    <div class="dropdown dropdown-end">
+                                        <label tabindex="0" class="btn btn-ghost btn-sm">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                            </svg>
+                                        </label>
+                                        <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+                                            <li><a href="{% url 'courses:update_question' question.id %}">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                                Edit
+                                            </a></li>
+                                            <li><a href="{% url 'courses:delete_question' question.id %}" class="text-error">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                Delete
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 class="text-xl font-semibold mb-2">No questions yet</h3>
+                        <p class="text-base-content/70 mb-4">Add your first quiz question to get started</p>
+                        <a href="{% url 'courses:create_question' quiz.id %}" class="btn btn-primary">Add Question</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="mt-6 flex justify-between">
+            <a href="{% url 'courses:manage_lessons' course.slug topic.topic_number %}" class="btn btn-ghost">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Lessons
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Save quiz settings
+    const saveSettingsBtn = document.getElementById('saveQuizSettings');
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', function() {
+            const quizId = '{{ quiz.id }}';
+            const title = document.getElementById('quizTitle').value;
+            const passPercentage = document.getElementById('quizPassPercentage').value;
+            const status = document.getElementById('quizStatus').value;
+
+            // Disable button and show loading
+            saveSettingsBtn.disabled = true;
+            const originalText = saveSettingsBtn.innerHTML;
+            saveSettingsBtn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Saving...';
+
+            // Submit via AJAX
+            fetch(`/courses/instructor/quiz/${quizId}/update/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: title,
+                    pass_percentage: passPercentage,
+                    status: status
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    saveSettingsBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Saved!';
+
+                    // Reset button after 2 seconds
+                    setTimeout(() => {
+                        saveSettingsBtn.innerHTML = originalText;
+                        saveSettingsBtn.disabled = false;
+                    }, 2000);
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                    saveSettingsBtn.innerHTML = originalText;
+                    saveSettingsBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while saving quiz settings.');
+                saveSettingsBtn.innerHTML = originalText;
+                saveSettingsBtn.disabled = false;
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

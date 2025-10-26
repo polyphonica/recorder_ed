@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ course.title }} - Student Analytics{% endblock %}
+
+{% block content %}
+<div class="section-courses">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="breadcrumbs text-sm mb-4">
+                <ul>
+                    <li><a href="{% url 'courses:instructor_dashboard' %}">Dashboard</a></li>
+                    <li><a href="{% url 'courses:analytics' %}">Analytics</a></li>
+                    <li>{{ course.title }}</li>
+                </ul>
+            </div>
+
+            <h1 class="text-3xl font-bold mb-2">{{ course.title }}</h1>
+            <p class="text-lg text-base-content/70">Student Progress & Performance</p>
+        </div>
+
+        <!-- Course Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="stat bg-base-100 shadow rounded-lg">
+                <div class="stat-figure text-primary">
+                    <i class="fas fa-users text-2xl"></i>
+                </div>
+                <div class="stat-title">Total Students</div>
+                <div class="stat-value text-primary">{{ students_data|length }}</div>
+            </div>
+
+            <div class="stat bg-base-100 shadow rounded-lg">
+                <div class="stat-figure text-secondary">
+                    <i class="fas fa-book text-2xl"></i>
+                </div>
+                <div class="stat-title">Total Lessons</div>
+                <div class="stat-value text-secondary">{{ total_lessons }}</div>
+            </div>
+
+            <div class="stat bg-base-100 shadow rounded-lg">
+                <div class="stat-figure text-accent">
+                    <i class="fas fa-clipboard-question text-2xl"></i>
+                </div>
+                <div class="stat-title">Total Quizzes</div>
+                <div class="stat-value text-accent">{{ total_quizzes }}</div>
+            </div>
+
+            <div class="stat bg-base-100 shadow rounded-lg">
+                <div class="stat-figure text-success">
+                    <i class="fas fa-check-circle text-2xl"></i>
+                </div>
+                <div class="stat-title">Completed</div>
+                <div class="stat-value text-success">
+                    {{ students_data|length|add:0 }}
+                    {% comment %}This will be calculated from students who completed{% endcomment %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Students Table -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-users mr-2"></i>Enrolled Students
+                </h2>
+
+                {% if students_data %}
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th class="text-center">Progress</th>
+                                    <th class="text-center">Lessons</th>
+                                    <th class="text-center">Quizzes Passed</th>
+                                    <th class="text-center">Avg Quiz Score</th>
+                                    <th class="text-center">Enrolled</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for data in students_data %}
+                                <tr>
+                                    <td>
+                                        <div class="flex items-center gap-3">
+                                            <div class="avatar placeholder">
+                                                <div class="bg-neutral text-neutral-content rounded-full w-12">
+                                                    <span class="text-xl">
+                                                        {{ data.student.first_name|first|default:data.student.username|first }}{{ data.student.last_name|first|default:"" }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold">
+                                                    {{ data.student.get_full_name|default:data.student.username }}
+                                                </div>
+                                                <div class="text-sm opacity-50">{{ data.student.email }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="flex flex-col items-center">
+                                            <div class="radial-progress text-primary"
+                                                 style="--value:{{ data.progress_percentage }}; --size:3.5rem; --thickness: 4px"
+                                                 role="progressbar">
+                                                <span class="text-sm font-bold">{{ data.progress_percentage }}%</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-lg badge-ghost">
+                                            {{ data.lessons_completed }}/{{ data.total_lessons }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-lg {% if data.quizzes_passed == data.total_quizzes and data.total_quizzes > 0 %}badge-success{% else %}badge-ghost{% endif %}">
+                                            {{ data.quizzes_passed }}/{{ data.total_quizzes }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-lg {% if data.avg_quiz_score >= 70 %}badge-success{% elif data.avg_quiz_score >= 50 %}badge-warning{% else %}badge-error{% endif %}">
+                                            {{ data.avg_quiz_score }}%
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="text-sm">{{ data.enrolled_at|date:"M d, Y" }}</div>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if data.completed_at %}
+                                            <div class="badge badge-success">
+                                                <i class="fas fa-check-circle mr-1"></i>Completed
+                                            </div>
+                                            <div class="text-xs text-base-content/70 mt-1">
+                                                {{ data.completed_at|date:"M d, Y" }}
+                                            </div>
+                                        {% else %}
+                                            <div class="badge badge-warning">
+                                                <i class="fas fa-clock mr-1"></i>In Progress
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'courses:student_progress' course.slug data.student.id %}"
+                                           class="btn btn-primary btn-sm">
+                                            <i class="fas fa-chart-line mr-2"></i>View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <div class="text-base-content/30 text-6xl mb-4">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">No Students Enrolled</h3>
+                        <p class="text-base-content/70">Students who enroll in this course will appear here.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

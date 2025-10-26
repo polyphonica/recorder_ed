@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manage Topics - {{ course.title }} - Courses{% endblock %}
+
+{% block content %}
+<div class="section-courses">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="breadcrumbs text-sm mb-4">
+                <ul>
+                    <li><a href="{% url 'courses:instructor_dashboard' %}">Dashboard</a></li>
+                    <li>{{ course.title }}</li>
+                    <li>Topics</li>
+                </ul>
+            </div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold mb-2">Manage Topics</h1>
+                    <p class="text-base-content/70">{{ course.title }} - Organize your course into topics</p>
+                </div>
+                <div>
+                    <button onclick="addTopicModal.showModal()" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Topic
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Topics List -->
+        <div class="grid grid-cols-1 gap-4" id="topics-list">
+            {% for topic in topics %}
+            <div class="card bg-base-100 shadow-xl" data-topic-id="{{ topic.id }}">
+                <div class="card-body">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h2 class="card-title">
+                                <span class="badge badge-primary mr-2">Topic {{ topic.topic_number }}</span>
+                                {{ topic.topic_title }}
+                            </h2>
+                            {% if topic.description %}
+                                <p class="text-base-content/70 mt-2">{{ topic.description }}</p>
+                            {% endif %}
+                            <div class="flex gap-2 mt-4">
+                                <span class="badge badge-ghost">
+                                    {{ topic.get_lessons_count }} lesson{{ topic.get_lessons_count|pluralize }}
+                                </span>
+                                <span class="badge badge-ghost">
+                                    {{ topic.get_published_lessons_count }} published
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <a href="{% url 'courses:manage_lessons' course.slug topic.topic_number %}"
+                               class="btn btn-sm btn-ghost">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                Manage Lessons
+                            </a>
+                            <button onclick="editTopic('{{ topic.id }}', '{{ topic.topic_title }}', '{{ topic.description }}')"
+                                    class="btn btn-sm btn-ghost">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+                            <button onclick="deleteTopic('{{ topic.id }}', '{{ topic.topic_title }}')"
+                                    class="btn btn-sm btn-error btn-ghost">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body text-center py-12">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <h3 class="text-xl font-semibold mb-2">No topics yet</h3>
+                    <p class="text-base-content/70 mb-4">Add topics to organize your course content</p>
+                    <button onclick="addTopicModal.showModal()" class="btn btn-primary">Add First Topic</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Topic Modal -->
+<dialog id="addTopicModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Add New Topic</h3>
+        <form id="addTopicForm" onsubmit="handleAddTopic(event)">
+            <div class="form-control w-full mb-4">
+                <label class="label">
+                    <span class="label-text">Topic Number</span>
+                </label>
+                <input type="number" name="topic_number" class="input input-bordered w-full" required min="1"
+                       value="{{ topics.count|add:1 }}">
+            </div>
+            <div class="form-control w-full mb-4">
+                <label class="label">
+                    <span class="label-text">Topic Title</span>
+                </label>
+                <input type="text" name="topic_title" class="input input-bordered w-full" required
+                       placeholder="e.g., The Beat and Meter">
+            </div>
+            <div class="form-control w-full mb-4">
+                <label class="label">
+                    <span class="label-text">Description (Optional)</span>
+                </label>
+                <textarea name="description" class="textarea textarea-bordered w-full" rows="3"
+                          placeholder="Brief description of this topic"></textarea>
+            </div>
+            <div class="modal-action">
+                <button type="button" onclick="addTopicModal.close()" class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Topic</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<!-- Edit Topic Modal -->
+<dialog id="editTopicModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Edit Topic</h3>
+        <form id="editTopicForm" onsubmit="handleEditTopic(event)">
+            <input type="hidden" name="topic_id" id="edit-topic-id">
+            <div class="form-control w-full mb-4">
+                <label class="label">
+                    <span class="label-text">Topic Title</span>
+                </label>
+                <input type="text" name="topic_title" id="edit-topic-title" class="input input-bordered w-full" required>
+            </div>
+            <div class="form-control w-full mb-4">
+                <label class="label">
+                    <span class="label-text">Description (Optional)</span>
+                </label>
+                <textarea name="description" id="edit-topic-description" class="textarea textarea-bordered w-full" rows="3"></textarea>
+            </div>
+            <div class="modal-action">
+                <button type="button" onclick="editTopicModal.close()" class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Topic</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<script>
+// CSRF Token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+
+// Add Topic
+function handleAddTopic(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+
+    fetch("{% url 'courses:create_topic' course.slug %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    });
+}
+
+// Edit Topic
+function editTopic(topicId, title, description) {
+    document.getElementById('edit-topic-id').value = topicId;
+    document.getElementById('edit-topic-title').value = title;
+    document.getElementById('edit-topic-description').value = description;
+    editTopicModal.showModal();
+}
+
+function handleEditTopic(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const topicId = formData.get('topic_id');
+
+    fetch(`/courses/instructor/topics/${topicId}/update/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    });
+}
+
+// Delete Topic
+function deleteTopic(topicId, title) {
+    if (!confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
+        return;
+    }
+
+    fetch(`/courses/instructor/topics/${topicId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Messages{% endblock %}
+
+{% block content %}
+<div class="section-courses">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold mb-2">Messages</h1>
+            <p class="text-lg text-base-content/70">Course-related conversations</p>
+        </div>
+
+        <!-- Tabs -->
+        <div role="tablist" class="tabs tabs-boxed mb-6">
+            <a role="tab" class="tab tab-active" onclick="showTab('received')">
+                Received {% if unread_count > 0 %}<span class="badge badge-primary badge-sm ml-2">{{ unread_count }}</span>{% endif %}
+            </a>
+            <a role="tab" class="tab" onclick="showTab('sent')">Sent</a>
+        </div>
+
+        <!-- Received Messages Tab -->
+        <div id="receivedTab" class="tab-content">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-inbox mr-2"></i>Received Messages
+                    </h2>
+
+                    {% if received_messages %}
+                        <div class="overflow-x-auto">
+                            <table class="table table-zebra">
+                                <thead>
+                                    <tr>
+                                        <th>From</th>
+                                        <th>Subject</th>
+                                        <th>Category</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for msg in received_messages %}
+                                    <tr class="{% if not msg.is_read %}font-bold{% endif %}">
+                                        <td>
+                                            <div class="flex items-center gap-3">
+                                                <div class="avatar placeholder">
+                                                    <div class="bg-neutral text-neutral-content rounded-full w-10">
+                                                        <span class="text-sm">
+                                                            {{ msg.sender.first_name|first|default:msg.sender.username|first }}{{ msg.sender.last_name|first|default:"" }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div>{{ msg.sender.get_full_name|default:msg.sender.username }}</div>
+                                                    <div class="text-xs text-base-content/70">{{ msg.sender.email }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="max-w-md">
+                                                <div class="truncate">{{ msg.subject }}</div>
+                                                {% if msg.lesson %}
+                                                    <div class="text-xs text-base-content/70">
+                                                        Lesson {{ msg.lesson.lesson_number }}: {{ msg.lesson.lesson_title }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-sm badge-ghost">
+                                                {{ msg.get_category_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="text-sm">{{ msg.sent_at|date:"M d, Y" }}</div>
+                                            <div class="text-xs text-base-content/70">{{ msg.sent_at|time:"g:i A" }}</div>
+                                        </td>
+                                        <td>
+                                            {% if msg.is_read %}
+                                                <div class="badge badge-ghost badge-sm">Read</div>
+                                            {% else %}
+                                                <div class="badge badge-primary badge-sm">New</div>
+                                            {% endif %}
+                                            {% if msg.replies.count > 0 %}
+                                                <div class="text-xs text-base-content/70 mt-1">
+                                                    {{ msg.replies.count }} repl{{ msg.replies.count|pluralize:"y,ies" }}
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'courses:message_thread' msg.id %}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-eye mr-1"></i>View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-12">
+                            <div class="text-base-content/30 text-6xl mb-4">
+                                <i class="fas fa-inbox"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold mb-2">No Messages Yet</h3>
+                            <p class="text-base-content/70">You haven't received any messages.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sent Messages Tab -->
+        <div id="sentTab" class="tab-content hidden">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-paper-plane mr-2"></i>Sent Messages
+                    </h2>
+
+                    {% if sent_messages %}
+                        <div class="overflow-x-auto">
+                            <table class="table table-zebra">
+                                <thead>
+                                    <tr>
+                                        <th>To</th>
+                                        <th>Subject</th>
+                                        <th>Category</th>
+                                        <th>Date</th>
+                                        <th>Replies</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for msg in sent_messages %}
+                                    <tr>
+                                        <td>
+                                            <div>{{ msg.recipient.get_full_name|default:msg.recipient.username }}</div>
+                                            <div class="text-xs text-base-content/70">{{ msg.recipient.email }}</div>
+                                        </td>
+                                        <td>
+                                            <div class="max-w-md">
+                                                <div class="truncate">{{ msg.subject }}</div>
+                                                {% if msg.lesson %}
+                                                    <div class="text-xs text-base-content/70">
+                                                        Lesson {{ msg.lesson.lesson_number }}: {{ msg.lesson.lesson_title }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-sm badge-ghost">
+                                                {{ msg.get_category_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="text-sm">{{ msg.sent_at|date:"M d, Y" }}</div>
+                                            <div class="text-xs text-base-content/70">{{ msg.sent_at|time:"g:i A" }}</div>
+                                        </td>
+                                        <td>
+                                            {% if msg.replies.count > 0 %}
+                                                <div class="badge badge-success badge-sm">
+                                                    {{ msg.replies.count }} repl{{ msg.replies.count|pluralize:"y,ies" }}
+                                                </div>
+                                            {% else %}
+                                                <span class="text-base-content/70 text-sm">No replies</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'courses:message_thread' msg.id %}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-eye mr-1"></i>View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-12">
+                            <div class="text-base-content/30 text-6xl mb-4">
+                                <i class="fas fa-paper-plane"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold mb-2">No Sent Messages</h3>
+                            <p class="text-base-content/70">You haven't sent any messages yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTab(tab) {
+    const receivedTab = document.getElementById('receivedTab');
+    const sentTab = document.getElementById('sentTab');
+    const tabs = document.querySelectorAll('.tab');
+
+    if (tab === 'received') {
+        receivedTab.classList.remove('hidden');
+        sentTab.classList.add('hidden');
+        tabs[0].classList.add('tab-active');
+        tabs[1].classList.remove('tab-active');
+    } else {
+        receivedTab.classList.add('hidden');
+        sentTab.classList.remove('hidden');
+        tabs[0].classList.remove('tab-active');
+        tabs[1].classList.add('tab-active');
+    }
+}
+</script>
+{% endblock %}

@@ -32,6 +32,7 @@ urlpatterns = [
     path('private-teaching/', include('apps.private_teaching.urls')),
     path('lessons/', include('lessons.urls')),
     path('expenses/', include('apps.expenses.urls')),
+    path('courses/', include('apps.courses.urls')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     path('', DomainSelectorView.as_view(), name='domain_selector'),  # Landing page at root
 ]

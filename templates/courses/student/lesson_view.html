@@ -1,0 +1,416 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ lesson.lesson_title }} - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="section-courses min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'domain_selector' %}">Home</a></li>
+            <li><a href="{% url 'courses:student_dashboard' %}">My Courses</a></li>
+            <li><a href="{% url 'courses:detail' course.slug %}">{{ course.title }}</a></li>
+            <li>{{ lesson.lesson_title }}</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Mobile Navigation Toggle (at top for easy access) -->
+        <div class="mobile-nav-toggle mb-4">
+            <style>
+                @media (min-width: 1024px) {
+                    .mobile-nav-toggle {
+                        display: none !important;
+                    }
+                }
+            </style>
+            <button onclick="toggleMobileNav()" class="btn btn-sm btn-outline">
+                <i class="fas fa-bars mr-2"></i>Course Menu
+            </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+        <style>
+            @media (min-width: 1024px) {
+                .lesson-grid {
+                    grid-template-columns: 3fr 1fr !important;
+                }
+            }
+        </style>
+        <div class="lesson-grid" style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+            <!-- Main Content -->
+            <div id="lessonContent">
+                <!-- Fullscreen Toggle Button -->
+                <div class="flex justify-between items-center mb-2">
+                    {% if not is_owner %}
+                    <a href="{% url 'courses:message_compose' lesson.id %}" class="btn btn-sm btn-outline btn-secondary">
+                        <i class="fas fa-question-circle mr-2"></i>Ask Teacher
+                    </a>
+                    {% else %}
+                    <div></div>
+                    {% endif %}
+                    <button onclick="toggleFullscreen()" id="fullscreenBtn" class="btn btn-sm btn-ghost" title="Toggle fullscreen">
+                        <i class="fas fa-expand" id="fullscreenIcon"></i>
+                    </button>
+                </div>
+
+                <!-- Lesson Header -->
+                <div class="mb-6">
+                    <div class="text-sm text-base-content/70 mb-2">
+                        Topic {{ topic.topic_number }}: {{ topic.topic_title }}
+                    </div>
+                    <h1 class="text-4xl font-bold mb-2">
+                        Lesson {{ lesson.lesson_number }}: {{ lesson.lesson_title }}
+                    </h1>
+                    {% if lesson.duration_minutes %}
+                        <div class="text-base-content/70">
+                            <i class="fas fa-clock mr-1"></i>{{ lesson.duration_minutes }} minutes
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Video Player -->
+                {% if lesson.video_url %}
+                <div class="aspect-video mb-6 bg-black rounded-lg overflow-hidden">
+                    <iframe src="{{ lesson.video_url }}"
+                            class="w-full h-full"
+                            allowfullscreen></iframe>
+                </div>
+                {% endif %}
+
+                <!-- Lesson Content -->
+                <div class="card bg-base-100 shadow-xl mb-6">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4">Lesson Content</h2>
+                        <div class="prose max-w-none ck-content">
+                            {{ lesson.content|safe }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lesson Quiz -->
+                {% if has_quiz %}
+                <div class="card bg-base-100 shadow-xl mb-6">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4">
+                            <i class="fas fa-clipboard-question mr-2 text-primary"></i>
+                            Quiz: {{ lesson.quiz.title }}
+                        </h2>
+
+                        {% if lesson.quiz.description %}
+                            <p class="text-base-content/70 mb-4">{{ lesson.quiz.description }}</p>
+                        {% endif %}
+
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="badge badge-outline">
+                                <i class="fas fa-list mr-1"></i>
+                                {{ lesson.quiz.questions.count }} question{{ lesson.quiz.questions.count|pluralize }}
+                            </div>
+                            <div class="badge badge-outline">
+                                <i class="fas fa-trophy mr-1"></i>
+                                Pass: {{ lesson.quiz.pass_percentage }}%
+                            </div>
+                        </div>
+
+                        {% if quiz_passed %}
+                            <div class="alert alert-success mb-4">
+                                <i class="fas fa-check-circle"></i>
+                                <div>
+                                    <div class="font-bold">Quiz Passed!</div>
+                                    <div class="text-sm">Best Score: {{ best_attempt.score }}%</div>
+                                </div>
+                            </div>
+                            <a href="{% url 'courses:take_quiz' lesson.id %}"
+                               class="btn btn-outline btn-sm">
+                                <i class="fas fa-redo mr-2"></i>Retake Quiz
+                            </a>
+                        {% else %}
+                            <div class="alert alert-info mb-4">
+                                <i class="fas fa-info-circle"></i>
+                                <span>You must pass this quiz to complete the lesson.</span>
+                            </div>
+                            <a href="{% url 'courses:take_quiz' lesson.id %}"
+                               class="btn btn-primary">
+                                <i class="fas fa-play-circle mr-2"></i>Take Quiz
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Lesson Attachments -->
+                {% if lesson.attachments.all %}
+                <div class="card bg-base-100 shadow-xl mb-6">
+                    <div class="card-body">
+                        <h2 class="card-title">
+                            <i class="fas fa-paperclip mr-2"></i>
+                            Attachments
+                        </h2>
+                        <div class="space-y-2">
+                            {% for attachment in lesson.attachments.all %}
+                            <a href="{{ attachment.file.url }}"
+                               target="_blank"
+                               class="flex items-center gap-3 p-3 bg-base-200 rounded-lg hover:bg-base-300 transition">
+                                <i class="fas fa-file text-2xl text-primary"></i>
+                                <div class="flex-1">
+                                    <div class="font-medium">{{ attachment.title }}</div>
+                                    {% if attachment.description %}
+                                        <div class="text-sm text-base-content/70">{{ attachment.description }}</div>
+                                    {% endif %}
+                                </div>
+                                <i class="fas fa-download"></i>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Navigation Buttons -->
+                <div class="flex justify-between items-center">
+                    {% if prev_lesson %}
+                        <a href="{% url 'courses:view_lesson' prev_lesson.id %}"
+                           class="btn btn-outline">
+                            <i class="fas fa-chevron-left mr-2"></i>Previous Lesson
+                        </a>
+                    {% else %}
+                        <div></div>
+                    {% endif %}
+
+                    {% if lesson_progress and lesson_progress.is_completed %}
+                        <div class="badge badge-success badge-lg">
+                            <i class="fas fa-check-circle mr-2"></i>Completed
+                        </div>
+                    {% elif has_quiz and not quiz_passed %}
+                        <button class="btn btn-disabled"
+                                title="Complete the quiz to mark this lesson as complete">
+                            <i class="fas fa-lock mr-2"></i>Complete Quiz First
+                        </button>
+                    {% elif lesson_progress %}
+                        <button onclick="markComplete()"
+                                class="btn btn-success"
+                                id="completeBtn">
+                            <i class="fas fa-check-circle mr-2"></i>Mark as Complete
+                        </button>
+                    {% endif %}
+
+                    {% if next_lesson %}
+                        <a href="{% url 'courses:view_lesson' next_lesson.id %}"
+                           class="btn btn-primary">
+                            Next Lesson<i class="fas fa-chevron-right ml-2"></i>
+                        </a>
+                    {% else %}
+                        <div></div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div>
+                <!-- Navigation Sidebar (sticky on desktop, toggleable on mobile) -->
+                <div id="courseNavSidebar" class="sidebar-nav sticky top-4 space-y-4">
+                    <style>
+                        @media (max-width: 1023px) {
+                            .sidebar-nav {
+                                display: none;
+                            }
+                        }
+                    </style>
+                    <!-- Course Navigation -->
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body p-4">
+                            <h3 class="font-bold text-sm text-base-content/70 uppercase mb-3">
+                                <i class="fas fa-book mr-2"></i>{{ course.title }}
+                            </h3>
+
+                            {% if topics_with_progress %}
+                                <div class="space-y-2" id="courseNavigation">
+                                    {% for topic_data in topics_with_progress %}
+                                    <div class="topic-section">
+                                        <!-- Topic Header -->
+                                        <button onclick="toggleTopic({{ topic_data.topic.id }})"
+                                                class="w-full flex items-center justify-between p-2 rounded hover:bg-base-200 transition-colors text-left {% if topic_data.is_current_topic %}bg-base-200{% endif %}">
+                                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                                <i class="fas fa-chevron-right topic-chevron transition-transform text-xs" id="chevron-{{ topic_data.topic.id }}"></i>
+                                                <span class="font-semibold text-sm truncate">
+                                                    {{ topic_data.topic.topic_number }}. {{ topic_data.topic.topic_title }}
+                                                </span>
+                                            </div>
+                                            <span class="badge badge-sm {% if topic_data.completed == topic_data.total %}badge-success{% else %}badge-ghost{% endif %}">
+                                                {{ topic_data.completed }}/{{ topic_data.total }}
+                                            </span>
+                                        </button>
+
+                                        <!-- Lessons List (collapsible) -->
+                                        <div id="topic-{{ topic_data.topic.id }}" class="{% if not topic_data.is_current_topic %}hidden{% endif %} ml-6 mt-1 space-y-1">
+                                            {% for lesson_data in topic_data.lessons %}
+                                            <a href="{% url 'courses:view_lesson' lesson_data.lesson.id %}"
+                                               class="flex items-center gap-2 p-2 rounded text-sm transition-colors
+                                                      {% if lesson_data.is_current %}bg-primary text-primary-content font-semibold
+                                                      {% elif lesson_data.is_completed %}hover:bg-base-200
+                                                      {% else %}text-base-content/60 hover:bg-base-200{% endif %}">
+                                                {% if lesson_data.is_completed %}
+                                                    <i class="fas fa-check-circle text-success flex-shrink-0"></i>
+                                                {% elif lesson_data.is_current %}
+                                                    <i class="fas fa-play-circle flex-shrink-0"></i>
+                                                {% else %}
+                                                    <i class="far fa-circle flex-shrink-0"></i>
+                                                {% endif %}
+                                                <span class="truncate">{{ lesson_data.lesson.lesson_number }}. {{ lesson_data.lesson.lesson_title }}</span>
+                                            </a>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Course Progress Card -->
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body p-4">
+                            <h3 class="font-bold text-sm mb-3">Overall Progress</h3>
+                            {% if enrollment %}
+                                <div class="flex justify-center mb-3">
+                                    <div class="radial-progress text-primary"
+                                         style="--value:{{ enrollment.progress_percentage }}; --size:6rem; --thickness: 0.4rem"
+                                         role="progressbar">
+                                        <span class="text-lg font-bold">{{ enrollment.progress_percentage }}%</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <div class="space-y-1">
+                                <a href="{% url 'courses:detail' course.slug %}"
+                                   class="btn btn-outline btn-sm btn-block">
+                                    <i class="fas fa-info-circle mr-2"></i>Course Info
+                                </a>
+                                <a href="{% url 'courses:student_dashboard' %}"
+                                   class="btn btn-ghost btn-sm btn-block">
+                                    <i class="fas fa-arrow-left mr-2"></i>My Courses
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CKEditor Custom Styles -->
+<link rel="stylesheet" type="text/css" href="{% static 'css/ckeditor_custom.css' %}">
+
+<script>
+// Toggle topic accordion
+function toggleTopic(topicId) {
+    const topicContent = document.getElementById(`topic-${topicId}`);
+    const chevron = document.getElementById(`chevron-${topicId}`);
+
+    if (topicContent.classList.contains('hidden')) {
+        topicContent.classList.remove('hidden');
+        chevron.style.transform = 'rotate(90deg)';
+    } else {
+        topicContent.classList.add('hidden');
+        chevron.style.transform = 'rotate(0deg)';
+    }
+}
+
+// Toggle mobile navigation
+function toggleMobileNav() {
+    const sidebar = document.getElementById('courseNavSidebar');
+
+    if (!sidebar) return;
+
+    // Check if sidebar is currently visible
+    const isHidden = window.getComputedStyle(sidebar).display === 'none';
+
+    if (isHidden) {
+        // Show as overlay - force display
+        sidebar.style.cssText = 'display: block !important; position: fixed; inset: 0; z-index: 50; background-color: oklch(var(--b1)); padding: 1rem; overflow-y: auto; max-height: 100vh;';
+
+        // Add close button for mobile
+        if (!document.getElementById('mobileNavClose')) {
+            const closeBtn = document.createElement('button');
+            closeBtn.id = 'mobileNavClose';
+            closeBtn.className = 'btn btn-sm btn-circle btn-ghost absolute right-2 top-2';
+            closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            closeBtn.onclick = toggleMobileNav;
+            sidebar.insertBefore(closeBtn, sidebar.firstChild);
+        }
+    } else {
+        // Hide overlay
+        sidebar.style.cssText = '';
+
+        const closeBtn = document.getElementById('mobileNavClose');
+        if (closeBtn) closeBtn.remove();
+    }
+}
+
+// Initialize: rotate chevrons for expanded topics on page load
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.topic-section').forEach(section => {
+        const topicId = section.querySelector('[id^="topic-"]').id.replace('topic-', '');
+        const topicContent = document.getElementById(`topic-${topicId}`);
+        const chevron = document.getElementById(`chevron-${topicId}`);
+
+        if (!topicContent.classList.contains('hidden')) {
+            chevron.style.transform = 'rotate(90deg)';
+        }
+    });
+});
+
+function markComplete() {
+    if (confirm('Mark this lesson as complete?')) {
+        fetch('{% url "courses:mark_complete" lesson.id %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error marking lesson as complete');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error marking lesson as complete');
+        });
+    }
+}
+
+// Toggle fullscreen mode for lesson content
+function toggleFullscreen() {
+    const lessonContent = document.getElementById('lessonContent');
+    const sidebar = document.getElementById('courseNavSidebar');
+    const icon = document.getElementById('fullscreenIcon');
+
+    if (!lessonContent.classList.contains('fullscreen-mode')) {
+        // Enter fullscreen mode
+        lessonContent.classList.add('fullscreen-mode');
+        if (sidebar) sidebar.style.display = 'none';
+        icon.classList.remove('fa-expand');
+        icon.classList.add('fa-compress');
+
+        // Apply fullscreen styles
+        lessonContent.style.cssText = 'position: fixed; inset: 0; z-index: 100; background-color: oklch(var(--b1)); padding: 2rem; overflow-y: auto;';
+    } else {
+        // Exit fullscreen mode
+        lessonContent.classList.remove('fullscreen-mode');
+        if (sidebar) sidebar.style.display = '';
+        icon.classList.remove('fa-compress');
+        icon.classList.add('fa-expand');
+
+        // Remove fullscreen styles
+        lessonContent.style.cssText = '';
+    }
+}
+</script>
+{% endblock %}

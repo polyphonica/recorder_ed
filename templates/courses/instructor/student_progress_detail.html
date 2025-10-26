@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ student.get_full_name }} - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="section-courses">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="breadcrumbs text-sm mb-4">
+                <ul>
+                    <li><a href="{% url 'courses:instructor_dashboard' %}">Dashboard</a></li>
+                    <li><a href="{% url 'courses:analytics' %}">Analytics</a></li>
+                    <li><a href="{% url 'courses:course_analytics' course.slug %}">{{ course.title }}</a></li>
+                    <li>{{ student.get_full_name|default:student.username }}</li>
+                </ul>
+            </div>
+
+            <div class="flex items-center gap-4 mb-4">
+                <div class="avatar placeholder">
+                    <div class="bg-neutral text-neutral-content rounded-full w-16">
+                        <span class="text-3xl">
+                            {{ student.first_name|first|default:student.username|first }}{{ student.last_name|first|default:"" }}
+                        </span>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold">{{ student.get_full_name|default:student.username }}</h1>
+                    <p class="text-lg text-base-content/70">{{ student.email }}</p>
+                </div>
+            </div>
+
+            <h2 class="text-xl text-base-content/70">Progress in: {{ course.title }}</h2>
+        </div>
+
+        <!-- Overall Progress Card -->
+        <div class="card bg-base-100 shadow-xl mb-8">
+            <div class="card-body">
+                <h3 class="card-title text-2xl mb-4">
+                    <i class="fas fa-chart-line mr-2"></i>Overall Progress
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="flex flex-col items-center">
+                        <div class="stat-title mb-2">Course Completion</div>
+                        <div class="radial-progress text-primary mb-2"
+                             style="--value:{{ enrollment.progress_percentage }}; --size:7rem; --thickness: 8px"
+                             role="progressbar">
+                            <span class="text-2xl font-bold">{{ enrollment.progress_percentage }}%</span>
+                        </div>
+                        {% if enrollment.completed_at %}
+                            <div class="badge badge-success badge-lg">
+                                <i class="fas fa-trophy mr-2"></i>Course Completed
+                            </div>
+                            <div class="text-sm text-base-content/70 mt-2">
+                                {{ enrollment.completed_at|date:"M d, Y" }}
+                            </div>
+                        {% else %}
+                            <div class="badge badge-warning badge-lg">
+                                <i class="fas fa-clock mr-2"></i>In Progress
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="stat">
+                        <div class="stat-title">Enrollment Date</div>
+                        <div class="stat-value text-2xl">{{ enrollment.enrolled_at|date:"M d" }}</div>
+                        <div class="stat-desc">{{ enrollment.enrolled_at|date:"Y" }}</div>
+                    </div>
+
+                    <div class="stat">
+                        <div class="stat-title">Topics Completed</div>
+                        <div class="stat-value text-2xl">
+                            {% with completed=0 %}
+                                {% for topic_data in topics_data %}
+                                    {% if topic_data.progress_percentage == 100 %}
+                                        {% with completed=completed|add:1 %}{% endwith %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endwith %}
+                            {{ topics_data|length|add:0 }}/{{ topics_data|length }}
+                        </div>
+                        <div class="stat-desc">Total topics in course</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Topics and Lessons Progress -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h3 class="card-title text-2xl mb-6">
+                    <i class="fas fa-list mr-2"></i>Detailed Progress by Topic
+                </h3>
+
+                {% if topics_data %}
+                    <div class="space-y-6">
+                        {% for topic_data in topics_data %}
+                        <div class="border border-base-300 rounded-lg p-4">
+                            <!-- Topic Header -->
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex-1">
+                                    <h4 class="text-xl font-bold">
+                                        Topic {{ topic_data.topic.topic_number }}: {{ topic_data.topic.topic_title }}
+                                    </h4>
+                                    <p class="text-sm text-base-content/70">
+                                        {{ topic_data.completed_lessons }}/{{ topic_data.total_lessons }} lessons completed
+                                    </p>
+                                </div>
+                                <div class="radial-progress text-primary"
+                                     style="--value:{{ topic_data.progress_percentage }}; --size:4rem; --thickness: 4px"
+                                     role="progressbar">
+                                    <span class="text-sm font-bold">{{ topic_data.progress_percentage }}%</span>
+                                </div>
+                            </div>
+
+                            <!-- Lessons Table -->
+                            <div class="overflow-x-auto">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Lesson</th>
+                                            <th class="text-center">Status</th>
+                                            <th class="text-center">Completed</th>
+                                            <th class="text-center">Quiz Result</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for lesson_data in topic_data.lessons %}
+                                        <tr>
+                                            <td>
+                                                <div class="flex items-center gap-2">
+                                                    {% if lesson_data.is_completed %}
+                                                        <i class="fas fa-check-circle text-success"></i>
+                                                    {% else %}
+                                                        <i class="far fa-circle text-base-content/30"></i>
+                                                    {% endif %}
+                                                    <span>Lesson {{ lesson_data.lesson.lesson_number }}: {{ lesson_data.lesson.lesson_title }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if lesson_data.is_completed %}
+                                                    <div class="badge badge-success badge-sm">Completed</div>
+                                                {% else %}
+                                                    <div class="badge badge-ghost badge-sm">Not Started</div>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {% if lesson_data.completed_at %}
+                                                    <span class="text-sm">{{ lesson_data.completed_at|date:"M d, Y" }}</span>
+                                                {% else %}
+                                                    <span class="text-sm text-base-content/30">—</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {% if lesson_data.quiz_data %}
+                                                    <div class="flex flex-col items-center gap-1">
+                                                        {% if lesson_data.quiz_data.passed %}
+                                                            <div class="badge badge-success badge-sm">
+                                                                <i class="fas fa-check mr-1"></i>{{ lesson_data.quiz_data.best_score }}%
+                                                            </div>
+                                                        {% elif lesson_data.quiz_data.attempts_count > 0 %}
+                                                            <div class="badge badge-error badge-sm">
+                                                                <i class="fas fa-times mr-1"></i>{{ lesson_data.quiz_data.best_score }}%
+                                                            </div>
+                                                        {% else %}
+                                                            <div class="badge badge-ghost badge-sm">Not Attempted</div>
+                                                        {% endif %}
+                                                        <div class="text-xs text-base-content/70">
+                                                            {{ lesson_data.quiz_data.attempts_count }} attempt{{ lesson_data.quiz_data.attempts_count|pluralize }}
+                                                        </div>
+                                                        {% if lesson_data.quiz_data.latest_attempt %}
+                                                            <div class="text-xs text-base-content/50">
+                                                                Last: {{ lesson_data.quiz_data.latest_attempt.submitted_at|date:"M d" }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                {% else %}
+                                                    <span class="text-sm text-base-content/30">No quiz</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <div class="text-base-content/30 text-6xl mb-4">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">No Topics Available</h3>
+                        <p class="text-base-content/70">This course doesn't have any published topics yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

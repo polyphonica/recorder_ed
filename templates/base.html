@@ -76,6 +76,7 @@
                 <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
                     <li><a href="{% url 'workshops:list' %}" class="{% if request.resolver_match.namespace == 'workshops' %}nav-workshops{% endif %}">Workshops</a></li>
                     <li><a href="{% url 'private_teaching:home' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}nav-private-teaching{% endif %}">Private Teaching</a></li>
+                    <li><a href="{% url 'courses:list' %}" class="{% if request.resolver_match.namespace == 'courses' %}nav-courses{% endif %}">Courses</a></li>
                 </ul>
             </div>
             <a class="btn btn-ghost text-xl font-bold" href="{% url 'domain_selector' %}">
@@ -88,6 +89,7 @@
             <ul class="menu menu-horizontal px-1">
                 <li><a href="{% url 'workshops:list' %}" class="{% if request.resolver_match.namespace == 'workshops' %}nav-workshops{% endif %}">Workshops</a></li>
                 <li><a href="{% url 'private_teaching:home' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}nav-private-teaching{% endif %}">Private Teaching</a></li>
+                <li><a href="{% url 'courses:list' %}" class="{% if request.resolver_match.namespace == 'courses' %}nav-courses{% endif %}">Courses</a></li>
             </ul>
         </div>
         
@@ -138,7 +140,23 @@
                     </a>
                 </div>
             {% endif %}
-            
+
+            <!-- Messages -->
+            {% if user.is_authenticated %}
+                <div class="mr-4">
+                    <a href="{% url 'courses:messages_inbox' %}" class="btn btn-ghost btn-circle">
+                        <div class="indicator">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                            {% if unread_course_messages > 0 %}
+                                <span class="badge badge-sm badge-error indicator-item">{{ unread_course_messages }}</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                </div>
+            {% endif %}
+
             <!-- User Authentication -->
             {% if user.is_authenticated %}
                 <div class="dropdown dropdown-end mr-4">
@@ -151,11 +169,17 @@
                         <li class="menu-title">
                             <span>{{ user.username }}</span>
                         </li>
-                        
+
                         <!-- Instructor-specific menu items -->
                         {% if user.is_instructor %}
+                            <li class="menu-title">
+                                <span>Instructor Dashboards</span>
+                            </li>
                             <li><a href="{% url 'workshops:instructor_dashboard' %}">
-                                <i class="fas fa-chalkboard-teacher mr-2"></i>Instructor Dashboard
+                                <i class="fas fa-chalkboard-teacher mr-2"></i>Workshops Dashboard
+                            </a></li>
+                            <li><a href="{% url 'courses:instructor_dashboard' %}">
+                                <i class="fas fa-graduation-cap mr-2"></i>Courses Dashboard
                             </a></li>
                             <div class="divider my-1"></div>
                             <li class="menu-title">
@@ -178,12 +202,17 @@
                                 <i class="fas fa-search mr-2"></i>Browse Workshops
                             </a></li>
                         {% else %}
-                            <li><a href="{% url 'workshops:dashboard' %}">My Dashboard</a></li>
+                            <li class="menu-title">
+                                <span>My Learning</span>
+                            </li>
+                            <li><a href="{% url 'courses:student_dashboard' %}">
+                                <i class="fas fa-graduation-cap mr-2"></i>My Courses
+                            </a></li>
                             <li><a href="{% url 'workshops:my_registrations' %}">
-                                <i class="fas fa-list mr-2"></i>My Registrations
+                                <i class="fas fa-calendar-check mr-2"></i>My Workshops
                             </a></li>
                         {% endif %}
-                        
+
                         <div class="divider my-1"></div>
                         <li>
                             <form method="post" action="{% url 'logout' %}" class="w-full">
@@ -194,6 +223,22 @@
                             </form>
                         </li>
                     </ul>
+                </div>
+            {% else %}
+                <!-- Login/Signup buttons when not authenticated -->
+                <div class="flex gap-2">
+                    <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                        </svg>
+                        Login
+                    </a>
+                    <a href="{% url 'accounts:signup' %}?next={{ request.path }}" class="btn btn-primary btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                        </svg>
+                        Sign Up
+                    </a>
                 </div>
             {% endif %}
         </div>

@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Edit{% else %}Create{% endif %} Question - {{ quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="section-courses">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Breadcrumb -->
+        <div class="text-sm breadcrumbs mb-6">
+            <ul>
+                <li><a href="{% url 'courses:instructor_dashboard' %}">Dashboard</a></li>
+                <li><a href="{% url 'courses:manage_topics' course.slug %}">{{ course.title }}</a></li>
+                <li><a href="{% url 'courses:manage_lessons' course.slug topic.topic_number %}">{{ topic.topic_title }}</a></li>
+                <li><a href="{% url 'courses:manage_quiz' lesson.id %}">{{ quiz.title }}</a></li>
+                <li>{% if object %}Edit{% else %}New{% endif %} Question</li>
+            </ul>
+        </div>
+
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2">
+                <i class="fas fa-question-circle text-primary mr-2"></i>
+                {% if object %}Edit Question{% else %}Create New Question{% endif %}
+            </h1>
+            <p class="text-base-content/70">
+                {% if object %}
+                    Update question and answer options
+                {% else %}
+                    Add a new question to {{ quiz.title }}
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Form -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <!-- Question Details -->
+                    <div class="form-control w-full mb-4">
+                        <label class="label">
+                            <span class="label-text font-medium">Question Text *</span>
+                        </label>
+                        {{ form.text }}
+                        {% if form.text.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.text.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Points *</span>
+                                <span class="label-text-alt">Points awarded for correct answer</span>
+                            </label>
+                            {{ form.points }}
+                            {% if form.points.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.points.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Order</span>
+                                <span class="label-text-alt">Question order (auto-assigned if blank)</span>
+                            </label>
+                            {{ form.order }}
+                            {% if form.order.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.order.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Answer Options -->
+                    <div class="divider"></div>
+                    <h3 class="text-xl font-semibold mb-4">
+                        <i class="fas fa-list mr-2"></i>
+                        Answer Options
+                    </h3>
+                    <p class="text-sm text-base-content/70 mb-4">
+                        Add at least 2 answer options and select exactly one as correct.
+                    </p>
+
+                    {{ answer_formset.management_form }}
+
+                    <div id="answer-formset">
+                        {% for answer_form in answer_formset %}
+                        <div class="answer-form card bg-base-200 p-4 mb-3">
+                            <!-- Hidden fields -->
+                            {% if answer_form.instance.pk %}
+                                {{ answer_form.id }}
+                            {% endif %}
+
+                            <div class="flex gap-4 items-center">
+                                <!-- Correct Answer Radio -->
+                                <div class="form-control">
+                                    <label class="label cursor-pointer justify-start gap-2">
+                                        {{ answer_form.is_correct }}
+                                        <span class="label-text font-medium text-sm">Correct</span>
+                                    </label>
+                                </div>
+
+                                <!-- Answer Text -->
+                                <div class="form-control flex-1">
+                                    {{ answer_form.text }}
+                                    {% if answer_form.text.errors %}
+                                        <label class="label">
+                                            <span class="label-text-alt text-error">{{ answer_form.text.errors.0 }}</span>
+                                        </label>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Delete Checkbox -->
+                                {% if answer_form.instance.pk %}
+                                <div class="form-control">
+                                    <label class="label cursor-pointer justify-start gap-2">
+                                        {{ answer_form.DELETE }}
+                                        <span class="label-text text-sm">Delete</span>
+                                    </label>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if answer_formset.non_form_errors %}
+                        <div class="alert alert-error mb-4">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>{{ answer_formset.non_form_errors.0 }}</span>
+                        </div>
+                    {% endif %}
+
+                    <!-- Form Actions -->
+                    <div class="divider"></div>
+                    <div class="flex gap-4 justify-end">
+                        <a href="{% url 'courses:manage_quiz' lesson.id %}" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-2"></i>
+                            {% if object %}Update Question{% else %}Create Question{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CKEditor 5 Media -->
+{{ form.media }}
+
+<!-- CKEditor Custom Styles -->
+<link rel="stylesheet" type="text/css" href="{% static 'css/ckeditor_custom.css' %}">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Make "is_correct" checkboxes behave like radio buttons
+    const correctCheckboxes = document.querySelectorAll('input[name$="-is_correct"]');
+
+    correctCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                // Uncheck all other "is_correct" checkboxes
+                correctCheckboxes.forEach(otherCheckbox => {
+                    if (otherCheckbox !== this) {
+                        otherCheckbox.checked = false;
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

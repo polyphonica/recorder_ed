@@ -28,12 +28,12 @@ class DomainSelectorView(TemplateView):
             },
             {
                 'name': 'Courses',
-                'url': '#',  # Will be implemented later
-                'description': 'Structured music education programs', 
+                'url': 'courses:list',
+                'description': 'Structured music education programs',
                 'icon': '🎓',
                 'color': 'bg-purple-500',
                 'features': ['Comprehensive Curriculum', 'Progressive Learning', 'Certification', 'Self-Paced'],
-                'coming_soon': True
+                'coming_soon': False
             }
         ]
         

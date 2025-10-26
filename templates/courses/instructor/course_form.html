@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Edit{% else %}Create{% endif %} Course - Courses{% endblock %}
+
+{% block content %}
+<div class="section-courses">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2">
+                {% if object %}Edit Course{% else %}Create New Course{% endif %}
+            </h1>
+            <p class="text-base-content/70">
+                {% if object %}
+                    Update course information and settings
+                {% else %}
+                    Fill in the details to create a new course
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Form -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <!-- Basic Information -->
+                    <div class="form-control w-full mb-4">
+                        <label class="label">
+                            <span class="label-text font-medium">Course Title *</span>
+                        </label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.title.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control w-full mb-4">
+                        <label class="label">
+                            <span class="label-text font-medium">URL Slug *</span>
+                            <span class="label-text-alt">Used in the course URL</span>
+                        </label>
+                        {{ form.slug }}
+                        {% if form.slug.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.slug.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Grade Level</span>
+                            </label>
+                            {{ form.grade }}
+                            {% if form.grade.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.grade.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Price ($) *</span>
+                            </label>
+                            {{ form.cost }}
+                            {% if form.cost.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.cost.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-control w-full mb-4">
+                        <label class="label">
+                            <span class="label-text font-medium">Description *</span>
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.description.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Media -->
+                    <div class="divider"></div>
+                    <h3 class="text-xl font-semibold mb-4">Media</h3>
+
+                    <div class="form-control w-full mb-4">
+                        <label class="label">
+                            <span class="label-text font-medium">Course Image</span>
+                            <span class="label-text-alt">Recommended: 1200x630px</span>
+                        </label>
+                        {{ form.image }}
+                        {% if object.image %}
+                            <div class="mt-2">
+                                <img src="{{ object.image.url }}" alt="{{ object.title }}" class="w-48 rounded-lg">
+                            </div>
+                        {% endif %}
+                        {% if form.image.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.image.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control w-full mb-4">
+                        <label class="label">
+                            <span class="label-text font-medium">Preview Video URL</span>
+                            <span class="label-text-alt">YouTube or Vimeo URL</span>
+                        </label>
+                        {{ form.preview_video_url }}
+                        {% if form.preview_video_url.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.preview_video_url.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Settings -->
+                    <div class="divider"></div>
+                    <h3 class="text-xl font-semibold mb-4">Settings</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Status</span>
+                            </label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.status.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label cursor-pointer justify-start gap-4">
+                                {{ form.is_featured }}
+                                <span class="label-text font-medium">Featured Course</span>
+                            </label>
+                            <label class="label">
+                                <span class="label-text-alt">Show on featured courses list</span>
+                            </label>
+                            {% if form.is_featured.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.is_featured.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="divider"></div>
+                    <div class="flex gap-4 justify-end">
+                        <a href="{% url 'courses:instructor_dashboard' %}" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            {% if object %}Update Course{% else %}Create Course{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Auto-populate slug from title -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const titleInput = document.querySelector('input[name="title"]');
+    const slugInput = document.querySelector('input[name="slug"]');
+
+    {% if not object %}
+    // Only auto-fill slug for new courses
+    titleInput.addEventListener('input', function() {
+        const slug = this.value
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+        slugInput.value = slug;
+    });
+    {% endif %}
+});
+</script>
+
+<!-- CKEditor 5 Media -->
+{{ form.media }}
+
+<!-- CKEditor Custom Styles -->
+<link rel="stylesheet" type="text/css" href="{% static 'css/ckeditor_custom.css' %}">
+{% endblock %}

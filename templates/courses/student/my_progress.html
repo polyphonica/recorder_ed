@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}My Progress - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="section-courses">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="breadcrumbs text-sm mb-4">
+                <ul>
+                    <li><a href="{% url 'domain_selector' %}">Home</a></li>
+                    <li><a href="{% url 'courses:student_dashboard' %}">My Courses</a></li>
+                    <li><a href="{% url 'courses:detail' course.slug %}">{{ course.title }}</a></li>
+                    <li>My Progress</li>
+                </ul>
+            </div>
+
+            <h1 class="text-3xl font-bold mb-2">{{ course.title }}</h1>
+            <p class="text-lg text-base-content/70">Track your learning progress and performance</p>
+        </div>
+
+        <!-- Overall Progress Card -->
+        <div class="card bg-base-100 shadow-xl mb-8">
+            <div class="card-body">
+                <h3 class="card-title text-2xl mb-4">
+                    <i class="fas fa-chart-line mr-2"></i>Your Progress
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="flex flex-col items-center">
+                        <div class="stat-title mb-2">Course Completion</div>
+                        <div class="radial-progress text-primary mb-2"
+                             style="--value:{{ enrollment.progress_percentage }}; --size:7rem; --thickness: 8px"
+                             role="progressbar">
+                            <span class="text-2xl font-bold">{{ enrollment.progress_percentage }}%</span>
+                        </div>
+                        {% if enrollment.completed_at %}
+                            <div class="badge badge-success badge-lg">
+                                <i class="fas fa-trophy mr-2"></i>Completed!
+                            </div>
+                            <div class="text-sm text-base-content/70 mt-2">
+                                {{ enrollment.completed_at|date:"M d, Y" }}
+                            </div>
+                        {% else %}
+                            <div class="badge badge-info badge-lg">
+                                <i class="fas fa-clock mr-2"></i>Keep going!
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="stat">
+                        <div class="stat-title">Enrolled Since</div>
+                        <div class="stat-value text-2xl">{{ enrollment.enrolled_at|date:"M d" }}</div>
+                        <div class="stat-desc">{{ enrollment.enrolled_at|date:"Y" }}</div>
+                    </div>
+
+                    <div class="stat">
+                        <div class="stat-title">Topics Completed</div>
+                        <div class="stat-value text-2xl">
+                            {% with completed_topics=0 %}
+                                {% for topic_data in topics_data %}
+                                    {% if topic_data.progress_percentage == 100 %}
+                                        {% with completed_topics=completed_topics|add:1 %}{% endwith %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endwith %}
+                            <span id="completedTopics">0</span>/{{ topics_data|length }}
+                        </div>
+                        <div class="stat-desc">Keep learning!</div>
+                    </div>
+
+                    <div class="stat">
+                        <div class="stat-title">Average Quiz Score</div>
+                        <div class="stat-value text-2xl
+                            {% if avg_quiz_score >= 70 %}text-success
+                            {% elif avg_quiz_score >= 50 %}text-warning
+                            {% else %}text-error{% endif %}">
+                            {{ avg_quiz_score }}%
+                        </div>
+                        <div class="stat-desc">Across all quizzes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Topics and Lessons Progress -->
+        <div class="card bg-base-100 shadow-xl mb-8">
+            <div class="card-body">
+                <h3 class="card-title text-2xl mb-6">
+                    <i class="fas fa-list mr-2"></i>Course Progress by Topic
+                </h3>
+
+                {% if topics_data %}
+                    <div class="space-y-6">
+                        {% for topic_data in topics_data %}
+                        <div class="border border-base-300 rounded-lg p-4">
+                            <!-- Topic Header -->
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex-1">
+                                    <h4 class="text-xl font-bold">
+                                        Topic {{ topic_data.topic.topic_number }}: {{ topic_data.topic.topic_title }}
+                                    </h4>
+                                    <p class="text-sm text-base-content/70">
+                                        {{ topic_data.completed_lessons }}/{{ topic_data.total_lessons }} lessons completed
+                                    </p>
+                                </div>
+                                <div class="radial-progress text-primary"
+                                     style="--value:{{ topic_data.progress_percentage }}; --size:4rem; --thickness: 4px"
+                                     role="progressbar">
+                                    <span class="text-sm font-bold">{{ topic_data.progress_percentage }}%</span>
+                                </div>
+                            </div>
+
+                            <!-- Lessons Table -->
+                            <div class="overflow-x-auto">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Lesson</th>
+                                            <th class="text-center">Status</th>
+                                            <th class="text-center">Completed</th>
+                                            <th class="text-center">Quiz Result</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for lesson_data in topic_data.lessons %}
+                                        <tr>
+                                            <td>
+                                                <div class="flex items-center gap-2">
+                                                    {% if lesson_data.is_completed %}
+                                                        <i class="fas fa-check-circle text-success"></i>
+                                                    {% else %}
+                                                        <i class="far fa-circle text-base-content/30"></i>
+                                                    {% endif %}
+                                                    <span>Lesson {{ lesson_data.lesson.lesson_number }}: {{ lesson_data.lesson.lesson_title }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if lesson_data.is_completed %}
+                                                    <div class="badge badge-success badge-sm">
+                                                        <i class="fas fa-check mr-1"></i>Completed
+                                                    </div>
+                                                {% else %}
+                                                    <div class="badge badge-ghost badge-sm">Not Started</div>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {% if lesson_data.completed_at %}
+                                                    <span class="text-sm">{{ lesson_data.completed_at|date:"M d, Y" }}</span>
+                                                {% else %}
+                                                    <span class="text-sm text-base-content/30">—</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {% if lesson_data.quiz_data %}
+                                                    <div class="flex flex-col items-center gap-1">
+                                                        {% if lesson_data.quiz_data.passed %}
+                                                            <div class="badge badge-success badge-sm">
+                                                                <i class="fas fa-check mr-1"></i>{{ lesson_data.quiz_data.best_score }}%
+                                                            </div>
+                                                        {% elif lesson_data.quiz_data.attempts_count > 0 %}
+                                                            <div class="badge badge-error badge-sm">
+                                                                <i class="fas fa-times mr-1"></i>{{ lesson_data.quiz_data.best_score }}%
+                                                            </div>
+                                                        {% else %}
+                                                            <div class="badge badge-ghost badge-sm">Not Attempted</div>
+                                                        {% endif %}
+                                                        <div class="text-xs text-base-content/70">
+                                                            {{ lesson_data.quiz_data.attempts_count }} attempt{{ lesson_data.quiz_data.attempts_count|pluralize }}
+                                                        </div>
+                                                    </div>
+                                                {% else %}
+                                                    <span class="text-sm text-base-content/30">No quiz</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="flex gap-2 justify-center">
+                                                    <a href="{% url 'courses:view_lesson' lesson_data.lesson.id %}"
+                                                       class="btn btn-primary btn-xs">
+                                                        <i class="fas fa-eye mr-1"></i>View
+                                                    </a>
+                                                    {% if lesson_data.quiz_data and not lesson_data.quiz_data.passed %}
+                                                        <a href="{% url 'courses:take_quiz' lesson_data.lesson.id %}"
+                                                           class="btn btn-secondary btn-xs">
+                                                            <i class="fas fa-clipboard-question mr-1"></i>
+                                                            {% if lesson_data.quiz_data.attempts_count > 0 %}Retake{% else %}Take{% endif %} Quiz
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <div class="text-base-content/30 text-6xl mb-4">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">No Topics Available</h3>
+                        <p class="text-base-content/70">This course doesn't have any published topics yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="flex gap-4 justify-center">
+            <a href="{% url 'courses:student_dashboard' %}" class="btn btn-ghost">
+                <i class="fas fa-arrow-left mr-2"></i>Back to My Courses
+            </a>
+            <a href="{% url 'courses:detail' course.slug %}" class="btn btn-outline">
+                <i class="fas fa-info-circle mr-2"></i>Course Details
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Calculate completed topics
+document.addEventListener('DOMContentLoaded', function() {
+    const topicsData = {{ topics_data|length }};
+    let completedTopics = 0;
+
+    {% for topic_data in topics_data %}
+        {% if topic_data.progress_percentage == 100 %}
+            completedTopics++;
+        {% endif %}
+    {% endfor %}
+
+    document.getElementById('completedTopics').textContent = completedTopics;
+});
+</script>
+{% endblock %}

@@ -41,11 +41,55 @@
 .ck-content .image {
     min-width: 0 !important;
     min-height: 0 !important;
+    display: table;
+    clear: both;
 }
 
 .ck-content .image img {
     min-width: 0 !important;
     min-height: 0 !important;
+    display: block;
+}
+
+/* Image alignment styles */
+.ck-content .image-style-align-left,
+.ck-content .image-style-side {
+    float: left;
+    margin-right: 1.5em;
+    max-width: 50%;
+}
+
+.ck-content .image-style-align-right {
+    float: right;
+    margin-left: 1.5em;
+    max-width: 50%;
+}
+
+.ck-content .image-style-align-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.ck-content .image-style-block-align-right {
+    margin-left: auto;
+    margin-right: 0;
+}
+
+.ck-content .image-style-block-align-left {
+    margin-right: auto;
+    margin-left: 0;
+}
+
+/* Image captions */
+.ck-content .image > figcaption {
+    display: table-caption;
+    caption-side: bottom;
+    word-break: break-word;
+    color: #333;
+    background-color: #f7f7f7;
+    padding: 0.6em;
+    font-size: 0.75em;
+    outline-offset: -1px;
 }
 
 /* Custom time signature styling */
