@@ -39,10 +39,6 @@ class UserProfileAdmin(admin.ModelAdmin):
                 '\nNOTE: New signups are students by default. Only admins can designate teachers.'
             )
         }),
-        ('Guardian Information (for under 18 students)', {
-            'fields': ('under_eighteen', 'guardian_first_name', 'guardian_last_name', 'guardian_email', 'guardian_phone'),
-            'classes': ('collapse',)
-        }),
         ('Teacher Information', {
             'fields': ('bio', 'website', 'teaching_experience', 'specializations'),
             'classes': ('collapse',)
