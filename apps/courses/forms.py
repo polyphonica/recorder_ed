@@ -23,14 +23,11 @@ class CourseAdminForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         # Filter instructor field to only show teachers
-        # Check both is_teacher (accounts.UserProfile) and is_instructor (workshops.UserProfile)
-        teacher_users = User.objects.filter(
-            models.Q(profile__is_teacher=True) |
-            models.Q(instructor_profile__is_instructor=True)
-        ).distinct()
+        # Use unified is_teacher flag from accounts.UserProfile
+        teacher_users = User.objects.filter(profile__is_teacher=True).distinct()
 
         self.fields['instructor'].queryset = teacher_users
-        self.fields['instructor'].help_text = 'Only users with teacher/instructor status are shown'
+        self.fields['instructor'].help_text = 'Only users with teacher status are shown'
 
 
 class QuizQuestionForm(forms.ModelForm):

@@ -63,8 +63,8 @@
                             <thead>
                                 <tr>
                                     <th>Course</th>
-                                    <th class="text-center">Students</th>
-                                    <th class="text-center">Completed</th>
+                                    <th class="text-center">Enrolled Students</th>
+                                    <th class="text-center">Finished Course</th>
                                     <th class="text-center">Completion Rate</th>
                                     <th class="text-center">Lessons</th>
                                     <th class="text-center">Quizzes</th>
@@ -94,7 +94,9 @@
                                         <span class="badge badge-lg badge-ghost">{{ data.enrollment_count }}</span>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge badge-lg badge-success">{{ data.completed_enrollments }}</span>
+                                        <div class="tooltip" data-tip="Students who completed 100% of lessons and quizzes">
+                                            <span class="badge badge-lg badge-success">{{ data.completed_enrollments }}</span>
+                                        </div>
                                     </td>
                                     <td class="text-center">
                                         <div class="flex flex-col items-center">

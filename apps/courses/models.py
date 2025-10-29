@@ -375,6 +375,10 @@ class CourseEnrollment(models.Model):
     """
     Tracks student enrollment in courses.
     Created after successful payment or manual enrollment.
+
+    Supports both adult students and children (under 18).
+    - For adults: student field is populated, child_profile is None
+    - For children: student field = guardian, child_profile = child
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -382,7 +386,18 @@ class CourseEnrollment(models.Model):
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='course_enrollments'
+        related_name='course_enrollments',
+        help_text="For adults: the student. For children: the guardian/parent."
+    )
+
+    # Child profile (for students under 18)
+    child_profile = models.ForeignKey(
+        'accounts.ChildProfile',
+        on_delete=models.CASCADE,
+        related_name='course_enrollments',
+        null=True,
+        blank=True,
+        help_text="If enrolling a child, link to their child profile"
     )
 
     # Enrollment status
@@ -400,16 +415,36 @@ class CourseEnrollment(models.Model):
     )
 
     class Meta:
-        unique_together = [['course', 'student']]
         ordering = ['-enrolled_at']
         indexes = [
             models.Index(fields=['student', 'is_active']),
             models.Index(fields=['course', 'is_active']),
+            models.Index(fields=['child_profile', 'is_active']),
         ]
 
     def __str__(self):
-        student_name = self.student.get_full_name() or self.student.username
-        return f"{student_name} - {self.course.title}"
+        if self.child_profile:
+            return f"{self.child_profile.full_name} (Guardian: {self.student.get_full_name() or self.student.username}) - {self.course.title}"
+        else:
+            student_name = self.student.get_full_name() or self.student.username
+            return f"{student_name} - {self.course.title}"
+
+    @property
+    def student_name(self):
+        """Return the name of the actual student (child or adult)"""
+        if self.child_profile:
+            return self.child_profile.full_name
+        return self.student.get_full_name() or self.student.username
+
+    @property
+    def guardian(self):
+        """Return guardian user if this is a child enrollment, None otherwise"""
+        return self.student if self.child_profile else None
+
+    @property
+    def is_child_enrollment(self):
+        """Check if this is an enrollment for a child (under 18)"""
+        return self.child_profile is not None
 
     @property
     def progress_percentage(self):

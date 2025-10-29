@@ -19,18 +19,85 @@
                 {% elif user.is_authenticated and not user.profile.is_student %}
                     <div class="space-y-4">
                         <p class="text-sm">You need to register as a student to access private teaching.</p>
-                        <a href="{% url 'private_teaching:register' %}" class="btn btn-section-primary">Register as Student</a>
+                        <a href="{% url 'accounts:signup' %}?next={% url 'private_teaching:home' %}" class="btn btn-section-primary">Register as Student</a>
                     </div>
                 {% else %}
                     <div class="space-y-4">
-                        <a href="{% url 'private_teaching:login' %}?next={% url 'private_teaching:home' %}" class="btn btn-section-primary">Login</a>
+                        <a href="{% url 'login' %}?next={% url 'private_teaching:home' %}" class="btn btn-section-primary">Login</a>
                         <div class="divider">OR</div>
-                        <a href="{% url 'private_teaching:register' %}" class="btn btn-outline">Register as Student</a>
+                        <a href="{% url 'accounts:signup' %}?next={% url 'private_teaching:home' %}" class="btn btn-outline">Sign Up</a>
                     </div>
                 {% endif %}
             </div>
         </div>
     </div>
+
+    <!-- Safeguarding Notice -->
+    <div class="alert alert-warning shadow-xl mb-8">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <div>
+            <h3 class="font-bold">Safeguarding Notice</h3>
+            <div class="text-sm">For students under 18 attending in-person lessons, a parent or guardian is expected to accompany and remain with the child for the duration of the lesson. All communications will be conducted with the parent/guardian.</div>
+        </div>
+    </div>
+
+    <!-- Meet Your Teachers -->
+    {% if teachers %}
+    <div class="mb-8">
+        <h2 class="text-3xl font-bold mb-6">Meet Your Teachers</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for teacher in teachers %}
+                <div class="card card-section shadow-xl hover:shadow-2xl transition-shadow">
+                    <div class="card-body">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="avatar">
+                                {% if teacher.profile.profile_image %}
+                                    <div class="w-16 rounded-full">
+                                        <img src="{{ teacher.profile.profile_image.url }}" alt="{{ teacher.get_full_name }}" />
+                                    </div>
+                                {% else %}
+                                    <div class="placeholder">
+                                        <div class="bg-primary text-primary-content rounded-full w-16">
+                                            <span class="text-2xl font-bold">{{ teacher.first_name|first|upper|default:teacher.username|first|upper }}</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg">{{ teacher.get_full_name|default:teacher.username }}</h3>
+                                <div class="text-sm text-base-content/70">
+                                    Private Teacher
+                                    {% if teacher.profile.accepting_new_private_students %}
+                                        <span class="badge badge-success badge-xs ml-1">Accepting Students</span>
+                                    {% else %}
+                                        <span class="badge badge-error badge-xs ml-1">Not Accepting</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% if teacher.profile.specializations %}
+                            <p class="text-sm text-base-content/80 line-clamp-2 mb-3">
+                                <i class="fas fa-star text-primary mr-1"></i>{{ teacher.profile.specializations|truncatewords:15 }}
+                            </p>
+                        {% endif %}
+                        <div class="card-actions justify-between mt-2">
+                            <a href="{% url 'accounts:teacher_profile' teacher.id %}" class="btn btn-ghost btn-sm">
+                                <i class="fas fa-info-circle mr-1"></i>View Profile
+                            </a>
+                            {% if user.is_authenticated and user.profile.is_student and user.profile.profile_completed %}
+                                <a href="{% url 'private_teaching:apply_to_teacher' teacher.id %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-user-plus mr-1"></i>Apply to Study
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Available Subjects -->
     <div class="mb-8">

@@ -6,11 +6,21 @@ from .models import Workshop, WorkshopSession, WorkshopRegistration, WorkshopCat
 
 class WorkshopRegistrationForm(forms.ModelForm):
     """Form for workshop registration"""
-    
+
+    # Add child selection field for guardians
+    child_profile = forms.ChoiceField(
+        required=False,
+        label="Register for:",
+        widget=forms.RadioSelect(attrs={
+            'class': 'radio radio-primary'
+        }),
+        help_text="Select which child to register for this workshop"
+    )
+
     class Meta:
         model = WorkshopRegistration
         fields = [
-            'email', 'phone', 'experience_level', 
+            'email', 'phone', 'experience_level',
             'expectations', 'special_requirements'
         ]
         widgets = {
@@ -41,21 +51,37 @@ class WorkshopRegistrationForm(forms.ModelForm):
             'expectations': 'This helps the instructor tailor the content to your needs.',
             'special_requirements': 'We want to ensure everyone can participate fully.',
         }
-    
+
     def __init__(self, *args, **kwargs):
         self.session = kwargs.pop('session', None)
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        
+
         # Pre-fill email if user is authenticated
         if self.user and self.user.is_authenticated and self.user.email:
             self.fields['email'].initial = self.user.email
-        
+
         # Make phone optional but recommended
         self.fields['phone'].required = False
         self.fields['expectations'].required = False
         self.fields['special_requirements'].required = False
-    
+
+        # Setup child selection field for guardians
+        if self.user and self.user.is_authenticated and self.user.profile.is_guardian:
+            from apps.accounts.models import ChildProfile
+            children = self.user.children.all()
+
+            if children:
+                choices = [(str(child.id), f"{child.full_name} (Age: {child.age})") for child in children]
+                self.fields['child_profile'].choices = choices
+                self.fields['child_profile'].required = True
+            else:
+                # Remove field if no children
+                del self.fields['child_profile']
+        else:
+            # Remove field for non-guardians
+            del self.fields['child_profile']
+
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if not email and self.user and self.user.is_authenticated:

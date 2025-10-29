@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Applications - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Student Applications</h1>
+                <p class="text-base-content/70">Manage applications from prospective students</p>
+            </div>
+            <a href="{% url 'private_teaching:teacher_dashboard' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Capacity Management Card -->
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="card-title text-xl mb-4">
+                <i class="fas fa-users-cog mr-2"></i>
+                Capacity Settings
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="stat bg-primary text-primary-content rounded-lg">
+                    <div class="stat-title text-white">Accepted Students</div>
+                    <div class="stat-value text-white">{{ accepted_count }}{% if max_students %} / {{ max_students }}{% endif %}</div>
+                    <div class="stat-desc text-white">Currently teaching</div>
+                </div>
+
+                <div class="stat bg-warning text-warning-content rounded-lg">
+                    <div class="stat-title">Pending Applications</div>
+                    <div class="stat-value">{{ pending_count }}</div>
+                    <div class="stat-desc">Awaiting your review</div>
+                </div>
+
+                <div class="stat bg-info text-info-content rounded-lg">
+                    <div class="stat-title text-white">Waiting List</div>
+                    <div class="stat-value text-white">{{ waitlist_count }}</div>
+                    <div class="stat-desc text-white">Students waiting for space</div>
+                </div>
+            </div>
+
+            <!-- Update Capacity Form -->
+            <form method="post" action="{% url 'private_teaching:update_teacher_capacity' %}" class="flex flex-wrap gap-4 items-end">
+                {% csrf_token %}
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Maximum Students</span>
+                    </label>
+                    <input
+                        type="number"
+                        name="max_private_students"
+                        class="input input-bordered w-32"
+                        value="{{ max_students|default:'' }}"
+                        placeholder="No limit"
+                        min="0"
+                    >
+                </div>
+
+                <div class="form-control">
+                    <label class="label cursor-pointer gap-2">
+                        <span class="label-text font-semibold">Accepting New Students</span>
+                        <input
+                            type="checkbox"
+                            name="accepting_new_private_students"
+                            class="toggle toggle-success"
+                            {% if accepting_new %}checked{% endif %}
+                        >
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save mr-2"></i>
+                    Save Settings
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="tabs tabs-boxed mb-6">
+        <a href="?status=pending" class="tab {% if status_filter == 'pending' %}tab-active{% endif %}">
+            <i class="fas fa-clock mr-2"></i>
+            Pending ({{ pending_count }})
+        </a>
+        <a href="?status=accepted" class="tab {% if status_filter == 'accepted' %}tab-active{% endif %}">
+            <i class="fas fa-check-circle mr-2"></i>
+            Accepted ({{ accepted_count }})
+        </a>
+        <a href="?status=waitlist" class="tab {% if status_filter == 'waitlist' %}tab-active{% endif %}">
+            <i class="fas fa-list mr-2"></i>
+            Waiting List ({{ waitlist_count }})
+        </a>
+        <a href="?status=declined" class="tab {% if status_filter == 'declined' %}tab-active{% endif %}">
+            <i class="fas fa-times-circle mr-2"></i>
+            Declined ({{ declined_count }})
+        </a>
+        <a href="?status=all" class="tab {% if status_filter == 'all' %}tab-active{% endif %}">
+            <i class="fas fa-list-ul mr-2"></i>
+            All
+        </a>
+    </div>
+
+    {% if applications %}
+        <!-- Applications List -->
+        <div class="space-y-4">
+            {% for application in applications %}
+                <div class="card card-section shadow-lg hover:shadow-xl transition-shadow">
+                    <div class="card-body">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="avatar placeholder">
+                                        <div class="bg-neutral text-neutral-content rounded-full w-12">
+                                            <span class="text-xl">{{ application.student_name|slice:":1" }}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold">{{ application.student_name }}</h3>
+                                        <p class="text-sm text-base-content/70">
+                                            {% if application.is_child_application %}
+                                                <i class="fas fa-child mr-1"></i>
+                                                Guardian: {{ application.applicant.get_full_name }}
+                                                <span class="badge badge-info badge-sm ml-2">Child</span>
+                                            {% else %}
+                                                {{ application.applicant.email }}
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4 mb-3">
+                                    <div>
+                                        <div class="text-xs text-base-content/70">Applied</div>
+                                        <div class="text-sm font-semibold">{{ application.created_at|date:"M j, Y" }}</div>
+                                        <div class="text-xs text-base-content/70">{{ application.created_at|timesince }} ago</div>
+                                    </div>
+                                    {% if application.status_changed_at %}
+                                        <div>
+                                            <div class="text-xs text-base-content/70">Last Updated</div>
+                                            <div class="text-sm font-semibold">{{ application.status_changed_at|date:"M j, Y" }}</div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Status Badge -->
+                                {% if application.status == 'pending' %}
+                                    <span class="badge badge-warning">
+                                        <i class="fas fa-clock mr-1"></i>Pending Review
+                                    </span>
+                                {% elif application.status == 'accepted' %}
+                                    <span class="badge badge-success">
+                                        <i class="fas fa-check-circle mr-1"></i>Accepted
+                                    </span>
+                                {% elif application.status == 'waitlist' %}
+                                    <span class="badge badge-info">
+                                        <i class="fas fa-list mr-1"></i>Waiting List
+                                    </span>
+                                {% elif application.status == 'declined' %}
+                                    <span class="badge badge-error">
+                                        <i class="fas fa-times-circle mr-1"></i>Declined
+                                    </span>
+                                {% endif %}
+
+                                {% if application.messages.exists %}
+                                    <span class="badge badge-ghost ml-2">
+                                        <i class="fas fa-comments mr-1"></i>
+                                        {{ application.messages.count }} message{{ application.messages.count|pluralize }}
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="text-right">
+                                <a href="{% url 'private_teaching:teacher_application_detail' application.id %}" class="btn btn-primary">
+                                    <i class="fas fa-eye mr-2"></i>
+                                    Review
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <div class="flex justify-center mt-8">
+                <div class="btn-group">
+                    {% if page_obj.has_previous %}
+                        <a href="?status={{ status_filter }}&page=1" class="btn btn-outline">«</a>
+                        <a href="?status={{ status_filter }}&page={{ page_obj.previous_page_number }}" class="btn btn-outline">‹</a>
+                    {% endif %}
+
+                    <button class="btn btn-outline btn-active">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</button>
+
+                    {% if page_obj.has_next %}
+                        <a href="?status={{ status_filter }}&page={{ page_obj.next_page_number }}" class="btn btn-outline">›</a>
+                        <a href="?status={{ status_filter }}&page={{ page_obj.paginator.num_pages }}" class="btn btn-outline">»</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+    {% else %}
+        <!-- Empty State -->
+        <div class="card card-section shadow-xl">
+            <div class="card-body">
+                <div class="text-center py-12">
+                    <div class="text-8xl mb-6">📋</div>
+                    <h2 class="text-3xl font-bold mb-4">
+                        {% if status_filter == 'pending' %}
+                            No Pending Applications
+                        {% elif status_filter == 'accepted' %}
+                            No Accepted Students Yet
+                        {% elif status_filter == 'waitlist' %}
+                            No Students on Waiting List
+                        {% elif status_filter == 'declined' %}
+                            No Declined Applications
+                        {% else %}
+                            No Applications Yet
+                        {% endif %}
+                    </h2>
+                    <p class="text-lg text-base-content/70 mb-8">
+                        {% if status_filter == 'pending' %}
+                            All caught up! No applications awaiting your review.
+                        {% else %}
+                            Students will appear here once they apply to study with you.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

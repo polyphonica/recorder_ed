@@ -634,7 +634,7 @@ class QuizQuestionDeleteView(InstructorRequiredMixin, DeleteView):
 
 class CourseListView(ListView):
     """
-    Public course catalog.
+    Public course catalog with filtering by grade and search.
     """
     model = Course
     template_name = 'courses/course_list.html'
@@ -642,7 +642,29 @@ class CourseListView(ListView):
     paginate_by = 12
 
     def get_queryset(self):
-        return Course.objects.filter(status='published').order_by('created_at')
+        queryset = Course.objects.filter(status='published')
+
+        # Filter by grade level
+        grade = self.request.GET.get('grade')
+        if grade and grade != 'all':
+            queryset = queryset.filter(grade=grade)
+
+        # Search functionality
+        search = self.request.GET.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) |
+                Q(description__icontains=search)
+            )
+
+        return queryset.order_by('-is_featured', 'created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['grade_choices'] = Course.GRADE_CHOICES
+        context['current_grade'] = self.request.GET.get('grade', 'all')
+        context['current_search'] = self.request.GET.get('search', '')
+        return context
 
 
 class CourseDetailView(DetailView):
@@ -705,28 +727,110 @@ class CourseDetailView(DetailView):
 
 class CourseEnrollView(LoginRequiredMixin, View):
     """
-    Enroll a student in a course (simplified for Phase 2).
-    In Phase 3, this will integrate with shopping cart/payments.
+    Enroll a student in a course.
+    - For guardians: Show child selection page (GET) then enroll selected child (POST)
+    - For regular students: Enroll directly (POST only)
     """
-    def post(self, request, slug):
+    def get(self, request, slug):
+        """Show child selection page for guardians"""
         course = get_object_or_404(Course, slug=slug, status='published')
 
-        # Check if already enrolled
-        enrollment, created = CourseEnrollment.objects.get_or_create(
-            course=course,
-            student=request.user,
-            defaults={
-                'enrolled_at': timezone.now(),
-                'is_active': True
-            }
-        )
+        # If not a guardian, redirect to POST (direct enrollment)
+        if not request.user.profile.is_guardian:
+            # For non-guardians, POST to enroll themselves
+            return self.post(request, slug)
 
-        if created:
-            messages.success(request, f'Successfully enrolled in {course.title}!')
+        # Get guardian's children
+        children = request.user.children.all()
+
+        if not children:
+            messages.warning(request, 'You need to add at least one child profile before enrolling in a course.')
+            return redirect('accounts:add_child')
+
+        context = {
+            'course': course,
+            'children': children,
+        }
+        return render(request, 'courses/select_child_for_enrollment.html', context)
+
+    def post(self, request, slug):
+        """Process enrollment"""
+        course = get_object_or_404(Course, slug=slug, status='published')
+        child_id = request.POST.get('child_id')
+
+        # Determine if enrolling a child or self
+        if request.user.profile.is_guardian and child_id:
+            # Enrolling a child
+            from apps.accounts.models import ChildProfile
+            try:
+                child = ChildProfile.objects.get(id=child_id, guardian=request.user)
+            except ChildProfile.DoesNotExist:
+                messages.error(request, 'Invalid child selected.')
+                return redirect('courses:detail', slug=course.slug)
+
+            # Check if child already enrolled
+            enrollment, created = CourseEnrollment.objects.get_or_create(
+                course=course,
+                student=request.user,
+                child_profile=child,
+                defaults={
+                    'enrolled_at': timezone.now(),
+                    'is_active': True
+                }
+            )
+
+            if created:
+                messages.success(request, f'Successfully enrolled {child.full_name} in {course.title}!')
+            else:
+                messages.info(request, f'{child.full_name} is already enrolled in {course.title}.')
+
         else:
-            messages.info(request, f'You are already enrolled in {course.title}.')
+            # Enrolling self (adult student)
+            enrollment, created = CourseEnrollment.objects.get_or_create(
+                course=course,
+                student=request.user,
+                child_profile=None,
+                defaults={
+                    'enrolled_at': timezone.now(),
+                    'is_active': True
+                }
+            )
+
+            if created:
+                messages.success(request, f'Successfully enrolled in {course.title}!')
+            else:
+                messages.info(request, f'You are already enrolled in {course.title}.')
 
         return redirect('courses:detail', slug=course.slug)
+
+
+class LessonPreviewView(DetailView):
+    """
+    Public preview of a lesson marked as is_preview=True.
+    No authentication required - allows anonymous users to preview before enrolling.
+    """
+    model = Lesson
+    template_name = 'courses/lesson_preview.html'
+    context_object_name = 'lesson'
+    pk_url_kwarg = 'lesson_id'
+
+    def get_queryset(self):
+        # Only allow preview of lessons that are:
+        # 1. Published
+        # 2. Marked as preview
+        # 3. In a published course
+        return Lesson.objects.filter(
+            status='published',
+            is_preview=True,
+            topic__course__status='published',
+            topic__course__slug=self.kwargs['slug']
+        ).select_related('topic__course')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['course'] = self.object.topic.course
+        context['is_preview'] = True
+        return context
 
 
 class StudentDashboardView(LoginRequiredMixin, TemplateView):
@@ -1085,9 +1189,7 @@ class QuizSubmitView(LoginRequiredMixin, View):
                 lesson=lesson
             )
             if not lesson_progress.is_completed:
-                lesson_progress.is_completed = True
-                lesson_progress.completed_at = timezone.now()
-                lesson_progress.save()
+                lesson_progress.mark_complete()  # Use mark_complete() to trigger course completion check
 
         return JsonResponse({
             'success': True,
@@ -1113,24 +1215,28 @@ class CourseAnalyticsView(LoginRequiredMixin, TemplateView):
 
         # Get all courses taught by this instructor
         courses = Course.objects.filter(instructor=self.request.user).annotate(
-            enrollment_count=Count('enrollments', filter=Q(enrollments__is_active=True)),
-            completed_enrollments=Count('enrollments', filter=Q(
-                enrollments__is_active=True,
-                enrollments__completed_at__isnull=False
-            )),
-            published_lessons_count=Count('topics__lessons', filter=Q(topics__lessons__status='published')),
+            enrollment_count=Count('enrollments', filter=Q(enrollments__is_active=True), distinct=True),
+            published_lessons_count=Count('topics__lessons', filter=Q(topics__lessons__status='published'), distinct=True),
             published_quizzes_count=Count('topics__lessons__quiz', filter=Q(
                 topics__lessons__status='published',
                 topics__lessons__quiz__status='published'
-            ))
+            ), distinct=True)
         ).order_by('-created_at')
 
         # Calculate additional metrics for each course
         courses_data = []
         for course in courses:
+            # Get accurate completed enrollment count
+            # (avoiding Django ORM Count annotation issues with multiple filters)
+            completed_count = CourseEnrollment.objects.filter(
+                course=course,
+                is_active=True,
+                completed_at__isnull=False
+            ).count()
+
             # Calculate average completion rate
             if course.enrollment_count > 0:
-                completion_rate = int((course.completed_enrollments / course.enrollment_count) * 100)
+                completion_rate = int((completed_count / course.enrollment_count) * 100)
             else:
                 completion_rate = 0
 
@@ -1144,7 +1250,7 @@ class CourseAnalyticsView(LoginRequiredMixin, TemplateView):
             courses_data.append({
                 'course': course,
                 'enrollment_count': course.enrollment_count,
-                'completed_enrollments': course.completed_enrollments,
+                'completed_enrollments': completed_count,
                 'completion_rate': completion_rate,
                 'total_lessons': course.published_lessons_count,
                 'total_quizzes': course.published_quizzes_count,
@@ -1187,13 +1293,14 @@ class CourseStudentListView(LoginRequiredMixin, InstructorRequiredMixin, DetailV
         enrollments = CourseEnrollment.objects.filter(
             course=course,
             is_active=True
-        ).select_related('student').annotate(
+        ).select_related('student', 'child_profile').annotate(
             lessons_completed=Count(
-                'lesson_progress',
-                filter=Q(lesson_progress__is_completed=True)
+                'lesson_progress__lesson',
+                filter=Q(lesson_progress__is_completed=True),
+                distinct=True
             ),
             quizzes_passed=Count(
-                'quiz_attempts',
+                'quiz_attempts__quiz',
                 filter=Q(
                     quiz_attempts__passed=True,
                     quiz_attempts__quiz__lesson__topic__course=course
@@ -1230,6 +1337,8 @@ class CourseStudentListView(LoginRequiredMixin, InstructorRequiredMixin, DetailV
             students_data.append({
                 'enrollment': enrollment,
                 'student': enrollment.student,
+                'child_profile': enrollment.child_profile,
+                'student_name': enrollment.student_name,
                 'progress_percentage': enrollment.progress_percentage,
                 'lessons_completed': enrollment.lessons_completed,
                 'total_lessons': total_lessons,
@@ -1240,9 +1349,13 @@ class CourseStudentListView(LoginRequiredMixin, InstructorRequiredMixin, DetailV
                 'completed_at': enrollment.completed_at,
             })
 
+        # Count completed students
+        completed_students = sum(1 for s in students_data if s['completed_at'] is not None)
+
         context['students_data'] = students_data
         context['total_lessons'] = total_lessons
         context['total_quizzes'] = total_quizzes
+        context['completed_students'] = completed_students
 
         return context
 
@@ -1624,3 +1737,182 @@ class MessageThreadView(LoginRequiredMixin, DetailView):
         context = self.get_context_data()
         context['reply_form'] = form
         return self.render_to_response(context)
+
+
+# ============================================================================
+# CERTIFICATE VIEWS
+# ============================================================================
+
+class CertificateClaimView(LoginRequiredMixin, View):
+    """
+    Handle manual certificate claiming when student completes course.
+    """
+
+    def post(self, request, slug):
+        from .models import CourseCertificate
+
+        course = get_object_or_404(Course, slug=slug)
+        enrollment = get_object_or_404(
+            CourseEnrollment,
+            course=course,
+            student=request.user,
+            is_active=True
+        )
+
+        # Check if already has certificate
+        if hasattr(enrollment, 'certificate'):
+            messages.info(request, 'You have already claimed your certificate for this course.')
+            return redirect('courses:certificate_view', certificate_id=enrollment.certificate.id)
+
+        # Verify 100% completion
+        if enrollment.progress_percentage < 100:
+            messages.error(request, f'You must complete 100% of the course to claim your certificate. Current progress: {enrollment.progress_percentage}%')
+            return redirect('courses:my_progress', slug=course.slug)
+
+        # Create certificate
+        certificate = CourseCertificate.objects.create(enrollment=enrollment)
+
+        messages.success(request, 'Congratulations! Your certificate has been generated.')
+        return redirect('courses:certificate_view', certificate_id=certificate.id)
+
+
+class CertificateViewView(LoginRequiredMixin, DetailView):
+    """
+    Display certificate on screen (HTML version).
+    """
+    model = None  # We'll get the model dynamically
+    template_name = 'courses/certificates/certificate_view.html'
+    context_object_name = 'certificate'
+    pk_url_kwarg = 'certificate_id'
+
+    def get_object(self):
+        from .models import CourseCertificate
+        certificate_id = self.kwargs.get('certificate_id')
+        certificate = get_object_or_404(CourseCertificate, id=certificate_id)
+
+        # Verify access (student who earned it or course instructor)
+        is_owner = certificate.enrollment.student == self.request.user
+        is_instructor = certificate.enrollment.course.instructor == self.request.user
+
+        if not (is_owner or is_instructor):
+            messages.error(self.request, 'You do not have permission to view this certificate.')
+            return redirect('courses:student_dashboard')
+
+        return certificate
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        certificate = self.object
+
+        context['student_name'] = certificate.enrollment.student.get_full_name() or certificate.enrollment.student.username
+        context['course_title'] = certificate.enrollment.course.title
+        context['certificate_number'] = certificate.certificate_number
+        context['issue_date'] = certificate.issued_at.strftime('%B %d, %Y')
+        context['platform_name'] = 'Recordered Learning Platform'
+
+        return context
+
+
+class CertificateDownloadView(LoginRequiredMixin, View):
+    """
+    Generate and download certificate as PDF.
+    """
+
+    def get(self, request, certificate_id):
+        from django.template.loader import render_to_string
+        from django.http import HttpResponse
+        from weasyprint import HTML
+        from .models import CourseCertificate
+        import tempfile
+
+        certificate = get_object_or_404(CourseCertificate, id=certificate_id)
+
+        # Verify access
+        is_owner = certificate.enrollment.student == request.user
+        is_instructor = certificate.enrollment.course.instructor == request.user
+
+        if not (is_owner or is_instructor):
+            messages.error(request, 'You do not have permission to download this certificate.')
+            return redirect('courses:student_dashboard')
+
+        # Prepare context for template
+        context = {
+            'student_name': certificate.enrollment.student.get_full_name() or certificate.enrollment.student.username,
+            'course_title': certificate.enrollment.course.title,
+            'certificate_number': certificate.certificate_number,
+            'issue_date': certificate.issued_at.strftime('%B %d, %Y'),
+            'platform_name': 'Recordered Learning Platform',
+        }
+
+        # Render HTML template
+        html_string = render_to_string('courses/certificates/certificate_template.html', context)
+
+        # Generate PDF
+        html = HTML(string=html_string)
+        pdf_file = html.write_pdf()
+
+        # Return PDF response
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        filename = f"Certificate_{certificate.certificate_number}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        return response
+
+
+class CertificateGalleryView(LoginRequiredMixin, TemplateView):
+    """
+    Display all certificates earned by the current user.
+    """
+    template_name = 'courses/certificates/certificate_gallery.html'
+
+    def get_context_data(self, **kwargs):
+        from .models import CourseCertificate
+        context = super().get_context_data(**kwargs)
+
+        # Get all certificates for current user
+        certificates = CourseCertificate.objects.filter(
+            enrollment__student=self.request.user
+        ).select_related('enrollment__course').order_by('-issued_at')
+
+        context['certificates'] = certificates
+        context['total_certificates'] = certificates.count()
+
+        return context
+
+
+class CertificateVerifyView(TemplateView):
+    """
+    Public certificate verification page.
+    Anyone can verify a certificate by its number or ID.
+    """
+    template_name = 'courses/certificates/certificate_verify.html'
+
+    def get_context_data(self, **kwargs):
+        from .models import CourseCertificate
+        context = super().get_context_data(**kwargs)
+
+        # Check if verification code provided
+        verify_code = self.request.GET.get('code', '').strip()
+
+        if verify_code:
+            try:
+                # Try to find by certificate number or UUID
+                try:
+                    certificate = CourseCertificate.objects.get(certificate_number=verify_code)
+                except CourseCertificate.DoesNotExist:
+                    # Try UUID
+                    certificate = CourseCertificate.objects.get(id=verify_code)
+
+                context['certificate'] = certificate
+                context['student_name'] = certificate.enrollment.student.get_full_name() or certificate.enrollment.student.username
+                context['course_title'] = certificate.enrollment.course.title
+                context['verified'] = True
+
+            except CourseCertificate.DoesNotExist:
+                context['verified'] = False
+                context['error_message'] = 'Certificate not found. Please check the code and try again.'
+            except Exception as e:
+                context['verified'] = False
+                context['error_message'] = 'Invalid certificate code format.'
+
+        return context

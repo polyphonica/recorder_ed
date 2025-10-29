@@ -48,27 +48,35 @@
                 <h1 class="text-4xl font-bold mb-4">{{ workshop.title }}</h1>
                 
                 <!-- Instructor Info -->
-                <div class="flex items-center gap-3 mb-6 p-4 bg-base-200 rounded-lg">
+                <a href="{% url 'accounts:teacher_profile' workshop.instructor.id %}"
+                   class="flex items-center gap-3 mb-6 p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors group">
                     <div class="avatar placeholder">
-                        <div class="bg-primary text-primary-content rounded-full w-12">
-                            <span class="text-lg font-semibold">
-                                {% if workshop.instructor.first_name %}
-                                    {{ workshop.instructor.first_name|first|upper }}
-                                {% else %}
-                                    {{ workshop.instructor.username|first|upper }}
-                                {% endif %}
-                            </span>
-                        </div>
+                        {% if workshop.instructor.profile.profile_image %}
+                            <div class="w-12 h-12 rounded-full">
+                                <img src="{{ workshop.instructor.profile.profile_image.url }}" alt="{{ workshop.instructor.full_name_or_username }}" />
+                            </div>
+                        {% else %}
+                            <div class="bg-primary text-primary-content rounded-full w-12">
+                                <span class="text-lg font-semibold">
+                                    {% if workshop.instructor.first_name %}
+                                        {{ workshop.instructor.first_name|first|upper }}
+                                    {% else %}
+                                        {{ workshop.instructor.username|first|upper }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                        {% endif %}
                     </div>
-                    <div>
-                        <div class="font-semibold text-lg">
+                    <div class="flex-1">
+                        <div class="font-semibold text-lg group-hover:text-primary transition-colors">
                             {{ workshop.instructor.full_name_or_username }}
+                            <i class="fas fa-arrow-right ml-2 text-sm"></i>
                         </div>
                         <div class="text-sm text-base-content/70">
-                            Workshop Instructor
+                            Workshop Instructor - View Profile
                         </div>
                     </div>
-                </div>
+                </a>
                 
                 <div class="prose prose-lg max-w-none mb-8">
                     {{ workshop.description|linebreaks }}
@@ -679,13 +687,37 @@
                     </div>
                     {% endif %}
 
+                    <!-- Safeguarding Notice for In-Person Events -->
+                    {% if not workshop.is_online_only %}
+                    <div class="alert alert-warning shadow-xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div>
+                            <h3 class="font-bold">Safeguarding Notice</h3>
+                            <div class="text-sm">For students under 18 attending in-person, a parent or guardian is expected to accompany and remain with the child for the duration of the workshop.</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <!-- Share Card -->
                     <div class="card bg-base-100 shadow-xl">
                         <div class="card-body">
                             <h4 class="card-title text-lg">Share this workshop</h4>
-                            <div class="flex gap-2">
-                                <button class="btn btn-square btn-outline btn-sm" 
-                                        onclick="navigator.share ? navigator.share({title: '{{ workshop.title }}', url: location.href}) : copyToClipboard(location.href)">
+
+                            <!-- Feedback message area -->
+                            <div id="shareFeedback" class="hidden">
+                                <div class="alert alert-success mb-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span id="shareFeedbackText">Link copied to clipboard!</span>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-2 items-center">
+                                <button id="shareBtn" class="btn btn-square btn-outline btn-sm"
+                                        onclick="shareWorkshop(event)">
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"></path>
                                     </svg>
@@ -757,11 +789,103 @@
 {% endif %}
 
 <script>
+function shareWorkshop(event) {
+    const url = window.location.href;
+    const title = '{{ workshop.title|escapejs }}';
+
+    // Check if we're on a mobile device (not just if share API exists)
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    // Only use native share on actual mobile devices
+    if (isMobile && navigator.share) {
+        navigator.share({
+            title: title,
+            url: url
+        }).then(() => {
+            showFeedback('Shared successfully!');
+        }).catch((error) => {
+            // User cancelled or error occurred
+            if (error.name !== 'AbortError') {
+                // If not cancelled, fall back to clipboard
+                copyToClipboard(url);
+            }
+        });
+    } else {
+        // Desktop/Mac: always copy to clipboard for consistency
+        copyToClipboard(url);
+    }
+}
+
 function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        // You could show a toast notification here
-        console.log('Link copied to clipboard');
-    });
+    // Try modern clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            showFeedback('Link copied to clipboard!');
+        }).catch(err => {
+            console.error('Clipboard API failed:', err);
+            // Fallback method
+            fallbackCopy(text);
+        });
+    } else {
+        // Use fallback for older browsers
+        fallbackCopy(text);
+    }
+}
+
+function fallbackCopy(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+
+    try {
+        document.execCommand('copy');
+        showFeedback('Link copied to clipboard!');
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        showFeedback('Failed to copy link', 'error');
+    }
+
+    document.body.removeChild(textArea);
+}
+
+function showFeedback(message, type = 'success') {
+    const feedbackDiv = document.getElementById('shareFeedback');
+    const feedbackText = document.getElementById('shareFeedbackText');
+    const alert = feedbackDiv.querySelector('.alert');
+
+    // Update message
+    feedbackText.textContent = message;
+
+    // Update alert type
+    alert.className = `alert ${type === 'error' ? 'alert-error' : 'alert-success'} mb-2`;
+
+    // Show feedback
+    feedbackDiv.classList.remove('hidden');
+
+    // Hide after 3 seconds
+    setTimeout(() => {
+        feedbackDiv.classList.add('hidden');
+    }, 3000);
 }
 </script>
+
+<style>
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+}
+</style>
 {% endblock %}

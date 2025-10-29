@@ -52,11 +52,11 @@
                 </form>
                 
                 <div class="divider">Don't have an account?</div>
-                
+
                 <div class="text-center">
-                    <a href="{% url 'private_teaching:register' %}" class="btn btn-outline w-full">Register as Student</a>
+                    <a href="{% url 'accounts:signup' %}?next={{ request.GET.next|default:'/private-teaching/' }}" class="btn btn-outline w-full">Sign Up</a>
                 </div>
-                
+
                 <div class="text-center mt-4">
                     <a href="{% url 'private_teaching:home' %}" class="link link-hover">← Back to Private Teaching</a>
                 </div>

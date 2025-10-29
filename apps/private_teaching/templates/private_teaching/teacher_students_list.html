@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Students - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">My Students</h1>
+                <p class="text-base-content/70">Students listed in surname alphabetical order</p>
+            </div>
+            <a href="{% url 'private_teaching:teacher_dashboard' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Student Count -->
+    <div class="mb-6">
+        <div class="stat bg-base-200 rounded-lg shadow">
+            <div class="stat-title">Total Students</div>
+            <div class="stat-value text-primary">{{ student_data|length }}</div>
+            <div class="stat-desc">Active students with accepted lessons</div>
+        </div>
+    </div>
+
+    {% if student_data %}
+        <!-- Students Table -->
+        <div class="card card-section shadow-xl">
+            <div class="card-body p-0">
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th class="text-lg">Surname</th>
+                                <th class="text-lg">First Name</th>
+                                <th class="text-lg">Email</th>
+                                <th class="text-lg">Subjects</th>
+                                <th class="text-lg">Total Lessons</th>
+                                <th class="text-lg text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in student_data %}
+                                {% with student=data.user %}
+                                    <tr class="hover">
+                                        <td class="font-semibold">
+                                            {% if student.profile.last_name %}
+                                                {{ student.profile.last_name }}
+                                            {% else %}
+                                                {{ student.last_name|default:"—" }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if student.profile.first_name %}
+                                                {{ student.profile.first_name }}
+                                            {% else %}
+                                                {{ student.first_name|default:"—" }}
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ student.email|default:"No email" }}</td>
+                                        <td>
+                                            {% if data.subjects %}
+                                                <div class="flex flex-wrap gap-1">
+                                                    {% for subject in data.subjects %}
+                                                        <span class="badge badge-primary badge-sm">{{ subject.subject }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-info">{{ data.total_lessons }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <button
+                                                onclick="viewContactDetails({{ student.id }})"
+                                                class="btn btn-sm btn-primary"
+                                            >
+                                                <i class="fas fa-address-card mr-1"></i>
+                                                Contact Details
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endwith %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <div class="flex justify-center mt-6">
+                <div class="btn-group">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1" class="btn btn-outline">«</a>
+                        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline">‹</a>
+                    {% endif %}
+
+                    <button class="btn btn-outline btn-active">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</button>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-outline">›</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}" class="btn btn-outline">»</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <!-- Empty State -->
+        <div class="card card-section shadow-xl">
+            <div class="card-body">
+                <div class="text-center py-12">
+                    <div class="text-6xl mb-4">👥</div>
+                    <h3 class="text-xl font-semibold mb-2">No Students Yet</h3>
+                    <p class="text-base-content/70 mb-4">You don't have any students with accepted lessons yet.</p>
+                    <a href="{% url 'private_teaching:incoming_requests' %}" class="btn btn-primary">
+                        <i class="fas fa-inbox mr-2"></i>Check Incoming Requests
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Contact Details Modal -->
+<dialog id="contact_modal" class="modal">
+    <div class="modal-box max-w-2xl">
+        <h3 class="font-bold text-2xl mb-4">
+            <i class="fas fa-address-card mr-2"></i>
+            Contact Details
+        </h3>
+
+        <div id="contact_content" class="space-y-4">
+            <!-- Content will be loaded via JavaScript -->
+            <div class="flex justify-center py-8">
+                <span class="loading loading-spinner loading-lg"></span>
+            </div>
+        </div>
+
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Close</button>
+            </form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<script>
+    function viewContactDetails(studentId) {
+        const modal = document.getElementById('contact_modal');
+        const contentDiv = document.getElementById('contact_content');
+
+        // Show loading state
+        contentDiv.innerHTML = '<div class="flex justify-center py-8"><span class="loading loading-spinner loading-lg"></span></div>';
+
+        // Open modal
+        modal.showModal();
+
+        // Fetch contact details
+        fetch(`/private-teaching/teacher/students/${studentId}/contact/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load contact details');
+                }
+                return response.json();
+            })
+            .then(data => {
+                let html = `
+                    <div class="space-y-4">
+                        <div class="bg-base-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-lg mb-3 flex items-center">
+                                <i class="fas fa-user mr-2 text-primary"></i>
+                                ${data.full_name}
+                            </h4>
+
+                            <div class="grid grid-cols-1 gap-3">
+                                <div class="flex items-start">
+                                    <i class="fas fa-envelope w-6 text-primary mt-1"></i>
+                                    <div>
+                                        <div class="text-sm text-base-content/70">Email</div>
+                                        <div class="font-medium">${data.email || 'Not provided'}</div>
+                                    </div>
+                                </div>
+
+                                ${data.phone ? `
+                                <div class="flex items-start">
+                                    <i class="fas fa-phone w-6 text-primary mt-1"></i>
+                                    <div>
+                                        <div class="text-sm text-base-content/70">Phone</div>
+                                        <div class="font-medium">${data.phone}</div>
+                                    </div>
+                                </div>
+                                ` : ''}
+
+                                ${data.address ? `
+                                <div class="flex items-start">
+                                    <i class="fas fa-map-marker-alt w-6 text-primary mt-1"></i>
+                                    <div>
+                                        <div class="text-sm text-base-content/70">Address</div>
+                                        <div class="font-medium">${data.address}</div>
+                                    </div>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        ${data.is_guardian && data.children && data.children.length > 0 ? `
+                        <div class="bg-info/10 rounded-lg p-4 border border-info/20">
+                            <h4 class="font-semibold text-lg mb-3 flex items-center text-info">
+                                <i class="fas fa-child mr-2"></i>
+                                Guardian - Child Profiles
+                            </h4>
+                            <div class="space-y-2">
+                                ${data.children.map(child => `
+                                    <div class="flex items-center bg-base-100 rounded p-2">
+                                        <i class="fas fa-user-circle mr-2"></i>
+                                        <div>
+                                            <div class="font-medium">${child.full_name}</div>
+                                            ${child.date_of_birth ? `<div class="text-sm text-base-content/70">DOB: ${child.date_of_birth}</div>` : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                contentDiv.innerHTML = html;
+            })
+            .catch(error => {
+                contentDiv.innerHTML = `
+                    <div class="alert alert-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>Failed to load contact details. Please try again.</span>
+                    </div>
+                `;
+                console.error('Error loading contact details:', error);
+            });
+    }
+</script>
+{% endblock %}

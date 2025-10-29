@@ -10,32 +10,16 @@ from django.urls import reverse
 
 class InstructorRequiredMixin(UserPassesTestMixin):
     """
-    Mixin to ensure user has instructor/teacher status.
-    Checks both is_teacher (accounts) and is_instructor (workshops) flags.
+    Mixin to ensure user has teacher/instructor status.
+    Uses the unified user.is_instructor() which checks profile.is_teacher.
     """
 
     def test_func(self):
         if not self.request.user.is_authenticated:
             return False
 
-        # Check if user has teacher status in either profile
-        try:
-            has_teacher_status = (
-                hasattr(self.request.user, 'profile') and
-                self.request.user.profile.is_teacher
-            )
-        except:
-            has_teacher_status = False
-
-        try:
-            has_instructor_status = (
-                hasattr(self.request.user, 'instructor_profile') and
-                self.request.user.instructor_profile.is_instructor
-            )
-        except:
-            has_instructor_status = False
-
-        return has_teacher_status or has_instructor_status
+        # Use the unified is_instructor() method (checks profile.is_teacher)
+        return self.request.user.is_instructor()
 
     def handle_no_permission(self):
         messages.error(

@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import Subject, LessonRequest, LessonRequestMessage, Cart, CartItem, Order, OrderItem
+from .models import (
+    Subject, LessonRequest, LessonRequestMessage, Cart, CartItem, Order, OrderItem,
+    TeacherStudentApplication, ApplicationMessage
+)
 from lessons.models import Lesson
 
 
@@ -94,3 +97,49 @@ class OrderItemAdmin(admin.ModelAdmin):
     list_display = ['order', 'lesson', 'price_paid']
     list_filter = ['order__created_at']
     search_fields = ['order__order_number']
+
+
+class ApplicationMessageInline(admin.TabularInline):
+    model = ApplicationMessage
+    extra = 0
+    fields = ['author', 'message', 'is_read', 'created_at']
+    readonly_fields = ['created_at']
+
+
+@admin.register(TeacherStudentApplication)
+class TeacherStudentApplicationAdmin(admin.ModelAdmin):
+    list_display = ['student_name', 'teacher', 'status', 'created_at', 'status_changed_at']
+    list_filter = ['status', 'created_at', 'status_changed_at']
+    search_fields = [
+        'applicant__first_name', 'applicant__last_name', 'applicant__email',
+        'teacher__first_name', 'teacher__last_name',
+        'child_profile__first_name', 'child_profile__last_name'
+    ]
+    ordering = ['-created_at']
+    inlines = [ApplicationMessageInline]
+    readonly_fields = ['created_at', 'updated_at', 'status_changed_at']
+
+    fieldsets = (
+        ('Application Info', {
+            'fields': ('applicant', 'child_profile', 'teacher')
+        }),
+        ('Status', {
+            'fields': ('status', 'teacher_notes', 'status_changed_at')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(ApplicationMessage)
+class ApplicationMessageAdmin(admin.ModelAdmin):
+    list_display = ['application', 'author', 'message_preview', 'is_read', 'created_at']
+    list_filter = ['is_read', 'created_at']
+    search_fields = ['author__first_name', 'author__last_name', 'message']
+    ordering = ['-created_at']
+
+    def message_preview(self, obj):
+        return obj.message[:50] + '...' if len(obj.message) > 50 else obj.message
+    message_preview.short_description = 'Message'

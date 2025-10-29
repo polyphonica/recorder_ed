@@ -16,7 +16,7 @@ class DomainSelectorView(TemplateView):
                 'description': 'Group music workshops and masterclasses',
                 'icon': '🎼',
                 'color': 'bg-blue-500',
-                'features': ['Group Learning', 'Expert Instructors', 'Various Instruments', 'All Skill Levels']
+                'features': ['Group Learning', 'Expert Instructor', 'Online & In-person', 'All Skill Levels']
             },
             {
                 'name': 'Private Lessons',

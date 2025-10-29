@@ -122,9 +122,39 @@ class StudentSignupForm(UserCreationForm):
 class LessonRequestForm(forms.ModelForm):
     """Form for the main lesson request (container only - messages handled separately)"""
 
+    # Child selection for guardians
+    child_profile = forms.ChoiceField(
+        required=False,
+        label="Request lessons for:",
+        widget=forms.RadioSelect(attrs={
+            'class': 'radio radio-primary'
+        }),
+        help_text="Select which child these lessons are for"
+    )
+
     class Meta:
         model = LessonRequest
         fields = []  # No fields - this is just a container for the formset
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        # Setup child selection field for guardians
+        if self.user and self.user.is_authenticated and self.user.profile.is_guardian:
+            from apps.accounts.models import ChildProfile
+            children = self.user.children.all()
+
+            if children:
+                choices = [(str(child.id), f"{child.full_name} (Age: {child.age})") for child in children]
+                self.fields['child_profile'].choices = choices
+                self.fields['child_profile'].required = True
+            else:
+                # Remove field if no children
+                del self.fields['child_profile']
+        else:
+            # Remove field for non-guardians
+            del self.fields['child_profile']
 
 
 class StudentLessonForm(forms.ModelForm):

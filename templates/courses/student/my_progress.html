@@ -44,6 +44,21 @@
                             <div class="text-sm text-base-content/70 mt-2">
                                 {{ enrollment.completed_at|date:"M d, Y" }}
                             </div>
+
+                            <!-- Certificate Section -->
+                            {% if enrollment.certificate %}
+                                <a href="{% url 'courses:certificate_view' enrollment.certificate.id %}"
+                                   class="btn btn-success btn-sm mt-3">
+                                    <i class="fas fa-certificate mr-2"></i>View Certificate
+                                </a>
+                            {% elif enrollment.progress_percentage == 100 %}
+                                <form method="post" action="{% url 'courses:claim_certificate' course.slug %}" class="mt-3">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-award mr-2"></i>Claim Certificate
+                                    </button>
+                                </form>
+                            {% endif %}
                         {% else %}
                             <div class="badge badge-info badge-lg">
                                 <i class="fas fa-clock mr-2"></i>Keep going!

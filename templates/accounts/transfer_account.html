@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Transfer Account - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100 flex items-center justify-center p-4">
+    <div class="card w-full max-w-2xl bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title justify-center text-3xl mb-6">Transfer Your Account</h2>
+
+            <div class="alert alert-success mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div>
+                    <h3 class="font-bold">Congratulations!</h3>
+                    <div class="text-sm">You're now 18 years or older and can transfer your account to your own name. All your learning history will be preserved.</div>
+                </div>
+            </div>
+
+            <div class="bg-base-200 p-4 rounded-lg mb-6">
+                <h3 class="font-semibold mb-2">Current Information:</h3>
+                <p class="text-sm"><strong>Name:</strong> {{ child.full_name }}</p>
+                <p class="text-sm"><strong>Age:</strong> {{ child.age }} years old</p>
+                <p class="text-sm"><strong>Guardian:</strong> {{ child.guardian.get_full_name }}</p>
+            </div>
+
+            <div class="divider"></div>
+
+            {% if form.errors %}
+                <div class="alert alert-error mb-4">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+
+                <p class="text-sm text-base-content/70 mb-4">
+                    Create your new independent account. You'll use this email and password to log in after the transfer.
+                </p>
+
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">{{ form.email.label }}</span>
+                    </label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.email.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                    {% if form.email.help_text %}
+                        <label class="label">
+                            <span class="label-text-alt text-xs">{{ form.email.help_text }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">{{ form.password1.label }}</span>
+                    </label>
+                    {{ form.password1 }}
+                    {% if form.password1.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.password1.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">{{ form.password2.label }}</span>
+                    </label>
+                    {{ form.password2 }}
+                    {% if form.password2.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.password2.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">{{ form.phone.label }}</span>
+                    </label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.phone.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="form-control">
+                    <label class="label cursor-pointer justify-start gap-4">
+                        {{ form.confirm_transfer }}
+                        <span class="label-text">{{ form.confirm_transfer.label }}</span>
+                    </label>
+                    {% if form.confirm_transfer.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.confirm_transfer.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="alert alert-warning text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                        <strong>Important:</strong> After transfer, you will be responsible for managing your own account. Your guardian will no longer have access to your enrollments or learning progress.
+                    </div>
+                </div>
+
+                <div class="form-control mt-6">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        Transfer Account to My Name
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

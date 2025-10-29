@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Verify Certificate{% endblock %}
+
+{% block content %}
+<div class="section-courses min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+    <div class="container mx-auto px-4 py-12">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div class="inline-block p-4 bg-primary rounded-full mb-4">
+                    <i class="fas fa-shield-check text-5xl text-white"></i>
+                </div>
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">Certificate Verification</h1>
+                <p class="text-lg text-gray-600">Verify the authenticity of a course completion certificate</p>
+            </div>
+
+            <!-- Verification Form -->
+            <div class="card bg-base-100 shadow-2xl mb-8">
+                <div class="card-body">
+                    <form method="get" action="{% url 'courses:verify_certificate' %}">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Enter Certificate Number or ID</span>
+                            </label>
+                            <div class="join">
+                                <input type="text"
+                                       name="code"
+                                       placeholder="e.g., GRADE1-123456 or UUID"
+                                       class="input input-bordered join-item flex-1"
+                                       value="{{ request.GET.code }}"
+                                       required>
+                                <button type="submit" class="btn btn-primary join-item">
+                                    <i class="fas fa-search mr-2"></i>Verify
+                                </button>
+                            </div>
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">
+                                    The certificate number can be found on the certificate document
+                                </span>
+                            </label>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Verification Result -->
+            {% if request.GET.code %}
+                {% if verified %}
+                    <!-- Success - Certificate Found -->
+                    <div class="alert alert-success shadow-lg mb-6">
+                        <div>
+                            <i class="fas fa-check-circle text-2xl"></i>
+                            <div>
+                                <h3 class="font-bold text-lg">Certificate Verified</h3>
+                                <div class="text-sm">This certificate is authentic and was issued by Recordered Learning Platform</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body">
+                            <h2 class="card-title border-b pb-3 mb-4">Certificate Details</h2>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <p class="text-sm text-gray-600 mb-1">Student Name</p>
+                                    <p class="text-lg font-semibold">{{ student_name }}</p>
+                                </div>
+
+                                <div>
+                                    <p class="text-sm text-gray-600 mb-1">Course Title</p>
+                                    <p class="text-lg font-semibold">{{ course_title }}</p>
+                                </div>
+
+                                <div>
+                                    <p class="text-sm text-gray-600 mb-1">Certificate Number</p>
+                                    <p class="text-lg font-mono">{{ certificate.certificate_number }}</p>
+                                </div>
+
+                                <div>
+                                    <p class="text-sm text-gray-600 mb-1">Issue Date</p>
+                                    <p class="text-lg font-semibold">{{ certificate.issued_at|date:"F d, Y" }}</p>
+                                </div>
+
+                                <div>
+                                    <p class="text-sm text-gray-600 mb-1">Instructor</p>
+                                    <p class="text-lg font-semibold">{{ certificate.enrollment.course.instructor.get_full_name|default:certificate.enrollment.course.instructor.username }}</p>
+                                </div>
+
+                                <div>
+                                    <p class="text-sm text-gray-600 mb-1">Status</p>
+                                    <div class="badge badge-success badge-lg">Active & Valid</div>
+                                </div>
+                            </div>
+
+                            <div class="divider"></div>
+
+                            <div class="bg-base-200 p-4 rounded-lg">
+                                <div class="flex items-start gap-3">
+                                    <i class="fas fa-info-circle text-primary text-xl mt-1"></i>
+                                    <div>
+                                        <p class="font-semibold mb-1">Course Completion</p>
+                                        <p class="text-sm text-gray-600">
+                                            This certificate confirms that {{ student_name }} has successfully
+                                            completed all requirements for the course "{{ course_title }}" and has
+                                            demonstrated proficiency in the subject matter.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                {% else %}
+                    <!-- Error - Certificate Not Found -->
+                    <div class="alert alert-error shadow-lg">
+                        <div>
+                            <i class="fas fa-times-circle text-2xl"></i>
+                            <div>
+                                <h3 class="font-bold text-lg">Certificate Not Found</h3>
+                                <div class="text-sm">{{ error_message }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card bg-base-100 shadow-xl mt-6">
+                        <div class="card-body">
+                            <h3 class="font-semibold mb-3">Troubleshooting Tips:</h3>
+                            <ul class="list-disc list-inside space-y-2 text-gray-600">
+                                <li>Double-check the certificate number for typos</li>
+                                <li>Make sure to include all characters, including hyphens</li>
+                                <li>Certificate numbers are case-insensitive</li>
+                                <li>Contact support if you believe this is an error</li>
+                            </ul>
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <!-- Initial State - No Search Yet -->
+                <div class="card bg-base-200 shadow-xl">
+                    <div class="card-body">
+                        <h3 class="card-title mb-4">
+                            <i class="fas fa-question-circle mr-2 text-primary"></i>
+                            How Verification Works
+                        </h3>
+
+                        <div class="space-y-4">
+                            <div class="flex gap-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
+                                        1
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold mb-1">Locate Certificate Number</h4>
+                                    <p class="text-sm text-gray-600">
+                                        Find the certificate number on the certificate document.
+                                        It's usually displayed at the bottom in a format like "GRADE1-123456"
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
+                                        2
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold mb-1">Enter and Verify</h4>
+                                    <p class="text-sm text-gray-600">
+                                        Enter the certificate number in the field above and click "Verify".
+                                        The system will instantly check if the certificate is valid.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
+                                        3
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold mb-1">View Certificate Details</h4>
+                                    <p class="text-sm text-gray-600">
+                                        If valid, you'll see the student name, course title, issue date,
+                                        and other certificate details to confirm authenticity.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-lock"></i>
+                            <span class="text-sm">
+                                All certificates are cryptographically secured and cannot be forged.
+                                This verification system ensures the integrity of our certification process.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

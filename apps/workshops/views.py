@@ -265,23 +265,36 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
         # Double-check user is authenticated
         if not self.request.user.is_authenticated:
             return self.handle_no_permission()
-            
+
         registration = form.save(commit=False)
         registration.student = self.request.user
         registration.session = self.session
         registration.email = registration.email or getattr(self.request.user, 'email', '')
-        
+
+        # Handle child profile if guardian
+        if self.request.user.profile.is_guardian:
+            child_id = form.cleaned_data.get('child_profile')
+            if child_id:
+                from apps.accounts.models import ChildProfile
+                try:
+                    child = ChildProfile.objects.get(id=child_id, guardian=self.request.user)
+                    registration.child_profile = child
+                except ChildProfile.DoesNotExist:
+                    messages.error(self.request, 'Invalid child selected.')
+                    return redirect('workshops:detail', slug=self.workshop.slug)
+
         # Determine registration status based on capacity
         if self.session.is_full:
             if self.session.waitlist_enabled:
                 registration.status = 'waitlisted'
+                student_name = registration.child_profile.full_name if registration.child_profile else 'You'
                 messages.success(
-                    self.request, 
-                    'You have been added to the waitlist for this workshop.'
+                    self.request,
+                    f'{student_name} {"has" if registration.child_profile else "have"} been added to the waitlist for this workshop.'
                 )
             else:
                 messages.error(
-                    self.request, 
+                    self.request,
                     'Sorry, this workshop session is full and waitlist is not available.'
                 )
                 return redirect('workshops:detail', slug=self.workshop.slug)
@@ -290,17 +303,18 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
             # Update session registration count
             self.session.current_registrations += 1
             self.session.save()
+            student_name = registration.child_profile.full_name if registration.child_profile else 'You'
             messages.success(
-                self.request, 
-                'Successfully registered for the workshop!'
+                self.request,
+                f'{student_name} {"has" if registration.child_profile else "have"} been successfully registered for the workshop!'
             )
-        
+
         registration.save()
-        
+
         # Update workshop total registrations
         self.workshop.total_registrations += 1
         self.workshop.save()
-        
+
         return redirect('workshops:registration_confirm', registration_id=registration.id)
     
     def get_context_data(self, **kwargs):

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+import uuid
 
 User = get_user_model()
 
@@ -42,13 +43,30 @@ class Subject(models.Model):
 
 
 class LessonRequest(models.Model):
-    """Container for lesson requests with message thread"""
+    """
+    Container for lesson requests with message thread.
+
+    Supports both adult students and children (under 18).
+    - For adults: student field is populated, child_profile is None
+    - For children: student field = guardian, child_profile = child
+    """
     student = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='lesson_requests',
-        help_text="Student who submitted this request"
+        help_text="For adults: the student. For children: the guardian/parent."
     )
+
+    # Child profile (for students under 18)
+    child_profile = models.ForeignKey(
+        'accounts.ChildProfile',
+        on_delete=models.CASCADE,
+        related_name='lesson_requests',
+        null=True,
+        blank=True,
+        help_text="If requesting lessons for a child, link to their child profile"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -56,9 +74,15 @@ class LessonRequest(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Lesson Request'
         verbose_name_plural = 'Lesson Requests'
+        indexes = [
+            models.Index(fields=['student', 'created_at']),
+            models.Index(fields=['child_profile', 'created_at']),
+        ]
 
     def __str__(self):
-        return f"{self.student.get_full_name()} - {self.lessons.count()} lesson(s) - {self.created_at.strftime('%Y-%m-%d')}"
+        student_name = self.child_profile.full_name if self.child_profile else self.student.get_full_name()
+        guardian_info = f" (Guardian: {self.student.get_full_name()})" if self.child_profile else ""
+        return f"{student_name}{guardian_info} - {self.lessons.count()} lesson(s) - {self.created_at.strftime('%Y-%m-%d')}"
 
     def get_absolute_url(self):
         return reverse('private_teaching:my_requests')
@@ -68,6 +92,23 @@ class LessonRequest(models.Model):
         """Get teacher from first lesson's subject"""
         first_lesson = self.lessons.first()
         return first_lesson.teacher if first_lesson else None
+
+    @property
+    def student_name(self):
+        """Return the name of the actual student (child or adult)"""
+        if self.child_profile:
+            return self.child_profile.full_name
+        return self.student.get_full_name() or self.student.username
+
+    @property
+    def guardian(self):
+        """Return guardian user if this is a child request, None otherwise"""
+        return self.student if self.child_profile else None
+
+    @property
+    def is_child_request(self):
+        """Check if this is a lesson request for a child (under 18)"""
+        return self.child_profile is not None
 
 
 class LessonRequestMessage(models.Model):
@@ -261,3 +302,125 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.lesson.subject} - {self.order.order_number}"
+
+
+class TeacherStudentApplication(models.Model):
+    """
+    Application for students to study with a specific teacher.
+    Students must be accepted before they can request lessons.
+    """
+    APPLICATION_STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('accepted', 'Accepted'),
+        ('waitlist', 'On Waiting List'),
+        ('declined', 'Declined'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    # Who is applying
+    applicant = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='private_teaching_applications',
+        help_text="Guardian/parent or adult student applying"
+    )
+
+    # If applying for a child
+    child_profile = models.ForeignKey(
+        'accounts.ChildProfile',
+        on_delete=models.CASCADE,
+        related_name='private_teaching_applications',
+        null=True,
+        blank=True,
+        help_text="If applying for a child, link to their child profile"
+    )
+
+    # Which teacher
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='student_applications',
+        help_text="Teacher being applied to"
+    )
+
+    # Status and notes
+    status = models.CharField(
+        max_length=20,
+        choices=APPLICATION_STATUS_CHOICES,
+        default='pending',
+        help_text="Current status of the application"
+    )
+
+    teacher_notes = models.TextField(
+        blank=True,
+        help_text="Private notes from teacher (reason for decline, waiting list notes, etc.)"
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    status_changed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['created_at']
+        verbose_name = 'Teacher-Student Application'
+        verbose_name_plural = 'Teacher-Student Applications'
+        unique_together = [['applicant', 'child_profile', 'teacher']]
+        indexes = [
+            models.Index(fields=['teacher', 'status']),
+            models.Index(fields=['applicant', 'status']),
+        ]
+
+    def __str__(self):
+        student_name = self.student_name
+        return f"{student_name} → {self.teacher.get_full_name()} ({self.get_status_display()})"
+
+    @property
+    def student_name(self):
+        """Return the name of the actual student (child or adult)"""
+        if self.child_profile:
+            return self.child_profile.full_name
+        return self.applicant.get_full_name() or self.applicant.username
+
+    @property
+    def is_child_application(self):
+        """Check if this is an application for a child"""
+        return self.child_profile is not None
+
+    def get_absolute_url(self):
+        return reverse('private_teaching:application_detail', kwargs={'application_id': self.id})
+
+
+class ApplicationMessage(models.Model):
+    """Messages between teacher and student/guardian regarding application"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    application = models.ForeignKey(
+        TeacherStudentApplication,
+        on_delete=models.CASCADE,
+        related_name='messages',
+        help_text="The application this message belongs to"
+    )
+
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        help_text="User who wrote this message (applicant or teacher)"
+    )
+
+    message = models.TextField(help_text="Message content")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # Track if message has been read
+    is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['created_at']
+        verbose_name = 'Application Message'
+        verbose_name_plural = 'Application Messages'
+
+    def __str__(self):
+        return f"{self.author.get_full_name()}: {self.message[:50]}"

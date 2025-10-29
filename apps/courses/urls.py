@@ -70,11 +70,21 @@ urlpatterns = [
     path('messages/compose/<uuid:lesson_id>/', views.MessageComposeView.as_view(), name='message_compose'),
     path('messages/<uuid:message_id>/', views.MessageThreadView.as_view(), name='message_thread'),
 
+    # Certificates
+    path('certificates/', views.CertificateGalleryView.as_view(), name='certificate_gallery'),
+    path('certificates/<uuid:certificate_id>/', views.CertificateViewView.as_view(), name='certificate_view'),
+    path('certificates/<uuid:certificate_id>/download/', views.CertificateDownloadView.as_view(), name='certificate_download'),
+    path('<slug:slug>/claim-certificate/', views.CertificateClaimView.as_view(), name='claim_certificate'),
+
     # ========================================================================
-    # PUBLIC URLs - Course Browsing
+    # PUBLIC URLs - Course Browsing & Verification
     # ========================================================================
+
+    # Certificate Verification (public, no login required)
+    path('verify-certificate/', views.CertificateVerifyView.as_view(), name='verify_certificate'),
 
     path('', views.CourseListView.as_view(), name='list'),
     path('<slug:slug>/', views.CourseDetailView.as_view(), name='detail'),
     path('<slug:slug>/enroll/', views.CourseEnrollView.as_view(), name='enroll'),
+    path('<slug:slug>/preview/<uuid:lesson_id>/', views.LessonPreviewView.as_view(), name='lesson_preview'),
 ]

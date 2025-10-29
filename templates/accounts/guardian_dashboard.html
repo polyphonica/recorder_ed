@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Guardian Dashboard - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100 p-4">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-3xl font-bold">Guardian Dashboard</h1>
+                <p class="text-base-content/70 mt-2">Manage your children's accounts and enrollments</p>
+            </div>
+            <a href="{% url 'accounts:add_child' %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Child
+            </a>
+        </div>
+
+        <!-- Children List -->
+        {% if children %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for child in children %}
+                    <div class="card bg-base-200 shadow-xl">
+                        <div class="card-body">
+                            <h2 class="card-title">{{ child.full_name }}</h2>
+
+                            <!-- Child Info -->
+                            <div class="space-y-2 text-sm">
+                                <p>
+                                    <span class="font-semibold">Age:</span>
+                                    {{ child.age }} years old
+                                </p>
+                                <p>
+                                    <span class="font-semibold">Date of Birth:</span>
+                                    {{ child.date_of_birth|date:"M d, Y" }}
+                                </p>
+                                {% if child.is_adult %}
+                                    <div class="alert alert-warning text-xs mt-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                        <span>This child is now 18+. They can transfer this account to their own name.</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="divider"></div>
+
+                            <!-- Enrollments Summary -->
+                            <div class="text-sm space-y-1">
+                                <p class="font-semibold">Enrollments:</p>
+                                <ul class="list-disc list-inside text-base-content/70">
+                                    <li>Courses: {{ child.course_enrollments.count }}</li>
+                                    <li>Workshops: {{ child.workshop_registrations.count }}</li>
+                                    <li>Lesson Requests: {{ child.lesson_requests.count }}</li>
+                                </ul>
+                            </div>
+
+                            <div class="card-actions justify-end mt-4">
+                                {% if child.is_adult %}
+                                    <a href="{% url 'accounts:transfer_account' child.id %}" class="btn btn-sm btn-success">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                        </svg>
+                                        Transfer Account
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'accounts:edit_child' child.id %}" class="btn btn-sm btn-outline">
+                                        Edit
+                                    </a>
+                                    <a href="{% url 'accounts:delete_child' child.id %}" class="btn btn-sm btn-error btn-outline">
+                                        Delete
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- No Children Yet -->
+            <div class="card bg-base-200 shadow-xl">
+                <div class="card-body text-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <h2 class="card-title justify-center mt-4">No children added yet</h2>
+                    <p class="text-base-content/70">Add your first child profile to start enrolling them in courses, workshops, and lessons.</p>
+                    <div class="card-actions justify-center mt-4">
+                        <a href="{% url 'accounts:add_child' %}" class="btn btn-primary">
+                            Add Your First Child
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Back to Dashboard -->
+        <div class="mt-6">
+            <a href="{% url 'workshops:student_dashboard' %}" class="btn btn-ghost">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Main Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

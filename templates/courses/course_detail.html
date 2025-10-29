@@ -54,27 +54,35 @@
                 <h1 class="text-4xl font-bold mb-4">{{ course.title }}</h1>
 
                 <!-- Instructor Info -->
-                <div class="flex items-center gap-3 mb-6 p-4 bg-base-200 rounded-lg">
+                <a href="{% url 'accounts:teacher_profile' course.instructor.id %}"
+                   class="flex items-center gap-3 mb-6 p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors group">
                     <div class="avatar placeholder">
-                        <div class="bg-primary text-primary-content rounded-full w-12">
-                            <span class="text-lg font-semibold">
-                                {% if course.instructor.first_name %}
-                                    {{ course.instructor.first_name|first|upper }}
-                                {% else %}
-                                    {{ course.instructor.username|first|upper }}
-                                {% endif %}
-                            </span>
-                        </div>
+                        {% if course.instructor.profile.profile_image %}
+                            <div class="w-12 h-12 rounded-full">
+                                <img src="{{ course.instructor.profile.profile_image.url }}" alt="{{ course.instructor.get_full_name }}" />
+                            </div>
+                        {% else %}
+                            <div class="bg-primary text-primary-content rounded-full w-12">
+                                <span class="text-lg font-semibold">
+                                    {% if course.instructor.first_name %}
+                                        {{ course.instructor.first_name|first|upper }}
+                                    {% else %}
+                                        {{ course.instructor.username|first|upper }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                        {% endif %}
                     </div>
-                    <div>
-                        <div class="font-semibold text-lg">
+                    <div class="flex-1">
+                        <div class="font-semibold text-lg group-hover:text-primary transition-colors">
                             {{ course.instructor.get_full_name|default:course.instructor.username }}
+                            <i class="fas fa-arrow-right ml-2 text-sm"></i>
                         </div>
                         <div class="text-sm text-base-content/70">
-                            Course Instructor
+                            Course Instructor - View Profile
                         </div>
                     </div>
-                </div>
+                </a>
 
                 <!-- Course Description -->
                 <div class="prose prose-lg max-w-none mb-8 ck-content">
@@ -113,8 +121,8 @@
                                             {% for lesson in topic.lessons.all %}
                                                 {% if lesson.status == 'published' or is_owner %}
                                                 <li>
-                                                    <div class="flex items-center justify-between">
-                                                        <span class="flex items-center gap-2">
+                                                    <div class="flex items-center justify-between w-full">
+                                                        <span class="flex items-center gap-2 flex-1">
                                                             <i class="fas fa-play-circle text-sm"></i>
                                                             {{ lesson.lesson_number }}. {{ lesson.lesson_title }}
                                                             {% if lesson.is_preview %}
@@ -124,9 +132,18 @@
                                                                 <span class="badge badge-warning badge-xs">Draft</span>
                                                             {% endif %}
                                                         </span>
-                                                        {% if lesson.duration_minutes %}
-                                                            <span class="text-xs text-base-content/50">{{ lesson.duration_minutes }} min</span>
-                                                        {% endif %}
+                                                        <div class="flex items-center gap-2">
+                                                            {% if lesson.duration_minutes %}
+                                                                <span class="text-xs text-base-content/50">{{ lesson.duration_minutes }} min</span>
+                                                            {% endif %}
+                                                            {% if lesson.is_preview and not is_enrolled %}
+                                                                <a href="{% url 'courses:lesson_preview' course.slug lesson.id %}"
+                                                                   class="btn btn-xs btn-accent"
+                                                                   target="_blank">
+                                                                    <i class="fas fa-eye mr-1"></i>Preview
+                                                                </a>
+                                                            {% endif %}
+                                                        </div>
                                                     </div>
                                                 </li>
                                                 {% endif %}
@@ -184,12 +201,9 @@
                             </a>
                         {% else %}
                             {% if user.is_authenticated %}
-                                <form method="post" action="{% url 'courses:enroll' course.slug %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-primary btn-block mb-2">
-                                        <i class="fas fa-check-circle mr-2"></i>Enroll Now (FREE)
-                                    </button>
-                                </form>
+                                <a href="{% url 'courses:enroll' course.slug %}" class="btn btn-primary btn-block mb-2">
+                                    <i class="fas fa-check-circle mr-2"></i>Enroll Now (FREE)
+                                </a>
                                 <div class="text-center text-xs text-base-content/70">
                                     Note: Payment integration coming soon
                                 </div>
@@ -227,6 +241,14 @@
                             <li class="flex items-start gap-2">
                                 <i class="fas fa-check text-success mt-1"></i>
                                 <span>Quizzes and assessments</span>
+                            </li>
+                             <li class="flex items-start gap-2">
+                                <i class="fas fa-check text-success mt-1"></i>
+                                <span>Play-along audio with accompaniment</span>
+                            </li>
+                              <li class="flex items-start gap-2">
+                                <i class="fas fa-check text-success mt-1"></i>
+                                <span>Downloadable documentation</span>
                             </li>
                             {% endif %}
                         </ul>

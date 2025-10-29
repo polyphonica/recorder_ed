@@ -13,7 +13,44 @@
             
             <form method="post" class="space-y-6">
                 {% csrf_token %}
-                
+
+                <!-- Child Selection for Guardians -->
+                {% if form.child_profile %}
+                    <div class="bg-base-200 p-6 rounded-lg space-y-4">
+                        <h3 class="text-xl font-medium flex items-center gap-2">
+                            <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                            </svg>
+                            {{ form.child_profile.label }}
+                        </h3>
+
+                        <div class="alert alert-info">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span>You are requesting as a guardian. Select which child these lessons are for.</span>
+                        </div>
+
+                        <div class="form-control space-y-3">
+                            {% for choice in form.child_profile %}
+                                <label class="flex items-center gap-4 p-4 border border-base-300 rounded-lg hover:bg-base-100 cursor-pointer transition-colors">
+                                    {{ choice.tag }}
+                                    <span class="label-text font-medium">{{ choice.choice_label }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+
+                        {% if form.child_profile.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.child_profile.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                        {% if form.child_profile.help_text %}
+                            <label class="label">
+                                <span class="label-text-alt">{{ form.child_profile.help_text }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
                 <!-- Proposed Lesson Slots -->
                 <div class="space-y-4">
                     <div class="flex justify-between items-center">

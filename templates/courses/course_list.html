@@ -12,35 +12,54 @@
             <p class="text-base-content/70">Explore our collection of music education courses</p>
         </div>
 
-        <!-- Filters (Placeholder for Phase 3) -->
+        <!-- Filters -->
         <div class="card bg-base-100 shadow-xl mb-6">
             <div class="card-body">
-                <div class="flex flex-wrap gap-4 items-center">
+                <form method="get" action="{% url 'courses:list' %}" class="flex flex-wrap gap-4 items-end">
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">Grade Level</span>
                         </label>
-                        <select class="select select-bordered">
-                            <option selected>All Grades</option>
-                            <option>Grade 1</option>
-                            <option>Grade 2</option>
-                            <option>Grade 3</option>
-                            <option>Grade 4</option>
-                            <option>Grade 5</option>
-                            <option>Grade 6</option>
-                            <option>Grade 7</option>
-                            <option>Grade 8</option>
+                        <select name="grade" class="select select-bordered" onchange="this.form.submit()">
+                            <option value="all" {% if current_grade == 'all' %}selected{% endif %}>All Grades</option>
+                            {% for value, label in grade_choices %}
+                                <option value="{{ value }}" {% if current_grade == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="form-control flex-1">
                         <label class="label">
                             <span class="label-text">Search</span>
                         </label>
-                        <input type="text" placeholder="Search courses..." class="input input-bordered w-full">
+                        <div class="join w-full">
+                            <input type="text" name="search" value="{{ current_search }}" placeholder="Search courses..." class="input input-bordered join-item w-full">
+                            <button type="submit" class="btn btn-primary join-item">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                </div>
+                    {% if current_grade != 'all' or current_search %}
+                        <div class="form-control">
+                            <a href="{% url 'courses:list' %}" class="btn btn-ghost">Clear Filters</a>
+                        </div>
+                    {% endif %}
+                </form>
             </div>
         </div>
+
+        <!-- Active Filters Info -->
+        {% if current_grade != 'all' or current_search %}
+            <div class="alert alert-info mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                    <span>Showing filtered results: </span>
+                    {% if current_grade != 'all' %}<span class="font-semibold">{{ current_grade|upper }}</span>{% endif %}
+                    {% if current_search %}<span class="font-semibold">Search: "{{ current_search }}"</span>{% endif %}
+                </div>
+            </div>
+        {% endif %}
 
         <!-- Course Grid -->
         {% if courses %}
@@ -84,12 +103,15 @@
                                 </svg>
                                 <span>{{ course.total_lessons }} lessons</span>
                             </div>
+                            {% comment %}
+                            <!-- Hidden temporarily - looks unpopular when enrollment count is low -->
                             <div class="flex items-center gap-1">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                 </svg>
                                 <span>{{ course.total_enrollments }} students</span>
                             </div>
+                            {% endcomment %}
                         </div>
 
                         <div class="card-actions justify-between items-center">
@@ -106,15 +128,15 @@
             <div class="flex justify-center mt-8">
                 <div class="btn-group">
                     {% if page_obj.has_previous %}
-                        <a href="?page=1" class="btn btn-sm">«</a>
-                        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm">‹</a>
+                        <a href="?page=1{% if current_grade != 'all' %}&grade={{ current_grade }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" class="btn btn-sm">«</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if current_grade != 'all' %}&grade={{ current_grade }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" class="btn btn-sm">‹</a>
                     {% endif %}
 
                     <button class="btn btn-sm btn-active">Page {{ page_obj.number }}</button>
 
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm">›</a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}" class="btn btn-sm">»</a>
+                        <a href="?page={{ page_obj.next_page_number }}{% if current_grade != 'all' %}&grade={{ current_grade }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" class="btn btn-sm">›</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if current_grade != 'all' %}&grade={{ current_grade }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" class="btn btn-sm">»</a>
                     {% endif %}
                 </div>
             </div>
@@ -124,10 +146,20 @@
             <div class="card bg-base-100 shadow-xl">
                 <div class="card-body text-center py-12">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        {% if current_grade != 'all' or current_search %}
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        {% else %}
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        {% endif %}
                     </svg>
-                    <h3 class="text-xl font-semibold mb-2">No courses available yet</h3>
-                    <p class="text-base-content/70">Check back soon for new courses!</p>
+                    {% if current_grade != 'all' or current_search %}
+                        <h3 class="text-xl font-semibold mb-2">No courses match your filters</h3>
+                        <p class="text-base-content/70 mb-4">Try adjusting your search criteria or clear filters to see all courses.</p>
+                        <a href="{% url 'courses:list' %}" class="btn btn-primary">Clear Filters</a>
+                    {% else %}
+                        <h3 class="text-xl font-semibold mb-2">No courses available yet</h3>
+                        <p class="text-base-content/70">Check back soon for new courses!</p>
+                    {% endif %}
                 </div>
             </div>
         {% endif %}

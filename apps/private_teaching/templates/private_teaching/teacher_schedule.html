@@ -68,7 +68,11 @@
                                             </h3>
                                             <p class="text-base-content/70 mb-2">
                                                 <i class="fas fa-user mr-2"></i>
-                                                {{ lesson.student.get_full_name|default:lesson.student.username }}
+                                                {% if lesson.lesson_request.child_profile %}
+                                                    {{ lesson.lesson_request.child_profile.full_name }}
+                                                {% else %}
+                                                    {{ lesson.student.get_full_name|default:lesson.student.username }}
+                                                {% endif %}
                                             </p>
                                         </div>
                                         <div class="text-right">
@@ -121,7 +125,13 @@
                                     <div class="text-sm text-base-content/70">{{ lesson.lesson_time|time:"g:i A" }}</div>
                                 </td>
                                 <td>
-                                    <div class="font-semibold">{{ lesson.student.get_full_name|default:lesson.student.username }}</div>
+                                    <div class="font-semibold">
+                                        {% if lesson.lesson_request.child_profile %}
+                                            {{ lesson.lesson_request.child_profile.full_name }}
+                                        {% else %}
+                                            {{ lesson.student.get_full_name|default:lesson.student.username }}
+                                        {% endif %}
+                                    </div>
                                 </td>
                                 <td><span class="badge badge-outline">{{ lesson.subject.subject }}</span></td>
                                 <td>

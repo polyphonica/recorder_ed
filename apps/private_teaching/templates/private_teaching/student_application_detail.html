@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Application Details - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <a href="{% url 'private_teaching:student_applications' %}" class="btn btn-ghost btn-sm mb-4">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Applications
+        </a>
+        <h1 class="text-4xl font-bold mb-2">Application to Study with {{ application.teacher.get_full_name }}</h1>
+        <p class="text-base-content/70">Student: {{ application.student_name }}</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Application Status Card -->
+            <div class="card card-section shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Application Status
+                    </h2>
+
+                    <div class="space-y-4">
+                        <!-- Status -->
+                        <div>
+                            <div class="text-sm text-base-content/70 mb-1">Current Status</div>
+                            {% if application.status == 'pending' %}
+                                <div class="badge badge-warning badge-lg">
+                                    <i class="fas fa-clock mr-2"></i>Waiting for the teacher to accept your application
+                                </div>
+                            {% elif application.status == 'accepted' %}
+                                <div class="badge badge-success badge-lg">
+                                    <i class="fas fa-check-circle mr-2"></i>Accepted - You can now request lessons!
+                                </div>
+                            {% elif application.status == 'waitlist' %}
+                                <div class="badge badge-info badge-lg">
+                                    <i class="fas fa-list mr-2"></i>On Waiting List - We'll notify you when space opens
+                                </div>
+                            {% elif application.status == 'declined' %}
+                                <div class="badge badge-error badge-lg">
+                                    <i class="fas fa-times-circle mr-2"></i>Declined
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Dates -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-sm text-base-content/70">Applied On</div>
+                                <div class="font-semibold">{{ application.created_at|date:"M j, Y g:i A" }}</div>
+                            </div>
+                            {% if application.status_changed_at %}
+                                <div>
+                                    <div class="text-sm text-base-content/70">Status Changed</div>
+                                    <div class="font-semibold">{{ application.status_changed_at|date:"M j, Y g:i A" }}</div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Teacher's Message (if declined) -->
+                        {% if application.status == 'declined' and application.teacher_notes %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-comment"></i>
+                                <div>
+                                    <div class="font-semibold">Message from Teacher:</div>
+                                    <div class="text-sm mt-1">{{ application.teacher_notes }}</div>
+                                </div>
+                            </div>
+                        {% elif application.status == 'waitlist' and application.teacher_notes %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-comment"></i>
+                                <div>
+                                    <div class="font-semibold">Message from Teacher:</div>
+                                    <div class="text-sm mt-1">{{ application.teacher_notes }}</div>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Action Buttons -->
+                        {% if application.status == 'accepted' %}
+                            <div class="card-actions">
+                                <a href="{% url 'private_teaching:request_lesson' %}" class="btn btn-primary btn-block">
+                                    <i class="fas fa-calendar-plus mr-2"></i>
+                                    Request a Lesson
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message Thread -->
+            <div class="card card-section shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-comments mr-2"></i>
+                        Messages
+                    </h2>
+
+                    {% if app_messages %}
+                        <div class="space-y-4 mb-6 max-h-96 overflow-y-auto">
+                            {% for msg in app_messages %}
+                                <div class="chat {% if msg.author == user %}chat-end{% else %}chat-start{% endif %}">
+                                    <div class="chat-image avatar">
+                                        <div class="w-10 rounded-full">
+                                            <img src="{{ msg.author.profile.get_profile_image_url }}" alt="{{ msg.author.get_full_name }}">
+                                        </div>
+                                    </div>
+                                    <div class="chat-header">
+                                        {{ msg.author.get_full_name }}
+                                        <time class="text-xs opacity-50">{{ msg.created_at|date:"M j, g:i A" }}</time>
+                                    </div>
+                                    <div class="chat-bubble {% if msg.author == user %}chat-bubble-primary{% endif %}">
+                                        {{ msg.message|linebreaks }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8 text-base-content/70">
+                            <i class="fas fa-comment-slash text-4xl mb-2"></i>
+                            <p>No messages yet. Start the conversation!</p>
+                        </div>
+                    {% endif %}
+
+                    <!-- Send Message Form -->
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Send a message</span>
+                            </label>
+                            <textarea
+                                name="message"
+                                class="textarea textarea-bordered h-24"
+                                placeholder="Type your message here..."
+                                required
+                            ></textarea>
+                        </div>
+                        <div class="card-actions justify-end mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane mr-2"></i>
+                                Send Message
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Teacher Info Card -->
+            <div class="card card-section shadow-xl">
+                <div class="card-body">
+                    <h3 class="card-title text-lg mb-3">Teacher Information</h3>
+
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="avatar">
+                            <div class="w-16 rounded-full">
+                                <img src="{{ application.teacher.profile.get_profile_image_url }}" alt="{{ application.teacher.get_full_name }}">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="font-bold">{{ application.teacher.get_full_name }}</div>
+                            <div class="text-sm text-base-content/70">{{ application.teacher.email }}</div>
+                        </div>
+                    </div>
+
+                    {% if application.teacher.profile.bio %}
+                        <div class="mb-3">
+                            <div class="text-sm font-semibold mb-1">About</div>
+                            <p class="text-sm text-base-content/70">{{ application.teacher.profile.bio|truncatewords:30 }}</p>
+                        </div>
+                    {% endif %}
+
+                    {% if application.teacher.profile.specializations %}
+                        <div>
+                            <div class="text-sm font-semibold mb-1">Specializations</div>
+                            <p class="text-sm text-base-content/70">{{ application.teacher.profile.specializations }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Application Info -->
+            <div class="card card-section shadow-xl">
+                <div class="card-body">
+                    <h3 class="card-title text-lg mb-3">Application Details</h3>
+
+                    <div class="space-y-3">
+                        <div>
+                            <div class="text-sm text-base-content/70">Student Name</div>
+                            <div class="font-semibold">{{ application.student_name }}</div>
+                        </div>
+
+                        {% if application.is_child_application %}
+                            <div>
+                                <div class="text-sm text-base-content/70">Guardian</div>
+                                <div class="font-semibold">{{ application.applicant.get_full_name }}</div>
+                            </div>
+                            <div class="badge badge-info">Child Application</div>
+                        {% endif %}
+
+                        <div>
+                            <div class="text-sm text-base-content/70">Application ID</div>
+                            <div class="text-xs font-mono">{{ application.id }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

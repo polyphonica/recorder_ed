@@ -14,12 +14,13 @@ from lessons.models import Lesson, Document, LessonAttachedUrl
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm
 from .cart import CartManager
 from .mixins import (
-    StudentProfileCompletedMixin, 
+    StudentProfileCompletedMixin,
     StudentProfileNotCompletedMixin,
     StudentOnlyMixin,
     TeacherProfileCompletedMixin,
     TeacherProfileNotCompletedMixin,
-    PrivateTeachingLoginRequiredMixin
+    PrivateTeachingLoginRequiredMixin,
+    AcceptedStudentRequiredMixin
 )
 
 
@@ -58,14 +59,21 @@ class PrivateTeachingHomeView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['subjects'] = Subject.objects.all()
-        
+
+        # Get teachers offering private lessons
+        from django.contrib.auth.models import User
+        context['teachers'] = User.objects.filter(
+            profile__is_private_teacher=True,
+            profile__profile_completed=True
+        ).select_related('profile')[:6]  # Limit to 6 teachers
+
         if self.request.user.is_authenticated and hasattr(self.request.user, 'profile'):
             context['user_profile'] = self.request.user.profile
             if self.request.user.profile.is_student and self.request.user.profile.profile_completed:
                 context['recent_requests'] = LessonRequest.objects.filter(
                     student=self.request.user
                 ).order_by('-created_at')[:3]
-        
+
         return context
 
 
@@ -123,25 +131,42 @@ class TeacherProfileCompleteView(TeacherProfileNotCompletedMixin, TemplateView):
         return render(request, self.template_name, {'form': form})
 
 
-class LessonRequestCreateView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
+class LessonRequestCreateView(AcceptedStudentRequiredMixin, StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
     """View for students to create lesson requests with multiple lessons"""
     template_name = 'private_teaching/request_lesson.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form'] = LessonRequestForm()
+        context['form'] = LessonRequestForm(user=self.request.user)
         context['formset'] = StudentLessonFormSet()
         context['subjects'] = Subject.objects.filter(is_active=True)
         return context
 
     def post(self, request, *args, **kwargs):
-        form = LessonRequestForm(request.POST)
+        form = LessonRequestForm(request.POST, user=request.user)
         formset = StudentLessonFormSet(request.POST)
 
         if form.is_valid() and formset.is_valid():
             # Create the lesson request container
             lesson_request = form.save(commit=False)
             lesson_request.student = request.user
+
+            # Handle child profile if guardian
+            if request.user.profile.is_guardian:
+                child_id = form.cleaned_data.get('child_profile')
+                if child_id:
+                    from apps.accounts.models import ChildProfile
+                    try:
+                        child = ChildProfile.objects.get(id=child_id, guardian=request.user)
+                        lesson_request.child_profile = child
+                    except ChildProfile.DoesNotExist:
+                        messages.error(request, 'Invalid child selected.')
+                        return render(request, self.template_name, {
+                            'form': form,
+                            'formset': formset,
+                            'subjects': Subject.objects.filter(is_active=True)
+                        })
+
             lesson_request.save()
 
             # Save the lessons and populate student/teacher/lesson_request
@@ -166,7 +191,8 @@ class LessonRequestCreateView(StudentProfileCompletedMixin, StudentOnlyMixin, Te
                 )
 
             lesson_count = len(lessons)
-            messages.success(request, f'Lesson request submitted successfully with {lesson_count} lesson{"s" if lesson_count != 1 else ""}! The teacher will respond soon.')
+            student_name = lesson_request.student_name
+            messages.success(request, f'Lesson request for {student_name} submitted successfully with {lesson_count} lesson{"s" if lesson_count != 1 else ""}! The teacher will respond soon.')
             return redirect('private_teaching:my_requests')
 
         return render(request, self.template_name, {
@@ -281,7 +307,7 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             teacher=self.request.user,
             lesson_date=today,
             is_deleted=False
-        ).select_related('student', 'subject').order_by('lesson_time')
+        ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('lesson_time')
 
         # Get upcoming lessons (next 7 days)
         upcoming_lessons = Lesson.objects.filter(
@@ -289,7 +315,7 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             lesson_date__gte=today,
             lesson_date__lte=today + timedelta(days=7),
             is_deleted=False
-        ).select_related('student', 'subject').order_by('lesson_date', 'lesson_time')[:10]
+        ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('lesson_date', 'lesson_time')[:10]
 
         context.update({
             'pending_requests': pending_requests,
@@ -352,7 +378,7 @@ class IncomingRequestsView(TeacherProfileCompletedMixin, ListView):
         teacher_lesson_requests = LessonRequest.objects.filter(
             lessons__teacher=self.request.user,
             lessons__is_deleted=False
-        ).distinct().prefetch_related('lessons__subject', 'messages').order_by('-created_at')
+        ).distinct().prefetch_related('lessons__subject', 'messages').select_related('child_profile', 'student').order_by('-created_at')
 
         return teacher_lesson_requests
 
@@ -477,7 +503,7 @@ class TeacherScheduleView(TeacherProfileCompletedMixin, TemplateView):
             teacher=self.request.user,
             lesson_date__range=[today, end_date],
             is_deleted=False
-        ).select_related('student', 'subject').order_by('lesson_date', 'lesson_time')
+        ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('lesson_date', 'lesson_time')
 
         context.update({
             'scheduled_lessons': scheduled_lessons,
@@ -534,7 +560,7 @@ class CalendarView(PrivateTeachingLoginRequiredMixin, TemplateView):
                 lesson_date__isnull=False,
                 lesson_time__isnull=False,
                 is_deleted=False
-            ).select_related('student', 'subject')
+            ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile')
         else:
             # Student view - show only their lessons
             lessons = Lesson.objects.filter(
@@ -542,7 +568,7 @@ class CalendarView(PrivateTeachingLoginRequiredMixin, TemplateView):
                 lesson_date__isnull=False,
                 lesson_time__isnull=False,
                 is_deleted=False
-            ).select_related('student', 'teacher', 'subject')
+            ).select_related('student', 'teacher', 'subject', 'lesson_request', 'lesson_request__child_profile')
 
         # Convert lessons to calendar events
         calendar_events = []
@@ -571,9 +597,18 @@ class CalendarView(PrivateTeachingLoginRequiredMixin, TemplateView):
             # Get subject name safely
             subject_name = lesson.subject.subject if lesson.subject else 'Unknown Subject'
 
+            # Get student name - use child's name if lesson is for a child
+            student_display_name = 'Unknown'
+            if lesson.lesson_request and lesson.lesson_request.child_profile:
+                # Lesson is for a child - show child's name
+                student_display_name = lesson.lesson_request.child_profile.full_name
+            elif lesson.student:
+                # Regular student lesson
+                student_display_name = lesson.student.get_full_name()
+
             # Determine title based on user role
             if is_teacher:
-                title = f"{subject_name} - {lesson.student.get_full_name() if lesson.student else 'Unknown'}"
+                title = f"{subject_name} - {student_display_name}"
             else:
                 teacher_name = lesson.teacher.get_full_name() if lesson.teacher else 'Not assigned'
                 title = f"{subject_name} - {teacher_name}"
@@ -596,7 +631,7 @@ class CalendarView(PrivateTeachingLoginRequiredMixin, TemplateView):
                     'paymentStatus': lesson.payment_status,
                     'approvedStatus': lesson.approved_status,
                     'status': lesson.status,
-                    'student': lesson.student.get_full_name() if lesson.student else 'Unknown',
+                    'student': student_display_name,
                     'teacher': lesson.teacher.get_full_name() if lesson.teacher else 'Not assigned',
                     'price': str(lesson.fee) if lesson.fee else 'Not set'
                 }
@@ -922,17 +957,27 @@ class LessonDetailView(PrivateTeachingLoginRequiredMixin, View):
         try:
             # Get lesson based on user role
             if hasattr(request.user, 'profile') and request.user.profile.is_private_teacher:
-                lesson = Lesson.objects.get(
+                lesson = Lesson.objects.select_related(
+                    'subject', 'student', 'teacher', 'lesson_request', 'lesson_request__child_profile'
+                ).get(
                     id=lesson_id,
                     teacher=request.user,
                     approved_status='Accepted'
                 )
             else:
-                lesson = Lesson.objects.get(
+                lesson = Lesson.objects.select_related(
+                    'subject', 'student', 'teacher', 'lesson_request', 'lesson_request__child_profile'
+                ).get(
                     id=lesson_id,
                     student=request.user,
                     approved_status='Accepted'
                 )
+
+            # Get student name - use child's name if lesson is for a child
+            if lesson.lesson_request and lesson.lesson_request.child_profile:
+                student_name = lesson.lesson_request.child_profile.full_name
+            else:
+                student_name = lesson.student.get_full_name() if lesson.student else 'Unknown'
 
             lesson_data = {
                 'id': str(lesson.id),
@@ -944,7 +989,7 @@ class LessonDetailView(PrivateTeachingLoginRequiredMixin, View):
                 'payment_status': lesson.payment_status,
                 'approval_status': lesson.approved_status.lower(),
                 'price': str(lesson.fee) if lesson.fee else 'Not set',
-                'student': lesson.student.get_full_name() if lesson.student else 'Unknown',
+                'student': student_name,
                 'teacher': lesson.teacher.get_full_name() if lesson.teacher else 'Not assigned'
             }
 
@@ -1078,3 +1123,427 @@ class TeacherDocumentLibraryView(TeacherProfileCompletedMixin, TemplateView):
         context['total_items'] = documents.count() + urls.count()
 
         return context
+
+
+class TeacherStudentsListView(TeacherProfileCompletedMixin, ListView):
+    """Teacher view showing all their students in surname alphabetical order"""
+    template_name = 'private_teaching/teacher_students_list.html'
+    context_object_name = 'students'
+    paginate_by = 20
+
+    def get_queryset(self):
+        # Get all distinct students who have lessons with this teacher
+        from lessons.models import Lesson
+        student_ids = Lesson.objects.filter(
+            teacher=self.request.user,
+            approved_status='Accepted',
+            is_deleted=False
+        ).values_list('student__id', flat=True).distinct()
+
+        # Get students ordered by surname (last_name)
+        students = User.objects.filter(id__in=student_ids).select_related('profile')
+
+        # Order by profile last_name if available, otherwise User last_name, then first_name
+        from django.db.models import Case, When, Value, CharField, F
+        students = students.annotate(
+            effective_last_name=Case(
+                When(profile__last_name__isnull=False, then=F('profile__last_name')),
+                default=F('last_name'),
+                output_field=CharField()
+            ),
+            effective_first_name=Case(
+                When(profile__first_name__isnull=False, then=F('profile__first_name')),
+                default=F('first_name'),
+                output_field=CharField()
+            )
+        ).order_by('effective_last_name', 'effective_first_name')
+
+        return students
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Add lesson counts and subjects for each student
+        from lessons.models import Lesson
+        student_data = []
+        for student in context['students']:
+            lessons = Lesson.objects.filter(
+                teacher=self.request.user,
+                student=student,
+                approved_status='Accepted',
+                is_deleted=False
+            ).select_related('subject')
+
+            # Get unique subjects for this student
+            subjects = Subject.objects.filter(
+                teacher=self.request.user,
+                lesson__student=student,
+                lesson__approved_status='Accepted',
+                lesson__is_deleted=False
+            ).distinct()
+
+            student_data.append({
+                'user': student,
+                'total_lessons': lessons.count(),
+                'subjects': subjects
+            })
+
+        context['student_data'] = student_data
+        return context
+
+
+class StudentContactDetailView(TeacherProfileCompletedMixin, View):
+    """AJAX view for getting student contact details"""
+
+    def get(self, request, *args, **kwargs):
+        student_id = kwargs.get('student_id')
+
+        try:
+            # Verify this teacher has lessons with this student
+            from lessons.models import Lesson
+            lesson_exists = Lesson.objects.filter(
+                teacher=request.user,
+                student_id=student_id,
+                approved_status='Accepted',
+                is_deleted=False
+            ).exists()
+
+            if not lesson_exists:
+                return JsonResponse({'error': 'Access denied'}, status=403)
+
+            # Get student details
+            student = User.objects.select_related('profile').get(id=student_id)
+
+            # Get profile data
+            profile = student.profile
+
+            # Build full address from components
+            address_parts = [
+                profile.address_line_1,
+                profile.address_line_2,
+                profile.city,
+                profile.state_province,
+                profile.postal_code,
+                profile.country
+            ]
+            full_address = ', '.join([part for part in address_parts if part])
+
+            # Build contact data
+            contact_data = {
+                'full_name': profile.full_name if hasattr(profile, 'full_name') else student.get_full_name(),
+                'email': student.email,
+                'phone': profile.phone if hasattr(profile, 'phone') else None,
+                'address': full_address if full_address else None,
+                'is_guardian': profile.is_guardian if hasattr(profile, 'is_guardian') else False,
+            }
+
+            # If guardian, get children
+            if contact_data['is_guardian']:
+                from apps.accounts.models import ChildProfile
+                children = ChildProfile.objects.filter(guardian=student)
+                contact_data['children'] = [
+                    {
+                        'full_name': child.full_name,
+                        'date_of_birth': child.date_of_birth.strftime('%Y-%m-%d') if child.date_of_birth else None
+                    }
+                    for child in children
+                ]
+
+            return JsonResponse(contact_data)
+
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'Student not found'}, status=404)
+
+
+# ==========================================
+# TEACHER-STUDENT APPLICATION SYSTEM
+# ==========================================
+
+class ApplyToTeacherView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
+    """Student applies to study with a specific teacher"""
+    template_name = 'private_teaching/apply_to_teacher.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        teacher_id = self.kwargs.get('teacher_id')
+        teacher = get_object_or_404(User, id=teacher_id, profile__is_private_teacher=True)
+
+        # Check if already applied
+        from apps.private_teaching.models import TeacherStudentApplication
+        existing_application = TeacherStudentApplication.objects.filter(
+            applicant=self.request.user,
+            teacher=teacher,
+            child_profile=None  # Adult application
+        ).first()
+
+        # Check teacher capacity and settings
+        accepted_count = TeacherStudentApplication.objects.filter(
+            teacher=teacher,
+            status='accepted'
+        ).count()
+
+        context['teacher'] = teacher
+        context['existing_application'] = existing_application
+        context['accepted_count'] = accepted_count
+        context['max_students'] = teacher.profile.max_private_students
+        context['is_accepting'] = teacher.profile.accepting_new_private_students
+
+        # Get child profiles if guardian
+        if self.request.user.profile.is_guardian:
+            from apps.accounts.models import ChildProfile
+            context['children'] = ChildProfile.objects.filter(guardian=self.request.user)
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        from apps.private_teaching.models import TeacherStudentApplication, ApplicationMessage
+
+        teacher_id = kwargs.get('teacher_id')
+        teacher = get_object_or_404(User, id=teacher_id, profile__is_private_teacher=True)
+
+        # Check if teacher is accepting applications
+        if not teacher.profile.accepting_new_private_students:
+            messages.error(request, 'This teacher is not currently accepting new students.')
+            return redirect('private_teaching:home')
+
+        # Get child profile if guardian
+        child_profile = None
+        child_id = request.POST.get('child_profile')
+        if request.user.profile.is_guardian and child_id:
+            from apps.accounts.models import ChildProfile
+            try:
+                child_profile = ChildProfile.objects.get(id=child_id, guardian=request.user)
+            except ChildProfile.DoesNotExist:
+                messages.error(request, 'Invalid child profile selected.')
+                return redirect('private_teaching:apply_to_teacher', teacher_id=teacher_id)
+
+        # Check if already applied
+        existing = TeacherStudentApplication.objects.filter(
+            applicant=request.user,
+            teacher=teacher,
+            child_profile=child_profile
+        ).first()
+
+        if existing:
+            messages.info(request, 'You have already applied to study with this teacher.')
+            return redirect('private_teaching:student_application_detail', application_id=existing.id)
+
+        # Create application
+        application = TeacherStudentApplication.objects.create(
+            applicant=request.user,
+            teacher=teacher,
+            child_profile=child_profile,
+            status='pending'
+        )
+
+        # Add initial message if provided
+        initial_message = request.POST.get('message', '').strip()
+        if initial_message:
+            ApplicationMessage.objects.create(
+                application=application,
+                author=request.user,
+                message=initial_message
+            )
+
+        student_name = child_profile.full_name if child_profile else request.user.get_full_name()
+        messages.success(request, f'Application submitted for {student_name}!')
+        return redirect('private_teaching:student_application_detail', application_id=application.id)
+
+
+class StudentApplicationsListView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
+    """List all applications for the student"""
+    template_name = 'private_teaching/student_applications_list.html'
+    context_object_name = 'applications'
+    paginate_by = 10
+
+    def get_queryset(self):
+        from apps.private_teaching.models import TeacherStudentApplication
+        return TeacherStudentApplication.objects.filter(
+            applicant=self.request.user
+        ).select_related('teacher', 'teacher__profile', 'child_profile').order_by('-created_at')
+
+
+class StudentApplicationDetailView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
+    """View single application with messaging"""
+    template_name = 'private_teaching/student_application_detail.html'
+
+    def get_application(self):
+        from apps.private_teaching.models import TeacherStudentApplication
+        return get_object_or_404(
+            TeacherStudentApplication,
+            id=self.kwargs['application_id'],
+            applicant=self.request.user
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        application = self.get_application()
+
+        context['application'] = application
+        context['app_messages'] = application.messages.select_related('author').order_by('created_at')
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """Handle sending a message"""
+        from apps.private_teaching.models import ApplicationMessage
+
+        application = self.get_application()
+        message_text = request.POST.get('message', '').strip()
+
+        if message_text:
+            ApplicationMessage.objects.create(
+                application=application,
+                author=request.user,
+                message=message_text
+            )
+            messages.success(request, 'Message sent!')
+        else:
+            messages.error(request, 'Message cannot be empty.')
+
+        return redirect('private_teaching:student_application_detail', application_id=application.id)
+
+
+# Teacher Application Management Views
+
+class TeacherApplicationsListView(TeacherProfileCompletedMixin, ListView):
+    """Teacher view of all student applications"""
+    template_name = 'private_teaching/teacher_applications_list.html'
+    context_object_name = 'applications'
+    paginate_by = 20
+
+    def get_queryset(self):
+        from apps.private_teaching.models import TeacherStudentApplication
+        status_filter = self.request.GET.get('status', 'pending')
+
+        queryset = TeacherStudentApplication.objects.filter(
+            teacher=self.request.user
+        ).select_related('applicant', 'applicant__profile', 'child_profile')
+
+        if status_filter and status_filter != 'all':
+            queryset = queryset.filter(status=status_filter)
+
+        return queryset.order_by('created_at')  # Oldest first (waiting longest)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from apps.private_teaching.models import TeacherStudentApplication
+
+        # Get counts for each status
+        context['pending_count'] = TeacherStudentApplication.objects.filter(
+            teacher=self.request.user, status='pending'
+        ).count()
+        context['accepted_count'] = TeacherStudentApplication.objects.filter(
+            teacher=self.request.user, status='accepted'
+        ).count()
+        context['waitlist_count'] = TeacherStudentApplication.objects.filter(
+            teacher=self.request.user, status='waitlist'
+        ).count()
+        context['declined_count'] = TeacherStudentApplication.objects.filter(
+            teacher=self.request.user, status='declined'
+        ).count()
+
+        context['status_filter'] = self.request.GET.get('status', 'pending')
+        context['max_students'] = self.request.user.profile.max_private_students
+        context['accepting_new'] = self.request.user.profile.accepting_new_private_students
+
+        return context
+
+
+class TeacherApplicationDetailView(TeacherProfileCompletedMixin, TemplateView):
+    """Teacher view of single application with messaging and status management"""
+    template_name = 'private_teaching/teacher_application_detail.html'
+
+    def get_application(self):
+        from apps.private_teaching.models import TeacherStudentApplication
+        return get_object_or_404(
+            TeacherStudentApplication,
+            id=self.kwargs['application_id'],
+            teacher=self.request.user
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        application = self.get_application()
+
+        context['application'] = application
+        context['app_messages'] = application.messages.select_related('author').order_by('created_at')
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """Handle sending a message or changing status"""
+        from apps.private_teaching.models import ApplicationMessage
+
+        application = self.get_application()
+        action = request.POST.get('action')
+
+        if action == 'send_message':
+            message_text = request.POST.get('message', '').strip()
+            if message_text:
+                ApplicationMessage.objects.create(
+                    application=application,
+                    author=request.user,
+                    message=message_text
+                )
+                messages.success(request, 'Message sent!')
+            else:
+                messages.error(request, 'Message cannot be empty.')
+
+        elif action == 'update_status':
+            new_status = request.POST.get('status')
+            teacher_notes = request.POST.get('teacher_notes', '').strip()
+
+            if new_status in ['accepted', 'waitlist', 'declined']:
+                old_status = application.status
+                application.status = new_status
+                application.teacher_notes = teacher_notes
+                application.status_changed_at = timezone.now()
+                application.save()
+
+                # Create a message in the thread if teacher provided notes
+                if teacher_notes:
+                    ApplicationMessage.objects.create(
+                        application=application,
+                        author=request.user,
+                        message=teacher_notes
+                    )
+
+                # TODO: Send email notification
+                messages.success(request, f'Application status updated to {application.get_status_display()}!')
+
+                # If accepted from waitlist, check if we should notify next in line
+                if new_status == 'accepted' and old_status == 'waitlist':
+                    # TODO: Implement waiting list notifications
+                    pass
+
+            else:
+                messages.error(request, 'Invalid status selected.')
+
+        return redirect('private_teaching:teacher_application_detail', application_id=application.id)
+
+
+class UpdateTeacherCapacityView(TeacherProfileCompletedMixin, View):
+    """Update teacher's capacity settings"""
+
+    def post(self, request, *args, **kwargs):
+        max_students = request.POST.get('max_private_students', '').strip()
+        accepting_new = request.POST.get('accepting_new_private_students') == 'on'
+
+        profile = request.user.profile
+
+        # Update max students
+        if max_students:
+            try:
+                profile.max_private_students = int(max_students)
+            except ValueError:
+                messages.error(request, 'Invalid number for max students.')
+                return redirect('private_teaching:teacher_applications')
+        else:
+            profile.max_private_students = None
+
+        profile.accepting_new_private_students = accepting_new
+        profile.save()
+
+        messages.success(request, 'Capacity settings updated!')
+        return redirect('private_teaching:teacher_applications')

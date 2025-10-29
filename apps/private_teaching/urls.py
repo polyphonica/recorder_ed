@@ -6,10 +6,10 @@ app_name = 'private_teaching'
 urlpatterns = [
     path('', views.PrivateTeachingHomeView.as_view(), name='home'),
     path('login/', views.PrivateTeachingLoginView.as_view(), name='login'),
-    path('register/', views.student_register, name='register'),
+    # path('register/', views.student_register, name='register'),  # REMOVED: Use unified /accounts/signup/
     path('profile/complete/', views.ProfileCompleteView.as_view(), name='profile_complete'),
     path('teacher/profile/complete/', views.TeacherProfileCompleteView.as_view(), name='teacher_profile_complete'),
-    
+
     # Student Views
     path('dashboard/', views.StudentDashboardView.as_view(), name='student_dashboard'),
     path('request/', views.LessonRequestCreateView.as_view(), name='request_lesson'),
@@ -31,6 +31,8 @@ urlpatterns = [
     path('teacher/action/<int:request_id>/', views.ActionRequestView.as_view(), name='action_request'),
     path('teacher/bulk-action/', views.BulkActionView.as_view(), name='bulk_action'),
     path('teacher/library/', views.TeacherDocumentLibraryView.as_view(), name='teacher_library'),
+    path('teacher/students/', views.TeacherStudentsListView.as_view(), name='teacher_students'),
+    path('teacher/students/<int:student_id>/contact/', views.StudentContactDetailView.as_view(), name='student_contact_detail'),
     
     # Cart Views
     path('cart/', views.CartView.as_view(), name='cart'),
@@ -45,4 +47,14 @@ urlpatterns = [
     # Shared Views
     path('calendar/', views.CalendarView.as_view(), name='calendar'),
     path('lesson/<uuid:lesson_id>/details/', views.LessonDetailView.as_view(), name='lesson_detail'),
+
+    # Student Application Views
+    path('apply/<int:teacher_id>/', views.ApplyToTeacherView.as_view(), name='apply_to_teacher'),
+    path('my-applications/', views.StudentApplicationsListView.as_view(), name='student_applications'),
+    path('my-applications/<uuid:application_id>/', views.StudentApplicationDetailView.as_view(), name='student_application_detail'),
+
+    # Teacher Application Management Views
+    path('teacher/applications/', views.TeacherApplicationsListView.as_view(), name='teacher_applications'),
+    path('teacher/applications/<uuid:application_id>/', views.TeacherApplicationDetailView.as_view(), name='teacher_application_detail'),
+    path('teacher/capacity/update/', views.UpdateTeacherCapacityView.as_view(), name='update_teacher_capacity'),
 ]

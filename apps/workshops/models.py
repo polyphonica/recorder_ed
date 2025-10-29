@@ -22,11 +22,19 @@ def user_full_name_or_username(self):
     return full_name if full_name else self.username
 
 def user_is_instructor(self):
-    """Check if user has instructor status"""
+    """
+    Check if user has teacher/instructor status.
+    Now uses the unified profile.is_teacher from accounts app.
+    """
+    # Use unified profile from accounts app
     try:
-        return self.instructor_profile.is_instructor
-    except UserProfile.DoesNotExist:
-        return False
+        if hasattr(self, 'profile'):
+            return self.profile.is_teacher
+    except:
+        pass
+
+    # Fallback to False if no profile exists
+    return False
 
 # Add methods to User model
 User.add_to_class('display_name', user_display_name)
@@ -486,7 +494,13 @@ class WorkshopSession(models.Model):
 
 
 class WorkshopRegistration(models.Model):
-    """Student registrations for workshop sessions"""
+    """
+    Student registrations for workshop sessions.
+
+    Supports both adult students and children (under 18).
+    - For adults: student field is populated, child_profile is None
+    - For children: student field = guardian, child_profile = child
+    """
     STATUS_CHOICES = [
         ('registered', 'Registered'),
         ('waitlisted', 'Waitlisted'),
@@ -495,18 +509,33 @@ class WorkshopRegistration(models.Model):
         ('no_show', 'No Show'),
         ('cancelled', 'Cancelled'),
     ]
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     session = models.ForeignKey(WorkshopSession, on_delete=models.CASCADE, related_name='registrations')
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='workshop_registrations')
-    
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='workshop_registrations',
+        help_text="For adults: the student. For children: the guardian/parent."
+    )
+
+    # Child profile (for students under 18)
+    child_profile = models.ForeignKey(
+        'accounts.ChildProfile',
+        on_delete=models.CASCADE,
+        related_name='workshop_registrations',
+        null=True,
+        blank=True,
+        help_text="If registering a child, link to their child profile"
+    )
+
     # Registration Details
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='registered')
     registration_date = models.DateTimeField(auto_now_add=True)
-    
+
     # Contact Information
-    email = models.EmailField()  # May differ from user email
-    phone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField()  # Guardian's email for child registrations
+    phone = models.CharField(max_length=20, blank=True)  # Guardian's phone for child registrations
     
     # Experience and Expectations
     experience_level = models.CharField(max_length=20, choices=Workshop.DIFFICULTY_CHOICES, blank=True)
@@ -531,17 +560,37 @@ class WorkshopRegistration(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['session', 'student']
         ordering = ['registration_date']
         indexes = [
             models.Index(fields=['session', 'status']),
             models.Index(fields=['student', 'status']),
+            models.Index(fields=['child_profile', 'status']),
             models.Index(fields=['session', 'waitlist_position']),
             models.Index(fields=['promotion_expires_at']),
         ]
-    
+
     def __str__(self):
-        return f"{self.student.get_full_name() or self.student.username} - {self.session}"
+        if self.child_profile:
+            return f"{self.child_profile.full_name} (Guardian: {self.student.get_full_name() or self.student.username}) - {self.session}"
+        else:
+            return f"{self.student.get_full_name() or self.student.username} - {self.session}"
+
+    @property
+    def student_name(self):
+        """Return the name of the actual student (child or adult)"""
+        if self.child_profile:
+            return self.child_profile.full_name
+        return self.student.get_full_name() or self.student.username
+
+    @property
+    def guardian(self):
+        """Return guardian user if this is a child registration, None otherwise"""
+        return self.student if self.child_profile else None
+
+    @property
+    def is_child_registration(self):
+        """Check if this is a registration for a child (under 18)"""
+        return self.child_profile is not None
     
     def save(self, *args, **kwargs):
         """Override save to handle waitlist position assignment"""

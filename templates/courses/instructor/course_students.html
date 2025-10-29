@@ -51,11 +51,9 @@
                 <div class="stat-figure text-success">
                     <i class="fas fa-check-circle text-2xl"></i>
                 </div>
-                <div class="stat-title">Completed</div>
-                <div class="stat-value text-success">
-                    {{ students_data|length|add:0 }}
-                    {% comment %}This will be calculated from students who completed{% endcomment %}
-                </div>
+                <div class="stat-title">Finished Course</div>
+                <div class="stat-value text-success">{{ completed_students }}</div>
+                <div class="stat-desc">Students who completed 100%</div>
             </div>
         </div>
 
@@ -89,15 +87,27 @@
                                             <div class="avatar placeholder">
                                                 <div class="bg-neutral text-neutral-content rounded-full w-12">
                                                     <span class="text-xl">
-                                                        {{ data.student.first_name|first|default:data.student.username|first }}{{ data.student.last_name|first|default:"" }}
+                                                        {% if data.child_profile %}
+                                                            {{ data.child_profile.first_name|first }}{{ data.child_profile.last_name|first }}
+                                                        {% else %}
+                                                            {{ data.student.first_name|first|default:data.student.username|first }}{{ data.student.last_name|first|default:"" }}
+                                                        {% endif %}
                                                     </span>
                                                 </div>
                                             </div>
                                             <div>
                                                 <div class="font-bold">
-                                                    {{ data.student.get_full_name|default:data.student.username }}
+                                                    {{ data.student_name }}
+                                                    {% if data.child_profile %}
+                                                        <span class="badge badge-sm badge-info ml-2">Child</span>
+                                                    {% endif %}
                                                 </div>
-                                                <div class="text-sm opacity-50">{{ data.student.email }}</div>
+                                                <div class="text-sm opacity-50">
+                                                    {{ data.student.email }}
+                                                    {% if data.child_profile %}
+                                                        <span class="text-xs">(Guardian: {{ data.student.get_full_name }})</span>
+                                                    {% endif %}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>

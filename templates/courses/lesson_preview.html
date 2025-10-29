@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Preview: {{ lesson.lesson_title }} - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="section-courses min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'domain_selector' %}">Home</a></li>
+            <li><a href="{% url 'courses:list' %}">Courses</a></li>
+            <li><a href="{% url 'courses:detail' course.slug %}">{{ course.title }}</a></li>
+            <li>Preview: {{ lesson.lesson_title }}</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <!-- Preview Notice -->
+        <div class="alert alert-info mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+                <h3 class="font-bold">This is a free preview</h3>
+                <div class="text-sm">Enroll in the course to access all lessons and features</div>
+            </div>
+        </div>
+
+        <!-- Lesson Header -->
+        <div class="card bg-base-200 shadow-xl mb-6">
+            <div class="card-body">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <div class="text-sm text-base-content/70 mb-1">
+                            {{ course.title }} - Topic {{ lesson.topic.topic_number }}
+                        </div>
+                        <h1 class="text-3xl font-bold">{{ lesson.lesson_title }}</h1>
+                    </div>
+                    {% if lesson.duration_minutes %}
+                        <div class="badge badge-lg badge-ghost">
+                            <i class="fas fa-clock mr-2"></i>{{ lesson.duration_minutes }} min
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Lesson Content -->
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body">
+                <!-- Video (if present) -->
+                {% if lesson.video_url %}
+                    <div class="aspect-video mb-6">
+                        <iframe src="{{ lesson.video_url }}"
+                                class="w-full h-full rounded-lg"
+                                allowfullscreen></iframe>
+                    </div>
+                {% endif %}
+
+                <!-- Lesson Content -->
+                <div class="prose prose-lg max-w-none ck-content">
+                    {{ lesson.content|safe }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="card bg-gradient-to-r from-primary to-secondary text-primary-content shadow-xl">
+            <div class="card-body text-center">
+                <h2 class="card-title text-2xl justify-center mb-4">
+                    <i class="fas fa-graduation-cap mr-2"></i>
+                    Ready to learn more?
+                </h2>
+                <p class="mb-6">Enroll in {{ course.title }} to access all {{ course.total_lessons }} lessons plus quizzes, certificates, and more!</p>
+                <div class="flex gap-4 justify-center">
+                    <a href="{% url 'courses:detail' course.slug %}" class="btn btn-accent btn-lg">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Course
+                    </a>
+                    {% if user.is_authenticated %}
+                        <form method="post" action="{% url 'courses:enroll' course.slug %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check-circle mr-2"></i>Enroll Now
+                            </button>
+                        </form>
+                    {% else %}
+                        <a href="{% url 'login' %}?next={% url 'courses:detail' course.slug %}" class="btn btn-success btn-lg">
+                            <i class="fas fa-sign-in-alt mr-2"></i>Login to Enroll
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CKEditor Custom Styles for lesson content -->
+<link rel="stylesheet" type="text/css" href="{% static 'css/ckeditor_custom.css' %}">
+{% endblock %}

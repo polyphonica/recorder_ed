@@ -217,24 +217,34 @@
                                 <div class="flex items-center gap-3">
                                     <div class="avatar">
                                         <div class="w-10 h-10 rounded-full bg-primary text-primary-content flex items-center justify-center">
-                                            {{ registration.student.first_name|first|default:registration.student.username|first }}
+                                            {% if registration.child_profile %}
+                                                {{ registration.child_profile.first_name|first }}
+                                            {% else %}
+                                                {{ registration.student.first_name|first|default:registration.student.username|first }}
+                                            {% endif %}
                                         </div>
                                     </div>
                                     <div>
                                         <div class="font-semibold">
-                                            {% if registration.student.first_name %}
-                                                {{ registration.student.first_name }} {{ registration.student.last_name }}
-                                            {% else %}
-                                                {{ registration.student.username }}
+                                            {{ registration.student_name }}
+                                            {% if registration.child_profile %}
+                                                <span class="badge badge-sm badge-info ml-1">Child</span>
                                             {% endif %}
                                         </div>
-                                        <div class="text-sm text-gray-500">@{{ registration.student.username }}</div>
+                                        {% if registration.child_profile %}
+                                            <div class="text-sm text-gray-500">Age: {{ registration.child_profile.age }}</div>
+                                        {% else %}
+                                            <div class="text-sm text-gray-500">@{{ registration.student.username }}</div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </td>
                             <td>
                                 <div class="text-sm">
                                     <div>{{ registration.student.email }}</div>
+                                    {% if registration.child_profile %}
+                                        <div class="text-gray-500">Guardian: {{ registration.student.get_full_name }}</div>
+                                    {% endif %}
                                     {% if registration.emergency_contact %}
                                         <div class="text-gray-500">Emergency: {{ registration.emergency_contact }}</div>
                                     {% endif %}

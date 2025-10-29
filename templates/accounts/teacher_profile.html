@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ teacher.get_full_name|default:teacher.username }} - Teacher Profile{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'domain_selector' %}">Home</a></li>
+            <li>Teacher Profile</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <!-- Teacher Header -->
+        <div class="card bg-base-100 shadow-xl mb-8">
+            <div class="card-body">
+                <div class="flex flex-col md:flex-row items-center md:items-start gap-6">
+                    <!-- Profile Image/Avatar -->
+                    <div class="avatar">
+                        {% if teacher.profile.profile_image %}
+                            <div class="w-32 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+                                <img src="{{ teacher.profile.profile_image.url }}" alt="{{ teacher.get_full_name }}" />
+                            </div>
+                        {% else %}
+                            <div class="placeholder">
+                                <div class="bg-primary text-primary-content rounded-full w-32 h-32 flex items-center justify-center">
+                                    <span class="text-5xl font-bold">
+                                        {{ teacher.first_name|first|upper|default:teacher.username|first|upper }}
+                                    </span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Teacher Info -->
+                    <div class="flex-1 text-center md:text-left">
+                        <h1 class="text-4xl font-bold mb-2">
+                            {{ teacher.get_full_name|default:teacher.username }}
+                        </h1>
+                        <div class="flex flex-wrap gap-2 justify-center md:justify-start mb-4">
+                            <div class="badge badge-primary badge-lg">
+                                <i class="fas fa-chalkboard-teacher mr-2"></i>Teacher
+                            </div>
+                            {% if offers_private_lessons %}
+                                <div class="badge badge-secondary badge-lg">
+                                    <i class="fas fa-music mr-2"></i>Private Lessons
+                                </div>
+                            {% endif %}
+                            {% if courses %}
+                                <div class="badge badge-accent badge-lg">
+                                    <i class="fas fa-book-open mr-2"></i>{{ courses|length }} Course{{ courses|length|pluralize }}
+                                </div>
+                            {% endif %}
+                            {% if workshops %}
+                                <div class="badge badge-info badge-lg">
+                                    <i class="fas fa-users mr-2"></i>{{ workshops|length }} Workshop{{ workshops|length|pluralize }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        {% if teacher.profile.website %}
+                            <a href="{{ teacher.profile.website }}"
+                               target="_blank"
+                               class="btn btn-outline btn-primary btn-sm">
+                                <i class="fas fa-external-link-alt mr-2"></i>Visit Website
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Biography -->
+        {% if teacher.profile.bio %}
+            <div class="card bg-base-100 shadow-xl mb-8">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-user mr-2 text-primary"></i>
+                        About
+                    </h2>
+                    <div class="prose max-w-none">
+                        <p class="text-lg">{{ teacher.profile.bio }}</p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Teaching Experience & Specializations -->
+        {% if teacher.profile.teaching_experience or teacher.profile.specializations %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {% if teacher.profile.teaching_experience %}
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body">
+                            <h3 class="card-title text-xl mb-3">
+                                <i class="fas fa-graduation-cap mr-2 text-primary"></i>
+                                Teaching Experience
+                            </h3>
+                            <p class="text-base-content/80">{{ teacher.profile.teaching_experience }}</p>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if teacher.profile.specializations %}
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body">
+                            <h3 class="card-title text-xl mb-3">
+                                <i class="fas fa-star mr-2 text-primary"></i>
+                                Specializations
+                            </h3>
+                            <p class="text-base-content/80">{{ teacher.profile.specializations }}</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Courses -->
+        {% if courses %}
+            <div class="card bg-base-100 shadow-xl mb-8">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-book-open mr-2 text-primary"></i>
+                        Courses
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {% for course in courses %}
+                            <a href="{% url 'courses:detail' course.slug %}"
+                               class="card bg-base-200 hover:shadow-lg transition-shadow">
+                                {% if course.image %}
+                                    <figure class="h-32">
+                                        <img src="{{ course.image.url }}" alt="{{ course.title }}" class="w-full h-full object-cover" />
+                                    </figure>
+                                {% endif %}
+                                <div class="card-body p-4">
+                                    <h3 class="card-title text-base">{{ course.title }}</h3>
+                                    <div class="flex gap-2">
+                                        <div class="badge badge-sm badge-ghost">{{ course.get_grade_display }}</div>
+                                        <div class="badge badge-sm badge-ghost">${{ course.cost }}</div>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                    <div class="card-actions justify-center mt-4">
+                        <a href="{% url 'courses:list' %}" class="btn btn-outline btn-primary">
+                            View All Courses
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Workshops -->
+        {% if workshops %}
+            <div class="card bg-base-100 shadow-xl mb-8">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-users mr-2 text-primary"></i>
+                        Workshops
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {% for workshop in workshops %}
+                            <a href="{% url 'workshops:detail' workshop.slug %}"
+                               class="card bg-base-200 hover:shadow-lg transition-shadow">
+                                {% if workshop.image %}
+                                    <figure class="h-32">
+                                        <img src="{{ workshop.image.url }}" alt="{{ workshop.title }}" class="w-full h-full object-cover" />
+                                    </figure>
+                                {% endif %}
+                                <div class="card-body p-4">
+                                    <h3 class="card-title text-base">{{ workshop.title }}</h3>
+                                    <p class="text-sm text-base-content/70">{{ workshop.sessions.count }} session{{ workshop.sessions.count|pluralize }}</p>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                    <div class="card-actions justify-center mt-4">
+                        <a href="{% url 'workshops:list' %}" class="btn btn-outline btn-primary">
+                            View All Workshops
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Private Lessons CTA -->
+        {% if offers_private_lessons %}
+            <div class="card bg-gradient-to-r from-primary to-secondary text-primary-content shadow-xl">
+                <div class="card-body text-center">
+                    <h2 class="card-title text-2xl justify-center mb-4">
+                        <i class="fas fa-music mr-2"></i>
+                        Interested in Private Lessons?
+                    </h2>
+                    <p class="mb-6">{{ teacher.get_full_name }} offers one-on-one private lessons tailored to your needs.</p>
+                    <div class="card-actions justify-center">
+                        <a href="{% url 'private_teaching:home' %}" class="btn btn-accent btn-lg">
+                            <i class="fas fa-calendar-check mr-2"></i>Request a Lesson
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

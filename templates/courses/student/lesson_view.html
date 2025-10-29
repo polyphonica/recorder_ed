@@ -229,10 +229,11 @@
                                     {% for topic_data in topics_with_progress %}
                                     <div class="topic-section">
                                         <!-- Topic Header -->
-                                        <button onclick="toggleTopic({{ topic_data.topic.id }})"
-                                                class="w-full flex items-center justify-between p-2 rounded hover:bg-base-200 transition-colors text-left {% if topic_data.is_current_topic %}bg-base-200{% endif %}">
+                                        <button type="button"
+                                                data-topic-id="{{ topic_data.topic.id }}"
+                                                class="topic-toggle w-full flex items-center justify-between p-2 rounded hover:bg-base-200 transition-colors text-left {% if topic_data.is_current_topic %}bg-base-200{% endif %}">
                                             <div class="flex items-center gap-2 flex-1 min-w-0">
-                                                <i class="fas fa-chevron-right topic-chevron transition-transform text-xs" id="chevron-{{ topic_data.topic.id }}"></i>
+                                                <i class="fas fa-chevron-right topic-chevron text-xs" id="chevron-{{ topic_data.topic.id }}"></i>
                                                 <span class="font-semibold text-sm truncate">
                                                     {{ topic_data.topic.topic_number }}. {{ topic_data.topic.topic_title }}
                                                 </span>
@@ -303,18 +304,42 @@
 <!-- CKEditor Custom Styles -->
 <link rel="stylesheet" type="text/css" href="{% static 'css/ckeditor_custom.css' %}">
 
+<style>
+.topic-chevron {
+    transition: transform 0.2s ease;
+    display: inline-block;
+}
+.topic-chevron.rotated {
+    transform: rotate(90deg);
+}
+</style>
+
 <script>
 // Toggle topic accordion
 function toggleTopic(topicId) {
+    console.log('toggleTopic called with ID:', topicId); // Debug
     const topicContent = document.getElementById(`topic-${topicId}`);
     const chevron = document.getElementById(`chevron-${topicId}`);
 
-    if (topicContent.classList.contains('hidden')) {
+    console.log('Found elements:', { topicContent, chevron }); // Debug
+
+    if (!topicContent || !chevron) {
+        console.error('Elements not found for topic ID:', topicId);
+        console.error('Looking for IDs:', `topic-${topicId}`, `chevron-${topicId}`);
+        return;
+    }
+
+    const isHidden = topicContent.classList.contains('hidden');
+    console.log('Current state - hidden:', isHidden); // Debug
+
+    if (isHidden) {
         topicContent.classList.remove('hidden');
-        chevron.style.transform = 'rotate(90deg)';
+        chevron.classList.add('rotated');
+        console.log('Expanded topic'); // Debug
     } else {
         topicContent.classList.add('hidden');
-        chevron.style.transform = 'rotate(0deg)';
+        chevron.classList.remove('rotated');
+        console.log('Collapsed topic'); // Debug
     }
 }
 
@@ -349,15 +374,29 @@ function toggleMobileNav() {
     }
 }
 
-// Initialize: rotate chevrons for expanded topics on page load
+// Initialize: Add event listeners and set initial chevron states
 document.addEventListener('DOMContentLoaded', function() {
+    // Add click event listeners to all topic toggle buttons
+    document.querySelectorAll('.topic-toggle').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const topicId = this.getAttribute('data-topic-id');
+            console.log('Toggling topic:', topicId); // Debug log
+            toggleTopic(topicId);
+        });
+    });
+
+    // Set initial chevron states for expanded topics
     document.querySelectorAll('.topic-section').forEach(section => {
-        const topicId = section.querySelector('[id^="topic-"]').id.replace('topic-', '');
+        const topicDiv = section.querySelector('[id^="topic-"]');
+        if (!topicDiv) return;
+
+        const topicId = topicDiv.id.replace('topic-', '');
         const topicContent = document.getElementById(`topic-${topicId}`);
         const chevron = document.getElementById(`chevron-${topicId}`);
 
-        if (!topicContent.classList.contains('hidden')) {
-            chevron.style.transform = 'rotate(90deg)';
+        if (topicContent && chevron && !topicContent.classList.contains('hidden')) {
+            chevron.classList.add('rotated');
         }
     });
 });

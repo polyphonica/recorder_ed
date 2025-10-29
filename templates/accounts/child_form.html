@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100 flex items-center justify-center p-4">
+    <div class="card w-full max-w-lg bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title justify-center mb-6">{{ title }}</h2>
+
+            {% if form.errors %}
+                <div class="alert alert-error mb-4">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text">{{ form.first_name.label }}</span>
+                    </label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.first_name.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text">{{ form.last_name.label }}</span>
+                    </label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.last_name.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                    {% if form.last_name.help_text %}
+                        <label class="label">
+                            <span class="label-text-alt text-xs">{{ form.last_name.help_text }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text">{{ form.date_of_birth.label }}</span>
+                    </label>
+                    {{ form.date_of_birth }}
+                    {% if form.date_of_birth.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.date_of_birth.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                    {% if form.date_of_birth.help_text %}
+                        <label class="label">
+                            <span class="label-text-alt text-xs">{{ form.date_of_birth.help_text }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="form-control">
+                    <button type="submit" class="btn btn-primary">
+                        {% if is_edit %}
+                            Update Child Profile
+                        {% else %}
+                            Add Child Profile
+                        {% endif %}
+                    </button>
+                </div>
+            </form>
+
+            <div class="divider">OR</div>
+
+            <div class="text-center">
+                <a href="{% url 'accounts:guardian_dashboard' %}" class="btn btn-outline btn-sm">
+                    Cancel
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

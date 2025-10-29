@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Applications - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">My Teacher Applications</h1>
+                <p class="text-base-content/70">Track your applications to study with teachers</p>
+            </div>
+            <a href="{% url 'private_teaching:home' %}" class="btn btn-primary">
+                <i class="fas fa-search mr-2"></i>Find Teachers
+            </a>
+        </div>
+    </div>
+
+    {% if applications %}
+        <!-- Applications List -->
+        <div class="space-y-4">
+            {% for application in applications %}
+                <div class="card card-section shadow-xl hover:shadow-2xl transition-shadow">
+                    <div class="card-body">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="avatar">
+                                        <div class="w-12 rounded-full">
+                                            <img src="{{ application.teacher.profile.get_profile_image_url }}" alt="{{ application.teacher.get_full_name }}">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold">{{ application.teacher.get_full_name }}</h3>
+                                        <p class="text-sm text-base-content/70">
+                                            Student: {{ application.student_name }}
+                                            {% if application.is_child_application %}
+                                                <span class="badge badge-info badge-sm ml-2">Child</span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="text-sm text-base-content/70 mb-3">
+                                    Applied: {{ application.created_at|date:"M j, Y g:i A" }}
+                                    {% if application.status_changed_at %}
+                                        <span class="mx-2">•</span>
+                                        Updated: {{ application.status_changed_at|date:"M j, Y" }}
+                                    {% endif %}
+                                </div>
+
+                                <!-- Status Badge -->
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-semibold">Status:</span>
+                                    {% if application.status == 'pending' %}
+                                        <span class="badge badge-warning badge-lg">
+                                            <i class="fas fa-clock mr-1"></i>Waiting for teacher to accept
+                                        </span>
+                                    {% elif application.status == 'accepted' %}
+                                        <span class="badge badge-success badge-lg">
+                                            <i class="fas fa-check-circle mr-1"></i>Accepted
+                                        </span>
+                                    {% elif application.status == 'waitlist' %}
+                                        <span class="badge badge-info badge-lg">
+                                            <i class="fas fa-list mr-1"></i>On Waiting List
+                                        </span>
+                                    {% elif application.status == 'declined' %}
+                                        <span class="badge badge-error badge-lg">
+                                            <i class="fas fa-times-circle mr-1"></i>Declined
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Status Messages -->
+                                {% if application.status == 'accepted' %}
+                                    <div class="alert alert-success mt-3">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>You can now request lessons with this teacher!</span>
+                                        <a href="{% url 'private_teaching:request_lesson' %}" class="btn btn-sm btn-ghost">Request Lesson</a>
+                                    </div>
+                                {% elif application.status == 'waitlist' %}
+                                    <div class="alert alert-info mt-3">
+                                        <i class="fas fa-info-circle"></i>
+                                        <span>You're on the waiting list. We'll notify you when space opens.</span>
+                                    </div>
+                                {% elif application.status == 'declined' and application.teacher_notes %}
+                                    <div class="alert mt-3">
+                                        <i class="fas fa-comment"></i>
+                                        <div>
+                                            <div class="font-semibold">Teacher's Message:</div>
+                                            <div class="text-sm">{{ application.teacher_notes }}</div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="text-right">
+                                <a href="{% url 'private_teaching:student_application_detail' application.id %}" class="btn btn-primary">
+                                    <i class="fas fa-eye mr-2"></i>View Details
+                                </a>
+                                {% if application.messages.exists %}
+                                    <div class="text-xs text-base-content/70 mt-2">
+                                        <i class="fas fa-comments mr-1"></i>{{ application.messages.count }} message{{ application.messages.count|pluralize }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <div class="flex justify-center mt-8">
+                <div class="btn-group">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1" class="btn btn-outline">«</a>
+                        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline">‹</a>
+                    {% endif %}
+
+                    <button class="btn btn-outline btn-active">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</button>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-outline">›</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}" class="btn btn-outline">»</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+    {% else %}
+        <!-- Empty State -->
+        <div class="card card-section shadow-xl">
+            <div class="card-body">
+                <div class="text-center py-12">
+                    <div class="text-8xl mb-6">📚</div>
+                    <h2 class="text-3xl font-bold mb-4">No Applications Yet</h2>
+                    <p class="text-lg text-base-content/70 mb-8">
+                        You haven't applied to study with any teachers yet. Browse available teachers and submit an application!
+                    </p>
+                    <a href="{% url 'private_teaching:home' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-search mr-2"></i>Find Teachers
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Certificates{% endblock %}
+
+{% block content %}
+<div class="section-courses min-h-screen bg-base-100">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">My Certificates</h1>
+            <p class="text-lg text-gray-600">Your achievements and completed courses</p>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats shadow mb-8 w-full">
+            <div class="stat">
+                <div class="stat-figure text-primary">
+                    <i class="fas fa-certificate text-4xl"></i>
+                </div>
+                <div class="stat-title">Total Certificates</div>
+                <div class="stat-value text-primary">{{ total_certificates }}</div>
+                <div class="stat-desc">Earned through dedication</div>
+            </div>
+        </div>
+
+        <!-- Certificates Grid -->
+        {% if certificates %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for certificate in certificates %}
+                <div class="card bg-base-200 shadow-xl hover:shadow-2xl transition-shadow">
+                    <div class="card-body">
+                        <!-- Certificate Preview -->
+                        <div class="bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg p-4 mb-4 text-white text-center">
+                            <i class="fas fa-award text-6xl mb-2 opacity-75"></i>
+                            <h3 class="text-sm font-semibold opacity-90">Certificate of Completion</h3>
+                        </div>
+
+                        <!-- Course Info -->
+                        <h3 class="card-title text-lg">{{ certificate.enrollment.course.title }}</h3>
+
+                        <div class="space-y-2 text-sm text-gray-600">
+                            <div class="flex items-center">
+                                <i class="fas fa-calendar-alt w-5"></i>
+                                <span>{{ certificate.issued_at|date:"F d, Y" }}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-hashtag w-5"></i>
+                                <span class="font-mono text-xs">{{ certificate.certificate_number }}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-user-tie w-5"></i>
+                                <span>{{ certificate.enrollment.course.instructor.get_full_name }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="card-actions justify-end mt-4">
+                            <a href="{% url 'courses:certificate_view' certificate.id %}"
+                               class="btn btn-outline btn-sm">
+                                <i class="fas fa-eye mr-1"></i>View
+                            </a>
+                            <a href="{% url 'courses:certificate_download' certificate.id %}"
+                               class="btn btn-primary btn-sm">
+                                <i class="fas fa-download mr-1"></i>Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-16">
+                <div class="text-gray-400 text-6xl mb-4">
+                    <i class="fas fa-certificate"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-700 mb-2">No Certificates Yet</h3>
+                <p class="text-gray-600 mb-6">Complete courses to earn certificates and showcase your achievements.</p>
+                <a href="{% url 'courses:student_dashboard' %}" class="btn btn-primary">
+                    <i class="fas fa-book mr-2"></i>View My Courses
+                </a>
+            </div>
+        {% endif %}
+
+        <!-- Public Verification Link -->
+        <div class="mt-12 card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <h3 class="card-title">
+                    <i class="fas fa-shield-check mr-2 text-primary"></i>
+                    Certificate Verification
+                </h3>
+                <p class="text-gray-600">
+                    All certificates can be publicly verified to confirm their authenticity.
+                    Share the verification link with employers or institutions.
+                </p>
+                <a href="{% url 'courses:verify_certificate' %}"
+                   class="btn btn-outline btn-sm self-start mt-2"
+                   target="_blank">
+                    <i class="fas fa-external-link-alt mr-2"></i>Visit Verification Page
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

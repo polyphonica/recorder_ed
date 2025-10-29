@@ -14,36 +14,35 @@ from .models import (
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'is_instructor', 'created_at']
-    list_filter = ['is_instructor', 'created_at']
+    list_display = ['user', 'created_at']
+    list_filter = ['created_at']
     search_fields = ['user__username', 'user__first_name', 'user__last_name', 'user__email']
-    fields = ['user', 'is_instructor', 'bio', 'website']
-    
+    fields = ['user', 'bio', 'website']
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('user')
 
+    def get_readonly_fields(self, request, obj=None):
+        # Make fields read-only with helpful message
+        if obj:  # Editing an existing object
+            return ['user']
+        return []
 
-# Extend the default User admin to show instructor status
+
+# Extend the default User admin to show workshop-specific profile
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
-    verbose_name_plural = 'Profile'
-    fields = ['is_instructor', 'bio', 'website']
+    verbose_name_plural = 'Workshop Profile (Legacy - Bio/Website only)'
+    fields = ['bio', 'website']
+    classes = ['collapse']  # Collapsed by default
 
 
 class UserAdmin(BaseUserAdmin):
     inlines = (UserProfileInline,)
-    list_display = BaseUserAdmin.list_display + ('is_instructor_status',)
-    list_filter = BaseUserAdmin.list_filter + ('instructor_profile__is_instructor',)
-    
-    def is_instructor_status(self, obj):
-        try:
-            return obj.instructor_profile.is_instructor
-        except UserProfile.DoesNotExist:
-            return False
-    is_instructor_status.boolean = True
-    is_instructor_status.short_description = 'Instructor Status'
+    # Teacher status is now managed via accounts.UserProfile.is_teacher
+    # No need to show instructor_status here anymore
 
 # Unregister the default User admin and register our custom one
 admin.site.unregister(User)
@@ -109,12 +108,13 @@ class WorkshopAdminForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Filter to show users with instructor status or existing workshop instructors
+        # Filter to show users with teacher status (from accounts.UserProfile.is_teacher)
+        # or existing workshop instructors
         instructors = User.objects.filter(
-            Q(instructor_profile__is_instructor=True) | 
+            Q(profile__is_teacher=True) |
             Q(workshops__isnull=False)
         ).distinct().order_by('first_name', 'last_name', 'username')
-        
+
         self.fields['instructor'].queryset = instructors
 
 

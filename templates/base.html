@@ -74,9 +74,17 @@
                     </svg>
                 </label>
                 <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-                    <li><a href="{% url 'workshops:list' %}" class="{% if request.resolver_match.namespace == 'workshops' %}nav-workshops{% endif %}">Workshops</a></li>
-                    <li><a href="{% url 'private_teaching:home' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}nav-private-teaching{% endif %}">Private Teaching</a></li>
-                    <li><a href="{% url 'courses:list' %}" class="{% if request.resolver_match.namespace == 'courses' %}nav-courses{% endif %}">Courses</a></li>
+                    {% if user.is_authenticated and user.is_instructor %}
+                        {# Teacher mobile navigation #}
+                        <li><a href="{% url 'workshops:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold{% endif %}">Workshops</a></li>
+                        <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold{% endif %}">Private Lessons</a></li>
+                        <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold{% endif %}">Courses</a></li>
+                    {% else %}
+                        {# Student mobile navigation #}
+                        <li><a href="{% url 'workshops:list' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold{% endif %}">Workshops</a></li>
+                        <li><a href="{% url 'private_teaching:home' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold{% endif %}">Private Lessons</a></li>
+                        <li><a href="{% url 'courses:list' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold{% endif %}">Courses</a></li>
+                    {% endif %}
                 </ul>
             </div>
             <a class="btn btn-ghost text-xl font-bold" href="{% url 'domain_selector' %}">
@@ -87,9 +95,17 @@
         <!-- Tier 1: Domain Navigation -->
         <div class="navbar-center hidden lg:flex">
             <ul class="menu menu-horizontal px-1">
-                <li><a href="{% url 'workshops:list' %}" class="{% if request.resolver_match.namespace == 'workshops' %}nav-workshops{% endif %}">Workshops</a></li>
-                <li><a href="{% url 'private_teaching:home' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}nav-private-teaching{% endif %}">Private Teaching</a></li>
-                <li><a href="{% url 'courses:list' %}" class="{% if request.resolver_match.namespace == 'courses' %}nav-courses{% endif %}">Courses</a></li>
+                {% if user.is_authenticated and user.is_instructor %}
+                    {# Teacher navigation - goes to dashboards #}
+                    <li><a href="{% url 'workshops:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold bg-primary text-primary-content{% endif %}">Workshops</a></li>
+                    <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold bg-primary text-primary-content{% endif %}">Private Lessons</a></li>
+                    <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold bg-primary text-primary-content{% endif %}">Courses</a></li>
+                {% else %}
+                    {# Student navigation - goes to public/student pages #}
+                    <li><a href="{% url 'workshops:list' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold bg-primary text-primary-content{% endif %}">Workshops</a></li>
+                    <li><a href="{% url 'private_teaching:home' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold bg-primary text-primary-content{% endif %}">Private Lessons</a></li>
+                    <li><a href="{% url 'courses:list' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold bg-primary text-primary-content{% endif %}">Courses</a></li>
+                {% endif %}
             </ul>
         </div>
         
@@ -109,36 +125,36 @@
                 </ul>
             </div>
             
-            <!-- Shopping Cart -->
-            {% if user.is_authenticated and request.resolver_match.namespace != 'private_teaching' %}
-                <div class="mr-4">
-                    <a href="{% url 'payments:cart' %}" class="btn btn-ghost btn-circle">
-                        <div class="indicator">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L8 21m0 0h8m-8 0v-2m8 2v-2"></path>
-                            </svg>
-                            {% if user.shopping_cart and user.shopping_cart.item_count > 0 %}
-                                <span class="badge badge-sm badge-primary indicator-item">{{ user.shopping_cart.item_count }}</span>
-                            {% endif %}
-                        </div>
-                    </a>
-                </div>
-            {% endif %}
-            
-            <!-- Private Teaching Cart -->
-            {% if user.is_authenticated and request.resolver_match.namespace == 'private_teaching' %}
-                <div class="mr-4">
-                    <a href="{% url 'private_teaching:cart' %}" class="btn btn-ghost btn-circle">
-                        <div class="indicator">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L8 21m0 0h8m-8 0v-2m8 2v-2"></path>
-                            </svg>
-                            {% if cart_count > 0 %}
-                                <span class="badge badge-sm badge-primary indicator-item">{{ cart_count }}</span>
-                            {% endif %}
-                        </div>
-                    </a>
-                </div>
+            <!-- Shopping Cart (Students only) -->
+            {% if user.is_authenticated and not user.is_instructor %}
+                {% if request.resolver_match.namespace != 'private_teaching' %}
+                    <div class="mr-4">
+                        <a href="{% url 'payments:cart' %}" class="btn btn-ghost btn-circle">
+                            <div class="indicator">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L8 21m0 0h8m-8 0v-2m8 2v-2"></path>
+                                </svg>
+                                {% if user.shopping_cart and user.shopping_cart.item_count > 0 %}
+                                    <span class="badge badge-sm badge-primary indicator-item">{{ user.shopping_cart.item_count }}</span>
+                                {% endif %}
+                            </div>
+                        </a>
+                    </div>
+                {% else %}
+                    <!-- Private Teaching Cart -->
+                    <div class="mr-4">
+                        <a href="{% url 'private_teaching:cart' %}" class="btn btn-ghost btn-circle">
+                            <div class="indicator">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L8 21m0 0h8m-8 0v-2m8 2v-2"></path>
+                                </svg>
+                                {% if cart_count > 0 %}
+                                    <span class="badge badge-sm badge-primary indicator-item">{{ cart_count }}</span>
+                                {% endif %}
+                            </div>
+                        </a>
+                    </div>
+                {% endif %}
             {% endif %}
 
             <!-- Messages -->
@@ -165,52 +181,65 @@
                             {% if user.first_name %}{{ user.first_name|first|upper }}{% else %}{{ user.username|first|upper }}{% endif %}
                         </div>
                     </label>
-                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-64">
                         <li class="menu-title">
-                            <span>{{ user.username }}</span>
+                            <span>{{ user.profile.full_name|default:user.username }}</span>
                         </li>
 
-                        <!-- Instructor-specific menu items -->
+                        <!-- Teacher menu items - contextual by app -->
                         {% if user.is_instructor %}
-                            <li class="menu-title">
-                                <span>Instructor Dashboards</span>
-                            </li>
-                            <li><a href="{% url 'workshops:instructor_dashboard' %}">
-                                <i class="fas fa-chalkboard-teacher mr-2"></i>Workshops Dashboard
-                            </a></li>
-                            <li><a href="{% url 'courses:instructor_dashboard' %}">
-                                <i class="fas fa-graduation-cap mr-2"></i>Courses Dashboard
-                            </a></li>
+                            {% if request.resolver_match.namespace == 'workshops' %}
+                                {# WORKSHOPS APP MENU #}
+                                <li class="menu-title"><span>My Workshops</span></li>
+                                <li><a href="{% url 'workshops:instructor_dashboard' %}"><i class="fas fa-chart-line mr-2"></i>Dashboard</a></li>
+                                <li><a href="{% url 'workshops:instructor_workshops' %}"><i class="fas fa-chalkboard-teacher mr-2"></i>My Workshops</a></li>
+                                <li><a href="{% url 'workshops:create_workshop' %}"><i class="fas fa-plus mr-2"></i>Create Workshop</a></li>
+
+                            {% elif request.resolver_match.namespace == 'courses' %}
+                                {# COURSES APP MENU #}
+                                <li class="menu-title"><span>My Courses</span></li>
+                                <li><a href="{% url 'courses:instructor_dashboard' %}"><i class="fas fa-chart-line mr-2"></i>Dashboard</a></li>
+                                <li><a href="{% url 'courses:create' %}"><i class="fas fa-plus mr-2"></i>Create Course</a></li>
+                                <li><a href="{% url 'courses:analytics' %}"><i class="fas fa-chart-bar mr-2"></i>Analytics</a></li>
+                                <li><a href="{% url 'courses:messages_inbox' %}"><i class="fas fa-envelope mr-2"></i>Student Messages</a></li>
+
+                            {% elif request.resolver_match.namespace == 'private_teaching' %}
+                                {# PRIVATE LESSONS APP MENU #}
+                                <li class="menu-title"><span>Private Lessons</span></li>
+                                <li><a href="{% url 'private_teaching:teacher_dashboard' %}"><i class="fas fa-chart-line mr-2"></i>Dashboard</a></li>
+                                <li><a href="{% url 'private_teaching:incoming_requests' %}"><i class="fas fa-inbox mr-2"></i>Lesson Requests</a></li>
+                                <li><a href="{% url 'private_teaching:teacher_schedule' %}"><i class="fas fa-calendar-alt mr-2"></i>My Schedule</a></li>
+                                <li><a href="{% url 'private_teaching:calendar' %}"><i class="fas fa-calendar mr-2"></i>Calendar</a></li>
+                                <li><a href="{% url 'expenses:expense_list' %}"><i class="fas fa-receipt mr-2"></i>Expenses</a></li>
+
+                            {% else %}
+                                {# NOT IN SPECIFIC APP - SHOW ALL DASHBOARDS #}
+                                <li class="menu-title"><span>Teaching</span></li>
+                                <li><a href="{% url 'workshops:instructor_dashboard' %}"><i class="fas fa-chalkboard-teacher mr-2"></i>Workshops Dashboard</a></li>
+                                <li><a href="{% url 'courses:instructor_dashboard' %}"><i class="fas fa-graduation-cap mr-2"></i>Courses Dashboard</a></li>
+                                <li><a href="{% url 'private_teaching:teacher_dashboard' %}"><i class="fas fa-user-tie mr-2"></i>Private Lessons Dashboard</a></li>
+                            {% endif %}
+
                             <div class="divider my-1"></div>
-                            <li class="menu-title">
-                                <span>Teaching</span>
-                            </li>
-                            <li><a href="{% url 'workshops:instructor_workshops' %}">
-                                <i class="fas fa-list mr-2"></i>My Workshops
-                            </a></li>
-                            <li><a href="{% url 'workshops:create_workshop' %}">
-                                <i class="fas fa-plus mr-2"></i>Create Workshop
-                            </a></li>
-                            <div class="divider my-1"></div>
-                            <li class="menu-title">
-                                <span>Learning</span>
-                            </li>
-                            <li><a href="{% url 'workshops:my_registrations' %}">
-                                <i class="fas fa-user-graduate mr-2"></i>My Registrations
-                            </a></li>
-                            <li><a href="{% url 'workshops:list' %}">
-                                <i class="fas fa-search mr-2"></i>Browse Workshops
-                            </a></li>
+                            <li><a href="{% url 'accounts:profile_edit' %}"><i class="fas fa-user-circle mr-2"></i>My Profile</a></li>
+
                         {% else %}
-                            <li class="menu-title">
-                                <span>My Learning</span>
-                            </li>
-                            <li><a href="{% url 'courses:student_dashboard' %}">
-                                <i class="fas fa-graduation-cap mr-2"></i>My Courses
-                            </a></li>
-                            <li><a href="{% url 'workshops:my_registrations' %}">
-                                <i class="fas fa-calendar-check mr-2"></i>My Workshops
-                            </a></li>
+                            {# STUDENT MENU #}
+                            <li class="menu-title"><span>My Learning</span></li>
+                            <li><a href="{% url 'courses:student_dashboard' %}"><i class="fas fa-graduation-cap mr-2"></i>My Courses</a></li>
+                            <li><a href="{% url 'workshops:my_registrations' %}"><i class="fas fa-calendar-check mr-2"></i>My Workshops</a></li>
+                            <li><a href="{% url 'private_teaching:my_lessons' %}"><i class="fas fa-music mr-2"></i>My Lessons</a></li>
+                            <li><a href="{% url 'courses:certificate_gallery' %}"><i class="fas fa-certificate mr-2"></i>My Certificates</a></li>
+
+                            {# Guardian Menu - Only show if user is a guardian #}
+                            {% if user.profile.is_guardian %}
+                                <div class="divider my-1"></div>
+                                <li class="menu-title"><span>Guardian</span></li>
+                                <li><a href="{% url 'accounts:guardian_dashboard' %}"><i class="fas fa-users mr-2"></i>Manage Children</a></li>
+                            {% endif %}
+
+                            <div class="divider my-1"></div>
+                            <li><a href="{% url 'accounts:profile_edit' %}"><i class="fas fa-user-circle mr-2"></i>My Profile</a></li>
                         {% endif %}
 
                         <div class="divider my-1"></div>
@@ -218,7 +247,7 @@
                             <form method="post" action="{% url 'logout' %}" class="w-full">
                                 {% csrf_token %}
                                 <button type="submit" class="w-full text-left bg-transparent hover:bg-base-200 border-none cursor-pointer p-3 font-inherit rounded-lg transition-colors">
-                                    Logout
+                                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
                                 </button>
                             </form>
                         </li>

@@ -1,41 +1,68 @@
+"""
+Middleware to enforce profile completion after signup.
+
+This ensures all users complete their profile before accessing
+any part of the platform (courses, workshops, private lessons).
+"""
+
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.contrib.auth.models import AnonymousUser
+
 
 class ProfileCompletionMiddleware:
     """
-    Middleware to ensure users complete their profile after registration
+    Middleware to redirect users with incomplete profiles to profile setup.
+
+    Applies to all authenticated users except:
+    - Superusers (admins)
+    - Users already on the profile setup page
+    - Users accessing exempt paths (logout, static files, etc.)
     """
+
     def __init__(self, get_response):
         self.get_response = get_response
 
-    def __call__(self, request):
-        # Skip for unauthenticated users
-        if isinstance(request.user, AnonymousUser):
-            return self.get_response(request)
-        
-        # Skip for admin/staff users
-        if request.user.is_staff or request.user.is_superuser:
-            return self.get_response(request)
-        
-        # URLs that should be accessible even without profile completion
-        allowed_urls = [
-            reverse('accounts:profile_setup'),
-            reverse('accounts:profile_edit'),
-            reverse('logout'),
-            reverse('admin:index'),
+        # Paths that don't require profile completion
+        self.exempt_paths = [
+            '/accounts/profile/setup/',
+            '/accounts/profile/edit/',
+            '/accounts/logout/',
+            '/logout/',
+            '/static/',
+            '/media/',
+            '/admin/',
         ]
-        
-        # Allow static files and media files
-        if (request.path.startswith('/static/') or 
-            request.path.startswith('/media/') or
-            request.path.startswith('/admin/') or
-            request.path in allowed_urls):
+
+    def __call__(self, request):
+        # Skip middleware for non-authenticated users
+        if not request.user.is_authenticated:
             return self.get_response(request)
-        
-        # Check if user has completed their profile
-        if hasattr(request.user, 'profile') and not request.user.profile.profile_completed:
-            if request.path != reverse('accounts:profile_setup'):
-                return redirect('accounts:profile_setup')
-        
-        return self.get_response(request)
+
+        # Skip middleware for superusers
+        if request.user.is_superuser:
+            return self.get_response(request)
+
+        # Skip middleware for exempt paths
+        path = request.path
+        if any(path.startswith(exempt) for exempt in self.exempt_paths):
+            return self.get_response(request)
+
+        # Check if user has profile and if it's completed
+        try:
+            profile = request.user.profile
+            if not profile.profile_completed:
+                # User needs to complete profile
+                profile_setup_url = reverse('accounts:profile_setup')
+
+                # Don't redirect if already on profile setup page
+                if path != profile_setup_url:
+                    return redirect(profile_setup_url)
+        except:
+            # No profile exists (shouldn't happen due to signal, but handle it)
+            profile_setup_url = reverse('accounts:profile_setup')
+            if path != profile_setup_url:
+                return redirect(profile_setup_url)
+
+        # Profile is completed or user is on setup page - continue
+        response = self.get_response(request)
+        return response

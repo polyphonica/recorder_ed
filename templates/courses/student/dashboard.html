@@ -43,7 +43,7 @@
                 <div class="stat-value text-accent">{{ total_certificates|default:0 }}</div>
                 <div class="stat-desc">
                     {% if total_certificates > 0 %}
-                        Great job!
+                        <a href="{% url 'courses:certificate_gallery' %}" class="link link-accent">View certificates</a>
                     {% else %}
                         Complete courses to earn
                     {% endif %}
@@ -62,6 +62,12 @@
                     <i class="fas fa-envelope mr-2"></i>Messages
                     {% if unread_course_messages > 0 %}
                         <span class="badge badge-sm badge-error ml-2">{{ unread_course_messages }}</span>
+                    {% endif %}
+                </a>
+                <a href="{% url 'courses:certificate_gallery' %}" class="btn btn-secondary">
+                    <i class="fas fa-certificate mr-2"></i>My Certificates
+                    {% if total_certificates > 0 %}
+                        <span class="badge badge-sm badge-success ml-2">{{ total_certificates }}</span>
                     {% endif %}
                 </a>
             </div>
