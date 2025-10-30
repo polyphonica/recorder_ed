@@ -108,6 +108,12 @@ class LessonInline:
         if not all((x.is_valid() for x in named_formsets.values())):
             return self.render_to_response(self.get_context_data(form=form))
 
+        # Store the old status before saving
+        old_status = None
+        if self.object and self.object.pk:
+            old_lesson = Lesson.objects.get(pk=self.object.pk)
+            old_status = old_lesson.status
+
         self.object = form.save()
 
         for name, formset in named_formsets.items():
@@ -116,6 +122,41 @@ class LessonInline:
                 formset_save_func(formset)
             else:
                 formset.save()
+
+        # Send email if lesson was just published (Draft -> Assigned)
+        new_status = self.object.status
+        if old_status == 'Draft' and new_status == 'Assigned':
+            if self.object.student and self.object.student.email:
+                try:
+                    teacher_name = self.request.user.get_full_name() or self.request.user.username
+                    student_name = self.object.student.get_full_name() or self.object.student.username
+                    subject = f"Your lesson is ready to view - {self.object.subject.subject}"
+
+                    # Build email body
+                    email_body = f"Hello {student_name},\n\n"
+                    email_body += f"Great news! {teacher_name} has published your lesson and it's now ready to view.\n\n"
+                    email_body += f"LESSON DETAILS:\n"
+                    email_body += f"Subject: {self.object.subject.subject}\n"
+                    email_body += f"Date: {self.object.lesson_date.strftime('%d %B %Y')}\n"
+                    email_body += f"Time: {self.object.lesson_time.strftime('%H:%M')}\n"
+
+                    if self.object.location:
+                        email_body += f"Location: {self.object.location}\n"
+
+                    email_body += f"\nYou can now access your lesson materials, documents, and links.\n\n"
+                    email_body += f"View your lesson: {self.request.build_absolute_uri(reverse('lessons:lesson_detail', args=[self.object.pk]))}\n\n"
+                    email_body += "Best regards,\nRECORDERED Team"
+
+                    send_mail(
+                        subject,
+                        email_body,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [self.object.student.email],
+                        fail_silently=True,
+                    )
+                except Exception as e:
+                    # Log error but don't fail the update
+                    print(f"Error sending lesson assignment email: {e}")
 
         messages.success(self.request, 'Lesson updated successfully!')
         return redirect('lessons:lesson_update', pk=self.object.pk)
