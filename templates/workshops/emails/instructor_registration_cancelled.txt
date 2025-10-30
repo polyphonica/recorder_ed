@@ -1,0 +1,24 @@
+Subject: Registration Cancelled - {{ session.workshop.title }}
+
+Hi {{ workshop.instructor.first_name|default:workshop.instructor.username }},
+
+A student has cancelled their registration for your workshop.
+
+Student Details:
+- Name: {{ registration.student.first_name }} {{ registration.student.last_name }}
+- Username: {{ registration.student.username }}
+- Email: {{ registration.email }}
+
+Session Details:
+- Workshop: {{ session.workshop.title }}
+- Date: {{ session.start_datetime|date:"l, F j, Y" }}
+- Time: {{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}
+- Current Registrations: {{ session.current_registrations }}/{{ session.max_participants }}
+
+{% if session.waitlist_count > 0 %}A student from the waitlist may be automatically promoted to fill this spot.{% endif %}
+
+Manage Registrations:
+{{ registrations_url }}
+
+Best regards,
+The {{ site_name }} Team

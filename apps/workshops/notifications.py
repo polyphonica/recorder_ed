@@ -211,3 +211,169 @@ class WaitlistNotificationService:
             return f"http://{site.domain}{path}#materials"
         except:
             return "#"  # Fallback
+
+
+class InstructorNotificationService:
+    """Service for sending workshop-related email notifications to instructors"""
+
+    @staticmethod
+    def get_site_name():
+        """Get the current site name"""
+        try:
+            return Site.objects.get_current().name
+        except:
+            return getattr(settings, 'SITE_NAME', 'Workshop Platform')
+
+    @staticmethod
+    def send_new_registration_notification(registration):
+        """Send notification to instructor when someone registers for their workshop"""
+        try:
+            # Get the instructor email
+            instructor = registration.session.workshop.instructor
+            if not instructor or not instructor.email:
+                logger.warning(f"No instructor email found for workshop {registration.session.workshop.id}")
+                return False
+
+            # Build URLs
+            registrations_url = InstructorNotificationService._build_registrations_url(registration.session)
+
+            context = {
+                'registration': registration,
+                'session': registration.session,
+                'workshop': registration.session.workshop,
+                'registrations_url': registrations_url,
+                'site_name': InstructorNotificationService.get_site_name(),
+            }
+
+            # Render email content
+            subject_and_message = render_to_string(
+                'workshops/emails/instructor_new_registration.txt',
+                context
+            )
+
+            # Extract subject (first line)
+            lines = subject_and_message.strip().split('\n')
+            subject = lines[0].replace('Subject: ', '') if lines else 'New Workshop Registration'
+            message = '\n'.join(lines[1:]).strip()
+
+            # Send email
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[instructor.email],
+                fail_silently=False,
+            )
+
+            logger.info(f"New registration notification sent to instructor {instructor.username} for session {registration.session.id}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to send new registration notification to instructor: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_registration_cancelled_notification(registration):
+        """Send notification to instructor when someone cancels their registration"""
+        try:
+            # Get the instructor email
+            instructor = registration.session.workshop.instructor
+            if not instructor or not instructor.email:
+                logger.warning(f"No instructor email found for workshop {registration.session.workshop.id}")
+                return False
+
+            # Build URLs
+            registrations_url = InstructorNotificationService._build_registrations_url(registration.session)
+
+            context = {
+                'registration': registration,
+                'session': registration.session,
+                'workshop': registration.session.workshop,
+                'registrations_url': registrations_url,
+                'site_name': InstructorNotificationService.get_site_name(),
+            }
+
+            # Render email content
+            subject_and_message = render_to_string(
+                'workshops/emails/instructor_registration_cancelled.txt',
+                context
+            )
+
+            # Extract subject (first line)
+            lines = subject_and_message.strip().split('\n')
+            subject = lines[0].replace('Subject: ', '') if lines else 'Workshop Registration Cancelled'
+            message = '\n'.join(lines[1:]).strip()
+
+            # Send email
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[instructor.email],
+                fail_silently=False,
+            )
+
+            logger.info(f"Cancellation notification sent to instructor {instructor.username} for session {registration.session.id}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to send cancellation notification to instructor: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_waitlist_promotion_notification(registration):
+        """Send notification to instructor when a waitlisted student is promoted"""
+        try:
+            # Get the instructor email
+            instructor = registration.session.workshop.instructor
+            if not instructor or not instructor.email:
+                logger.warning(f"No instructor email found for workshop {registration.session.workshop.id}")
+                return False
+
+            # Build URLs
+            registrations_url = InstructorNotificationService._build_registrations_url(registration.session)
+
+            context = {
+                'registration': registration,
+                'session': registration.session,
+                'workshop': registration.session.workshop,
+                'registrations_url': registrations_url,
+                'site_name': InstructorNotificationService.get_site_name(),
+            }
+
+            # Render email content
+            subject_and_message = render_to_string(
+                'workshops/emails/instructor_waitlist_promotion.txt',
+                context
+            )
+
+            # Extract subject (first line)
+            lines = subject_and_message.strip().split('\n')
+            subject = lines[0].replace('Subject: ', '') if lines else 'Waitlist Student Promoted'
+            message = '\n'.join(lines[1:]).strip()
+
+            # Send email
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[instructor.email],
+                fail_silently=False,
+            )
+
+            logger.info(f"Waitlist promotion notification sent to instructor {instructor.username} for session {registration.session.id}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to send waitlist promotion notification to instructor: {str(e)}")
+            return False
+
+    @staticmethod
+    def _build_registrations_url(session):
+        """Build URL for session registrations management page"""
+        try:
+            path = reverse('workshops:session_registrations', kwargs={'session_id': session.id})
+            site = Site.objects.get_current()
+            return f"http://{site.domain}{path}"
+        except:
+            return "#"  # Fallback

@@ -43,16 +43,23 @@ def process_waitlist_on_capacity_change(sender, instance, created, **kwargs):
     if not created and 'max_participants' in (kwargs.get('update_fields') or []):
         # Only process if we're specifically updating max_participants
         promoted = instance.process_waitlist_promotions(reason='capacity_increase')
-        
-        # Send notification emails to promoted students
+
+        # Send notification emails to promoted students and instructor
         if promoted:
-            from .notifications import WaitlistNotificationService
+            from .notifications import WaitlistNotificationService, InstructorNotificationService
             for registration in promoted:
                 # Get the promotion record
                 promotion = registration.promotions.filter(
                     expired=False,
                     confirmed_at__isnull=True
                 ).first()
-                
+
                 if promotion:
+                    # Notify student about promotion
                     WaitlistNotificationService.send_promotion_notification(registration, promotion)
+
+                    # Notify instructor about waitlist promotion
+                    try:
+                        InstructorNotificationService.send_waitlist_promotion_notification(registration)
+                    except Exception as e:
+                        print(f"Failed to send instructor waitlist promotion notification: {e}")

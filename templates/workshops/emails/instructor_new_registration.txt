@@ -1,0 +1,23 @@
+Subject: New Registration - {{ session.workshop.title }}
+
+Hi {{ workshop.instructor.first_name|default:workshop.instructor.username }},
+
+Good news! A new student has registered for your workshop.
+
+Student Details:
+- Name: {{ registration.student.first_name }} {{ registration.student.last_name }}
+- Username: {{ registration.student.username }}
+- Email: {{ registration.email }}
+- Status: {{ registration.get_status_display }}
+
+Session Details:
+- Workshop: {{ session.workshop.title }}
+- Date: {{ session.start_datetime|date:"l, F j, Y" }}
+- Time: {{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}
+- Current Registrations: {{ session.current_registrations }}/{{ session.max_participants }}
+
+Manage Registrations:
+{{ registrations_url }}
+
+Best regards,
+The {{ site_name }} Team

@@ -373,6 +373,14 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
             self.workshop.total_registrations += 1
             self.workshop.save()
 
+            # Send notification to instructor
+            try:
+                from .notifications import InstructorNotificationService
+                InstructorNotificationService.send_new_registration_notification(registration)
+            except Exception as e:
+                # Don't fail the registration if email fails
+                print(f"Failed to send instructor notification: {e}")
+
             return redirect('workshops:registration_confirm', registration_id=registration.id)
     
     def get_context_data(self, **kwargs):
@@ -400,12 +408,12 @@ class RegistrationConfirmView(LoginRequiredMixin, DetailView):
     def post(self, request, *args, **kwargs):
         """Handle payment completion for promoted registrations"""
         registration = self.get_object()
-        
+
         if registration.status == 'promoted':
             # Complete the registration (simulate payment completion)
             registration.status = 'registered'
             registration.save()
-            
+
             # Mark the promotion as confirmed
             from django.apps import apps
             WaitlistPromotion = apps.get_model('workshops', 'WaitlistPromotion')
@@ -413,29 +421,36 @@ class RegistrationConfirmView(LoginRequiredMixin, DetailView):
                 registration=registration,
                 confirmed_at__isnull=True
             ).first()
-            
+
             if promotion:
                 promotion.confirmed_at = timezone.now()
                 promotion.save()
-            
+
             # Update session registration count
             registration.session.current_registrations = registration.session.registrations.filter(
                 status__in=['registered', 'promoted', 'attended']
             ).count()
             registration.session.save(update_fields=['current_registrations'])
-            
+
             messages.success(request, 'Payment completed! You are now registered for the workshop.')
-            
-            # Send confirmation notification
+
+            # Send confirmation notification to student
             try:
                 from .notifications import WaitlistNotificationService
-                WaitlistNotificationService.send_registration_confirmation(registration)
-            except:
-                pass  # Don't fail if notification service has issues
-                
+                WaitlistNotificationService.send_registration_confirmed_notification(registration)
+            except Exception as e:
+                print(f"Failed to send student confirmation: {e}")
+
+            # Send notification to instructor
+            try:
+                from .notifications import InstructorNotificationService
+                InstructorNotificationService.send_new_registration_notification(registration)
+            except Exception as e:
+                print(f"Failed to send instructor notification: {e}")
+
         else:
             messages.warning(request, 'This registration cannot be completed.')
-        
+
         return redirect('workshops:registration_confirm', registration_id=registration.id)
 
 
@@ -509,34 +524,54 @@ class RegistrationCancelView(LoginRequiredMixin, DetailView):
     
     def post(self, request, *args, **kwargs):
         registration = self.get_object()
-        
+
         if registration.status in ['registered', 'waitlisted']:
             if registration.status == 'registered':
                 # Free up a spot
                 session = registration.session
                 session.current_registrations = max(0, session.current_registrations - 1)
                 session.save()
-                
+
                 # Promote someone from waitlist
                 waitlisted = WorkshopRegistration.objects.filter(
                     session=session,
                     status='waitlisted'
                 ).order_by('registration_date').first()
-                
+
                 if waitlisted:
                     waitlisted.status = 'registered'
                     waitlisted.save()
                     session.current_registrations += 1
                     session.save()
-                    # TODO: Send notification email to promoted user
-            
+
+                    # Send notification to promoted student
+                    try:
+                        from .notifications import WaitlistNotificationService
+                        WaitlistNotificationService.send_registration_confirmed_notification(waitlisted)
+                    except Exception as e:
+                        print(f"Failed to send student promotion notification: {e}")
+
+                    # Send notification to instructor about promotion
+                    try:
+                        from .notifications import InstructorNotificationService
+                        InstructorNotificationService.send_new_registration_notification(waitlisted)
+                    except Exception as e:
+                        print(f"Failed to send instructor promotion notification: {e}")
+
             registration.status = 'cancelled'
             registration.save()
-            
+
+            # Send cancellation notification to instructor
+            try:
+                from .notifications import InstructorNotificationService
+                InstructorNotificationService.send_registration_cancelled_notification(registration)
+            except Exception as e:
+                print(f"Failed to send instructor cancellation notification: {e}")
+
             messages.success(request, 'Your registration has been cancelled.')
         else:
             messages.error(request, 'Cannot cancel this registration.')
-        
+
         return redirect('workshops:my_registrations')
 
 
