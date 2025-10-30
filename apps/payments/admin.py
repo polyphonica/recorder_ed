@@ -1,49 +1,46 @@
 from django.contrib import admin
-from .models import ShoppingCart, CartItem, Order, OrderItem, Transaction
+from .models import StripePayment
 
 
-@admin.register(ShoppingCart)
-class ShoppingCartAdmin(admin.ModelAdmin):
-    list_display = ['user', 'created_at', 'updated_at', 'item_count']
-    list_filter = ['created_at', 'updated_at']
-    search_fields = ['user__email', 'user__first_name', 'user__last_name']
-    readonly_fields = ['created_at', 'updated_at']
-
-    def item_count(self, obj):
-        return obj.items.count()
-    item_count.short_description = 'Items in Cart'
-
-
-@admin.register(CartItem)
-class CartItemAdmin(admin.ModelAdmin):
-    list_display = ['cart', 'session', 'price', 'added_at']
-    list_filter = ['added_at']
-    search_fields = ['cart__user__email', 'session__workshop__title']
-    readonly_fields = ['added_at']
-
-
-@admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'total_amount', 'status', 'session_count', 'created_at']
-    list_filter = ['status', 'created_at']
-    search_fields = ['user__email', 'user__first_name', 'user__last_name']
-    readonly_fields = ['id', 'created_at', 'updated_at']
-
-    def session_count(self, obj):
-        return obj.items.count()
-    session_count.short_description = 'Sessions'
-
-
-@admin.register(OrderItem)
-class OrderItemAdmin(admin.ModelAdmin):
-    list_display = ['order', 'session', 'price']
-    list_filter = ['order__created_at']
-    search_fields = ['order__user__email', 'session__workshop__title']
-
-
-@admin.register(Transaction)
-class TransactionAdmin(admin.ModelAdmin):
-    list_display = ['id', 'order', 'amount', 'status', 'payment_method', 'created_at']
-    list_filter = ['status', 'payment_method', 'created_at']
-    search_fields = ['order__user__email', 'transaction_id']
-    readonly_fields = ['id', 'created_at']
+@admin.register(StripePayment)
+class StripePaymentAdmin(admin.ModelAdmin):
+    list_display = [
+        'id', 
+        'domain', 
+        'student', 
+        'teacher', 
+        'total_amount', 
+        'platform_commission', 
+        'status', 
+        'created_at'
+    ]
+    list_filter = ['domain', 'status', 'created_at']
+    search_fields = ['student__email', 'teacher__email', 'stripe_payment_intent_id']
+    readonly_fields = [
+        'stripe_payment_intent_id',
+        'stripe_checkout_session_id',
+        'created_at',
+        'completed_at'
+    ]
+    
+    fieldsets = (
+        ('Stripe Information', {
+            'fields': ('stripe_payment_intent_id', 'stripe_checkout_session_id')
+        }),
+        ('Platform Details', {
+            'fields': ('domain', 'student', 'teacher', 'status')
+        }),
+        ('Financial Details', {
+            'fields': ('total_amount', 'platform_commission', 'teacher_share', 'currency')
+        }),
+        ('References', {
+            'fields': ('workshop_id', 'course_id', 'order_id')
+        }),
+        ('Metadata', {
+            'fields': ('metadata',),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'completed_at')
+        }),
+    )

@@ -4,6 +4,9 @@ psycopg2-binary==2.9.10
 python-decouple==3.8
 whitenoise==6.8.2
 
+# Payment processing
+stripe==11.2.0
+
 # Core dependencies
 arrow==1.4.0
 asgiref==3.10.0

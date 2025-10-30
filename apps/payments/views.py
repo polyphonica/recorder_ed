@@ -1,170 +1,173 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
+import stripe
+from django.conf import settings
+from django.http import JsonResponse, HttpResponse
+from django.views import View
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.shortcuts import redirect
 from django.contrib import messages
-from django.views.generic import View, TemplateView
-from django.http import JsonResponse
-from django.urls import reverse
-from django.utils import timezone
-from django.db import transaction
+from decimal import Decimal
 
-from .models import ShoppingCart, CartItem, Order, OrderItem, Transaction
-from apps.workshops.models import WorkshopSession, WorkshopRegistration
+from .models import StripePayment
+from .stripe_service import retrieve_session, retrieve_payment_intent
+from .utils import format_amount_from_stripe
 
 
-class CartView(LoginRequiredMixin, TemplateView):
-    """Display the user's shopping cart"""
-    template_name = 'payments/cart.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        # Get or create cart for the user
-        cart, created = ShoppingCart.objects.get_or_create(user=self.request.user)
-        
-        context.update({
-            'cart': cart,
-            'cart_items': cart.items.select_related('session__workshop').all(),
-            'total_amount': cart.total_amount,
-        })
-        return context
-
-
-class AddToCartView(LoginRequiredMixin, View):
-    """Add a workshop session to the user's cart"""
-    
-    def post(self, request, session_id):
-        session = get_object_or_404(WorkshopSession, id=session_id)
-        
-        # Check if user is already registered for this session
-        if WorkshopRegistration.objects.filter(student=request.user, session=session).exists():
-            messages.warning(request, f"You are already registered for {session.workshop.title}")
-            return redirect('workshops:detail', slug=session.workshop.slug)
-        
-        # Get or create cart
-        cart, created = ShoppingCart.objects.get_or_create(user=request.user)
-        
-        # Try to add session to cart
-        cart_item, created = cart.add_session(session)
-        
-        if created:
-            messages.success(request, f"{session.workshop.title} added to your cart")
-        else:
-            messages.info(request, f"{session.workshop.title} is already in your cart")
-        
-        # Redirect back to the workshop detail page
-        return redirect('workshops:detail', slug=session.workshop.slug)
-
-
-class RemoveFromCartView(LoginRequiredMixin, View):
-    """Remove an item from the user's cart"""
-    
-    def post(self, request, item_id):
-        cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
-        workshop_title = cart_item.session.workshop.title
-        cart_item.delete()
-        
-        messages.success(request, f"{workshop_title} removed from your cart")
-        return redirect('payments:cart')
-
-
-class CheckoutView(LoginRequiredMixin, View):
-    """Process checkout and create registrations"""
-    
-    def get(self, request):
-        """Display checkout page"""
-        cart = get_object_or_404(ShoppingCart, user=request.user)
-        
-        if not cart.items.exists():
-            messages.warning(request, "Your cart is empty")
-            return redirect('payments:cart')
-        
-        context = {
-            'cart': cart,
-            'cart_items': cart.items.select_related('session__workshop').all(),
-            'total_amount': cart.total_amount,
-        }
-        return render(request, 'payments/checkout.html', context)
+@method_decorator(csrf_exempt, name='dispatch')
+class StripeWebhookView(View):
+    """Handle Stripe webhook events"""
     
     def post(self, request):
-        """Process the checkout (mock payment for now)"""
-        cart = get_object_or_404(ShoppingCart, user=request.user)
-        
-        if not cart.items.exists():
-            messages.warning(request, "Your cart is empty")
-            return redirect('payments:cart')
+        payload = request.body
+        sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
         
         try:
-            with transaction.atomic():
-                # Create order
-                order = Order.objects.create(
-                    user=request.user,
-                    total_amount=cart.total_amount,
-                    status='completed'  # Mock payment always succeeds
-                )
-                
-                # Create order items and registrations
-                for cart_item in cart.items.all():
-                    # Create order item
-                    OrderItem.objects.create(
-                        order=order,
-                        session=cart_item.session,
-                        price=cart_item.price
-                    )
-                    
-                    # Create workshop registration
-                    WorkshopRegistration.objects.create(
-                        student=request.user,
-                        session=cart_item.session,
-                        status='registered',
-                        registration_date=timezone.now()
-                    )
-                
-                # Create mock transaction
-                Transaction.objects.create(
-                    order=order,
-                    amount=order.total_amount,
-                    status='completed',
-                    payment_method='mock',
-                    transaction_id=f"mock_{order.id}_{timezone.now().strftime('%Y%m%d%H%M%S')}"
-                )
-                
-                # Clear the cart
-                cart.clear()
-                
-                messages.success(request, f"Payment successful! You are now registered for {order.session_count} workshop session(s).")
-                return redirect('payments:order_confirmation', order_id=order.id)
-                
-        except Exception as e:
-            messages.error(request, "There was an error processing your payment. Please try again.")
-            return redirect('payments:checkout')
-
-
-class OrderConfirmationView(LoginRequiredMixin, TemplateView):
-    """Display order confirmation page"""
-    template_name = 'payments/order_confirmation.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+            )
+        except ValueError as e:
+            # Invalid payload
+            return HttpResponse(status=400)
+        except stripe.error.SignatureVerificationError as e:
+            # Invalid signature
+            return HttpResponse(status=400)
         
-        order = get_object_or_404(Order, id=kwargs['order_id'], user=self.request.user)
+        # Handle the event
+        if event['type'] == 'checkout.session.completed':
+            session = event['data']['object']
+            self.handle_checkout_session_completed(session)
         
-        context.update({
-            'order': order,
-            'order_items': order.items.select_related('session__workshop').all(),
-        })
-        return context
-
-
-# Ajax view for updating cart count in header
-class CartCountView(LoginRequiredMixin, View):
-    """Return cart item count as JSON"""
+        elif event['type'] == 'payment_intent.succeeded':
+            payment_intent = event['data']['object']
+            self.handle_payment_intent_succeeded(payment_intent)
+        
+        elif event['type'] == 'payment_intent.payment_failed':
+            payment_intent = event['data']['object']
+            self.handle_payment_failed(payment_intent)
+        
+        return HttpResponse(status=200)
     
-    def get(self, request):
+    def handle_checkout_session_completed(self, session):
+        """Handle successful checkout session completion"""
+        metadata = session.get('metadata', {})
+        domain = metadata.get('domain')
+        payment_intent_id = session.get('payment_intent')
+        
+        # Create or update StripePayment record
+        stripe_payment, created = StripePayment.objects.get_or_create(
+            stripe_payment_intent_id=payment_intent_id,
+            defaults={
+                'stripe_checkout_session_id': session['id'],
+                'domain': domain,
+                'student_id': metadata.get('student_id'),
+                'teacher_id': metadata.get('teacher_id'),
+                'total_amount': Decimal(metadata.get('total_amount', '0')),
+                'platform_commission': Decimal(metadata.get('platform_commission', '0')),
+                'teacher_share': Decimal(metadata.get('teacher_share', '0')),
+                'currency': 'gbp',
+                'status': 'pending',
+                'metadata': metadata,
+            }
+        )
+        
+        # Domain-specific handling
+        if domain == 'private_teaching':
+            self.handle_private_teaching_payment(metadata, stripe_payment)
+        elif domain == 'workshops':
+            self.handle_workshop_payment(metadata, stripe_payment)
+        elif domain == 'courses':
+            self.handle_course_payment(metadata, stripe_payment)
+    
+    def handle_payment_intent_succeeded(self, payment_intent):
+        """Handle successful payment intent"""
         try:
-            cart = ShoppingCart.objects.get(user=request.user)
-            count = cart.item_count
-        except ShoppingCart.DoesNotExist:
-            count = 0
+            stripe_payment = StripePayment.objects.get(
+                stripe_payment_intent_id=payment_intent['id']
+            )
+            stripe_payment.mark_completed()
+            print(f"Payment completed: {stripe_payment.id}")
+        except StripePayment.DoesNotExist:
+            print(f"StripePayment not found for payment_intent: {payment_intent['id']}")
+    
+    def handle_payment_failed(self, payment_intent):
+        """Handle failed payment intent"""
+        try:
+            stripe_payment = StripePayment.objects.get(
+                stripe_payment_intent_id=payment_intent['id']
+            )
+            stripe_payment.mark_failed()
+            print(f"Payment failed: {stripe_payment.id}")
+        except StripePayment.DoesNotExist:
+            print(f"StripePayment not found for failed payment_intent: {payment_intent['id']}")
+    
+    def handle_private_teaching_payment(self, metadata, stripe_payment):
+        """Update private teaching order when payment succeeds"""
+        from apps.private_teaching.models import Order
+        from lessons.models import Lesson
         
-        return JsonResponse({'count': count})
+        order_id = metadata.get('order_id')
+        if order_id:
+            try:
+                order = Order.objects.get(id=order_id)
+                order.payment_status = 'completed'
+                order.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
+                order.save()
+                
+                # Update order reference in StripePayment
+                stripe_payment.order_id = order_id
+                stripe_payment.save()
+                
+                # Mark lessons as paid
+                lesson_ids = metadata.get('lesson_ids', '').split(',')
+                for lesson_id in lesson_ids:
+                    if lesson_id:
+                        try:
+                            lesson = Lesson.objects.get(id=int(lesson_id))
+                            lesson.payment_status = 'Paid'
+                            lesson.save()
+                        except (Lesson.DoesNotExist, ValueError):
+                            pass
+                
+                print(f"Private teaching order {order_id} marked as completed")
+            except Order.DoesNotExist:
+                print(f"Order {order_id} not found")
+    
+    def handle_workshop_payment(self, metadata, stripe_payment):
+        """Update workshop registration when payment succeeds"""
+        from apps.workshops.models import WorkshopRegistration
+        
+        registration_id = metadata.get('registration_id')
+        if registration_id:
+            try:
+                registration = WorkshopRegistration.objects.get(id=registration_id)
+                registration.payment_status = 'confirmed'
+                registration.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
+                registration.save()
+                
+                # Update reference in StripePayment
+                stripe_payment.workshop_id = registration.workshop_id
+                stripe_payment.save()
+                
+                print(f"Workshop registration {registration_id} confirmed")
+            except WorkshopRegistration.DoesNotExist:
+                print(f"WorkshopRegistration {registration_id} not found")
+    
+    def handle_course_payment(self, metadata, stripe_payment):
+        """Update course enrollment when payment succeeds"""
+        from apps.courses.models import Enrollment
+        
+        enrollment_id = metadata.get('enrollment_id')
+        if enrollment_id:
+            try:
+                enrollment = Enrollment.objects.get(id=enrollment_id)
+                enrollment.payment_status = 'confirmed'
+                enrollment.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
+                enrollment.save()
+                
+                # Update reference in StripePayment
+                stripe_payment.course_id = enrollment.course_id
+                stripe_payment.save()
+                
+                print(f"Course enrollment {enrollment_id} confirmed")
+            except Enrollment.DoesNotExist:
+                print(f"Enrollment {enrollment_id} not found")

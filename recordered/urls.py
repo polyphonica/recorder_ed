@@ -28,7 +28,7 @@ urlpatterns = [
     path('accounts/', include('apps.accounts.urls')),
     path('core/', include('apps.core.urls')),  # Core demo pages
     path('workshops/', include('apps.workshops.urls')),
-    path('cart/', include('apps.payments.urls')),
+    path('payments/', include('apps.payments.urls')),
     path('private-teaching/', include('apps.private_teaching.urls')),
     path('lessons/', include('lessons.urls')),
     path('expenses/', include('apps.expenses.urls')),
