@@ -927,6 +927,23 @@ class ProcessPaymentView(StudentProfileCompletedMixin, View):
             messages.error(request, "Your cart is empty. Add lessons before checkout.")
             return redirect('private_teaching:cart')
 
+        # Clean up any incomplete orders for these lessons first
+        from django.utils import timezone
+        from datetime import timedelta
+
+        lesson_ids_to_checkout = [cart_item.lesson.id for cart_item in cart_context['cart_items']]
+
+        # Find incomplete OrderItems for these lessons
+        orphaned_order_items = OrderItem.objects.filter(
+            lesson_id__in=lesson_ids_to_checkout,
+            order__payment_status__in=['pending', 'failed']
+        )
+
+        # Delete the incomplete orders (will cascade delete OrderItems)
+        orphaned_order_ids = orphaned_order_items.values_list('order_id', distinct=True)
+        if orphaned_order_ids:
+            Order.objects.filter(id__in=orphaned_order_ids).delete()
+
         # Create order with pending status
         order = Order.objects.create(
             student=request.user,
