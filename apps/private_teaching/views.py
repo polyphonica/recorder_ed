@@ -9,6 +9,8 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Q
+from django.core.mail import send_mail
+from django.conf import settings
 from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem
 from lessons.models import Lesson, Document, LessonAttachedUrl
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm
@@ -189,6 +191,44 @@ class LessonRequestCreateView(AcceptedStudentRequiredMixin, StudentProfileComple
                     author=request.user,
                     message=initial_message
                 )
+
+            # Send email notification to teacher(s)
+            # Get unique teachers from all lessons
+            teachers = set()
+            for lesson in lessons:
+                if lesson.teacher and lesson.teacher.email:
+                    teachers.add(lesson.teacher)
+
+            for teacher in teachers:
+                try:
+                    student_display_name = lesson_request.student_name
+                    subject = f"New Lesson Request from {student_display_name}"
+
+                    # Build email body
+                    email_body = f"Hello {teacher.get_full_name() or teacher.username},\n\n"
+                    email_body += f"You have received a new lesson request from {student_display_name}.\n\n"
+                    email_body += f"REQUESTED LESSONS ({len(lessons)}):\n"
+
+                    for lesson in lessons:
+                        if lesson.teacher == teacher:
+                            email_body += f"- {lesson.subject.subject} on {lesson.lesson_date} at {lesson.lesson_time}\n"
+
+                    if initial_message:
+                        email_body += f"\nMessage from student:\n{initial_message}\n\n"
+
+                    email_body += f"\nView and respond to this request: {request.build_absolute_uri('/private-teaching/incoming-requests/')}\n\n"
+                    email_body += "Best regards,\nRECORDERED Team"
+
+                    send_mail(
+                        subject,
+                        email_body,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [teacher.email],
+                        fail_silently=True,
+                    )
+                except Exception as e:
+                    # Log error but don't fail the request
+                    print(f"Error sending notification email to teacher: {e}")
 
             lesson_count = len(lessons)
             student_name = lesson_request.student_name
@@ -914,10 +954,48 @@ class ProcessPaymentView(StudentProfileCompletedMixin, View):
         order.payment_status = 'completed'
         order.completed_at = timezone.now()
         order.save()
-        
+
+        # Send payment confirmation email to student
+        if request.user.email:
+            try:
+                student_name = request.user.get_full_name() or request.user.username
+                subject = f"Payment Confirmation - RECORDERED"
+
+                # Build email body
+                email_body = f"Hello {student_name},\n\n"
+                email_body += f"Thank you for your payment! Your order has been confirmed.\n\n"
+                email_body += f"PAYMENT DETAILS:\n"
+                email_body += f"Total Amount: £{order.total_amount:.2f}\n"
+                email_body += f"Payment Date: {order.completed_at.strftime('%d %B %Y at %H:%M')}\n\n"
+                email_body += f"LESSONS PURCHASED:\n"
+
+                # Get order items and list each lesson
+                order_items = OrderItem.objects.filter(order=order).select_related('lesson__teacher', 'lesson__subject')
+                for item in order_items:
+                    lesson = item.lesson
+                    teacher_name = lesson.teacher.get_full_name() if lesson.teacher else "TBA"
+                    email_body += f"- {lesson.subject.subject} with {teacher_name}\n"
+                    email_body += f"  Date: {lesson.lesson_date.strftime('%d %B %Y')}\n"
+                    email_body += f"  Time: {lesson.lesson_time.strftime('%H:%M')}\n"
+                    email_body += f"  Price: £{item.price_paid:.2f}\n\n"
+
+                email_body += f"You can view your lessons in your dashboard: {request.build_absolute_uri('/private-teaching/')}\n\n"
+                email_body += "Best regards,\nRECORDERED Team"
+
+                send_mail(
+                    subject,
+                    email_body,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [request.user.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                # Log error but don't fail the payment
+                print(f"Error sending payment confirmation email: {e}")
+
         # Clear cart
         cart_manager.clear_cart()
-        
+
         # Redirect to success page
         return redirect('private_teaching:payment_success', order_id=order.id)
 
