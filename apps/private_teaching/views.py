@@ -940,7 +940,7 @@ class ProcessPaymentView(StudentProfileCompletedMixin, View):
         )
 
         # Delete the incomplete orders (will cascade delete OrderItems)
-        orphaned_order_ids = orphaned_order_items.values_list('order_id', distinct=True)
+        orphaned_order_ids = orphaned_order_items.values_list('order_id', flat=True).distinct()
         if orphaned_order_ids:
             Order.objects.filter(id__in=orphaned_order_ids).delete()
 
