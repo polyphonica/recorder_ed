@@ -199,19 +199,10 @@ class WorkshopDetailView(DetailView):
             'related_workshops': related_workshops,
             'similar_workshops_with_sessions': similar_workshops_with_sessions,
         })
-        
-        # Add cart session IDs for authenticated users
-        if self.request.user.is_authenticated:
-            try:
-                from apps.payments.models import ShoppingCart
-                cart = ShoppingCart.objects.get(user=self.request.user)
-                cart_session_ids = list(cart.items.values_list('session_id', flat=True))
-                context['cart_session_ids'] = cart_session_ids
-            except ShoppingCart.DoesNotExist:
-                context['cart_session_ids'] = []
-        else:
-            context['cart_session_ids'] = []
-        
+
+        # Cart is not used for workshops - registrations are direct
+        context['cart_session_ids'] = []
+
         return context
 
 
