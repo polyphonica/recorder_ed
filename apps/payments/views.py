@@ -102,21 +102,24 @@ class StripeWebhookView(View):
     
     def handle_private_teaching_payment(self, metadata, stripe_payment):
         """Update private teaching order when payment succeeds"""
-        from apps.private_teaching.models import Order
+        from apps.private_teaching.models import Order, OrderItem
         from lessons.models import Lesson
-        
+        from django.core.mail import send_mail
+        from django.utils import timezone
+
         order_id = metadata.get('order_id')
         if order_id:
             try:
                 order = Order.objects.get(id=order_id)
                 order.payment_status = 'completed'
+                order.completed_at = timezone.now()
                 order.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
                 order.save()
-                
+
                 # Update order reference in StripePayment
                 stripe_payment.order_id = order_id
                 stripe_payment.save()
-                
+
                 # Mark lessons as paid
                 lesson_ids = metadata.get('lesson_ids', '').split(',')
                 for lesson_id in lesson_ids:
@@ -127,7 +130,42 @@ class StripeWebhookView(View):
                             lesson.save()
                         except (Lesson.DoesNotExist, ValueError):
                             pass
-                
+
+                # Send payment confirmation email
+                if order.student and order.student.email:
+                    try:
+                        student_name = order.student.get_full_name() or order.student.username
+                        subject = f"Payment Confirmation - RECORDERED"
+
+                        email_body = f"Hello {student_name},\n\n"
+                        email_body += f"Thank you for your payment! Your order has been confirmed.\n\n"
+                        email_body += f"PAYMENT DETAILS:\n"
+                        email_body += f"Total Amount: £{order.total_amount:.2f}\n"
+                        email_body += f"Payment Date: {order.completed_at.strftime('%d %B %Y at %H:%M')}\n\n"
+                        email_body += f"LESSONS PURCHASED:\n"
+
+                        order_items = OrderItem.objects.filter(order=order).select_related('lesson__teacher', 'lesson__subject')
+                        for item in order_items:
+                            lesson = item.lesson
+                            teacher_name = lesson.teacher.get_full_name() if lesson.teacher else "TBA"
+                            email_body += f"- {lesson.subject.subject} with {teacher_name}\n"
+                            email_body += f"  Date: {lesson.lesson_date.strftime('%d %B %Y')}\n"
+                            email_body += f"  Time: {lesson.lesson_time.strftime('%H:%M')}\n"
+                            email_body += f"  Price: £{item.price_paid:.2f}\n\n"
+
+                        email_body += f"You can view your lessons at: https://recorder-ed.com/private-teaching/\n\n"
+                        email_body += "Best regards,\nRECORDERED Team"
+
+                        send_mail(
+                            subject,
+                            email_body,
+                            settings.DEFAULT_FROM_EMAIL,
+                            [order.student.email],
+                            fail_silently=True,
+                        )
+                    except Exception as e:
+                        print(f"Error sending payment confirmation email: {e}")
+
                 print(f"Private teaching order {order_id} marked as completed")
             except Order.DoesNotExist:
                 print(f"Order {order_id} not found")

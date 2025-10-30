@@ -241,8 +241,20 @@ class Order(models.Model):
     )
     payment_method = models.CharField(
         max_length=50,
-        default='simulation',
+        default='stripe',
         help_text="Payment method used"
+    )
+    stripe_payment_intent_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Stripe PaymentIntent ID"
+    )
+    stripe_checkout_session_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Stripe Checkout Session ID"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(

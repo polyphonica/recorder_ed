@@ -914,105 +914,111 @@ class CheckoutView(StudentProfileCompletedMixin, TemplateView):
 
 
 class ProcessPaymentView(StudentProfileCompletedMixin, View):
-    """Process payment simulation"""
-    
+    """Create Stripe checkout session and redirect to payment"""
+
     @transaction.atomic
     def post(self, request, *args, **kwargs):
+        from apps.payments.stripe_service import create_checkout_session
+
         cart_manager = CartManager(request)
         cart_context = cart_manager.get_cart_context()
-        
+
         if not cart_context['cart_items']:
             messages.error(request, "Your cart is empty. Add lessons before checkout.")
             return redirect('private_teaching:cart')
-        
-        # Create order
+
+        # Create order with pending status
         order = Order.objects.create(
             student=request.user,
             total_amount=cart_context['cart_total'],
             payment_status='pending',
-            payment_method='simulation'
+            payment_method='stripe'
         )
-        
-        # Create order items and update lesson payment status
+
+        # Create order items (but don't mark lessons as paid yet)
+        lesson_ids = []
+        teacher = None
         for cart_item in cart_context['cart_items']:
-            # Create order item
             OrderItem.objects.create(
                 order=order,
                 lesson=cart_item.lesson,
                 price_paid=cart_item.price
             )
+            lesson_ids.append(str(cart_item.lesson.id))
+            if not teacher and cart_item.lesson.teacher:
+                teacher = cart_item.lesson.teacher
 
-            # Update lesson payment status to Paid
-            cart_item.lesson.payment_status = 'Paid'
-            cart_item.lesson.save()
-        
-        # Simulate payment processing delay
-        import time
-        time.sleep(1)  # Brief delay for realism
-        
-        # Mark payment as completed
-        order.payment_status = 'completed'
-        order.completed_at = timezone.now()
-        order.save()
+        # Prepare success and cancel URLs
+        success_url = request.build_absolute_uri(
+            reverse('private_teaching:checkout_success', kwargs={'order_id': order.id})
+        )
+        cancel_url = request.build_absolute_uri(
+            reverse('private_teaching:checkout_cancel', kwargs={'order_id': order.id})
+        )
 
-        # Send payment confirmation email to student
-        if request.user.email:
-            try:
-                student_name = request.user.get_full_name() or request.user.username
-                subject = f"Payment Confirmation - RECORDERED"
+        # Create Stripe checkout session
+        try:
+            session = create_checkout_session(
+                amount=order.total_amount,
+                student=request.user,
+                teacher=teacher,
+                domain='private_teaching',
+                success_url=success_url,
+                cancel_url=cancel_url,
+                metadata={
+                    'order_id': str(order.id),
+                    'lesson_ids': ','.join(lesson_ids),
+                }
+            )
 
-                # Build email body
-                email_body = f"Hello {student_name},\n\n"
-                email_body += f"Thank you for your payment! Your order has been confirmed.\n\n"
-                email_body += f"PAYMENT DETAILS:\n"
-                email_body += f"Total Amount: £{order.total_amount:.2f}\n"
-                email_body += f"Payment Date: {order.completed_at.strftime('%d %B %Y at %H:%M')}\n\n"
-                email_body += f"LESSONS PURCHASED:\n"
+            # Save session ID to order
+            order.stripe_checkout_session_id = session.id
+            order.save()
 
-                # Get order items and list each lesson
-                order_items = OrderItem.objects.filter(order=order).select_related('lesson__teacher', 'lesson__subject')
-                for item in order_items:
-                    lesson = item.lesson
-                    teacher_name = lesson.teacher.get_full_name() if lesson.teacher else "TBA"
-                    email_body += f"- {lesson.subject.subject} with {teacher_name}\n"
-                    email_body += f"  Date: {lesson.lesson_date.strftime('%d %B %Y')}\n"
-                    email_body += f"  Time: {lesson.lesson_time.strftime('%H:%M')}\n"
-                    email_body += f"  Price: £{item.price_paid:.2f}\n\n"
+            # Redirect to Stripe Checkout
+            return redirect(session.url, code=303)
 
-                email_body += f"You can view your lessons in your dashboard: {request.build_absolute_uri('/private-teaching/')}\n\n"
-                email_body += "Best regards,\nRECORDERED Team"
-
-                send_mail(
-                    subject,
-                    email_body,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [request.user.email],
-                    fail_silently=True,
-                )
-            except Exception as e:
-                # Log error but don't fail the payment
-                print(f"Error sending payment confirmation email: {e}")
-
-        # Clear cart
-        cart_manager.clear_cart()
-
-        # Redirect to success page
-        return redirect('private_teaching:payment_success', order_id=order.id)
+        except Exception as e:
+            # If Stripe checkout creation fails, delete the order and show error
+            order.delete()
+            messages.error(request, f"Payment setup failed: {str(e)}. Please try again.")
+            return redirect('private_teaching:cart')
 
 
-class PaymentSuccessView(StudentProfileCompletedMixin, TemplateView):
-    """Payment success confirmation page"""
+class CheckoutSuccessView(StudentProfileCompletedMixin, TemplateView):
+    """Handle return from Stripe after successful checkout"""
     template_name = 'private_teaching/payment_success.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+
+    def get(self, request, *args, **kwargs):
         order_id = kwargs.get('order_id')
-        
+
         try:
             order = Order.objects.get(
                 id=order_id,
-                student=self.request.user,
-                payment_status='completed'
+                student=request.user
+            )
+
+            # Clear the cart now that we've returned from Stripe
+            cart_manager = CartManager(request)
+            cart_manager.clear_cart()
+
+            # The webhook will handle marking the order as completed
+            # For now, just show the order details
+
+            return self.render_to_response(self.get_context_data(**kwargs))
+
+        except Order.DoesNotExist:
+            messages.error(request, "Order not found.")
+            return redirect('private_teaching:home')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        order_id = kwargs.get('order_id')
+
+        try:
+            order = Order.objects.get(
+                id=order_id,
+                student=self.request.user
             )
             context['order'] = order
             context['order_items'] = order.items.select_related(
@@ -1020,10 +1026,47 @@ class PaymentSuccessView(StudentProfileCompletedMixin, TemplateView):
                 'lesson__teacher',
                 'lesson__student'
             ).all()
+
+            # Check if payment is still pending (webhook hasn't processed yet)
+            context['payment_pending'] = order.payment_status == 'pending'
+
         except Order.DoesNotExist:
             context['order'] = None
-            
+
         return context
+
+
+class CheckoutCancelView(StudentProfileCompletedMixin, View):
+    """Handle return from Stripe when payment is cancelled"""
+
+    def get(self, request, *args, **kwargs):
+        order_id = kwargs.get('order_id')
+
+        try:
+            order = Order.objects.get(
+                id=order_id,
+                student=request.user,
+                payment_status='pending'
+            )
+
+            # Mark order as failed
+            order.payment_status = 'failed'
+            order.save()
+
+            messages.warning(request, "Payment was cancelled. Your cart items are still available.")
+            return redirect('private_teaching:cart')
+
+        except Order.DoesNotExist:
+            messages.error(request, "Order not found.")
+            return redirect('private_teaching:home')
+
+
+class PaymentSuccessView(StudentProfileCompletedMixin, TemplateView):
+    """Legacy payment success view - redirects to checkout success"""
+
+    def get(self, request, *args, **kwargs):
+        order_id = kwargs.get('order_id')
+        return redirect('private_teaching:checkout_success', order_id=order_id)
 
 
 class LessonDetailView(PrivateTeachingLoginRequiredMixin, View):

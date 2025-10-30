@@ -43,6 +43,8 @@ urlpatterns = [
     path('checkout/', views.CheckoutView.as_view(), name='checkout'),
     path('payment/process/', views.ProcessPaymentView.as_view(), name='process_payment'),
     path('payment/success/<int:order_id>/', views.PaymentSuccessView.as_view(), name='payment_success'),
+    path('checkout/success/<int:order_id>/', views.CheckoutSuccessView.as_view(), name='checkout_success'),
+    path('checkout/cancel/<int:order_id>/', views.CheckoutCancelView.as_view(), name='checkout_cancel'),
 
     # Shared Views
     path('calendar/', views.CalendarView.as_view(), name='calendar'),
