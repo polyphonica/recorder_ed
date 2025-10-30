@@ -129,7 +129,7 @@
             {% if user.is_authenticated and not user.is_instructor %}
                 {% if request.resolver_match.namespace != 'private_teaching' %}
                     <div class="mr-4">
-                        <a href="{% url 'payments:cart' %}" class="btn btn-ghost btn-circle">
+                        <a href="{% url 'private_teaching:cart' %}" class="btn btn-ghost btn-circle">
                             <div class="indicator">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L8 21m0 0h8m-8 0v-2m8 2v-2"></path>
