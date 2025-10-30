@@ -14,11 +14,13 @@ def create_checkout_session(
     domain,
     success_url,
     cancel_url,
-    metadata=None
+    metadata=None,
+    item_name=None,
+    item_description=None
 ):
     """
     Create a Stripe Checkout Session
-    
+
     Args:
         amount: Payment amount in standard currency (Decimal)
         student: User object (student/customer)
@@ -27,7 +29,9 @@ def create_checkout_session(
         success_url: URL to redirect after successful payment
         cancel_url: URL to redirect if payment is cancelled
         metadata: Additional metadata dict
-    
+        item_name: Custom item name (optional, defaults to domain name)
+        item_description: Custom item description (optional)
+
     Returns:
         stripe.checkout.Session object
     """
@@ -52,6 +56,10 @@ def create_checkout_session(
     
     # Create Checkout Session
     try:
+        # Use custom item name/description or defaults
+        product_name = item_name or f'{domain.replace("_", " ").title()} Payment'
+        product_description = item_description or f'Payment for {domain.replace("_", " ")} on RECORDERED'
+
         session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
@@ -59,8 +67,8 @@ def create_checkout_session(
                     'currency': 'gbp',
                     'unit_amount': format_stripe_amount(amount),
                     'product_data': {
-                        'name': f'{domain.replace("_", " ").title()} Payment',
-                        'description': f'Payment for {domain.replace("_", " ")} on RECORDERED',
+                        'name': product_name,
+                        'description': product_description,
                     },
                 },
                 'quantity': 1,

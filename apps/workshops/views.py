@@ -318,6 +318,11 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
             )
 
             try:
+                # Format descriptive item name and description
+                session_date = self.session.start_datetime.strftime('%d %B %Y at %H:%M')
+                item_name = f"{self.workshop.title}"
+                item_description = f"Workshop session on {session_date}"
+
                 session = create_checkout_session(
                     amount=self.workshop.price,
                     student=self.request.user,
@@ -329,7 +334,9 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
                         'registration_id': str(registration.id),
                         'workshop_id': str(self.workshop.id),
                         'session_id': str(self.session.id),
-                    }
+                    },
+                    item_name=item_name,
+                    item_description=item_description
                 )
 
                 # Save session ID to registration
