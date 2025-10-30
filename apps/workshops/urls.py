@@ -40,13 +40,17 @@ urlpatterns = [
          views.ParticipantMaterialsView.as_view(), name='participant_materials'),
     
     # Registration (also before workshop detail to avoid conflicts)
-    path('registration/<uuid:registration_id>/confirm/', 
+    path('registration/<uuid:registration_id>/confirm/',
          views.RegistrationConfirmView.as_view(), name='registration_confirm'),
-    path('registration/<uuid:registration_id>/cancel/', 
+    path('registration/<uuid:registration_id>/cancel/',
          views.RegistrationCancelView.as_view(), name='registration_cancel'),
-    path('promotion/<uuid:registration_id>/confirm/', 
+    path('registration/<uuid:registration_id>/checkout/success/',
+         views.WorkshopCheckoutSuccessView.as_view(), name='checkout_success'),
+    path('registration/<uuid:registration_id>/checkout/cancel/',
+         views.WorkshopCheckoutCancelView.as_view(), name='checkout_cancel'),
+    path('promotion/<uuid:registration_id>/confirm/',
          views.PromotionConfirmView.as_view(), name='confirm_promotion'),
-    path('<slug:workshop_slug>/session/<uuid:session_id>/register/', 
+    path('<slug:workshop_slug>/session/<uuid:session_id>/register/',
          views.WorkshopRegistrationView.as_view(), name='register'),
     
     # Workshop interest requests

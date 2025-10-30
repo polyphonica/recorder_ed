@@ -283,39 +283,99 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
                     messages.error(self.request, 'Invalid child selected.')
                     return redirect('workshops:detail', slug=self.workshop.slug)
 
+        # Check if workshop requires payment
+        is_paid_workshop = not self.workshop.is_free and self.workshop.price > 0
+
         # Determine registration status based on capacity
         if self.session.is_full:
             if self.session.waitlist_enabled:
                 registration.status = 'waitlisted'
+                registration.payment_status = 'not_required'  # Payment only required when promoted
                 student_name = registration.child_profile.full_name if registration.child_profile else 'You'
                 messages.success(
                     self.request,
                     f'{student_name} {"has" if registration.child_profile else "have"} been added to the waitlist for this workshop.'
                 )
+                registration.save()
+                self.workshop.total_registrations += 1
+                self.workshop.save()
+                return redirect('workshops:registration_confirm', registration_id=registration.id)
             else:
                 messages.error(
                     self.request,
                     'Sorry, this workshop session is full and waitlist is not available.'
                 )
                 return redirect('workshops:detail', slug=self.workshop.slug)
+
+        # Workshop has capacity available
+        if is_paid_workshop:
+            # PAID WORKSHOP: Create registration with pending payment status
+            registration.status = 'pending_payment'
+            registration.payment_status = 'pending'
+            registration.payment_amount = self.workshop.price
+            registration.save()
+
+            # Create Stripe checkout session
+            from apps.payments.stripe_service import create_checkout_session
+            from django.urls import reverse
+
+            success_url = self.request.build_absolute_uri(
+                reverse('workshops:checkout_success', kwargs={'registration_id': registration.id})
+            )
+            cancel_url = self.request.build_absolute_uri(
+                reverse('workshops:checkout_cancel', kwargs={'registration_id': registration.id})
+            )
+
+            try:
+                session = create_checkout_session(
+                    amount=self.workshop.price,
+                    student=self.request.user,
+                    teacher=self.workshop.instructor,
+                    domain='workshops',
+                    success_url=success_url,
+                    cancel_url=cancel_url,
+                    metadata={
+                        'registration_id': str(registration.id),
+                        'workshop_id': str(self.workshop.id),
+                        'session_id': str(self.session.id),
+                    }
+                )
+
+                # Save session ID to registration
+                registration.stripe_checkout_session_id = session.id
+                registration.save()
+
+                # Redirect to Stripe Checkout
+                return redirect(session.url, code=303)
+
+            except Exception as e:
+                # If Stripe checkout creation fails, delete the registration
+                registration.delete()
+                messages.error(self.request, f"Payment setup failed: {str(e)}. Please try again.")
+                return redirect('workshops:detail', slug=self.workshop.slug)
+
         else:
+            # FREE WORKSHOP: Immediate registration
             registration.status = 'registered'
+            registration.payment_status = 'not_required'
+            registration.payment_amount = 0
+            registration.save()
+
             # Update session registration count
             self.session.current_registrations += 1
             self.session.save()
+
             student_name = registration.child_profile.full_name if registration.child_profile else 'You'
             messages.success(
                 self.request,
                 f'{student_name} {"has" if registration.child_profile else "have"} been successfully registered for the workshop!'
             )
 
-        registration.save()
+            # Update workshop total registrations
+            self.workshop.total_registrations += 1
+            self.workshop.save()
 
-        # Update workshop total registrations
-        self.workshop.total_registrations += 1
-        self.workshop.save()
-
-        return redirect('workshops:registration_confirm', registration_id=registration.id)
+            return redirect('workshops:registration_confirm', registration_id=registration.id)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -379,6 +439,64 @@ class RegistrationConfirmView(LoginRequiredMixin, DetailView):
             messages.warning(request, 'This registration cannot be completed.')
         
         return redirect('workshops:registration_confirm', registration_id=registration.id)
+
+
+class WorkshopCheckoutSuccessView(LoginRequiredMixin, TemplateView):
+    """Handle return from Stripe after successful checkout"""
+    template_name = 'workshops/checkout_success.html'
+
+    def get(self, request, *args, **kwargs):
+        registration_id = kwargs.get('registration_id')
+
+        try:
+            registration = WorkshopRegistration.objects.select_related(
+                'session__workshop'
+            ).get(id=registration_id, student=request.user)
+
+            # Webhook will update the status, but show intermediate page
+            context = self.get_context_data(**kwargs)
+            context['registration'] = registration
+            context['workshop'] = registration.session.workshop
+            context['session'] = registration.session
+
+            return self.render_to_response(context)
+
+        except WorkshopRegistration.DoesNotExist:
+            messages.error(request, 'Registration not found.')
+            return redirect('workshops:list')
+
+
+class WorkshopCheckoutCancelView(LoginRequiredMixin, TemplateView):
+    """Handle cancelled checkout"""
+    template_name = 'workshops/checkout_cancel.html'
+
+    def get(self, request, *args, **kwargs):
+        registration_id = kwargs.get('registration_id')
+
+        try:
+            registration = WorkshopRegistration.objects.select_related(
+                'session__workshop'
+            ).get(id=registration_id, student=request.user)
+
+            # Mark payment as failed
+            registration.payment_status = 'failed'
+            registration.save()
+
+            context = self.get_context_data(**kwargs)
+            context['registration'] = registration
+            context['workshop'] = registration.session.workshop
+            context['session'] = registration.session
+
+            messages.warning(
+                request,
+                'Payment was cancelled. You can try again from your registrations page.'
+            )
+
+            return self.render_to_response(context)
+
+        except WorkshopRegistration.DoesNotExist:
+            messages.error(request, 'Registration not found.')
+            return redirect('workshops:list')
 
 
 class RegistrationCancelView(LoginRequiredMixin, DetailView):
