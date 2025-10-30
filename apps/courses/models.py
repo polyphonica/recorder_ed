@@ -406,13 +406,14 @@ class CourseEnrollment(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
 
     # Payment reference - links to recordered's payment system
-    order = models.ForeignKey(
-        'payments.Order',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='course_enrollments'
-    )
+    # TODO: Add back when implementing course payments
+    # order = models.ForeignKey(
+    #     'payments.Order',
+    #     on_delete=models.SET_NULL,
+    #     null=True,
+    #     blank=True,
+    #     related_name='course_enrollments'
+    # )
 
     class Meta:
         ordering = ['-enrolled_at']

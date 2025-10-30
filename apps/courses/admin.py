@@ -218,15 +218,16 @@ class CourseEnrollmentAdmin(admin.ModelAdmin):
     ]
     readonly_fields = [
         'id', 'enrolled_at', 'completed_at',
-        'get_progress', 'order'
+        'get_progress',  # 'order' - TODO: add back when implementing course payments
     ]
     fieldsets = (
         ('Enrollment Information', {
             'fields': ('student', 'course', 'is_active')
         }),
-        ('Payment', {
-            'fields': ('order',)
-        }),
+        # TODO: Add back when implementing course payments
+        # ('Payment', {
+        #     'fields': ('order',)
+        # }),
         ('Progress', {
             'fields': ('get_progress', 'enrolled_at', 'completed_at'),
             'classes': ('collapse',)
@@ -246,7 +247,7 @@ class CourseEnrollmentAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related('student', 'course', 'order')
+        return qs.select_related('student', 'course')  # 'order' - TODO: add back when implementing course payments
 
 
 @admin.register(LessonProgress)
