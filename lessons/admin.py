@@ -7,12 +7,12 @@ from .models import Lesson, Document, LessonOrder, LessonAttachedUrl
 class LessonAdmin(admin.ModelAdmin):
     list_display = ('subject', 'lesson_date', 'lesson_time', 'status', 'approved_status', 'payment_status')
     list_filter = ('status', 'approved_status', 'payment_status', 'location', 'subject')
-    search_fields = ('subject__subject', 'proposed_lesson_slot__lesson_request__student__user__email')
+    search_fields = ('subject__subject', 'student__email', 'student__first_name', 'student__last_name', 'teacher__email')
     readonly_fields = ('id', 'created_at', 'updated_at')
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('id', 'proposed_lesson_slot', 'subject')
+            'fields': ('id', 'teacher', 'student', 'subject', 'lesson_request')
         }),
         ('Lesson Details', {
             'fields': ('lesson_date', 'lesson_time', 'duration_in_minutes', 'fee', 'location')
