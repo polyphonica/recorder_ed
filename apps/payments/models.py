@@ -38,8 +38,8 @@ class StripePayment(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
     # References to original objects
-    workshop_id = models.IntegerField(null=True, blank=True)
-    course_id = models.IntegerField(null=True, blank=True)
+    workshop_id = models.UUIDField(null=True, blank=True)
+    course_id = models.UUIDField(null=True, blank=True)
     order_id = models.IntegerField(null=True, blank=True)  # For private lessons
     
     # Metadata
