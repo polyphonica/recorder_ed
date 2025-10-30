@@ -125,11 +125,13 @@ class StripeWebhookView(View):
                 for lesson_id in lesson_ids:
                     if lesson_id:
                         try:
-                            lesson = Lesson.objects.get(id=int(lesson_id))
+                            # Lesson IDs are UUIDs, not integers - don't convert
+                            lesson = Lesson.objects.get(id=lesson_id.strip())
                             lesson.payment_status = 'Paid'
                             lesson.save()
-                        except (Lesson.DoesNotExist, ValueError):
-                            pass
+                            print(f"Marked lesson {lesson_id} as Paid")
+                        except (Lesson.DoesNotExist, ValueError) as e:
+                            print(f"Error updating lesson {lesson_id}: {e}")
 
                 # Send payment confirmation email
                 if order.student and order.student.email:
