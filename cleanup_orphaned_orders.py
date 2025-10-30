@@ -1,8 +1,17 @@
 #!/usr/bin/env python
 """
 Cleanup script for orphaned OrderItems and incomplete Orders
-Run with: python manage.py shell < cleanup_orphaned_orders.py
+Run with: python cleanup_orphaned_orders.py
 """
+
+import os
+import sys
+import django
+
+# Setup Django
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'recordered.settings')
+django.setup()
 
 from apps.private_teaching.models import OrderItem, Order
 from django.utils import timezone
