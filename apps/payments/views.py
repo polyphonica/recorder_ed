@@ -175,20 +175,90 @@ class StripeWebhookView(View):
     def handle_workshop_payment(self, metadata, stripe_payment):
         """Update workshop registration when payment succeeds"""
         from apps.workshops.models import WorkshopRegistration
-        
+        from django.core.mail import send_mail
+        from django.utils import timezone
+
         registration_id = metadata.get('registration_id')
         if registration_id:
             try:
-                registration = WorkshopRegistration.objects.get(id=registration_id)
-                registration.payment_status = 'confirmed'
+                registration = WorkshopRegistration.objects.select_related(
+                    'session__workshop', 'student', 'child_profile'
+                ).get(id=registration_id)
+
+                # Update payment status
+                registration.payment_status = 'completed'
+                registration.status = 'registered'
+                registration.paid_at = timezone.now()
                 registration.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
                 registration.save()
-                
+
+                # Update session registration count
+                session = registration.session
+                session.current_registrations = session.registrations.filter(
+                    status__in=['registered', 'promoted', 'attended']
+                ).count()
+                session.save(update_fields=['current_registrations'])
+
+                # Update workshop total registrations if needed
+                workshop = session.workshop
+                workshop.total_registrations = WorkshopRegistration.objects.filter(
+                    session__workshop=workshop,
+                    status__in=['registered', 'attended']
+                ).count()
+                workshop.save(update_fields=['total_registrations'])
+
                 # Update reference in StripePayment
-                stripe_payment.workshop_id = registration.workshop_id
+                stripe_payment.workshop_id = workshop.id
                 stripe_payment.save()
-                
-                print(f"Workshop registration {registration_id} confirmed")
+
+                # Send confirmation email
+                if registration.student and registration.student.email:
+                    try:
+                        student_name = registration.student_name  # Uses property for child or adult
+                        guardian_email = registration.email or registration.student.email
+
+                        subject = f"Workshop Registration Confirmed - {workshop.title}"
+
+                        email_body = f"Hello {registration.student.get_full_name() or registration.student.username},\n\n"
+
+                        if registration.child_profile:
+                            email_body += f"Thank you for registering {student_name} for the workshop!\n\n"
+                        else:
+                            email_body += f"Thank you for registering for the workshop!\n\n"
+
+                        email_body += f"WORKSHOP DETAILS:\n"
+                        email_body += f"Workshop: {workshop.title}\n"
+                        email_body += f"Date: {session.start_datetime.strftime('%A, %d %B %Y')}\n"
+                        email_body += f"Time: {session.start_datetime.strftime('%H:%M')} - {session.end_datetime.strftime('%H:%M')}\n"
+
+                        if workshop.delivery_method == 'online':
+                            email_body += f"Delivery: Online\n"
+                            if session.meeting_url:
+                                email_body += f"Meeting Link: {session.meeting_url}\n"
+                        elif workshop.delivery_method == 'in_person':
+                            email_body += f"Delivery: In-Person\n"
+                            if workshop.venue_name:
+                                email_body += f"Venue: {workshop.venue_name}\n"
+                            if workshop.full_venue_address:
+                                email_body += f"Address: {workshop.full_venue_address}\n"
+
+                        email_body += f"\nAmount Paid: £{registration.payment_amount:.2f}\n"
+                        email_body += f"Payment Date: {registration.paid_at.strftime('%d %B %Y at %H:%M')}\n\n"
+
+                        email_body += f"You can view your registration details at: https://www.recorder-ed.com/workshops/registration/{registration.id}/confirm/\n\n"
+                        email_body += "Best regards,\nRECORDERED Team"
+
+                        send_mail(
+                            subject,
+                            email_body,
+                            settings.DEFAULT_FROM_EMAIL,
+                            [guardian_email],
+                            fail_silently=True,
+                        )
+                    except Exception as e:
+                        print(f"Error sending workshop confirmation email: {e}")
+
+                print(f"Workshop registration {registration_id} confirmed and email sent")
             except WorkshopRegistration.DoesNotExist:
                 print(f"WorkshopRegistration {registration_id} not found")
     
