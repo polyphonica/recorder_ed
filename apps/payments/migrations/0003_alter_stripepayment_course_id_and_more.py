@@ -3,6 +3,12 @@
 from django.db import migrations, models
 
 
+def clear_id_fields(apps, schema_editor):
+    """Clear workshop_id and course_id before converting to UUID"""
+    StripePayment = apps.get_model('payments', 'StripePayment')
+    StripePayment.objects.all().update(workshop_id=None, course_id=None)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,6 +16,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # First clear the integer values
+        migrations.RunPython(clear_id_fields, migrations.RunPython.noop),
+        # Then change field types to UUID
         migrations.AlterField(
             model_name='stripepayment',
             name='course_id',
