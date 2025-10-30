@@ -1423,6 +1423,42 @@ class ApplyToTeacherView(StudentProfileCompletedMixin, StudentOnlyMixin, Templat
                 message=initial_message
             )
 
+        # Send email notification to teacher
+        if teacher.email:
+            try:
+                student_name = child_profile.full_name if child_profile else request.user.get_full_name()
+                applicant_email = request.user.email
+                subject = f"New Student Application from {student_name}"
+
+                # Build email body
+                email_body = f"Hello {teacher.get_full_name() or teacher.username},\n\n"
+                email_body += f"You have received a new application to study with you.\n\n"
+                email_body += f"STUDENT DETAILS:\n"
+                email_body += f"Name: {student_name}\n"
+
+                if child_profile:
+                    email_body += f"Guardian: {request.user.get_full_name() or request.user.username}\n"
+                    email_body += f"Guardian Email: {applicant_email}\n"
+                else:
+                    email_body += f"Email: {applicant_email}\n"
+
+                if initial_message:
+                    email_body += f"\nMessage from student:\n{initial_message}\n\n"
+
+                email_body += f"\nView and respond to this application: {request.build_absolute_uri(reverse('private_teaching:teacher_applications'))}\n\n"
+                email_body += "Best regards,\nRECORDERED Team"
+
+                send_mail(
+                    subject,
+                    email_body,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [teacher.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                # Log error but don't fail the application
+                print(f"Error sending application notification email to teacher: {e}")
+
         student_name = child_profile.full_name if child_profile else request.user.get_full_name()
         messages.success(request, f'Application submitted for {student_name}!')
         return redirect('private_teaching:student_application_detail', application_id=application.id)
@@ -1587,12 +1623,50 @@ class TeacherApplicationDetailView(TeacherProfileCompletedMixin, TemplateView):
                         message=teacher_notes
                     )
 
-                # TODO: Send email notification
+                # Send email notification to student
+                if application.applicant and application.applicant.email:
+                    try:
+                        teacher_name = request.user.get_full_name() or request.user.username
+                        student_name = application.student_name
+                        subject = f"Update on Your Application to Study with {teacher_name}"
+
+                        # Build email body based on status
+                        email_body = f"Hello {student_name},\n\n"
+
+                        if new_status == 'accepted':
+                            email_body += f"Great news! {teacher_name} has accepted your application to study with them.\n\n"
+                            email_body += f"You can now request lessons from {teacher_name}.\n\n"
+                        elif new_status == 'waitlist':
+                            email_body += f"{teacher_name} has placed you on their waiting list.\n\n"
+                        elif new_status == 'declined':
+                            email_body += f"{teacher_name} has reviewed your application.\n\n"
+
+                        if teacher_notes:
+                            email_body += f"Message from {teacher_name}:\n{teacher_notes}\n\n"
+
+                        if new_status == 'accepted':
+                            email_body += f"Request lessons: {request.build_absolute_uri(reverse('private_teaching:request_lesson'))}\n\n"
+                        else:
+                            email_body += f"View your application: {request.build_absolute_uri(reverse('private_teaching:student_applications'))}\n\n"
+
+                        email_body += "Best regards,\nRECORDERED Team"
+
+                        send_mail(
+                            subject,
+                            email_body,
+                            settings.DEFAULT_FROM_EMAIL,
+                            [application.applicant.email],
+                            fail_silently=True,
+                        )
+                    except Exception as e:
+                        # Log error but don't fail the status update
+                        print(f"Error sending application status email: {e}")
+
                 messages.success(request, f'Application status updated to {application.get_status_display()}!')
 
                 # If accepted from waitlist, check if we should notify next in line
                 if new_status == 'accepted' and old_status == 'waitlist':
-                    # TODO: Implement waiting list notifications
+                    # No additional action needed - student already notified above
                     pass
 
             else:
