@@ -36,9 +36,17 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
 
         # Time periods for filtering
         now = timezone.now()
+        today = now.date()
         this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         last_month_start = (this_month_start - timedelta(days=1)).replace(day=1)
         this_year_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        # Quick filter presets
+        last_7_days = (now - timedelta(days=7)).date()
+        last_30_days = (now - timedelta(days=30)).date()
+        last_3_months = (now - relativedelta(months=3)).date()
+        last_year_start = (now.replace(month=1, day=1) - relativedelta(years=1)).date()
+        last_year_end = (now.replace(month=12, day=31) - relativedelta(years=1)).date()
 
         # Parse custom date range if provided
         custom_start = None
@@ -163,6 +171,21 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
         total_this_year = workshops_this_year + courses_this_year + private_this_year
 
         # =====================================================================
+        # SUMMARY STATISTICS
+        # =====================================================================
+        total_transactions = workshops_count + courses_count + private_orders.count()
+        average_transaction = grand_total / total_transactions if total_transactions > 0 else Decimal('0.00')
+
+        # Find top domain
+        domain_revenues = {
+            'Workshops': workshops_total,
+            'Courses': courses_total,
+            'Private Lessons': private_total
+        }
+        top_domain = max(domain_revenues, key=domain_revenues.get) if any(domain_revenues.values()) else 'None'
+        top_domain_amount = domain_revenues.get(top_domain, Decimal('0.00'))
+
+        # =====================================================================
         # RECENT TRANSACTIONS (Last 10 across all domains)
         # =====================================================================
         recent_transactions = []
@@ -256,6 +279,12 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
             'total_this_month': total_this_month,
             'total_this_year': total_this_year,
 
+            # Summary statistics
+            'total_transactions': total_transactions,
+            'average_transaction': average_transaction,
+            'top_domain': top_domain,
+            'top_domain_amount': top_domain_amount,
+
             # Workshops
             'workshops_total': workshops_total,
             'workshops_this_month': workshops_this_month,
@@ -291,6 +320,15 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
             'has_custom_filter': bool(custom_start or custom_end),
             'date_range_description': date_range_description,
             'date_range_error': date_range_error,
+
+            # Quick filter presets
+            'today': today.strftime('%Y-%m-%d'),
+            'last_7_days': last_7_days.strftime('%Y-%m-%d'),
+            'last_30_days': last_30_days.strftime('%Y-%m-%d'),
+            'last_3_months': last_3_months.strftime('%Y-%m-%d'),
+            'this_year_start': this_year_start.date().strftime('%Y-%m-%d'),
+            'last_year_start': last_year_start.strftime('%Y-%m-%d'),
+            'last_year_end': last_year_end.strftime('%Y-%m-%d'),
         })
 
         return context

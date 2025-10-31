@@ -28,28 +28,40 @@
             <!-- Date Range Filter -->
             <div class="card bg-base-200 shadow-xl mb-8">
                 <div class="card-body">
+                    <h3 class="text-sm font-semibold mb-2 text-base-content/70">Quick Filters</h3>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <a href="?date_from={{ last_7_days }}&date_to={{ today }}" class="btn btn-sm btn-ghost">Last 7 Days</a>
+                        <a href="?date_from={{ last_30_days }}&date_to={{ today }}" class="btn btn-sm btn-ghost">Last 30 Days</a>
+                        <a href="?date_from={{ last_3_months }}&date_to={{ today }}" class="btn btn-sm btn-ghost">Last 3 Months</a>
+                        <a href="?date_from={{ this_year_start }}&date_to={{ today }}" class="btn btn-sm btn-ghost">Year to Date</a>
+                        <a href="?date_from={{ last_year_start }}&date_to={{ last_year_end }}" class="btn btn-sm btn-ghost">Last Year</a>
+                    </div>
+
+                    <div class="divider my-2"></div>
+
+                    <h3 class="text-sm font-semibold mb-2 text-base-content/70">Custom Date Range</h3>
                     <form method="get" class="flex flex-wrap gap-4 items-end">
                         <div class="form-control">
                             <label class="label">
                                 <span class="label-text">From Date</span>
                             </label>
-                            <input type="date" name="date_from" value="{{ date_from }}" class="input input-bordered" />
+                            <input type="date" name="date_from" value="{{ date_from }}" class="input input-bordered input-sm" />
                         </div>
                         <div class="form-control">
                             <label class="label">
                                 <span class="label-text">To Date</span>
                             </label>
-                            <input type="date" name="date_to" value="{{ date_to }}" class="input input-bordered" />
+                            <input type="date" name="date_to" value="{{ date_to }}" class="input input-bordered input-sm" />
                         </div>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary btn-sm">
                             <i class="fas fa-filter mr-2"></i>Filter
                         </button>
                         {% if has_custom_filter %}
-                            <a href="{% url 'accounts:teacher_revenue' %}" class="btn btn-outline">
+                            <a href="{% url 'accounts:teacher_revenue' %}" class="btn btn-outline btn-sm">
                                 <i class="fas fa-times mr-2"></i>Clear
                             </a>
                         {% endif %}
-                        <a href="{% url 'accounts:teacher_revenue_export' %}?date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-success">
+                        <a href="{% url 'accounts:teacher_revenue_export' %}?date_from={{ date_from }}&date_to={{ date_to }}" class="btn btn-success btn-sm">
                             <i class="fas fa-download mr-2"></i>Export CSV
                         </a>
                     </form>
@@ -59,6 +71,36 @@
                             <span>{{ date_range_error }}</span>
                         </div>
                     {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Stats Overview -->
+            <div class="stats stats-vertical lg:stats-horizontal shadow mb-8 w-full">
+                <div class="stat">
+                    <div class="stat-figure text-primary">
+                        <i class="fas fa-receipt text-2xl"></i>
+                    </div>
+                    <div class="stat-title">Total Transactions</div>
+                    <div class="stat-value text-primary">{{ total_transactions }}</div>
+                    <div class="stat-desc">Across all domains</div>
+                </div>
+
+                <div class="stat">
+                    <div class="stat-figure text-secondary">
+                        <i class="fas fa-chart-line text-2xl"></i>
+                    </div>
+                    <div class="stat-title">Average Transaction</div>
+                    <div class="stat-value text-secondary">£{{ average_transaction|floatformat:2 }}</div>
+                    <div class="stat-desc">Per payment</div>
+                </div>
+
+                <div class="stat">
+                    <div class="stat-figure text-accent">
+                        <i class="fas fa-crown text-2xl"></i>
+                    </div>
+                    <div class="stat-title">Top Domain</div>
+                    <div class="stat-value text-accent text-lg">{{ top_domain }}</div>
+                    <div class="stat-desc">£{{ top_domain_amount|floatformat:2 }} total</div>
                 </div>
             </div>
 
