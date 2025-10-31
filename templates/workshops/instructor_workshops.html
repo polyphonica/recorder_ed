@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Workshops - Instructor Dashboard{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'core:home' %}">Home</a></li>
+            <li><a href="{% url 'workshops:instructor_dashboard' %}">Instructor Dashboard</a></li>
+            <li>My Workshops</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Page Header -->
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-bold mb-2">My Workshops</h1>
+                <p class="text-base-content/70">Manage your workshop offerings and sessions</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex gap-2">
+                <a href="{% url 'workshops:instructor_dashboard' %}" class="btn btn-outline">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                </a>
+                <a href="{% url 'workshops:create_workshop' %}" class="btn btn-primary">
+                    <i class="fas fa-plus mr-2"></i>Create Workshop
+                </a>
+            </div>
+        </div>
+
+        {% if workshops %}
+            <!-- Workshop Stats -->
+            <div class="stats stats-vertical lg:stats-horizontal shadow mb-8 w-full">
+                <div class="stat">
+                    <div class="stat-figure text-primary">
+                        <i class="fas fa-chalkboard-teacher text-3xl"></i>
+                    </div>
+                    <div class="stat-title">Total Workshops</div>
+                    <div class="stat-value text-primary">{{ workshops|length }}</div>
+                    <div class="stat-desc">Workshops you've created</div>
+                </div>
+
+                <div class="stat">
+                    <div class="stat-figure text-success">
+                        <i class="fas fa-calendar-check text-3xl"></i>
+                    </div>
+                    <div class="stat-title">Upcoming Sessions</div>
+                    <div class="stat-value text-success">
+                        {% with total=0 %}
+                            {% for workshop in workshops %}
+                                {% with total=total|add:workshop.sessions.count %}
+                                {% endwith %}
+                            {% endfor %}
+                            {{ total }}
+                        {% endwith %}
+                    </div>
+                    <div class="stat-desc">Across all workshops</div>
+                </div>
+
+                <div class="stat">
+                    <div class="stat-figure text-info">
+                        <i class="fas fa-users text-3xl"></i>
+                    </div>
+                    <div class="stat-title">Total Registrations</div>
+                    <div class="stat-value text-info">
+                        {% with total=0 %}
+                            {% for workshop in workshops %}
+                                {% with total=total|add:workshop.total_registrations %}
+                                {% endwith %}
+                            {% endfor %}
+                            {{ total }}
+                        {% endwith %}
+                    </div>
+                    <div class="stat-desc">Students enrolled</div>
+                </div>
+            </div>
+
+            <!-- Workshop Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for workshop in workshops %}
+                    <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                        {% if workshop.image %}
+                            <figure class="h-48">
+                                <img src="{{ workshop.image.url }}" alt="{{ workshop.title }}" class="w-full h-full object-cover" />
+                            </figure>
+                        {% else %}
+                            <figure class="h-48 bg-gradient-to-br from-primary/20 to-secondary/20">
+                                <div class="text-center">
+                                    <i class="fas fa-chalkboard-teacher text-6xl text-primary/60 mb-2"></i>
+                                    <p class="text-primary/60 font-medium">{{ workshop.category.name }}</p>
+                                </div>
+                            </figure>
+                        {% endif %}
+
+                        <div class="card-body">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex flex-wrap gap-1">
+                                    <div class="badge badge-primary badge-sm">{{ workshop.category.name }}</div>
+                                    {% if workshop.delivery_method == 'online' %}
+                                        <div class="badge badge-info badge-sm">Online</div>
+                                    {% elif workshop.delivery_method == 'in_person' %}
+                                        <div class="badge badge-success badge-sm">In-Person</div>
+                                    {% elif workshop.delivery_method == 'hybrid' %}
+                                        <div class="badge badge-accent badge-sm">Hybrid</div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex gap-1">
+                                    {% if workshop.is_featured %}
+                                        <div class="badge badge-secondary">Featured</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <h2 class="card-title text-lg">{{ workshop.title }}</h2>
+                            <p class="text-base-content/70 text-sm line-clamp-2">{{ workshop.short_description }}</p>
+
+                            <!-- Workshop Stats -->
+                            <div class="flex items-center gap-4 text-sm text-base-content/60 my-3">
+                                <div class="flex items-center gap-1">
+                                    <i class="far fa-calendar"></i>
+                                    <span>{{ workshop.sessions.count }} session{{ workshop.sessions.count|pluralize }}</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <i class="far fa-users"></i>
+                                    <span>{{ workshop.total_registrations }} enrolled</span>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-between items-center">
+                                <div class="text-lg font-bold">
+                                    {% if workshop.is_free %}
+                                        <span class="text-success">Free</span>
+                                    {% else %}
+                                        <span class="text-primary">£{{ workshop.price }}</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="text-sm text-base-content/60">
+                                    {{ workshop.get_difficulty_level_display }}
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="card-actions flex-col gap-2 mt-4">
+                                <a href="{% url 'workshops:edit_workshop' workshop.slug %}"
+                                   class="btn btn-primary btn-sm w-full">
+                                    <i class="fas fa-edit mr-2"></i>Edit Workshop
+                                </a>
+                                <a href="{% url 'workshops:manage_sessions' workshop.slug %}"
+                                   class="btn btn-outline btn-sm w-full">
+                                    <i class="fas fa-calendar-alt mr-2"></i>Manage Sessions
+                                </a>
+                                <a href="{% url 'workshops:detail' workshop.slug %}"
+                                   class="btn btn-ghost btn-sm w-full"
+                                   target="_blank">
+                                    <i class="fas fa-eye mr-2"></i>Preview
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+                <div class="flex justify-center mt-8">
+                    <div class="btn-group">
+                        {% if page_obj.has_previous %}
+                            <a href="?page=1" class="btn btn-sm">«</a>
+                            <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm">‹</a>
+                        {% endif %}
+
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <a class="btn btn-sm btn-active">{{ num }}</a>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <a href="?page={{ num }}" class="btn btn-sm">{{ num }}</a>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm">›</a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}" class="btn btn-sm">»</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+        {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-16">
+                <div class="inline-block p-8 bg-base-200 rounded-full mb-4">
+                    <i class="fas fa-chalkboard-teacher text-6xl text-base-content/40"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-2">No Workshops Yet</h3>
+                <p class="text-base-content/70 mb-6">Get started by creating your first workshop!</p>
+                <a href="{% url 'workshops:create_workshop' %}" class="btn btn-primary">
+                    <i class="fas fa-plus mr-2"></i>Create Your First Workshop
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
