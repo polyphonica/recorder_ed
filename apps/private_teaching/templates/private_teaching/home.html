@@ -133,12 +133,31 @@
                 {% for request in recent_requests %}
                     <div class="card bg-base-100 shadow-xl">
                         <div class="card-body">
-                            <h3 class="card-title">{{ request.subject }}</h3>
-                            <div class="badge badge-{{ request.status|default:'secondary' }}">{{ request.get_status_display }}</div>
-                            <p class="text-sm text-gray-600">{{ request.created_at|date:"M d, Y" }}</p>
-                            {% if request.preferred_day %}
-                                <p class="text-sm">Preferred: {{ request.get_preferred_day_display }}</p>
-                            {% endif %}
+                            <h3 class="card-title">{{ request.subject_display }}</h3>
+                            <div class="space-y-2">
+                                {% if request.status == 'accepted' %}
+                                    <div class="badge badge-success">Accepted</div>
+                                {% elif request.status == 'rejected' %}
+                                    <div class="badge badge-error">Rejected</div>
+                                {% elif request.status == 'pending' %}
+                                    <div class="badge badge-warning">Pending</div>
+                                {% elif request.status == 'mixed' %}
+                                    <div class="badge badge-info">Mixed Status</div>
+                                {% else %}
+                                    <div class="badge badge-ghost">Draft</div>
+                                {% endif %}
+                                <p class="text-sm text-base-content/70">
+                                    <i class="far fa-calendar mr-1"></i>{{ request.created_at|date:"M d, Y" }}
+                                </p>
+                                <p class="text-sm text-base-content/70">
+                                    <i class="far fa-list mr-1"></i>{{ request.lessons.count }} lesson{{ request.lessons.count|pluralize }}
+                                </p>
+                            </div>
+                            <div class="card-actions justify-end mt-2">
+                                <a href="{% url 'private_teaching:student_lesson_request_detail' request.id %}" class="btn btn-sm btn-primary">
+                                    View Details
+                                </a>
+                            </div>
                         </div>
                     </div>
                 {% endfor %}

@@ -110,6 +110,28 @@ class LessonRequest(models.Model):
         """Check if this is a lesson request for a child (under 18)"""
         return self.child_profile is not None
 
+    @property
+    def subject_display(self):
+        """Get subject(s) for display - returns comma-separated list of unique subjects"""
+        subjects = self.lessons.select_related('subject').values_list('subject__subject', flat=True).distinct()
+        return ', '.join(subjects) if subjects else 'No subjects'
+
+    @property
+    def status(self):
+        """Get overall status based on lesson statuses"""
+        lessons = self.lessons.all()
+        if not lessons:
+            return 'draft'
+
+        statuses = lessons.values_list('approved_status', flat=True)
+        if all(s == 'Accepted' for s in statuses):
+            return 'accepted'
+        elif all(s == 'Rejected' for s in statuses):
+            return 'rejected'
+        elif any(s == 'Pending' for s in statuses):
+            return 'pending'
+        return 'mixed'
+
 
 class LessonRequestMessage(models.Model):
     """Message thread for lesson request negotiations"""

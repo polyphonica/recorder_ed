@@ -74,7 +74,7 @@ class PrivateTeachingHomeView(TemplateView):
             if self.request.user.profile.is_student and self.request.user.profile.profile_completed:
                 context['recent_requests'] = LessonRequest.objects.filter(
                     student=self.request.user
-                ).order_by('-created_at')[:3]
+                ).prefetch_related('lessons__subject').order_by('-created_at')[:3]
 
         return context
 
