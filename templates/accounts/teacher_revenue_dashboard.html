@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Revenue Dashboard{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'core:home' %}">Home</a></li>
+            <li>Revenue Dashboard</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold mb-2">Revenue Dashboard</h1>
+            <p class="text-base-content/70">Your earnings across all teaching domains</p>
+        </div>
+
+        {% if error %}
+            <div class="alert alert-error">
+                <span>{{ error }}</span>
+            </div>
+        {% else %}
+            <!-- Grand Total Card -->
+            <div class="card bg-gradient-to-br from-primary to-secondary text-primary-content shadow-2xl mb-8">
+                <div class="card-body">
+                    <h2 class="card-title text-lg opacity-90">Total Lifetime Revenue</h2>
+                    <p class="text-5xl font-bold">£{{ grand_total|floatformat:2 }}</p>
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <p class="text-sm opacity-80">{{ current_month }}</p>
+                            <p class="text-2xl font-semibold">£{{ total_this_month|floatformat:2 }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm opacity-80">{{ current_year }}</p>
+                            <p class="text-2xl font-semibold">£{{ total_this_year|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue by Domain -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- Workshops -->
+                <div class="card bg-base-200 shadow-xl">
+                    <div class="card-body">
+                        <h3 class="card-title text-lg flex items-center">
+                            <i class="fas fa-chalkboard-teacher text-primary"></i>
+                            Workshops
+                        </h3>
+                        <div class="mt-4">
+                            <p class="text-3xl font-bold text-primary">£{{ workshops_total|floatformat:2 }}</p>
+                            <p class="text-sm text-base-content/70 mt-2">{{ workshops_count }} registration{{ workshops_count|pluralize }}</p>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-base-content/70">This Month:</span>
+                                <span class="font-semibold">£{{ workshops_this_month|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-base-content/70">This Year:</span>
+                                <span class="font-semibold">£{{ workshops_this_year|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Courses -->
+                <div class="card bg-base-200 shadow-xl">
+                    <div class="card-body">
+                        <h3 class="card-title text-lg flex items-center">
+                            <i class="fas fa-graduation-cap text-secondary"></i>
+                            Courses
+                        </h3>
+                        <div class="mt-4">
+                            <p class="text-3xl font-bold text-secondary">£{{ courses_total|floatformat:2 }}</p>
+                            <p class="text-sm text-base-content/70 mt-2">{{ courses_count }} enrollment{{ courses_count|pluralize }}</p>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-base-content/70">This Month:</span>
+                                <span class="font-semibold">£{{ courses_this_month|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-base-content/70">This Year:</span>
+                                <span class="font-semibold">£{{ courses_this_year|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Private Teaching -->
+                <div class="card bg-base-200 shadow-xl">
+                    <div class="card-body">
+                        <h3 class="card-title text-lg flex items-center">
+                            <i class="fas fa-user-tie text-accent"></i>
+                            Private Lessons
+                        </h3>
+                        <div class="mt-4">
+                            <p class="text-3xl font-bold text-accent">£{{ private_total|floatformat:2 }}</p>
+                            <p class="text-sm text-base-content/70 mt-2">{{ private_lessons_count }} lesson{{ private_lessons_count|pluralize }}</p>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-base-content/70">This Month:</span>
+                                <span class="font-semibold">£{{ private_this_month|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-base-content/70">This Year:</span>
+                                <span class="font-semibold">£{{ private_this_year|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="card bg-base-200 shadow-xl">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">
+                        <i class="fas fa-receipt text-info"></i>
+                        Recent Transactions
+                    </h3>
+
+                    {% if recent_transactions %}
+                        <div class="overflow-x-auto">
+                            <table class="table table-zebra">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                        <th>Student</th>
+                                        <th class="text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in recent_transactions %}
+                                        <tr>
+                                            <td>{{ transaction.date|date:"M d, Y" }}</td>
+                                            <td>
+                                                <span class="badge
+                                                    {% if transaction.type == 'Workshop' %}badge-primary
+                                                    {% elif transaction.type == 'Course' %}badge-secondary
+                                                    {% else %}badge-accent{% endif %} badge-sm">
+                                                    {{ transaction.type }}
+                                                </span>
+                                            </td>
+                                            <td>{{ transaction.description }}</td>
+                                            <td>{{ transaction.student }}</td>
+                                            <td class="text-right font-semibold">£{{ transaction.amount|floatformat:2 }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8 text-base-content/70">
+                            <i class="fas fa-inbox text-4xl mb-2"></i>
+                            <p>No transactions yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Note about data source -->
+            <div class="alert alert-info mt-8">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <h4 class="font-bold">Data Source</h4>
+                    <p class="text-sm">All revenue figures are sourced directly from confirmed payment records in the database. Only completed/paid transactions are included.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
