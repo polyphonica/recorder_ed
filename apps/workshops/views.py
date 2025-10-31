@@ -802,6 +802,19 @@ class InstructorWorkshopsView(InstructorRequiredMixin, ListView):
             instructor=self.request.user
         ).select_related('category').prefetch_related('sessions').order_by('-created_at')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        workshops = self.get_queryset()
+
+        # Calculate total sessions and registrations
+        total_sessions = sum(workshop.sessions.count() for workshop in workshops)
+        total_registrations = sum(workshop.total_registrations for workshop in workshops)
+
+        context['total_sessions'] = total_sessions
+        context['total_registrations'] = total_registrations
+
+        return context
+
 
 class CreateWorkshopView(LoginRequiredMixin, CreateView):
     """Create new workshop"""
