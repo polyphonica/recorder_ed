@@ -1,5 +1,6 @@
 from django import template
 from django.utils.safestring import mark_safe
+from django.conf import settings
 import json
 
 register = template.Library()
@@ -151,3 +152,18 @@ def icon(name, size='w-5 h-5', extra_classes=''):
 def json_script(value):
     """Convert Python object to JSON for use in Alpine.js"""
     return mark_safe(json.dumps(value))
+
+
+@register.filter
+def currency(value):
+    """
+    Format a number as currency using the site's configured currency symbol.
+    Usage: {{ price|currency }}
+    Example: 10.50 becomes £10.50
+    """
+    try:
+        symbol = getattr(settings, 'CURRENCY_SYMBOL', '£')
+        num_value = float(value)
+        return f"{symbol}{num_value:.2f}"
+    except (ValueError, TypeError):
+        return value

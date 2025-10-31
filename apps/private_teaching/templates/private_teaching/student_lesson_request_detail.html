@@ -62,7 +62,7 @@
                                     <span class="badge badge-success">Paid</span>
                                 {% endif %}
                             </td>
-                            <td class="font-medium">${{ lesson.fee|floatformat:2 }}</td>
+                            <td class="font-medium">£{{ lesson.fee|floatformat:2 }}</td>
                             <td>
                                 {% if lesson.approved_status == 'Accepted' and lesson.payment_status == 'Not Paid' %}
                                     <form method="post" action="{% url 'private_teaching:add_to_cart' lesson.id %}" class="inline">

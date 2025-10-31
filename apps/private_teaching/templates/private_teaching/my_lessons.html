@@ -90,7 +90,7 @@
                                             <div class="text-2xl font-bold text-primary">{{ lesson.lesson_time|time:"g:i A" }}</div>
                                             <div class="text-sm text-base-content/70">{{ lesson.duration_in_minutes }} minutes</div>
                                             {% if lesson.fee %}
-                                                <div class="text-success font-semibold mt-2">${{ lesson.fee|floatformat:2 }}</div>
+                                                <div class="text-success font-semibold mt-2">£{{ lesson.fee|floatformat:2 }}</div>
                                             {% endif %}
                                             {% if lesson.location == 'Online' %}
                                                 <div class="mt-2">
@@ -169,7 +169,7 @@
                                 <td>{{ lesson.duration_in_minutes }} min</td>
                                 <td>
                                     {% if lesson.fee %}
-                                        ${{ lesson.fee|floatformat:2 }}
+                                        £{{ lesson.fee|floatformat:2 }}
                                     {% endif %}
                                 </td>
                                 <td>

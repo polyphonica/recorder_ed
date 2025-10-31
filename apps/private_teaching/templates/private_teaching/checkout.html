@@ -49,7 +49,7 @@
 
                                     <div class="text-right ml-4">
                                         <div class="text-xl font-bold text-green-600">
-                                            ${{ item.price|floatformat:0 }}
+                                            £{{ item.price|floatformat:0 }}
                                         </div>
                                     </div>
                                 </div>
@@ -69,14 +69,14 @@
                         <div class="space-y-3 mb-6">
                             <div class="flex justify-between">
                                 <span>Subtotal ({{ cart_count }} lessons)</span>
-                                <span>${{ cart_total|floatformat:2 }}</span>
+                                <span>£{{ cart_total|floatformat:2 }}</span>
                             </div>
                             
                             <div class="divider my-2"></div>
                             
                             <div class="flex justify-between text-lg font-bold">
                                 <span>Total</span>
-                                <span class="text-green-600">${{ cart_total|floatformat:2 }}</span>
+                                <span class="text-green-600">£{{ cart_total|floatformat:2 }}</span>
                             </div>
                         </div>
                         

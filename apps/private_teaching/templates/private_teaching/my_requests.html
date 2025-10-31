@@ -72,7 +72,7 @@
                                                         <span>🕐 {{ lesson.lesson_time|time:"g:i A" }}</span>
                                                         <span class="badge badge-outline">{{ lesson.duration_in_minutes }}min</span>
                                                         {% if lesson.fee %}
-                                                            <span class="text-green-600 font-semibold">${{ lesson.fee|floatformat:2 }}</span>
+                                                            <span class="text-green-600 font-semibold">£{{ lesson.fee|floatformat:2 }}</span>
                                                         {% endif %}
                                                     </div>
                                                     <div class="text-xs text-base-content/70 mt-1">

@@ -199,6 +199,10 @@ STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
 STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
 
+# Currency Configuration
+CURRENCY_CODE = 'GBP'
+CURRENCY_SYMBOL = '£'
+
 # Platform Settings
 PLATFORM_COMMISSION_PERCENTAGE = config('PLATFORM_COMMISSION_PERCENTAGE', default=10, cast=int)
 

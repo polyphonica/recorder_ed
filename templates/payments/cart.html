@@ -31,7 +31,7 @@
                         <div class="flex items-center space-x-4">
                             <div class="text-right">
                                 <div class="text-lg font-semibold text-gray-900">
-                                    ${{ item.price|floatformat:2 }}
+                                    £{{ item.price|floatformat:2 }}
                                 </div>
                             </div>
                             
@@ -58,7 +58,7 @@
                             Total ({{ cart_items.count }} item{{ cart_items.count|pluralize }})
                         </div>
                         <div class="text-2xl font-bold text-gray-900">
-                            ${{ total_amount|floatformat:2 }}
+                            £{{ total_amount|floatformat:2 }}
                         </div>
                     </div>
                 </div>

@@ -34,7 +34,7 @@
                                 </div>
                                 <div class="text-right">
                                     <div class="text-lg font-semibold text-gray-900">
-                                        ${{ item.price|floatformat:2 }}
+                                        £{{ item.price|floatformat:2 }}
                                     </div>
                                 </div>
                             </div>
@@ -56,16 +56,16 @@
                         <div class="space-y-2 mb-6">
                             <div class="flex justify-between text-sm">
                                 <span class="text-gray-600">Subtotal ({{ cart_items.count }} item{{ cart_items.count|pluralize }})</span>
-                                <span class="text-gray-900">${{ total_amount|floatformat:2 }}</span>
+                                <span class="text-gray-900">£{{ total_amount|floatformat:2 }}</span>
                             </div>
                             <div class="flex justify-between text-sm">
                                 <span class="text-gray-600">Processing Fee</span>
-                                <span class="text-gray-900">$0.00</span>
+                                <span class="text-gray-900">£0.00</span>
                             </div>
                             <div class="border-t pt-2">
                                 <div class="flex justify-between text-lg font-semibold">
                                     <span class="text-gray-900">Total</span>
-                                    <span class="text-gray-900">${{ total_amount|floatformat:2 }}</span>
+                                    <span class="text-gray-900">£{{ total_amount|floatformat:2 }}</span>
                                 </div>
                             </div>
                         </div>
@@ -93,11 +93,11 @@
                             
                             <button type="submit" 
                                     class="w-full btn btn-primary btn-lg mb-4"
-                                    onclick="return confirm('Complete your order for ${{ total_amount|floatformat:2 }}?')">
+                                    onclick="return confirm('Complete your order for £{{ total_amount|floatformat:2 }}?')">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                                 </svg>
-                                Complete Order - ${{ total_amount|floatformat:2 }}
+                                Complete Order - £{{ total_amount|floatformat:2 }}
                             </button>
                         </form>
                         
