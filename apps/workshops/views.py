@@ -721,11 +721,22 @@ class MyRegistrationsView(LoginRequiredMixin, ListView):
     template_name = 'workshops/my_registrations.html'
     context_object_name = 'registrations'
     paginate_by = 20
-    
+
     def get_queryset(self):
         return WorkshopRegistration.objects.filter(
             student=self.request.user
         ).select_related('session__workshop').order_by('-registration_date')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Calculate registration counts by status
+        all_registrations = self.get_queryset()
+        context['confirmed_count'] = all_registrations.filter(status='registered').count()
+        context['pending_payment_count'] = all_registrations.filter(status='promoted').count()
+        context['attended_count'] = all_registrations.filter(attended=True).count()
+
+        return context
 
 
 class InstructorDashboardView(InstructorRequiredMixin, TemplateView):

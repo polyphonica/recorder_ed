@@ -50,29 +50,23 @@
                         <i class="fas fa-check-circle text-2xl"></i>
                     </div>
                     <div class="stat-title">Confirmed</div>
-                    <div class="stat-value text-success">
-                        {% for reg in registrations %}{% if reg.status == 'registered' %}{{ forloop.counter0|add:1 }}{% endif %}{% empty %}0{% endfor %}
-                    </div>
+                    <div class="stat-value text-success">{{ confirmed_count|default:0 }}</div>
                 </div>
-                
+
                 <div class="stat bg-base-200 rounded-lg">
                     <div class="stat-figure text-warning">
                         <i class="fas fa-credit-card text-2xl"></i>
                     </div>
                     <div class="stat-title">Pending Payment</div>
-                    <div class="stat-value text-warning">
-                        {% for reg in registrations %}{% if reg.status == 'promoted' %}{{ forloop.counter0|add:1 }}{% endif %}{% empty %}0{% endfor %}
-                    </div>
+                    <div class="stat-value text-warning">{{ pending_payment_count|default:0 }}</div>
                 </div>
-                
+
                 <div class="stat bg-base-200 rounded-lg">
                     <div class="stat-figure text-info">
                         <i class="fas fa-graduation-cap text-2xl"></i>
                     </div>
                     <div class="stat-title">Attended</div>
-                    <div class="stat-value text-info">
-                        {% for reg in registrations %}{% if reg.attended %}{{ forloop.counter0|add:1 }}{% endif %}{% empty %}0{% endfor %}
-                    </div>
+                    <div class="stat-value text-info">{{ attended_count|default:0 }}</div>
                 </div>
             </div>
 
