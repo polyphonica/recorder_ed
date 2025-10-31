@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .revenue_views import TeacherRevenueDashboardView
+from .revenue_views import TeacherRevenueDashboardView, TeacherRevenueExportView
 
 app_name = 'accounts'
 
@@ -11,6 +11,7 @@ urlpatterns = [
 
     # Teacher revenue dashboard
     path('teacher/revenue/', TeacherRevenueDashboardView.as_view(), name='teacher_revenue'),
+    path('teacher/revenue/export/', TeacherRevenueExportView.as_view(), name='teacher_revenue_export'),
 
     # Public teacher profile (no login required)
     path('teacher/<int:teacher_id>/', views.TeacherPublicProfileView.as_view(), name='teacher_profile'),

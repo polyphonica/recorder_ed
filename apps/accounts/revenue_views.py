@@ -2,14 +2,16 @@
 Teacher Revenue Dashboard Views
 Consolidates revenue from all teaching domains: Workshops, Courses, and Private Teaching
 """
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
+from django.http import HttpResponse
 from datetime import timedelta, datetime
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
+import csv
 
 
 class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
@@ -41,16 +43,24 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
         # Parse custom date range if provided
         custom_start = None
         custom_end = None
+        date_range_error = None
+
         if date_from:
             try:
                 custom_start = timezone.make_aware(datetime.strptime(date_from, '%Y-%m-%d'))
             except ValueError:
-                pass
+                date_range_error = 'Invalid start date format'
         if date_to:
             try:
                 custom_end = timezone.make_aware(datetime.strptime(date_to, '%Y-%m-%d').replace(hour=23, minute=59, second=59))
             except ValueError:
-                pass
+                date_range_error = 'Invalid end date format'
+
+        # Validate date range
+        if custom_start and custom_end and custom_start > custom_end:
+            date_range_error = 'Start date must be before end date'
+            custom_start = None
+            custom_end = None
 
         # =====================================================================
         # WORKSHOPS REVENUE
@@ -280,6 +290,132 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
             'date_to': date_to or '',
             'has_custom_filter': bool(custom_start or custom_end),
             'date_range_description': date_range_description,
+            'date_range_error': date_range_error,
         })
 
         return context
+
+
+class TeacherRevenueExportView(LoginRequiredMixin, View):
+    """
+    Export revenue data as CSV file
+    """
+    def get(self, request):
+        user = request.user
+
+        # Ensure user is a teacher
+        if not hasattr(user, 'profile') or not user.profile.is_teacher:
+            return HttpResponse('Access denied', status=403)
+
+        # Get date range from GET parameters
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+
+        # Parse custom date range if provided
+        custom_start = None
+        custom_end = None
+        if date_from:
+            try:
+                custom_start = timezone.make_aware(datetime.strptime(date_from, '%Y-%m-%d'))
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                custom_end = timezone.make_aware(datetime.strptime(date_to, '%Y-%m-%d').replace(hour=23, minute=59, second=59))
+            except ValueError:
+                pass
+
+        # Create CSV response
+        response = HttpResponse(content_type='text/csv')
+        filename = f'revenue_export_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        writer = csv.writer(response)
+        writer.writerow(['Date', 'Type', 'Description', 'Student', 'Amount (£)'])
+
+        # =====================================================================
+        # FETCH ALL TRANSACTIONS
+        # =====================================================================
+        from apps.workshops.models import WorkshopRegistration
+        from apps.courses.models import CourseEnrollment
+        from apps.private_teaching.models import Order
+
+        all_transactions = []
+
+        # Workshop registrations
+        workshop_registrations = WorkshopRegistration.objects.filter(
+            session__workshop__instructor=user,
+            status='registered',
+            payment_status='paid'
+        ).select_related('session__workshop', 'student')
+
+        if custom_start:
+            workshop_registrations = workshop_registrations.filter(registration_date__gte=custom_start)
+        if custom_end:
+            workshop_registrations = workshop_registrations.filter(registration_date__lte=custom_end)
+
+        for reg in workshop_registrations:
+            all_transactions.append({
+                'date': reg.registration_date,
+                'type': 'Workshop',
+                'description': f"{reg.session.workshop.title} - {reg.session.start_datetime.strftime('%b %d, %Y')}",
+                'student': reg.student.get_full_name() or reg.student.username,
+                'amount': float(reg.amount_paid),
+            })
+
+        # Course enrollments
+        course_enrollments = CourseEnrollment.objects.filter(
+            course__instructor=user,
+            payment_status='completed',
+            is_active=True,
+            paid_at__isnull=False
+        ).select_related('course', 'student')
+
+        if custom_start:
+            course_enrollments = course_enrollments.filter(paid_at__gte=custom_start)
+        if custom_end:
+            course_enrollments = course_enrollments.filter(paid_at__lte=custom_end)
+
+        for enrollment in course_enrollments:
+            all_transactions.append({
+                'date': enrollment.paid_at,
+                'type': 'Course',
+                'description': enrollment.course.title,
+                'student': enrollment.student.get_full_name() or enrollment.student.username,
+                'amount': float(enrollment.payment_amount),
+            })
+
+        # Private teaching orders
+        private_orders = Order.objects.filter(
+            teacher=user,
+            payment_status='completed'
+        ).select_related('student').prefetch_related('items')
+
+        if custom_start:
+            private_orders = private_orders.filter(created_at__gte=custom_start)
+        if custom_end:
+            private_orders = private_orders.filter(created_at__lte=custom_end)
+
+        for order in private_orders:
+            all_transactions.append({
+                'date': order.created_at,
+                'type': 'Private Lesson',
+                'description': f"{order.items.count()} lesson(s)",
+                'student': order.student.get_full_name() or order.student.username,
+                'amount': float(order.total_amount),
+            })
+
+        # Sort by date (most recent first)
+        all_transactions.sort(key=lambda x: x['date'], reverse=True)
+
+        # Write transactions to CSV
+        for transaction in all_transactions:
+            writer.writerow([
+                transaction['date'].strftime('%Y-%m-%d %H:%M'),
+                transaction['type'],
+                transaction['description'],
+                transaction['student'],
+                f"{transaction['amount']:.2f}",
+            ])
+
+        return response
