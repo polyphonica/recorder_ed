@@ -271,20 +271,71 @@ class StripeWebhookView(View):
     
     def handle_course_payment(self, metadata, stripe_payment):
         """Update course enrollment when payment succeeds"""
-        from apps.courses.models import Enrollment
-        
+        from apps.courses.models import CourseEnrollment
+        from django.core.mail import send_mail
+        from django.utils import timezone
+
         enrollment_id = metadata.get('enrollment_id')
         if enrollment_id:
             try:
-                enrollment = Enrollment.objects.get(id=enrollment_id)
-                enrollment.payment_status = 'confirmed'
+                enrollment = CourseEnrollment.objects.select_related(
+                    'course', 'student', 'child_profile'
+                ).get(id=enrollment_id)
+
+                # Update payment status
+                enrollment.payment_status = 'completed'
+                enrollment.paid_at = timezone.now()
                 enrollment.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
                 enrollment.save()
-                
+
+                # Update course enrollment count
+                course = enrollment.course
+                course.total_enrollments = CourseEnrollment.objects.filter(
+                    course=course,
+                    is_active=True,
+                    payment_status__in=['completed', 'not_required']
+                ).count()
+                course.save(update_fields=['total_enrollments'])
+
                 # Update reference in StripePayment
-                stripe_payment.course_id = enrollment.course_id
+                stripe_payment.course_id = course.id
                 stripe_payment.save()
-                
-                print(f"Course enrollment {enrollment_id} confirmed")
-            except Enrollment.DoesNotExist:
-                print(f"Enrollment {enrollment_id} not found")
+
+                # Send confirmation email
+                if enrollment.student and enrollment.student.email:
+                    try:
+                        student_name = enrollment.child_profile.full_name if enrollment.child_profile else (enrollment.student.get_full_name() or enrollment.student.username)
+                        guardian_email = enrollment.student.email
+
+                        subject = f"Course Enrollment Confirmed - {course.title}"
+
+                        email_body = f"Hello {enrollment.student.get_full_name() or enrollment.student.username},\n\n"
+
+                        if enrollment.child_profile:
+                            email_body += f"Thank you for enrolling {student_name} in the course!\n\n"
+                        else:
+                            email_body += f"Thank you for enrolling in the course!\n\n"
+
+                        email_body += f"COURSE DETAILS:\n"
+                        email_body += f"Course: {course.title}\n"
+                        email_body += f"Grade Level: {course.get_grade_display()}\n"
+                        email_body += f"Instructor: {course.instructor.get_full_name() or course.instructor.username}\n"
+                        email_body += f"\nAmount Paid: £{enrollment.payment_amount:.2f}\n"
+                        email_body += f"Payment Date: {enrollment.paid_at.strftime('%d %B %Y at %H:%M')}\n\n"
+
+                        email_body += f"You can access your course at: https://www.recorder-ed.com/courses/{course.slug}/\n\n"
+                        email_body += "Best regards,\nRECORDERED Team"
+
+                        send_mail(
+                            subject,
+                            email_body,
+                            settings.DEFAULT_FROM_EMAIL,
+                            [guardian_email],
+                            fail_silently=True,
+                        )
+                    except Exception as e:
+                        print(f"Error sending course confirmation email: {e}")
+
+                print(f"Course enrollment {enrollment_id} confirmed and email sent")
+            except CourseEnrollment.DoesNotExist:
+                print(f"CourseEnrollment {enrollment_id} not found")

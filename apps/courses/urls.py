@@ -60,6 +60,12 @@ urlpatterns = [
 
     path('my-courses/', views.StudentDashboardView.as_view(), name='student_dashboard'),
     path('my-progress/<slug:slug>/', views.StudentCourseProgressView.as_view(), name='my_progress'),
+
+    # Enrollment & Payment
+    path('enrollment/<uuid:enrollment_id>/confirm/', views.CourseEnrollmentConfirmView.as_view(), name='enrollment_confirm'),
+    path('enrollment/<uuid:enrollment_id>/checkout/success/', views.CourseCheckoutSuccessView.as_view(), name='checkout_success'),
+    path('enrollment/<uuid:enrollment_id>/checkout/cancel/', views.CourseCheckoutCancelView.as_view(), name='checkout_cancel'),
+
     path('lesson/<uuid:lesson_id>/', views.LessonViewView.as_view(), name='view_lesson'),
     path('lesson/<uuid:lesson_id>/complete/', views.MarkLessonCompleteView.as_view(), name='mark_complete'),
     path('lesson/<uuid:lesson_id>/quiz/', views.QuizTakeView.as_view(), name='take_quiz'),

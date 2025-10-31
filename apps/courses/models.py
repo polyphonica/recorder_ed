@@ -405,15 +405,39 @@ class CourseEnrollment(models.Model):
     enrolled_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
-    # Payment reference - links to recordered's payment system
-    # TODO: Add back when implementing course payments
-    # order = models.ForeignKey(
-    #     'payments.Order',
-    #     on_delete=models.SET_NULL,
-    #     null=True,
-    #     blank=True,
-    #     related_name='course_enrollments'
-    # )
+    # Payment Information
+    payment_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('not_required', 'Not Required'),
+            ('pending', 'Pending Payment'),
+            ('completed', 'Payment Completed'),
+            ('failed', 'Payment Failed'),
+        ],
+        default='not_required',
+        help_text="Payment status for paid courses"
+    )
+    payment_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        help_text="Amount paid for this enrollment"
+    )
+    stripe_payment_intent_id = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Stripe PaymentIntent ID"
+    )
+    stripe_checkout_session_id = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Stripe Checkout Session ID"
+    )
+    paid_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When payment was completed"
+    )
 
     class Meta:
         ordering = ['-enrolled_at']

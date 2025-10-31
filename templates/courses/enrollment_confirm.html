@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Enrollment Confirmed - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Confirmation Message -->
+        <div class="bg-green-50 border-2 border-green-500 rounded-lg p-8 mb-8 text-center">
+            <div class="w-20 h-20 bg-green-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-green-900 mb-2">Enrollment Confirmed!</h1>
+            <p class="text-green-700 text-lg">
+                {% if child %}
+                    {{ child.full_name }} has been successfully enrolled
+                {% else %}
+                    You have been successfully enrolled
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Course Details -->
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden mb-6">
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">Course Details</h2>
+            </div>
+
+            <div class="p-6">
+                {% if course.image %}
+                <div class="mb-6">
+                    <img src="{{ course.image.url }}" alt="{{ course.title }}" class="w-full h-48 object-cover rounded-lg">
+                </div>
+                {% endif %}
+
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">{{ course.title }}</h3>
+
+                <div class="space-y-4 text-gray-700">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 mr-3 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                        <div>
+                            <div class="font-medium">Grade Level</div>
+                            <div class="text-sm text-gray-600">{{ course.get_grade_display }}</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 mr-3 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        <div>
+                            <div class="font-medium">Instructor</div>
+                            <div class="text-sm text-gray-600">{{ course.instructor.get_full_name|default:course.instructor.username }}</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 mr-3 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <div>
+                            <div class="font-medium">Course Content</div>
+                            <div class="text-sm text-gray-600">{{ course.total_topics }} topics, {{ course.total_lessons }} lessons</div>
+                        </div>
+                    </div>
+
+                    {% if child %}
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 mr-3 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        <div>
+                            <div class="font-medium">Enrolled Student</div>
+                            <div class="text-sm text-gray-600">{{ child.full_name }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 mr-3 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <div>
+                            <div class="font-medium">Enrolled On</div>
+                            <div class="text-sm text-gray-600">{{ enrollment.enrolled_at|date:"F j, Y \a\t g:i A" }}</div>
+                        </div>
+                    </div>
+
+                    {% if enrollment.payment_status == 'completed' or enrollment.payment_status == 'not_required' %}
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 mr-3 mt-0.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div>
+                            <div class="font-medium text-green-700">Payment Status</div>
+                            <div class="text-sm text-green-600">
+                                {% if enrollment.payment_status == 'not_required' %}
+                                    Free Course
+                                {% else %}
+                                    Paid - £{{ enrollment.payment_amount }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Next Steps -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-semibold text-blue-900 mb-3">Ready to Start Learning?</h3>
+            <ul class="space-y-2 text-blue-800">
+                <li class="flex items-start">
+                    <svg class="w-5 h-5 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Access all course materials and lessons immediately</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-5 h-5 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Learn at your own pace - course materials are available 24/7</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-5 h-5 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Track your progress and earn a certificate upon completion</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-5 h-5 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Message your instructor if you have any questions</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4">
+            <a href="{% url 'courses:detail' course.slug %}" class="btn btn-primary flex-1">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                </svg>
+                Start Course
+            </a>
+            <a href="{% url 'courses:student_dashboard' %}" class="btn btn-outline flex-1">
+                View My Courses
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

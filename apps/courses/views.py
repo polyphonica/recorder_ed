@@ -759,6 +759,7 @@ class CourseEnrollView(LoginRequiredMixin, View):
         child_id = request.POST.get('child_id')
 
         # Determine if enrolling a child or self
+        child = None
         if request.user.profile.is_guardian and child_id:
             # Enrolling a child
             from apps.accounts.models import ChildProfile
@@ -769,39 +770,194 @@ class CourseEnrollView(LoginRequiredMixin, View):
                 return redirect('courses:detail', slug=course.slug)
 
             # Check if child already enrolled
-            enrollment, created = CourseEnrollment.objects.get_or_create(
+            existing_enrollment = CourseEnrollment.objects.filter(
                 course=course,
                 student=request.user,
-                child_profile=child,
-                defaults={
-                    'enrolled_at': timezone.now(),
-                    'is_active': True
-                }
-            )
+                child_profile=child
+            ).first()
 
-            if created:
-                messages.success(request, f'Successfully enrolled {child.full_name} in {course.title}!')
-            else:
+            if existing_enrollment:
                 messages.info(request, f'{child.full_name} is already enrolled in {course.title}.')
+                return redirect('courses:detail', slug=course.slug)
 
         else:
             # Enrolling self (adult student)
-            enrollment, created = CourseEnrollment.objects.get_or_create(
+            existing_enrollment = CourseEnrollment.objects.filter(
                 course=course,
                 student=request.user,
-                child_profile=None,
-                defaults={
-                    'enrolled_at': timezone.now(),
-                    'is_active': True
-                }
+                child_profile=None
+            ).first()
+
+            if existing_enrollment:
+                messages.info(request, f'You are already enrolled in {course.title}.')
+                return redirect('courses:detail', slug=course.slug)
+
+        # Check if course requires payment
+        is_paid_course = course.cost > 0
+
+        if is_paid_course:
+            # PAID COURSE: Create enrollment with pending payment status
+            enrollment = CourseEnrollment.objects.create(
+                course=course,
+                student=request.user,
+                child_profile=child,
+                payment_status='pending',
+                payment_amount=course.cost,
+                is_active=True
             )
 
-            if created:
-                messages.success(request, f'Successfully enrolled in {course.title}!')
-            else:
-                messages.info(request, f'You are already enrolled in {course.title}.')
+            # Create Stripe checkout session
+            from apps.payments.stripe_service import create_checkout_session
+            from django.urls import reverse
 
-        return redirect('courses:detail', slug=course.slug)
+            success_url = request.build_absolute_uri(
+                reverse('courses:checkout_success', kwargs={'enrollment_id': enrollment.id})
+            )
+            cancel_url = request.build_absolute_uri(
+                reverse('courses:checkout_cancel', kwargs={'enrollment_id': enrollment.id})
+            )
+
+            try:
+                # Use course title as item name
+                item_name = course.title
+                item_description = f"Course enrollment - {course.get_grade_display()}"
+
+                session = create_checkout_session(
+                    amount=course.cost,
+                    student=request.user,
+                    teacher=course.instructor,
+                    domain='courses',
+                    success_url=success_url,
+                    cancel_url=cancel_url,
+                    metadata={
+                        'enrollment_id': str(enrollment.id),
+                        'course_id': str(course.id),
+                        'child_id': str(child.id) if child else '',
+                    },
+                    item_name=item_name,
+                    item_description=item_description
+                )
+
+                # Save session ID to enrollment
+                enrollment.stripe_checkout_session_id = session.id
+                enrollment.save()
+
+                # Redirect to Stripe Checkout
+                return redirect(session.url, code=303)
+
+            except Exception as e:
+                # If Stripe checkout creation fails, delete the enrollment
+                enrollment.delete()
+                messages.error(request, f"Payment setup failed: {str(e)}. Please try again.")
+                return redirect('courses:detail', slug=course.slug)
+
+        else:
+            # FREE COURSE: Immediate enrollment
+            enrollment = CourseEnrollment.objects.create(
+                course=course,
+                student=request.user,
+                child_profile=child,
+                payment_status='not_required',
+                payment_amount=0,
+                is_active=True
+            )
+
+            # Update course enrollment count
+            course.total_enrollments = CourseEnrollment.objects.filter(
+                course=course,
+                is_active=True
+            ).count()
+            course.save(update_fields=['total_enrollments'])
+
+            student_name = child.full_name if child else 'You'
+            messages.success(
+                request,
+                f'{student_name} {"has" if child else "have"} been successfully enrolled in {course.title}!'
+            )
+
+            return redirect('courses:enrollment_confirm', enrollment_id=enrollment.id)
+
+
+class CourseCheckoutSuccessView(LoginRequiredMixin, TemplateView):
+    """Handle return from Stripe after successful checkout"""
+    template_name = 'courses/checkout_success.html'
+
+    def get(self, request, *args, **kwargs):
+        enrollment_id = kwargs.get('enrollment_id')
+
+        try:
+            enrollment = CourseEnrollment.objects.select_related(
+                'course', 'student', 'child_profile'
+            ).get(id=enrollment_id, student=request.user)
+
+            # Webhook will update the status, but show intermediate page
+            context = self.get_context_data(**kwargs)
+            context['enrollment'] = enrollment
+            context['course'] = enrollment.course
+            context['child'] = enrollment.child_profile
+
+            return self.render_to_response(context)
+
+        except CourseEnrollment.DoesNotExist:
+            messages.error(request, 'Enrollment not found.')
+            return redirect('courses:list')
+
+
+class CourseCheckoutCancelView(LoginRequiredMixin, TemplateView):
+    """Handle cancelled checkout"""
+    template_name = 'courses/checkout_cancel.html'
+
+    def get(self, request, *args, **kwargs):
+        enrollment_id = kwargs.get('enrollment_id')
+
+        try:
+            enrollment = CourseEnrollment.objects.select_related(
+                'course', 'student', 'child_profile'
+            ).get(id=enrollment_id, student=request.user)
+
+            # Mark payment as failed
+            enrollment.payment_status = 'failed'
+            enrollment.save()
+
+            context = self.get_context_data(**kwargs)
+            context['enrollment'] = enrollment
+            context['course'] = enrollment.course
+            context['child'] = enrollment.child_profile
+
+            messages.warning(
+                request,
+                'Payment was cancelled. You can try again from the course page.'
+            )
+
+            return self.render_to_response(context)
+
+        except CourseEnrollment.DoesNotExist:
+            messages.error(request, 'Enrollment not found.')
+            return redirect('courses:list')
+
+
+class CourseEnrollmentConfirmView(LoginRequiredMixin, TemplateView):
+    """Show enrollment confirmation page"""
+    template_name = 'courses/enrollment_confirm.html'
+
+    def get(self, request, *args, **kwargs):
+        enrollment_id = kwargs.get('enrollment_id')
+
+        try:
+            enrollment = CourseEnrollment.objects.select_related(
+                'course', 'student', 'child_profile'
+            ).get(id=enrollment_id, student=request.user)
+
+            context = self.get_context_data(**kwargs)
+            context['enrollment'] = enrollment
+            context['course'] = enrollment.course
+            context['child'] = enrollment.child_profile
+
+            return self.render_to_response(context)
+
+        except CourseEnrollment.DoesNotExist:
+            messages.error(request, 'Enrollment not found.')
+            return redirect('courses:list')
 
 
 class LessonPreviewView(DetailView):
