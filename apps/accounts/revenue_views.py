@@ -138,9 +138,9 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
         from apps.private_teaching.models import Order
 
         private_orders = Order.objects.filter(
-            teacher=user,
+            items__lesson__teacher=user,
             payment_status='completed'  # Only completed payments
-        ).prefetch_related('items')
+        ).distinct().prefetch_related('items__lesson')
 
         # Apply custom date range if provided
         if custom_start:
@@ -425,9 +425,9 @@ class TeacherRevenueExportView(LoginRequiredMixin, View):
 
         # Private teaching orders
         private_orders = Order.objects.filter(
-            teacher=user,
+            items__lesson__teacher=user,
             payment_status='completed'
-        ).select_related('student').prefetch_related('items')
+        ).distinct().select_related('student').prefetch_related('items__lesson')
 
         if custom_start:
             private_orders = private_orders.filter(created_at__gte=custom_start)
