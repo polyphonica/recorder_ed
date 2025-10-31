@@ -45,8 +45,11 @@
         
         <div class="stat bg-success text-success-content rounded-lg shadow-lg">
             <div class="stat-title text-success-content/70">Quick Actions</div>
-            <div class="stat-actions mt-4">
+            <div class="stat-actions mt-4 flex flex-col gap-2">
                 <a href="{% url 'private_teaching:incoming_requests' %}" class="btn btn-sm btn-outline btn-success-content">Review Requests</a>
+                <a href="{% url 'accounts:teacher_revenue' %}" class="btn btn-sm btn-outline btn-success-content">
+                    <i class="fas fa-chart-line mr-1"></i>Revenue
+                </a>
             </div>
         </div>
     </div>

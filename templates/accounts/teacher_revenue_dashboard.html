@@ -25,10 +25,44 @@
                 <span>{{ error }}</span>
             </div>
         {% else %}
+            <!-- Date Range Filter -->
+            <div class="card bg-base-200 shadow-xl mb-8">
+                <div class="card-body">
+                    <form method="get" class="flex flex-wrap gap-4 items-end">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">From Date</span>
+                            </label>
+                            <input type="date" name="date_from" value="{{ date_from }}" class="input input-bordered" />
+                        </div>
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">To Date</span>
+                            </label>
+                            <input type="date" name="date_to" value="{{ date_to }}" class="input input-bordered" />
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter mr-2"></i>Filter
+                        </button>
+                        {% if has_custom_filter %}
+                            <a href="{% url 'accounts:teacher_revenue' %}" class="btn btn-outline">
+                                <i class="fas fa-times mr-2"></i>Clear
+                            </a>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+
             <!-- Grand Total Card -->
             <div class="card bg-gradient-to-br from-primary to-secondary text-primary-content shadow-2xl mb-8">
                 <div class="card-body">
-                    <h2 class="card-title text-lg opacity-90">Total Lifetime Revenue</h2>
+                    <h2 class="card-title text-lg opacity-90">
+                        {% if has_custom_filter %}
+                            Total Revenue ({{ date_range_description }})
+                        {% else %}
+                            Total Lifetime Revenue
+                        {% endif %}
+                    </h2>
                     <p class="text-5xl font-bold">£{{ grand_total|floatformat:2 }}</p>
                     <div class="grid grid-cols-2 gap-4 mt-4">
                         <div>
@@ -115,6 +149,85 @@
                             <div class="flex justify-between">
                                 <span class="text-base-content/70">This Year:</span>
                                 <span class="font-semibold">£{{ private_this_year|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Breakdown -->
+            <div class="card bg-base-200 shadow-xl mb-8">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">
+                        <i class="fas fa-calendar-alt text-primary"></i>
+                        Monthly Revenue Breakdown (Last 6 Months)
+                    </h3>
+
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra">
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th class="text-right">Workshops</th>
+                                    <th class="text-right">Courses</th>
+                                    <th class="text-right">Private</th>
+                                    <th class="text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for month in monthly_data %}
+                                    <tr>
+                                        <td class="font-semibold">{{ month.month }}</td>
+                                        <td class="text-right">£{{ month.workshops|floatformat:2 }}</td>
+                                        <td class="text-right">£{{ month.courses|floatformat:2 }}</td>
+                                        <td class="text-right">£{{ month.private|floatformat:2 }}</td>
+                                        <td class="text-right font-bold">£{{ month.total|floatformat:2 }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Simple bar chart visualization -->
+                    <div class="mt-6">
+                        <div class="space-y-2">
+                            {% for month in monthly_data %}
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span>{{ month.month }}</span>
+                                        <span class="font-semibold">£{{ month.total|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="flex gap-0.5 h-8 bg-base-300 rounded overflow-hidden">
+                                        {% widthratio month.workshops month.total 100 as workshops_pct %}
+                                        {% widthratio month.courses month.total 100 as courses_pct %}
+                                        {% widthratio month.private month.total 100 as private_pct %}
+                                        {% if month.total > 0 %}
+                                            {% if month.workshops > 0 %}
+                                                <div class="bg-primary" style="width: {{ workshops_pct }}%" title="Workshops: £{{ month.workshops|floatformat:2 }}"></div>
+                                            {% endif %}
+                                            {% if month.courses > 0 %}
+                                                <div class="bg-secondary" style="width: {{ courses_pct }}%" title="Courses: £{{ month.courses|floatformat:2 }}"></div>
+                                            {% endif %}
+                                            {% if month.private > 0 %}
+                                                <div class="bg-accent" style="width: {{ private_pct }}%" title="Private: £{{ month.private|floatformat:2 }}"></div>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="flex justify-center gap-6 mt-4 text-sm">
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 bg-primary rounded"></div>
+                                <span>Workshops</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 bg-secondary rounded"></div>
+                                <span>Courses</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 bg-accent rounded"></div>
+                                <span>Private</span>
                             </div>
                         </div>
                     </div>

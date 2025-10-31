@@ -5,9 +5,11 @@ Consolidates revenue from all teaching domains: Workshops, Courses, and Private 
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum, Count, Q
+from django.db.models.functions import TruncMonth
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
 from decimal import Decimal
+from dateutil.relativedelta import relativedelta
 
 
 class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
@@ -26,11 +28,29 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
             context['error'] = 'Access denied: Teacher account required'
             return context
 
+        # Get date range from GET parameters (if provided)
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+
         # Time periods for filtering
         now = timezone.now()
         this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         last_month_start = (this_month_start - timedelta(days=1)).replace(day=1)
         this_year_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        # Parse custom date range if provided
+        custom_start = None
+        custom_end = None
+        if date_from:
+            try:
+                custom_start = timezone.make_aware(datetime.strptime(date_from, '%Y-%m-%d'))
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                custom_end = timezone.make_aware(datetime.strptime(date_to, '%Y-%m-%d').replace(hour=23, minute=59, second=59))
+            except ValueError:
+                pass
 
         # =====================================================================
         # WORKSHOPS REVENUE
@@ -42,6 +62,12 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
             status='registered',  # Only confirmed registrations
             payment_status='paid'  # Only paid registrations
         ).select_related('session__workshop')
+
+        # Apply custom date range if provided
+        if custom_start:
+            workshop_registrations = workshop_registrations.filter(registration_date__gte=custom_start)
+        if custom_end:
+            workshop_registrations = workshop_registrations.filter(registration_date__lte=custom_end)
 
         workshops_total = workshop_registrations.aggregate(
             total=Sum('amount_paid')
@@ -68,6 +94,12 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
             is_active=True
         ).select_related('course')
 
+        # Apply custom date range if provided
+        if custom_start:
+            course_enrollments = course_enrollments.filter(paid_at__gte=custom_start)
+        if custom_end:
+            course_enrollments = course_enrollments.filter(paid_at__lte=custom_end)
+
         courses_total = course_enrollments.aggregate(
             total=Sum('payment_amount')
         )['total'] or Decimal('0.00')
@@ -91,6 +123,12 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
             teacher=user,
             payment_status='completed'  # Only completed payments
         ).prefetch_related('items')
+
+        # Apply custom date range if provided
+        if custom_start:
+            private_orders = private_orders.filter(created_at__gte=custom_start)
+        if custom_end:
+            private_orders = private_orders.filter(created_at__lte=custom_end)
 
         private_total = private_orders.aggregate(
             total=Sum('total_amount')
@@ -154,8 +192,54 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
         recent_transactions = recent_transactions[:10]  # Keep only top 10
 
         # =====================================================================
+        # MONTHLY BREAKDOWN (Last 6 months)
+        # =====================================================================
+        six_months_ago = now - relativedelta(months=6)
+        monthly_data = []
+
+        for i in range(6):
+            month_start = (now - relativedelta(months=5-i)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            month_end = (month_start + relativedelta(months=1)) - timedelta(seconds=1)
+
+            # Workshops for this month
+            workshops_month = workshop_registrations.filter(
+                registration_date__gte=month_start,
+                registration_date__lte=month_end
+            ).aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+
+            # Courses for this month
+            courses_month = course_enrollments.filter(
+                paid_at__gte=month_start,
+                paid_at__lte=month_end
+            ).aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
+
+            # Private for this month
+            private_month = private_orders.filter(
+                created_at__gte=month_start,
+                created_at__lte=month_end
+            ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+
+            monthly_data.append({
+                'month': month_start.strftime('%b %Y'),
+                'workshops': float(workshops_month),
+                'courses': float(courses_month),
+                'private': float(private_month),
+                'total': float(workshops_month + courses_month + private_month),
+            })
+
+        # =====================================================================
         # BUILD CONTEXT
         # =====================================================================
+
+        # Build human-readable date range description
+        date_range_description = "All Time"
+        if custom_start and custom_end:
+            date_range_description = f"{custom_start.strftime('%b %d, %Y')} - {custom_end.strftime('%b %d, %Y')}"
+        elif custom_start:
+            date_range_description = f"Since {custom_start.strftime('%b %d, %Y')}"
+        elif custom_end:
+            date_range_description = f"Until {custom_end.strftime('%b %d, %Y')}"
+
         context.update({
             # Overall totals
             'grand_total': grand_total,
@@ -183,9 +267,19 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
             # Recent activity
             'recent_transactions': recent_transactions,
 
+            # Monthly breakdown
+            'monthly_data': monthly_data,
+            'monthly_data_json': str(monthly_data),  # For JavaScript charting
+
             # Time period labels
             'current_month': now.strftime('%B %Y'),
             'current_year': now.year,
+
+            # Filter parameters
+            'date_from': date_from or '',
+            'date_to': date_to or '',
+            'has_custom_filter': bool(custom_start or custom_end),
+            'date_range_description': date_range_description,
         })
 
         return context
