@@ -301,6 +301,13 @@ class StripeWebhookView(View):
                 stripe_payment.course_id = course.id
                 stripe_payment.save()
 
+                # Send notification to instructor
+                try:
+                    from apps.courses.notifications import InstructorNotificationService
+                    InstructorNotificationService.send_new_enrollment_notification(enrollment)
+                except Exception as e:
+                    print(f"Failed to send instructor notification: {e}")
+
                 # Send confirmation email
                 if enrollment.student and enrollment.student.email:
                     try:

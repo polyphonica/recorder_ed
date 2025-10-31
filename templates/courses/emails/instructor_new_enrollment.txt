@@ -1,0 +1,29 @@
+Subject: New Enrollment - {{ course.title }}
+
+Hi {{ course.instructor.first_name|default:course.instructor.username }},
+
+Good news! A new student has enrolled in your course.
+
+Student Details:
+- Name: {{ student_name }}
+{% if guardian_info %}- Guardian: {{ guardian_info }}
+{% endif %}- Email: {{ enrollment.student.email }}
+- Enrolled: {{ enrollment.enrolled_at|date:"F j, Y \a\t g:i A" }}
+
+Course Details:
+- Course: {{ course.title }}
+- Grade Level: {{ course.get_grade_display }}
+- Total Enrollments: {{ course.total_enrollments }}
+
+{% if enrollment.payment_status == 'completed' %}Payment Status: Paid - £{{ enrollment.payment_amount }}
+{% elif enrollment.payment_status == 'not_required' %}Payment Status: Free Course
+{% endif %}
+
+View Course:
+{{ course_url }}
+
+View Analytics:
+{{ analytics_url }}
+
+Best regards,
+The {{ site_name }} Team
