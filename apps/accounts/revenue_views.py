@@ -88,16 +88,16 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
             workshop_registrations = workshop_registrations.filter(registration_date__lte=custom_end)
 
         workshops_total = workshop_registrations.aggregate(
-            total=Sum('amount_paid')
+            total=Sum('payment_amount')
         )['total'] or Decimal('0.00')
 
         workshops_this_month = workshop_registrations.filter(
             registration_date__gte=this_month_start
-        ).aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+        ).aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
 
         workshops_this_year = workshop_registrations.filter(
             registration_date__gte=this_year_start
-        ).aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+        ).aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
 
         workshops_count = workshop_registrations.count()
 
@@ -197,7 +197,7 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
                 'type': 'Workshop',
                 'description': f"{reg.session.workshop.title} - {reg.session.start_datetime.strftime('%b %d, %Y')}",
                 'student': reg.student.get_full_name() or reg.student.username,
-                'amount': reg.amount_paid,
+                'amount': reg.payment_amount,
             })
 
         # Add course enrollments
@@ -238,7 +238,7 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
             workshops_month = workshop_registrations.filter(
                 registration_date__gte=month_start,
                 registration_date__lte=month_end
-            ).aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+            ).aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
 
             # Courses for this month
             courses_month = course_enrollments.filter(
@@ -398,7 +398,7 @@ class TeacherRevenueExportView(LoginRequiredMixin, View):
                 'type': 'Workshop',
                 'description': f"{reg.session.workshop.title} - {reg.session.start_datetime.strftime('%b %d, %Y')}",
                 'student': reg.student.get_full_name() or reg.student.username,
-                'amount': float(reg.amount_paid),
+                'amount': float(reg.payment_amount),
             })
 
         # Course enrollments
