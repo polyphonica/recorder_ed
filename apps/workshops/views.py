@@ -24,11 +24,11 @@ class WorkshopListView(ListView):
     paginate_by = 12
 
     def dispatch(self, request, *args, **kwargs):
-        # If user is logged in and is a student (not an instructor), redirect to their dashboard
+        # If user is logged in and is a student (not a teacher), redirect to their dashboard
         if request.user.is_authenticated and hasattr(request.user, 'profile'):
             profile = request.user.profile
-            # Redirect students to their dashboard (but not instructors)
-            if profile.is_student and not profile.is_workshop_instructor:
+            # Redirect students to their dashboard (but not teachers)
+            if profile.is_student and not profile.is_teacher:
                 return redirect('workshops:student_dashboard')
         return super().dispatch(request, *args, **kwargs)
 
