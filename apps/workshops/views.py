@@ -804,11 +804,15 @@ class InstructorWorkshopsView(InstructorRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        workshops = self.get_queryset()
 
-        # Calculate total sessions and registrations
-        total_sessions = sum(workshop.sessions.count() for workshop in workshops)
-        total_registrations = sum(workshop.total_registrations for workshop in workshops)
+        # Get ALL workshops for stats (not just current page)
+        all_workshops = Workshop.objects.filter(
+            instructor=self.request.user
+        ).prefetch_related('sessions')
+
+        # Calculate total sessions and registrations across ALL workshops
+        total_sessions = sum(workshop.sessions.count() for workshop in all_workshops)
+        total_registrations = sum(workshop.total_registrations for workshop in all_workshops)
 
         context['total_sessions'] = total_sessions
         context['total_registrations'] = total_registrations
