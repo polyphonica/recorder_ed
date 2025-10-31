@@ -2080,3 +2080,20 @@ class CertificateVerifyView(TemplateView):
                 context['error_message'] = 'Invalid certificate code format.'
 
         return context
+
+
+# ============================================================================
+# INSTRUCTOR RESOURCES
+# ============================================================================
+
+class MediaManagementGuideView(InstructorRequiredMixin, TemplateView):
+    """
+    Display media management guide for instructors.
+    Shows how to organize and upload course media files.
+    """
+    template_name = 'courses/instructor/media_guide.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'Media Management Guide'
+        return context

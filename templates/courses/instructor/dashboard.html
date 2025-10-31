@@ -65,6 +65,9 @@
                 <a href="{% url 'accounts:teacher_revenue' %}" class="btn btn-success">
                     <i class="fas fa-chart-line mr-2"></i>Revenue Dashboard
                 </a>
+                <a href="{% url 'courses:media_guide' %}" class="btn btn-info">
+                    <i class="fas fa-book mr-2"></i>Media Guide
+                </a>
                 <a href="{% url 'courses:messages_inbox' %}" class="btn btn-accent">
                     <i class="fas fa-envelope mr-2"></i>Messages
                     {% if unread_course_messages > 0 %}
