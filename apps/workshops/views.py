@@ -22,7 +22,16 @@ class WorkshopListView(ListView):
     template_name = 'workshops/workshop_list.html'
     context_object_name = 'workshops'
     paginate_by = 12
-    
+
+    def dispatch(self, request, *args, **kwargs):
+        # If user is logged in and is a student (not an instructor), redirect to their dashboard
+        if request.user.is_authenticated and hasattr(request.user, 'profile'):
+            profile = request.user.profile
+            # Redirect students to their dashboard (but not instructors)
+            if profile.is_student and not profile.is_workshop_instructor:
+                return redirect('workshops:student_dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
     def get_queryset(self):
         queryset = Workshop.objects.filter(status='published').select_related(
             'instructor', 'category'
