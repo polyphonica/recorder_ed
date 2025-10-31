@@ -422,15 +422,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isFreeCheckbox && priceField) {
         function togglePriceField() {
             if (isFreeCheckbox.checked) {
-                priceField.disabled = true;
-                priceField.value = '';
+                priceField.value = '0.00';
+                priceField.readOnly = true;
                 priceField.closest('.form-control').style.opacity = '0.5';
             } else {
-                priceField.disabled = false;
+                priceField.readOnly = false;
                 priceField.closest('.form-control').style.opacity = '1';
             }
         }
-        
+
         isFreeCheckbox.addEventListener('change', togglePriceField);
         togglePriceField(); // Initial state
     }

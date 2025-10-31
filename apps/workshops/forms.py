@@ -91,7 +91,12 @@ class WorkshopRegistrationForm(forms.ModelForm):
 
 class WorkshopForm(forms.ModelForm):
     """Form for creating and editing workshops"""
-    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make price field not required since it's handled in clean() method
+        self.fields['price'].required = False
+
     class Meta:
         model = Workshop
         fields = [
