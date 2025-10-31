@@ -796,11 +796,11 @@ class InstructorWorkshopsView(InstructorRequiredMixin, ListView):
     template_name = 'workshops/instructor_workshops.html'
     context_object_name = 'workshops'
     paginate_by = 12
-    
+
     def get_queryset(self):
         return Workshop.objects.filter(
             instructor=self.request.user
-        ).prefetch_related('sessions').order_by('-created_at')
+        ).select_related('category').prefetch_related('sessions').order_by('-created_at')
 
 
 class CreateWorkshopView(LoginRequiredMixin, CreateView):
