@@ -746,13 +746,19 @@ class MyRegistrationsView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        # Only show completed registrations (exclude pending payments)
-        # With cart system, registrations are only created after payment
+        # Show all registrations except those with pending payment
+        # Cart-based registrations have payment_status='completed' after webhook processes
         return WorkshopRegistration.objects.filter(
             student=self.request.user
-        ).exclude(
-            payment_status='pending'
-        ).select_related('session__workshop').order_by('-registration_date')
+        ).filter(
+            Q(payment_status='completed') |
+            Q(payment_status='not_required') |
+            Q(payment_status__isnull=True)  # Legacy registrations without payment_status
+        ).select_related(
+            'session__workshop__instructor',
+            'session__workshop__category',
+            'child_profile'
+        ).order_by('-paid_at', '-registration_date')  # Most recently paid first
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
