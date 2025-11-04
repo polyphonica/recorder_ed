@@ -1514,6 +1514,34 @@ class ClearWorkshopCartView(LoginRequiredMixin, View):
         return redirect('workshops:cart')
 
 
+class CheckoutSuccessView(LoginRequiredMixin, TemplateView):
+    """Stripe payment successful for cart checkout"""
+    template_name = 'workshops/cart_checkout_success.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        session_id = self.request.GET.get('session_id')
+        context['session_id'] = session_id
+
+        # Get recent registrations for this user
+        # (webhook may have already created them)
+        recent_registrations = WorkshopRegistration.objects.filter(
+            student=self.request.user,
+            payment_status='completed'
+        ).select_related('session__workshop').order_by('-paid_at')[:5]
+
+        context['registrations'] = recent_registrations
+        return context
+
+
+class CheckoutCancelView(LoginRequiredMixin, View):
+    """Stripe payment cancelled for cart checkout"""
+
+    def get(self, request):
+        messages.warning(request, 'Payment was cancelled. Your cart items are still saved.')
+        return redirect('workshops:cart')
+
+
 class WorkshopCheckoutView(LoginRequiredMixin, TemplateView):
     """Checkout page for workshop cart"""
     template_name = 'workshops/checkout.html'
@@ -1540,6 +1568,9 @@ class WorkshopCheckoutView(LoginRequiredMixin, TemplateView):
 
     def post(self, request, *args, **kwargs):
         """Handle checkout submission - create Stripe checkout session"""
+        from apps.payments.stripe_service import create_checkout_session
+        from decimal import Decimal
+
         cart_manager = WorkshopCartManager(request)
         cart = cart_manager.get_cart()
 
@@ -1548,7 +1579,9 @@ class WorkshopCheckoutView(LoginRequiredMixin, TemplateView):
             return redirect('workshops:cart')
 
         # Get cart items
-        workshop_items = cart.workshop_items.all()
+        workshop_items = cart.workshop_items.select_related(
+            'session__workshop__instructor'
+        ).all()
 
         # Calculate total
         total_amount = sum(item.total_price for item in workshop_items)
@@ -1573,7 +1606,43 @@ class WorkshopCheckoutView(LoginRequiredMixin, TemplateView):
             messages.success(request, 'Successfully registered for workshop sessions!')
             return redirect('workshops:student_dashboard')
 
-        # TODO: Implement Stripe checkout for paid workshops
-        # For now, redirect with message
-        messages.info(request, 'Stripe checkout coming soon. Please contact administrator.')
-        return redirect('workshops:cart')
+        # Paid workshops - use Stripe checkout
+        try:
+            # Build item descriptions
+            item_descriptions = []
+            for item in workshop_items:
+                desc = f"{item.session.workshop.title} ({item.session.start_datetime.strftime('%b %d, %Y')})"
+                item_descriptions.append(desc)
+
+            # Store cart item IDs in metadata for webhook processing
+            cart_item_ids = [str(item.id) for item in workshop_items]
+
+            # Get first instructor (for commission calculation)
+            first_teacher = workshop_items[0].session.workshop.instructor if workshop_items else None
+
+            # Create Stripe checkout session
+            checkout_session = create_checkout_session(
+                amount=total_amount,
+                student=request.user,
+                teacher=first_teacher,
+                domain='workshops',
+                success_url=request.build_absolute_uri(
+                    reverse('workshops:checkout_success')
+                ) + '?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=request.build_absolute_uri(
+                    reverse('workshops:cart')
+                ),
+                metadata={
+                    'cart_item_ids': ','.join(cart_item_ids),
+                    'item_count': len(cart_item_ids),
+                },
+                item_name=f"Workshop Registration ({len(cart_item_ids)} session{'s' if len(cart_item_ids) > 1 else ''})",
+                item_description='; '.join(item_descriptions[:3])  # First 3 items for brevity
+            )
+
+            # Redirect to Stripe
+            return redirect(checkout_session.url)
+
+        except Exception as e:
+            messages.error(request, f'Payment error: {str(e)}. Please try again or contact support.')
+            return redirect('workshops:cart')

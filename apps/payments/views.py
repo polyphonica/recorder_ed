@@ -174,10 +174,20 @@ class StripeWebhookView(View):
     
     def handle_workshop_payment(self, metadata, stripe_payment):
         """Update workshop registration when payment succeeds"""
-        from apps.workshops.models import WorkshopRegistration
+        from apps.workshops.models import WorkshopRegistration, WorkshopCartItem
+        from django.contrib.auth.models import User
         from django.core.mail import send_mail
         from django.utils import timezone
 
+        # Check if this is a cart payment (multiple items)
+        cart_item_ids = metadata.get('cart_item_ids')
+
+        if cart_item_ids:
+            # CART PAYMENT - Multiple workshops
+            self.handle_workshop_cart_payment(metadata, stripe_payment, cart_item_ids)
+            return
+
+        # SINGLE REGISTRATION PAYMENT (legacy method)
         registration_id = metadata.get('registration_id')
         if registration_id:
             try:
@@ -268,7 +278,141 @@ class StripeWebhookView(View):
                 print(f"Workshop registration {registration_id} confirmed and email sent")
             except WorkshopRegistration.DoesNotExist:
                 print(f"WorkshopRegistration {registration_id} not found")
-    
+
+    def handle_workshop_cart_payment(self, metadata, stripe_payment, cart_item_ids):
+        """Handle cart-based workshop payment (multiple sessions)"""
+        from apps.workshops.models import WorkshopRegistration, WorkshopCartItem
+        from django.contrib.auth.models import User
+        from django.core.mail import send_mail
+        from django.utils import timezone
+
+        item_ids = [id.strip() for id in cart_item_ids.split(',')]
+        user_id = metadata.get('student_id')
+
+        try:
+            user = User.objects.get(id=user_id)
+            created_registrations = []
+
+            for item_id in item_ids:
+                try:
+                    cart_item = WorkshopCartItem.objects.select_related(
+                        'session__workshop__instructor',
+                        'session__workshop__category',
+                        'child_profile'
+                    ).get(id=item_id)
+
+                    # Create registration
+                    registration = WorkshopRegistration.objects.create(
+                        session=cart_item.session,
+                        student=user,
+                        email=user.email,
+                        child_profile=cart_item.child_profile,
+                        status='registered',
+                        payment_status='completed',
+                        payment_amount=cart_item.price,
+                        stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                        stripe_checkout_session_id=stripe_payment.stripe_checkout_session_id,
+                        paid_at=timezone.now(),
+                        notes=cart_item.notes if cart_item.notes else ''
+                    )
+
+                    # Update session registration count
+                    session = cart_item.session
+                    session.current_registrations = session.registrations.filter(
+                        status__in=['registered', 'promoted', 'attended']
+                    ).count()
+                    session.save(update_fields=['current_registrations'])
+
+                    # Update workshop total registrations
+                    workshop = session.workshop
+                    workshop.total_registrations = WorkshopRegistration.objects.filter(
+                        session__workshop=workshop,
+                        status__in=['registered', 'attended']
+                    ).count()
+                    workshop.save(update_fields=['total_registrations'])
+
+                    # Store for email
+                    created_registrations.append(registration)
+
+                    # Delete cart item
+                    cart_item.delete()
+
+                    print(f"Created registration for {workshop.title} - Session {session.start_datetime}")
+
+                except WorkshopCartItem.DoesNotExist:
+                    print(f"Cart item {item_id} not found (may have been already processed)")
+                except Exception as e:
+                    print(f"Error processing cart item {item_id}: {str(e)}")
+
+            # Send consolidated confirmation email
+            if created_registrations and user.email:
+                try:
+                    self.send_workshop_cart_confirmation_email(user, created_registrations, stripe_payment)
+                except Exception as e:
+                    print(f"Error sending cart confirmation email: {e}")
+
+            print(f"Processed {len(created_registrations)} workshop registrations for user {user_id}")
+
+        except User.DoesNotExist:
+            print(f"User {user_id} not found")
+        except Exception as e:
+            print(f"Error in handle_workshop_cart_payment: {str(e)}")
+
+    def send_workshop_cart_confirmation_email(self, user, registrations, stripe_payment):
+        """Send confirmation email for cart-based workshop purchase"""
+        from django.core.mail import send_mail
+        from django.conf import settings
+
+        total_amount = stripe_payment.total_amount
+        user_name = user.get_full_name() or user.username
+
+        subject = f"Workshop Registration Confirmed - {len(registrations)} Session{'s' if len(registrations) > 1 else ''}"
+
+        email_body = f"Hello {user_name},\n\n"
+        email_body += f"Thank you for your payment! Your workshop registration{'s are' if len(registrations) > 1 else ' is'} confirmed.\n\n"
+        email_body += f"PAYMENT DETAILS:\n"
+        email_body += f"Total Amount: £{total_amount:.2f}\n"
+        email_body += f"Payment Date: {registrations[0].paid_at.strftime('%d %B %Y at %H:%M')}\n\n"
+        email_body += f"WORKSHOPS REGISTERED:\n\n"
+
+        for reg in registrations:
+            workshop = reg.session.workshop
+            session = reg.session
+
+            participant_name = reg.student_name  # Uses property for child or adult
+
+            if reg.child_profile:
+                email_body += f"Workshop: {workshop.title} (for {participant_name})\n"
+            else:
+                email_body += f"Workshop: {workshop.title}\n"
+
+            email_body += f"Date: {session.start_datetime.strftime('%A, %d %B %Y')}\n"
+            email_body += f"Time: {session.start_datetime.strftime('%H:%M')} - {session.end_datetime.strftime('%H:%M')}\n"
+
+            if workshop.delivery_method == 'online':
+                email_body += f"Delivery: Online\n"
+                if session.meeting_url:
+                    email_body += f"Meeting Link: {session.meeting_url}\n"
+            else:
+                email_body += f"Delivery: In-Person\n"
+                if workshop.venue_name:
+                    email_body += f"Venue: {workshop.venue_name}\n"
+                if workshop.full_venue_address:
+                    email_body += f"Address: {workshop.full_venue_address}\n"
+
+            email_body += f"Price: £{reg.payment_amount:.2f}\n\n"
+
+        email_body += f"You can view your registrations at: https://www.recorder-ed.com/workshops/my/registrations/\n\n"
+        email_body += "Best regards,\nRECORDERED Team"
+
+        send_mail(
+            subject,
+            email_body,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=True,
+        )
+
     def handle_course_payment(self, metadata, stripe_payment):
         """Update course enrollment when payment succeeds"""
         from apps.courses.models import CourseEnrollment

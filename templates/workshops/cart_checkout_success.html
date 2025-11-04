@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Successful - Workshop Platform{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'core:home' %}">Home</a></li>
+            <li><a href="{% url 'workshops:list' %}">Workshops</a></li>
+            <li>Payment Successful</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <!-- Success Message -->
+        <div class="text-center mb-8">
+            <div class="inline-block p-4 bg-success/10 rounded-full mb-4">
+                <svg class="w-16 h-16 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold mb-2">Payment Successful!</h1>
+            <p class="text-base-content/70">Thank you for your workshop registration</p>
+        </div>
+
+        <!-- Processing Notice -->
+        <div class="alert alert-info mb-8">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+                <h3 class="font-bold">Your registration is being processed</h3>
+                <p class="text-sm">You will receive a confirmation email shortly with all workshop details.</p>
+            </div>
+        </div>
+
+        <!-- Recent Registrations -->
+        {% if registrations %}
+            <div class="card bg-base-200 shadow-md mb-8">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <i class="fas fa-calendar-check mr-2"></i>
+                        Your Workshop Registrations
+                    </h2>
+                    <div class="space-y-4 mt-4">
+                        {% for registration in registrations %}
+                        <div class="bg-base-100 p-4 rounded-lg">
+                            <h3 class="font-bold text-lg">{{ registration.session.workshop.title }}</h3>
+                            <div class="text-sm text-base-content/70 mt-2 space-y-1">
+                                <p><i class="fas fa-calendar mr-2"></i>{{ registration.session.start_datetime|date:"l, F j, Y" }}</p>
+                                <p><i class="fas fa-clock mr-2"></i>{{ registration.session.start_datetime|date:"g:i A" }} - {{ registration.session.end_datetime|date:"g:i A" }}</p>
+                                <p><i class="fas fa-user mr-2"></i>Instructor: {{ registration.session.workshop.instructor.get_full_name|default:registration.session.workshop.instructor.username }}</p>
+                                {% if registration.session.workshop.delivery_method == 'online' %}
+                                    <p><i class="fas fa-laptop mr-2"></i>Online Workshop</p>
+                                {% else %}
+                                    <p><i class="fas fa-map-marker-alt mr-2"></i>{{ registration.session.workshop.venue_name }}</p>
+                                {% endif %}
+                                {% if registration.child_profile %}
+                                    <p><i class="fas fa-child mr-2"></i>For: {{ registration.child_profile.full_name }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="mt-3">
+                                <span class="badge badge-success">Registered</span>
+                                <span class="badge badge-outline ml-2">Paid: £{{ registration.payment_amount }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Next Steps -->
+        <div class="card bg-base-200 shadow-md mb-8">
+            <div class="card-body">
+                <h2 class="card-title">What's Next?</h2>
+                <ul class="space-y-3 mt-4">
+                    <li class="flex items-start">
+                        <span class="text-primary mr-3 text-xl">1.</span>
+                        <div>
+                            <strong>Check Your Email</strong>
+                            <p class="text-sm text-base-content/70">A confirmation email with all workshop details has been sent to your email address.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-primary mr-3 text-xl">2.</span>
+                        <div>
+                            <strong>View Your Registrations</strong>
+                            <p class="text-sm text-base-content/70">Access your workshop details and materials in "My Registrations".</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-primary mr-3 text-xl">3.</span>
+                        <div>
+                            <strong>Prepare for Your Workshop</strong>
+                            <p class="text-sm text-base-content/70">Review any pre-workshop materials and ensure you have the necessary equipment.</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="{% url 'workshops:my_registrations' %}" class="btn btn-primary">
+                <i class="fas fa-list mr-2"></i>
+                View My Registrations
+            </a>
+            <a href="{% url 'workshops:student_dashboard' %}" class="btn btn-outline">
+                <i class="fas fa-tachometer-alt mr-2"></i>
+                Go to Dashboard
+            </a>
+            <a href="{% url 'workshops:list' %}" class="btn btn-ghost">
+                <i class="fas fa-search mr-2"></i>
+                Browse More Workshops
+            </a>
+        </div>
+
+        <!-- Payment Reference -->
+        {% if session_id %}
+            <div class="text-center mt-8 text-sm text-base-content/50">
+                <p>Payment Reference: {{ session_id }}</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
