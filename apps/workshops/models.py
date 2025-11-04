@@ -889,3 +889,66 @@ class WorkshopInterest(models.Model):
     def formatted_timing(self):
         """Return human-readable timing preference"""
         return dict(self.TIMING_PREFERENCES).get(self.preferred_timing, 'Flexible')
+
+
+class WorkshopCartItem(models.Model):
+    """
+    Workshop session in shopping cart.
+    Uses the unified Cart model from private_teaching app.
+    """
+    cart = models.ForeignKey(
+        'private_teaching.Cart',
+        on_delete=models.CASCADE,
+        related_name='workshop_items',
+        help_text="Cart this workshop session belongs to"
+    )
+    session = models.ForeignKey(
+        WorkshopSession,
+        on_delete=models.CASCADE,
+        related_name='cart_items',
+        help_text="Workshop session to purchase"
+    )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Price at time of adding to cart"
+    )
+
+    # Optional fields for checkout (ultra-minimal - most come from user account)
+    notes = models.TextField(
+        blank=True,
+        help_text="Optional notes for instructor"
+    )
+    child_profile = models.ForeignKey(
+        'accounts.ChildProfile',
+        on_delete=models.CASCADE,
+        related_name='workshop_cart_items',
+        null=True,
+        blank=True,
+        help_text="If registering a child, link to their child profile"
+    )
+
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['added_at']
+        verbose_name = 'Workshop Cart Item'
+        verbose_name_plural = 'Workshop Cart Items'
+        unique_together = ['cart', 'session']  # Prevent duplicates
+        indexes = [
+            models.Index(fields=['cart', 'added_at']),
+            models.Index(fields=['session']),
+        ]
+
+    def __str__(self):
+        return f"{self.session.workshop.title} - {self.session.start_datetime.strftime('%Y-%m-%d %H:%M')}"
+
+    @property
+    def total_price(self):
+        """Calculate total price for this cart item"""
+        return self.price
+
+    @property
+    def is_child_registration(self):
+        """Check if this is a registration for a child"""
+        return self.child_profile is not None

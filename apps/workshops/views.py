@@ -212,8 +212,19 @@ class WorkshopDetailView(DetailView):
             'similar_workshops_with_sessions': similar_workshops_with_sessions,
         })
 
-        # Cart is not used for workshops - registrations are direct
-        context['cart_session_ids'] = []
+        # Add cart session IDs for logged-in users
+        if self.request.user.is_authenticated:
+            from .cart import WorkshopCartManager
+            cart_manager = WorkshopCartManager(self.request)
+            cart = cart_manager.get_cart()
+            if cart:
+                context['cart_session_ids'] = list(
+                    cart.workshop_items.values_list('session_id', flat=True)
+                )
+            else:
+                context['cart_session_ids'] = []
+        else:
+            context['cart_session_ids'] = []
 
         return context
 
@@ -735,8 +746,12 @@ class MyRegistrationsView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
+        # Only show completed registrations (exclude pending payments)
+        # With cart system, registrations are only created after payment
         return WorkshopRegistration.objects.filter(
             student=self.request.user
+        ).exclude(
+            payment_status='pending'
         ).select_related('session__workshop').order_by('-registration_date')
 
     def get_context_data(self, **kwargs):
@@ -745,7 +760,7 @@ class MyRegistrationsView(LoginRequiredMixin, ListView):
         # Calculate registration counts by status
         all_registrations = self.get_queryset()
         context['confirmed_count'] = all_registrations.filter(status='registered').count()
-        context['pending_payment_count'] = all_registrations.filter(status='promoted').count()
+        context['waitlisted_count'] = all_registrations.filter(status='waitlisted').count()
         context['attended_count'] = all_registrations.filter(attended=True).count()
 
         return context
@@ -1420,5 +1435,145 @@ class ParticipantMaterialsView(LoginRequiredMixin, TemplateView):
             'session_start': session_start,
             'session_end': session_end,
         })
-        
+
         return context
+
+
+# ==================== Cart Views ====================
+
+from django.views.generic import TemplateView, View
+from .cart import WorkshopCartManager
+
+
+class WorkshopCartView(LoginRequiredMixin, TemplateView):
+    """Display workshop cart"""
+    template_name = 'workshops/cart.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cart_manager = WorkshopCartManager(self.request)
+        context.update(cart_manager.get_cart_context())
+        return context
+
+
+class AddToCartView(LoginRequiredMixin, View):
+    """Add workshop session to cart"""
+
+    def post(self, request, *args, **kwargs):
+        session_id = kwargs.get('session_id')
+        child_profile_id = request.POST.get('child_profile_id')
+        notes = request.POST.get('notes', '')
+
+        cart_manager = WorkshopCartManager(request)
+        success, message = cart_manager.add_session(
+            session_id,
+            child_profile_id=child_profile_id,
+            notes=notes
+        )
+
+        if success:
+            messages.success(request, message)
+        else:
+            messages.error(request, message)
+
+        # Redirect back to workshop detail or cart
+        next_url = request.POST.get('next', request.META.get('HTTP_REFERER', '/workshops/'))
+        return redirect(next_url)
+
+
+class RemoveFromCartView(LoginRequiredMixin, View):
+    """Remove workshop session from cart"""
+
+    def post(self, request, *args, **kwargs):
+        session_id = kwargs.get('session_id')
+        cart_manager = WorkshopCartManager(request)
+
+        success, message = cart_manager.remove_session(session_id)
+
+        if success:
+            messages.success(request, message)
+        else:
+            messages.error(request, message)
+
+        return redirect('workshops:cart')
+
+
+class ClearWorkshopCartView(LoginRequiredMixin, View):
+    """Clear all workshop items from cart"""
+
+    def post(self, request, *args, **kwargs):
+        cart_manager = WorkshopCartManager(request)
+
+        success, message = cart_manager.clear_workshop_cart()
+
+        if success:
+            messages.success(request, message)
+        else:
+            messages.error(request, message)
+
+        return redirect('workshops:cart')
+
+
+class WorkshopCheckoutView(LoginRequiredMixin, TemplateView):
+    """Checkout page for workshop cart"""
+    template_name = 'workshops/checkout.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cart_manager = WorkshopCartManager(self.request)
+        cart_context = cart_manager.get_cart_context()
+
+        # Check if cart is empty
+        if cart_context['workshop_cart_count'] == 0:
+            messages.warning(self.request, 'Your cart is empty')
+            return context
+
+        # Get user details for display
+        user = self.request.user
+        context.update({
+            'user_name': user.get_full_name() or user.username,
+            'user_email': user.email,
+            **cart_context
+        })
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """Handle checkout submission - create Stripe checkout session"""
+        cart_manager = WorkshopCartManager(request)
+        cart = cart_manager.get_cart()
+
+        if not cart or cart.workshop_items.count() == 0:
+            messages.error(request, 'Your cart is empty')
+            return redirect('workshops:cart')
+
+        # Get cart items
+        workshop_items = cart.workshop_items.all()
+
+        # Calculate total
+        total_amount = sum(item.total_price for item in workshop_items)
+
+        if total_amount == 0:
+            # Free workshops - create registrations directly
+            for item in workshop_items:
+                WorkshopRegistration.objects.create(
+                    session=item.session,
+                    student=request.user,
+                    email=request.user.email,
+                    child_profile=item.child_profile,
+                    status='registered',
+                    payment_status='not_required',
+                    payment_amount=0,
+                    notes=item.notes if hasattr(item, 'notes') else ''
+                )
+
+            # Clear cart
+            cart.workshop_items.all().delete()
+
+            messages.success(request, 'Successfully registered for workshop sessions!')
+            return redirect('workshops:student_dashboard')
+
+        # TODO: Implement Stripe checkout for paid workshops
+        # For now, redirect with message
+        messages.info(request, 'Stripe checkout coming soon. Please contact administrator.')
+        return redirect('workshops:cart')

@@ -356,12 +356,7 @@
                                                 
                                                 {% if user.is_authenticated %}
                                                     {% if session.user_registration %}
-                                                        {% if session.user_registration.status == 'promoted' %}
-                                                            <a href="{% url 'workshops:registration_confirm' registration_id=session.user_registration.id %}" 
-                                                               class="btn btn-warning btn-sm w-full mt-2 animate-pulse">
-                                                                Complete Payment
-                                                            </a>
-                                                        {% elif session.user_registration.status == 'registered' %}
+                                                        {% if session.user_registration.status == 'registered' %}
                                                             <button class="btn btn-success btn-sm w-full mt-2">
                                                                 ✓ Registered
                                                             </button>
@@ -373,67 +368,45 @@
                                                             <button class="btn btn-info btn-sm w-full mt-2">
                                                                 ✓ Attended
                                                             </button>
-                                                        {% elif session.user_registration.status == 'cancelled' %}
-                                                            {% if workshop.instructor == user %}
-                                                                <a href="{% url 'workshops:session_registrations' session_id=session.id %}" 
-                                                                   class="btn btn-outline btn-sm w-full mt-2">
-                                                                    👥 Manage Session
-                                                                </a>
-                                                            {% elif session.spots_remaining > 0 %}
-                                                                <a href="{% url 'workshops:register' workshop.slug session.id %}"
-                                                                   class="btn btn-primary btn-sm w-full mt-2">
-                                                                    Register Now
-                                                                </a>
-                                                            {% else %}
-                                                                <button class="btn btn-disabled btn-sm w-full mt-2">
-                                                                    Session Full
-                                                                </button>
-                                                            {% endif %}
                                                         {% endif %}
                                                     {% elif workshop.instructor == user %}
                                                         {% comment %}Workshop instructor viewing their own session{% endcomment %}
-                                                        <a href="{% url 'workshops:session_registrations' session_id=session.id %}" 
+                                                        <a href="{% url 'workshops:session_registrations' session_id=session.id %}"
                                                            class="btn btn-outline btn-sm w-full mt-2">
                                                             👥 Manage Session
                                                         </a>
                                                     {% else %}
                                                         {% comment %}Authenticated user with no registration - not the instructor{% endcomment %}
-                                                        {% if session.spots_remaining > 0 %}
-                                                            <a href="{% url 'workshops:register' workshop.slug session.id %}"
-                                                               class="btn btn-primary btn-sm w-full mt-2">
-                                                                Register Now
-                                                            </a>
-                                                        {% else %}
-                                                            {% if session.waitlist_enabled %}
-                                                                <a href="{% url 'workshops:register' workshop.slug session.id %}" 
-                                                                   class="btn btn-warning btn-sm w-full mt-2">
-                                                                    Join Waitlist
-                                                                </a>
-                                                            {% else %}
-                                                                <button class="btn btn-disabled btn-sm w-full mt-2">
-                                                                    Session Full
+                                                        {% if session.id in cart_session_ids %}
+                                                            <button class="btn btn-accent btn-sm w-full mt-2">
+                                                                ✓ In Cart
+                                                            </button>
+                                                        {% elif session.spots_remaining > 0 %}
+                                                            <form method="post" action="{% url 'workshops:add_to_cart' session.id %}">
+                                                                {% csrf_token %}
+                                                                <input type="hidden" name="next" value="{{ request.path }}">
+                                                                <button type="submit" class="btn btn-primary btn-sm w-full mt-2">
+                                                                    <i class="fas fa-shopping-cart mr-1"></i>
+                                                                    Add to Cart
                                                                 </button>
-                                                            {% endif %}
-                                                        {% endif %}
-                                                    {% endif %}
-                                                {% else %}
-                                                    {% comment %}Unauthenticated user{% endcomment %}
-                                                    {% if session.spots_remaining > 0 %}
-                                                        <a href="{% url 'workshops:register' workshop.slug session.id %}" 
-                                                           class="btn btn-primary btn-sm w-full mt-2">
-                                                            Register Now
-                                                        </a>
-                                                    {% else %}
-                                                        {% if session.waitlist_enabled %}
-                                                            <a href="{% url 'workshops:register' workshop.slug session.id %}" 
-                                                               class="btn btn-warning btn-sm w-full mt-2">
-                                                                Join Waitlist
-                                                            </a>
+                                                            </form>
                                                         {% else %}
                                                             <button class="btn btn-disabled btn-sm w-full mt-2">
                                                                 Session Full
                                                             </button>
                                                         {% endif %}
+                                                    {% endif %}
+                                                {% else %}
+                                                    {% comment %}Unauthenticated user{% endcomment %}
+                                                    {% if session.spots_remaining > 0 %}
+                                                        <a href="{% url 'account_login' %}?next={{ request.path }}"
+                                                           class="btn btn-primary btn-sm w-full mt-2">
+                                                            Login to Register
+                                                        </a>
+                                                    {% else %}
+                                                        <button class="btn btn-disabled btn-sm w-full mt-2">
+                                                            Session Full
+                                                        </button>
                                                     {% endif %}
                                                 {% endif %}
                                             </div>
@@ -733,20 +706,33 @@
                             {{ session.spots_remaining }} spots
                         </div>
                     </div>
-                    {% if session.spots_remaining > 0 %}
-                        <a href="{% url 'workshops:register' workshop.slug session.id %}" 
-                           class="btn btn-primary btn-sm">
-                            Register Now
-                        </a>
-                    {% else %}
-                        {% if session.waitlist_enabled %}
-                            <a href="{% url 'workshops:register' workshop.slug session.id %}" 
-                               class="btn btn-warning btn-sm">
-                                Join Waitlist
+                    {% if user.is_authenticated %}
+                        {% if session.user_registration and session.user_registration.status == 'registered' %}
+                            <button class="btn btn-success btn-sm">✓ Registered</button>
+                        {% elif workshop.instructor == user %}
+                            <a href="{% url 'workshops:session_registrations' session_id=session.id %}"
+                               class="btn btn-outline btn-sm">
+                                👥 Manage Session
                             </a>
+                        {% elif session.id in cart_session_ids %}
+                            <button class="btn btn-accent btn-sm">✓ In Cart</button>
+                        {% elif session.spots_remaining > 0 %}
+                            <form method="post" action="{% url 'workshops:add_to_cart' session.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-shopping-cart mr-1"></i>
+                                    Add to Cart
+                                </button>
+                            </form>
                         {% else %}
                             <button class="btn btn-disabled btn-sm">Session Full</button>
                         {% endif %}
+                    {% else %}
+                        <a href="{% url 'account_login' %}?next={{ request.path }}"
+                           class="btn btn-primary btn-sm">
+                            Login to Register
+                        </a>
                     {% endif %}
                 </div>
             {% endfor %}

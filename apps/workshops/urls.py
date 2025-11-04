@@ -55,7 +55,14 @@ urlpatterns = [
     
     # Workshop interest requests
     path('<slug:slug>/request/', views.WorkshopInterestView.as_view(), name='request_interest'),
-    
+
+    # Cart functionality
+    path('cart/', views.WorkshopCartView.as_view(), name='cart'),
+    path('cart/add/<uuid:session_id>/', views.AddToCartView.as_view(), name='add_to_cart'),
+    path('cart/remove/<uuid:session_id>/', views.RemoveFromCartView.as_view(), name='remove_from_cart'),
+    path('cart/clear/', views.ClearWorkshopCartView.as_view(), name='clear_cart'),
+    path('cart/checkout/', views.WorkshopCheckoutView.as_view(), name='checkout'),
+
     # Individual workshop (MUST BE LAST - catches all remaining slugs)
     path('<slug:slug>/', views.WorkshopDetailView.as_view(), name='detail'),
 ]

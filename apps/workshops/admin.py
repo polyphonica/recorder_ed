@@ -7,8 +7,9 @@ from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.db.models import Q
 from .models import (
-    WorkshopCategory, Workshop, WorkshopSession, 
-    WorkshopRegistration, WorkshopMaterial, WorkshopInterest, UserProfile
+    WorkshopCategory, Workshop, WorkshopSession,
+    WorkshopRegistration, WorkshopMaterial, WorkshopInterest, UserProfile,
+    WorkshopCartItem
 )
 
 
@@ -394,6 +395,43 @@ class WorkshopInterestAdmin(admin.ModelAdmin):
     def preferred_timing_display(self, obj):
         return obj.formatted_timing
     preferred_timing_display.short_description = 'Preferred Timing'
+
+
+@admin.register(WorkshopCartItem)
+class WorkshopCartItemAdmin(admin.ModelAdmin):
+    list_display = ['cart_user', 'workshop_title', 'session_date', 'price', 'added_at']
+    list_filter = ['added_at', 'session__workshop__category']
+    search_fields = [
+        'cart__user__username', 'cart__user__email',
+        'session__workshop__title'
+    ]
+    readonly_fields = ['added_at']
+
+    fieldsets = (
+        ('Cart Item', {
+            'fields': ('cart', 'session', 'price')
+        }),
+        ('Optional Details', {
+            'fields': ('notes', 'child_profile'),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('added_at',),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def cart_user(self, obj):
+        return obj.cart.user.get_full_name() or obj.cart.user.username
+    cart_user.short_description = 'User'
+
+    def workshop_title(self, obj):
+        return obj.session.workshop.title
+    workshop_title.short_description = 'Workshop'
+
+    def session_date(self, obj):
+        return obj.session.start_datetime.strftime('%Y-%m-%d %H:%M')
+    session_date.short_description = 'Session Date'
 
 
 # Customize admin site

@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Workshop Cart - Workshop Platform{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'core:home' %}">Home</a></li>
+            <li><a href="{% url 'workshops:list' %}">Workshops</a></li>
+            <li>Cart</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <!-- Page Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-bold mb-2">Workshop Cart</h1>
+                <p class="text-base-content/70">Review your selected workshop sessions</p>
+            </div>
+            <a href="{% url 'workshops:list' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Continue Shopping
+            </a>
+        </div>
+
+        {% if workshop_cart_items %}
+            <!-- Cart Items -->
+            <div class="space-y-4 mb-8">
+                {% for item in workshop_cart_items %}
+                <div class="card bg-base-200 shadow-md">
+                    <div class="card-body">
+                        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                            <div class="flex-grow">
+                                <h3 class="card-title text-xl">{{ item.session.workshop.title }}</h3>
+                                <div class="text-sm text-base-content/70 mt-2 space-y-1">
+                                    <p><i class="fas fa-calendar mr-2"></i>{{ item.session.start_datetime|date:"l, F j, Y" }}</p>
+                                    <p><i class="fas fa-clock mr-2"></i>{{ item.session.start_datetime|date:"g:i A" }} - {{ item.session.end_datetime|date:"g:i A" }}</p>
+                                    <p><i class="fas fa-user mr-2"></i>Instructor: {{ item.session.workshop.instructor.get_full_name|default:item.session.workshop.instructor.username }}</p>
+                                    {% if item.session.workshop.delivery_method == 'online' %}
+                                        <p><i class="fas fa-laptop mr-2"></i>Online Workshop</p>
+                                    {% else %}
+                                        <p><i class="fas fa-map-marker-alt mr-2"></i>{{ item.session.workshop.venue_name }}</p>
+                                    {% endif %}
+                                    {% if item.child_profile %}
+                                        <p><i class="fas fa-child mr-2"></i>For: {{ item.child_profile.full_name }}</p>
+                                    {% endif %}
+                                    {% if item.notes %}
+                                        <p><i class="fas fa-sticky-note mr-2"></i>Note: {{ item.notes }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end gap-2">
+                                {% if item.price > 0 %}
+                                    <div class="text-2xl font-bold text-primary">£{{ item.price }}</div>
+                                {% else %}
+                                    <div class="badge badge-success badge-lg">FREE</div>
+                                {% endif %}
+                                <form method="post" action="{% url 'workshops:remove_from_cart' item.session.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-error btn-outline">
+                                        <i class="fas fa-trash mr-1"></i>
+                                        Remove
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Cart Summary -->
+            <div class="card bg-primary text-primary-content shadow-xl">
+                <div class="card-body">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-2xl font-bold">Cart Total</h3>
+                            <p class="text-sm opacity-80">{{ workshop_cart_count }} session{{ workshop_cart_count|pluralize }}</p>
+                        </div>
+                        <div class="text-4xl font-bold">
+                            {% if workshop_cart_total > 0 %}
+                                £{{ workshop_cart_total }}
+                            {% else %}
+                                FREE
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-actions justify-end mt-4">
+                        <form method="post" action="{% url 'workshops:clear_cart' %}" class="mr-2">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-ghost">
+                                <i class="fas fa-times mr-2"></i>
+                                Clear Cart
+                            </button>
+                        </form>
+                        <a href="{% url 'workshops:checkout' %}" class="btn btn-secondary">
+                            <i class="fas fa-check mr-2"></i>
+                            Proceed to Checkout
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        {% else %}
+            <!-- Empty Cart -->
+            <div class="text-center py-16">
+                <div class="mb-6">
+                    <i class="fas fa-shopping-cart text-6xl text-base-content/20"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-4">Your cart is empty</h2>
+                <p class="text-base-content/70 mb-8">Browse our workshops and add sessions to get started!</p>
+                <a href="{% url 'workshops:list' %}" class="btn btn-primary">
+                    <i class="fas fa-search mr-2"></i>
+                    Browse Workshops
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
