@@ -49,6 +49,26 @@
     min-width: 0 !important;
     min-height: 0 !important;
     display: block;
+    height: auto;
+    max-width: 100%;
+}
+
+/* Support for resized images with inline width */
+.ck-content .image[style*="width"] {
+    width: auto;
+}
+
+.ck-content .image img[style*="width"] {
+    width: 100%;
+}
+
+/* Ensure images respect their container width */
+.ck-content figure.image {
+    margin: 1em 0;
+}
+
+.ck-content figure.image img {
+    width: 100%;
 }
 
 /* Image alignment styles */
