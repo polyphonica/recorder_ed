@@ -62,6 +62,8 @@ urlpatterns = [
     path('cart/remove/<uuid:session_id>/', views.RemoveFromCartView.as_view(), name='remove_from_cart'),
     path('cart/clear/', views.ClearWorkshopCartView.as_view(), name='clear_cart'),
     path('cart/checkout/', views.WorkshopCheckoutView.as_view(), name='checkout'),
+    path('cart/checkout/success/', views.CheckoutSuccessView.as_view(), name='cart_checkout_success'),
+    path('cart/checkout/cancel/', views.CheckoutCancelView.as_view(), name='cart_checkout_cancel'),
 
     # Individual workshop (MUST BE LAST - catches all remaining slugs)
     path('<slug:slug>/', views.WorkshopDetailView.as_view(), name='detail'),

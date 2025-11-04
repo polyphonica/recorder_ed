@@ -1627,10 +1627,10 @@ class WorkshopCheckoutView(LoginRequiredMixin, TemplateView):
                 teacher=first_teacher,
                 domain='workshops',
                 success_url=request.build_absolute_uri(
-                    reverse('workshops:checkout_success')
+                    reverse('workshops:cart_checkout_success')
                 ) + '?session_id={CHECKOUT_SESSION_ID}',
                 cancel_url=request.build_absolute_uri(
-                    reverse('workshops:cart')
+                    reverse('workshops:cart_checkout_cancel')
                 ),
                 metadata={
                     'cart_item_ids': ','.join(cart_item_ids),
