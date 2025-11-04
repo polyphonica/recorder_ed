@@ -399,6 +399,10 @@ class StripeWebhookView(View):
             print(f"Successfully created {len(created_registrations)} registrations:")
             for reg in created_registrations:
                 print(f"  - {reg.session.workshop.title} (ID: {reg.id}, Status: {reg.status}, Payment: {reg.payment_status})")
+
+            # Mark payment as completed
+            stripe_payment.mark_completed()
+            print(f"✓ Marked StripePayment {stripe_payment.id} as completed")
             print(f"=== END WORKSHOP CART PAYMENT ===\n")
 
         except User.DoesNotExist:
