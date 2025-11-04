@@ -49,10 +49,19 @@ class StripeWebhookView(View):
     
     def handle_checkout_session_completed(self, session):
         """Handle successful checkout session completion"""
+        print(f"\n======================================")
+        print(f"WEBHOOK: checkout.session.completed")
+        print(f"======================================")
+
         metadata = session.get('metadata', {})
         domain = metadata.get('domain')
         payment_intent_id = session.get('payment_intent')
-        
+
+        print(f"Session ID: {session['id']}")
+        print(f"Payment Intent: {payment_intent_id}")
+        print(f"Domain: {domain}")
+        print(f"Metadata: {metadata}")
+
         # Create or update StripePayment record
         stripe_payment, created = StripePayment.objects.get_or_create(
             stripe_payment_intent_id=payment_intent_id,
@@ -69,14 +78,23 @@ class StripeWebhookView(View):
                 'metadata': metadata,
             }
         )
-        
+
+        print(f"StripePayment created: {created}, ID: {stripe_payment.id}")
+
         # Domain-specific handling
         if domain == 'private_teaching':
+            print(f"→ Routing to PRIVATE TEACHING handler")
             self.handle_private_teaching_payment(metadata, stripe_payment)
         elif domain == 'workshops':
+            print(f"→ Routing to WORKSHOPS handler")
             self.handle_workshop_payment(metadata, stripe_payment)
         elif domain == 'courses':
+            print(f"→ Routing to COURSES handler")
             self.handle_course_payment(metadata, stripe_payment)
+        else:
+            print(f"⚠️  WARNING: Unknown domain '{domain}' - no handler called!")
+
+        print(f"======================================\n")
     
     def handle_payment_intent_succeeded(self, payment_intent):
         """Handle successful payment intent"""
