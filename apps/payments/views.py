@@ -348,8 +348,7 @@ class StripeWebhookView(View):
                         payment_amount=cart_item.price,
                         stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
                         stripe_checkout_session_id=stripe_payment.stripe_checkout_session_id,
-                        paid_at=timezone.now(),
-                        notes=cart_item.notes if cart_item.notes else ''
+                        paid_at=timezone.now()
                     )
 
                     print(f"  ✓ Created registration ID: {registration.id}")
