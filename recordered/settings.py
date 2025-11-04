@@ -94,6 +94,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'apps.private_teaching.context_processors.cart_context',
+                'apps.workshops.context_processors.unified_cart_context',
                 'apps.courses.context_processors.unread_messages',
             ],
         },

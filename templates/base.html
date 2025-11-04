@@ -125,36 +125,40 @@
                 </ul>
             </div>
             
-            <!-- Shopping Cart (Students only) -->
+            <!-- Shopping Cart (Students only) - Unified for Workshops & Lessons -->
             {% if user.is_authenticated and not user.is_instructor %}
-                {% if request.resolver_match.namespace != 'private_teaching' %}
-                    <div class="mr-4">
-                        <a href="{% url 'private_teaching:cart' %}" class="btn btn-ghost btn-circle">
-                            <div class="indicator">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L8 21m0 0h8m-8 0v-2m8 2v-2"></path>
-                                </svg>
-                                {% if user.shopping_cart and user.shopping_cart.item_count > 0 %}
-                                    <span class="badge badge-sm badge-primary indicator-item">{{ user.shopping_cart.item_count }}</span>
-                                {% endif %}
-                            </div>
-                        </a>
+                <div class="mr-4 dropdown dropdown-end">
+                    <label tabindex="0" class="btn btn-ghost btn-circle">
+                        <div class="indicator">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L8 21m0 0h8m-8 0v-2m8 2v-2"></path>
+                            </svg>
+                            {% if total_cart_count > 0 %}
+                                <span class="badge badge-sm badge-primary indicator-item">{{ total_cart_count }}</span>
+                            {% endif %}
+                        </div>
+                    </label>
+                    <div tabindex="0" class="mt-3 z-[1] card card-compact dropdown-content w-52 bg-base-100 shadow">
+                        <div class="card-body">
+                            <span class="font-bold text-lg">Cart</span>
+                            {% if workshop_cart_count > 0 %}
+                                <a href="{% url 'workshops:cart' %}" class="text-info hover:underline">
+                                    <i class="fas fa-chalkboard-teacher mr-1"></i>
+                                    {{ workshop_cart_count }} Workshop{{ workshop_cart_count|pluralize }}
+                                </a>
+                            {% endif %}
+                            {% if lesson_cart_count > 0 %}
+                                <a href="{% url 'private_teaching:cart' %}" class="text-info hover:underline">
+                                    <i class="fas fa-music mr-1"></i>
+                                    {{ lesson_cart_count }} Lesson{{ lesson_cart_count|pluralize }}
+                                </a>
+                            {% endif %}
+                            {% if total_cart_count == 0 %}
+                                <p class="text-base-content/70">Empty cart</p>
+                            {% endif %}
+                        </div>
                     </div>
-                {% else %}
-                    <!-- Private Teaching Cart -->
-                    <div class="mr-4">
-                        <a href="{% url 'private_teaching:cart' %}" class="btn btn-ghost btn-circle">
-                            <div class="indicator">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L8 21m0 0h8m-8 0v-2m8 2v-2"></path>
-                                </svg>
-                                {% if cart_count > 0 %}
-                                    <span class="badge badge-sm badge-primary indicator-item">{{ cart_count }}</span>
-                                {% endif %}
-                            </div>
-                        </a>
-                    </div>
-                {% endif %}
+                </div>
             {% endif %}
 
             <!-- Messages -->
@@ -292,17 +296,25 @@
                             <li><a href="{% url 'private_teaching:request_lesson' %}" class="{% if request.resolver_match.url_name == 'request_lesson' %}bg-primary text-primary-content{% endif %}">Request Lessons</a></li>
                             <li><a href="{% url 'private_teaching:my_requests' %}" class="{% if request.resolver_match.url_name == 'my_requests' %}bg-primary text-primary-content{% endif %}">My Requests</a></li>
                             <li><a href="{% url 'private_teaching:my_lessons' %}" class="{% if request.resolver_match.url_name == 'my_lessons' %}bg-primary text-primary-content{% endif %}">My Lessons</a></li>
-                            <li>
-                                <a href="{% url 'private_teaching:cart' %}" class="{% if request.resolver_match.url_name == 'cart' %}bg-primary text-primary-content{% endif %} indicator">
-                                    Cart
-                                    {% if cart_count > 0 %}
-                                        <span class="indicator-item badge badge-sm badge-primary">{{ cart_count }}</span>
-                                    {% endif %}
-                                    {% if cart_count > 0 %}
-                                        <span class="ml-1 text-xs">({{ cart_count }} item{{ cart_count|pluralize }})</span>
-                                    {% endif %}
-                                </a>
-                            </li>
+                            <!-- Cart Menu -->
+                            {% if workshop_cart_count > 0 %}
+                                <li>
+                                    <a href="{% url 'workshops:cart' %}" class="indicator">
+                                        <i class="fas fa-chalkboard-teacher mr-2"></i>
+                                        Workshop Cart
+                                        <span class="indicator-item badge badge-sm badge-primary">{{ workshop_cart_count }}</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            {% if lesson_cart_count > 0 %}
+                                <li>
+                                    <a href="{% url 'private_teaching:cart' %}" class="indicator">
+                                        <i class="fas fa-music mr-2"></i>
+                                        Lesson Cart
+                                        <span class="indicator-item badge badge-sm badge-primary">{{ lesson_cart_count }}</span>
+                                    </a>
+                                </li>
+                            {% endif %}
                             <li><a href="{% url 'private_teaching:calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}bg-primary text-primary-content{% endif %}">Calendar</a></li>
                         {% endif %}
                     </ul>
