@@ -179,15 +179,20 @@ class StripeWebhookView(View):
         from django.core.mail import send_mail
         from django.utils import timezone
 
+        print(f"\n>>> handle_workshop_payment called")
+        print(f"    Metadata keys: {list(metadata.keys())}")
+
         # Check if this is a cart payment (multiple items)
         cart_item_ids = metadata.get('cart_item_ids')
 
         if cart_item_ids:
             # CART PAYMENT - Multiple workshops
+            print(f"    Detected CART payment with {len(cart_item_ids.split(','))} items")
             self.handle_workshop_cart_payment(metadata, stripe_payment, cart_item_ids)
             return
 
         # SINGLE REGISTRATION PAYMENT (legacy method)
+        print(f"    Detected SINGLE registration payment")
         registration_id = metadata.get('registration_id')
         if registration_id:
             try:
@@ -286,20 +291,33 @@ class StripeWebhookView(View):
         from django.core.mail import send_mail
         from django.utils import timezone
 
+        print(f"\n=== WORKSHOP CART PAYMENT WEBHOOK ===")
+        print(f"Metadata: {metadata}")
+        print(f"Cart Item IDs: {cart_item_ids}")
+        print(f"Stripe Payment ID: {stripe_payment.stripe_payment_intent_id}")
+
         item_ids = [id.strip() for id in cart_item_ids.split(',')]
         user_id = metadata.get('student_id')
 
+        print(f"Processing {len(item_ids)} cart items for user {user_id}")
+
         try:
             user = User.objects.get(id=user_id)
+            print(f"Found user: {user.username} ({user.email})")
             created_registrations = []
 
             for item_id in item_ids:
+                print(f"\n  Processing cart item: {item_id}")
                 try:
                     cart_item = WorkshopCartItem.objects.select_related(
                         'session__workshop__instructor',
                         'session__workshop__category',
                         'child_profile'
                     ).get(id=item_id)
+
+                    print(f"  Found cart item: {cart_item.session.workshop.title}")
+                    print(f"  Session: {cart_item.session.start_datetime}")
+                    print(f"  Price: £{cart_item.price}")
 
                     # Create registration
                     registration = WorkshopRegistration.objects.create(
@@ -315,6 +333,12 @@ class StripeWebhookView(View):
                         paid_at=timezone.now(),
                         notes=cart_item.notes if cart_item.notes else ''
                     )
+
+                    print(f"  ✓ Created registration ID: {registration.id}")
+                    print(f"    - Status: {registration.status}")
+                    print(f"    - Payment Status: {registration.payment_status}")
+                    print(f"    - Paid At: {registration.paid_at}")
+                    print(f"    - Registration Date: {registration.registration_date}")
 
                     # Update session registration count
                     session = cart_item.session
@@ -336,27 +360,36 @@ class StripeWebhookView(View):
 
                     # Delete cart item
                     cart_item.delete()
-
-                    print(f"Created registration for {workshop.title} - Session {session.start_datetime}")
+                    print(f"  ✓ Deleted cart item {item_id}")
 
                 except WorkshopCartItem.DoesNotExist:
-                    print(f"Cart item {item_id} not found (may have been already processed)")
+                    print(f"  ✗ Cart item {item_id} not found (may have been already processed)")
                 except Exception as e:
-                    print(f"Error processing cart item {item_id}: {str(e)}")
+                    import traceback
+                    print(f"  ✗ Error processing cart item {item_id}: {str(e)}")
+                    print(f"  Traceback: {traceback.format_exc()}")
 
             # Send consolidated confirmation email
             if created_registrations and user.email:
                 try:
+                    print(f"\nSending confirmation email to {user.email}...")
                     self.send_workshop_cart_confirmation_email(user, created_registrations, stripe_payment)
+                    print(f"✓ Email sent successfully")
                 except Exception as e:
-                    print(f"Error sending cart confirmation email: {e}")
+                    print(f"✗ Error sending cart confirmation email: {e}")
 
-            print(f"Processed {len(created_registrations)} workshop registrations for user {user_id}")
+            print(f"\n=== SUMMARY ===")
+            print(f"Successfully created {len(created_registrations)} registrations:")
+            for reg in created_registrations:
+                print(f"  - {reg.session.workshop.title} (ID: {reg.id}, Status: {reg.status}, Payment: {reg.payment_status})")
+            print(f"=== END WORKSHOP CART PAYMENT ===\n")
 
         except User.DoesNotExist:
-            print(f"User {user_id} not found")
+            print(f"✗ User {user_id} not found")
         except Exception as e:
-            print(f"Error in handle_workshop_cart_payment: {str(e)}")
+            import traceback
+            print(f"✗ Error in handle_workshop_cart_payment: {str(e)}")
+            print(f"Traceback: {traceback.format_exc()}")
 
     def send_workshop_cart_confirmation_email(self, user, registrations, stripe_payment):
         """Send confirmation email for cart-based workshop purchase"""
