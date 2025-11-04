@@ -1602,8 +1602,7 @@ class WorkshopCheckoutView(LoginRequiredMixin, TemplateView):
                     child_profile=item.child_profile,
                     status='registered',
                     payment_status='not_required',
-                    payment_amount=0,
-                    notes=item.notes if hasattr(item, 'notes') else ''
+                    payment_amount=0
                 )
 
             # Clear cart
