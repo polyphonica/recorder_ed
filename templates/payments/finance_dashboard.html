@@ -150,32 +150,28 @@
                                 <tr>
                                     <th>Date</th>
                                     <th>Domain</th>
+                                    <th>Description</th>
                                     <th>Student</th>
                                     <th>Amount</th>
                                     <th>Your Share</th>
-                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for transaction in recent_transactions %}
                                 <tr>
-                                    <td>{{ transaction.completed_at|date:"M d, Y g:i A" }}</td>
+                                    <td>{{ transaction.date|date:"M d, Y g:i A" }}</td>
                                     <td>
                                         <span class="badge
                                             {% if transaction.domain == 'workshops' %}badge-primary
                                             {% elif transaction.domain == 'courses' %}badge-secondary
                                             {% else %}badge-accent{% endif %}">
-                                            {{ transaction.get_domain_display }}
+                                            {{ transaction.domain_display }}
                                         </span>
                                     </td>
+                                    <td class="text-sm">{{ transaction.description }}</td>
                                     <td>{{ transaction.student.get_full_name|default:transaction.student.username }}</td>
-                                    <td>£{{ transaction.total_amount|floatformat:2 }}</td>
-                                    <td class="font-bold">£{{ transaction.teacher_share|floatformat:2 }}</td>
-                                    <td>
-                                        <span class="badge badge-success">
-                                            {{ transaction.get_status_display }}
-                                        </span>
-                                    </td>
+                                    <td>£{{ transaction.amount|floatformat:2 }}</td>
+                                    <td class="font-bold text-primary">£{{ transaction.teacher_share|floatformat:2 }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

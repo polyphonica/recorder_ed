@@ -371,14 +371,82 @@ class FinanceService:
     def get_recent_transactions(teacher, limit=10):
         """
         Get most recent completed transactions for a teacher across all domains.
+        Queries actual source tables for accurate transaction list.
 
         Returns:
-            QuerySet of StripePayment objects
+            list of dicts with transaction details
         """
-        return StripePayment.objects.filter(
-            teacher=teacher,
-            status='completed'
-        ).order_by('-completed_at')[:limit]
+        from apps.workshops.models import WorkshopRegistration
+        from apps.courses.models import CourseEnrollment
+        from apps.private_teaching.models import Order
+        from django.conf import settings
+
+        commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
+        transactions = []
+
+        # Get workshop registrations
+        workshop_regs = WorkshopRegistration.objects.filter(
+            session__workshop__instructor=teacher,
+            status='registered',
+        ).filter(
+            Q(payment_status='paid') | Q(payment_status='completed') | Q(payment_status='not_required')
+        ).select_related('session__workshop', 'student').order_by('-paid_at')[:limit]
+
+        for reg in workshop_regs:
+            amount = reg.payment_amount
+            teacher_share = amount * (1 - Decimal(str(commission_rate)))
+            transactions.append({
+                'date': reg.paid_at or reg.registration_date,
+                'domain': 'workshops',
+                'domain_display': 'Workshop',
+                'description': f"{reg.session.workshop.title} - {reg.session.start_datetime.strftime('%b %d, %Y')}",
+                'student': reg.student,
+                'amount': amount,
+                'teacher_share': teacher_share,
+            })
+
+        # Get course enrollments
+        course_enrollments = CourseEnrollment.objects.filter(
+            course__instructor=teacher,
+            payment_status='completed',
+            is_active=True
+        ).select_related('course', 'student').order_by('-paid_at')[:limit]
+
+        for enrollment in course_enrollments:
+            amount = enrollment.payment_amount
+            teacher_share = amount * (1 - Decimal(str(commission_rate)))
+            transactions.append({
+                'date': enrollment.paid_at or enrollment.enrolled_at,
+                'domain': 'courses',
+                'domain_display': 'Course',
+                'description': enrollment.course.title,
+                'student': enrollment.student,
+                'amount': amount,
+                'teacher_share': teacher_share,
+            })
+
+        # Get private teaching orders
+        private_orders = Order.objects.filter(
+            items__lesson__teacher=teacher,
+            payment_status='completed'
+        ).distinct().select_related('student').order_by('-created_at')[:limit]
+
+        for order in private_orders:
+            amount = order.total_amount
+            teacher_share = amount * (1 - Decimal(str(commission_rate)))
+            transactions.append({
+                'date': order.created_at,
+                'domain': 'private_teaching',
+                'domain_display': 'Private Lesson',
+                'description': f"Order #{order.order_number}",
+                'student': order.student,
+                'amount': amount,
+                'teacher_share': teacher_share,
+            })
+
+        # Sort all transactions by date (most recent first) and limit
+        transactions.sort(key=lambda x: x['date'], reverse=True)
+        return transactions[:limit]
 
     @staticmethod
     def get_revenue_trend(teacher, domain=None, days=30):
