@@ -213,7 +213,7 @@ class FinanceService:
                 enrollments = enrollments.filter(enrolled_at__lte=end_date)
 
             total_revenue = enrollments.aggregate(
-                revenue=Sum('amount_paid')
+                revenue=Sum('payment_amount')
             )['revenue'] or Decimal('0.00')
 
             # Calculate teacher share (after commission)
