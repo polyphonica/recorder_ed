@@ -78,7 +78,8 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
         workshop_registrations = WorkshopRegistration.objects.filter(
             session__workshop__instructor=user,
             status='registered',  # Only confirmed registrations
-            payment_status='paid'  # Only paid registrations
+        ).filter(
+            Q(payment_status='paid') | Q(payment_status='completed') | Q(payment_status='not_required')  # Support old and new payment statuses
         ).select_related('session__workshop')
 
         # Apply custom date range if provided
@@ -384,7 +385,8 @@ class TeacherRevenueExportView(LoginRequiredMixin, View):
         workshop_registrations = WorkshopRegistration.objects.filter(
             session__workshop__instructor=user,
             status='registered',
-            payment_status='paid'
+        ).filter(
+            Q(payment_status='paid') | Q(payment_status='completed') | Q(payment_status='not_required')  # Support old and new payment statuses
         ).select_related('session__workshop', 'student')
 
         if custom_start:
