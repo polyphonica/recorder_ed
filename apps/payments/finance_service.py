@@ -19,6 +19,7 @@ class FinanceService:
     def get_teacher_revenue_summary(teacher, start_date=None, end_date=None):
         """
         Get complete revenue summary for a teacher across all domains.
+        Queries actual tables (not StripePayment) for accurate totals.
 
         Args:
             teacher: User object (instructor)
@@ -28,57 +29,90 @@ class FinanceService:
         Returns:
             dict with total_revenue, revenue_by_domain, payment_count, etc.
         """
-        query = StripePayment.objects.filter(
-            teacher=teacher,
-            status='completed'
+        from apps.workshops.models import WorkshopRegistration
+        from apps.courses.models import CourseEnrollment
+        from apps.private_teaching.models import Order
+        from django.conf import settings
+
+        commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
+
+        # ===== WORKSHOPS =====
+        workshop_registrations = WorkshopRegistration.objects.filter(
+            session__workshop__instructor=teacher,
+            status='registered',
+        ).filter(
+            Q(payment_status='paid') | Q(payment_status='completed') | Q(payment_status='not_required')
         )
 
         if start_date:
-            query = query.filter(completed_at__gte=start_date)
+            workshop_registrations = workshop_registrations.filter(paid_at__gte=start_date)
         if end_date:
-            query = query.filter(completed_at__lte=end_date)
+            workshop_registrations = workshop_registrations.filter(paid_at__lte=end_date)
 
-        # Overall totals
-        totals = query.aggregate(
-            total_revenue=Sum('teacher_share'),
-            total_gross=Sum('total_amount'),
-            total_commission=Sum('platform_commission'),
-            payment_count=Count('id')
+        workshops_gross = workshop_registrations.aggregate(
+            total=Sum('payment_amount')
+        )['total'] or Decimal('0.00')
+        workshops_count = workshop_registrations.count()
+        workshops_revenue = workshops_gross * (1 - Decimal(str(commission_rate)))
+
+        # ===== COURSES =====
+        course_enrollments = CourseEnrollment.objects.filter(
+            course__instructor=teacher,
+            payment_status='completed',
+            is_active=True
         )
 
-        # Revenue by domain
-        workshops_revenue = query.filter(domain='workshops').aggregate(
-            revenue=Sum('teacher_share'),
-            count=Count('id')
+        if start_date:
+            course_enrollments = course_enrollments.filter(paid_at__gte=start_date)
+        if end_date:
+            course_enrollments = course_enrollments.filter(paid_at__lte=end_date)
+
+        courses_gross = course_enrollments.aggregate(
+            total=Sum('payment_amount')
+        )['total'] or Decimal('0.00')
+        courses_count = course_enrollments.count()
+        courses_revenue = courses_gross * (1 - Decimal(str(commission_rate)))
+
+        # ===== PRIVATE TEACHING =====
+        private_orders = Order.objects.filter(
+            teacher=teacher,
+            payment_status='completed'
         )
 
-        courses_revenue = query.filter(domain='courses').aggregate(
-            revenue=Sum('teacher_share'),
-            count=Count('id')
-        )
+        if start_date:
+            private_orders = private_orders.filter(paid_at__gte=start_date)
+        if end_date:
+            private_orders = private_orders.filter(paid_at__lte=end_date)
 
-        private_revenue = query.filter(domain='private_teaching').aggregate(
-            revenue=Sum('teacher_share'),
-            count=Count('id')
-        )
+        private_gross = private_orders.aggregate(
+            total=Sum('total_amount')
+        )['total'] or Decimal('0.00')
+        private_count = private_orders.count()
+        private_revenue = private_gross * (1 - Decimal(str(commission_rate)))
+
+        # ===== TOTALS =====
+        total_gross = workshops_gross + courses_gross + private_gross
+        total_revenue = workshops_revenue + courses_revenue + private_revenue
+        total_commission = total_gross - total_revenue
+        total_count = workshops_count + courses_count + private_count
 
         return {
-            'total_revenue': totals['total_revenue'] or Decimal('0.00'),
-            'total_gross': totals['total_gross'] or Decimal('0.00'),
-            'total_commission': totals['total_commission'] or Decimal('0.00'),
-            'payment_count': totals['payment_count'] or 0,
+            'total_revenue': total_revenue,
+            'total_gross': total_gross,
+            'total_commission': total_commission,
+            'payment_count': total_count,
             'by_domain': {
                 'workshops': {
-                    'revenue': workshops_revenue['revenue'] or Decimal('0.00'),
-                    'count': workshops_revenue['count'] or 0,
+                    'revenue': workshops_revenue,
+                    'count': workshops_count,
                 },
                 'courses': {
-                    'revenue': courses_revenue['revenue'] or Decimal('0.00'),
-                    'count': courses_revenue['count'] or 0,
+                    'revenue': courses_revenue,
+                    'count': courses_count,
                 },
                 'private_teaching': {
-                    'revenue': private_revenue['revenue'] or Decimal('0.00'),
-                    'count': private_revenue['count'] or 0,
+                    'revenue': private_revenue,
+                    'count': private_count,
                 },
             }
         }
@@ -87,6 +121,7 @@ class FinanceService:
     def get_domain_revenue(teacher, domain, start_date=None, end_date=None):
         """
         Get revenue for a specific domain.
+        Queries actual tables (not StripePayment) for accurate totals.
 
         Args:
             teacher: User object
@@ -97,33 +132,85 @@ class FinanceService:
         Returns:
             dict with revenue totals and transaction list
         """
-        query = StripePayment.objects.filter(
-            teacher=teacher,
-            domain=domain,
-            status='completed'
-        )
+        from django.conf import settings
+        commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
 
-        if start_date:
-            query = query.filter(completed_at__gte=start_date)
-        if end_date:
-            query = query.filter(completed_at__lte=end_date)
+        if domain == 'workshops':
+            from apps.workshops.models import WorkshopRegistration
 
-        totals = query.aggregate(
-            total_revenue=Sum('teacher_share'),
-            total_gross=Sum('total_amount'),
-            total_commission=Sum('platform_commission'),
-            payment_count=Count('id')
-        )
+            query = WorkshopRegistration.objects.filter(
+                session__workshop__instructor=teacher,
+                status='registered',
+            ).filter(
+                Q(payment_status='paid') | Q(payment_status='completed') | Q(payment_status='not_required')
+            )
 
-        # Get transaction list
-        transactions = query.order_by('-completed_at')
+            if start_date:
+                query = query.filter(paid_at__gte=start_date)
+            if end_date:
+                query = query.filter(paid_at__lte=end_date)
+
+            total_gross = query.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
+            payment_count = query.count()
+            total_revenue = total_gross * (1 - Decimal(str(commission_rate)))
+            total_commission = total_gross - total_revenue
+            transactions = query.select_related('session__workshop', 'student').order_by('-paid_at')
+
+        elif domain == 'courses':
+            from apps.courses.models import CourseEnrollment
+
+            query = CourseEnrollment.objects.filter(
+                course__instructor=teacher,
+                payment_status='completed',
+                is_active=True
+            )
+
+            if start_date:
+                query = query.filter(paid_at__gte=start_date)
+            if end_date:
+                query = query.filter(paid_at__lte=end_date)
+
+            total_gross = query.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
+            payment_count = query.count()
+            total_revenue = total_gross * (1 - Decimal(str(commission_rate)))
+            total_commission = total_gross - total_revenue
+            transactions = query.select_related('course', 'student').order_by('-paid_at')
+
+        elif domain == 'private_teaching':
+            from apps.private_teaching.models import Order
+
+            query = Order.objects.filter(
+                teacher=teacher,
+                payment_status='completed'
+            )
+
+            if start_date:
+                query = query.filter(paid_at__gte=start_date)
+            if end_date:
+                query = query.filter(paid_at__lte=end_date)
+
+            total_gross = query.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+            payment_count = query.count()
+            total_revenue = total_gross * (1 - Decimal(str(commission_rate)))
+            total_commission = total_gross - total_revenue
+            transactions = query.select_related('student').order_by('-paid_at')
+
+        else:
+            return {
+                'domain': domain,
+                'total_revenue': Decimal('0.00'),
+                'total_gross': Decimal('0.00'),
+                'total_commission': Decimal('0.00'),
+                'payment_count': 0,
+                'transactions': [],
+            }
 
         return {
             'domain': domain,
-            'total_revenue': totals['total_revenue'] or Decimal('0.00'),
-            'total_gross': totals['total_gross'] or Decimal('0.00'),
-            'total_commission': totals['total_commission'] or Decimal('0.00'),
-            'payment_count': totals['payment_count'] or 0,
+            'total_revenue': total_revenue,
+            'total_gross': total_gross,
+            'total_commission': total_commission,
+            'payment_count': payment_count,
             'transactions': transactions,
         }
 
