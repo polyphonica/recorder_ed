@@ -75,14 +75,14 @@ class FinanceService:
 
         # ===== PRIVATE TEACHING =====
         private_orders = Order.objects.filter(
-            teacher=teacher,
+            items__lesson__teacher=teacher,
             payment_status='completed'
-        )
+        ).distinct()
 
         if start_date:
-            private_orders = private_orders.filter(paid_at__gte=start_date)
+            private_orders = private_orders.filter(created_at__gte=start_date)
         if end_date:
-            private_orders = private_orders.filter(paid_at__lte=end_date)
+            private_orders = private_orders.filter(created_at__lte=end_date)
 
         private_gross = private_orders.aggregate(
             total=Sum('total_amount')
@@ -180,20 +180,20 @@ class FinanceService:
             from apps.private_teaching.models import Order
 
             query = Order.objects.filter(
-                teacher=teacher,
+                items__lesson__teacher=teacher,
                 payment_status='completed'
-            )
+            ).distinct()
 
             if start_date:
-                query = query.filter(paid_at__gte=start_date)
+                query = query.filter(created_at__gte=start_date)
             if end_date:
-                query = query.filter(paid_at__lte=end_date)
+                query = query.filter(created_at__lte=end_date)
 
             total_gross = query.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
             payment_count = query.count()
             total_revenue = total_gross * (1 - Decimal(str(commission_rate)))
             total_commission = total_gross - total_revenue
-            transactions = query.select_related('student').order_by('-paid_at')
+            transactions = query.select_related('student').order_by('-created_at')
 
         else:
             return {
@@ -333,14 +333,14 @@ class FinanceService:
         from django.contrib.auth.models import User
 
         query = Order.objects.filter(
-            teacher=teacher,
+            items__lesson__teacher=teacher,
             payment_status='completed'
-        )
+        ).distinct()
 
         if start_date:
-            query = query.filter(paid_at__gte=start_date)
+            query = query.filter(created_at__gte=start_date)
         if end_date:
-            query = query.filter(paid_at__lte=end_date)
+            query = query.filter(created_at__lte=end_date)
 
         # Group by student
         students_data = query.values('student').annotate(
