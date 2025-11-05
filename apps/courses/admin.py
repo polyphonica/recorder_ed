@@ -207,27 +207,27 @@ class LessonAttachmentAdmin(admin.ModelAdmin):
 class CourseEnrollmentAdmin(admin.ModelAdmin):
     """Admin interface for CourseEnrollment model"""
     list_display = [
-        'student', 'course', 'is_active',
+        'student', 'course', 'is_active', 'payment_status', 'payment_amount',
         'get_progress', 'enrolled_at', 'completed_at'
     ]
-    list_filter = ['is_active', 'enrolled_at', 'completed_at', 'course']
+    list_filter = ['is_active', 'payment_status', 'enrolled_at', 'completed_at', 'course']
     search_fields = [
         'student__username', 'student__email',
         'student__first_name', 'student__last_name',
         'course__title'
     ]
     readonly_fields = [
-        'id', 'enrolled_at', 'completed_at',
-        'get_progress',  # 'order' - TODO: add back when implementing course payments
+        'id', 'enrolled_at', 'completed_at', 'paid_at',
+        'get_progress', 'stripe_payment_intent_id', 'stripe_checkout_session_id'
     ]
     fieldsets = (
         ('Enrollment Information', {
-            'fields': ('student', 'course', 'is_active')
+            'fields': ('student', 'course', 'child_profile', 'is_active')
         }),
-        # TODO: Add back when implementing course payments
-        # ('Payment', {
-        #     'fields': ('order',)
-        # }),
+        ('Payment Information', {
+            'fields': ('payment_status', 'payment_amount', 'paid_at',
+                      'stripe_payment_intent_id', 'stripe_checkout_session_id')
+        }),
         ('Progress', {
             'fields': ('get_progress', 'enrolled_at', 'completed_at'),
             'classes': ('collapse',)
