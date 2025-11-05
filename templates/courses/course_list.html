@@ -4,13 +4,39 @@
 {% block title %}Browse Courses{% endblock %}
 
 {% block content %}
-<div class="section-courses">
-    <div class="container mx-auto px-4 py-8">
-        <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-4xl font-bold mb-2">Available Courses</h1>
-            <p class="text-base-content/70">Explore our collection of music education courses</p>
+<div class="section-courses min-h-screen bg-base-100">
+    <!-- Hero Section -->
+    <div class="hero hero-section py-16">
+        <div class="hero-content text-center">
+            <div class="max-w-4xl">
+                <h1 class="text-5xl font-bold">
+                    Master Your Musical Journey with
+                    <span class="text-[#7c3aed]">Expert-Led Courses</span>
+                </h1>
+                <p class="py-6 text-xl text-base-content/80">
+                    Comprehensive, self-paced online courses designed to take your skills to the next level
+                </p>
+
+                <!-- Search Bar -->
+                <div class="form-control w-full max-w-lg mx-auto">
+                    <form method="get" class="input-group">
+                        <input type="text"
+                               name="search"
+                               value="{{ current_search }}"
+                               placeholder="Search courses..."
+                               class="input input-bordered flex-1" />
+                        <button class="btn btn-section-primary" type="submit">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
 
         <!-- Filters -->
         <div class="card bg-base-100 shadow-xl mb-6">
@@ -33,7 +59,7 @@
                         </label>
                         <div class="join w-full">
                             <input type="text" name="search" value="{{ current_search }}" placeholder="Search courses..." class="input input-bordered join-item w-full">
-                            <button type="submit" class="btn btn-primary join-item">
+                            <button type="submit" class="btn btn-section-primary join-item">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
@@ -128,7 +154,7 @@
                             <a href="{% url 'courses:detail' course.slug %}" class="btn btn-outline btn-warning">Learn More</a>
                             {% else %}
                             <div class="text-2xl font-bold">£{{ course.cost }}</div>
-                            <a href="{% url 'courses:detail' course.slug %}" class="btn btn-primary">View Course</a>
+                            <a href="{% url 'courses:detail' course.slug %}" class="btn btn-section-primary">View Course</a>
                             {% endif %}
                         </div>
                     </div>
@@ -168,7 +194,7 @@
                     {% if current_grade != 'all' or current_search %}
                         <h3 class="text-xl font-semibold mb-2">No courses match your filters</h3>
                         <p class="text-base-content/70 mb-4">Try adjusting your search criteria or clear filters to see all courses.</p>
-                        <a href="{% url 'courses:list' %}" class="btn btn-primary">Clear Filters</a>
+                        <a href="{% url 'courses:list' %}" class="btn btn-section-primary">Clear Filters</a>
                     {% else %}
                         <h3 class="text-xl font-semibold mb-2">No courses available yet</h3>
                         <p class="text-base-content/70">Check back soon for new courses!</p>
