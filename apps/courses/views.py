@@ -79,7 +79,8 @@ class CourseCreateView(InstructorRequiredMixin, CreateView):
     template_name = 'courses/instructor/course_form.html'
     fields = [
         'title', 'slug', 'grade', 'description', 'cost',
-        'image', 'preview_video_url', 'status', 'is_featured'
+        'image', 'preview_video_url', 'status', 'is_featured',
+        'show_as_coming_soon', 'expected_launch_date'
     ]
 
     def form_valid(self, form):
@@ -101,7 +102,8 @@ class CourseUpdateView(InstructorRequiredMixin, CourseInstructorMixin, UpdateVie
     template_name = 'courses/instructor/course_form.html'
     fields = [
         'title', 'slug', 'grade', 'description', 'cost',
-        'image', 'preview_video_url', 'status', 'is_featured'
+        'image', 'preview_video_url', 'status', 'is_featured',
+        'show_as_coming_soon', 'expected_launch_date'
     ]
 
     def form_valid(self, form):
