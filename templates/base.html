@@ -79,6 +79,7 @@
                         <li><a href="{% url 'workshops:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold{% endif %}">Workshops</a></li>
                         <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold{% endif %}">Private Lessons</a></li>
                         <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold{% endif %}">Courses</a></li>
+                        <li><a href="{% url 'payments:finance_dashboard' %}" class="{% if request.resolver_match.namespace == 'payments' %}font-bold{% endif %}"><i class="fas fa-chart-line mr-1"></i>Finance</a></li>
                     {% else %}
                         {# Student mobile navigation #}
                         <li><a href="{% url 'workshops:list' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold{% endif %}">Workshops</a></li>
@@ -100,6 +101,7 @@
                     <li><a href="{% url 'workshops:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold bg-primary text-primary-content{% endif %}">Workshops</a></li>
                     <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold bg-primary text-primary-content{% endif %}">Private Lessons</a></li>
                     <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold bg-primary text-primary-content{% endif %}">Courses</a></li>
+                    <li><a href="{% url 'payments:finance_dashboard' %}" class="{% if request.resolver_match.namespace == 'payments' %}font-bold bg-primary text-primary-content{% endif %}"><i class="fas fa-chart-line mr-2"></i>Finance</a></li>
                 {% else %}
                     {# Student navigation - goes to public/student pages #}
                     <li><a href="{% url 'workshops:list' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold bg-primary text-primary-content{% endif %}">Workshops</a></li>

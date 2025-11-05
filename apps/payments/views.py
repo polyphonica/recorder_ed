@@ -544,3 +544,203 @@ class StripeWebhookView(View):
                 print(f"Course enrollment {enrollment_id} confirmed and email sent")
             except CourseEnrollment.DoesNotExist:
                 print(f"CourseEnrollment {enrollment_id} not found")
+
+
+# ============================================================================
+# FINANCE DASHBOARD VIEWS
+# ============================================================================
+
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.views.generic import TemplateView
+from django.utils import timezone
+from datetime import timedelta
+from .finance_service import FinanceService
+
+
+class TeacherOnlyMixin(UserPassesTestMixin):
+    """Mixin to ensure only teachers can access finance views"""
+
+    def test_func(self):
+        return (
+            self.request.user.is_authenticated and
+            (self.request.user.profile.is_teacher or self.request.user.is_staff)
+        )
+
+    def handle_no_permission(self):
+        messages.error(self.request, 'You must be a teacher to access finance dashboard.')
+        return redirect('core:home')
+
+
+class FinanceDashboardView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
+    """
+    Unified finance dashboard showing revenue from all domains.
+    Single source of truth for teacher's financial data.
+    """
+    template_name = 'payments/finance_dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        teacher = self.request.user
+
+        # Get date range from query params (default to last 30 days)
+        date_range = self.request.GET.get('range', '30')
+
+        if date_range == 'all':
+            start_date = None
+            end_date = None
+        elif date_range == '7':
+            start_date = timezone.now() - timedelta(days=7)
+            end_date = None
+        elif date_range == '30':
+            start_date = timezone.now() - timedelta(days=30)
+            end_date = None
+        elif date_range == '90':
+            start_date = timezone.now() - timedelta(days=90)
+            end_date = None
+        elif date_range == 'year':
+            start_date = timezone.now() - timedelta(days=365)
+            end_date = None
+        else:
+            start_date = timezone.now() - timedelta(days=30)
+            end_date = None
+
+        # Get overall summary
+        summary = FinanceService.get_teacher_revenue_summary(teacher, start_date, end_date)
+
+        # Get recent transactions
+        recent_transactions = FinanceService.get_recent_transactions(teacher, limit=10)
+
+        # Get revenue trend
+        trend = FinanceService.get_revenue_trend(teacher, days=30)
+
+        context.update({
+            'summary': summary,
+            'recent_transactions': recent_transactions,
+            'trend': trend,
+            'selected_range': date_range,
+        })
+
+        return context
+
+
+class WorkshopRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
+    """Detailed workshop revenue breakdown"""
+    template_name = 'payments/workshop_revenue.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        teacher = self.request.user
+
+        # Get date range
+        date_range = self.request.GET.get('range', '30')
+        if date_range == 'all':
+            start_date = None
+            end_date = None
+        elif date_range == '7':
+            start_date = timezone.now() - timedelta(days=7)
+            end_date = None
+        elif date_range == '30':
+            start_date = timezone.now() - timedelta(days=30)
+            end_date = None
+        elif date_range == '90':
+            start_date = timezone.now() - timedelta(days=90)
+            end_date = None
+        else:
+            start_date = timezone.now() - timedelta(days=30)
+            end_date = None
+
+        # Get domain revenue
+        domain_data = FinanceService.get_domain_revenue(teacher, 'workshops', start_date, end_date)
+
+        # Get workshop breakdown
+        workshop_breakdown = FinanceService.get_workshop_revenue_breakdown(teacher, start_date, end_date)
+
+        context.update({
+            'domain_data': domain_data,
+            'workshop_breakdown': workshop_breakdown,
+            'selected_range': date_range,
+        })
+
+        return context
+
+
+class CourseRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
+    """Detailed course revenue breakdown"""
+    template_name = 'payments/course_revenue.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        teacher = self.request.user
+
+        # Get date range
+        date_range = self.request.GET.get('range', '30')
+        if date_range == 'all':
+            start_date = None
+            end_date = None
+        elif date_range == '7':
+            start_date = timezone.now() - timedelta(days=7)
+            end_date = None
+        elif date_range == '30':
+            start_date = timezone.now() - timedelta(days=30)
+            end_date = None
+        elif date_range == '90':
+            start_date = timezone.now() - timedelta(days=90)
+            end_date = None
+        else:
+            start_date = timezone.now() - timedelta(days=30)
+            end_date = None
+
+        # Get domain revenue
+        domain_data = FinanceService.get_domain_revenue(teacher, 'courses', start_date, end_date)
+
+        # Get course breakdown
+        course_breakdown = FinanceService.get_course_revenue_breakdown(teacher, start_date, end_date)
+
+        context.update({
+            'domain_data': domain_data,
+            'course_breakdown': course_breakdown,
+            'selected_range': date_range,
+        })
+
+        return context
+
+
+class PrivateTeachingRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
+    """Detailed private teaching revenue breakdown"""
+    template_name = 'payments/private_teaching_revenue.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        teacher = self.request.user
+
+        # Get date range
+        date_range = self.request.GET.get('range', '30')
+        if date_range == 'all':
+            start_date = None
+            end_date = None
+        elif date_range == '7':
+            start_date = timezone.now() - timedelta(days=7)
+            end_date = None
+        elif date_range == '30':
+            start_date = timezone.now() - timedelta(days=30)
+            end_date = None
+        elif date_range == '90':
+            start_date = timezone.now() - timedelta(days=90)
+            end_date = None
+        else:
+            start_date = timezone.now() - timedelta(days=30)
+            end_date = None
+
+        # Get domain revenue
+        domain_data = FinanceService.get_domain_revenue(teacher, 'private_teaching', start_date, end_date)
+
+        # Get student breakdown
+        student_breakdown = FinanceService.get_private_teaching_revenue_breakdown(teacher, start_date, end_date)
+
+        context.update({
+            'domain_data': domain_data,
+            'student_breakdown': student_breakdown,
+            'selected_range': date_range,
+        })
+
+        return context

@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Private Teaching Revenue{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'core:home' %}">Home</a></li>
+            <li><a href="{% url 'payments:finance_dashboard' %}">Finance</a></li>
+            <li>Private Teaching Revenue</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">
+                    <i class="fas fa-user-graduate mr-3 text-accent"></i>Private Teaching Revenue
+                </h1>
+                <p class="text-base-content/70">Detailed breakdown by student</p>
+            </div>
+
+            <!-- Date Range Filter -->
+            <div class="form-control">
+                <select onchange="window.location.href='?range='+this.value" class="select select-bordered">
+                    <option value="7" {% if selected_range == '7' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="30" {% if selected_range == '30' %}selected{% endif %}>Last 30 Days</option>
+                    <option value="90" {% if selected_range == '90' %}selected{% endif %}>Last 90 Days</option>
+                    <option value="all" {% if selected_range == 'all' %}selected{% endif %}>All Time</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="stats stats-vertical lg:stats-horizontal shadow mb-8 w-full">
+            <div class="stat">
+                <div class="stat-figure text-accent">
+                    <i class="fas fa-pound-sign text-3xl"></i>
+                </div>
+                <div class="stat-title">Your Teaching Revenue</div>
+                <div class="stat-value text-accent">£{{ domain_data.total_revenue|floatformat:2 }}</div>
+                <div class="stat-desc">After commission</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-figure text-primary">
+                    <i class="fas fa-book-reader text-3xl"></i>
+                </div>
+                <div class="stat-title">Total Lessons</div>
+                <div class="stat-value text-primary">{{ domain_data.payment_count }}</div>
+                <div class="stat-desc">Completed lessons</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-figure text-secondary">
+                    <i class="fas fa-chart-line text-3xl"></i>
+                </div>
+                <div class="stat-title">Gross Revenue</div>
+                <div class="stat-value text-secondary">£{{ domain_data.total_gross|floatformat:2 }}</div>
+                <div class="stat-desc">Total collected</div>
+            </div>
+        </div>
+
+        <!-- Student Breakdown -->
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-list mr-2"></i>Revenue by Student
+                </h2>
+
+                {% if student_breakdown %}
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Lessons</th>
+                                    <th>Gross Revenue</th>
+                                    <th>Your Share</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in student_breakdown %}
+                                <tr>
+                                    <td>
+                                        <div class="flex items-center gap-3">
+                                            <div class="avatar placeholder">
+                                                <div class="bg-neutral text-neutral-content rounded-full w-10">
+                                                    <span class="text-sm">
+                                                        {{ item.student.first_name|first|upper|default:item.student.username|first|upper }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold">{{ item.student.get_full_name|default:item.student.username }}</div>
+                                                <div class="text-sm text-base-content/70">{{ item.student.email }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">{{ item.lessons_count }}</td>
+                                    <td>£{{ item.total_revenue|floatformat:2 }}</td>
+                                    <td class="font-bold text-accent">£{{ item.teacher_share|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 text-base-content/50">
+                        <i class="fas fa-inbox text-5xl mb-4"></i>
+                        <p>No private teaching revenue in selected period</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="mt-8">
+            <a href="{% url 'payments:finance_dashboard' %}?range={{ selected_range }}"
+               class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Finance Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

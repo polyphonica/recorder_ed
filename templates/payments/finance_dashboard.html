@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Finance Dashboard{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'core:home' %}">Home</a></li>
+            <li>Finance Dashboard</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">
+                    <i class="fas fa-chart-line mr-3 text-primary"></i>Finance Dashboard
+                </h1>
+                <p class="text-base-content/70">Complete revenue overview across all domains</p>
+            </div>
+
+            <!-- Date Range Filter -->
+            <div class="form-control">
+                <select onchange="window.location.href='?range='+this.value" class="select select-bordered">
+                    <option value="7" {% if selected_range == '7' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="30" {% if selected_range == '30' %}selected{% endif %}>Last 30 Days</option>
+                    <option value="90" {% if selected_range == '90' %}selected{% endif %}>Last 90 Days</option>
+                    <option value="year" {% if selected_range == 'year' %}selected{% endif %}>Last Year</option>
+                    <option value="all" {% if selected_range == 'all' %}selected{% endif %}>All Time</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="stat bg-base-200 rounded-lg shadow">
+                <div class="stat-figure text-primary">
+                    <i class="fas fa-pound-sign text-3xl"></i>
+                </div>
+                <div class="stat-title">Total Revenue</div>
+                <div class="stat-value text-primary">£{{ summary.total_revenue|floatformat:2 }}</div>
+                <div class="stat-desc">Your earnings after commission</div>
+            </div>
+
+            <div class="stat bg-base-200 rounded-lg shadow">
+                <div class="stat-figure text-secondary">
+                    <i class="fas fa-coins text-3xl"></i>
+                </div>
+                <div class="stat-title">Gross Revenue</div>
+                <div class="stat-value text-secondary">£{{ summary.total_gross|floatformat:2 }}</div>
+                <div class="stat-desc">Total student payments</div>
+            </div>
+
+            <div class="stat bg-base-200 rounded-lg shadow">
+                <div class="stat-figure text-accent">
+                    <i class="fas fa-percentage text-3xl"></i>
+                </div>
+                <div class="stat-title">Platform Fee</div>
+                <div class="stat-value text-accent">£{{ summary.total_commission|floatformat:2 }}</div>
+                <div class="stat-desc">Commission paid</div>
+            </div>
+
+            <div class="stat bg-base-200 rounded-lg shadow">
+                <div class="stat-figure text-info">
+                    <i class="fas fa-receipt text-3xl"></i>
+                </div>
+                <div class="stat-title">Transactions</div>
+                <div class="stat-value text-info">{{ summary.payment_count }}</div>
+                <div class="stat-desc">Completed payments</div>
+            </div>
+        </div>
+
+        <!-- Revenue by Domain -->
+        <div class="card bg-base-200 shadow-xl mb-8">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-chart-pie mr-2"></i>Revenue by Domain
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Workshops -->
+                    <div class="card bg-base-100 shadow">
+                        <div class="card-body">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="font-bold text-lg">
+                                    <i class="fas fa-chalkboard-teacher mr-2 text-primary"></i>Workshops
+                                </h3>
+                                <a href="{% url 'payments:workshop_revenue' %}?range={{ selected_range }}"
+                                   class="btn btn-sm btn-ghost">
+                                    <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                            <div class="stat-value text-primary">£{{ summary.by_domain.workshops.revenue|floatformat:2 }}</div>
+                            <div class="stat-desc">{{ summary.by_domain.workshops.count }} transaction{{ summary.by_domain.workshops.count|pluralize }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Courses -->
+                    <div class="card bg-base-100 shadow">
+                        <div class="card-body">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="font-bold text-lg">
+                                    <i class="fas fa-graduation-cap mr-2 text-secondary"></i>Courses
+                                </h3>
+                                <a href="{% url 'payments:course_revenue' %}?range={{ selected_range }}"
+                                   class="btn btn-sm btn-ghost">
+                                    <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                            <div class="stat-value text-secondary">£{{ summary.by_domain.courses.revenue|floatformat:2 }}</div>
+                            <div class="stat-desc">{{ summary.by_domain.courses.count }} transaction{{ summary.by_domain.courses.count|pluralize }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Private Teaching -->
+                    <div class="card bg-base-100 shadow">
+                        <div class="card-body">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="font-bold text-lg">
+                                    <i class="fas fa-user-graduate mr-2 text-accent"></i>Private Lessons
+                                </h3>
+                                <a href="{% url 'payments:private_teaching_revenue' %}?range={{ selected_range }}"
+                                   class="btn btn-sm btn-ghost">
+                                    <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                            <div class="stat-value text-accent">£{{ summary.by_domain.private_teaching.revenue|floatformat:2 }}</div>
+                            <div class="stat-desc">{{ summary.by_domain.private_teaching.count }} transaction{{ summary.by_domain.private_teaching.count|pluralize }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-history mr-2"></i>Recent Transactions
+                </h2>
+
+                {% if recent_transactions %}
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Domain</th>
+                                    <th>Student</th>
+                                    <th>Amount</th>
+                                    <th>Your Share</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in recent_transactions %}
+                                <tr>
+                                    <td>{{ transaction.completed_at|date:"M d, Y g:i A" }}</td>
+                                    <td>
+                                        <span class="badge
+                                            {% if transaction.domain == 'workshops' %}badge-primary
+                                            {% elif transaction.domain == 'courses' %}badge-secondary
+                                            {% else %}badge-accent{% endif %}">
+                                            {{ transaction.get_domain_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ transaction.student.get_full_name|default:transaction.student.username }}</td>
+                                    <td>£{{ transaction.total_amount|floatformat:2 }}</td>
+                                    <td class="font-bold">£{{ transaction.teacher_share|floatformat:2 }}</td>
+                                    <td>
+                                        <span class="badge badge-success">
+                                            {{ transaction.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 text-base-content/50">
+                        <i class="fas fa-inbox text-5xl mb-4"></i>
+                        <p>No transactions yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
