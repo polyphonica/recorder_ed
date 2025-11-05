@@ -88,18 +88,21 @@
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                 {% for domain in domains %}
-                    <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border-t-4 {% if domain.name == 'Workshops' %}border-blue-500{% elif domain.name == 'Private Lessons' %}border-green-500{% elif domain.name == 'Courses' %}border-purple-500{% endif %} {% if domain.coming_soon %}opacity-75{% endif %}">
+                    <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 {% if domain.coming_soon %}opacity-75{% endif %}"
+                         style="border-top: 4px solid {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#7c3aed{% endif %};">
                         <div class="card-body text-center relative">
                             {% if domain.coming_soon %}
                                 <div class="badge badge-secondary absolute top-4 right-4">Coming Soon</div>
                             {% endif %}
 
                             <!-- Colored Icon Background -->
-                            <div class="mx-auto mb-4 w-24 h-24 rounded-full flex items-center justify-center {% if domain.name == 'Workshops' %}bg-blue-50{% elif domain.name == 'Private Lessons' %}bg-green-50{% elif domain.name == 'Courses' %}bg-purple-50{% endif %}">
+                            <div class="mx-auto mb-4 rounded-full flex items-center justify-center"
+                                 style="width: 96px; height: 96px; background-color: {% if domain.name == 'Workshops' %}#eff6ff{% elif domain.name == 'Private Lessons' %}#dcfce7{% elif domain.name == 'Courses' %}#f3e8ff{% endif %};">
                                 <div class="text-5xl">{{ domain.icon }}</div>
                             </div>
 
-                            <h3 class="card-title text-2xl justify-center mb-3 {% if domain.name == 'Workshops' %}text-blue-600{% elif domain.name == 'Private Lessons' %}text-green-600{% elif domain.name == 'Courses' %}text-purple-600{% endif %}">
+                            <h3 class="card-title text-2xl justify-center mb-3"
+                                style="color: {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#7c3aed{% endif %};">
                                 {{ domain.name }}
                             </h3>
                             <p class="text-base-content/70 mb-6">{{ domain.description }}</p>
@@ -108,7 +111,8 @@
                             <div class="space-y-2 mb-6">
                                 {% for feature in domain.features %}
                                     <div class="flex items-center justify-center">
-                                        <i class="fas fa-check {% if domain.name == 'Workshops' %}text-blue-500{% elif domain.name == 'Private Lessons' %}text-green-500{% elif domain.name == 'Courses' %}text-purple-500{% endif %} mr-2"></i>
+                                        <i class="fas fa-check mr-2"
+                                           style="color: {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#7c3aed{% endif %};"></i>
                                         <span class="text-sm">{{ feature }}</span>
                                     </div>
                                 {% endfor %}
@@ -118,7 +122,10 @@
                                 {% if domain.coming_soon %}
                                     <button class="btn btn-disabled">Coming Soon</button>
                                 {% else %}
-                                    <a href="{% url domain.url %}" class="btn btn-wide text-white {% if domain.name == 'Workshops' %}bg-blue-500 hover:bg-blue-600 border-blue-500{% elif domain.name == 'Private Lessons' %}bg-green-500 hover:bg-green-600 border-green-500{% elif domain.name == 'Courses' %}bg-purple-500 hover:bg-purple-600 border-purple-500{% endif %}">
+                                    <a href="{% url domain.url %}" class="btn btn-wide"
+                                       style="background-color: {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#7c3aed{% endif %}; color: white; border-color: {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#7c3aed{% endif %};"
+                                       onmouseover="this.style.backgroundColor='{% if domain.name == 'Workshops' %}#2563eb{% elif domain.name == 'Private Lessons' %}#047857{% elif domain.name == 'Courses' %}#6d28d9{% endif %}'"
+                                       onmouseout="this.style.backgroundColor='{% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#7c3aed{% endif %}'">
                                         Explore {{ domain.name }}
                                     </a>
                                 {% endif %}
