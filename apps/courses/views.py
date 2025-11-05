@@ -692,11 +692,24 @@ class CourseDetailView(DetailView):
     context_object_name = 'course'
 
     def get_queryset(self):
-        # Only show published courses to non-owners
+        # Show published courses AND draft courses with "coming soon" enabled to everyone
+        # Owners can see all their courses regardless of status
         if self.request.user.is_authenticated and hasattr(self, 'object'):
             if self.object.is_owned_by(self.request.user):
                 return Course.objects.all()
-        return Course.objects.filter(status='published')
+
+        # For non-owners, show published + coming soon courses (with auto-hide logic)
+        thirty_days_ago = timezone.now().date() - timedelta(days=30)
+        return Course.objects.filter(
+            Q(status='published') |
+            Q(
+                status='draft',
+                show_as_coming_soon=True
+            ) & (
+                Q(expected_launch_date__isnull=True) |
+                Q(expected_launch_date__gte=thirty_days_ago)
+            )
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
