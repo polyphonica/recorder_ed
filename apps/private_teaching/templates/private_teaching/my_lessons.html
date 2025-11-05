@@ -109,7 +109,7 @@
                                     </div>
 
                                     <div class="card-actions justify-end mt-4">
-                                        <button type="button" class="btn btn-sm btn-outline" onclick="openLessonModal({{ lesson.id }})">
+                                        <button type="button" class="btn btn-sm btn-outline" onclick="openLessonModal('{{ lesson.id }}')">
                                             <i class="fas fa-eye mr-2"></i>View Details
                                         </button>
                                         {% if lesson.payment_status == 'Not Paid' %}
@@ -184,7 +184,7 @@
                                 </td>
                                 <td>
                                     <div class="flex gap-2">
-                                        <button type="button" class="btn btn-xs btn-outline" onclick="openLessonModal({{ lesson.id }})" title="View Details">
+                                        <button type="button" class="btn btn-xs btn-outline" onclick="openLessonModal('{{ lesson.id }}')" title="View Details">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                         {% if lesson.payment_status == 'Not Paid' %}
