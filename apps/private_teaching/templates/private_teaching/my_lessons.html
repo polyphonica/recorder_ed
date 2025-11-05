@@ -109,9 +109,9 @@
                                     </div>
 
                                     <div class="card-actions justify-end mt-4">
-                                        <button type="button" class="btn btn-sm btn-outline" onclick="openLessonModal('{{ lesson.id }}')">
-                                            <i class="fas fa-eye mr-2"></i>View Details
-                                        </button>
+                                        <a href="{% url 'lessons:lesson_detail' lesson.id %}" class="btn btn-sm btn-outline">
+                                            <i class="fas fa-book-open mr-2"></i>Open Lesson
+                                        </a>
                                         {% if lesson.payment_status == 'Not Paid' %}
                                             <form method="post" action="{% url 'private_teaching:add_to_cart' lesson.id %}" class="inline">
                                                 {% csrf_token %}
@@ -184,9 +184,9 @@
                                 </td>
                                 <td>
                                     <div class="flex gap-2">
-                                        <button type="button" class="btn btn-xs btn-outline" onclick="openLessonModal('{{ lesson.id }}')" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
+                                        <a href="{% url 'lessons:lesson_detail' lesson.id %}" class="btn btn-xs btn-outline" title="Open Lesson">
+                                            <i class="fas fa-book-open"></i>
+                                        </a>
                                         {% if lesson.payment_status == 'Not Paid' %}
                                             <form method="post" action="{% url 'private_teaching:add_to_cart' lesson.id %}" class="inline">
                                                 {% csrf_token %}
