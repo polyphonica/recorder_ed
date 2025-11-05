@@ -429,16 +429,27 @@ class FinanceService:
         private_orders = Order.objects.filter(
             items__lesson__teacher=teacher,
             payment_status='completed'
-        ).distinct().select_related('student').order_by('-created_at')[:limit]
+        ).distinct().select_related('student').prefetch_related('items__lesson').order_by('-created_at')[:limit]
 
         for order in private_orders:
             amount = order.total_amount
             teacher_share = amount * (1 - Decimal(str(commission_rate)))
+
+            # Get lesson subjects from order items
+            lessons = [item.lesson for item in order.items.all() if item.lesson.teacher == teacher]
+            if lessons:
+                if len(lessons) == 1:
+                    description = lessons[0].subject
+                else:
+                    description = f"{lessons[0].subject} + {len(lessons)-1} more"
+            else:
+                description = f"Order #{order.order_number}"
+
             transactions.append({
                 'date': order.created_at,
                 'domain': 'private_teaching',
                 'domain_display': 'Private Lesson',
-                'description': f"Order #{order.order_number}",
+                'description': description,
                 'student': order.student,
                 'amount': amount,
                 'teacher_share': teacher_share,
