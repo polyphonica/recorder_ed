@@ -78,9 +78,10 @@ class CourseAdmin(admin.ModelAdmin):
 
     list_display = [
         'title', 'grade', 'instructor', 'status',
-        'is_featured', 'cost', 'total_enrollments', 'created_at'
+        'is_featured', 'show_as_coming_soon', 'expected_launch_date',
+        'cost', 'total_enrollments', 'created_at'
     ]
-    list_filter = ['status', 'grade', 'is_featured', 'created_at']
+    list_filter = ['status', 'grade', 'is_featured', 'show_as_coming_soon', 'created_at']
     search_fields = ['title', 'description', 'instructor__username', 'instructor__email']
     prepopulated_fields = {'slug': ('title',)}
     readonly_fields = [
@@ -91,7 +92,8 @@ class CourseAdmin(admin.ModelAdmin):
         ('Basic Information', {
             'fields': (
                 'title', 'slug', 'instructor', 'grade',
-                'description', 'status', 'is_featured'
+                'description', 'status', 'is_featured',
+                'show_as_coming_soon', 'expected_launch_date'
             )
         }),
         ('Media', {

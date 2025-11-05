@@ -79,12 +79,20 @@
                     {% endif %}
 
                     <div class="card-body">
-                        <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2 flex-wrap mb-2">
                             <span class="badge badge-primary">{{ course.get_grade_display }}</span>
                             {% if course.is_featured %}
                             <span class="badge badge-accent">Featured</span>
                             {% endif %}
+                            {% if course.status == 'draft' and course.show_as_coming_soon %}
+                            <span class="badge badge-warning badge-lg font-bold">🎉 Coming Soon!</span>
+                            {% endif %}
                         </div>
+                        {% if course.status == 'draft' and course.show_as_coming_soon and course.expected_launch_date %}
+                        <div class="text-xs text-warning font-semibold mb-2">
+                            Expected Launch: {{ course.expected_launch_date|date:"F Y" }}
+                        </div>
+                        {% endif %}
 
                         <h2 class="card-title">{{ course.title }}</h2>
 
@@ -115,8 +123,13 @@
                         </div>
 
                         <div class="card-actions justify-between items-center">
+                            {% if course.status == 'draft' and course.show_as_coming_soon %}
+                            <div class="text-lg font-semibold text-warning">Coming Soon</div>
+                            <a href="{% url 'courses:detail' course.slug %}" class="btn btn-outline btn-warning">Learn More</a>
+                            {% else %}
                             <div class="text-2xl font-bold">£{{ course.cost }}</div>
                             <a href="{% url 'courses:detail' course.slug %}" class="btn btn-primary">View Course</a>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

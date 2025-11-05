@@ -15,6 +15,7 @@ from django.views.generic import (
 from django.db.models import Count, Q, Prefetch, Max, Avg
 from django.http import JsonResponse
 from django.utils import timezone
+from datetime import timedelta
 
 from .models import (
     Course, Topic, Lesson, LessonAttachment,
@@ -642,7 +643,20 @@ class CourseListView(ListView):
     paginate_by = 12
 
     def get_queryset(self):
-        queryset = Course.objects.filter(status='published')
+        # Include published courses AND draft courses with "coming soon" enabled
+        # For coming soon courses, auto-hide if expected launch date is 30+ days past
+        thirty_days_ago = timezone.now().date() - timedelta(days=30)
+
+        queryset = Course.objects.filter(
+            Q(status='published') |
+            Q(
+                status='draft',
+                show_as_coming_soon=True
+            ) & (
+                Q(expected_launch_date__isnull=True) |  # No launch date set
+                Q(expected_launch_date__gte=thirty_days_ago)  # Launch date within last 30 days
+            )
+        )
 
         # Filter by grade level
         grade = self.request.GET.get('grade')

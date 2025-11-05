@@ -76,6 +76,15 @@ class Course(models.Model):
     # Status and visibility
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     is_featured = models.BooleanField(default=False, help_text='Show on featured courses list')
+    show_as_coming_soon = models.BooleanField(
+        default=False,
+        help_text="Show this draft course publicly with 'Coming Soon' banner"
+    )
+    expected_launch_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Optional: When do you plan to launch? Auto-hides 30 days after this date if still draft"
+    )
 
     # Denormalized counts for performance (updated via signals or methods)
     total_topics = models.PositiveIntegerField(default=0)
