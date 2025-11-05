@@ -41,6 +41,9 @@
                     {% if course.is_featured %}
                         <div class="badge badge-secondary">Featured</div>
                     {% endif %}
+                    {% if course.status == 'draft' and course.show_as_coming_soon %}
+                        <div class="badge badge-warning badge-lg font-bold">🎉 Coming Soon!</div>
+                    {% endif %}
                     <div class="badge badge-ghost">
                         <i class="fas fa-book-open mr-1"></i>{{ total_lessons }} lesson{{ total_lessons|pluralize }}
                     </div>
@@ -50,6 +53,12 @@
                         </div>
                     {% endif %}
                 </div>
+                {% if course.status == 'draft' and course.show_as_coming_soon and course.expected_launch_date %}
+                <div class="alert alert-warning mb-4">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span><strong>Expected Launch:</strong> {{ course.expected_launch_date|date:"F Y" }}</span>
+                </div>
+                {% endif %}
 
                 <h1 class="text-4xl font-bold mb-4">{{ course.title }}</h1>
 
@@ -175,7 +184,23 @@
                         <div class="divider"></div>
 
                         <!-- Enrollment Status / Actions -->
-                        {% if is_enrolled %}
+                        {% if course.status == 'draft' and course.show_as_coming_soon %}
+                            <div class="alert alert-warning mb-4">
+                                <i class="fas fa-clock"></i>
+                                <div>
+                                    <div class="font-bold">Coming Soon!</div>
+                                    <div class="text-sm">This course is not yet available for enrollment.</div>
+                                    {% if course.expected_launch_date %}
+                                        <div class="text-sm">Expected: {{ course.expected_launch_date|date:"F Y" }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if not is_owner %}
+                                <div class="text-center text-sm text-base-content/70 mb-4">
+                                    Check back soon to enroll!
+                                </div>
+                            {% endif %}
+                        {% elif is_enrolled %}
                             <div class="alert alert-success mb-4">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 <span>You're enrolled!</span>
