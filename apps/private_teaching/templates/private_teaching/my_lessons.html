@@ -108,16 +108,19 @@
                                         </div>
                                     </div>
 
-                                    {% if lesson.payment_status == 'Not Paid' %}
-                                        <div class="card-actions justify-end mt-4">
-                                            <form method="post" action="{% url 'private_teaching:add_to_cart' lesson.id %}">
+                                    <div class="card-actions justify-end mt-4">
+                                        <button type="button" class="btn btn-sm btn-outline" onclick="openLessonModal({{ lesson.id }})">
+                                            <i class="fas fa-eye mr-2"></i>View Details
+                                        </button>
+                                        {% if lesson.payment_status == 'Not Paid' %}
+                                            <form method="post" action="{% url 'private_teaching:add_to_cart' lesson.id %}" class="inline">
                                                 {% csrf_token %}
                                                 <button type="submit" class="btn btn-warning btn-sm">
                                                     <i class="fas fa-cart-plus mr-2"></i>Add to Cart
                                                 </button>
                                             </form>
-                                        </div>
-                                    {% endif %}
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                         {% endfor %}
@@ -180,14 +183,19 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if lesson.payment_status == 'Not Paid' %}
-                                        <form method="post" action="{% url 'private_teaching:add_to_cart' lesson.id %}">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-xs btn-warning">
-                                                <i class="fas fa-cart-plus"></i>
-                                            </button>
-                                        </form>
-                                    {% endif %}
+                                    <div class="flex gap-2">
+                                        <button type="button" class="btn btn-xs btn-outline" onclick="openLessonModal({{ lesson.id }})" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% if lesson.payment_status == 'Not Paid' %}
+                                            <form method="post" action="{% url 'private_teaching:add_to_cart' lesson.id %}" class="inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-xs btn-warning" title="Add to Cart">
+                                                    <i class="fas fa-cart-plus"></i>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
                                 </td>
                             </tr>
                         {% endfor %}
