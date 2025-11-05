@@ -158,6 +158,39 @@
                         </div>
                     </div>
 
+                    <div class="divider my-4"></div>
+                    <h4 class="text-lg font-semibold mb-4">Coming Soon Settings</h4>
+
+                    <div class="form-control mb-4">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            {{ form.show_as_coming_soon }}
+                            <span class="label-text font-medium">Show as "Coming Soon"</span>
+                        </label>
+                        <label class="label">
+                            <span class="label-text-alt">Display this draft course publicly with a "Coming Soon" banner</span>
+                        </label>
+                        {% if form.show_as_coming_soon.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.show_as_coming_soon.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control w-full mb-6">
+                        <label class="label">
+                            <span class="label-text font-medium">Expected Launch Date (Optional)</span>
+                        </label>
+                        {{ form.expected_launch_date }}
+                        <label class="label">
+                            <span class="label-text-alt">Course will auto-hide 30 days after this date if still in draft status</span>
+                        </label>
+                        {% if form.expected_launch_date.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.expected_launch_date.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
                     <!-- Form Actions -->
                     <div class="divider"></div>
                     <div class="flex gap-4 justify-end">
