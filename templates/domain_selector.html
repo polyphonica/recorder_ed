@@ -89,7 +89,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                 {% for domain in domains %}
                     <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 {% if domain.coming_soon %}opacity-75{% endif %}"
-                         style="border-top: 4px solid {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#7c3aed{% endif %};">
+                         style="border-top: 4px solid {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#f97316{% endif %};">
                         <div class="card-body text-center relative">
                             {% if domain.coming_soon %}
                                 <div class="badge badge-secondary absolute top-4 right-4">Coming Soon</div>
@@ -97,12 +97,12 @@
 
                             <!-- Colored Icon Background -->
                             <div class="mx-auto mb-4 rounded-full flex items-center justify-center"
-                                 style="width: 96px; height: 96px; background-color: {% if domain.name == 'Workshops' %}#eff6ff{% elif domain.name == 'Private Lessons' %}#dcfce7{% elif domain.name == 'Courses' %}#f3e8ff{% endif %};">
+                                 style="width: 96px; height: 96px; background-color: {% if domain.name == 'Workshops' %}#eff6ff{% elif domain.name == 'Private Lessons' %}#dcfce7{% elif domain.name == 'Courses' %}#ffedd5{% endif %};">
                                 <div class="text-5xl">{{ domain.icon }}</div>
                             </div>
 
                             <h3 class="card-title text-2xl justify-center mb-3"
-                                style="color: {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#7c3aed{% endif %};">
+                                style="color: {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#f97316{% endif %};">
                                 {{ domain.name }}
                             </h3>
                             <p class="text-base-content/70 mb-6">{{ domain.description }}</p>
@@ -112,7 +112,7 @@
                                 {% for feature in domain.features %}
                                     <div class="flex items-center justify-center">
                                         <i class="fas fa-check mr-2"
-                                           style="color: {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#7c3aed{% endif %};"></i>
+                                           style="color: {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#f97316{% endif %};"></i>
                                         <span class="text-sm">{{ feature }}</span>
                                     </div>
                                 {% endfor %}
@@ -123,9 +123,9 @@
                                     <button class="btn btn-disabled">Coming Soon</button>
                                 {% else %}
                                     <a href="{% url domain.url %}" class="btn btn-wide"
-                                       style="background-color: {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#7c3aed{% endif %}; color: white; border-color: {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#7c3aed{% endif %};"
-                                       onmouseover="this.style.backgroundColor='{% if domain.name == 'Workshops' %}#2563eb{% elif domain.name == 'Private Lessons' %}#047857{% elif domain.name == 'Courses' %}#6d28d9{% endif %}'"
-                                       onmouseout="this.style.backgroundColor='{% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#7c3aed{% endif %}'">
+                                       style="background-color: {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#f97316{% endif %}; color: white; border-color: {% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#f97316{% endif %};"
+                                       onmouseover="this.style.backgroundColor='{% if domain.name == 'Workshops' %}#2563eb{% elif domain.name == 'Private Lessons' %}#047857{% elif domain.name == 'Courses' %}#ea580c{% endif %}'"
+                                       onmouseout="this.style.backgroundColor='{% if domain.name == 'Workshops' %}#3b82f6{% elif domain.name == 'Private Lessons' %}#059669{% elif domain.name == 'Courses' %}#f97316{% endif %}'">
                                         Explore {{ domain.name }}
                                     </a>
                                 {% endif %}

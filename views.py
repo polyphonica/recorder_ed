@@ -31,7 +31,7 @@ class DomainSelectorView(TemplateView):
                 'url': 'courses:list',
                 'description': 'Structured music education programs',
                 'icon': '🎓',
-                'color': 'bg-purple-500',
+                'color': 'bg-orange-500',
                 'features': ['Comprehensive Curriculum', 'Progressive Learning', 'Certification', 'Self-Paced'],
                 'coming_soon': False
             }

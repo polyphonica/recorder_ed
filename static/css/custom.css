@@ -26,16 +26,16 @@
     --section-base-300: #bbf7d0;
 }
 
-/* Courses - Purple Theme (future) */
+/* Courses - Orange Theme */
 .section-courses {
-    --section-primary: #7c3aed;
+    --section-primary: #f97316;
     --section-primary-content: #ffffff;
-    --section-secondary: #5b21b6;
-    --section-accent: #a78bfa;
-    --section-neutral: #3730a3;
-    --section-base-100: #faf5ff;
-    --section-base-200: #f3e8ff;
-    --section-base-300: #e9d5ff;
+    --section-secondary: #ea580c;
+    --section-accent: #fb923c;
+    --section-neutral: #c2410c;
+    --section-base-100: #fff7ed;
+    --section-base-200: #ffedd5;
+    --section-base-300: #fed7aa;
 }
 
 /* Section-specific component styles */
