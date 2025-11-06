@@ -453,3 +453,61 @@ class WorkshopInterestNotificationService:
             return f"http://{site.domain}{path}"
         except:
             return "#"  # Fallback
+
+    @staticmethod
+    def send_new_session_notification(interest, session):
+        """Send notification email when a new session is created for a workshop of interest"""
+        try:
+            # Build URLs
+            workshop_url = WorkshopInterestNotificationService._build_workshop_url(interest.workshop)
+            registration_url = WorkshopInterestNotificationService._build_registration_url(session)
+
+            context = {
+                'interest': interest,
+                'workshop': interest.workshop,
+                'session': session,
+                'user': interest.user,
+                'workshop_url': workshop_url,
+                'registration_url': registration_url,
+                'site_name': WorkshopInterestNotificationService.get_site_name(),
+            }
+
+            # Render email content
+            subject_and_message = render_to_string(
+                'workshops/emails/new_session_notification.txt',
+                context
+            )
+
+            # Extract subject (first line)
+            lines = subject_and_message.strip().split('\n')
+            subject = lines[0].replace('Subject: ', '') if lines else f'New Session Available - {interest.workshop.title}'
+            message = '\n'.join(lines[1:]).strip()
+
+            # Send email
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[interest.email],
+                fail_silently=False,
+            )
+
+            logger.info(f"New session notification sent to {interest.user.username} for workshop {interest.workshop.title}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to send new session notification to {interest.user.username}: {str(e)}")
+            return False
+
+    @staticmethod
+    def _build_registration_url(session):
+        """Build URL for session registration page"""
+        try:
+            path = reverse('workshops:register', kwargs={
+                'workshop_slug': session.workshop.slug,
+                'session_id': session.id
+            })
+            site = Site.objects.get_current()
+            return f"http://{site.domain}{path}"
+        except:
+            return "#"  # Fallback

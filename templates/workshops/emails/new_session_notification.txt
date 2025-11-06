@@ -1,0 +1,40 @@
+{% load humanize %}
+Subject: New Session Available - {{ workshop.title }}
+
+Hi {{ user.first_name|default:user.username }},
+
+Great news! A new session has been scheduled for "{{ workshop.title }}" - a workshop you expressed interest in.
+
+Session Details:
+- Date: {{ session.start_datetime|date:"l, F j, Y" }}
+- Time: {{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}
+- Instructor: {{ workshop.instructor.get_full_name|default:workshop.instructor.username }}
+- Delivery: {{ session.effective_delivery_method|title }}
+{% if session.is_session_online and session.meeting_url %}- Meeting URL: {{ session.meeting_url }}{% endif %}
+{% if session.is_session_in_person %}{% if workshop.venue_name %}- Venue: {{ workshop.venue_name }}{% endif %}{% if workshop.full_venue_address %}
+- Address: {{ workshop.full_venue_address }}{% endif %}{% endif %}
+- Available Spots: {{ session.spots_remaining }}/{{ session.max_participants }}
+{% if session.is_full %}- Status: Currently Full (Waitlist Available){% endif %}
+
+Workshop Overview:
+{{ workshop.short_description }}
+
+{% if not session.is_full %}Register now to secure your spot!{% else %}Join the waitlist to be notified if a spot opens up.{% endif %}
+
+Register here: {{ registration_url }}
+
+Workshop Details:
+- Duration: {{ workshop.duration_display }}
+- Difficulty: {{ workshop.get_difficulty_level_display }}
+{% if not workshop.is_free %}- Price: {{ workshop.price }}{% else %}- Price: Free{% endif %}
+
+View full workshop details and register: {{ workshop_url }}
+
+---
+
+You're receiving this email because you requested to be notified when sessions for "{{ workshop.title }}" become available. To manage your notification preferences, visit your dashboard.
+
+Questions? Reply to this email or contact the instructor.
+
+Best regards,
+The {{ site_name }} Team
