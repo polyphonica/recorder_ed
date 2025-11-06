@@ -200,15 +200,14 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
                     else:
                         error_message = "This lesson has not been approved yet."
             elif self.request.user.profile.is_student:
-                # Student can only view their own lessons if approved, paid, and assigned
+                # Student can view their own lessons if approved and paid
                 if lesson.student == self.request.user:
                     if lesson.approved_status != 'Accepted':
                         error_message = "This lesson is still awaiting teacher approval."
                     elif lesson.payment_status != 'Paid':
                         error_message = "This lesson needs to be paid for before you can access it."
-                    elif lesson.status != 'Assigned':
-                        error_message = "Your teacher is still preparing the lesson content. You will be notified when it's ready."
                     else:
+                        # Allow access to approved and paid lessons regardless of Draft/Assigned status
                         user_can_view = True
 
         if not user_can_view:
