@@ -4,6 +4,14 @@
 {% block title %}{{ teacher.get_full_name|default:teacher.username }} - Teacher Profile{% endblock %}
 
 {% block content %}
+<style>
+.bio-content p {
+    margin-bottom: 1.25rem;
+}
+.bio-content p:last-child {
+    margin-bottom: 0;
+}
+</style>
 <div class="min-h-screen bg-base-100">
     <!-- Breadcrumb -->
     <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
@@ -81,7 +89,7 @@
                         <i class="fas fa-user mr-2 text-primary"></i>
                         About
                     </h2>
-                    <div class="prose max-w-none text-lg">
+                    <div class="prose max-w-none text-lg bio-content">
                         {{ teacher.profile.bio|linebreaks }}
                     </div>
                 </div>
