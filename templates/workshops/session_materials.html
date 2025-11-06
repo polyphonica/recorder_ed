@@ -59,38 +59,16 @@
             <div class="card-body">
                 <h2 class="card-title">Upload New Material</h2>
                 
-                <div class="form-control mb-4">
-                    <label class="label">
-                        <span class="label-text">Quick Upload Options</span>
-                    </label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <a href="{% url 'workshops:create_session_material' session.id %}" class="btn btn-outline btn-sm">
-                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"></path>
-                            </svg>
-                            Add Handout
-                        </a>
-                        <a href="{% url 'workshops:create_session_material' session.id %}" class="btn btn-outline btn-sm">
-                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6z"></path>
-                            </svg>
-                            Add Slides
-                        </a>
-                        <a href="{% url 'workshops:create_session_material' session.id %}" class="btn btn-outline btn-sm">
-                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M12.316 3.051a1 1 0 01.633 1.265L11.88 8.684a1 1 0 11-1.898-.632l1.07-4.368a1 1 0 011.264-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"></path>
-                            </svg>
-                            Add Code
-                        </a>
-                        <a href="{% url 'workshops:create_session_material' session.id %}" class="btn btn-outline btn-sm">
-                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 102 0V3h3v1a1 1 0 102 0V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm8 4H8v4h4V9z" clip-rule="evenodd"></path>
-                            </svg>
-                            Add Resource
-                        </a>
-                    </div>
-                </div>
+                <p class="text-base-content/70 text-sm mb-4">
+                    Upload handouts, slides, code samples, or any other materials for your participants.
+                </p>
+
+                <a href="{% url 'workshops:create_session_material' session.id %}" class="btn btn-primary w-full">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    Upload Material
+                </a>
                 
                 <div class="alert alert-info mt-4">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
