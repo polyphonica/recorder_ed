@@ -1,0 +1,32 @@
+{% load humanize %}
+Subject: You're on the list for {{ workshop.title }}
+
+Hi {{ user.first_name|default:user.username }},
+
+Thank you for your interest in "{{ workshop.title }}"!
+
+We've added you to our notification list and will send you an email as soon as new sessions are scheduled.
+
+Workshop Details:
+- Title: {{ workshop.title }}
+- Instructor: {{ workshop.instructor.get_full_name|default:workshop.instructor.username }}
+- Difficulty: {{ workshop.get_difficulty_level_display }}
+- Duration: {{ workshop.duration_display }}
+{% if workshop.delivery_method %}- Delivery: {{ workshop.get_delivery_method_display }}{% endif %}
+
+Your Preferences:
+- Preferred Timing: {{ interest.formatted_timing }}
+{% if interest.experience_level %}- Experience Level: {{ interest.get_experience_level_display }}{% endif %}
+{% if interest.special_requests %}- Special Requests: {{ interest.special_requests|truncatewords:30 }}{% endif %}
+
+What's Next?
+We'll notify you via email ({{ interest.email }}) when new sessions are available. You'll be among the first to know!
+
+In the meantime, you can:
+- View workshop details: {{ workshop_url }}
+- Browse other workshops: {{ browse_url }}
+
+Questions? Feel free to reply to this email.
+
+Best regards,
+The {{ site_name }} Team

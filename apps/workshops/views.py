@@ -9,11 +9,12 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 
 from .models import (
-    Workshop, WorkshopCategory, WorkshopSession, 
+    Workshop, WorkshopCategory, WorkshopSession,
     WorkshopRegistration, WorkshopMaterial, WorkshopInterest
 )
 from .forms import WorkshopRegistrationForm, WorkshopForm, WorkshopSessionForm, WorkshopFilterForm, WorkshopInterestForm, WorkshopMaterialForm
 from .mixins import InstructorRequiredMixin
+from .notifications import WorkshopInterestNotificationService
 
 
 class WorkshopListView(ListView):
@@ -1191,10 +1192,10 @@ class WorkshopInterestView(CreateView):
                 user=self.request.user,
                 is_active=True
             ).first()
-            
+
             if existing_interest:
                 messages.info(
-                    self.request, 
+                    self.request,
                     'You have already requested to be notified about this workshop. '
                     'We\'ll update your preferences.'
                 )
@@ -1202,19 +1203,38 @@ class WorkshopInterestView(CreateView):
                 for field in ['email', 'preferred_timing', 'experience_level', 'special_requests', 'notify_immediately']:
                     setattr(existing_interest, field, form.cleaned_data[field])
                 existing_interest.save()
-                
+
+                # Send confirmation email for updated interest
+                try:
+                    WorkshopInterestNotificationService.send_interest_confirmation(existing_interest)
+                except Exception as e:
+                    # Log error but don't fail the request
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Failed to send interest confirmation email: {str(e)}")
+
                 messages.success(
                     self.request,
-                    'Your workshop request has been updated! We\'ll notify you when sessions become available.'
+                    'Your workshop request has been updated! Check your email for confirmation.'
                 )
                 return redirect('workshops:detail', slug=self.workshop.slug)
-        
+
         # Create new interest request
-        form.save()
+        interest = form.save()
+
+        # Send confirmation email for new interest
+        try:
+            WorkshopInterestNotificationService.send_interest_confirmation(interest)
+        except Exception as e:
+            # Log error but don't fail the request
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send interest confirmation email: {str(e)}")
+
         messages.success(
             self.request,
             'Great! We\'ve recorded your interest in this workshop. '
-            'You\'ll be notified as soon as sessions are scheduled.'
+            'Check your email for confirmation.'
         )
         return redirect('workshops:detail', slug=self.workshop.slug)
     

@@ -377,3 +377,79 @@ class InstructorNotificationService:
             return f"http://{site.domain}{path}"
         except:
             return "#"  # Fallback
+
+
+class WorkshopInterestNotificationService:
+    """Service for sending workshop interest-related email notifications"""
+
+    @staticmethod
+    def get_site_name():
+        """Get the current site name"""
+        try:
+            return Site.objects.get_current().name
+        except:
+            return getattr(settings, 'SITE_NAME', 'Workshop Platform')
+
+    @staticmethod
+    def send_interest_confirmation(interest):
+        """Send confirmation email when user expresses interest in a workshop"""
+        try:
+            # Build URLs
+            workshop_url = WorkshopInterestNotificationService._build_workshop_url(interest.workshop)
+            browse_url = WorkshopInterestNotificationService._build_browse_url()
+
+            context = {
+                'interest': interest,
+                'workshop': interest.workshop,
+                'user': interest.user,
+                'workshop_url': workshop_url,
+                'browse_url': browse_url,
+                'site_name': WorkshopInterestNotificationService.get_site_name(),
+            }
+
+            # Render email content
+            subject_and_message = render_to_string(
+                'workshops/emails/workshop_interest_confirmation.txt',
+                context
+            )
+
+            # Extract subject (first line)
+            lines = subject_and_message.strip().split('\n')
+            subject = lines[0].replace('Subject: ', '') if lines else 'Workshop Interest Confirmation'
+            message = '\n'.join(lines[1:]).strip()
+
+            # Send email
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[interest.email],
+                fail_silently=False,
+            )
+
+            logger.info(f"Interest confirmation sent to {interest.user.username} for workshop {interest.workshop.title}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to send interest confirmation to {interest.user.username}: {str(e)}")
+            return False
+
+    @staticmethod
+    def _build_workshop_url(workshop):
+        """Build URL for workshop detail page"""
+        try:
+            path = reverse('workshops:detail', kwargs={'slug': workshop.slug})
+            site = Site.objects.get_current()
+            return f"http://{site.domain}{path}"
+        except:
+            return "#"  # Fallback
+
+    @staticmethod
+    def _build_browse_url():
+        """Build URL for workshop list page"""
+        try:
+            path = reverse('workshops:list')
+            site = Site.objects.get_current()
+            return f"http://{site.domain}{path}"
+        except:
+            return "#"  # Fallback
