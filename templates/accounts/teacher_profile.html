@@ -81,8 +81,8 @@
                         <i class="fas fa-user mr-2 text-primary"></i>
                         About
                     </h2>
-                    <div class="prose max-w-none">
-                        <p class="text-lg">{{ teacher.profile.bio }}</p>
+                    <div class="prose max-w-none text-lg">
+                        {{ teacher.profile.bio|linebreaks }}
                     </div>
                 </div>
             </div>
