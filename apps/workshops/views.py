@@ -1341,32 +1341,52 @@ class CreateSessionMaterialView(InstructorRequiredMixin, CreateView):
     model = WorkshopMaterial
     form_class = WorkshopMaterialForm
     template_name = 'workshops/create_material.html'
-    
+
     def get_session(self):
         return get_object_or_404(
             WorkshopSession,
             id=self.kwargs['session_id'],
             workshop__instructor=self.request.user
         )
-    
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Set initial values for checkboxes and order
+        if not kwargs.get('instance'):
+            kwargs['initial'] = {
+                'is_downloadable': True,
+                'requires_registration': True,
+                'access_timing': 'always',
+                'order': 0,
+            }
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         session = self.get_session()
         context['session'] = session
         context['workshop'] = session.workshop
         return context
-    
+
     def form_valid(self, form):
         session = self.get_session()
         form.instance.workshop = session.workshop
         form.instance.session = session
-        
+
         messages.success(
             self.request,
             f'Material "{form.instance.title}" has been uploaded successfully!'
         )
         return super().form_valid(form)
-    
+
+    def form_invalid(self, form):
+        """Add debugging for form errors"""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Material upload form errors: {form.errors}")
+        messages.error(self.request, 'Please correct the errors below.')
+        return super().form_invalid(form)
+
     def get_success_url(self):
         return reverse('workshops:session_materials', kwargs={'session_id': self.kwargs['session_id']})
 
