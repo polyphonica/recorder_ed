@@ -54,9 +54,6 @@ urlpatterns = [
     path('instructor/<slug:course_slug>/student/<int:student_id>/',
          views.StudentProgressDetailView.as_view(), name='student_progress'),
 
-    # Resources
-    path('instructor/media-guide/', views.MediaManagementGuideView.as_view(), name='media_guide'),
-
     # ========================================================================
     # STUDENT URLs - Learning (must come before slug patterns!)
     # ========================================================================
