@@ -1336,7 +1336,7 @@ class MaterialDownloadView(LoginRequiredMixin, RedirectView):
             return reverse('workshops:detail', kwargs={'slug': material.workshop.slug})
 
 
-class CreateSessionMaterialView(LoginRequiredMixin, CreateView):
+class CreateSessionMaterialView(InstructorRequiredMixin, CreateView):
     """Create a new material for a session"""
     model = WorkshopMaterial
     form_class = WorkshopMaterialForm
@@ -1371,7 +1371,7 @@ class CreateSessionMaterialView(LoginRequiredMixin, CreateView):
         return reverse('workshops:session_materials', kwargs={'session_id': self.kwargs['session_id']})
 
 
-class EditSessionMaterialView(LoginRequiredMixin, UpdateView):
+class EditSessionMaterialView(InstructorRequiredMixin, UpdateView):
     """Edit an existing session material"""
     model = WorkshopMaterial
     form_class = WorkshopMaterialForm
@@ -1400,7 +1400,7 @@ class EditSessionMaterialView(LoginRequiredMixin, UpdateView):
         return reverse('workshops:session_materials', kwargs={'session_id': self.object.session.id})
 
 
-class DeleteSessionMaterialView(LoginRequiredMixin, DeleteView):
+class DeleteSessionMaterialView(InstructorRequiredMixin, DeleteView):
     """Delete a session material"""
     model = WorkshopMaterial
     pk_url_kwarg = 'material_id'
