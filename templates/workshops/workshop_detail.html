@@ -532,7 +532,7 @@
                                                     <p class="text-sm text-base-content/70 mb-3">
                                                         Sign in to request this workshop and get notified when sessions are available.
                                                     </p>
-                                                    <a href="{% url 'account_login' %}?next={{ request.get_full_path }}" 
+                                                    <a href="{% url 'login' %}?next={{ request.get_full_path }}"
                                                        class="btn btn-primary btn-sm">
                                                         Sign In to Request
                                                     </a>
@@ -729,7 +729,7 @@
                             <button class="btn btn-disabled btn-sm">Session Full</button>
                         {% endif %}
                     {% else %}
-                        <a href="{% url 'account_login' %}?next={{ request.path }}"
+                        <a href="{% url 'login' %}?next={{ request.path }}"
                            class="btn btn-primary btn-sm">
                             Login to Register
                         </a>
