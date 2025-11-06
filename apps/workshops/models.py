@@ -300,14 +300,22 @@ class Workshop(models.Model):
         """Return formatted full address"""
         if not self.venue_address:
             return ''
-        
+
         address_parts = [self.venue_address]
         if self.venue_city:
             address_parts.append(self.venue_city)
         if self.venue_postcode:
             address_parts.append(self.venue_postcode)
-        
+
         return ', '.join(address_parts)
+
+    @property
+    def actual_registrations_count(self):
+        """Get actual count of active registrations across all sessions"""
+        return WorkshopRegistration.objects.filter(
+            session__workshop=self,
+            status__in=['registered', 'attended', 'waitlisted']
+        ).count()
 
 
 class WorkshopSession(models.Model):

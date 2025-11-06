@@ -865,7 +865,10 @@ class InstructorWorkshopsView(InstructorRequiredMixin, ListView):
 
         # Calculate total sessions and registrations across ALL workshops
         total_sessions = sum(workshop.sessions.count() for workshop in all_workshops)
-        total_registrations = sum(workshop.total_registrations for workshop in all_workshops)
+        total_registrations = WorkshopRegistration.objects.filter(
+            session__workshop__instructor=self.request.user,
+            status__in=['registered', 'attended', 'waitlisted']
+        ).count()
 
         context['total_sessions'] = total_sessions
         context['total_registrations'] = total_registrations
