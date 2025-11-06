@@ -809,16 +809,35 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
         recent_registrations = WorkshopRegistration.objects.filter(
             session__workshop__instructor=user
         ).select_related('session__workshop', 'student').order_by('-registration_date')[:10]
-        
+
+        # Get interest requests for instructor's workshops
+        interest_requests = WorkshopInterest.objects.filter(
+            workshop__instructor=user,
+            is_active=True
+        ).select_related('workshop', 'user').order_by('-created_at')[:10]
+
+        # Get workshop interest summary (count per workshop)
+        from django.db.models import Count
+        workshop_interest_summary = WorkshopInterest.objects.filter(
+            workshop__instructor=user,
+            is_active=True
+        ).values('workshop__id', 'workshop__title', 'workshop__slug').annotate(
+            total_interested=Count('id'),
+            waiting_notification=Count('id', filter=Q(has_been_notified=False))
+        ).order_by('-waiting_notification', '-total_interested')[:5]
+
         context.update({
             'workshops': workshops,
             'upcoming_sessions': upcoming_sessions,
             'recent_registrations': recent_registrations,
+            'interest_requests': interest_requests,
+            'workshop_interest_summary': workshop_interest_summary,
             'stats': {
                 'total_workshops': len(workshops),
                 'published_workshops': len([w for w in workshops if w.status == 'published']),
                 'total_sessions': WorkshopSession.objects.filter(workshop__instructor=user).count(),
                 'total_registrations': WorkshopRegistration.objects.filter(session__workshop__instructor=user).count(),
+                'total_interest_requests': WorkshopInterest.objects.filter(workshop__instructor=user, is_active=True).count(),
             }
         })
         return context

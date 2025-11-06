@@ -12,7 +12,7 @@
     </div>
 
     <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <div class="stat bg-base-100 shadow rounded-lg">
             <div class="stat-figure text-primary">
                 <i class="fas fa-chalkboard-teacher text-2xl"></i>
@@ -21,7 +21,7 @@
             <div class="stat-value text-primary">{{ stats.total_workshops }}</div>
             <div class="stat-desc">{{ stats.published_workshops }} published</div>
         </div>
-        
+
         <div class="stat bg-base-100 shadow rounded-lg">
             <div class="stat-figure text-secondary">
                 <i class="fas fa-calendar-alt text-2xl"></i>
@@ -30,7 +30,7 @@
             <div class="stat-value text-secondary">{{ stats.total_sessions }}</div>
             <div class="stat-desc">across all workshops</div>
         </div>
-        
+
         <div class="stat bg-base-100 shadow rounded-lg">
             <div class="stat-figure text-accent">
                 <i class="fas fa-users text-2xl"></i>
@@ -39,7 +39,7 @@
             <div class="stat-value text-accent">{{ stats.total_registrations }}</div>
             <div class="stat-desc">all-time registrations</div>
         </div>
-        
+
         <div class="stat bg-base-100 shadow rounded-lg">
             <div class="stat-figure text-success">
                 <i class="fas fa-chart-line text-2xl"></i>
@@ -47,6 +47,15 @@
             <div class="stat-title">Active Sessions</div>
             <div class="stat-value text-success">{{ upcoming_sessions|length }}</div>
             <div class="stat-desc">upcoming sessions</div>
+        </div>
+
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-figure text-warning">
+                <i class="fas fa-bell text-2xl"></i>
+            </div>
+            <div class="stat-title">Interest Requests</div>
+            <div class="stat-value text-warning">{{ stats.total_interest_requests }}</div>
+            <div class="stat-desc">students waiting</div>
         </div>
     </div>
 
@@ -296,5 +305,118 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- Interest Requests Section -->
+    {% if workshop_interest_summary or interest_requests %}
+    <div class="mt-12">
+        <h2 class="text-2xl font-semibold text-gray-900 mb-6">Workshop Interest Requests</h2>
+
+        <!-- Summary Cards -->
+        {% if workshop_interest_summary %}
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-700 mb-3">Workshops with Waiting Students</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for summary in workshop_interest_summary %}
+                <div class="card bg-base-100 shadow-lg">
+                    <div class="card-body">
+                        <h4 class="card-title text-base">{{ summary.workshop__title }}</h4>
+                        <div class="flex gap-4 mt-2">
+                            <div class="stat px-0 py-2">
+                                <div class="stat-value text-primary text-2xl">{{ summary.total_interested }}</div>
+                                <div class="stat-desc">Total Interested</div>
+                            </div>
+                            <div class="stat px-0 py-2">
+                                <div class="stat-value text-warning text-2xl">{{ summary.waiting_notification }}</div>
+                                <div class="stat-desc">Awaiting Sessions</div>
+                            </div>
+                        </div>
+                        <div class="card-actions justify-end mt-2">
+                            <a href="{% url 'workshops:manage_sessions' summary.workshop__slug %}"
+                               class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus mr-1"></i>Add Session
+                            </a>
+                            <a href="{% url 'workshops:detail' summary.workshop__slug %}"
+                               class="btn btn-ghost btn-sm">
+                                View Workshop
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Interest Requests -->
+        {% if interest_requests %}
+        <div class="bg-base-100 rounded-lg shadow p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Recent Interest Requests</h3>
+                <span class="badge badge-lg">{{ stats.total_interest_requests }} total</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Workshop</th>
+                            <th>Preferred Timing</th>
+                            <th>Status</th>
+                            <th>Requested</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for interest in interest_requests %}
+                        <tr>
+                            <td>
+                                <div class="flex items-center gap-3">
+                                    <div class="avatar placeholder">
+                                        <div class="bg-primary text-primary-content rounded-full w-8">
+                                            <span class="text-xs">{{ interest.user.first_name|first|default:interest.user.username|first|upper }}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-sm">{{ interest.user.get_full_name|default:interest.user.username }}</div>
+                                        <div class="text-xs text-gray-500">{{ interest.email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-sm font-medium">{{ interest.workshop.title|truncatewords:5 }}</div>
+                            </td>
+                            <td>
+                                <span class="badge badge-ghost badge-sm">{{ interest.formatted_timing }}</span>
+                            </td>
+                            <td>
+                                {% if interest.has_been_notified %}
+                                    <span class="badge badge-success badge-sm">
+                                        <i class="fas fa-check mr-1"></i>Notified
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-warning badge-sm">
+                                        <i class="fas fa-clock mr-1"></i>Waiting
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-sm text-gray-600">
+                                {{ interest.created_at|naturaltime }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="text-center mt-4">
+                <p class="text-sm text-gray-600">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Students are automatically notified when you create new sessions for their requested workshops.
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
