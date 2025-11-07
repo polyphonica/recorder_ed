@@ -63,9 +63,14 @@ class FinanceService:
         )
 
         if start_date:
-            course_enrollments = course_enrollments.filter(paid_at__gte=start_date)
+            # Use paid_at if available, fallback to enrolled_at for older records
+            course_enrollments = course_enrollments.filter(
+                Q(paid_at__gte=start_date) | Q(paid_at__isnull=True, enrolled_at__gte=start_date)
+            )
         if end_date:
-            course_enrollments = course_enrollments.filter(paid_at__lte=end_date)
+            course_enrollments = course_enrollments.filter(
+                Q(paid_at__lte=end_date) | Q(paid_at__isnull=True, enrolled_at__lte=end_date)
+            )
 
         courses_gross = course_enrollments.aggregate(
             total=Sum('payment_amount')
@@ -166,9 +171,13 @@ class FinanceService:
             )
 
             if start_date:
-                query = query.filter(paid_at__gte=start_date)
+                query = query.filter(
+                    Q(paid_at__gte=start_date) | Q(paid_at__isnull=True, enrolled_at__gte=start_date)
+                )
             if end_date:
-                query = query.filter(paid_at__lte=end_date)
+                query = query.filter(
+                    Q(paid_at__lte=end_date) | Q(paid_at__isnull=True, enrolled_at__lte=end_date)
+                )
 
             total_gross = query.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
             payment_count = query.count()
