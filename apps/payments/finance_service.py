@@ -341,8 +341,9 @@ class FinanceService:
         Returns:
             list of dicts with student info and revenue
         """
-        from apps.private_teaching.models import Order
+        from apps.private_teaching.models import Order, OrderItem
         from django.contrib.auth.models import User
+        from lessons.models import Lesson
 
         query = Order.objects.filter(
             items__lesson__teacher=teacher,
@@ -370,11 +371,37 @@ class FinanceService:
             total_revenue = student_data['total_revenue']
             teacher_share = total_revenue * (1 - Decimal(str(commission_rate)))
 
+            # Get all lessons for this student from this teacher
+            lessons_query = Lesson.objects.filter(
+                student=student,
+                teacher=teacher,
+                payment_status='Paid',
+                is_deleted=False
+            ).select_related('subject')
+
+            if start_date:
+                lessons_query = lessons_query.filter(lesson_date__gte=start_date)
+            if end_date:
+                lessons_query = lessons_query.filter(lesson_date__lte=end_date)
+
+            lessons_with_subjects = lessons_query.values(
+                'subject__subject'
+            ).annotate(
+                count=Count('id')
+            ).order_by('-count')
+
+            # Format subjects as "Subject Name (x count)"
+            subjects_list = [
+                f"{item['subject__subject']} ({item['count']})" if item['count'] > 1 else item['subject__subject']
+                for item in lessons_with_subjects
+            ]
+
             breakdown.append({
                 'student': student,
                 'total_revenue': total_revenue,
                 'teacher_share': teacher_share,
                 'lessons_count': student_data['lessons_count'],
+                'subjects': subjects_list,
             })
 
         return breakdown

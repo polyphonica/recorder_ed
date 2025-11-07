@@ -78,6 +78,7 @@
                             <thead>
                                 <tr>
                                     <th>Student</th>
+                                    <th>Subjects</th>
                                     <th>Lessons</th>
                                     <th>Gross Revenue</th>
                                     <th>Your Share</th>
@@ -100,6 +101,17 @@
                                                 <div class="text-sm text-base-content/70">{{ item.student.email }}</div>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td>
+                                        {% if item.subjects %}
+                                            <div class="flex flex-wrap gap-1">
+                                                {% for subject in item.subjects %}
+                                                    <span class="badge badge-sm badge-ghost">{{ subject }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-base-content/50 text-sm">-</span>
+                                        {% endif %}
                                     </td>
                                     <td class="text-center">{{ item.lessons_count }}</td>
                                     <td>£{{ item.total_revenue|floatformat:2 }}</td>
