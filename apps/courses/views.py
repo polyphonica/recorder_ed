@@ -24,7 +24,10 @@ from .models import (
     CourseMessage
 )
 from .mixins import InstructorRequiredMixin, CourseInstructorMixin, EnrollmentRequiredMixin
-from .forms import CourseAdminForm, QuizAnswerFormSet, CourseMessageForm, MessageReplyForm
+from .forms import (
+    CourseAdminForm, QuizAnswerFormSet, CourseMessageForm, MessageReplyForm,
+    LessonPieceFormSet
+)
 
 
 # ============================================================================
@@ -328,15 +331,32 @@ class LessonUpdateView(InstructorRequiredMixin, UpdateView):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def form_valid(self, form):
-        messages.success(self.request, f'Lesson "{form.instance.lesson_title}" updated successfully!')
-        return super().form_valid(form)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['course'] = self.object.topic.course
         context['topic'] = self.object.topic
+
+        # Add piece formset
+        if self.request.POST:
+            context['piece_formset'] = LessonPieceFormSet(self.request.POST, instance=self.object)
+        else:
+            context['piece_formset'] = LessonPieceFormSet(instance=self.object)
+
         return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        piece_formset = context['piece_formset']
+
+        if piece_formset.is_valid():
+            self.object = form.save()
+            piece_formset.instance = self.object
+            piece_formset.save()
+            messages.success(self.request, f'Lesson "{form.instance.lesson_title}" updated successfully!')
+            return redirect(self.get_success_url())
+        else:
+            messages.error(self.request, 'Please correct the errors in the playalong pieces section.')
+            return self.render_to_response(self.get_context_data(form=form))
 
     def get_success_url(self):
         return reverse('courses:manage_lessons', kwargs={

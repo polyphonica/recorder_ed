@@ -144,63 +144,117 @@
                     </h3>
 
                     {% if object %}
-                        <!-- Show assigned pieces if editing -->
-                        {% if object.lesson_pieces.exists %}
-                            <div class="mb-4">
-                                <div class="alert alert-info mb-4">
-                                    <i class="fas fa-info-circle"></i>
-                                    <span>This lesson has {{ object.lesson_pieces.count }} playalong piece{{ object.lesson_pieces.count|pluralize }} assigned</span>
-                                </div>
-
-                                <div class="space-y-2">
-                                    {% for lp in object.lesson_pieces.all %}
-                                        <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
-                                            <div class="flex items-center gap-3">
-                                                <span class="badge badge-primary">{{ lp.order }}</span>
-                                                <div>
-                                                    <p class="font-semibold">{{ lp.piece.title }}</p>
-                                                    <p class="text-xs text-base-content/70">
-                                                        {{ lp.piece.stems.count }} stem{{ lp.piece.stems.count|pluralize }}
-                                                        {% if lp.is_optional %} • <span class="badge badge-warning badge-xs">Optional</span>{% endif %}
-                                                        {% if not lp.is_visible %} • <span class="badge badge-ghost badge-xs">Hidden</span>{% endif %}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <a href="{% url 'audioplayer:piece_detail' pk=lp.piece.id %}" target="_blank" class="btn btn-sm btn-ghost">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        {% else %}
-                            <div class="alert mb-4">
+                        <!-- Formset for managing pieces -->
+                        <div class="mb-4">
+                            <div class="alert alert-info mb-4">
                                 <i class="fas fa-info-circle"></i>
-                                <span>No playalong pieces assigned to this lesson yet</span>
+                                <span>Assign playalong pieces to this lesson. Students will see them in the order specified.</span>
                             </div>
-                        {% endif %}
 
-                        <!-- Management Links -->
-                        <div class="flex gap-2 flex-wrap">
-                            <a href="{% url 'audioplayer:piece_list' %}" target="_blank" class="btn btn-sm btn-outline">
-                                <i class="fas fa-list mr-2"></i>
-                                View Piece Library
-                            </a>
-                            <a href="{% url 'audioplayer:piece_create' %}" target="_blank" class="btn btn-sm btn-outline">
-                                <i class="fas fa-plus mr-2"></i>
-                                Create New Piece
-                            </a>
-                        </div>
+                            {{ piece_formset.management_form }}
+                            {{ piece_formset.non_form_errors }}
 
-                        <div class="alert alert-warning mt-4">
-                            <i class="fas fa-lightbulb"></i>
-                            <div>
-                                <p class="font-semibold">How to manage pieces for this lesson:</p>
-                                <ol class="list-decimal list-inside mt-2 text-sm ml-4">
-                                    <li>Use the Django admin to assign pieces to this lesson and set their order, visibility, and instructions</li>
-                                    <li>Or use the Playalong Library to create and manage reusable pieces</li>
-                                    <li>Students will see assigned pieces on the lesson's playalong page</li>
-                                </ol>
+                            <div id="piece-formset-container" class="space-y-4">
+                                {% for form in piece_formset %}
+                                    <div class="piece-formset-row p-4 bg-base-200 rounded-lg border-l-4 border-primary">
+                                        {{ form.id }}
+
+                                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                                            <!-- Piece Selection -->
+                                            <div class="md:col-span-5 form-control">
+                                                <label class="label">
+                                                    <span class="label-text font-semibold">{{ form.piece.label }}</span>
+                                                </label>
+                                                {{ form.piece }}
+                                                {% if form.piece.errors %}
+                                                    <label class="label">
+                                                        <span class="label-text-alt text-error">{{ form.piece.errors.0 }}</span>
+                                                    </label>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Order -->
+                                            <div class="md:col-span-1 form-control">
+                                                <label class="label">
+                                                    <span class="label-text font-semibold">{{ form.order.label }}</span>
+                                                </label>
+                                                {{ form.order }}
+                                                {% if form.order.errors %}
+                                                    <label class="label">
+                                                        <span class="label-text-alt text-error">{{ form.order.errors.0 }}</span>
+                                                    </label>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Checkboxes -->
+                                            <div class="md:col-span-3 flex flex-col gap-2 pt-8">
+                                                <label class="label cursor-pointer justify-start gap-2">
+                                                    {{ form.is_visible }}
+                                                    <span class="label-text">{{ form.is_visible.label }}</span>
+                                                </label>
+                                                <label class="label cursor-pointer justify-start gap-2">
+                                                    {{ form.is_optional }}
+                                                    <span class="label-text">{{ form.is_optional.label }}</span>
+                                                </label>
+                                            </div>
+
+                                            <!-- Delete -->
+                                            <div class="md:col-span-3 flex items-center justify-end pt-8">
+                                                {% if form.instance.pk %}
+                                                    <label class="label cursor-pointer justify-end gap-2">
+                                                        {{ form.DELETE }}
+                                                        <span class="label-text text-error font-semibold">Delete</span>
+                                                    </label>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        <!-- Instructions -->
+                                        <div class="form-control mt-4">
+                                            <label class="label">
+                                                <span class="label-text font-semibold">{{ form.instructions.label }}</span>
+                                            </label>
+                                            {{ form.instructions }}
+                                            {% if form.instructions.errors %}
+                                                <label class="label">
+                                                    <span class="label-text-alt text-error">{{ form.instructions.errors.0 }}</span>
+                                                </label>
+                                            {% endif %}
+                                        </div>
+
+                                        {% if form.non_field_errors %}
+                                            <div class="alert alert-error mt-2">
+                                                {{ form.non_field_errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <!-- Quick Links -->
+                            <div class="flex gap-2 flex-wrap mt-4">
+                                <a href="{% url 'audioplayer:piece_list' %}" target="_blank" class="btn btn-sm btn-outline">
+                                    <i class="fas fa-list mr-2"></i>
+                                    View Piece Library
+                                </a>
+                                <a href="{% url 'audioplayer:piece_create' %}" target="_blank" class="btn btn-sm btn-outline">
+                                    <i class="fas fa-plus mr-2"></i>
+                                    Create New Piece
+                                </a>
+                            </div>
+
+                            <div class="alert alert-warning mt-4">
+                                <i class="fas fa-lightbulb"></i>
+                                <div>
+                                    <p class="font-semibold text-sm">Tips:</p>
+                                    <ul class="list-disc list-inside mt-1 text-sm ml-4">
+                                        <li>Use the dropdowns above to assign pieces from your library</li>
+                                        <li>Set the order to control which piece appears first (1, 2, 3...)</li>
+                                        <li>Mark pieces as "Optional" if they're not required for completion</li>
+                                        <li>Uncheck "Visible to students" to temporarily hide a piece</li>
+                                        <li>Empty forms will be ignored when you save</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     {% else %}

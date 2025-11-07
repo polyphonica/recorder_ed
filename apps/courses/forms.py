@@ -7,6 +7,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.forms import inlineformset_factory
 from .models import Course, Topic, Lesson, Quiz, QuizQuestion, QuizAnswer, CourseMessage
+from apps.audioplayer.models import LessonPiece, Piece
 
 
 class CourseAdminForm(forms.ModelForm):
@@ -104,3 +105,51 @@ class MessageReplyForm(forms.Form):
         }),
         label='Your Reply'
     )
+
+
+class LessonPieceForm(forms.ModelForm):
+    """
+    Form for assigning playalong pieces to lessons.
+    """
+    class Meta:
+        model = LessonPiece
+        fields = ['piece', 'order', 'is_visible', 'is_optional', 'instructions']
+        widgets = {
+            'piece': forms.Select(attrs={
+                'class': 'select select-bordered w-full',
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-24',
+                'min': 1,
+                'placeholder': '1'
+            }),
+            'is_visible': forms.CheckboxInput(attrs={
+                'class': 'checkbox checkbox-primary',
+            }),
+            'is_optional': forms.CheckboxInput(attrs={
+                'class': 'checkbox checkbox-warning',
+            }),
+            'instructions': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 2,
+                'placeholder': 'Optional instructions for this piece (e.g., "Practice slowly at first")'
+            }),
+        }
+        labels = {
+            'piece': 'Playalong Piece',
+            'order': 'Order',
+            'is_visible': 'Visible to students',
+            'is_optional': 'Optional',
+            'instructions': 'Instructions (optional)',
+        }
+
+
+# Formset for managing playalong pieces in a lesson
+LessonPieceFormSet = inlineformset_factory(
+    Lesson,
+    LessonPiece,
+    form=LessonPieceForm,
+    extra=1,  # Show 1 empty form by default
+    can_delete=True,
+    can_delete_extra=True
+)
