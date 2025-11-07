@@ -137,6 +137,83 @@
                         </div>
                     </div>
 
+                    <!-- Playalong Pieces -->
+                    <div class="divider"></div>
+                    <h3 class="text-xl font-semibold mb-4">
+                        <i class="fas fa-music mr-2"></i>Playalong Pieces
+                    </h3>
+
+                    {% if object %}
+                        <!-- Show assigned pieces if editing -->
+                        {% if object.lesson_pieces.exists %}
+                            <div class="mb-4">
+                                <div class="alert alert-info mb-4">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>This lesson has {{ object.lesson_pieces.count }} playalong piece{{ object.lesson_pieces.count|pluralize }} assigned</span>
+                                </div>
+
+                                <div class="space-y-2">
+                                    {% for lp in object.lesson_pieces.all %}
+                                        <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+                                            <div class="flex items-center gap-3">
+                                                <span class="badge badge-primary">{{ lp.order }}</span>
+                                                <div>
+                                                    <p class="font-semibold">{{ lp.piece.title }}</p>
+                                                    <p class="text-xs text-base-content/70">
+                                                        {{ lp.piece.stems.count }} stem{{ lp.piece.stems.count|pluralize }}
+                                                        {% if lp.is_optional %} • <span class="badge badge-warning badge-xs">Optional</span>{% endif %}
+                                                        {% if not lp.is_visible %} • <span class="badge badge-ghost badge-xs">Hidden</span>{% endif %}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <a href="{% url 'audioplayer:piece_detail' pk=lp.piece.id %}" target="_blank" class="btn btn-sm btn-ghost">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="alert mb-4">
+                                <i class="fas fa-info-circle"></i>
+                                <span>No playalong pieces assigned to this lesson yet</span>
+                            </div>
+                        {% endif %}
+
+                        <!-- Management Links -->
+                        <div class="flex gap-2 flex-wrap">
+                            <a href="{% url 'audioplayer:piece_list' %}" target="_blank" class="btn btn-sm btn-outline">
+                                <i class="fas fa-list mr-2"></i>
+                                View Piece Library
+                            </a>
+                            <a href="{% url 'audioplayer:piece_create' %}" target="_blank" class="btn btn-sm btn-outline">
+                                <i class="fas fa-plus mr-2"></i>
+                                Create New Piece
+                            </a>
+                        </div>
+
+                        <div class="alert alert-warning mt-4">
+                            <i class="fas fa-lightbulb"></i>
+                            <div>
+                                <p class="font-semibold">How to manage pieces for this lesson:</p>
+                                <ol class="list-decimal list-inside mt-2 text-sm ml-4">
+                                    <li>Use the Django admin to assign pieces to this lesson and set their order, visibility, and instructions</li>
+                                    <li>Or use the Playalong Library to create and manage reusable pieces</li>
+                                    <li>Students will see assigned pieces on the lesson's playalong page</li>
+                                </ol>
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- Creating new lesson -->
+                        <div class="alert mb-4">
+                            <i class="fas fa-info-circle"></i>
+                            <div>
+                                <p>Save this lesson first, then you can assign playalong pieces to it.</p>
+                                <p class="text-sm mt-1">You can create and manage pieces in the <a href="{% url 'audioplayer:piece_list' %}" target="_blank" class="link">Playalong Library</a>.</p>
+                            </div>
+                        </div>
+                    {% endif %}
+
                     <!-- Form Actions -->
                     <div class="divider"></div>
                     <div class="flex gap-4 justify-end">

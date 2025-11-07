@@ -317,6 +317,30 @@
         </div>
     {% endif %}
 
+    <!-- Courses Domain-Specific Navigation -->
+    {% if user.is_authenticated and request.resolver_match.namespace in 'courses,audioplayer' %}
+        <div class="bg-base-300 shadow-sm">
+            <div class="container mx-auto">
+                <div class="navbar justify-center py-2">
+                    <ul class="menu menu-horizontal px-1 text-sm">
+                        {% if user.is_instructor %}
+                            <!-- Teacher Navigation -->
+                            <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.url_name == 'instructor_dashboard' %}bg-primary text-primary-content{% endif %}">Dashboard</a></li>
+                            <li><a href="{% url 'courses:analytics' %}" class="{% if request.resolver_match.url_name == 'analytics' %}bg-primary text-primary-content{% endif %}">Analytics</a></li>
+                            <li><a href="{% url 'courses:messages_inbox' %}" class="{% if request.resolver_match.url_name in 'messages_inbox,messages_view' %}bg-primary text-primary-content{% endif %}">Messages</a></li>
+                            <li><a href="{% url 'audioplayer:piece_list' %}" class="{% if request.resolver_match.namespace == 'audioplayer' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-music mr-1"></i>Playalong Library</a></li>
+                        {% else %}
+                            <!-- Student Navigation -->
+                            <li><a href="{% url 'courses:student_dashboard' %}" class="{% if request.resolver_match.url_name == 'student_dashboard' %}bg-primary text-primary-content{% endif %}">My Courses</a></li>
+                            <li><a href="{% url 'courses:list' %}" class="{% if request.resolver_match.url_name == 'list' %}bg-primary text-primary-content{% endif %}">Browse Courses</a></li>
+                            <li><a href="{% url 'courses:certificate_gallery' %}" class="{% if request.resolver_match.url_name == 'certificate_gallery' %}bg-primary text-primary-content{% endif %}">Certificates</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
     <!-- Messages -->
     {% if messages %}
         <div class="container mx-auto px-4 py-4">
