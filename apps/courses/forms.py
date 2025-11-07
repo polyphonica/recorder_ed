@@ -6,7 +6,7 @@ from django import forms
 from django.db import models
 from django.contrib.auth.models import User
 from django.forms import inlineformset_factory
-from .models import Course, Topic, Lesson, Quiz, QuizQuestion, QuizAnswer, CourseMessage
+from .models import Course, Topic, Lesson, Quiz, QuizQuestion, QuizAnswer, CourseMessage, LessonAttachment
 from apps.audioplayer.models import LessonPiece, Piece
 
 
@@ -156,6 +156,56 @@ LessonPieceFormSet = inlineformset_factory(
     Lesson,
     LessonPiece,
     form=LessonPieceForm,
+    extra=1,  # Show 1 empty form by default
+    can_delete=True,
+    can_delete_extra=True
+)
+
+
+class LessonAttachmentForm(forms.ModelForm):
+    """
+    Form for uploading lesson attachments (sheet music, PDFs, etc.).
+    """
+    class Meta:
+        model = LessonAttachment
+        fields = ['title', 'file', 'file_type', 'order']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'e.g., Sheet Music - Hot Cross Buns'
+            }),
+            'file': forms.FileInput(attrs={
+                'class': 'file-input file-input-bordered w-full',
+            }),
+            'file_type': forms.Select(attrs={
+                'class': 'select select-bordered w-full',
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-24',
+                'min': 1,
+                'placeholder': '1',
+                'value': '1'
+            }),
+        }
+        labels = {
+            'title': 'Title',
+            'file': 'File',
+            'file_type': 'Type',
+            'order': 'Order',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set initial value for order if this is a new instance
+        if not self.instance.pk and 'order' in self.fields:
+            self.fields['order'].initial = 1
+
+
+# Formset for managing lesson attachments
+LessonAttachmentFormSet = inlineformset_factory(
+    Lesson,
+    LessonAttachment,
+    form=LessonAttachmentForm,
     extra=1,  # Show 1 empty form by default
     can_delete=True,
     can_delete_extra=True

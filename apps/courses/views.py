@@ -26,7 +26,7 @@ from .models import (
 from .mixins import InstructorRequiredMixin, CourseInstructorMixin, EnrollmentRequiredMixin
 from .forms import (
     CourseAdminForm, QuizAnswerFormSet, CourseMessageForm, MessageReplyForm,
-    LessonPieceFormSet
+    LessonPieceFormSet, LessonAttachmentFormSet
 )
 
 
@@ -339,23 +339,33 @@ class LessonUpdateView(InstructorRequiredMixin, UpdateView):
         # Add piece formset
         if self.request.POST:
             context['piece_formset'] = LessonPieceFormSet(self.request.POST, instance=self.object)
+            context['attachment_formset'] = LessonAttachmentFormSet(
+                self.request.POST, self.request.FILES, instance=self.object
+            )
         else:
             context['piece_formset'] = LessonPieceFormSet(instance=self.object)
+            context['attachment_formset'] = LessonAttachmentFormSet(instance=self.object)
 
         return context
 
     def form_valid(self, form):
         context = self.get_context_data()
         piece_formset = context['piece_formset']
+        attachment_formset = context['attachment_formset']
 
-        if piece_formset.is_valid():
+        if piece_formset.is_valid() and attachment_formset.is_valid():
             self.object = form.save()
             piece_formset.instance = self.object
             piece_formset.save()
+            attachment_formset.instance = self.object
+            attachment_formset.save()
             messages.success(self.request, f'Lesson "{form.instance.lesson_title}" updated successfully!')
             return redirect(self.get_success_url())
         else:
-            messages.error(self.request, 'Please correct the errors in the playalong pieces section.')
+            if not piece_formset.is_valid():
+                messages.error(self.request, 'Please correct the errors in the playalong pieces section.')
+            if not attachment_formset.is_valid():
+                messages.error(self.request, 'Please correct the errors in the attachments section.')
             return self.render_to_response(self.get_context_data(form=form))
 
     def get_success_url(self):

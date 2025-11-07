@@ -276,6 +276,126 @@
                         </div>
                     {% endif %}
 
+                    <!-- Lesson Attachments -->
+                    <div class="divider"></div>
+                    <h3 class="text-xl font-semibold mb-4">
+                        <i class="fas fa-paperclip mr-2"></i>Lesson Attachments
+                    </h3>
+
+                    {% if object %}
+                        <!-- Formset for managing attachments -->
+                        <div class="mb-4">
+                            <div class="alert alert-info mb-4">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Upload files for students (sheet music PDFs, practice guides, etc.)</span>
+                            </div>
+
+                            {{ attachment_formset.management_form }}
+                            {{ attachment_formset.non_form_errors }}
+
+                            <div id="attachment-formset-container" class="space-y-4">
+                                {% for form in attachment_formset %}
+                                    <div class="attachment-formset-row p-4 bg-base-200 rounded-lg border-l-4 border-secondary">
+                                        {{ form.id }}
+
+                                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                                            <!-- Title -->
+                                            <div class="md:col-span-4 form-control">
+                                                <label class="label">
+                                                    <span class="label-text font-semibold">{{ form.title.label }}</span>
+                                                </label>
+                                                {{ form.title }}
+                                                {% if form.title.errors %}
+                                                    <label class="label">
+                                                        <span class="label-text-alt text-error">{{ form.title.errors.0 }}</span>
+                                                    </label>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- File -->
+                                            <div class="md:col-span-3 form-control">
+                                                <label class="label">
+                                                    <span class="label-text font-semibold">{{ form.file.label }}</span>
+                                                </label>
+                                                {{ form.file }}
+                                                {% if form.instance.pk and form.instance.file %}
+                                                    <label class="label">
+                                                        <span class="label-text-alt">
+                                                            Current: <a href="{{ form.instance.file.url }}" target="_blank" class="link text-xs">View</a>
+                                                        </span>
+                                                    </label>
+                                                {% endif %}
+                                                {% if form.file.errors %}
+                                                    <label class="label">
+                                                        <span class="label-text-alt text-error">{{ form.file.errors.0 }}</span>
+                                                    </label>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Type -->
+                                            <div class="md:col-span-2 form-control">
+                                                <label class="label">
+                                                    <span class="label-text font-semibold">{{ form.file_type.label }}</span>
+                                                </label>
+                                                {{ form.file_type }}
+                                                {% if form.file_type.errors %}
+                                                    <label class="label">
+                                                        <span class="label-text-alt text-error">{{ form.file_type.errors.0 }}</span>
+                                                    </label>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Order -->
+                                            <div class="md:col-span-1 form-control">
+                                                <label class="label">
+                                                    <span class="label-text font-semibold">{{ form.order.label }}</span>
+                                                </label>
+                                                {{ form.order }}
+                                                {% if form.order.errors %}
+                                                    <label class="label">
+                                                        <span class="label-text-alt text-error">{{ form.order.errors.0 }}</span>
+                                                    </label>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Delete -->
+                                            <div class="md:col-span-2 flex items-center justify-end pt-8">
+                                                {% if form.instance.pk %}
+                                                    <label class="label cursor-pointer justify-end gap-2">
+                                                        {{ form.DELETE }}
+                                                        <span class="label-text text-error font-semibold">Delete</span>
+                                                    </label>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        {% if form.non_field_errors %}
+                                            <div class="alert alert-error mt-2">
+                                                {{ form.non_field_errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="alert alert-warning mt-4">
+                                <i class="fas fa-lightbulb"></i>
+                                <div>
+                                    <p class="font-semibold text-sm">Recommended for playalong lessons:</p>
+                                    <p class="text-sm mt-1">Upload sheet music as a PDF so students can see all pieces in one document</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- Creating new lesson -->
+                        <div class="alert mb-4">
+                            <i class="fas fa-info-circle"></i>
+                            <div>
+                                <p>Save this lesson first, then you can add attachments to it.</p>
+                            </div>
+                        </div>
+                    {% endif %}
+
                     <!-- Form Actions -->
                     <div class="divider"></div>
                     <div class="flex gap-4 justify-end">
