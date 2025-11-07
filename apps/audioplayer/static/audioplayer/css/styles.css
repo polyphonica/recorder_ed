@@ -96,7 +96,11 @@
     border-left: 4px solid rgb(139, 81, 143);
 }
 
-.master-volume-slider,
+.master-volume-slider {
+    width: 50%;
+    margin-top: 8px;
+}
+
 .volume-slider {
     width: 100%;
     margin-top: 8px;
