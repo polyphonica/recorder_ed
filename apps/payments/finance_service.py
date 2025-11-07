@@ -58,8 +58,9 @@ class FinanceService:
         # ===== COURSES =====
         course_enrollments = CourseEnrollment.objects.filter(
             course__instructor=teacher,
-            payment_status='completed',
             is_active=True
+        ).filter(
+            Q(payment_status='completed') | Q(payment_status='not_required')
         )
 
         if start_date:
@@ -166,8 +167,9 @@ class FinanceService:
 
             query = CourseEnrollment.objects.filter(
                 course__instructor=teacher,
-                payment_status='completed',
                 is_active=True
+            ).filter(
+                Q(payment_status='completed') | Q(payment_status='not_required')
             )
 
             if start_date:
@@ -299,8 +301,9 @@ class FinanceService:
         for course in courses:
             # Get enrollments for this course
             enrollments = CourseEnrollment.objects.filter(
-                course=course,
-                payment_status='completed'
+                course=course
+            ).filter(
+                Q(payment_status='completed') | Q(payment_status='not_required')
             )
 
             if start_date:
@@ -417,8 +420,9 @@ class FinanceService:
         # Get course enrollments
         course_enrollments = CourseEnrollment.objects.filter(
             course__instructor=teacher,
-            payment_status='completed',
             is_active=True
+        ).filter(
+            Q(payment_status='completed') | Q(payment_status='not_required')
         ).select_related('course', 'student').order_by('-paid_at')[:limit]
 
         for enrollment in course_enrollments:
