@@ -11,7 +11,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem
+from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication
 from lessons.models import Lesson, Document, LessonAttachedUrl
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm
 from .cart import CartManager
