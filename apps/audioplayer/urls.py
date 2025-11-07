@@ -12,6 +12,6 @@ urlpatterns = [
     path('pieces/<int:pk>/delete/', views.piece_delete, name='piece_delete'),
 
     # Student - Playback Interface
-    path('lesson/<int:lesson_id>/player/', views.audio_player, name='audio_player'),
-    path('lesson/<int:lesson_id>/pieces-json/', views.pieces_json, name='pieces_json'),
+    path('lesson/<uuid:lesson_id>/player/', views.audio_player, name='audio_player'),
+    path('lesson/<uuid:lesson_id>/pieces-json/', views.pieces_json, name='pieces_json'),
 ]
