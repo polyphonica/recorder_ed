@@ -121,7 +121,8 @@ class LessonPieceForm(forms.ModelForm):
             'order': forms.NumberInput(attrs={
                 'class': 'input input-bordered w-24',
                 'min': 1,
-                'placeholder': '1'
+                'placeholder': '1',
+                'value': '1'
             }),
             'is_visible': forms.CheckboxInput(attrs={
                 'class': 'checkbox checkbox-primary',
@@ -142,6 +143,12 @@ class LessonPieceForm(forms.ModelForm):
             'is_optional': 'Optional',
             'instructions': 'Instructions (optional)',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set initial value for order if this is a new instance
+        if not self.instance.pk and 'order' in self.fields:
+            self.fields['order'].initial = 1
 
 
 # Formset for managing playalong pieces in a lesson

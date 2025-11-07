@@ -25,8 +25,17 @@
     </nav>
 
     <!-- Header Section -->
-    <section class="section-class">
+    <section class="section-class mb-6">
         <h1 class="text-3xl font-bold mb-4">Playalong: {{ lesson.lesson_title }}</h1>
+
+        {% if piece_count > 0 %}
+        <div class="alert alert-info mb-4">
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <p class="font-semibold">{{ piece_count }} piece{{ piece_count|pluralize }} available for practice</p>
+                <p class="text-sm">The audio players will appear below once the page loads.</p>
+            </div>
+        </div>
         <p class="mb-4">Practice along with these interactive multi-track audio pieces.</p>
         <ul class="list-disc list-inside space-y-2">
             <li>Click the <strong>Play</strong> button to start the piece</li>
@@ -36,8 +45,14 @@
             <li>Adjust individual track volumes or the master volume</li>
             <li>Sheet music will appear below each piece (if available)</li>
         </ul>
-        {% if piece_count == 0 %}
-        <p class="mt-4 text-warning">No playalong pieces have been added to this lesson yet.</p>
+        {% else %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+                <p class="font-semibold">No playalong pieces available yet</p>
+                <p class="text-sm">Your teacher hasn't added any playalong pieces to this lesson yet.</p>
+            </div>
+        </div>
         {% endif %}
     </section>
 
@@ -45,7 +60,14 @@
     <input type="hidden" id="lesson-id" value="{{ lesson.id }}">
 
     <!-- Players Container (populated by JavaScript) -->
-    <div id="players-container"></div>
+    <div id="players-container">
+        {% if piece_count > 0 %}
+        <div class="flex justify-center items-center py-12">
+            <div class="loading loading-spinner loading-lg text-primary"></div>
+            <span class="ml-4 text-lg">Loading audio players...</span>
+        </div>
+        {% endif %}
+    </div>
 
     <!-- Back to Lesson Button -->
     <div class="mt-8 mb-8 text-center">
