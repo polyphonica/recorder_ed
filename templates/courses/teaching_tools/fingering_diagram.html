@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Recorder Fingering Diagram Creator - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm mb-6">
+        <ul>
+            <li><a href="{% url 'courses:instructor_dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'courses:teaching_tools' %}">Teaching Tools</a></li>
+            <li>Fingering Diagram Creator</li>
+        </ul>
+    </div>
+
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-4">
+            <i class="fas fa-hand-pointer mr-3"></i>Recorder Fingering Diagram Creator
+        </h1>
+        <p class="text-base-content/70">
+            Create interactive fingering diagrams for recorder. Click holes to toggle states, upload staff notation, and copy SVG for use in lessons.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column - Controls -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- Staff Image Upload -->
+            <div class="card bg-base-200 shadow-md">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">
+                        <i class="fas fa-image mr-2"></i>Staff & Note Image
+                    </h2>
+                    <div class="form-control">
+                        <label for="staffImageUpload" class="label">
+                            <span class="label-text">Upload Staff/Note (SVG or PNG)</span>
+                        </label>
+                        <input type="file" id="staffImageUpload" accept=".svg,.png,image/svg+xml,image/png"
+                               class="file-input file-input-bordered w-full">
+                        <label class="label">
+                            <span class="label-text-alt">Shows the staff, clef, and note</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <p class="font-semibold text-sm">How to use:</p>
+                    <ul class="text-sm mt-2 space-y-1">
+                        <li>• Click any hole once to open it (white)</li>
+                        <li>• Click again to close it (black)</li>
+                        <li>• <strong>Thumb hole:</strong> Click a third time for half-hole</li>
+                        <li>• <strong>Double holes (6 & 7):</strong> Click left/right sides independently</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card bg-base-200 shadow-md">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">
+                        <i class="fas fa-download mr-2"></i>Export SVG
+                    </h2>
+                    <div class="form-control">
+                        <label for="svgFilename" class="label">
+                            <span class="label-text">Filename</span>
+                        </label>
+                        <input id="svgFilename" type="text" value="recorder-fingering-diagram.svg"
+                               class="input input-bordered w-full">
+                    </div>
+                    <div class="flex flex-col gap-2 mt-4">
+                        <button class="btn btn-primary" onclick="copySVG()">
+                            <i class="fas fa-copy mr-2"></i>
+                            Copy SVG to Clipboard
+                        </button>
+                        <button class="btn btn-secondary btn-outline" onclick="saveSVG()">
+                            <i class="fas fa-download mr-2"></i>
+                            Download SVG File
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Preview -->
+        <div class="lg:col-span-2">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <i class="fas fa-eye mr-2"></i>Preview
+                    </h2>
+                    <div id="svgPreview" class="border-2 border-base-300 rounded-lg p-4 min-h-[600px] flex justify-center items-start overflow-auto bg-white">
+                        <!-- SVG will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-8">
+        <a href="{% url 'courses:teaching_tools' %}" class="btn btn-ghost">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Teaching Tools
+        </a>
+    </div>
+</div>
+
+<style>
+    #svgPreview svg {
+        max-width: 100%;
+        height: auto;
+    }
+
+    #svgPreview ellipse {
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+
+    #svgPreview ellipse:hover {
+        opacity: 0.8;
+    }
+</style>
+
+<script>
+    // State management
+    const state = {
+        staffImage: null,
+        holes: {
+            '0': 'closed', '1': 'closed', '2': 'closed', '3': 'closed',
+            '4': 'closed', '5': 'closed', '6L': 'closed', '6R': 'closed',
+            '7L': 'closed', '7R': 'closed', '8': 'closed'
+        }
+    };
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        setupEventListeners();
+        updateDiagram();
+    });
+
+    function setupEventListeners() {
+        document.getElementById('staffImageUpload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    state.staffImage = event.target.result;
+                    updateDiagram();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    function updateDiagram() {
+        const svg = generateSVG();
+        document.getElementById('svgPreview').innerHTML = svg;
+        attachHoleClickListeners();
+    }
+
+    function attachHoleClickListeners() {
+        document.querySelectorAll('[data-hole-id]').forEach(element => {
+            element.addEventListener('click', (e) => {
+                const holeId = e.target.dataset.holeId;
+                toggleHole(holeId);
+            });
+        });
+    }
+
+    function toggleHole(holeId) {
+        const currentState = state.holes[holeId];
+
+        if (holeId === '0') {
+            // Thumb hole cycles through: closed -> open -> half -> closed
+            if (currentState === 'closed') state.holes[holeId] = 'open';
+            else if (currentState === 'open') state.holes[holeId] = 'half';
+            else state.holes[holeId] = 'closed';
+        } else {
+            // Other holes toggle between closed and open
+            state.holes[holeId] = currentState === 'closed' ? 'open' : 'closed';
+        }
+
+        updateDiagram();
+    }
+
+    function generateSVG() {
+        let staffImageElement = '';
+        if (state.staffImage) {
+            staffImageElement = `<image href="${state.staffImage}" x="295" y="300" width="886" height="366"/>`;
+        }
+
+        return `<svg width="445" height="1000" viewBox="0 0 891 2000" xmlns="http://www.w3.org/2000/svg" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+<g transform="matrix(1,0,0,1,-293.192,-293.192)">
+    <rect x="295.276" y="295.276" width="886.427" height="1828.44" style="fill:none;stroke:black;stroke-width:4.22px;"/>
+    ${staffImageElement}
+    <path d="M295.276,661.558L1181.7,661.558" style="fill:none;stroke:black;stroke-width:1.67px;"/>
+    <path d="M295.276,1229.577L1181.7,1229.577" style="fill:none;stroke:black;stroke-width:1.67px;"/>
+    <path d="M295.276,1895.578L1181.7,1895.578" style="fill:none;stroke:black;stroke-width:1.67px;"/>
+    <text x="420" y="750" font-family="Arial" font-size="50" fill="black">Left Hand</text>
+    <text x="420" y="1320" font-family="Arial" font-size="50" fill="black">Right Hand</text>
+    <text x="555" y="1970" font-family="Arial" font-size="50" fill="black">Leg</text>
+    <text x="500" y="850" font-family="Arial" font-size="50" fill="black">T</text>
+    <text x="1000" y="835" font-family="Arial" font-size="50" fill="black">1</text>
+    <text x="1000" y="994" font-family="Arial" font-size="50" fill="black">2</text>
+    <text x="1000" y="1155" font-family="Arial" font-size="50" fill="black">3</text>
+    <text x="1000" y="1353" font-family="Arial" font-size="50" fill="black">4</text>
+    <text x="1000" y="1502" font-family="Arial" font-size="50" fill="black">5</text>
+    <text x="1000" y="1650" font-family="Arial" font-size="50" fill="black">6</text>
+    <text x="1000" y="1800" font-family="Arial" font-size="50" fill="black">7</text>
+    <text x="1000" y="2015" font-family="Arial" font-size="50" fill="black">8</text>
+    ${generateHole('0', 520.323, 853.127, 47.666, 44.157, 34.8207, -207.309)}
+    ${generateHole('1', 520.323, 853.127, 47.666, 44.157, 298.719, -266.309)}
+    ${generateHole('2', 520.323, 853.127, 47.666, 44.157, 298.719, -100.724)}
+    ${generateHole('3', 520.323, 853.127, 47.666, 44.157, 298.719, 64.8612)}
+    ${generateHole('4', 520.323, 853.127, 47.666, 44.157, 298.183, 252.995)}
+    ${generateHole('5', 520.323, 853.127, 47.666, 44.157, 298.183, 406.885)}
+    ${generateDoubleHole('6L', '6R', 520.323, 853.127, 47.666, 44.157, 298.719, 560.885)}
+    ${generateDoubleHole('7L', '7R', 520.323, 853.127, 47.666, 44.157, 298.719, 714.885)}
+    ${generateHole('8', 520.323, 853.127, 47.666, 44.157, 298.719, 925.44)}
+</g>
+</svg>`;
+    }
+
+    function generateHole(index, cx, cy, rx, ry, tx, ty) {
+        const holeState = state.holes[index];
+        const scaleX = 1.16581;
+        const scaleY = 1.25779;
+
+        if (index === '0' && holeState === 'half') {
+            return `<g transform="matrix(${scaleX},0,0,${scaleY},${tx},${ty})">
+                <defs>
+                    <clipPath id="leftHalf">
+                        <rect x="${cx - rx}" y="${cy - ry}" width="${rx}" height="${ry * 2}" />
+                    </clipPath>
+                    <clipPath id="rightHalf">
+                        <rect x="${cx}" y="${cy - ry}" width="${rx}" height="${ry * 2}" />
+                    </clipPath>
+                </defs>
+                <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" style="fill:black;stroke:black;stroke-width:2.06px;" clip-path="url(#leftHalf)" data-hole-id="${index}"/>
+                <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" style="fill:white;stroke:black;stroke-width:2.06px;" clip-path="url(#rightHalf)" data-hole-id="${index}"/>
+                <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" style="fill:none;stroke:black;stroke-width:2.06px;pointer-events:none;"/>
+            </g>`;
+        }
+
+        let fill, stroke, strokeWidth;
+        if (holeState === 'closed') {
+            fill = 'black';
+            stroke = 'black';
+            strokeWidth = 2.06;
+        } else {
+            fill = 'white';
+            stroke = 'black';
+            strokeWidth = 3.33;
+        }
+
+        return `<g transform="matrix(${scaleX},0,0,${scaleY},${tx},${ty})">
+            <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" style="fill:${fill};stroke:${stroke};stroke-width:${strokeWidth}px;" data-hole-id="${index}"/>
+        </g>`;
+    }
+
+    function generateDoubleHole(indexL, indexR, cx, cy, rx, ry, tx, ty) {
+        const holeStateL = state.holes[indexL];
+        const holeStateR = state.holes[indexR];
+        const scaleX = 1.16581;
+        const scaleY = 1.25779;
+
+        let fillL, strokeL, strokeWidthL;
+        if (holeStateL === 'closed') {
+            fillL = 'black';
+            strokeL = 'black';
+            strokeWidthL = 2.06;
+        } else {
+            fillL = 'white';
+            strokeL = 'black';
+            strokeWidthL = 3.33;
+        }
+
+        let fillR, strokeR, strokeWidthR;
+        if (holeStateR === 'closed') {
+            fillR = 'black';
+            strokeR = 'black';
+            strokeWidthR = 2.06;
+        } else {
+            fillR = 'white';
+            strokeR = 'black';
+            strokeWidthR = 3.33;
+        }
+
+        return `<g transform="matrix(${scaleX},0,0,${scaleY},${tx - 150},${ty})">
+            <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" style="fill:${fillL};stroke:${strokeL};stroke-width:${strokeWidthL}px;" data-hole-id="${indexL}"/>
+        </g>
+        <g transform="matrix(${scaleX},0,0,${scaleY},${tx},${ty})">
+            <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" style="fill:${fillR};stroke:${strokeR};stroke-width:${strokeWidthR}px;" data-hole-id="${indexR}"/>
+        </g>`;
+    }
+
+    async function copySVG() {
+        const svg = generateSVG();
+        try {
+            await navigator.clipboard.writeText(svg);
+            alert('SVG copied to clipboard! Paste it into CKEditor source view.');
+        } catch (err) {
+            console.error('Failed to copy SVG:', err);
+            alert('Failed to copy SVG. Please try downloading instead.');
+        }
+    }
+
+    async function saveSVG() {
+        const svg = generateSVG();
+        const filenameInput = document.getElementById('svgFilename');
+        const filename = (filenameInput && filenameInput.value) ? filenameInput.value.trim() : 'recorder-fingering-diagram.svg';
+        const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+
+        if (window.showSaveFilePicker) {
+            try {
+                const opts = {
+                    suggestedName: filename,
+                    types: [{
+                        description: 'SVG File',
+                        accept: { 'image/svg+xml': ['.svg'] }
+                    }]
+                };
+                const handle = await window.showSaveFilePicker(opts);
+                const writable = await handle.createWritable();
+                await writable.write(svgBlob);
+                await writable.close();
+                alert('Saved successfully.');
+                return;
+            } catch (err) {
+                console.warn('showSaveFilePicker cancelled or failed:', err);
+            }
+        }
+
+        // Fallback
+        try {
+            const url = URL.createObjectURL(svgBlob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 200);
+        } catch (err) {
+            console.error('Download fallback failed', err);
+            alert('Unable to save SVG — see console for details.');
+        }
+    }
+</script>
+{% endblock %}

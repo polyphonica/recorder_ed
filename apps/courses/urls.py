@@ -83,6 +83,14 @@ urlpatterns = [
     path('<slug:slug>/claim-certificate/', views.CertificateClaimView.as_view(), name='claim_certificate'),
 
     # ========================================================================
+    # TEACHING TOOLS - Instructor Resources
+    # ========================================================================
+
+    path('teaching-tools/', views.TeachingToolsHomeView.as_view(), name='teaching_tools'),
+    path('teaching-tools/fingering-diagram/', views.FingeringDiagramCreatorView.as_view(), name='fingering_diagram'),
+    path('teaching-tools/time-signature/', views.TimeSignatureGeneratorView.as_view(), name='time_signature'),
+
+    # ========================================================================
     # PUBLIC URLs - Course Browsing & Verification
     # ========================================================================
 

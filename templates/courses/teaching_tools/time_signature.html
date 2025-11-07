@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Time Signature Generator - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm mb-6">
+        <ul>
+            <li><a href="{% url 'courses:instructor_dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'courses:teaching_tools' %}">Teaching Tools</a></li>
+            <li>Time Signature Generator</li>
+        </ul>
+    </div>
+
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-4">
+            <i class="fas fa-music mr-3"></i>Time Signature Generator
+        </h1>
+        <p class="text-base-content/70">
+            Generate customizable time signature notation. Adjust size, spacing, and positioning to match your lesson content perfectly.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column - Controls -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- Time Signature Form -->
+            <div class="card bg-base-200 shadow-md">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">
+                        <i class="fas fa-sliders-h mr-2"></i>Time Signature
+                    </h2>
+                    <form method="post" id="timeSigForm">
+                        {% csrf_token %}
+
+                        <!-- Main Numbers -->
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text font-semibold">Top Number</span>
+                            </label>
+                            <input type="text" name="top" value="{{ top }}"
+                                   class="input input-bordered w-full" placeholder="4">
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text font-semibold">Bottom Number</span>
+                            </label>
+                            <input type="text" name="bottom" value="{{ bottom }}"
+                                   class="input input-bordered w-full" placeholder="4">
+                        </div>
+
+                        <!-- Optional Subscripts -->
+                        <div class="divider text-sm">Optional Subscripts</div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Top Right Subscript</span>
+                            </label>
+                            <input type="text" name="top_right" value="{{ top_right }}"
+                                   class="input input-bordered w-full" placeholder="e.g., +2">
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Bottom Right Subscript</span>
+                            </label>
+                            <input type="text" name="bottom_right" value="{{ bottom_right }}"
+                                   class="input input-bordered w-full" placeholder="e.g., +1">
+                        </div>
+
+                        <!-- Advanced Settings -->
+                        <div class="divider text-sm">Advanced Settings</div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Font Size</span>
+                            </label>
+                            <input type="number" name="font_size" value="{{ font_size }}"
+                                   class="input input-bordered w-full" min="24" max="96">
+                            <label class="label">
+                                <span class="label-text-alt">Default: 48</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Vertical Spacing</span>
+                            </label>
+                            <input type="number" name="spacing" value="{{ spacing }}"
+                                   class="input input-bordered w-full" min="10" max="50">
+                            <label class="label">
+                                <span class="label-text-alt">Default: 24</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">ViewBox Width</span>
+                            </label>
+                            <input type="number" name="viewbox_w" value="{{ viewbox_w }}"
+                                   class="input input-bordered w-full" min="30" max="200">
+                            <label class="label">
+                                <span class="label-text-alt">Default: 60</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">ViewBox Height</span>
+                            </label>
+                            <input type="number" name="viewbox_h" value="{{ viewbox_h }}"
+                                   class="input input-bordered w-full" min="60" max="300">
+                            <label class="label">
+                                <span class="label-text-alt">Default: 120</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Display Width (px)</span>
+                            </label>
+                            <input type="number" name="display_w" value="{{ display_w }}"
+                                   class="input input-bordered w-full" min="45" max="300">
+                            <label class="label">
+                                <span class="label-text-alt">Default: 90</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Display Height (px)</span>
+                            </label>
+                            <input type="number" name="display_h" value="{{ display_h }}"
+                                   class="input input-bordered w-full" min="70" max="350">
+                            <label class="label">
+                                <span class="label-text-alt">Default: 140</span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-full">
+                            <i class="fas fa-sync-alt mr-2"></i>
+                            Update Preview
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <p class="font-semibold text-sm">Tips:</p>
+                    <ul class="text-sm mt-2 space-y-1">
+                        <li>• Adjust font size and spacing to match your lesson style</li>
+                        <li>• Use subscripts for additive time signatures</li>
+                        <li>• ViewBox controls the SVG coordinate system</li>
+                        <li>• Display size controls actual rendered size</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Preview and Export -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Preview -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <i class="fas fa-eye mr-2"></i>Preview
+                    </h2>
+                    <div class="border-2 border-base-300 rounded-lg p-8 min-h-[200px] flex justify-center items-center bg-white">
+                        <div id="svgPreview">
+                            {{ svg_code|safe }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export -->
+            <div class="card bg-base-200 shadow-md">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">
+                        <i class="fas fa-code mr-2"></i>SVG Code
+                    </h2>
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">Copy this code to paste into CKEditor source view:</span>
+                        </label>
+                        <textarea id="svgCode" readonly class="textarea textarea-bordered font-mono text-xs h-32 w-full">{{ svg_code }}</textarea>
+                    </div>
+                    <button class="btn btn-primary w-full" onclick="copySVG()">
+                        <i class="fas fa-copy mr-2"></i>
+                        Copy SVG to Clipboard
+                    </button>
+                </div>
+            </div>
+
+            <!-- Usage Instructions -->
+            <div class="alert alert-success">
+                <i class="fas fa-lightbulb"></i>
+                <div>
+                    <p class="font-semibold">How to use in your lesson:</p>
+                    <ol class="list-decimal list-inside mt-2 ml-4 space-y-1 text-sm">
+                        <li>Adjust the time signature and styling above</li>
+                        <li>Click "Copy SVG to Clipboard"</li>
+                        <li>In your lesson editor, click the "Source" button in CKEditor</li>
+                        <li>Paste the SVG code at the desired location</li>
+                        <li>Click "Source" again to return to visual editing</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-8">
+        <a href="{% url 'courses:teaching_tools' %}" class="btn btn-ghost">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Teaching Tools
+        </a>
+    </div>
+</div>
+
+<script>
+    async function copySVG() {
+        const svgCode = document.getElementById('svgCode').value;
+        try {
+            await navigator.clipboard.writeText(svgCode);
+            alert('SVG copied to clipboard! Paste it into CKEditor source view.');
+        } catch (err) {
+            console.error('Failed to copy SVG:', err);
+            alert('Failed to copy SVG. Please try manually selecting and copying the code.');
+        }
+    }
+</script>
+{% endblock %}

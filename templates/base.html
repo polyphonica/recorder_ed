@@ -329,6 +329,7 @@
                             <li><a href="{% url 'courses:analytics' %}" class="{% if request.resolver_match.url_name == 'analytics' %}bg-primary text-primary-content{% endif %}">Analytics</a></li>
                             <li><a href="{% url 'courses:messages_inbox' %}" class="{% if request.resolver_match.url_name in 'messages_inbox,messages_view' %}bg-primary text-primary-content{% endif %}">Messages</a></li>
                             <li><a href="{% url 'audioplayer:piece_list' %}" class="{% if request.resolver_match.namespace == 'audioplayer' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-music mr-1"></i>Playalong Library</a></li>
+                            <li><a href="{% url 'courses:teaching_tools' %}" class="{% if 'teaching_tools' in request.resolver_match.url_name or 'fingering_diagram' in request.resolver_match.url_name or 'time_signature' in request.resolver_match.url_name %}bg-primary text-primary-content{% endif %}"><i class="fas fa-tools mr-1"></i>Teaching Tools</a></li>
                         {% else %}
                             <!-- Student Navigation -->
                             <li><a href="{% url 'courses:student_dashboard' %}" class="{% if request.resolver_match.url_name == 'student_dashboard' %}bg-primary text-primary-content{% endif %}">My Courses</a></li>

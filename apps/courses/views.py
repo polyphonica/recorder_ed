@@ -2144,3 +2144,107 @@ class CertificateVerifyView(TemplateView):
 # ============================================================================
 # INSTRUCTOR RESOURCES
 # ============================================================================
+
+
+class TeachingToolsHomeView(InstructorRequiredMixin, TemplateView):
+    """
+    Landing page for teaching tools (fingering diagrams, time signatures, etc.)
+    """
+    template_name = 'courses/teaching_tools/index.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Teaching Tools'
+        return context
+
+
+class FingeringDiagramCreatorView(InstructorRequiredMixin, TemplateView):
+    """
+    Interactive recorder fingering diagram creator.
+    Generates SVG that can be copied into CKEditor.
+    """
+    template_name = 'courses/teaching_tools/fingering_diagram.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Recorder Fingering Diagram Creator'
+        return context
+
+
+class TimeSignatureGeneratorView(InstructorRequiredMixin, TemplateView):
+    """
+    Time signature SVG generator.
+    Generates customizable time signature notation that can be copied into CKEditor.
+    """
+    template_name = 'courses/teaching_tools/time_signature.html'
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        # Set defaults
+        context.update({
+            'top': '4',
+            'bottom': '4',
+            'top_right': '',
+            'bottom_right': '',
+            'font_size': 48,
+            'spacing': 24,
+            'viewbox_w': 60,
+            'viewbox_h': 120,
+            'display_w': 90,
+            'display_h': 140,
+            'svg_code': self._generate_svg('4', '4', '', '', 48, 24, 60, 120, 90, 140)
+        })
+        return self.render_to_response(context)
+
+    def post(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+
+        # Get values from POST
+        top = request.POST.get('top', '4')
+        bottom = request.POST.get('bottom', '4')
+        top_right = request.POST.get('top_right', '')
+        bottom_right = request.POST.get('bottom_right', '')
+        font_size = int(request.POST.get('font_size', 48))
+        spacing = int(request.POST.get('spacing', 24))
+        viewbox_w = int(request.POST.get('viewbox_w', 60))
+        viewbox_h = int(request.POST.get('viewbox_h', 120))
+        display_w = int(request.POST.get('display_w', 90))
+        display_h = int(request.POST.get('display_h', 140))
+
+        svg_code = self._generate_svg(top, bottom, top_right, bottom_right,
+                                      font_size, spacing, viewbox_w, viewbox_h,
+                                      display_w, display_h)
+
+        context.update({
+            'top': top,
+            'bottom': bottom,
+            'top_right': top_right,
+            'bottom_right': bottom_right,
+            'font_size': font_size,
+            'spacing': spacing,
+            'viewbox_w': viewbox_w,
+            'viewbox_h': viewbox_h,
+            'display_w': display_w,
+            'display_h': display_h,
+            'svg_code': svg_code
+        })
+
+        return self.render_to_response(context)
+
+    def _generate_svg(self, top, bottom, top_right, bottom_right,
+                     font_size, spacing, viewbox_w, viewbox_h, display_w, display_h):
+        """Generate the time signature SVG code"""
+        top_y = 56
+        bottom_y = top_y + spacing
+
+        return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {viewbox_w} {viewbox_h}" width="{display_w}" height="{display_h}">
+  <text x="{viewbox_w/2}" y="{top_y}" font-family="Opus" font-size="{font_size}" text-anchor="middle" fill="#000">{top}</text>
+  <text x="{viewbox_w/2 + font_size}" y="{top_y}" font-family="Arial" font-size="14" text-anchor="start" fill="#000">{top_right}</text>
+  <text x="{viewbox_w/2}" y="{bottom_y}" font-family="Opus" font-size="{font_size}" text-anchor="middle" fill="#000">{bottom}</text>
+  <text x="{viewbox_w/2 + font_size}" y="{bottom_y}" font-family="Arial" font-size="14" text-anchor="start" fill="#000">{bottom_right}</text>
+</svg>'''
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Time Signature Generator'
+        return context
