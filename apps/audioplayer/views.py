@@ -190,6 +190,7 @@ def pieces_json(request, lesson_id):
         piece_data = {
             'title': lp.piece.title,
             'stems': stems_data,
+            'svg_image': lp.piece.svg_image.url if lp.piece.svg_image else None,
             'order': lp.order,
         }
 

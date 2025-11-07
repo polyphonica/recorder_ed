@@ -66,8 +66,21 @@
                     </label>
                     {{ form.title }}
                     {{ form.title.errors }}
+                </div>
+
+                <div class="form-control">
+                    <label class="label" for="{{ form.svg_image.id_for_label }}">
+                        <span class="label-text font-semibold">{{ form.svg_image.label }}</span>
+                    </label>
+                    {{ form.svg_image }}
+                    {% if piece and piece.svg_image %}
                     <label class="label">
-                        <span class="label-text-alt">Note: Upload sheet music as a lesson attachment instead</span>
+                        <span class="label-text-alt">Current: <a href="{{ piece.svg_image.url }}" target="_blank" class="link">View</a></span>
+                    </label>
+                    {% endif %}
+                    {{ form.svg_image.errors }}
+                    <label class="label">
+                        <span class="label-text-alt">Upload image to display below player for on-screen practice (optional)</span>
                     </label>
                 </div>
             </div>

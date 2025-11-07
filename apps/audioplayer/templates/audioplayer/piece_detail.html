@@ -26,6 +26,19 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Main Info -->
         <div class="lg:col-span-2 space-y-6">
+            <!-- Sheet Music -->
+            {% if piece.svg_image %}
+            <div class="card bg-base-100 shadow-md">
+                <div class="card-body">
+                    <h2 class="card-title">Sheet Music Image</h2>
+                    <p class="text-sm text-base-content/70 mb-4">This image will display below the player for on-screen practice</p>
+                    <div class="text-center">
+                        <img src="{{ piece.svg_image.url }}" alt="{{ piece.title }}" class="w-full max-w-2xl mx-auto">
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Audio Stems -->
             <div class="card bg-base-100 shadow-md">
                 <div class="card-body">
