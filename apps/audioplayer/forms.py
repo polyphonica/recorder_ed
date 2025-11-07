@@ -8,7 +8,7 @@ class PieceForm(forms.ModelForm):
 
     class Meta:
         model = Piece
-        fields = ['title', 'svg_image']
+        fields = ['title']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -17,7 +17,9 @@ class PieceForm(forms.ModelForm):
         }
         labels = {
             'title': 'Piece Title',
-            'svg_image': 'Sheet Music Image (SVG/PNG/JPG)'
+        }
+        help_texts = {
+            'title': 'Upload sheet music as a lesson attachment instead of per-piece',
         }
 
 

@@ -41,12 +41,6 @@
                         <i class="fas fa-music mr-2"></i>
                         <strong>{{ piece.stems.count }}</strong> stem{{ piece.stems.count|pluralize }}
                     </p>
-                    {% if piece.svg_image %}
-                    <p>
-                        <i class="fas fa-image mr-2 text-success"></i>
-                        Sheet music included
-                    </p>
-                    {% endif %}
                     <p>
                         <i class="fas fa-book-open mr-2"></i>
                         Used in <strong>{{ piece.lesson_assignments.count }}</strong> lesson{{ piece.lesson_assignments.count|pluralize }}

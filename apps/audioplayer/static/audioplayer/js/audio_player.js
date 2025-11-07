@@ -141,15 +141,6 @@ async function initPlayers(piecesData) {
         playerContainer.appendChild(controls);
         playerContainer.appendChild(tracksContainer);
 
-        // Add SVG image if available
-        if (piece.svg_image) {
-            let svgImage = document.createElement('img');
-            svgImage.src = piece.svg_image;
-            svgImage.classList.add('svg-image');
-            svgImage.alt = `Sheet music for ${piece.title}`;
-            playerContainer.appendChild(svgImage);
-        }
-
         playersContainer.appendChild(playerContainer);
 
         // Initialize audio context and load audio files
