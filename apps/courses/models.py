@@ -245,6 +245,15 @@ class Lesson(models.Model):
         help_text='Estimated time to complete (in minutes)'
     )
 
+    # Playalong pieces
+    pieces = models.ManyToManyField(
+        'audioplayer.Piece',
+        through='audioplayer.LessonPiece',
+        related_name='lessons',
+        blank=True,
+        help_text='Interactive playalong pieces for this lesson'
+    )
+
     # Access control
     is_preview = models.BooleanField(
         default=False,

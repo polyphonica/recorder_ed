@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} - {{ block.super }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'audioplayer/css/styles.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold">{{ title }}</h1>
+        <p class="text-base-content/70 mt-2">
+            {% if piece %}
+            Update this piece's information and audio stems
+            {% else %}
+            Create a new playalong piece with multiple audio tracks
+            {% endif %}
+        </p>
+    </div>
+
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} mb-2">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if piece and lessons_using %}
+    <div class="alert alert-info mb-6">
+        <i class="fas fa-info-circle"></i>
+        <div>
+            <p class="font-semibold">This piece is used in {{ lessons_using.count }} lesson(s):</p>
+            <ul class="list-disc list-inside mt-2">
+                {% for lp in lessons_using|slice:":5" %}
+                <li>{{ lp.lesson.topic.course.title }} - {{ lp.lesson.lesson_title }}</li>
+                {% endfor %}
+                {% if lessons_using.count > 5 %}
+                <li>...and {{ lessons_using.count|add:"-5" }} more</li>
+                {% endif %}
+            </ul>
+            <p class="mt-2 text-sm">Changes will affect all lessons using this piece.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Form -->
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Piece Information -->
+        <div class="card bg-base-200 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Piece Information</h2>
+
+                {{ form.non_field_errors }}
+
+                <div class="form-control">
+                    <label class="label" for="{{ form.title.id_for_label }}">
+                        <span class="label-text font-semibold">{{ form.title.label }}</span>
+                    </label>
+                    {{ form.title }}
+                    {{ form.title.errors }}
+                </div>
+
+                <div class="form-control">
+                    <label class="label" for="{{ form.svg_image.id_for_label }}">
+                        <span class="label-text font-semibold">{{ form.svg_image.label }}</span>
+                    </label>
+                    {{ form.svg_image }}
+                    {% if piece and piece.svg_image %}
+                    <label class="label">
+                        <span class="label-text-alt">Current: <a href="{{ piece.svg_image.url }}" target="_blank" class="link">View</a></span>
+                    </label>
+                    {% endif %}
+                    {{ form.svg_image.errors }}
+                    <label class="label">
+                        <span class="label-text-alt">Upload sheet music or notation image (optional)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audio Stems -->
+        <div class="card bg-base-200 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Audio Stems (Tracks)</h2>
+                <p class="text-sm text-base-content/70 mb-4">
+                    Add multiple audio tracks that will play simultaneously. Students can solo, mute, and adjust volume for each track.
+                </p>
+
+                <div class="stem-formset">
+                    {{ formset.management_form }}
+                    {{ formset.non_form_errors }}
+
+                    {% for form in formset %}
+                    <div class="stem-form-row mb-4 p-4">
+                        {% if form.instance.pk %}
+                        <h3 class="font-semibold mb-3">Stem {{ forloop.counter }}: {{ form.instance.instrument_name }}</h3>
+                        {% else %}
+                        <h3 class="font-semibold mb-3">New Stem {{ forloop.counter }}</h3>
+                        {% endif %}
+
+                        {{ form.id }}
+                        {{ form.non_field_errors }}
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-sm">{{ form.instrument_name.label }}</span>
+                                </label>
+                                {{ form.instrument_name }}
+                                {{ form.instrument_name.errors }}
+                            </div>
+
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-sm">{{ form.audio_file.label }}</span>
+                                </label>
+                                {{ form.audio_file }}
+                                {% if form.instance.pk and form.instance.audio_file %}
+                                <label class="label">
+                                    <span class="label-text-alt">
+                                        Current: <a href="{{ form.instance.audio_file.url }}" target="_blank" class="link text-xs">Play</a>
+                                    </span>
+                                </label>
+                                {% endif %}
+                                {{ form.audio_file.errors }}
+                            </div>
+
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-sm">{{ form.order.label }}</span>
+                                </label>
+                                {{ form.order }}
+                                {{ form.order.errors }}
+                            </div>
+                        </div>
+
+                        {% if form.instance.pk %}
+                        <div class="form-control mt-3">
+                            <label class="label cursor-pointer justify-start">
+                                {{ form.DELETE }}
+                                <span class="label-text ml-2 text-error">{{ form.DELETE.label }}</span>
+                            </label>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="alert alert-warning mt-4">
+                    <i class="fas fa-info-circle"></i>
+                    <span class="text-sm">Empty stem forms will be ignored. To add more stems, save this piece first and then edit it.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-4">
+            <a href="{% url 'audioplayer:piece_list' %}" class="btn btn-ghost">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-2"></i>
+                {{ submit_text }}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'audioplayer/js/piece_form.js' %}"></script>
+{% endblock %}

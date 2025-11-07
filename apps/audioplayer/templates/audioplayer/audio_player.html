@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Playalong: {{ lesson.lesson_title }} - {{ block.super }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'audioplayer/css/styles.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs text-sm mb-6">
+        <a href="{% url 'courses:list' %}" class="text-primary hover:underline">Courses</a>
+        <span class="mx-2">›</span>
+        <a href="{% url 'courses:detail' slug=lesson.topic.course.slug %}" class="text-primary hover:underline">
+            {{ lesson.topic.course.title }}
+        </a>
+        <span class="mx-2">›</span>
+        <a href="{% url 'courses:lesson_detail' course_slug=lesson.topic.course.slug topic_number=lesson.topic.topic_number lesson_slug=lesson.slug %}" class="text-primary hover:underline">
+            {{ lesson.lesson_title }}
+        </a>
+        <span class="mx-2">›</span>
+        <span class="text-base-content/70">Playalong</span>
+    </nav>
+
+    <!-- Header Section -->
+    <section class="section-class">
+        <h1 class="text-3xl font-bold mb-4">Playalong: {{ lesson.lesson_title }}</h1>
+        <p class="mb-4">Practice along with these interactive multi-track audio pieces.</p>
+        <ul class="list-disc list-inside space-y-2">
+            <li>Click the <strong>Play</strong> button to start the piece</li>
+            <li>You will hear all tracks playing together</li>
+            <li>Use <strong>Mute</strong> to silence individual tracks</li>
+            <li>Use <strong>Solo</strong> to hear only specific tracks</li>
+            <li>Adjust individual track volumes or the master volume</li>
+            <li>Sheet music will appear below each piece (if available)</li>
+        </ul>
+        {% if piece_count == 0 %}
+        <p class="mt-4 text-warning">No playalong pieces have been added to this lesson yet.</p>
+        {% endif %}
+    </section>
+
+    <!-- Hidden input for lesson ID (used by JavaScript) -->
+    <input type="hidden" id="lesson-id" value="{{ lesson.id }}">
+
+    <!-- Players Container (populated by JavaScript) -->
+    <div id="players-container"></div>
+
+    <!-- Back to Lesson Button -->
+    <div class="mt-8 mb-8 text-center">
+        <a href="{% url 'courses:lesson_detail' course_slug=lesson.topic.course.slug topic_number=lesson.topic.topic_number lesson_slug=lesson.slug %}"
+           class="btn btn-primary">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Lesson
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'audioplayer/js/audio_player.js' %}"></script>
+{% endblock %}

@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'apps.private_teaching',
     'apps.expenses',
     'apps.courses',
+    'apps.audioplayer',
     'lessons',
 ]
 

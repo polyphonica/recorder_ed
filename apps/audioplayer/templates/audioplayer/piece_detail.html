@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ piece.title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+    <!-- Header with Actions -->
+    <div class="flex justify-between items-start mb-8">
+        <div>
+            <h1 class="text-3xl font-bold">{{ piece.title }}</h1>
+            <p class="text-base-content/70 mt-2">Created {{ piece.created_at|date:"F j, Y" }}</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'audioplayer:piece_edit' pk=piece.id %}" class="btn btn-primary">
+                <i class="fas fa-edit mr-2"></i>
+                Edit
+            </a>
+            <a href="{% url 'audioplayer:piece_delete' pk=piece.id %}" class="btn btn-error btn-outline">
+                <i class="fas fa-trash mr-2"></i>
+                Delete
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Info -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Sheet Music -->
+            {% if piece.svg_image %}
+            <div class="card bg-base-100 shadow-md">
+                <div class="card-body">
+                    <h2 class="card-title">Sheet Music</h2>
+                    <div class="text-center">
+                        <img src="{{ piece.svg_image.url }}" alt="{{ piece.title }}" class="w-full max-w-2xl mx-auto">
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Audio Stems -->
+            <div class="card bg-base-100 shadow-md">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Audio Stems ({{ stems.count }})</h2>
+                    {% if stems %}
+                    <div class="space-y-3">
+                        {% for stem in stems %}
+                        <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <span class="badge badge-primary">{{ stem.order }}</span>
+                                <div>
+                                    <p class="font-semibold">{{ stem.instrument_name }}</p>
+                                    <p class="text-xs text-base-content/70">{{ stem.audio_file.name }}</p>
+                                </div>
+                            </div>
+                            <a href="{{ stem.audio_file.url }}" target="_blank" class="btn btn-sm btn-ghost">
+                                <i class="fas fa-play"></i>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-base-content/70">No stems added yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Usage Info -->
+            <div class="card bg-base-100 shadow-md">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">Usage</h2>
+                    <div class="stats stats-vertical shadow-sm bg-base-200">
+                        <div class="stat py-3">
+                            <div class="stat-title text-xs">Stems</div>
+                            <div class="stat-value text-2xl">{{ stems.count }}</div>
+                        </div>
+                        <div class="stat py-3">
+                            <div class="stat-title text-xs">Used in Lessons</div>
+                            <div class="stat-value text-2xl">{{ lessons_using.count }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lessons Using This Piece -->
+            {% if lessons_using %}
+            <div class="card bg-base-100 shadow-md">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">Used in Lessons</h2>
+                    <div class="space-y-2">
+                        {% for lp in lessons_using %}
+                        <div class="p-2 bg-base-200 rounded text-sm">
+                            <p class="font-semibold">{{ lp.lesson.lesson_title }}</p>
+                            <p class="text-xs text-base-content/70">{{ lp.lesson.topic.course.title }}</p>
+                            {% if lp.is_optional %}
+                            <span class="badge badge-warning badge-xs mt-1">Optional</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-8">
+        <a href="{% url 'audioplayer:piece_list' %}" class="btn btn-ghost">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Library
+        </a>
+    </div>
+</div>
+{% endblock %}

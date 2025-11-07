@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Playalong Piece Library - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold">Playalong Piece Library</h1>
+            <p class="text-base-content/70 mt-2">Manage your reusable playalong pieces with multi-track audio</p>
+        </div>
+        <a href="{% url 'audioplayer:piece_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus mr-2"></i>
+            Create New Piece
+        </a>
+    </div>
+
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} mb-2">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if pieces %}
+    <!-- Pieces Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for piece in pieces %}
+        <div class="card bg-base-100 shadow-xl piece-card">
+            <div class="card-body">
+                <h2 class="card-title">{{ piece.title }}</h2>
+
+                <!-- Piece Info -->
+                <div class="text-sm text-base-content/70 space-y-1">
+                    <p>
+                        <i class="fas fa-music mr-2"></i>
+                        <strong>{{ piece.stems.count }}</strong> stem{{ piece.stems.count|pluralize }}
+                    </p>
+                    {% if piece.svg_image %}
+                    <p>
+                        <i class="fas fa-image mr-2 text-success"></i>
+                        Sheet music included
+                    </p>
+                    {% endif %}
+                    <p>
+                        <i class="fas fa-book-open mr-2"></i>
+                        Used in <strong>{{ piece.lesson_assignments.count }}</strong> lesson{{ piece.lesson_assignments.count|pluralize }}
+                    </p>
+                </div>
+
+                <!-- Stems List -->
+                {% if piece.stems.all %}
+                <div class="mt-4">
+                    <p class="text-xs font-semibold uppercase text-base-content/50 mb-2">Tracks:</p>
+                    <div class="flex flex-wrap gap-2">
+                        {% for stem in piece.stems.all %}
+                        <span class="badge badge-outline badge-sm">{{ stem.instrument_name }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Actions -->
+                <div class="card-actions justify-end mt-4 pt-4 border-t">
+                    <a href="{% url 'audioplayer:piece_detail' pk=piece.id %}" class="btn btn-sm btn-ghost">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'audioplayer:piece_edit' pk=piece.id %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="{% url 'audioplayer:piece_delete' pk=piece.id %}" class="btn btn-sm btn-error btn-outline">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-16">
+        <div class="mb-6">
+            <i class="fas fa-music text-6xl text-base-content/20"></i>
+        </div>
+        <h2 class="text-2xl font-bold mb-4">No Playalong Pieces Yet</h2>
+        <p class="text-base-content/70 mb-8">Create your first playalong piece to get started!</p>
+        <a href="{% url 'audioplayer:piece_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus mr-2"></i>
+            Create Your First Piece
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

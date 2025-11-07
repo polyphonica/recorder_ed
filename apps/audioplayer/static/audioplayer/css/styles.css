@@ -1,0 +1,178 @@
+/* Audioplayer Styles */
+
+.button {
+    padding: 10px 20px;
+    margin: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: white;
+    background-color: rgb(139, 81, 143);
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.button:hover {
+    background-color: rgb(119, 61, 123);
+}
+
+.button.playing {
+    background-color: green;
+}
+
+.button:hover.playing {
+    background-color: darkgreen;
+}
+
+.button.active {
+    background-color: rgb(139, 81, 143);
+    color: rgb(255, 255, 255);
+}
+
+.track-column {
+    display: inline-block;
+    vertical-align: top;
+    margin: 10px;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+.track-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #333;
+}
+
+.piece-title {
+    font-weight: bold;
+    margin-bottom: 15px;
+    font-size: 22px;
+    color: #2c3e50;
+}
+
+.controls {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+}
+
+.player-container {
+    margin-bottom: 50px;
+    margin-left: 20px;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.svg-container {
+    width: 100%;
+    text-align: center;
+    margin-top: 30px;
+    margin-left: 20px;
+}
+
+.svg-image {
+    width: 70%;
+    height: auto;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.section-class {
+    background: #fff9e6;
+    padding: 20px;
+    width: 70%;
+    line-height: 1.7em;
+    margin-bottom: 40px;
+    margin-left: 20px;
+    border-radius: 8px;
+    border-left: 4px solid rgb(139, 81, 143);
+}
+
+.master-volume-slider,
+.volume-slider {
+    width: 100%;
+    margin-top: 8px;
+}
+
+.master-volume-label,
+.volume-label {
+    font-size: 12px;
+    color: #666;
+    margin-top: 10px;
+}
+
+.piece-divider {
+    margin: 40px 0;
+    border: none;
+    border-top: 2px solid #ddd;
+}
+
+/* Instructions styling */
+.piece-instructions {
+    background-color: #e8f4f8;
+    padding: 12px;
+    margin: 10px 0;
+    border-left: 3px solid #3498db;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.optional-badge {
+    display: inline-block;
+    background-color: #f39c12;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 10px;
+}
+
+/* Teacher Library Styles */
+.piece-library {
+    padding: 20px;
+}
+
+.piece-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: box-shadow 0.3s ease;
+}
+
+.piece-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.piece-actions {
+    margin-top: 15px;
+}
+
+.piece-actions .btn {
+    margin-right: 10px;
+}
+
+.stem-formset {
+    border-top: 2px solid #eee;
+    padding-top: 20px;
+    margin-top: 20px;
+}
+
+.stem-form-row {
+    background-color: #f9f9f9;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    border-left: 3px solid rgb(139, 81, 143);
+}
