@@ -744,3 +744,44 @@ class PrivateTeachingRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateV
         })
 
         return context
+
+
+class PrivateTeachingSubjectRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
+    """Detailed private teaching revenue breakdown by subject"""
+    template_name = 'payments/private_teaching_subject_revenue.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        teacher = self.request.user
+
+        # Get date range
+        date_range = self.request.GET.get('range', '30')
+        if date_range == 'all':
+            start_date = None
+            end_date = None
+        elif date_range == '7':
+            start_date = timezone.now() - timedelta(days=7)
+            end_date = None
+        elif date_range == '30':
+            start_date = timezone.now() - timedelta(days=30)
+            end_date = None
+        elif date_range == '90':
+            start_date = timezone.now() - timedelta(days=90)
+            end_date = None
+        else:
+            start_date = timezone.now() - timedelta(days=30)
+            end_date = None
+
+        # Get domain revenue
+        domain_data = FinanceService.get_domain_revenue(teacher, 'private_teaching', start_date, end_date)
+
+        # Get subject breakdown
+        subject_breakdown = FinanceService.get_private_teaching_subject_breakdown(teacher, start_date, end_date)
+
+        context.update({
+            'domain_data': domain_data,
+            'subject_breakdown': subject_breakdown,
+            'selected_range': date_range,
+        })
+
+        return context

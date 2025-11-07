@@ -407,6 +407,80 @@ class FinanceService:
         return breakdown
 
     @staticmethod
+    def get_private_teaching_subject_breakdown(teacher, start_date=None, end_date=None):
+        """
+        Get revenue breakdown by subject for private teaching.
+
+        Returns:
+            list of dicts with subject info and revenue
+        """
+        from apps.private_teaching.models import Subject
+        from lessons.models import Lesson
+        from django.conf import settings
+
+        commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
+
+        # Get all paid lessons for this teacher
+        lessons_query = Lesson.objects.filter(
+            teacher=teacher,
+            payment_status='Paid',
+            is_deleted=False
+        ).select_related('subject', 'student')
+
+        if start_date:
+            lessons_query = lessons_query.filter(lesson_date__gte=start_date)
+        if end_date:
+            lessons_query = lessons_query.filter(lesson_date__lte=end_date)
+
+        # Group by subject and aggregate
+        from django.db.models import Count
+        subject_data = lessons_query.values(
+            'subject__id',
+            'subject__subject'
+        ).annotate(
+            total_lessons=Count('id'),
+            total_students=Count('student', distinct=True),
+            total_revenue=Sum('price')
+        ).order_by('-total_revenue')
+
+        breakdown = []
+        total_all_revenue = Decimal('0.00')
+
+        # First pass to calculate total revenue for percentages
+        for item in subject_data:
+            total_all_revenue += item['total_revenue'] or Decimal('0.00')
+
+        # Second pass to build breakdown with percentages
+        for item in subject_data:
+            subject_revenue = item['total_revenue'] or Decimal('0.00')
+            teacher_share = subject_revenue * (1 - Decimal(str(commission_rate)))
+
+            # Calculate percentage of total revenue
+            if total_all_revenue > 0:
+                percentage = (subject_revenue / total_all_revenue) * 100
+            else:
+                percentage = 0
+
+            # Calculate average per lesson
+            if item['total_lessons'] > 0:
+                avg_per_lesson = subject_revenue / item['total_lessons']
+            else:
+                avg_per_lesson = Decimal('0.00')
+
+            breakdown.append({
+                'subject_name': item['subject__subject'],
+                'subject_id': item['subject__id'],
+                'total_students': item['total_students'],
+                'total_lessons': item['total_lessons'],
+                'total_revenue': subject_revenue,
+                'teacher_share': teacher_share,
+                'percentage': percentage,
+                'avg_per_lesson': avg_per_lesson,
+            })
+
+        return breakdown
+
+    @staticmethod
     def get_recent_transactions(teacher, limit=10):
         """
         Get most recent completed transactions for a teacher across all domains.

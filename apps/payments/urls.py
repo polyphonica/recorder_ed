@@ -11,4 +11,5 @@ urlpatterns = [
     path('finance/workshops/', views.WorkshopRevenueView.as_view(), name='workshop_revenue'),
     path('finance/courses/', views.CourseRevenueView.as_view(), name='course_revenue'),
     path('finance/private-teaching/', views.PrivateTeachingRevenueView.as_view(), name='private_teaching_revenue'),
+    path('finance/private-teaching/by-subject/', views.PrivateTeachingSubjectRevenueView.as_view(), name='private_teaching_subject_revenue'),
 ]

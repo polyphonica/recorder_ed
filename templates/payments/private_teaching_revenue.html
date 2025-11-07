@@ -35,6 +35,17 @@
             </div>
         </div>
 
+        <!-- View Toggle -->
+        <div class="flex gap-2 mb-8">
+            <button class="btn btn-primary">
+                <i class="fas fa-user mr-2"></i>View by Student
+            </button>
+            <a href="{% url 'payments:private_teaching_subject_revenue' %}?range={{ selected_range }}"
+               class="btn btn-outline">
+                <i class="fas fa-book mr-2"></i>View by Subject
+            </a>
+        </div>
+
         <!-- Summary Stats -->
         <div class="stats stats-vertical lg:stats-horizontal shadow mb-8 w-full">
             <div class="stat">
@@ -131,9 +142,13 @@
         </div>
 
         <!-- Back Button -->
-        <div class="mt-8">
-            <a href="{% url 'payments:finance_dashboard' %}?range={{ selected_range }}"
+        <div class="mt-8 flex gap-4">
+            <a href="{% url 'payments:private_teaching_subject_revenue' %}?range={{ selected_range }}"
                class="btn btn-outline">
+                <i class="fas fa-book mr-2"></i>View by Subject
+            </a>
+            <a href="{% url 'payments:finance_dashboard' %}?range={{ selected_range }}"
+               class="btn btn-ghost">
                 <i class="fas fa-arrow-left mr-2"></i>Back to Finance Dashboard
             </a>
         </div>
