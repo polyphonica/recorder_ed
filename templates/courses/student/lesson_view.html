@@ -139,6 +139,34 @@
                 </div>
                 {% endif %}
 
+                <!-- Playalong Pieces -->
+                {% if lesson.lesson_pieces.exists %}
+                <div class="card bg-base-100 shadow-xl mb-6">
+                    <div class="card-body">
+                        <h2 class="card-title">
+                            <i class="fas fa-music mr-2 text-primary"></i>
+                            Playalong Practice
+                        </h2>
+                        <p class="text-base-content/70 mb-4">
+                            Practice along with multi-track audio pieces. Control each instrument independently with mute, solo, and volume controls.
+                        </p>
+
+                        <div class="stats stats-horizontal shadow bg-base-200 mb-4">
+                            <div class="stat py-3">
+                                <div class="stat-title text-xs">Available Pieces</div>
+                                <div class="stat-value text-2xl">{{ lesson.lesson_pieces.count }}</div>
+                            </div>
+                        </div>
+
+                        <a href="{% url 'audioplayer:audio_player' lesson_id=lesson.id %}"
+                           class="btn btn-primary">
+                            <i class="fas fa-play-circle mr-2"></i>
+                            Open Playalong Player
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Lesson Attachments -->
                 {% if lesson.attachments.all %}
                 <div class="card bg-base-100 shadow-xl mb-6">
