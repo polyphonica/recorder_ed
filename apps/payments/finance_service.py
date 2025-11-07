@@ -448,11 +448,13 @@ class FinanceService:
 
         # First pass to calculate total revenue for percentages
         for item in subject_data:
-            total_all_revenue += item['total_revenue'] or Decimal('0.00')
+            revenue = item['total_revenue']
+            total_all_revenue += Decimal(str(revenue)) if revenue else Decimal('0.00')
 
         # Second pass to build breakdown with percentages
         for item in subject_data:
-            subject_revenue = item['total_revenue'] or Decimal('0.00')
+            revenue = item['total_revenue']
+            subject_revenue = Decimal(str(revenue)) if revenue else Decimal('0.00')
             teacher_share = subject_revenue * (1 - Decimal(str(commission_rate)))
 
             # Calculate percentage of total revenue
@@ -463,7 +465,7 @@ class FinanceService:
 
             # Calculate average per lesson
             if item['total_lessons'] > 0:
-                avg_per_lesson = subject_revenue / item['total_lessons']
+                avg_per_lesson = subject_revenue / Decimal(str(item['total_lessons']))
             else:
                 avg_per_lesson = Decimal('0.00')
 
