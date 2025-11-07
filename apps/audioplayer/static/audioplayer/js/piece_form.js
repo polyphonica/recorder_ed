@@ -4,6 +4,63 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Piece form JavaScript loaded');
 
+    // Add Stem Button Functionality
+    const addStemButton = document.getElementById('add-stem-button');
+    const totalFormsInput = document.getElementById('id_stems-TOTAL_FORMS');
+
+    if (addStemButton && totalFormsInput) {
+        addStemButton.addEventListener('click', function() {
+            const currentForms = document.querySelectorAll('.stem-form-row');
+            const totalForms = parseInt(totalFormsInput.value);
+
+            // Clone the last form
+            const lastForm = currentForms[currentForms.length - 1];
+            const newForm = lastForm.cloneNode(true);
+
+            // Update form index in all fields
+            const formRegex = new RegExp('stems-' + (totalForms - 1) + '-', 'g');
+            newForm.innerHTML = newForm.innerHTML.replace(formRegex, 'stems-' + totalForms + '-');
+
+            // Clear all input values in the new form
+            newForm.querySelectorAll('input[type="text"], input[type="number"], input[type="file"]').forEach(function(input) {
+                input.value = '';
+            });
+
+            // Update the header
+            const header = newForm.querySelector('h3');
+            if (header) {
+                header.textContent = 'New Stem ' + (totalForms + 1);
+            }
+
+            // Remove any "Current file" links from cloned form
+            const currentFileLabels = newForm.querySelectorAll('.label-text-alt');
+            currentFileLabels.forEach(function(label) {
+                if (label.textContent.includes('Current:')) {
+                    label.parentElement.remove();
+                }
+            });
+
+            // Remove delete checkbox section from new forms (only for existing stems)
+            const deleteSection = newForm.querySelector('.form-control.mt-3');
+            if (deleteSection && deleteSection.querySelector('input[name$="-DELETE"]')) {
+                deleteSection.remove();
+            }
+
+            // Clear any error messages
+            newForm.querySelectorAll('.errorlist').forEach(function(error) {
+                error.remove();
+            });
+
+            // Insert the new form before the last form
+            lastForm.parentNode.insertBefore(newForm, lastForm.nextSibling);
+
+            // Increment total forms
+            totalFormsInput.value = totalForms + 1;
+
+            console.log('Added new stem form. Total forms now:', totalForms + 1);
+        });
+    }
+
     // Style formset rows
     const formsetRows = document.querySelectorAll('.stem-form-row, .inline-related');
     formsetRows.forEach(row => {
