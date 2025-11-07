@@ -17,6 +17,33 @@
         </div>
     </div>
 
+    <!-- Application Status Alert -->
+    {% if my_applications %}
+        <div class="mb-6">
+            <div class="alert {% if pending_applications %}alert-info{% elif accepted_applications %}alert-success{% elif waitlist_applications %}alert-warning{% else %}alert-error{% endif %}">
+                <i class="fas fa-info-circle text-lg"></i>
+                <div class="flex-1">
+                    <h3 class="font-bold text-lg">Your Teacher Applications</h3>
+                    <div class="text-sm mt-2">
+                        {% if pending_applications %}
+                            <p><i class="fas fa-clock mr-1"></i><strong>{{ pending_applications.count }}</strong> application{{ pending_applications.count|pluralize }} pending review</p>
+                        {% endif %}
+                        {% if accepted_applications %}
+                            <p><i class="fas fa-check-circle mr-1"></i><strong>{{ accepted_applications.count }}</strong> application{{ accepted_applications.count|pluralize }} accepted - you can now request lessons!</p>
+                        {% endif %}
+                        {% if waitlist_applications %}
+                            <p><i class="fas fa-hourglass-half mr-1"></i><strong>{{ waitlist_applications.count }}</strong> on waiting list</p>
+                        {% endif %}
+                        {% if declined_applications %}
+                            <p><i class="fas fa-times-circle mr-1"></i><strong>{{ declined_applications.count }}</strong> declined</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <a href="{% url 'private_teaching:my_applications' %}" class="btn btn-sm">View Applications</a>
+            </div>
+        </div>
+    {% endif %}
+
     <!-- Quick Stats -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="stat rounded-lg shadow-lg" style="background-color: #3b82f6;">

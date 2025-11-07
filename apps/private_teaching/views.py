@@ -334,6 +334,12 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         from datetime import date, timedelta
 
+        # Get pending student applications (initial applications to study with teacher)
+        pending_applications = TeacherStudentApplication.objects.filter(
+            teacher=self.request.user,
+            status='pending'
+        ).select_related('applicant', 'child_profile').order_by('-created_at')
+
         # Get lesson requests for this teacher's subjects with pending lessons
         teacher_subjects = Subject.objects.filter(teacher=self.request.user)
         pending_requests = LessonRequest.objects.filter(
@@ -358,6 +364,8 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
         ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('lesson_date', 'lesson_time')[:10]
 
         context.update({
+            'pending_applications': pending_applications,
+            'pending_applications_count': pending_applications.count(),
             'pending_requests': pending_requests,
             'pending_count': pending_requests.count(),
             'today_lessons': today_lessons,
@@ -374,6 +382,17 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from datetime import date
+
+        # Get student's teacher applications
+        my_applications = TeacherStudentApplication.objects.filter(
+            applicant=self.request.user
+        ).select_related('teacher', 'child_profile').order_by('-created_at')
+
+        # Count applications by status
+        pending_applications = my_applications.filter(status='pending')
+        accepted_applications = my_applications.filter(status='accepted')
+        waitlist_applications = my_applications.filter(status='waitlist')
+        declined_applications = my_applications.filter(status='declined')
 
         # Get student's recent requests
         recent_requests = LessonRequest.objects.filter(
@@ -398,6 +417,11 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
         ).select_related('subject', 'teacher').order_by('lesson_date', 'lesson_time')[:5]
 
         context.update({
+            'my_applications': my_applications,
+            'pending_applications': pending_applications,
+            'accepted_applications': accepted_applications,
+            'waitlist_applications': waitlist_applications,
+            'declined_applications': declined_applications,
             'recent_requests': recent_requests,
             'upcoming_lessons': upcoming_lessons,
             'awaiting_payment': awaiting_payment,
