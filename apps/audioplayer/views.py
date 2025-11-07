@@ -156,7 +156,7 @@ def audio_player(request, lesson_id):
     context = {
         'lesson': lesson,
         'piece_count': piece_count,
-        'title': f'Playalong: {lesson.title}'
+        'title': f'Playalong: {lesson.lesson_title}'
     }
     return render(request, 'audioplayer/audio_player.html', context)
 
