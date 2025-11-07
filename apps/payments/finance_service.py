@@ -440,7 +440,7 @@ class FinanceService:
         ).annotate(
             total_lessons=Count('id'),
             total_students=Count('student', distinct=True),
-            total_revenue=Sum('price')
+            total_revenue=Sum('fee')
         ).order_by('-total_revenue')
 
         breakdown = []
