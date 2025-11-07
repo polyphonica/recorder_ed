@@ -105,9 +105,12 @@
                         </div>
                         
                         <div class="mt-6">
-                            <a href="{% url 'private_teaching:checkout' %}" class="btn btn-section-primary w-full">
-                                <i class="fas fa-credit-card mr-2"></i>Proceed to Checkout
-                            </a>
+                            <form method="post" action="{% url 'private_teaching:process_payment' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-section-primary w-full">
+                                    <i class="fas fa-credit-card mr-2"></i>Complete Payment
+                                </button>
+                            </form>
                         </div>
                         
                         <div class="mt-4">

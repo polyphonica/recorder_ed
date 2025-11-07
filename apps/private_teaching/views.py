@@ -902,17 +902,6 @@ class ClearCartView(StudentProfileCompletedMixin, View):
         return redirect('private_teaching:cart')
 
 
-class CheckoutView(StudentProfileCompletedMixin, TemplateView):
-    """Checkout page - placeholder for now"""
-    template_name = 'private_teaching/checkout.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        cart_manager = CartManager(self.request)
-        context.update(cart_manager.get_cart_context())
-        return context
-
-
 class ProcessPaymentView(StudentProfileCompletedMixin, View):
     """Create Stripe checkout session and redirect to payment"""
 

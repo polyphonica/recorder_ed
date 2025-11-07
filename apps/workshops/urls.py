@@ -61,7 +61,7 @@ urlpatterns = [
     path('cart/add/<uuid:session_id>/', views.AddToCartView.as_view(), name='add_to_cart'),
     path('cart/remove/<uuid:session_id>/', views.RemoveFromCartView.as_view(), name='remove_from_cart'),
     path('cart/clear/', views.ClearWorkshopCartView.as_view(), name='clear_cart'),
-    path('cart/checkout/', views.WorkshopCheckoutView.as_view(), name='checkout'),
+    path('cart/process-payment/', views.ProcessCartPaymentView.as_view(), name='process_cart_payment'),
     path('cart/checkout/success/', views.CheckoutSuccessView.as_view(), name='cart_checkout_success'),
     path('cart/checkout/cancel/', views.CheckoutCancelView.as_view(), name='cart_checkout_cancel'),
 

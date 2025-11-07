@@ -97,10 +97,17 @@
                                 Clear Cart
                             </button>
                         </form>
-                        <a href="{% url 'workshops:checkout' %}" class="btn btn-secondary">
-                            <i class="fas fa-check mr-2"></i>
-                            Proceed to Checkout
-                        </a>
+                        <form method="post" action="{% url 'workshops:process_cart_payment' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-secondary">
+                                <i class="fas fa-credit-card mr-2"></i>
+                                {% if workshop_cart_total > 0 %}
+                                    Complete Payment
+                                {% else %}
+                                    Complete Registration
+                                {% endif %}
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>

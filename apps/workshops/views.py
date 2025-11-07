@@ -1610,29 +1610,8 @@ class CheckoutCancelView(LoginRequiredMixin, View):
         return redirect('workshops:cart')
 
 
-class WorkshopCheckoutView(LoginRequiredMixin, TemplateView):
-    """Checkout page for workshop cart"""
-    template_name = 'workshops/checkout.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        cart_manager = WorkshopCartManager(self.request)
-        cart_context = cart_manager.get_cart_context()
-
-        # Check if cart is empty
-        if cart_context['workshop_cart_count'] == 0:
-            messages.warning(self.request, 'Your cart is empty')
-            return context
-
-        # Get user details for display
-        user = self.request.user
-        context.update({
-            'user_name': user.get_full_name() or user.username,
-            'user_email': user.email,
-            **cart_context
-        })
-
-        return context
+class ProcessCartPaymentView(LoginRequiredMixin, View):
+    """Process workshop cart payment - create Stripe checkout session"""
 
     def post(self, request, *args, **kwargs):
         """Handle checkout submission - create Stripe checkout session"""
