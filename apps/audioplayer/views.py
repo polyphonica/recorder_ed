@@ -44,7 +44,14 @@ def piece_create(request):
             messages.success(request, f'Piece "{piece.title}" created successfully!')
             return redirect('audioplayer:piece_list')
         else:
-            messages.error(request, 'Please correct the errors below.')
+            if not form.is_valid():
+                messages.error(request, f'Piece form errors: {form.errors}')
+            if not formset.is_valid():
+                for i, form_errors in enumerate(formset.errors):
+                    if form_errors:
+                        messages.error(request, f'Stem {i+1} errors: {form_errors}')
+                if formset.non_form_errors():
+                    messages.error(request, f'Formset errors: {formset.non_form_errors()}')
     else:
         form = PieceForm()
         formset = StemFormSet()
@@ -76,7 +83,14 @@ def piece_edit(request, pk):
             messages.success(request, f'Piece "{piece.title}" updated successfully!')
             return redirect('audioplayer:piece_list')
         else:
-            messages.error(request, 'Please correct the errors below.')
+            if not form.is_valid():
+                messages.error(request, f'Piece form errors: {form.errors}')
+            if not formset.is_valid():
+                for i, form_errors in enumerate(formset.errors):
+                    if form_errors:
+                        messages.error(request, f'Stem {i+1} errors: {form_errors}')
+                if formset.non_form_errors():
+                    messages.error(request, f'Formset errors: {formset.non_form_errors()}')
     else:
         form = PieceForm(instance=piece)
         formset = StemFormSet(instance=piece)

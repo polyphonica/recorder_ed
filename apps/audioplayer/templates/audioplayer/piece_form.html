@@ -154,9 +154,19 @@
                     {% endfor %}
                 </div>
 
+                {% if formset.non_form_errors %}
+                <div class="alert alert-error mt-4">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <div>
+                        <p class="font-semibold">Formset Errors:</p>
+                        {{ formset.non_form_errors }}
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="alert alert-warning mt-4">
                     <i class="fas fa-info-circle"></i>
-                    <span class="text-sm">Empty stem forms will be ignored. To add more stems, save this piece first and then edit it.</span>
+                    <span class="text-sm">Empty stem forms will be ignored. Fill in both instrument name AND audio file for each stem you want to add.</span>
                 </div>
             </div>
         </div>

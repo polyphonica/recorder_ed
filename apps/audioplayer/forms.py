@@ -31,6 +31,8 @@ StemFormSet = inlineformset_factory(
     fields=['instrument_name', 'audio_file', 'order'],
     extra=3,  # Show 3 empty forms by default
     can_delete=True,
+    validate_min=False,  # Don't require minimum number of stems
+    validate_max=False,  # Don't enforce maximum
     widgets={
         'instrument_name': forms.TextInput(attrs={
             'class': 'form-control',
