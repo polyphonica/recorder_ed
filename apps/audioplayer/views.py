@@ -82,7 +82,7 @@ def piece_edit(request, pk):
         formset = StemFormSet(instance=piece)
 
     # Get lessons using this piece
-    lessons_using = piece.lesson_assignments.select_related('lesson__course').all()
+    lessons_using = piece.lesson_assignments.select_related('lesson__topic__course').all()
 
     context = {
         'form': form,
@@ -104,7 +104,7 @@ def piece_delete(request, pk):
 
     # Check if used in any lessons
     usage_count = piece.lesson_assignments.count()
-    lessons_using = piece.lesson_assignments.select_related('lesson__course').all()[:5]
+    lessons_using = piece.lesson_assignments.select_related('lesson__topic__course').all()[:5]
 
     if request.method == 'POST':
         if usage_count > 0:
@@ -212,7 +212,7 @@ def piece_detail(request, pk):
     """View details of a piece (for teachers)"""
     piece = get_object_or_404(Piece, pk=pk)
     stems = piece.stems.all().order_by('order')
-    lessons_using = piece.lesson_assignments.select_related('lesson__course').all()
+    lessons_using = piece.lesson_assignments.select_related('lesson__topic__course').all()
 
     context = {
         'piece': piece,
