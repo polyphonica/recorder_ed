@@ -117,9 +117,18 @@
         
         <div class="navbar-end">
             <!-- Help Icon -->
-            <button class="btn btn-ghost btn-circle mr-2 tooltip tooltip-left" data-tip="Help & Support" onclick="alert('Help system coming soon! For now, hover over buttons and fields to see helpful tooltips.')">
-                <i class="fas fa-question-circle text-lg"></i>
-            </button>
+            <div class="dropdown dropdown-end mr-2">
+                <button tabindex="0" class="btn btn-ghost btn-circle">
+                    <i class="fas fa-question-circle text-lg"></i>
+                </button>
+                <div tabindex="0" class="dropdown-content z-[1] card card-compact w-64 p-2 shadow bg-base-100 text-base-content">
+                    <div class="card-body">
+                        <h3 class="font-bold">Help & Support</h3>
+                        <p class="text-sm">Hover over buttons and form fields to see helpful tips!</p>
+                        <p class="text-sm mt-2">More help features coming soon.</p>
+                    </div>
+                </div>
+            </div>
 
             <!-- Theme Toggle -->
             <div class="dropdown dropdown-end mr-4">
