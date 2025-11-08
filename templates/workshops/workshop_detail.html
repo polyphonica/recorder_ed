@@ -844,4 +844,114 @@ function showFeedback(message, type = 'success') {
     animation: fade-in 0.3s ease-out;
 }
 </style>
+
+<!-- Workshop Booking Tour -->
+<script>
+function startWorkshopBookingTour() {
+    const driver = window.driver.js.driver({
+        showProgress: true,
+        showButtons: ['next', 'previous', 'close'],
+        steps: [
+            {
+                element: 'h1',
+                popover: {
+                    title: 'Welcome to the Workshop Tour!',
+                    description: 'This quick tour will show you how to book a workshop session. Click "Next" to continue, or "Close" to skip the tour.',
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '.lg\\:col-span-2',
+                popover: {
+                    title: 'Workshop Details',
+                    description: 'Here you can see what the workshop is about, what you\'ll learn, and what materials you might need.',
+                    side: "left",
+                    align: 'start'
+                }
+            },
+            {
+                element: '.lg\\:col-span-1',
+                popover: {
+                    title: 'Sessions & Booking',
+                    description: 'This sidebar shows upcoming session dates and times. Each session has a limited number of places.',
+                    side: "left",
+                    align: 'start'
+                }
+            },
+            {% if upcoming_sessions %}
+            {
+                element: '.space-y-2',
+                popover: {
+                    title: 'Available Sessions',
+                    description: 'Each card shows a session date, time, and how many places are still available. Look for sessions that fit your schedule.',
+                    side: "left",
+                    align: 'start'
+                }
+            },
+            {
+                element: '.badge.badge-sm.badge-outline',
+                popover: {
+                    title: 'Places Available',
+                    description: 'This shows how many spots are left in the session. Book early to secure your place!',
+                    side: "left",
+                    align: 'start'
+                }
+            },
+            {% if user.is_authenticated %}
+                {% if upcoming_sessions.0.spots_remaining > 0 %}
+            {
+                element: 'button[type="submit"].btn-primary',
+                popover: {
+                    title: 'Add to Cart',
+                    description: 'Click this button to add the session to your shopping cart. You can add multiple sessions before checking out.',
+                    side: "top",
+                    align: 'start'
+                }
+            },
+                {% else %}
+            {
+                element: '.btn-disabled',
+                popover: {
+                    title: 'Session Full',
+                    description: 'When a session is full, you cannot book it. But don\'t worry - check other dates or look for similar workshops below!',
+                    side: "top",
+                    align: 'start'
+                }
+            },
+                {% endif %}
+            {% else %}
+            {
+                element: 'a[href*="login"]',
+                popover: {
+                    title: 'Login Required',
+                    description: 'You need to be logged in to book workshops. Click here to sign in or create an account.',
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {% endif %}
+            {% endif %}
+            {
+                popover: {
+                    title: 'Tour Complete!',
+                    description: 'You now know how to browse and book workshop sessions. Remember: hover over any button to see helpful tips! Click "Close" to start exploring.'
+                }
+            }
+        ]
+    });
+
+    driver.drive();
+}
+</script>
+
+<!-- Tour Button - Floating Action Button -->
+<div class="fixed bottom-6 right-6 z-50">
+    <button onclick="startWorkshopBookingTour()"
+            class="btn btn-primary btn-circle btn-lg shadow-xl tooltip tooltip-left"
+            data-tip="Need help? Take a quick tour!">
+        <i class="fas fa-question-circle text-2xl"></i>
+    </button>
+</div>
+
 {% endblock %}
