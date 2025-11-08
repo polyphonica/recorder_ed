@@ -59,7 +59,11 @@
     
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
+
+    <!-- Driver.js for Product Tours -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
+
     <!-- Additional head content -->
     {% block extra_head %}{% endblock %}
 </head>
@@ -112,6 +116,11 @@
         </div>
         
         <div class="navbar-end">
+            <!-- Help Icon -->
+            <button class="btn btn-ghost btn-circle mr-2 tooltip tooltip-bottom" data-tip="Help & Support" onclick="alert('Help system coming soon! For now, hover over buttons and fields to see helpful tooltips.')">
+                <i class="fas fa-question-circle text-lg"></i>
+            </button>
+
             <!-- Theme Toggle -->
             <div class="dropdown dropdown-end mr-4">
                 <label tabindex="0" class="btn btn-ghost btn-circle">
@@ -126,7 +135,7 @@
                     <li><a onclick="setTheme('cyberpunk')">🤖 Cyberpunk</a></li>
                 </ul>
             </div>
-            
+
             <!-- Shopping Cart (Students only) - Context-aware -->
             {% if user.is_authenticated and not user.is_instructor %}
                 <div class="mr-4">

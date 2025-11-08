@@ -37,12 +37,12 @@
                     <!-- Capacity Info -->
                     <div class="mt-4 flex gap-4">
                         {% if max_students %}
-                            <div class="stat bg-base-200 rounded-lg p-3">
+                            <div class="stat bg-base-200 rounded-lg p-3 tooltip tooltip-bottom" data-tip="Number of students currently studying with this teacher">
                                 <div class="stat-title text-xs">Current Students</div>
                                 <div class="stat-value text-lg">{{ accepted_count }} / {{ max_students }}</div>
                             </div>
                         {% endif %}
-                        <div class="stat bg-base-200 rounded-lg p-3">
+                        <div class="stat bg-base-200 rounded-lg p-3 tooltip tooltip-bottom" data-tip="{% if is_accepting %}Teacher has capacity for new students{% else %}Teacher's student list is full, but you can join the waiting list{% endif %}">
                             <div class="stat-title text-xs">Accepting New Students</div>
                             <div class="stat-value text-lg">
                                 {% if is_accepting %}
@@ -134,7 +134,7 @@
 
                     <div class="card-actions justify-end">
                         <a href="{% url 'private_teaching:home' %}" class="btn btn-ghost">Cancel</a>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary tooltip tooltip-left" data-tip="Send your application to the teacher for review">
                             <i class="fas fa-paper-plane mr-2"></i>
                             Submit Application
                         </button>

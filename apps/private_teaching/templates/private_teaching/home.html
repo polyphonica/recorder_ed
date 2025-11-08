@@ -70,9 +70,9 @@
                                 <div class="text-sm text-base-content/70">
                                     Private Teacher
                                     {% if teacher.profile.accepting_new_private_students %}
-                                        <span class="badge badge-success badge-xs ml-1">Accepting Students</span>
+                                        <span class="badge badge-success badge-xs ml-1 tooltip" data-tip="This teacher is currently accepting new students">Accepting Students</span>
                                     {% else %}
-                                        <span class="badge badge-error badge-xs ml-1">Not Accepting</span>
+                                        <span class="badge badge-error badge-xs ml-1 tooltip" data-tip="This teacher's student list is full">Not Accepting</span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -83,11 +83,11 @@
                             </p>
                         {% endif %}
                         <div class="card-actions justify-between mt-2">
-                            <a href="{% url 'accounts:teacher_profile' teacher.id %}" class="btn btn-ghost btn-sm">
+                            <a href="{% url 'accounts:teacher_profile' teacher.id %}" class="btn btn-ghost btn-sm tooltip tooltip-top" data-tip="View teacher's full profile and teaching information">
                                 <i class="fas fa-info-circle mr-1"></i>View Profile
                             </a>
                             {% if user.is_authenticated and user.profile.is_student and user.profile.profile_completed %}
-                                <a href="{% url 'private_teaching:apply_to_teacher' teacher.id %}" class="btn btn-primary btn-sm">
+                                <a href="{% url 'private_teaching:apply_to_teacher' teacher.id %}" class="btn btn-primary btn-sm tooltip tooltip-top" data-tip="Request to become this teacher's student">
                                     <i class="fas fa-user-plus mr-1"></i>Apply to Study
                                 </a>
                             {% endif %}

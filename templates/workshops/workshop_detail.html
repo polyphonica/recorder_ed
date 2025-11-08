@@ -343,7 +343,7 @@
                                                     <div class="text-sm font-medium">
                                                         {{ session.start_datetime|date:"M j" }}
                                                     </div>
-                                                    <div class="badge badge-sm badge-outline">
+                                                    <div class="badge badge-sm badge-outline tooltip tooltip-left" data-tip="Number of places available in this session">
                                                         {{ session.spots_remaining }} spots
                                                     </div>
                                                 </div>
@@ -385,13 +385,13 @@
                                                             <form method="post" action="{% url 'workshops:add_to_cart' session.id %}">
                                                                 {% csrf_token %}
                                                                 <input type="hidden" name="next" value="{{ request.path }}">
-                                                                <button type="submit" class="btn btn-primary btn-sm w-full mt-2">
+                                                                <button type="submit" class="btn btn-primary btn-sm w-full mt-2 tooltip tooltip-top" data-tip="Reserve your place in this workshop session">
                                                                     <i class="fas fa-shopping-cart mr-1"></i>
                                                                     Add to Cart
                                                                 </button>
                                                             </form>
                                                         {% else %}
-                                                            <button class="btn btn-disabled btn-sm w-full mt-2">
+                                                            <button class="btn btn-disabled btn-sm w-full mt-2 tooltip tooltip-top" data-tip="This session is fully booked">
                                                                 Session Full
                                                             </button>
                                                         {% endif %}
@@ -400,11 +400,11 @@
                                                     {% comment %}Unauthenticated user{% endcomment %}
                                                     {% if session.spots_remaining > 0 %}
                                                         <a href="{% url 'login' %}?next={{ request.path }}"
-                                                           class="btn btn-primary btn-sm w-full mt-2">
+                                                           class="btn btn-primary btn-sm w-full mt-2 tooltip tooltip-top" data-tip="Sign in to book this session">
                                                             Login to Register
                                                         </a>
                                                     {% else %}
-                                                        <button class="btn btn-disabled btn-sm w-full mt-2">
+                                                        <button class="btn btn-disabled btn-sm w-full mt-2 tooltip tooltip-top" data-tip="This session is fully booked">
                                                             Session Full
                                                         </button>
                                                     {% endif %}
@@ -720,17 +720,17 @@
                             <form method="post" action="{% url 'workshops:add_to_cart' session.id %}">
                                 {% csrf_token %}
                                 <input type="hidden" name="next" value="{{ request.path }}">
-                                <button type="submit" class="btn btn-primary btn-sm">
+                                <button type="submit" class="btn btn-primary btn-sm tooltip tooltip-left" data-tip="Reserve your place in this session">
                                     <i class="fas fa-shopping-cart mr-1"></i>
                                     Add to Cart
                                 </button>
                             </form>
                         {% else %}
-                            <button class="btn btn-disabled btn-sm">Session Full</button>
+                            <button class="btn btn-disabled btn-sm tooltip tooltip-left" data-tip="This session is fully booked">Session Full</button>
                         {% endif %}
                     {% else %}
                         <a href="{% url 'login' %}?next={{ request.path }}"
-                           class="btn btn-primary btn-sm">
+                           class="btn btn-primary btn-sm tooltip tooltip-left" data-tip="Sign in to book this session">
                             Login to Register
                         </a>
                     {% endif %}
