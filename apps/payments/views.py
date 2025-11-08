@@ -554,6 +554,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import TemplateView
 from django.utils import timezone
 from datetime import timedelta
+from django.db.models import Sum
 from .finance_service import FinanceService
 
 
@@ -613,11 +614,46 @@ class FinanceDashboardView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
         # Get revenue trend
         trend = FinanceService.get_revenue_trend(teacher, days=30)
 
+        # Get expense data
+        from apps.expenses.models import Expense
+        expense_queryset = Expense.objects.filter(created_by=teacher)
+
+        if start_date:
+            expense_queryset = expense_queryset.filter(date__gte=start_date.date())
+
+        # Calculate total expenses
+        total_expenses = expense_queryset.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+        # Calculate expenses by business area
+        expenses_by_area = expense_queryset.values('business_area').annotate(
+            total=Sum('amount')
+        ).order_by('business_area')
+
+        expense_breakdown = {
+            'workshops': Decimal('0.00'),
+            'courses': Decimal('0.00'),
+            'private_teaching': Decimal('0.00'),
+            'general': Decimal('0.00'),
+        }
+
+        for item in expenses_by_area:
+            expense_breakdown[item['business_area']] = item['total']
+
+        # Calculate net profit
+        net_profit = summary['total_revenue'] - total_expenses
+
+        # Add expense count
+        expense_count = expense_queryset.count()
+
         context.update({
             'summary': summary,
             'recent_transactions': recent_transactions,
             'trend': trend,
             'selected_range': date_range,
+            'total_expenses': total_expenses,
+            'expense_breakdown': expense_breakdown,
+            'net_profit': net_profit,
+            'expense_count': expense_count,
         })
 
         return context

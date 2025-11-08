@@ -20,7 +20,7 @@
                 <h1 class="text-4xl font-bold mb-2">
                     <i class="fas fa-chart-line mr-3 text-primary"></i>Finance Dashboard
                 </h1>
-                <p class="text-base-content/70">Complete revenue overview across all domains</p>
+                <p class="text-base-content/70">Complete financial overview: revenue, expenses, and profitability</p>
             </div>
 
             <!-- Date Range Filter -->
@@ -36,7 +36,7 @@
         </div>
 
         <!-- Summary Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
             <div class="stat bg-base-200 rounded-lg shadow">
                 <div class="stat-figure text-primary">
                     <i class="fas fa-pound-sign text-3xl"></i>
@@ -47,12 +47,21 @@
             </div>
 
             <div class="stat bg-base-200 rounded-lg shadow">
-                <div class="stat-figure text-secondary">
-                    <i class="fas fa-coins text-3xl"></i>
+                <div class="stat-figure text-error">
+                    <i class="fas fa-money-bill-wave text-3xl"></i>
                 </div>
-                <div class="stat-title">Gross Revenue</div>
-                <div class="stat-value text-secondary">£{{ summary.total_gross|floatformat:2 }}</div>
-                <div class="stat-desc">Total student payments</div>
+                <div class="stat-title">Total Expenses</div>
+                <div class="stat-value text-error">£{{ total_expenses|floatformat:2 }}</div>
+                <div class="stat-desc">{{ expense_count }} expense{{ expense_count|pluralize }}</div>
+            </div>
+
+            <div class="stat bg-success text-success-content rounded-lg shadow">
+                <div class="stat-figure text-white">
+                    <i class="fas fa-chart-line text-3xl"></i>
+                </div>
+                <div class="stat-title text-white">Net Profit</div>
+                <div class="stat-value text-white">£{{ net_profit|floatformat:2 }}</div>
+                <div class="stat-desc text-white">Revenue - Expenses</div>
             </div>
 
             <div class="stat bg-base-200 rounded-lg shadow">
@@ -130,6 +139,66 @@
                             </div>
                             <div class="stat-value text-accent">£{{ summary.by_domain.private_teaching.revenue|floatformat:2 }}</div>
                             <div class="stat-desc">{{ summary.by_domain.private_teaching.count }} transaction{{ summary.by_domain.private_teaching.count|pluralize }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses by Domain -->
+        <div class="card bg-base-200 shadow-xl mb-8">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title text-2xl">
+                        <i class="fas fa-receipt mr-2"></i>Expenses by Domain
+                    </h2>
+                    <a href="{% url 'expenses:dashboard' %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-chart-bar mr-2"></i>View Full Expenses
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Workshops -->
+                    <div class="card bg-base-100 shadow">
+                        <div class="card-body">
+                            <h3 class="font-bold text-lg">
+                                <i class="fas fa-chalkboard-teacher mr-2 text-primary"></i>Workshops
+                            </h3>
+                            <div class="stat-value text-error">£{{ expense_breakdown.workshops|floatformat:2 }}</div>
+                            <div class="stat-desc">Expenses</div>
+                        </div>
+                    </div>
+
+                    <!-- Courses -->
+                    <div class="card bg-base-100 shadow">
+                        <div class="card-body">
+                            <h3 class="font-bold text-lg">
+                                <i class="fas fa-graduation-cap mr-2 text-secondary"></i>Courses
+                            </h3>
+                            <div class="stat-value text-error">£{{ expense_breakdown.courses|floatformat:2 }}</div>
+                            <div class="stat-desc">Expenses</div>
+                        </div>
+                    </div>
+
+                    <!-- Private Teaching -->
+                    <div class="card bg-base-100 shadow">
+                        <div class="card-body">
+                            <h3 class="font-bold text-lg">
+                                <i class="fas fa-user-graduate mr-2 text-accent"></i>Private Lessons
+                            </h3>
+                            <div class="stat-value text-error">£{{ expense_breakdown.private_teaching|floatformat:2 }}</div>
+                            <div class="stat-desc">Expenses</div>
+                        </div>
+                    </div>
+
+                    <!-- General -->
+                    <div class="card bg-base-100 shadow">
+                        <div class="card-body">
+                            <h3 class="font-bold text-lg">
+                                <i class="fas fa-building mr-2 text-info"></i>General
+                            </h3>
+                            <div class="stat-value text-error">£{{ expense_breakdown.general|floatformat:2 }}</div>
+                            <div class="stat-desc">Shared Expenses</div>
                         </div>
                     </div>
                 </div>
