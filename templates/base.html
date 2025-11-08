@@ -227,7 +227,6 @@
                                 <li><a href="{% url 'private_teaching:incoming_requests' %}"><i class="fas fa-inbox mr-2"></i>Lesson Requests</a></li>
                                 <li><a href="{% url 'private_teaching:teacher_schedule' %}"><i class="fas fa-calendar-alt mr-2"></i>My Schedule</a></li>
                                 <li><a href="{% url 'private_teaching:calendar' %}"><i class="fas fa-calendar mr-2"></i>Calendar</a></li>
-                                <li><a href="{% url 'expenses:expense_list' %}"><i class="fas fa-receipt mr-2"></i>Expenses</a></li>
 
                             {% else %}
                                 {# NOT IN SPECIFIC APP - SHOW ALL DASHBOARDS #}
@@ -302,7 +301,6 @@
                             <li><a href="{% url 'private_teaching:incoming_requests' %}" class="{% if request.resolver_match.url_name == 'incoming_requests' %}bg-primary text-primary-content{% endif %}">Incoming Requests</a></li>
                             <li><a href="{% url 'private_teaching:teacher_schedule' %}" class="{% if request.resolver_match.url_name == 'teacher_schedule' %}bg-primary text-primary-content{% endif %}">My Schedule</a></li>
                             <li><a href="{% url 'private_teaching:calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}bg-primary text-primary-content{% endif %}">Calendar</a></li>
-                            <li><a href="{% url 'expenses:dashboard' %}" class="{% if request.resolver_match.namespace == 'expenses' %}bg-primary text-primary-content{% endif %}">Expenses</a></li>
                         {% else %}
                             <!-- Student Navigation -->
                             <li><a href="{% url 'private_teaching:student_dashboard' %}" class="{% if request.resolver_match.url_name == 'student_dashboard' %}bg-primary text-primary-content{% endif %}">Dashboard</a></li>
