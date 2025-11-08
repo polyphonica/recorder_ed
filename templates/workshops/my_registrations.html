@@ -27,7 +27,7 @@
                     <i class="fas fa-arrow-left"></i>
                     Back to Dashboard
                 </a>
-                <a href="{% url 'workshops:list' %}" class="btn btn-primary">
+                <a href="{% url 'workshops:list' %}?browse=all" class="btn btn-primary">
                     <i class="fas fa-plus"></i>
                     Find More Workshops
                 </a>
@@ -309,7 +309,7 @@
                     You haven't registered for any workshops yet. Explore our catalog to find workshops that match your interests and skill level.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="{% url 'workshops:list' %}" class="btn btn-primary btn-lg">
+                    <a href="{% url 'workshops:list' %}?browse=all" class="btn btn-primary btn-lg">
                         <i class="fas fa-search"></i>
                         Browse Workshops
                     </a>
