@@ -175,13 +175,22 @@
 
 <!-- Lesson Details Modal -->
 <div id="lesson-modal" class="modal">
-    <div class="modal-box">
+    <div class="modal-box max-w-2xl">
         <h3 class="font-bold text-lg mb-4">Lesson Details</h3>
         <div id="lesson-details-content">
             <!-- Details will be loaded here -->
         </div>
         <div class="modal-action">
             <button class="btn" onclick="closeLessonModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container for Contact Info -->
+<div id="toast-container" class="toast toast-top toast-end hidden">
+    <div class="alert alert-info">
+        <div>
+            <span id="toast-content"></span>
         </div>
     </div>
 </div>
@@ -236,26 +245,190 @@ function filterLessons(filter) {
 
 // Lesson details modal
 function openLessonDetails(lessonId) {
-    // For now, just show a placeholder. In a real implementation, 
-    // you'd fetch lesson details via AJAX
     const modal = document.getElementById('lesson-modal');
     const content = document.getElementById('lesson-details-content');
-    
+
+    // Show loading state
     content.innerHTML = `
-        <p>Lesson ID: ${lessonId}</p>
-        <p>Detailed lesson information would be loaded here...</p>
-        <div class="mt-4">
-            <button class="btn btn-outline btn-sm">Contact Student</button>
-            <button class="btn btn-outline btn-sm">Reschedule</button>
-            <button class="btn btn-outline btn-sm">Mark Complete</button>
+        <div class="flex justify-center py-8">
+            <span class="loading loading-spinner loading-lg"></span>
         </div>
     `;
-    
     modal.classList.add('modal-open');
+
+    // Fetch lesson details
+    fetch(`/private-teaching/lesson/${lessonId}/details/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch lesson details');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Format date and time for display
+            const dateObj = new Date(data.date + 'T' + data.time);
+            const formattedDate = dateObj.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            const formattedTime = dateObj.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+
+            // Render lesson details
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-base-content/70">Subject</p>
+                            <p class="font-semibold">${data.subject}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Student</p>
+                            <p class="font-semibold">${data.student}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Date</p>
+                            <p class="font-semibold">${formattedDate}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Time</p>
+                            <p class="font-semibold">${formattedTime}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Duration</p>
+                            <p class="font-semibold">${data.duration} minutes</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Location</p>
+                            <p class="font-semibold">${data.location}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Fee</p>
+                            <p class="font-semibold">£${data.price}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Payment Status</p>
+                            <p class="font-semibold">${data.payment_status}</p>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="flex gap-2 flex-wrap">
+                        <button class="btn btn-primary btn-sm" onclick="openLesson('${data.id}')">
+                            <i class="fas fa-folder-open mr-2"></i>Open Lesson
+                        </button>
+                        ${data.lesson_request_id ? `
+                            <button class="btn btn-outline btn-sm" onclick="rescheduleLesson(${data.lesson_request_id})">
+                                <i class="fas fa-calendar-alt mr-2"></i>Reschedule
+                            </button>
+                        ` : ''}
+                        ${data.student_id ? `
+                            <button class="btn btn-outline btn-sm" onclick="contactStudent(${data.student_id})">
+                                <i class="fas fa-address-book mr-2"></i>Contact Student
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        })
+        .catch(error => {
+            console.error('Error fetching lesson details:', error);
+            content.innerHTML = `
+                <div class="alert alert-error">
+                    <span>Failed to load lesson details. Please try again.</span>
+                </div>
+            `;
+        });
 }
 
 function closeLessonModal() {
     document.getElementById('lesson-modal').classList.remove('modal-open');
+}
+
+function openLesson(lessonId) {
+    window.location.href = `/lessons/${lessonId}/edit/`;
+}
+
+function rescheduleLesson(requestId) {
+    window.location.href = `/private-teaching/teacher/request/${requestId}/`;
+}
+
+function contactStudent(studentId) {
+    // Close modal first
+    closeLessonModal();
+
+    // Show loading toast
+    showToast('Loading contact information...', 'info');
+
+    // Fetch student contact details
+    fetch(`/private-teaching/teacher/students/${studentId}/contact/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch contact details');
+            }
+            return response.json();
+        })
+        .then(data => {
+            let contactInfo = `<div class="space-y-2">`;
+
+            // Guardian info
+            if (data.is_guardian) {
+                contactInfo += `<p class="font-bold">Guardian: ${data.full_name}</p>`;
+
+                // Children info
+                if (data.children && data.children.length > 0) {
+                    contactInfo += `<p class="text-sm">Children: ${data.children.map(c => c.full_name).join(', ')}</p>`;
+                }
+            } else {
+                contactInfo += `<p class="font-bold">${data.full_name}</p>`;
+            }
+
+            // Contact details
+            contactInfo += `<p><i class="fas fa-envelope mr-2"></i>${data.email}</p>`;
+
+            if (data.phone) {
+                contactInfo += `<p><i class="fas fa-phone mr-2"></i>${data.phone}</p>`;
+            }
+
+            if (data.address) {
+                contactInfo += `<p><i class="fas fa-map-marker-alt mr-2"></i>${data.address}</p>`;
+            }
+
+            contactInfo += `</div>`;
+
+            // Show contact info in toast
+            showToast(contactInfo, 'info', 10000);
+        })
+        .catch(error => {
+            console.error('Error fetching contact details:', error);
+            showToast('Failed to load contact information. Please try again.', 'error');
+        });
+}
+
+function showToast(content, type = 'info', duration = 5000) {
+    const toastContainer = document.getElementById('toast-container');
+    const toastContent = document.getElementById('toast-content');
+    const alert = toastContainer.querySelector('.alert');
+
+    // Set alert type
+    alert.className = `alert alert-${type}`;
+
+    // Set content
+    toastContent.innerHTML = content;
+
+    // Show toast
+    toastContainer.classList.remove('hidden');
+
+    // Auto-hide after duration
+    setTimeout(() => {
+        toastContainer.classList.add('hidden');
+    }, duration);
 }
 
 // Initialize with timeline view

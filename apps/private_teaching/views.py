@@ -1139,7 +1139,9 @@ class LessonDetailView(PrivateTeachingLoginRequiredMixin, View):
                 'approval_status': lesson.approved_status.lower(),
                 'price': str(lesson.fee) if lesson.fee else 'Not set',
                 'student': student_name,
-                'teacher': lesson.teacher.get_full_name() if lesson.teacher else 'Not assigned'
+                'teacher': lesson.teacher.get_full_name() if lesson.teacher else 'Not assigned',
+                'lesson_request_id': lesson.lesson_request.id if lesson.lesson_request else None,
+                'student_id': lesson.student.id if lesson.student else None
             }
 
             return JsonResponse(lesson_data)
