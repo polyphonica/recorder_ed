@@ -890,27 +890,84 @@ class ProfitLossView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         teacher = self.request.user
 
-        # Get date range from query params (default to last 30 days)
-        date_range = self.request.GET.get('range', '30')
+        # Check for custom date range first
+        start_date_str = self.request.GET.get('start_date')
+        end_date_str = self.request.GET.get('end_date')
 
-        if date_range == 'all':
-            start_date = None
-            end_date = None
-        elif date_range == '7':
-            start_date = timezone.now() - timedelta(days=7)
-            end_date = None
-        elif date_range == '30':
-            start_date = timezone.now() - timedelta(days=30)
-            end_date = None
-        elif date_range == '90':
-            start_date = timezone.now() - timedelta(days=90)
-            end_date = None
-        elif date_range == 'year':
-            start_date = timezone.now() - timedelta(days=365)
-            end_date = None
+        if start_date_str and end_date_str:
+            # Custom date range provided
+            from datetime import datetime
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            start_date = timezone.make_aware(start_date)
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+            end_date = timezone.make_aware(end_date.replace(hour=23, minute=59, second=59))
+            date_range = 'custom'
         else:
-            start_date = timezone.now() - timedelta(days=30)
-            end_date = None
+            # Use quick select range
+            date_range = self.request.GET.get('range', 'tax_year')
+
+            if date_range == 'all':
+                start_date = None
+                end_date = None
+                start_date_str = ''
+                end_date_str = ''
+            elif date_range == '7':
+                start_date = timezone.now() - timedelta(days=7)
+                end_date = timezone.now()
+                start_date_str = start_date.strftime('%Y-%m-%d')
+                end_date_str = end_date.strftime('%Y-%m-%d')
+            elif date_range == '30':
+                start_date = timezone.now() - timedelta(days=30)
+                end_date = timezone.now()
+                start_date_str = start_date.strftime('%Y-%m-%d')
+                end_date_str = end_date.strftime('%Y-%m-%d')
+            elif date_range == '90':
+                start_date = timezone.now() - timedelta(days=90)
+                end_date = timezone.now()
+                start_date_str = start_date.strftime('%Y-%m-%d')
+                end_date_str = end_date.strftime('%Y-%m-%d')
+            elif date_range == 'year':
+                start_date = timezone.now() - timedelta(days=365)
+                end_date = timezone.now()
+                start_date_str = start_date.strftime('%Y-%m-%d')
+                end_date_str = end_date.strftime('%Y-%m-%d')
+            elif date_range == 'tax_year':
+                # UK tax year: April 6 to April 5
+                from datetime import date
+                today = timezone.now().date()
+                current_year = today.year
+
+                # Determine current tax year
+                if today >= date(current_year, 4, 6):
+                    # After April 6 - tax year is April 6 current_year to April 5 next_year
+                    tax_year_start = date(current_year, 4, 6)
+                    tax_year_end = date(current_year + 1, 4, 5)
+                else:
+                    # Before April 6 - tax year is April 6 last_year to April 5 current_year
+                    tax_year_start = date(current_year - 1, 4, 6)
+                    tax_year_end = date(current_year, 4, 5)
+
+                start_date = timezone.make_aware(timezone.datetime.combine(tax_year_start, timezone.datetime.min.time()))
+                end_date = timezone.make_aware(timezone.datetime.combine(tax_year_end, timezone.datetime.max.time()))
+                start_date_str = tax_year_start.strftime('%Y-%m-%d')
+                end_date_str = tax_year_end.strftime('%Y-%m-%d')
+            else:
+                # Default to current tax year
+                from datetime import date
+                today = timezone.now().date()
+                current_year = today.year
+
+                if today >= date(current_year, 4, 6):
+                    tax_year_start = date(current_year, 4, 6)
+                    tax_year_end = date(current_year + 1, 4, 5)
+                else:
+                    tax_year_start = date(current_year - 1, 4, 6)
+                    tax_year_end = date(current_year, 4, 5)
+
+                start_date = timezone.make_aware(timezone.datetime.combine(tax_year_start, timezone.datetime.min.time()))
+                end_date = timezone.make_aware(timezone.datetime.combine(tax_year_end, timezone.datetime.max.time()))
+                start_date_str = tax_year_start.strftime('%Y-%m-%d')
+                end_date_str = tax_year_end.strftime('%Y-%m-%d')
 
         # Get revenue summary
         summary = FinanceService.get_teacher_revenue_summary(teacher, start_date, end_date)
@@ -994,6 +1051,168 @@ class ProfitLossView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
             'revenue_trend': revenue_trend,
             'monthly_expenses': monthly_expenses,
             'selected_range': date_range,
+            'start_date_str': start_date_str,
+            'end_date_str': end_date_str,
         })
 
         return context
+
+
+
+class ProfitLossCSVExportView(LoginRequiredMixin, TeacherOnlyMixin, View):
+    """
+    Export Profit & Loss statement as CSV file for tax/accounting purposes.
+    """
+
+    def get(self, request):
+        import csv
+        from datetime import datetime
+
+        teacher = request.user
+
+        # Get date range
+        start_date_str = request.GET.get("start_date", "")
+        end_date_str = request.GET.get("end_date", "")
+
+        if start_date_str and end_date_str:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+            start_date = timezone.make_aware(start_date)
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+            end_date = timezone.make_aware(end_date.replace(hour=23, minute=59, second=59))
+        else:
+            # Default to current UK tax year
+            from datetime import date
+            today = timezone.now().date()
+            current_year = today.year
+
+            if today >= date(current_year, 4, 6):
+                tax_year_start = date(current_year, 4, 6)
+                tax_year_end = date(current_year + 1, 4, 5)
+            else:
+                tax_year_start = date(current_year - 1, 4, 6)
+                tax_year_end = date(current_year, 4, 5)
+
+            start_date = timezone.make_aware(timezone.datetime.combine(tax_year_start, timezone.datetime.min.time()))
+            end_date = timezone.make_aware(timezone.datetime.combine(tax_year_end, timezone.datetime.max.time()))
+            start_date_str = tax_year_start.strftime("%Y-%m-%d")
+            end_date_str = tax_year_end.strftime("%Y-%m-%d")
+
+        # Get revenue summary
+        summary = FinanceService.get_teacher_revenue_summary(teacher, start_date, end_date)
+
+        # Get expense data
+        from apps.expenses.models import Expense
+        expense_queryset = Expense.objects.filter(created_by=teacher)
+
+        if start_date:
+            expense_queryset = expense_queryset.filter(date__gte=start_date.date())
+        if end_date:
+            expense_queryset = expense_queryset.filter(date__lte=end_date.date())
+
+        total_expenses = expense_queryset.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+
+        # Calculate expenses by business area
+        expenses_by_area = expense_queryset.values("business_area").annotate(
+            total=Sum("amount")
+        ).order_by("business_area")
+
+        expense_breakdown = {
+            "workshops": Decimal("0.00"),
+            "courses": Decimal("0.00"),
+            "private_teaching": Decimal("0.00"),
+            "general": Decimal("0.00"),
+        }
+
+        for item in expenses_by_area:
+            expense_breakdown[item["business_area"]] = item["total"]
+
+        # Calculate net profit by business area
+        profit_by_area = {
+            "workshops": {
+                "revenue": summary["by_domain"]["workshops"]["revenue"],
+                "expenses": expense_breakdown["workshops"],
+                "net_profit": summary["by_domain"]["workshops"]["revenue"] - expense_breakdown["workshops"],
+            },
+            "courses": {
+                "revenue": summary["by_domain"]["courses"]["revenue"],
+                "expenses": expense_breakdown["courses"],
+                "net_profit": summary["by_domain"]["courses"]["revenue"] - expense_breakdown["courses"],
+            },
+            "private_teaching": {
+                "revenue": summary["by_domain"]["private_teaching"]["revenue"],
+                "expenses": expense_breakdown["private_teaching"],
+                "net_profit": summary["by_domain"]["private_teaching"]["revenue"] - expense_breakdown["private_teaching"],
+            },
+            "general": {
+                "revenue": Decimal("0.00"),
+                "expenses": expense_breakdown["general"],
+                "net_profit": -expense_breakdown["general"],
+            },
+        }
+
+        net_profit = summary["total_revenue"] - total_expenses
+
+        # Create CSV response
+        response = HttpResponse(content_type="text/csv")
+        filename = f"profit_loss_{start_date_str}_to_{end_date_str}.csv"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        writer = csv.writer(response)
+
+        # Header
+        writer.writerow(["Profit & Loss Statement"])
+        writer.writerow([f"Period: {start_date_str} to {end_date_str}"])
+        writer.writerow([f"Teacher: {teacher.get_full_name()}"])
+        writer.writerow([f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M')}"])
+        writer.writerow([])  # Empty row
+
+        # Column headers
+        writer.writerow(["Business Area", "Revenue (£)", "Expenses (£)", "Net Profit (£)", "Profit Margin (%)"])
+
+        # Data rows
+        for area_key, area_name in [
+            ("workshops", "Workshops"),
+            ("courses", "Courses"),
+            ("private_teaching", "Private Teaching"),
+            ("general", "General/Shared"),
+        ]:
+            area_data = profit_by_area[area_key]
+            revenue = float(area_data["revenue"])
+            expenses = float(area_data["expenses"])
+            net_profit_val = float(area_data["net_profit"])
+
+            if revenue > 0:
+                profit_margin = (net_profit_val / revenue) * 100
+            else:
+                profit_margin = 0
+
+            writer.writerow([
+                area_name,
+                f"{revenue:.2f}",
+                f"{expenses:.2f}",
+                f"{net_profit_val:.2f}",
+                f"{profit_margin:.1f}" if revenue > 0 else "-"
+            ])
+
+        # Total row
+        writer.writerow([])  # Empty row
+        writer.writerow([
+            "TOTAL",
+            f'{float(summary["total_revenue"]):.2f}',
+            f"{float(total_expenses):.2f}",
+            f"{float(net_profit):.2f}",
+            f'{(float(net_profit) / float(summary["total_revenue"]) * 100):.1f}' if summary["total_revenue"] > 0 else "-"
+        ])
+
+        # Additional info
+        writer.writerow([])
+        writer.writerow([])
+        writer.writerow(["Additional Information"])
+        writer.writerow(["Gross Revenue", f'£{float(summary["total_gross"]):.2f}'])
+        writer.writerow(["Platform Fee (10%)", f'£{float(summary["total_commission"]):.2f}'])
+        writer.writerow(["Net Revenue", f'£{float(summary["total_revenue"]):.2f}'])
+        writer.writerow(["Total Expenses", f"£{float(total_expenses):.2f}"])
+        writer.writerow(["Net Profit", f"£{float(net_profit):.2f}"])
+
+        return response
+

@@ -16,25 +16,84 @@
 
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
-        <div class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-4xl font-bold mb-2">
-                    <i class="fas fa-balance-scale mr-3 text-primary"></i>Profit & Loss Statement
-                </h1>
-                <p class="text-base-content/70">Complete breakdown of revenue, expenses, and profitability by business area</p>
-            </div>
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2">
+                <i class="fas fa-balance-scale mr-3 text-primary"></i>Profit & Loss Statement
+            </h1>
+            <p class="text-base-content/70">Complete breakdown of revenue, expenses, and profitability by business area</p>
+        </div>
 
-            <!-- Date Range Filter -->
-            <div class="form-control">
-                <select onchange="window.location.href='?range='+this.value" class="select select-bordered">
-                    <option value="7" {% if selected_range == '7' %}selected{% endif %}>Last 7 Days</option>
-                    <option value="30" {% if selected_range == '30' %}selected{% endif %}>Last 30 Days</option>
-                    <option value="90" {% if selected_range == '90' %}selected{% endif %}>Last 90 Days</option>
-                    <option value="year" {% if selected_range == 'year' %}selected{% endif %}>Last Year</option>
-                    <option value="all" {% if selected_range == 'all' %}selected{% endif %}>All Time</option>
-                </select>
+        <!-- Date Range Filter & Export -->
+        <div class="card bg-base-200 shadow-xl mb-8">
+            <div class="card-body">
+                <h2 class="card-title text-xl mb-4">Date Range & Export</h2>
+
+                <form method="get" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Quick Select</span>
+                            </label>
+                            <select name="range" class="select select-bordered" onchange="handleQuickSelect(this.value)">
+                                <option value="">Custom Date Range</option>
+                                <option value="7" {% if selected_range == '7' %}selected{% endif %}>Last 7 Days</option>
+                                <option value="30" {% if selected_range == '30' %}selected{% endif %}>Last 30 Days</option>
+                                <option value="90" {% if selected_range == '90' %}selected{% endif %}>Last 90 Days</option>
+                                <option value="year" {% if selected_range == 'year' %}selected{% endif %}>Last 12 Months</option>
+                                <option value="tax_year" {% if selected_range == 'tax_year' %}selected{% endif %}>Current Tax Year (UK)</option>
+                                <option value="all" {% if selected_range == 'all' %}selected{% endif %}>All Time</option>
+                            </select>
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Start Date</span>
+                            </label>
+                            <input type="date" name="start_date" id="start_date" value="{{ start_date_str }}" class="input input-bordered">
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">End Date</span>
+                            </label>
+                            <input type="date" name="end_date" id="end_date" value="{{ end_date_str }}" class="input input-bordered">
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">&nbsp;</span>
+                            </label>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter mr-2"></i>Apply Filter
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 items-center">
+                        <a href="{% url 'payments:profit_loss_csv' %}?start_date={{ start_date_str }}&end_date={{ end_date_str }}"
+                           class="btn btn-success">
+                            <i class="fas fa-download mr-2"></i>Download CSV Report
+                        </a>
+                        {% if start_date_str and end_date_str %}
+                            <span class="text-sm text-base-content/70">
+                                Showing: {{ start_date_str|date:"d M Y" }} to {{ end_date_str|date:"d M Y" }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </form>
             </div>
         </div>
+
+        <script>
+        function handleQuickSelect(value) {
+            if (value === '') {
+                // User selected "Custom Date Range" - do nothing, let them use date inputs
+                return;
+            }
+            // For predefined ranges, submit the form
+            window.location.href = '?range=' + value;
+        }
+        </script>
 
         <!-- Summary Stats -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

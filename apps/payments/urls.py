@@ -9,6 +9,7 @@ urlpatterns = [
     # Finance Dashboard
     path('finance/', views.FinanceDashboardView.as_view(), name='finance_dashboard'),
     path('finance/profit-loss/', views.ProfitLossView.as_view(), name='profit_loss'),
+    path('finance/profit-loss/export-csv/', views.ProfitLossCSVExportView.as_view(), name='profit_loss_csv'),
     path('finance/workshops/', views.WorkshopRevenueView.as_view(), name='workshop_revenue'),
     path('finance/courses/', views.CourseRevenueView.as_view(), name='course_revenue'),
     path('finance/private-teaching/', views.PrivateTeachingRevenueView.as_view(), name='private_teaching_revenue'),
