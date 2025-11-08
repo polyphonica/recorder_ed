@@ -410,5 +410,130 @@ function confirmCancel(registrationId, workshopTitle) {
     };
     document.getElementById('cancelModal').showModal();
 }
+
+// My Registrations Tour
+function startMyRegistrationsTour() {
+    const driver = window.driver.js.driver({
+        showProgress: true,
+        showButtons: ['next', 'previous', 'close'],
+        steps: [
+            {
+                element: 'h1',
+                popover: {
+                    title: 'Welcome to Your Registrations!',
+                    description: 'This tour will show you how to find your workshops, download materials, and join Zoom sessions. Click "Next" to continue.',
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {% if registrations %}
+            {
+                element: '.grid.grid-cols-1.md\\:grid-cols-4',
+                popover: {
+                    title: 'Your Statistics',
+                    description: 'These cards show a summary of all your workshop registrations: total registered, confirmed bookings, waitlisted sessions, and workshops you\'ve attended.',
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '#statusFilter',
+                popover: {
+                    title: 'Filter Your Workshops',
+                    description: 'Use this dropdown to filter your registrations by status - for example, show only confirmed workshops or those you\'ve attended.',
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '.registration-item:first-child',
+                popover: {
+                    title: 'Your Workshop Cards',
+                    description: 'Each card shows one of your registered workshops with the date, time, and current status.',
+                    side: "left",
+                    align: 'start'
+                }
+            },
+            {
+                element: '.registration-item:first-child .badge',
+                popover: {
+                    title: 'Registration Status',
+                    description: 'This badge shows your registration status: "Confirmed" (you\'re booked), "Waitlisted" (waiting for a spot), or "Attended" (past workshop).',
+                    side: "left",
+                    align: 'start'
+                }
+            },
+            {
+                element: '.registration-item:first-child .btn-primary',
+                popover: {
+                    title: 'View Workshop Details',
+                    description: 'Click this button to see full details about the workshop, including what you\'ll learn and what to bring.',
+                    side: "left",
+                    align: 'start'
+                }
+            },
+            {% if registrations.0.session.materials.exists %}
+            {
+                element: '.btn-info',
+                popover: {
+                    title: 'Download Materials',
+                    description: 'Click the "Materials" button to download any handouts, slides, or resources for this workshop. You can download them before or after the session.',
+                    side: "left",
+                    align: 'start'
+                }
+            },
+            {% endif %}
+            {% if registrations.0.session.meeting_url %}
+            {
+                element: '.btn-success',
+                popover: {
+                    title: 'Join Zoom Session',
+                    description: 'When it\'s time for your workshop, click the "Join Meeting" button to open the Zoom session. This button appears when the workshop is about to start.',
+                    side: "left",
+                    align: 'start'
+                }
+            },
+            {% endif %}
+            {
+                element: '.btn-outline',
+                popover: {
+                    title: 'View Full Details',
+                    description: 'Click "View Details" to see your complete registration information, including any special requirements you noted when booking.',
+                    side: "left",
+                    align: 'start'
+                }
+            },
+            {% else %}
+            {
+                element: '.btn-primary.btn-lg',
+                popover: {
+                    title: 'Find Workshops',
+                    description: 'You haven\'t registered for any workshops yet. Click "Browse Workshops" to explore available workshops and book your first session!',
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {% endif %}
+            {
+                popover: {
+                    title: 'Tour Complete!',
+                    description: 'You now know how to manage your workshop registrations, download materials, and join Zoom sessions. If you need help anytime, hover over buttons to see helpful tips!',
+                    side: "top"
+                }
+            }
+        ]
+    });
+
+    driver.drive();
+}
 </script>
+
+<!-- Tour Button - Floating Action Button -->
+<button onclick="startMyRegistrationsTour()"
+        class="btn btn-primary btn-circle btn-lg shadow-xl"
+        style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; width: 64px; height: 64px;"
+        title="Need help? Take a quick tour!">
+    <i class="fas fa-question-circle" style="font-size: 1.5rem;"></i>
+</button>
+
 {% endblock %}
