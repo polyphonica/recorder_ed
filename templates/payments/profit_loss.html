@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Profit & Loss Statement{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'domain_selector' %}">Home</a></li>
+            <li><a href="{% url 'payments:finance_dashboard' %}">Finance</a></li>
+            <li>Profit & Loss</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">
+                    <i class="fas fa-balance-scale mr-3 text-primary"></i>Profit & Loss Statement
+                </h1>
+                <p class="text-base-content/70">Complete breakdown of revenue, expenses, and profitability by business area</p>
+            </div>
+
+            <!-- Date Range Filter -->
+            <div class="form-control">
+                <select onchange="window.location.href='?range='+this.value" class="select select-bordered">
+                    <option value="7" {% if selected_range == '7' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="30" {% if selected_range == '30' %}selected{% endif %}>Last 30 Days</option>
+                    <option value="90" {% if selected_range == '90' %}selected{% endif %}>Last 90 Days</option>
+                    <option value="year" {% if selected_range == 'year' %}selected{% endif %}>Last Year</option>
+                    <option value="all" {% if selected_range == 'all' %}selected{% endif %}>All Time</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="stat bg-base-200 rounded-lg shadow">
+                <div class="stat-figure text-primary">
+                    <i class="fas fa-arrow-up text-3xl"></i>
+                </div>
+                <div class="stat-title">Total Revenue</div>
+                <div class="stat-value text-primary">£{{ summary.total_revenue|floatformat:2 }}</div>
+                <div class="stat-desc">Income after commission</div>
+            </div>
+
+            <div class="stat bg-base-200 rounded-lg shadow">
+                <div class="stat-figure text-error">
+                    <i class="fas fa-arrow-down text-3xl"></i>
+                </div>
+                <div class="stat-title">Total Expenses</div>
+                <div class="stat-value text-error">£{{ total_expenses|floatformat:2 }}</div>
+                <div class="stat-desc">All business costs</div>
+            </div>
+
+            <div class="stat {% if net_profit >= 0 %}bg-success text-success-content{% else %}bg-error text-error-content{% endif %} rounded-lg shadow">
+                <div class="stat-figure text-white">
+                    <i class="fas fa-chart-line text-3xl"></i>
+                </div>
+                <div class="stat-title text-white">Net Profit</div>
+                <div class="stat-value text-white">£{{ net_profit|floatformat:2 }}</div>
+                <div class="stat-desc text-white">
+                    {% if net_profit >= 0 %}
+                        Profitable business
+                    {% else %}
+                        Operating at a loss
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Profit by Business Area -->
+        <div class="card bg-base-200 shadow-xl mb-8">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-chart-bar mr-2"></i>Profit & Loss by Business Area
+                </h2>
+
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th>Business Area</th>
+                                <th class="text-right">Revenue</th>
+                                <th class="text-right">Expenses</th>
+                                <th class="text-right">Net Profit</th>
+                                <th class="text-right">Profit Margin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="font-semibold">
+                                    <i class="fas fa-chalkboard-teacher mr-2 text-primary"></i>Workshops
+                                </td>
+                                <td class="text-right text-primary font-semibold">£{{ profit_by_area.workshops.revenue|floatformat:2 }}</td>
+                                <td class="text-right text-error">£{{ profit_by_area.workshops.expenses|floatformat:2 }}</td>
+                                <td class="text-right font-bold {% if profit_by_area.workshops.net_profit >= 0 %}text-success{% else %}text-error{% endif %}">
+                                    £{{ profit_by_area.workshops.net_profit|floatformat:2 }}
+                                </td>
+                                <td class="text-right">
+                                    {% if profit_by_area.workshops.revenue > 0 %}
+                                        {% widthratio profit_by_area.workshops.net_profit profit_by_area.workshops.revenue 100 %}%
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="font-semibold">
+                                    <i class="fas fa-graduation-cap mr-2 text-secondary"></i>Courses
+                                </td>
+                                <td class="text-right text-primary font-semibold">£{{ profit_by_area.courses.revenue|floatformat:2 }}</td>
+                                <td class="text-right text-error">£{{ profit_by_area.courses.expenses|floatformat:2 }}</td>
+                                <td class="text-right font-bold {% if profit_by_area.courses.net_profit >= 0 %}text-success{% else %}text-error{% endif %}">
+                                    £{{ profit_by_area.courses.net_profit|floatformat:2 }}
+                                </td>
+                                <td class="text-right">
+                                    {% if profit_by_area.courses.revenue > 0 %}
+                                        {% widthratio profit_by_area.courses.net_profit profit_by_area.courses.revenue 100 %}%
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="font-semibold">
+                                    <i class="fas fa-user-graduate mr-2 text-accent"></i>Private Teaching
+                                </td>
+                                <td class="text-right text-primary font-semibold">£{{ profit_by_area.private_teaching.revenue|floatformat:2 }}</td>
+                                <td class="text-right text-error">£{{ profit_by_area.private_teaching.expenses|floatformat:2 }}</td>
+                                <td class="text-right font-bold {% if profit_by_area.private_teaching.net_profit >= 0 %}text-success{% else %}text-error{% endif %}">
+                                    £{{ profit_by_area.private_teaching.net_profit|floatformat:2 }}
+                                </td>
+                                <td class="text-right">
+                                    {% if profit_by_area.private_teaching.revenue > 0 %}
+                                        {% widthratio profit_by_area.private_teaching.net_profit profit_by_area.private_teaching.revenue 100 %}%
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="font-semibold">
+                                    <i class="fas fa-building mr-2 text-info"></i>General
+                                </td>
+                                <td class="text-right text-base-content/50">-</td>
+                                <td class="text-right text-error">£{{ profit_by_area.general.expenses|floatformat:2 }}</td>
+                                <td class="text-right font-bold text-error">
+                                    £{{ profit_by_area.general.net_profit|floatformat:2 }}
+                                </td>
+                                <td class="text-right text-base-content/50">-</td>
+                            </tr>
+                            <tr class="font-bold text-lg border-t-2">
+                                <td>TOTAL</td>
+                                <td class="text-right text-primary">£{{ summary.total_revenue|floatformat:2 }}</td>
+                                <td class="text-right text-error">£{{ total_expenses|floatformat:2 }}</td>
+                                <td class="text-right {% if net_profit >= 0 %}text-success{% else %}text-error{% endif %}">
+                                    £{{ net_profit|floatformat:2 }}
+                                </td>
+                                <td class="text-right">
+                                    {% if summary.total_revenue > 0 %}
+                                        {% widthratio net_profit summary.total_revenue 100 %}%
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Revenue vs Expenses Trend (Last 12 Months) -->
+        <div class="card bg-base-200 shadow-xl mb-8">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-chart-line mr-2"></i>Revenue vs Expenses Trend
+                </h2>
+                <canvas id="profitTrendChart" class="mb-4"></canvas>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-4 justify-center">
+            <a href="{% url 'payments:finance_dashboard' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Finance Dashboard
+            </a>
+            <a href="{% url 'expenses:dashboard' %}" class="btn btn-primary">
+                <i class="fas fa-receipt mr-2"></i>View Expenses
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Profit Trend Chart
+    const profitTrendCtx = document.getElementById('profitTrendChart');
+    if (profitTrendCtx) {
+        // Prepare data from revenue_trend and monthly_expenses
+        const revenueTrend = {{ revenue_trend|safe }};
+        const monthlyExpenses = [
+            {% for expense in monthly_expenses %}
+            {
+                month: '{{ expense.month|date:"Y-m-d" }}',
+                total: {{ expense.total }}
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        // Create a map of months to expense totals
+        const expenseMap = {};
+        monthlyExpenses.forEach(item => {
+            expenseMap[item.month] = item.total;
+        });
+
+        // Prepare chart data
+        const labels = revenueTrend.map(item => {
+            const date = new Date(item.date);
+            return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        });
+
+        const revenueData = revenueTrend.map(item => item.amount);
+        const expenseData = revenueTrend.map(item => {
+            return expenseMap[item.date] || 0;
+        });
+        const profitData = revenueData.map((rev, index) => rev - expenseData[index]);
+
+        new Chart(profitTrendCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Revenue',
+                        data: revenueData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: 'Expenses',
+                        data: expenseData,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: 'Net Profit',
+                        data: profitData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '£' + value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': £' + context.parsed.y.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

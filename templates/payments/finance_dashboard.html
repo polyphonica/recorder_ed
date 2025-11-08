@@ -83,6 +83,16 @@
             </div>
         </div>
 
+        <!-- Quick Actions -->
+        <div class="flex gap-4 mb-8 justify-center">
+            <a href="{% url 'payments:profit_loss' %}?range={{ selected_range }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-balance-scale mr-2"></i>View Profit & Loss Statement
+            </a>
+            <a href="{% url 'expenses:dashboard' %}" class="btn btn-outline btn-lg">
+                <i class="fas fa-receipt mr-2"></i>Manage Expenses
+            </a>
+        </div>
+
         <!-- Revenue by Domain -->
         <div class="card bg-base-200 shadow-xl mb-8">
             <div class="card-body">

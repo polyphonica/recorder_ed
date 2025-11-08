@@ -691,10 +691,24 @@ class WorkshopRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
         # Get workshop breakdown
         workshop_breakdown = FinanceService.get_workshop_revenue_breakdown(teacher, start_date, end_date)
 
+        # Get workshop expenses
+        from apps.expenses.models import Expense
+        workshop_expenses = Expense.objects.filter(
+            created_by=teacher,
+            business_area='workshops'
+        )
+        if start_date:
+            workshop_expenses = workshop_expenses.filter(date__gte=start_date.date())
+
+        total_expenses = workshop_expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        net_profit = domain_data['revenue'] - total_expenses
+
         context.update({
             'domain_data': domain_data,
             'workshop_breakdown': workshop_breakdown,
             'selected_range': date_range,
+            'total_expenses': total_expenses,
+            'net_profit': net_profit,
         })
 
         return context
@@ -732,10 +746,24 @@ class CourseRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
         # Get course breakdown
         course_breakdown = FinanceService.get_course_revenue_breakdown(teacher, start_date, end_date)
 
+        # Get course expenses
+        from apps.expenses.models import Expense
+        course_expenses = Expense.objects.filter(
+            created_by=teacher,
+            business_area='courses'
+        )
+        if start_date:
+            course_expenses = course_expenses.filter(date__gte=start_date.date())
+
+        total_expenses = course_expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        net_profit = domain_data['revenue'] - total_expenses
+
         context.update({
             'domain_data': domain_data,
             'course_breakdown': course_breakdown,
             'selected_range': date_range,
+            'total_expenses': total_expenses,
+            'net_profit': net_profit,
         })
 
         return context
@@ -773,10 +801,24 @@ class PrivateTeachingRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateV
         # Get student breakdown
         student_breakdown = FinanceService.get_private_teaching_revenue_breakdown(teacher, start_date, end_date)
 
+        # Get private teaching expenses
+        from apps.expenses.models import Expense
+        private_teaching_expenses = Expense.objects.filter(
+            created_by=teacher,
+            business_area='private_teaching'
+        )
+        if start_date:
+            private_teaching_expenses = private_teaching_expenses.filter(date__gte=start_date.date())
+
+        total_expenses = private_teaching_expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        net_profit = domain_data['revenue'] - total_expenses
+
         context.update({
             'domain_data': domain_data,
             'student_breakdown': student_breakdown,
             'selected_range': date_range,
+            'total_expenses': total_expenses,
+            'net_profit': net_profit,
         })
 
         return context
@@ -814,9 +856,143 @@ class PrivateTeachingSubjectRevenueView(LoginRequiredMixin, TeacherOnlyMixin, Te
         # Get subject breakdown
         subject_breakdown = FinanceService.get_private_teaching_subject_breakdown(teacher, start_date, end_date)
 
+        # Get private teaching expenses
+        from apps.expenses.models import Expense
+        private_teaching_expenses = Expense.objects.filter(
+            created_by=teacher,
+            business_area='private_teaching'
+        )
+        if start_date:
+            private_teaching_expenses = private_teaching_expenses.filter(date__gte=start_date.date())
+
+        total_expenses = private_teaching_expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        net_profit = domain_data['revenue'] - total_expenses
+
         context.update({
             'domain_data': domain_data,
             'subject_breakdown': subject_breakdown,
+            'selected_range': date_range,
+            'total_expenses': total_expenses,
+            'net_profit': net_profit,
+        })
+
+        return context
+
+
+class ProfitLossView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
+    """
+    Profit & Loss statement showing revenue vs expenses by business area.
+    Provides complete financial picture with net profit calculations.
+    """
+    template_name = 'payments/profit_loss.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        teacher = self.request.user
+
+        # Get date range from query params (default to last 30 days)
+        date_range = self.request.GET.get('range', '30')
+
+        if date_range == 'all':
+            start_date = None
+            end_date = None
+        elif date_range == '7':
+            start_date = timezone.now() - timedelta(days=7)
+            end_date = None
+        elif date_range == '30':
+            start_date = timezone.now() - timedelta(days=30)
+            end_date = None
+        elif date_range == '90':
+            start_date = timezone.now() - timedelta(days=90)
+            end_date = None
+        elif date_range == 'year':
+            start_date = timezone.now() - timedelta(days=365)
+            end_date = None
+        else:
+            start_date = timezone.now() - timedelta(days=30)
+            end_date = None
+
+        # Get revenue summary
+        summary = FinanceService.get_teacher_revenue_summary(teacher, start_date, end_date)
+
+        # Get expense data
+        from apps.expenses.models import Expense
+        expense_queryset = Expense.objects.filter(created_by=teacher)
+
+        if start_date:
+            expense_queryset = expense_queryset.filter(date__gte=start_date.date())
+
+        # Calculate total expenses
+        total_expenses = expense_queryset.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+        # Calculate expenses by business area
+        expenses_by_area = expense_queryset.values('business_area').annotate(
+            total=Sum('amount')
+        ).order_by('business_area')
+
+        expense_breakdown = {
+            'workshops': Decimal('0.00'),
+            'courses': Decimal('0.00'),
+            'private_teaching': Decimal('0.00'),
+            'general': Decimal('0.00'),
+        }
+
+        for item in expenses_by_area:
+            expense_breakdown[item['business_area']] = item['total']
+
+        # Calculate net profit by business area
+        profit_by_area = {
+            'workshops': {
+                'revenue': summary['by_domain']['workshops']['revenue'],
+                'expenses': expense_breakdown['workshops'],
+                'net_profit': summary['by_domain']['workshops']['revenue'] - expense_breakdown['workshops'],
+            },
+            'courses': {
+                'revenue': summary['by_domain']['courses']['revenue'],
+                'expenses': expense_breakdown['courses'],
+                'net_profit': summary['by_domain']['courses']['revenue'] - expense_breakdown['courses'],
+            },
+            'private_teaching': {
+                'revenue': summary['by_domain']['private_teaching']['revenue'],
+                'expenses': expense_breakdown['private_teaching'],
+                'net_profit': summary['by_domain']['private_teaching']['revenue'] - expense_breakdown['private_teaching'],
+            },
+            'general': {
+                'revenue': Decimal('0.00'),  # General doesn't have revenue
+                'expenses': expense_breakdown['general'],
+                'net_profit': -expense_breakdown['general'],  # General is always a cost
+            },
+        }
+
+        # Calculate overall net profit
+        net_profit = summary['total_revenue'] - total_expenses
+
+        # Get monthly trend data (last 12 months)
+        from django.db.models.functions import TruncMonth
+        from dateutil.relativedelta import relativedelta
+
+        twelve_months_ago = timezone.now() - relativedelta(months=12)
+
+        # Monthly revenue trend
+        revenue_trend = FinanceService.get_revenue_trend(teacher, days=365)
+
+        # Monthly expense trend
+        monthly_expenses = expense_queryset.filter(
+            date__gte=twelve_months_ago.date()
+        ).annotate(
+            month=TruncMonth('date')
+        ).values('month').annotate(
+            total=Sum('amount')
+        ).order_by('month')
+
+        context.update({
+            'summary': summary,
+            'total_expenses': total_expenses,
+            'net_profit': net_profit,
+            'profit_by_area': profit_by_area,
+            'expense_breakdown': expense_breakdown,
+            'revenue_trend': revenue_trend,
+            'monthly_expenses': monthly_expenses,
             'selected_range': date_range,
         })
 
