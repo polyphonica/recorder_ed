@@ -56,11 +56,10 @@
                     
                     <div class="space-y-4 ml-8">
                         {% for lesson in date_group.list %}
-                            <div class="lesson-card card bg-base-100 shadow-lg hover:shadow-xl transition-shadow duration-200 lesson-item"
-                                 data-location="{{ lesson.location }}"
-                                 onclick="openLessonDetails('{{ lesson.id }}')">
+                            <div class="lesson-card card bg-base-100 shadow-lg lesson-item"
+                                 data-location="{{ lesson.location }}">
                                 <div class="card-body">
-                                    <div class="flex justify-between items-start">
+                                    <div class="flex justify-between items-start gap-4">
                                         <div class="flex-1">
                                             <h3 class="card-title text-lg">
                                                 {{ lesson.subject.subject }}
@@ -93,6 +92,19 @@
                                             {% endif %}
                                         </div>
                                     </div>
+                                    <div class="card-actions justify-end mt-4">
+                                        <button class="btn btn-primary btn-sm" onclick="window.location.href='/lessons/{{ lesson.id }}/edit/'">
+                                            <i class="fas fa-folder-open mr-2"></i>Open Lesson
+                                        </button>
+                                        {% if lesson.lesson_request %}
+                                            <button class="btn btn-outline btn-sm" onclick="window.location.href='/private-teaching/teacher/request/{{ lesson.lesson_request.id }}/'">
+                                                <i class="fas fa-calendar-alt mr-2"></i>Reschedule
+                                            </button>
+                                        {% endif %}
+                                        <button class="btn btn-outline btn-sm" onclick="openContactModal({{ lesson.student.id }})">
+                                            <i class="fas fa-address-book mr-2"></i>Contact Student
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         {% endfor %}
@@ -117,9 +129,8 @@
                     </thead>
                     <tbody>
                         {% for lesson in scheduled_lessons %}
-                            <tr class="lesson-item hover:bg-base-200 cursor-pointer"
-                                data-location="{{ lesson.location }}"
-                                onclick="openLessonDetails('{{ lesson.id }}')">
+                            <tr class="lesson-item"
+                                data-location="{{ lesson.location }}">
                                 <td>
                                     <div class="font-bold">{{ lesson.lesson_date|date:"M j, Y" }}</div>
                                     <div class="text-sm text-base-content/70">{{ lesson.lesson_time|time:"g:i A" }}</div>
@@ -147,9 +158,19 @@
                                 </td>
                                 <td>{{ lesson.duration_in_minutes }} min</td>
                                 <td>
-                                    <button class="btn btn-xs btn-outline" onclick="event.stopPropagation(); openLessonDetails('{{ lesson.id }}')">
-                                        Details
-                                    </button>
+                                    <div class="flex gap-1">
+                                        <button class="btn btn-xs btn-primary" onclick="window.location.href='/lessons/{{ lesson.id }}/edit/'" title="Open Lesson">
+                                            <i class="fas fa-folder-open"></i>
+                                        </button>
+                                        {% if lesson.lesson_request %}
+                                            <button class="btn btn-xs btn-outline" onclick="window.location.href='/private-teaching/teacher/request/{{ lesson.lesson_request.id }}/'" title="Reschedule">
+                                                <i class="fas fa-calendar-alt"></i>
+                                            </button>
+                                        {% endif %}
+                                        <button class="btn btn-xs btn-outline" onclick="openContactModal({{ lesson.student.id }})" title="Contact Student">
+                                            <i class="fas fa-address-book"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -173,24 +194,15 @@
     {% endif %}
 </div>
 
-<!-- Lesson Details Modal -->
-<div id="lesson-modal" class="modal">
-    <div class="modal-box max-w-2xl">
-        <h3 class="font-bold text-lg mb-4">Lesson Details</h3>
-        <div id="lesson-details-content">
-            <!-- Details will be loaded here -->
+<!-- Contact Student Modal -->
+<div id="contact-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Student Contact Information</h3>
+        <div id="contact-modal-content">
+            <!-- Contact details will be loaded here -->
         </div>
         <div class="modal-action">
-            <button class="btn" onclick="closeLessonModal()">Close</button>
-        </div>
-    </div>
-</div>
-
-<!-- Toast Container for Contact Info -->
-<div id="toast-container" class="toast toast-top toast-end hidden">
-    <div class="alert alert-info">
-        <div>
-            <span id="toast-content"></span>
+            <button class="btn" onclick="closeContactModal()">Close</button>
         </div>
     </div>
 </div>
@@ -243,10 +255,10 @@ function filterLessons(filter) {
     });
 }
 
-// Lesson details modal
-function openLessonDetails(lessonId) {
-    const modal = document.getElementById('lesson-modal');
-    const content = document.getElementById('lesson-details-content');
+// Contact modal functions
+function openContactModal(studentId) {
+    const modal = document.getElementById('contact-modal');
+    const content = document.getElementById('contact-modal-content');
 
     // Show loading state
     content.innerHTML = `
@@ -255,116 +267,6 @@ function openLessonDetails(lessonId) {
         </div>
     `;
     modal.classList.add('modal-open');
-
-    // Fetch lesson details
-    fetch(`/private-teaching/lesson/${lessonId}/details/`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to fetch lesson details');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Format date and time for display
-            const dateObj = new Date(data.date + 'T' + data.time);
-            const formattedDate = dateObj.toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            const formattedTime = dateObj.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-            });
-
-            // Render lesson details
-            content.innerHTML = `
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-sm text-base-content/70">Subject</p>
-                            <p class="font-semibold">${data.subject}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-base-content/70">Student</p>
-                            <p class="font-semibold">${data.student}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-base-content/70">Date</p>
-                            <p class="font-semibold">${formattedDate}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-base-content/70">Time</p>
-                            <p class="font-semibold">${formattedTime}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-base-content/70">Duration</p>
-                            <p class="font-semibold">${data.duration} minutes</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-base-content/70">Location</p>
-                            <p class="font-semibold">${data.location}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-base-content/70">Fee</p>
-                            <p class="font-semibold">£${data.price}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-base-content/70">Payment Status</p>
-                            <p class="font-semibold">${data.payment_status}</p>
-                        </div>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div class="flex gap-2 flex-wrap">
-                        <button class="btn btn-primary btn-sm" onclick="openLesson('${data.id}')">
-                            <i class="fas fa-folder-open mr-2"></i>Open Lesson
-                        </button>
-                        ${data.lesson_request_id ? `
-                            <button class="btn btn-outline btn-sm" onclick="rescheduleLesson(${data.lesson_request_id})">
-                                <i class="fas fa-calendar-alt mr-2"></i>Reschedule
-                            </button>
-                        ` : ''}
-                        ${data.student_id ? `
-                            <button class="btn btn-outline btn-sm" onclick="contactStudent(${data.student_id})">
-                                <i class="fas fa-address-book mr-2"></i>Contact Student
-                            </button>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-        })
-        .catch(error => {
-            console.error('Error fetching lesson details:', error);
-            content.innerHTML = `
-                <div class="alert alert-error">
-                    <span>Failed to load lesson details. Please try again.</span>
-                </div>
-            `;
-        });
-}
-
-function closeLessonModal() {
-    document.getElementById('lesson-modal').classList.remove('modal-open');
-}
-
-function openLesson(lessonId) {
-    window.location.href = `/lessons/${lessonId}/edit/`;
-}
-
-function rescheduleLesson(requestId) {
-    window.location.href = `/private-teaching/teacher/request/${requestId}/`;
-}
-
-function contactStudent(studentId) {
-    // Close modal first
-    closeLessonModal();
-
-    // Show loading toast
-    showToast('Loading contact information...', 'info');
 
     // Fetch student contact details
     fetch(`/private-teaching/teacher/students/${studentId}/contact/`)
@@ -375,60 +277,77 @@ function contactStudent(studentId) {
             return response.json();
         })
         .then(data => {
-            let contactInfo = `<div class="space-y-2">`;
+            let contactHTML = `<div class="space-y-4">`;
 
             // Guardian info
             if (data.is_guardian) {
-                contactInfo += `<p class="font-bold">Guardian: ${data.full_name}</p>`;
+                contactHTML += `<div>
+                    <p class="text-sm text-base-content/70">Guardian</p>
+                    <p class="font-semibold text-lg">${data.full_name}</p>
+                </div>`;
 
                 // Children info
                 if (data.children && data.children.length > 0) {
-                    contactInfo += `<p class="text-sm">Children: ${data.children.map(c => c.full_name).join(', ')}</p>`;
+                    contactHTML += `<div>
+                        <p class="text-sm text-base-content/70">Children</p>
+                        <p class="font-semibold">${data.children.map(c => c.full_name).join(', ')}</p>
+                    </div>`;
                 }
             } else {
-                contactInfo += `<p class="font-bold">${data.full_name}</p>`;
+                contactHTML += `<div>
+                    <p class="text-sm text-base-content/70">Student</p>
+                    <p class="font-semibold text-lg">${data.full_name}</p>
+                </div>`;
             }
 
-            // Contact details
-            contactInfo += `<p><i class="fas fa-envelope mr-2"></i>${data.email}</p>`;
+            contactHTML += `<div class="divider"></div>`;
 
+            // Email
+            contactHTML += `<div>
+                <p class="text-sm text-base-content/70">Email</p>
+                <p class="font-semibold">
+                    <i class="fas fa-envelope mr-2"></i>
+                    <a href="mailto:${data.email}" class="link link-primary">${data.email}</a>
+                </p>
+            </div>`;
+
+            // Phone
             if (data.phone) {
-                contactInfo += `<p><i class="fas fa-phone mr-2"></i>${data.phone}</p>`;
+                contactHTML += `<div>
+                    <p class="text-sm text-base-content/70">Phone</p>
+                    <p class="font-semibold">
+                        <i class="fas fa-phone mr-2"></i>
+                        <a href="tel:${data.phone}" class="link link-primary">${data.phone}</a>
+                    </p>
+                </div>`;
             }
 
+            // Address
             if (data.address) {
-                contactInfo += `<p><i class="fas fa-map-marker-alt mr-2"></i>${data.address}</p>`;
+                contactHTML += `<div>
+                    <p class="text-sm text-base-content/70">Address</p>
+                    <p class="font-semibold">
+                        <i class="fas fa-map-marker-alt mr-2"></i>${data.address}
+                    </p>
+                </div>`;
             }
 
-            contactInfo += `</div>`;
+            contactHTML += `</div>`;
 
-            // Show contact info in toast
-            showToast(contactInfo, 'info', 10000);
+            content.innerHTML = contactHTML;
         })
         .catch(error => {
             console.error('Error fetching contact details:', error);
-            showToast('Failed to load contact information. Please try again.', 'error');
+            content.innerHTML = `
+                <div class="alert alert-error">
+                    <span>Failed to load contact information. Please try again.</span>
+                </div>
+            `;
         });
 }
 
-function showToast(content, type = 'info', duration = 5000) {
-    const toastContainer = document.getElementById('toast-container');
-    const toastContent = document.getElementById('toast-content');
-    const alert = toastContainer.querySelector('.alert');
-
-    // Set alert type
-    alert.className = `alert alert-${type}`;
-
-    // Set content
-    toastContent.innerHTML = content;
-
-    // Show toast
-    toastContainer.classList.remove('hidden');
-
-    // Auto-hide after duration
-    setTimeout(() => {
-        toastContainer.classList.add('hidden');
-    }, duration);
+function closeContactModal() {
+    document.getElementById('contact-modal').classList.remove('modal-open');
 }
 
 // Initialize with timeline view
