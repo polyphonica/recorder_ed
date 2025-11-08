@@ -945,14 +945,15 @@ function startWorkshopBookingTour() {
 }
 </script>
 
-{% endblock %}
-
-<!-- Tour Button - Floating Action Button (outside content block) -->
-<div style="position: fixed; bottom: 24px; right: 24px; z-index: 9999;">
-    <button onclick="startWorkshopBookingTour()"
-            class="btn btn-primary btn-circle btn-lg shadow-xl tooltip tooltip-left"
-            data-tip="Need help? Take a quick tour!"
-            style="width: 64px; height: 64px;">
-        <i class="fas fa-question-circle text-2xl"></i>
-    </button>
+    </div>
 </div>
+
+<!-- Tour Button - Floating Action Button -->
+<button onclick="startWorkshopBookingTour()"
+        class="btn btn-primary btn-circle btn-lg shadow-xl"
+        style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; width: 64px; height: 64px;"
+        title="Need help? Take a quick tour!">
+    <i class="fas fa-question-circle" style="font-size: 1.5rem;"></i>
+</button>
+
+{% endblock %}
