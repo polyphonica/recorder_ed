@@ -188,19 +188,18 @@
                                 </div>
                             </div>
 
-                            <!-- Expectations -->
+                            <!-- Instruments -->
                             <div class="form-section">
                                 <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
                                     <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                                        <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"></path>
                                     </svg>
-                                    Workshop Goals
+                                    Your Instruments
                                 </h3>
-                                
+
                                 <div class="form-control">
                                     <label class="label" for="{{ form.expectations.id_for_label }}">
-                                        <span class="label-text font-medium">What do you hope to learn?</span>
+                                        <span class="label-text font-medium">{{ form.expectations.label }}</span>
                                     </label>
                                     {{ form.expectations }}
                                     {% if form.expectations.errors %}

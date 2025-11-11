@@ -553,7 +553,7 @@ class WorkshopRegistration(models.Model):
 
     # Experience and Expectations
     experience_level = models.CharField(max_length=20, choices=Workshop.DIFFICULTY_CHOICES, blank=True)
-    expectations = models.TextField(blank=True, help_text="What do you hope to learn?")
+    expectations = models.TextField(blank=True, help_text="Which instruments do you play and intend to bring?")
     special_requirements = models.TextField(blank=True, help_text="Accessibility or other needs")
     
     # Post-Session

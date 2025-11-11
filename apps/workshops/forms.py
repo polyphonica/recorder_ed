@@ -42,7 +42,7 @@ class WorkshopRegistrationForm(forms.ModelForm):
             'expectations': forms.Textarea(attrs={
                 'class': 'textarea textarea-bordered w-full',
                 'rows': 3,
-                'placeholder': 'What do you hope to learn from this workshop?'
+                'placeholder': 'e.g., Soprano recorder, Alto recorder, Tenor recorder...'
             }),
             'special_requirements': forms.Textarea(attrs={
                 'class': 'textarea textarea-bordered w-full',
@@ -53,8 +53,11 @@ class WorkshopRegistrationForm(forms.ModelForm):
         help_texts = {
             'emergency_contact': 'Required for on-site workshops. In case of emergency, who should we contact? Include their name and phone number.',
             'experience_level': 'How would you rate your current experience level?',
-            'expectations': 'This helps the instructor tailor the content to your needs.',
+            'expectations': 'This helps the instructor prepare appropriate music and materials for your instruments.',
             'special_requirements': 'We want to ensure everyone can participate fully.',
+        }
+        labels = {
+            'expectations': 'Instruments',
         }
 
     def __init__(self, *args, **kwargs):
