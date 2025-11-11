@@ -701,7 +701,7 @@ class WorkshopRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
             workshop_expenses = workshop_expenses.filter(date__gte=start_date.date())
 
         total_expenses = workshop_expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-        net_profit = domain_data['revenue'] - total_expenses
+        net_profit = domain_data['total_revenue'] - total_expenses
 
         context.update({
             'domain_data': domain_data,
@@ -756,7 +756,7 @@ class CourseRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
             course_expenses = course_expenses.filter(date__gte=start_date.date())
 
         total_expenses = course_expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-        net_profit = domain_data['revenue'] - total_expenses
+        net_profit = domain_data['total_revenue'] - total_expenses
 
         context.update({
             'domain_data': domain_data,
@@ -811,7 +811,7 @@ class PrivateTeachingRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateV
             private_teaching_expenses = private_teaching_expenses.filter(date__gte=start_date.date())
 
         total_expenses = private_teaching_expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-        net_profit = domain_data['revenue'] - total_expenses
+        net_profit = domain_data['total_revenue'] - total_expenses
 
         context.update({
             'domain_data': domain_data,
@@ -866,7 +866,7 @@ class PrivateTeachingSubjectRevenueView(LoginRequiredMixin, TeacherOnlyMixin, Te
             private_teaching_expenses = private_teaching_expenses.filter(date__gte=start_date.date())
 
         total_expenses = private_teaching_expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-        net_profit = domain_data['revenue'] - total_expenses
+        net_profit = domain_data['total_revenue'] - total_expenses
 
         context.update({
             'domain_data': domain_data,
