@@ -241,12 +241,15 @@
                             </td>
                             <td>
                                 <div class="text-sm">
-                                    <div>{{ registration.student.email }}</div>
-                                    {% if registration.child_profile %}
-                                        <div class="text-gray-500">Guardian: {{ registration.student.get_full_name }}</div>
+                                    {% if registration.phone %}
+                                        <div><i class="fas fa-phone mr-1"></i>{{ registration.phone }}</div>
+                                    {% elif registration.student.phone %}
+                                        <div><i class="fas fa-phone mr-1"></i>{{ registration.student.phone }}</div>
+                                    {% else %}
+                                        <div class="text-gray-400">No phone</div>
                                     {% endif %}
                                     {% if registration.emergency_contact %}
-                                        <div class="text-gray-500">Emergency: {{ registration.emergency_contact }}</div>
+                                        <div class="text-gray-500 mt-1">Emergency: {{ registration.emergency_contact }}</div>
                                     {% endif %}
                                 </div>
                             </td>
