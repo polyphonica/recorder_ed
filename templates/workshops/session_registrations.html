@@ -287,6 +287,10 @@
                                         <i class="fas fa-ellipsis-v"></i>
                                     </label>
                                     <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+                                        <li><a onclick="viewRegistrationDetails('{{ registration.id }}')">
+                                            <i class="fas fa-info-circle text-info"></i> View Details
+                                        </a></li>
+                                        <li class="divider"></li>
                                         <li><a onclick="updateStatus('{{ registration.id }}', 'attended')">
                                             <i class="fas fa-check text-success"></i> Mark Attended
                                         </a></li>
@@ -357,6 +361,54 @@
         </div>
     </form>
 </div>
+
+<!-- Registration Details Modal -->
+<dialog id="registrationDetailsModal" class="modal">
+    <div class="modal-box max-w-2xl">
+        <h3 class="font-bold text-lg mb-4">
+            <i class="fas fa-user-circle mr-2"></i>Registration Details
+        </h3>
+
+        <div id="modalContent" class="space-y-4">
+            <!-- Content will be loaded dynamically -->
+            <div class="text-center py-8">
+                <span class="loading loading-spinner loading-lg"></span>
+            </div>
+        </div>
+
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Close</button>
+            </form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<!-- Hidden registration data for modal -->
+<script id="registration-data" type="application/json">
+{
+    {% for registration in registrations %}
+    "{{ registration.id }}": {
+        "name": "{{ registration.student_name }}",
+        "email": "{{ registration.email|default:registration.student.email }}",
+        "phone": "{{ registration.phone|default:registration.student.phone|default:'' }}",
+        "emergency_contact": "{{ registration.emergency_contact|default:'' }}",
+        "experience_level": "{{ registration.get_experience_level_display|default:'' }}",
+        "instruments": "{{ registration.expectations|default:''|escapejs }}",
+        "special_requirements": "{{ registration.special_requirements|default:''|escapejs }}",
+        "status": "{{ registration.get_status_display }}",
+        "registered_date": "{{ registration.registration_date|date:'F j, Y g:i A' }}",
+        "child_profile": {% if registration.child_profile %}{
+            "name": "{{ registration.child_profile.full_name }}",
+            "age": {{ registration.child_profile.age }}
+        }{% else %}null{% endif %}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+}
+</script>
 
 <script>
 // Select all functionality
@@ -451,6 +503,78 @@ function sendBulkEmail() {
     const subject = encodeURIComponent('{{ session.workshop.title }} - Session Update');
     const emails = participants.join(',');
     window.location.href = 'mailto:' + emails + '?subject=' + subject;
+}
+
+// View registration details
+function viewRegistrationDetails(registrationId) {
+    const registrationData = JSON.parse(document.getElementById('registration-data').textContent);
+    const data = registrationData[registrationId];
+
+    if (!data) {
+        alert('Registration data not found');
+        return;
+    }
+
+    let html = '<div class="space-y-4">';
+
+    // Participant Info
+    html += '<div class="card bg-base-200">';
+    html += '<div class="card-body">';
+    html += '<h4 class="card-title text-base"><i class="fas fa-user mr-2 text-primary"></i>Participant</h4>';
+    html += '<div class="space-y-2 text-sm">';
+    html += '<p><strong>Name:</strong> ' + data.name + '</p>';
+    if (data.child_profile) {
+        html += '<p><strong>Age:</strong> ' + data.child_profile.age + '</p>';
+        html += '<p class="text-info"><i class="fas fa-child mr-1"></i>Child Registration</p>';
+    }
+    html += '<p><strong>Status:</strong> <span class="badge badge-sm">' + data.status + '</span></p>';
+    html += '<p><strong>Registered:</strong> ' + data.registered_date + '</p>';
+    html += '</div></div></div>';
+
+    // Contact Info
+    html += '<div class="card bg-base-200">';
+    html += '<div class="card-body">';
+    html += '<h4 class="card-title text-base"><i class="fas fa-address-book mr-2 text-primary"></i>Contact Information</h4>';
+    html += '<div class="space-y-2 text-sm">';
+    html += '<p><strong>Email:</strong> ' + data.email + '</p>';
+    if (data.phone) {
+        html += '<p><strong>Phone:</strong> ' + data.phone + '</p>';
+    }
+    if (data.emergency_contact) {
+        html += '<p><strong>Emergency Contact:</strong> <span class="text-error">' + data.emergency_contact + '</span></p>';
+    }
+    html += '</div></div></div>';
+
+    // Workshop Information
+    if (data.experience_level || data.instruments) {
+        html += '<div class="card bg-base-200">';
+        html += '<div class="card-body">';
+        html += '<h4 class="card-title text-base"><i class="fas fa-music mr-2 text-primary"></i>Workshop Information</h4>';
+        html += '<div class="space-y-2 text-sm">';
+        if (data.experience_level) {
+            html += '<p><strong>Experience Level:</strong> ' + data.experience_level + '</p>';
+        }
+        if (data.instruments) {
+            html += '<p><strong>Instruments:</strong></p>';
+            html += '<p class="pl-4 whitespace-pre-wrap">' + data.instruments + '</p>';
+        }
+        html += '</div></div></div>';
+    }
+
+    // Special Requirements
+    if (data.special_requirements) {
+        html += '<div class="card bg-base-200">';
+        html += '<div class="card-body">';
+        html += '<h4 class="card-title text-base"><i class="fas fa-info-circle mr-2 text-primary"></i>Special Requirements</h4>';
+        html += '<div class="text-sm">';
+        html += '<p class="whitespace-pre-wrap">' + data.special_requirements + '</p>';
+        html += '</div></div></div>';
+    }
+
+    html += '</div>';
+
+    document.getElementById('modalContent').innerHTML = html;
+    document.getElementById('registrationDetailsModal').showModal();
 }
 </script>
 {% endblock %}
