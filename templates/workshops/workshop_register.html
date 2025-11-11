@@ -121,7 +121,7 @@
                                             </label>
                                         {% endif %}
                                     </div>
-                                    
+
                                     <div class="form-control">
                                         <label class="label" for="{{ form.phone.id_for_label }}">
                                             <span class="label-text font-medium">Phone Number</span>
@@ -138,6 +138,26 @@
                                             </label>
                                         {% endif %}
                                     </div>
+                                </div>
+
+                                <div class="form-control mt-4">
+                                    <label class="label" for="{{ form.emergency_contact.id_for_label }}">
+                                        <span class="label-text font-medium">
+                                            {{ form.emergency_contact.label }}
+                                            {% if form.emergency_contact.field.required %}*{% endif %}
+                                        </span>
+                                    </label>
+                                    {{ form.emergency_contact }}
+                                    {% if form.emergency_contact.errors %}
+                                        <label class="label">
+                                            <span class="label-text-alt text-error">{{ form.emergency_contact.errors.0 }}</span>
+                                        </label>
+                                    {% endif %}
+                                    {% if form.emergency_contact.help_text %}
+                                        <label class="label">
+                                            <span class="label-text-alt">{{ form.emergency_contact.help_text }}</span>
+                                        </label>
+                                    {% endif %}
                                 </div>
                             </div>
 
