@@ -377,6 +377,14 @@ class StripeWebhookView(View):
                     ).count()
                     workshop.save(update_fields=['total_registrations'])
 
+                    # Send notification to instructor
+                    try:
+                        from apps.workshops.notifications import InstructorNotificationService
+                        InstructorNotificationService.send_new_registration_notification(registration)
+                        print(f"  ✓ Sent notification to instructor {session.workshop.instructor.email}")
+                    except Exception as e:
+                        print(f"  ✗ Failed to send instructor notification: {e}")
+
                     # Store for email
                     created_registrations.append(registration)
 
