@@ -52,6 +52,9 @@
             
             <!-- Action Buttons -->
             <div class="flex gap-2">
+                <a href="{% url 'workshops:attendance_sheet' session_id=session.id %}" target="_blank" class="btn btn-outline">
+                    <i class="fas fa-print mr-2"></i>Print Attendance
+                </a>
                 <button onclick="exportParticipants()" class="btn btn-outline">
                     <i class="fas fa-download mr-2"></i>Export
                 </button>

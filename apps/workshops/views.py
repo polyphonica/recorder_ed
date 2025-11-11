@@ -1131,6 +1131,36 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
         return redirect('workshops:session_registrations', session_id=self.kwargs['session_id'])
 
 
+class AttendanceSheetView(LoginRequiredMixin, TemplateView):
+    """Generate printable attendance sheet for workshop session"""
+    template_name = 'workshops/attendance_sheet.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get session and verify instructor access
+        session = get_object_or_404(
+            WorkshopSession,
+            id=self.kwargs['session_id'],
+            workshop__instructor=self.request.user
+        )
+
+        # Get all registered and attended participants (not cancelled/no-show)
+        registrations = WorkshopRegistration.objects.filter(
+            session=session,
+            status__in=['registered', 'attended', 'promoted']
+        ).select_related(
+            'student',
+            'student__profile',
+            'child_profile'
+        ).order_by('student__last_name', 'student__first_name')
+
+        context['session'] = session
+        context['registrations'] = registrations
+
+        return context
+
+
 class WorkshopInterestView(CreateView):
     """Handle workshop interest requests for workshops without available sessions"""
     model = WorkshopInterest

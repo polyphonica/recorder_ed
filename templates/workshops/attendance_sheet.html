@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance Sheet - {{ session.workshop.title }}</title>
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 1.5cm;
+            }
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+        }
+
+        .header {
+            border-bottom: 3px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            color: #333;
+        }
+
+        .header .details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .safety-notice {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .safety-notice strong {
+            color: #856404;
+        }
+
+        .attendance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .attendance-table thead {
+            background: #f5f5f5;
+        }
+
+        .attendance-table th {
+            text-align: left;
+            padding: 12px 8px;
+            border: 1px solid #ddd;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .attendance-table td {
+            padding: 15px 8px;
+            border: 1px solid #ddd;
+            font-size: 13px;
+        }
+
+        .attendance-table tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .signature-line {
+            border-bottom: 1px solid #999;
+            min-width: 150px;
+            display: inline-block;
+        }
+
+        .instruments {
+            color: #666;
+            font-style: italic;
+        }
+
+        .emergency {
+            color: #d32f2f;
+            font-size: 11px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .no-print {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .count {
+            font-weight: bold;
+            color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <!-- Print Button -->
+    <div class="no-print">
+        <button onclick="window.print()" style="padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+            <i class="fas fa-print"></i> Print This Sheet
+        </button>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>{{ session.workshop.title }}</h1>
+        <div class="details">
+            <div>
+                <strong>Date:</strong> {{ session.start_datetime|date:"l, F j, Y" }}<br>
+                <strong>Time:</strong> {{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}
+            </div>
+            <div>
+                <strong>Instructor:</strong> {{ session.workshop.instructor.get_full_name|default:session.workshop.instructor.username }}<br>
+                <strong>Location:</strong> {{ session.workshop.venue_name|default:"See workshop details" }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Safety Notice -->
+    <div class="safety-notice">
+        <strong>⚠ FIRE SAFETY:</strong> In case of evacuation, use this sheet to account for all attendees. Total registered: <span class="count">{{ registrations|length }}</span>
+    </div>
+
+    <!-- Attendance Table -->
+    <table class="attendance-table">
+        <thead>
+            <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 30%;">Participant Name</th>
+                <th style="width: 35%;">Instruments</th>
+                <th style="width: 30%;">Signature / Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for registration in registrations %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                    <strong>{{ registration.student_name }}</strong>
+                    {% if registration.child_profile %}
+                        <br><small>(Child, Age {{ registration.child_profile.age }})</small>
+                    {% endif %}
+                    {% if registration.emergency_contact %}
+                        <br><span class="emergency">Emergency: {{ registration.emergency_contact }}</span>
+                    {% endif %}
+                </td>
+                <td class="instruments">
+                    {% if registration.expectations %}
+                        {{ registration.expectations|linebreaks }}
+                    {% else %}
+                        <span style="color: #ccc;">Not specified</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="signature-line">&nbsp;</span>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 30px; color: #999;">
+                    No registered participants yet
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Summary -->
+    <div class="footer">
+        <strong>Total Participants:</strong> {{ registrations|length }}<br>
+        <strong>Printed:</strong> {% now "F j, Y g:i A" %}<br>
+        <br>
+        <em>Note: Please keep this attendance sheet for your records and fire safety compliance.</em>
+    </div>
+</body>
+</html>
