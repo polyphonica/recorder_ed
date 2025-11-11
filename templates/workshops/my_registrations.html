@@ -22,11 +22,7 @@
                 <h1 class="text-3xl font-bold mb-2">My Workshop Registrations</h1>
                 <p class="text-base-content/70">Track all your workshop enrollments and attendance</p>
             </div>
-            <div class="mt-4 md:mt-0 flex gap-2">
-                <a href="{% url 'workshops:dashboard' %}" class="btn btn-outline">
-                    <i class="fas fa-arrow-left"></i>
-                    Back to Dashboard
-                </a>
+            <div class="mt-4 md:mt-0">
                 <a href="{% url 'workshops:list' %}?browse=all" class="btn btn-primary">
                     <i class="fas fa-plus"></i>
                     Find More Workshops
@@ -208,12 +204,6 @@
                                        class="btn btn-sm btn-primary">
                                         <i class="fas fa-eye"></i>
                                         View Workshop
-                                    </a>
-
-                                    <a href="{% url 'workshops:registration_confirm' registration_id=registration.id %}"
-                                       class="btn btn-sm btn-outline">
-                                        <i class="fas fa-receipt"></i>
-                                        View Details
                                     </a>
 
                                     {% if registration.session.meeting_url and registration.status == 'registered' %}
