@@ -243,8 +243,8 @@
                                 <div class="text-sm">
                                     {% if registration.phone %}
                                         <div><i class="fas fa-phone mr-1"></i>{{ registration.phone }}</div>
-                                    {% elif registration.student.phone %}
-                                        <div><i class="fas fa-phone mr-1"></i>{{ registration.student.phone }}</div>
+                                    {% elif registration.student.profile.phone %}
+                                        <div><i class="fas fa-phone mr-1"></i>{{ registration.student.profile.phone }}</div>
                                     {% else %}
                                         <div class="text-gray-400">No phone</div>
                                     {% endif %}
@@ -394,7 +394,7 @@
     "{{ registration.id }}": {
         "name": "{{ registration.student_name }}",
         "email": "{{ registration.email|default:registration.student.email }}",
-        "phone": "{{ registration.phone|default:registration.student.phone|default:'' }}",
+        "phone": "{{ registration.phone|default:registration.student.profile.phone|default:'' }}",
         "emergency_contact": "{{ registration.emergency_contact|default:'' }}",
         "experience_level": "{{ registration.get_experience_level_display|default:'' }}",
         "instruments": "{{ registration.expectations|default:''|escapejs }}",
