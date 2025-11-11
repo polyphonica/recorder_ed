@@ -337,11 +337,16 @@ class StripeWebhookView(View):
                     print(f"  Session: {cart_item.session.start_datetime}")
                     print(f"  Price: £{cart_item.price}")
 
-                    # Create registration
+                    # Create registration with data from cart item
                     registration = WorkshopRegistration.objects.create(
                         session=cart_item.session,
                         student=user,
-                        email=user.email,
+                        email=cart_item.email or user.email,
+                        phone=cart_item.phone or '',
+                        emergency_contact=cart_item.emergency_contact or '',
+                        experience_level=cart_item.experience_level or '',
+                        expectations=cart_item.expectations or '',
+                        special_requirements=cart_item.special_requirements or '',
                         child_profile=cart_item.child_profile,
                         status='registered',
                         payment_status='completed',

@@ -382,14 +382,23 @@
                                                                 ✓ In Cart
                                                             </button>
                                                         {% elif session.spots_remaining > 0 %}
-                                                            <form method="post" action="{% url 'workshops:add_to_cart' session.id %}">
-                                                                {% csrf_token %}
-                                                                <input type="hidden" name="next" value="{{ request.path }}">
-                                                                <button type="submit" class="btn btn-primary btn-sm w-full mt-2 tooltip tooltip-top" data-tip="Reserve your place in this workshop session">
-                                                                    <i class="fas fa-shopping-cart mr-1"></i>
-                                                                    Add to Cart
-                                                                </button>
-                                                            </form>
+                                                            {% if session.workshop.delivery_method == 'in_person' %}
+                                                                <a href="{% url 'workshops:register' workshop_slug=session.workshop.slug session_id=session.id %}"
+                                                                   class="btn btn-primary btn-sm w-full mt-2 tooltip tooltip-top"
+                                                                   data-tip="Fill out registration form for this in-person workshop">
+                                                                    <i class="fas fa-clipboard-list mr-1"></i>
+                                                                    Register for Session
+                                                                </a>
+                                                            {% else %}
+                                                                <form method="post" action="{% url 'workshops:add_to_cart' session.id %}">
+                                                                    {% csrf_token %}
+                                                                    <input type="hidden" name="next" value="{{ request.path }}">
+                                                                    <button type="submit" class="btn btn-primary btn-sm w-full mt-2 tooltip tooltip-top" data-tip="Reserve your place in this workshop session">
+                                                                        <i class="fas fa-shopping-cart mr-1"></i>
+                                                                        Add to Cart
+                                                                    </button>
+                                                                </form>
+                                                            {% endif %}
                                                         {% else %}
                                                             <button class="btn btn-disabled btn-sm w-full mt-2 tooltip tooltip-top" data-tip="This session is fully booked">
                                                                 Session Full
@@ -717,14 +726,23 @@
                         {% elif session.id in cart_session_ids %}
                             <button class="btn btn-accent btn-sm">✓ In Cart</button>
                         {% elif session.spots_remaining > 0 %}
-                            <form method="post" action="{% url 'workshops:add_to_cart' session.id %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="next" value="{{ request.path }}">
-                                <button type="submit" class="btn btn-primary btn-sm tooltip tooltip-left" data-tip="Reserve your place in this session">
-                                    <i class="fas fa-shopping-cart mr-1"></i>
-                                    Add to Cart
-                                </button>
-                            </form>
+                            {% if session.workshop.delivery_method == 'in_person' %}
+                                <a href="{% url 'workshops:register' workshop_slug=session.workshop.slug session_id=session.id %}"
+                                   class="btn btn-primary btn-sm tooltip tooltip-left"
+                                   data-tip="Fill out registration form for this in-person workshop">
+                                    <i class="fas fa-clipboard-list mr-1"></i>
+                                    Register
+                                </a>
+                            {% else %}
+                                <form method="post" action="{% url 'workshops:add_to_cart' session.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.path }}">
+                                    <button type="submit" class="btn btn-primary btn-sm tooltip tooltip-left" data-tip="Reserve your place in this session">
+                                        <i class="fas fa-shopping-cart mr-1"></i>
+                                        Add to Cart
+                                    </button>
+                                </form>
+                            {% endif %}
                         {% else %}
                             <button class="btn btn-disabled btn-sm tooltip tooltip-left" data-tip="This session is fully booked">Session Full</button>
                         {% endif %}

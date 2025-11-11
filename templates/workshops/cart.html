@@ -51,6 +51,28 @@
                                     {% if item.notes %}
                                         <p><i class="fas fa-sticky-note mr-2"></i>Note: {{ item.notes }}</p>
                                     {% endif %}
+
+                                    <!-- Registration Data -->
+                                    {% if item.registration_completed %}
+                                        <div class="mt-3 pt-3 border-t border-base-300">
+                                            <p class="font-semibold text-success mb-2">
+                                                <i class="fas fa-check-circle mr-2"></i>Registration Form Completed
+                                            </p>
+                                            {% if item.emergency_contact %}
+                                                <p class="text-xs"><i class="fas fa-phone-alt mr-2"></i>Emergency: {{ item.emergency_contact }}</p>
+                                            {% endif %}
+                                            {% if item.experience_level %}
+                                                <p class="text-xs"><i class="fas fa-chart-line mr-2"></i>Level: {{ item.experience_level|title }}</p>
+                                            {% endif %}
+                                        </div>
+                                    {% elif item.session.workshop.delivery_method == 'in_person' %}
+                                        <div class="mt-3 pt-3 border-t border-base-300">
+                                            <p class="font-semibold text-warning">
+                                                <i class="fas fa-exclamation-triangle mr-2"></i>Registration Required
+                                            </p>
+                                            <p class="text-xs">Please complete registration form for this in-person workshop</p>
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                             <div class="flex flex-col items-end gap-2">

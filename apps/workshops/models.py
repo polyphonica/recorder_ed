@@ -941,6 +941,20 @@ class WorkshopCartItem(models.Model):
         help_text="If registering a child, link to their child profile"
     )
 
+    # Registration data (collected before adding to cart for in-person workshops)
+    email = models.EmailField(blank=True, help_text="Contact email for this registration")
+    phone = models.CharField(max_length=20, blank=True, help_text="Contact phone number")
+    emergency_contact = models.CharField(max_length=100, blank=True, help_text="Emergency contact name and phone")
+    experience_level = models.CharField(max_length=20, blank=True, help_text="Experience level for this workshop")
+    expectations = models.TextField(blank=True, help_text="What the participant hopes to learn")
+    special_requirements = models.TextField(blank=True, help_text="Accessibility or other needs")
+
+    # Indicates whether registration form was completed (required for in-person workshops)
+    registration_completed = models.BooleanField(
+        default=False,
+        help_text="Whether the registration form has been filled out"
+    )
+
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -281,6 +281,52 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
         if not self.request.user.is_authenticated:
             return self.handle_no_permission()
 
+        # For in-person workshops, add to cart with registration data
+        # For online workshops, this form shouldn't normally be reached (they use direct Add to Cart)
+        # But we'll handle both cases
+
+        # Get child profile ID if guardian
+        child_profile_id = None
+        if self.request.user.profile.is_guardian:
+            child_id = form.cleaned_data.get('child_profile')
+            if child_id:
+                from apps.accounts.models import ChildProfile
+                try:
+                    child = ChildProfile.objects.get(id=child_id, guardian=self.request.user)
+                    child_profile_id = str(child.id)
+                except ChildProfile.DoesNotExist:
+                    messages.error(self.request, 'Invalid child selected.')
+                    return redirect('workshops:detail', slug=self.workshop.slug)
+
+        # Add to cart with registration data
+        from .cart import WorkshopCartManager
+        cart_manager = WorkshopCartManager(self.request)
+
+        # Prepare registration data
+        registration_data = {
+            'email': form.cleaned_data.get('email') or self.request.user.email,
+            'phone': form.cleaned_data.get('phone', ''),
+            'emergency_contact': form.cleaned_data.get('emergency_contact', ''),
+            'experience_level': form.cleaned_data.get('experience_level', ''),
+            'expectations': form.cleaned_data.get('expectations', ''),
+            'special_requirements': form.cleaned_data.get('special_requirements', ''),
+        }
+
+        success, message = cart_manager.add_session(
+            str(self.session.id),
+            child_profile_id=child_profile_id,
+            registration_data=registration_data
+        )
+
+        if success:
+            messages.success(self.request, message)
+            return redirect('workshops:cart')
+        else:
+            messages.error(self.request, message)
+            return redirect('workshops:detail', slug=self.workshop.slug)
+
+        # OLD DIRECT REGISTRATION CODE - Keeping for reference but now using cart flow
+        """
         registration = form.save(commit=False)
         registration.student = self.request.user
         registration.session = self.session
@@ -298,114 +344,9 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
                     messages.error(self.request, 'Invalid child selected.')
                     return redirect('workshops:detail', slug=self.workshop.slug)
 
-        # Check if workshop requires payment
-        is_paid_workshop = not self.workshop.is_free and self.workshop.price > 0
-
-        # Determine registration status based on capacity
-        if self.session.is_full:
-            if self.session.waitlist_enabled:
-                registration.status = 'waitlisted'
-                registration.payment_status = 'not_required'  # Payment only required when promoted
-                student_name = registration.child_profile.full_name if registration.child_profile else 'You'
-                messages.success(
-                    self.request,
-                    f'{student_name} {"has" if registration.child_profile else "have"} been added to the waitlist for this workshop.'
-                )
-                registration.save()
-                self.workshop.total_registrations += 1
-                self.workshop.save()
-                return redirect('workshops:registration_confirm', registration_id=registration.id)
-            else:
-                messages.error(
-                    self.request,
-                    'Sorry, this workshop session is full and waitlist is not available.'
-                )
-                return redirect('workshops:detail', slug=self.workshop.slug)
-
-        # Workshop has capacity available
-        if is_paid_workshop:
-            # PAID WORKSHOP: Create registration with pending payment status
-            registration.status = 'pending_payment'
-            registration.payment_status = 'pending'
-            registration.payment_amount = self.workshop.price
-            registration.save()
-
-            # Create Stripe checkout session
-            from apps.payments.stripe_service import create_checkout_session
-            from django.urls import reverse
-
-            success_url = self.request.build_absolute_uri(
-                reverse('workshops:checkout_success', kwargs={'registration_id': registration.id})
-            )
-            cancel_url = self.request.build_absolute_uri(
-                reverse('workshops:checkout_cancel', kwargs={'registration_id': registration.id})
-            )
-
-            try:
-                # Format descriptive item name and description
-                session_date = self.session.start_datetime.strftime('%d %B %Y at %H:%M')
-                item_name = f"{self.workshop.title}"
-                item_description = f"Workshop session on {session_date}"
-
-                session = create_checkout_session(
-                    amount=self.workshop.price,
-                    student=self.request.user,
-                    teacher=self.workshop.instructor,
-                    domain='workshops',
-                    success_url=success_url,
-                    cancel_url=cancel_url,
-                    metadata={
-                        'registration_id': str(registration.id),
-                        'workshop_id': str(self.workshop.id),
-                        'session_id': str(self.session.id),
-                    },
-                    item_name=item_name,
-                    item_description=item_description
-                )
-
-                # Save session ID to registration
-                registration.stripe_checkout_session_id = session.id
-                registration.save()
-
-                # Redirect to Stripe Checkout
-                return redirect(session.url, code=303)
-
-            except Exception as e:
-                # If Stripe checkout creation fails, delete the registration
-                registration.delete()
-                messages.error(self.request, f"Payment setup failed: {str(e)}. Please try again.")
-                return redirect('workshops:detail', slug=self.workshop.slug)
-
-        else:
-            # FREE WORKSHOP: Immediate registration
-            registration.status = 'registered'
-            registration.payment_status = 'not_required'
-            registration.payment_amount = 0
-            registration.save()
-
-            # Update session registration count
-            self.session.current_registrations += 1
-            self.session.save()
-
-            student_name = registration.child_profile.full_name if registration.child_profile else 'You'
-            messages.success(
-                self.request,
-                f'{student_name} {"has" if registration.child_profile else "have"} been successfully registered for the workshop!'
-            )
-
-            # Update workshop total registrations
-            self.workshop.total_registrations += 1
-            self.workshop.save()
-
-            # Send notification to instructor
-            try:
-                from .notifications import InstructorNotificationService
-                InstructorNotificationService.send_new_registration_notification(registration)
-            except Exception as e:
-                # Don't fail the registration if email fails
-                print(f"Failed to send instructor notification: {e}")
-
-            return redirect('workshops:registration_confirm', registration_id=registration.id)
+        # Check if workshop requires payment (code moved to cart checkout process)
+        # All workshop registration now goes through cart for consistency
+        """
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

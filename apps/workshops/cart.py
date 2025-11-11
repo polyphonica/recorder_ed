@@ -28,8 +28,8 @@ class WorkshopCartManager:
             # Anonymous user - require authentication for workshops
             return None
 
-    def add_session(self, session_id, child_profile_id=None, notes=''):
-        """Add a workshop session to cart"""
+    def add_session(self, session_id, child_profile_id=None, notes='', registration_data=None):
+        """Add a workshop session to cart with optional registration data"""
         if not self.user or not self.user.is_authenticated:
             return False, "Please log in to add workshops to cart"
 
@@ -75,13 +75,28 @@ class WorkshopCartManager:
             if child_profile_id:
                 child_profile = ChildProfile.objects.get(id=child_profile_id, guardian=self.user)
 
-            cart_item = WorkshopCartItem.objects.create(
-                cart=cart,
-                session=session,
-                price=price,
-                notes=notes,
-                child_profile=child_profile
-            )
+            # Prepare cart item data
+            cart_item_data = {
+                'cart': cart,
+                'session': session,
+                'price': price,
+                'notes': notes,
+                'child_profile': child_profile,
+            }
+
+            # Add registration data if provided (for in-person workshops)
+            if registration_data:
+                cart_item_data.update({
+                    'email': registration_data.get('email', ''),
+                    'phone': registration_data.get('phone', ''),
+                    'emergency_contact': registration_data.get('emergency_contact', ''),
+                    'experience_level': registration_data.get('experience_level', ''),
+                    'expectations': registration_data.get('expectations', ''),
+                    'special_requirements': registration_data.get('special_requirements', ''),
+                    'registration_completed': True,  # Mark as having completed registration form
+                })
+
+            cart_item = WorkshopCartItem.objects.create(**cart_item_data)
             return True, f"Added {session.workshop.title} to cart"
         except Exception as e:
             return False, f"Error adding workshop to cart: {str(e)}"
