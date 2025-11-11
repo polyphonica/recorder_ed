@@ -20,7 +20,7 @@ class WorkshopRegistrationForm(forms.ModelForm):
     class Meta:
         model = WorkshopRegistration
         fields = [
-            'email', 'phone', 'experience_level',
+            'email', 'phone', 'emergency_contact', 'experience_level',
             'expectations', 'special_requirements'
         ]
         widgets = {
@@ -31,6 +31,10 @@ class WorkshopRegistrationForm(forms.ModelForm):
             'phone': forms.TextInput(attrs={
                 'class': 'input input-bordered w-full',
                 'placeholder': '+1 (555) 123-4567'
+            }),
+            'emergency_contact': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'Name and phone number (e.g., Jane Doe +1 555-123-4567)'
             }),
             'experience_level': forms.Select(attrs={
                 'class': 'select select-bordered w-full'
@@ -47,6 +51,7 @@ class WorkshopRegistrationForm(forms.ModelForm):
             }),
         }
         help_texts = {
+            'emergency_contact': 'Required for on-site workshops. In case of emergency, who should we contact? Include their name and phone number.',
             'experience_level': 'How would you rate your current experience level?',
             'expectations': 'This helps the instructor tailor the content to your needs.',
             'special_requirements': 'We want to ensure everyone can participate fully.',
@@ -65,6 +70,14 @@ class WorkshopRegistrationForm(forms.ModelForm):
         self.fields['phone'].required = False
         self.fields['expectations'].required = False
         self.fields['special_requirements'].required = False
+
+        # Emergency contact is required for on-site workshops
+        if self.session and self.session.workshop.delivery_method == 'in_person':
+            self.fields['emergency_contact'].required = True
+            self.fields['emergency_contact'].label = 'Emergency Contact (Required for on-site workshops)'
+        else:
+            self.fields['emergency_contact'].required = False
+            self.fields['emergency_contact'].label = 'Emergency Contact (Optional for online workshops)'
 
         # Setup child selection field for guardians
         if self.user and self.user.is_authenticated and self.user.profile.is_guardian:

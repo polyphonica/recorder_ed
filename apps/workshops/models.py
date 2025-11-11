@@ -545,7 +545,12 @@ class WorkshopRegistration(models.Model):
     # Contact Information
     email = models.EmailField()  # Guardian's email for child registrations
     phone = models.CharField(max_length=20, blank=True)  # Guardian's phone for child registrations
-    
+    emergency_contact = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Emergency contact name and phone number (required for on-site workshops)"
+    )
+
     # Experience and Expectations
     experience_level = models.CharField(max_length=20, choices=Workshop.DIFFICULTY_CHOICES, blank=True)
     expectations = models.TextField(blank=True, help_text="What do you hope to learn?")
