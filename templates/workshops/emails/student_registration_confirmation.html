@@ -1,0 +1,139 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%){% endblock %}
+{% block header_subtitle %}Registration Confirmed{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ registration.student.get_full_name|default:registration.student.username }},
+</p>
+
+<!-- Success Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 20px; background-color: #f5f3ff; border-radius: 8px;">
+            <p style="margin: 0; font-size: 24px; color: #8b5cf6;">✓</p>
+            <p style="margin: 10px 0 0 0; font-size: 20px; font-weight: 600; color: #6366f1;">
+                Registration Confirmed!
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;">
+                {% if is_child_registration %}{{ student_name }} is registered for the workshop{% else %}You're all set for the workshop{% endif %}
+            </p>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    {% if is_child_registration %}Thank you for registering {{ student_name }} for the workshop!{% else %}Thank you for registering for the workshop!{% endif %}
+</p>
+
+<!-- Workshop Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #2563eb;">
+                Workshop Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Workshop:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 600;">{{ workshop.title }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Date:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.start_datetime|date:"l, d F Y" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Time:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.start_datetime|time:"H:i" }} - {{ session.end_datetime|time:"H:i" }}</span>
+                    </td>
+                </tr>
+                {% if workshop.delivery_method == 'online' %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Delivery:</span>
+                        <span style="font-size: 14px; color: #333333;">Online</span>
+                    </td>
+                </tr>
+                {% if session.meeting_url %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Meeting Link:</span>
+                        <a href="{{ session.meeting_url }}" style="font-size: 14px; color: #2563eb; text-decoration: underline;">Join Workshop</a>
+                    </td>
+                </tr>
+                {% endif %}
+                {% elif workshop.delivery_method == 'in_person' %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Delivery:</span>
+                        <span style="font-size: 14px; color: #333333;">In-Person</span>
+                    </td>
+                </tr>
+                {% if workshop.venue_name %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Venue:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ workshop.venue_name }}</span>
+                    </td>
+                </tr>
+                {% endif %}
+                {% if workshop.full_venue_address %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Address:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ workshop.full_venue_address }}</span>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endif %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Payment Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #059669;">
+                Payment Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 140px;">Amount Paid:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 600;">£{{ registration.payment_amount }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 140px;">Payment Date:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ registration.paid_at|date:"d F Y \a\t H:i" }}</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Action Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ my_registrations_url }}" style="display: inline-block; padding: 14px 28px; background-color: #8b5cf6; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);">
+                View My Registrations
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    Looking forward to seeing you at the workshop!
+</p>
+{% endblock %}

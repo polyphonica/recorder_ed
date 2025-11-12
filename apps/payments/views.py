@@ -237,52 +237,12 @@ class StripeWebhookView(View):
                 stripe_payment.workshop_id = workshop.id
                 stripe_payment.save()
 
-                # Send confirmation email
-                if registration.student and registration.student.email:
-                    try:
-                        student_name = registration.student_name  # Uses property for child or adult
-                        guardian_email = registration.email or registration.student.email
-
-                        subject = f"Workshop Registration Confirmed - {workshop.title}"
-
-                        email_body = f"Hello {registration.student.get_full_name() or registration.student.username},\n\n"
-
-                        if registration.child_profile:
-                            email_body += f"Thank you for registering {student_name} for the workshop!\n\n"
-                        else:
-                            email_body += f"Thank you for registering for the workshop!\n\n"
-
-                        email_body += f"WORKSHOP DETAILS:\n"
-                        email_body += f"Workshop: {workshop.title}\n"
-                        email_body += f"Date: {session.start_datetime.strftime('%A, %d %B %Y')}\n"
-                        email_body += f"Time: {session.start_datetime.strftime('%H:%M')} - {session.end_datetime.strftime('%H:%M')}\n"
-
-                        if workshop.delivery_method == 'online':
-                            email_body += f"Delivery: Online\n"
-                            if session.meeting_url:
-                                email_body += f"Meeting Link: {session.meeting_url}\n"
-                        elif workshop.delivery_method == 'in_person':
-                            email_body += f"Delivery: In-Person\n"
-                            if workshop.venue_name:
-                                email_body += f"Venue: {workshop.venue_name}\n"
-                            if workshop.full_venue_address:
-                                email_body += f"Address: {workshop.full_venue_address}\n"
-
-                        email_body += f"\nAmount Paid: £{registration.payment_amount:.2f}\n"
-                        email_body += f"Payment Date: {registration.paid_at.strftime('%d %B %Y at %H:%M')}\n\n"
-
-                        email_body += f"You can view your registration details at: https://www.recorder-ed.com/workshops/registration/{registration.id}/confirm/\n\n"
-                        email_body += "Best regards,\nRECORDERED Team"
-
-                        send_mail(
-                            subject,
-                            email_body,
-                            settings.DEFAULT_FROM_EMAIL,
-                            [guardian_email],
-                            fail_silently=True,
-                        )
-                    except Exception as e:
-                        print(f"Error sending workshop confirmation email: {e}")
+                # Send confirmation email to student
+                try:
+                    from apps.workshops.notifications import StudentNotificationService
+                    StudentNotificationService.send_registration_confirmation(registration)
+                except Exception as e:
+                    print(f"Error sending workshop confirmation email: {e}")
 
                 print(f"Workshop registration {registration_id} confirmed and email sent")
             except WorkshopRegistration.DoesNotExist:
@@ -389,7 +349,10 @@ class StripeWebhookView(View):
             if created_registrations and user.email:
                 try:
                     print(f"\nSending confirmation email to {user.email}...")
-                    self.send_workshop_cart_confirmation_email(user, created_registrations, stripe_payment)
+                    from apps.workshops.notifications import StudentNotificationService
+                    StudentNotificationService.send_cart_registration_confirmation(
+                        user, created_registrations, stripe_payment.total_amount
+                    )
                     print(f"✓ Email sent successfully")
                 except Exception as e:
                     print(f"✗ Error sending cart confirmation email: {e}")
@@ -411,60 +374,6 @@ class StripeWebhookView(View):
             print(f"✗ Error in handle_workshop_cart_payment: {str(e)}")
             print(f"Traceback: {traceback.format_exc()}")
 
-    def send_workshop_cart_confirmation_email(self, user, registrations, stripe_payment):
-        """Send confirmation email for cart-based workshop purchase"""
-        from django.core.mail import send_mail
-        from django.conf import settings
-
-        total_amount = stripe_payment.total_amount
-        user_name = user.get_full_name() or user.username
-
-        subject = f"Workshop Registration Confirmed - {len(registrations)} Session{'s' if len(registrations) > 1 else ''}"
-
-        email_body = f"Hello {user_name},\n\n"
-        email_body += f"Thank you for your payment! Your workshop registration{'s are' if len(registrations) > 1 else ' is'} confirmed.\n\n"
-        email_body += f"PAYMENT DETAILS:\n"
-        email_body += f"Total Amount: £{total_amount:.2f}\n"
-        email_body += f"Payment Date: {registrations[0].paid_at.strftime('%d %B %Y at %H:%M')}\n\n"
-        email_body += f"WORKSHOPS REGISTERED:\n\n"
-
-        for reg in registrations:
-            workshop = reg.session.workshop
-            session = reg.session
-
-            participant_name = reg.student_name  # Uses property for child or adult
-
-            if reg.child_profile:
-                email_body += f"Workshop: {workshop.title} (for {participant_name})\n"
-            else:
-                email_body += f"Workshop: {workshop.title}\n"
-
-            email_body += f"Date: {session.start_datetime.strftime('%A, %d %B %Y')}\n"
-            email_body += f"Time: {session.start_datetime.strftime('%H:%M')} - {session.end_datetime.strftime('%H:%M')}\n"
-
-            if workshop.delivery_method == 'online':
-                email_body += f"Delivery: Online\n"
-                if session.meeting_url:
-                    email_body += f"Meeting Link: {session.meeting_url}\n"
-            else:
-                email_body += f"Delivery: In-Person\n"
-                if workshop.venue_name:
-                    email_body += f"Venue: {workshop.venue_name}\n"
-                if workshop.full_venue_address:
-                    email_body += f"Address: {workshop.full_venue_address}\n"
-
-            email_body += f"Price: £{reg.payment_amount:.2f}\n\n"
-
-        email_body += f"You can view your registrations at: https://www.recorder-ed.com/workshops/my/registrations/\n\n"
-        email_body += "Best regards,\nRECORDERED Team"
-
-        send_mail(
-            subject,
-            email_body,
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            fail_silently=True,
-        )
 
     def handle_course_payment(self, metadata, stripe_payment):
         """Update course enrollment when payment succeeds"""

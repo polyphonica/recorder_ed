@@ -265,6 +265,85 @@ class InstructorNotificationService(BaseNotificationService):
         )
 
 
+class StudentNotificationService(BaseNotificationService):
+    """Service for sending workshop-related email notifications to students"""
+
+    @staticmethod
+    def send_registration_confirmation(registration):
+        """Send registration confirmation email to student for a single workshop"""
+        try:
+            # Get student email
+            if not registration.student or not registration.student.email:
+                logger.warning(f"No student email found for registration {registration.id}")
+                return False
+
+            guardian_email = registration.email or registration.student.email
+
+            # Build URLs
+            my_registrations_url = StudentNotificationService.build_absolute_url(
+                'workshops:my_registrations'
+            )
+
+            context = {
+                'registration': registration,
+                'session': registration.session,
+                'workshop': registration.session.workshop,
+                'student_name': registration.student_name,  # Uses property for child or adult
+                'is_child_registration': registration.child_profile is not None,
+                'my_registrations_url': my_registrations_url,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='workshops/emails/student_registration_confirmation.txt',
+                context=context,
+                recipient_list=[guardian_email],
+                default_subject=f'Workshop Registration Confirmed - {registration.session.workshop.title}',
+                fail_silently=False,
+                log_description=f"Registration confirmation to student {registration.student.username} for session {registration.session.id}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send registration confirmation to student: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_cart_registration_confirmation(user, registrations, total_amount):
+        """Send confirmation email for multiple workshop registrations from cart"""
+        try:
+            # Get user email
+            if not user or not user.email:
+                logger.warning(f"No user email found for cart confirmation")
+                return False
+
+            # Build URLs
+            my_registrations_url = StudentNotificationService.build_absolute_url(
+                'workshops:my_registrations'
+            )
+
+            context = {
+                'user': user,
+                'user_name': user.get_full_name() or user.username,
+                'registrations': registrations,
+                'total_amount': total_amount,
+                'registration_count': len(registrations),
+                'payment_date': registrations[0].paid_at if registrations else None,
+                'my_registrations_url': my_registrations_url,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='workshops/emails/student_cart_confirmation.txt',
+                context=context,
+                recipient_list=[user.email],
+                default_subject=f"Workshop Registration Confirmed - {len(registrations)} Session{'s' if len(registrations) > 1 else ''}",
+                fail_silently=False,
+                log_description=f"Cart confirmation to student {user.username} for {len(registrations)} registrations"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send cart confirmation to student: {str(e)}")
+            return False
+
+
 class WorkshopInterestNotificationService(BaseNotificationService):
     """Service for sending workshop interest-related email notifications"""
 

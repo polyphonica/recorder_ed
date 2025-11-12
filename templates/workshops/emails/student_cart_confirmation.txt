@@ -1,0 +1,28 @@
+Subject: Workshop Registration Confirmed - {{ registration_count }} Session{{ registration_count|pluralize }} - {{ site_name }}
+
+Hello {{ user_name }},
+
+Thank you for your payment! Your workshop registration{{ registration_count|pluralize:" is,s are" }} confirmed.
+
+PAYMENT DETAILS:
+Total Amount: £{{ total_amount }}
+Payment Date: {{ payment_date|date:"d F Y \a\t H:i" }}
+
+WORKSHOPS REGISTERED:
+
+{% for reg in registrations %}Workshop: {{ reg.session.workshop.title }}{% if reg.child_profile %} (for {{ reg.student_name }}){% endif %}
+Date: {{ reg.session.start_datetime|date:"l, d F Y" }}
+Time: {{ reg.session.start_datetime|time:"H:i" }} - {{ reg.session.end_datetime|time:"H:i" }}
+{% if reg.session.workshop.delivery_method == 'online' %}Delivery: Online
+{% if reg.session.meeting_url %}Meeting Link: {{ reg.session.meeting_url }}
+{% endif %}{% else %}Delivery: In-Person
+{% if reg.session.workshop.venue_name %}Venue: {{ reg.session.workshop.venue_name }}
+{% endif %}{% if reg.session.workshop.full_venue_address %}Address: {{ reg.session.workshop.full_venue_address }}
+{% endif %}{% endif %}Price: £{{ reg.payment_amount }}
+
+{% endfor %}
+View your registrations:
+{{ my_registrations_url }}
+
+Best regards,
+The {{ site_name }} Team

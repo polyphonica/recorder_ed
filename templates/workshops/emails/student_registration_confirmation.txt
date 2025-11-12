@@ -1,0 +1,27 @@
+Subject: Workshop Registration Confirmed - {{ workshop.title }} - {{ site_name }}
+
+Hello {{ registration.student.get_full_name|default:registration.student.username }},
+
+{% if is_child_registration %}Thank you for registering {{ student_name }} for the workshop!{% else %}Thank you for registering for the workshop!{% endif %}
+
+WORKSHOP DETAILS:
+Workshop: {{ workshop.title }}
+Date: {{ session.start_datetime|date:"l, d F Y" }}
+Time: {{ session.start_datetime|time:"H:i" }} - {{ session.end_datetime|time:"H:i" }}
+
+{% if workshop.delivery_method == 'online' %}Delivery: Online
+{% if session.meeting_url %}Meeting Link: {{ session.meeting_url }}
+{% endif %}{% elif workshop.delivery_method == 'in_person' %}Delivery: In-Person
+{% if workshop.venue_name %}Venue: {{ workshop.venue_name }}
+{% endif %}{% if workshop.full_venue_address %}Address: {{ workshop.full_venue_address }}
+{% endif %}{% endif %}
+
+PAYMENT DETAILS:
+Amount Paid: £{{ registration.payment_amount }}
+Payment Date: {{ registration.paid_at|date:"d F Y \a\t H:i" }}
+
+View your registration:
+{{ my_registrations_url }}
+
+Best regards,
+The {{ site_name }} Team
