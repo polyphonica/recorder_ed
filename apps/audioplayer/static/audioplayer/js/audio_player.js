@@ -349,6 +349,7 @@ function updateSolo(instance) {
  */
 window.onload = async () => {
     const lessonId = document.getElementById('lesson-id')?.value;
+    const isPrivateLesson = document.getElementById('is-private-lesson')?.value === 'true';
 
     if (!lessonId) {
         console.error('No lesson ID found');
@@ -356,8 +357,12 @@ window.onload = async () => {
     }
 
     try {
-        console.log("Fetching pieces for lesson:", lessonId);
-        let response = await fetch(`/audioplayer/lesson/${lessonId}/pieces-json/`);
+        console.log("Fetching pieces for lesson:", lessonId, "Private lesson:", isPrivateLesson);
+        // Use different URL pattern for private lessons vs course lessons
+        const url = isPrivateLesson
+            ? `/audioplayer/private-lesson/${lessonId}/pieces-json/`
+            : `/audioplayer/lesson/${lessonId}/pieces-json/`;
+        let response = await fetch(url);
         console.log("Response status:", response.status);
 
         if (!response.ok) throw new Error(`HTTP error: ${response.status}`);

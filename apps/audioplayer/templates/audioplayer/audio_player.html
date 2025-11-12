@@ -72,6 +72,7 @@
 
     <!-- Hidden input for lesson ID (used by JavaScript) -->
     <input type="hidden" id="lesson-id" value="{{ lesson.id }}">
+    <input type="hidden" id="is-private-lesson" value="{% if is_private_lesson %}true{% else %}false{% endif %}">
 
     <!-- Players Container (populated by JavaScript) -->
     <div id="players-container">
