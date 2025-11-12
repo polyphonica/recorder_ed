@@ -3,35 +3,23 @@ Shopping cart utilities for private teaching lessons
 """
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
+from apps.core.cart import BaseCartManager
 from .models import Cart, CartItem
 from lessons.models import Lesson
 
 
-class CartManager:
+class CartManager(BaseCartManager):
     """Manage shopping cart operations"""
-    
-    def __init__(self, request):
-        self.request = request
-        self.user = request.user if request.user.is_authenticated else None
-        self.session = request.session
-        
-    def get_or_create_cart(self):
-        """Get or create cart for current user/session"""
-        if self.user and self.user.is_authenticated:
-            # Authenticated user - use database cart
-            cart, created = Cart.objects.get_or_create(
-                user=self.user,
-                defaults={'session_key': getattr(self.session, 'session_key', None)}
-            )
-            return cart
-        else:
-            # Anonymous user - require authentication for lessons
-            return None
+
+    def get_cart_model(self):
+        """Return the Cart model class to use"""
+        return Cart
     
     def add_lesson(self, lesson_id, price=None):
         """Add a lesson to cart"""
-        if not self.user or not self.user.is_authenticated:
-            return False, "Please log in to add lessons to cart"
+        is_auth, error = self._require_authentication("add lessons to cart")
+        if not is_auth:
+            return False, error
 
         try:
             lesson = get_object_or_404(Lesson, id=lesson_id)
@@ -45,9 +33,9 @@ class CartManager:
         if lesson.payment_status == 'Paid':
             return False, "This lesson has already been paid for"
 
-        cart = self.get_or_create_cart()
-        if not cart:
-            return False, "Unable to create cart"
+        cart, error_tuple = self._get_cart_or_error()
+        if error_tuple:
+            return error_tuple
 
         # Use lesson's fee if no price provided
         if price is None:
@@ -78,8 +66,9 @@ class CartManager:
     
     def add_all_lessons_from_request(self, lesson_request):
         """Add all accepted, unpaid lessons from a lesson request to cart"""
-        if not self.user:
-            return False, "Please log in to add lessons to cart"
+        is_auth, error = self._require_authentication("add lessons to cart")
+        if not is_auth:
+            return False, error
 
         # Get all accepted, unpaid lessons from the request
         eligible_lessons = lesson_request.lessons.filter(
@@ -90,9 +79,9 @@ class CartManager:
         if not eligible_lessons.exists():
             return False, "No accepted, unpaid lessons found in this request"
 
-        cart = self.get_or_create_cart()
-        if not cart:
-            return False, "Unable to create cart"
+        cart, error_tuple = self._get_cart_or_error()
+        if error_tuple:
+            return error_tuple
 
         added_count = 0
         skipped_count = 0
@@ -127,12 +116,13 @@ class CartManager:
     
     def remove_lesson(self, lesson_id):
         """Remove a lesson from cart"""
-        if not self.user:
-            return False, "Please log in to manage cart"
+        is_auth, error = self._require_authentication()
+        if not is_auth:
+            return False, error
 
-        cart = self.get_or_create_cart()
-        if not cart:
-            return False, "Cart not found"
+        cart, error_tuple = self._get_cart_or_error()
+        if error_tuple:
+            return error_tuple
 
         try:
             cart_item = CartItem.objects.get(
@@ -151,45 +141,32 @@ class CartManager:
     
     def clear_cart(self):
         """Clear all items from cart"""
-        if not self.user:
-            return False, "Please log in to manage cart"
-            
-        cart = self.get_or_create_cart()
-        if not cart:
-            return False, "Cart not found"
+        is_auth, error = self._require_authentication()
+        if not is_auth:
+            return False, error
+
+        cart, error_tuple = self._get_cart_or_error()
+        if error_tuple:
+            return error_tuple
             
         item_count = cart.items.count()
         cart.items.all().delete()
         return True, f"Removed {item_count} items from cart"
     
-    def get_cart(self):
-        """Get current cart with items"""
-        if not self.user:
-            return None
-            
-        try:
-            cart = Cart.objects.get(user=self.user)
-            return cart
-        except Cart.DoesNotExist:
-            return None
-    
     def get_cart_context(self):
         """Get cart context for templates"""
         cart = self.get_cart()
 
-        if not cart:
-            return {
-                'cart': None,
-                'cart_items': [],
-                'cart_total': Decimal('0.00'),
-                'cart_count': 0,
-            }
+        cart_items = cart.items.select_related(
+            'lesson__lesson_request',
+            'lesson__subject',
+            'lesson__student'
+        ).all() if cart else []
 
-        cart_items = cart.items.select_related('lesson__lesson_request', 'lesson__subject', 'lesson__student').all()
-
-        return {
-            'cart': cart,
-            'cart_items': cart_items,
-            'cart_total': cart.total_amount,
-            'cart_count': cart.item_count,
-        }
+        return self.get_base_cart_context(
+            cart=cart,
+            items_queryset=cart_items,
+            item_key='cart_items',
+            total_key='cart_total',
+            count_key='cart_count'
+        )

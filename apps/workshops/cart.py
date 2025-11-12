@@ -4,34 +4,23 @@ Shopping cart utilities for workshop sessions
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
 from apps.private_teaching.models import Cart
+from apps.core.cart import BaseCartManager
 from .models import WorkshopCartItem, WorkshopSession
 
 
-class WorkshopCartManager:
+class WorkshopCartManager(BaseCartManager):
     """Manage workshop cart operations"""
 
-    def __init__(self, request):
-        self.request = request
-        self.user = request.user if request.user.is_authenticated else None
-        self.session = request.session
-
-    def get_or_create_cart(self):
-        """Get or create cart for current user/session"""
-        if self.user and self.user.is_authenticated:
-            # Authenticated user - use database cart (unified with lessons)
-            cart, created = Cart.objects.get_or_create(
-                user=self.user,
-                defaults={'session_key': getattr(self.session, 'session_key', None)}
-            )
-            return cart
-        else:
-            # Anonymous user - require authentication for workshops
-            return None
+    def get_cart_model(self):
+        """Return the Cart model class to use"""
+        return Cart
 
     def add_session(self, session_id, child_profile_id=None, notes='', registration_data=None):
         """Add a workshop session to cart with optional registration data"""
-        if not self.user or not self.user.is_authenticated:
-            return False, "Please log in to add workshops to cart"
+        # Check authentication
+        is_auth, error = self._require_authentication("add workshops to cart")
+        if not is_auth:
+            return False, error
 
         try:
             session = get_object_or_404(WorkshopSession, id=session_id)
@@ -52,9 +41,9 @@ class WorkshopCartManager:
         if session.is_full and not session.waitlist_enabled:
             return False, "This workshop session is full"
 
-        cart = self.get_or_create_cart()
-        if not cart:
-            return False, "Unable to create cart"
+        cart, error_tuple = self._get_cart_or_error()
+        if error_tuple:
+            return error_tuple
 
         # Use workshop's price
         price = session.workshop.price
@@ -103,12 +92,13 @@ class WorkshopCartManager:
 
     def remove_session(self, session_id):
         """Remove a workshop session from cart"""
-        if not self.user:
-            return False, "Please log in to manage cart"
+        is_auth, error = self._require_authentication()
+        if not is_auth:
+            return False, error
 
-        cart = self.get_or_create_cart()
-        if not cart:
-            return False, "Cart not found"
+        cart, error_tuple = self._get_cart_or_error()
+        if error_tuple:
+            return error_tuple
 
         try:
             cart_item = WorkshopCartItem.objects.get(
@@ -123,52 +113,35 @@ class WorkshopCartManager:
 
     def clear_workshop_cart(self):
         """Clear all workshop items from cart"""
-        if not self.user:
-            return False, "Please log in to manage cart"
+        is_auth, error = self._require_authentication()
+        if not is_auth:
+            return False, error
 
-        cart = self.get_or_create_cart()
-        if not cart:
-            return False, "Cart not found"
+        cart, error_tuple = self._get_cart_or_error()
+        if error_tuple:
+            return error_tuple
 
         item_count = cart.workshop_items.count()
         cart.workshop_items.all().delete()
         return True, f"Removed {item_count} workshop(s) from cart"
 
-    def get_cart(self):
-        """Get current cart with workshop items"""
-        if not self.user:
-            return None
-
-        try:
-            cart = Cart.objects.get(user=self.user)
-            return cart
-        except Cart.DoesNotExist:
-            return None
-
     def get_cart_context(self):
         """Get cart context for templates"""
         cart = self.get_cart()
-
-        if not cart:
-            return {
-                'cart': None,
-                'workshop_cart_items': [],
-                'workshop_cart_total': Decimal('0.00'),
-                'workshop_cart_count': 0,
-            }
 
         workshop_items = cart.workshop_items.select_related(
             'session__workshop__instructor',
             'session__workshop__category',
             'child_profile'
-        ).all()
+        ).all() if cart else []
 
-        return {
-            'cart': cart,
-            'workshop_cart_items': workshop_items,
-            'workshop_cart_total': sum(item.total_price for item in workshop_items),
-            'workshop_cart_count': workshop_items.count(),
-        }
+        return self.get_base_cart_context(
+            cart=cart,
+            items_queryset=workshop_items,
+            item_key='workshop_cart_items',
+            total_key='workshop_cart_total',
+            count_key='workshop_cart_count'
+        )
 
     def get_combined_cart_total(self):
         """Get total for both workshops and lessons in cart"""
