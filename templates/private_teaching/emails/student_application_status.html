@@ -1,0 +1,110 @@
+{% extends "emails/base.html" %}
+
+{% if new_status == 'accepted' %}
+{% block header_gradient %}linear-gradient(135deg, #10b981 0%, #059669 100%){% endblock %}
+{% block header_subtitle %}Application Accepted!{% endblock %}
+{% elif new_status == 'waitlist' %}
+{% block header_gradient %}linear-gradient(135deg, #f59e0b 0%, #d97706 100%){% endblock %}
+{% block header_subtitle %}Added to Waitlist{% endblock %}
+{% else %}
+{% block header_gradient %}linear-gradient(135deg, #6b7280 0%, #4b5563 100%){% endblock %}
+{% block header_subtitle %}Application Update{% endblock %}
+{% endif %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ student_name }},
+</p>
+
+<!-- Status Card -->
+{% if new_status == 'accepted' %}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 20px; background-color: #f0fdf4; border-radius: 8px;">
+            <p style="margin: 0; font-size: 24px; color: #10b981;">✓</p>
+            <p style="margin: 10px 0 0 0; font-size: 20px; font-weight: 600; color: #059669;">
+                Congratulations!
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;">
+                {{ teacher_name }} has accepted your application
+            </p>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    <strong style="color: #059669;">Great news!</strong> {{ teacher_name }} has accepted your application to study with them. You can now request lessons!
+</p>
+{% elif new_status == 'waitlist' %}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 600; color: #d97706;">
+                Added to Waiting List
+            </h2>
+            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333333;">
+                {{ teacher_name }} has placed you on their waiting list. You'll be notified if a spot becomes available.
+            </p>
+        </td>
+    </tr>
+</table>
+{% else %}
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    {{ teacher_name }} has reviewed your application.
+</p>
+{% endif %}
+
+<!-- Teacher Notes Card -->
+{% if teacher_notes %}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #2563eb;">
+                💬 Message from {{ teacher_name }}
+            </h3>
+            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333333; white-space: pre-wrap;">{{ teacher_notes }}</p>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- Next Steps (for accepted applications) -->
+{% if new_status == 'accepted' %}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #059669;">
+                What's Next?
+            </h3>
+            <ul style="margin: 0; padding: 0 0 0 20px; font-size: 14px; line-height: 1.8; color: #333333;">
+                <li>Click the button below to request lessons</li>
+                <li>Choose your preferred subjects and times</li>
+                <li>Wait for {{ teacher_name }} to approve your lesson requests</li>
+                <li>Complete payment once approved</li>
+            </ul>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- Action Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            {% if new_status == 'accepted' %}
+            <a href="{{ action_url }}" style="display: inline-block; padding: 16px 32px; background-color: #10b981; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: 700; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
+                Request Lessons Now
+            </a>
+            {% else %}
+            <a href="{{ action_url }}" style="display: inline-block; padding: 14px 28px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">
+                View Application
+            </a>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    {% if new_status == 'accepted' %}We're excited for you to start learning!{% else %}Thank you for your interest in private lessons.{% endif %}
+</p>
+{% endblock %}

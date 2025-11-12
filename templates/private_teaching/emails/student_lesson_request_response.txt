@@ -1,0 +1,27 @@
+Subject: Update on Your Lesson Request from {{ teacher_name }}
+
+Hello {{ student.get_full_name|default:student.username }},
+
+Your lesson request has been updated by {{ teacher_name }}.
+{% if accepted_lessons %}
+
+ACCEPTED LESSONS:
+{% for lesson in accepted_lessons %}- {{ lesson.subject.subject }} on {{ lesson.lesson_date }} at {{ lesson.lesson_time }}
+{% endfor %}
+
+You can now proceed to payment for these lessons.
+{% endif %}{% if rejected_lessons %}
+
+REJECTED LESSONS:
+{% for lesson in rejected_lessons %}- {{ lesson.subject.subject }} on {{ lesson.lesson_date }} at {{ lesson.lesson_time }}
+{% endfor %}{% endif %}{% if message_text %}
+
+Message from {{ teacher_name }}:
+{{ message_text }}
+{% endif %}
+
+View your lesson request:
+{{ my_requests_url }}
+
+Best regards,
+The {{ site_name }} Team

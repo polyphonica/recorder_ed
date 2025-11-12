@@ -14,7 +14,7 @@ from django.conf import settings
 
 from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView
 from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication
-from .notifications import TeacherNotificationService
+from .notifications import TeacherNotificationService, StudentNotificationService
 from lessons.models import Lesson, Document, LessonAttachedUrl
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm
 from .cart import CartManager
@@ -488,37 +488,12 @@ class LessonRequestDetailView(TeacherProfileCompletedMixin, TemplateView):
             # Send email notification to student
             if lesson_request.student and lesson_request.student.email:
                 try:
-                    teacher_name = request.user.get_full_name() or request.user.username
-                    subject = f"Update on Your Lesson Request from {teacher_name}"
-
-                    # Build email body
-                    email_body = f"Hello {lesson_request.student.get_full_name() or lesson_request.student.username},\n\n"
-                    email_body += f"Your lesson request has been updated by {teacher_name}.\n\n"
-
-                    if accepted_lessons:
-                        email_body += "ACCEPTED LESSONS:\n"
-                        for lesson in accepted_lessons:
-                            email_body += f"- {lesson.subject.subject} on {lesson.lesson_date} at {lesson.lesson_time}\n"
-                        email_body += "\nYou can now proceed to payment for these lessons.\n\n"
-
-                    if rejected_lessons:
-                        email_body += "REJECTED LESSONS:\n"
-                        for lesson in rejected_lessons:
-                            email_body += f"- {lesson.subject.subject} on {lesson.lesson_date} at {lesson.lesson_time}\n"
-                        email_body += "\n"
-
-                    if message_text:
-                        email_body += f"\nMessage from {teacher_name}:\n{message_text}\n\n"
-
-                    email_body += f"\nView your lesson request: {request.build_absolute_uri('/private-teaching/my-requests/')}\n\n"
-                    email_body += "Best regards,\nRECORDERED Team"
-
-                    send_mail(
-                        subject,
-                        email_body,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [lesson_request.student.email],
-                        fail_silently=True,
+                    StudentNotificationService.send_lesson_request_response_notification(
+                        lesson_request=lesson_request,
+                        teacher=request.user,
+                        accepted_lessons=accepted_lessons,
+                        rejected_lessons=rejected_lessons,
+                        message_text=message_text
                     )
                 except Exception as e:
                     # Log error but don't fail the request
@@ -1463,34 +1438,10 @@ class ApplyToTeacherView(StudentProfileCompletedMixin, StudentOnlyMixin, Templat
         # Send email notification to teacher
         if teacher.email:
             try:
-                student_name = child_profile.full_name if child_profile else request.user.get_full_name()
-                applicant_email = request.user.email
-                subject = f"New Student Application from {student_name}"
-
-                # Build email body
-                email_body = f"Hello {teacher.get_full_name() or teacher.username},\n\n"
-                email_body += f"You have received a new application to study with you.\n\n"
-                email_body += f"STUDENT DETAILS:\n"
-                email_body += f"Name: {student_name}\n"
-
-                if child_profile:
-                    email_body += f"Guardian: {request.user.get_full_name() or request.user.username}\n"
-                    email_body += f"Guardian Email: {applicant_email}\n"
-                else:
-                    email_body += f"Email: {applicant_email}\n"
-
-                if initial_message:
-                    email_body += f"\nMessage from student:\n{initial_message}\n\n"
-
-                email_body += f"\nView and respond to this application: {request.build_absolute_uri(reverse('private_teaching:teacher_applications'))}\n\n"
-                email_body += "Best regards,\nRECORDERED Team"
-
-                send_mail(
-                    subject,
-                    email_body,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [teacher.email],
-                    fail_silently=True,
+                TeacherNotificationService.send_new_application_notification(
+                    application=application,
+                    teacher=teacher,
+                    initial_message=initial_message
                 )
             except Exception as e:
                 # Log error but don't fail the application
@@ -1663,37 +1614,11 @@ class TeacherApplicationDetailView(TeacherProfileCompletedMixin, TemplateView):
                 # Send email notification to student
                 if application.applicant and application.applicant.email:
                     try:
-                        teacher_name = request.user.get_full_name() or request.user.username
-                        student_name = application.student_name
-                        subject = f"Update on Your Application to Study with {teacher_name}"
-
-                        # Build email body based on status
-                        email_body = f"Hello {student_name},\n\n"
-
-                        if new_status == 'accepted':
-                            email_body += f"Great news! {teacher_name} has accepted your application to study with them.\n\n"
-                            email_body += f"You can now request lessons from {teacher_name}.\n\n"
-                        elif new_status == 'waitlist':
-                            email_body += f"{teacher_name} has placed you on their waiting list.\n\n"
-                        elif new_status == 'declined':
-                            email_body += f"{teacher_name} has reviewed your application.\n\n"
-
-                        if teacher_notes:
-                            email_body += f"Message from {teacher_name}:\n{teacher_notes}\n\n"
-
-                        if new_status == 'accepted':
-                            email_body += f"Request lessons: {request.build_absolute_uri(reverse('private_teaching:request_lesson'))}\n\n"
-                        else:
-                            email_body += f"View your application: {request.build_absolute_uri(reverse('private_teaching:student_applications'))}\n\n"
-
-                        email_body += "Best regards,\nRECORDERED Team"
-
-                        send_mail(
-                            subject,
-                            email_body,
-                            settings.DEFAULT_FROM_EMAIL,
-                            [application.applicant.email],
-                            fail_silently=True,
+                        StudentNotificationService.send_application_status_notification(
+                            application=application,
+                            teacher=request.user,
+                            new_status=new_status,
+                            teacher_notes=teacher_notes
                         )
                     except Exception as e:
                         # Log error but don't fail the status update

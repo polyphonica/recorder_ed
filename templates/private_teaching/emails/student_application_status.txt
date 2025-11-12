@@ -1,0 +1,23 @@
+Subject: Update on Your Application to Study with {{ teacher_name }}
+
+Hello {{ student_name }},
+{% if new_status == 'accepted' %}
+Great news! {{ teacher_name }} has accepted your application to study with them.
+
+You can now request lessons from {{ teacher_name }}.
+{% elif new_status == 'waitlist' %}
+{{ teacher_name }} has placed you on their waiting list.
+{% elif new_status == 'declined' %}
+{{ teacher_name }} has reviewed your application.
+{% endif %}{% if teacher_notes %}
+
+Message from {{ teacher_name }}:
+{{ teacher_notes }}
+{% endif %}
+
+{% if new_status == 'accepted' %}Request lessons: {{ action_url }}
+{% else %}View your application: {{ action_url }}
+{% endif %}
+
+Best regards,
+The {{ site_name }} Team

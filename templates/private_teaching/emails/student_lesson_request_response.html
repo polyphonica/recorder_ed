@@ -1,0 +1,122 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #3b82f6 0%, #2563eb 100%){% endblock %}
+{% block header_subtitle %}Lesson Request Update{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ student.get_full_name|default:student.username }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Your lesson request has been updated by <strong style="color: #2563eb;">{{ teacher_name }}</strong>.
+</p>
+
+<!-- Accepted Lessons Card -->
+{% if accepted_lessons %}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #059669;">
+                ✓ Accepted Lessons
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                {% for lesson in accepted_lessons %}
+                <tr>
+                    <td style="padding: 10px 0; {% if not forloop.last %}border-bottom: 1px solid #d1fae5;{% endif %}">
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                                <td style="padding: 3px 0;">
+                                    <span style="font-size: 15px; color: #333333; font-weight: 600;">{{ lesson.subject.subject }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 3px 0;">
+                                    <span style="font-size: 14px; color: #6b7280;">📅 {{ lesson.lesson_date|date:"l, F j, Y" }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 3px 0;">
+                                    <span style="font-size: 14px; color: #6b7280;">🕐 {{ lesson.lesson_time }}</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+            <p style="margin: 15px 0 0 0; font-size: 14px; color: #059669; font-weight: 600;">
+                You can now proceed to payment for these lessons.
+            </p>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- Rejected Lessons Card -->
+{% if rejected_lessons %}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #dc2626;">
+                ✗ Rejected Lessons
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                {% for lesson in rejected_lessons %}
+                <tr>
+                    <td style="padding: 10px 0; {% if not forloop.last %}border-bottom: 1px solid #fee2e2;{% endif %}">
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                                <td style="padding: 3px 0;">
+                                    <span style="font-size: 15px; color: #333333; font-weight: 600;">{{ lesson.subject.subject }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 3px 0;">
+                                    <span style="font-size: 14px; color: #6b7280;">📅 {{ lesson.lesson_date|date:"l, F j, Y" }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 3px 0;">
+                                    <span style="font-size: 14px; color: #6b7280;">🕐 {{ lesson.lesson_time }}</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- Teacher Message Card -->
+{% if message_text %}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #2563eb;">
+                💬 Message from {{ teacher_name }}
+            </h3>
+            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333333; white-space: pre-wrap;">{{ message_text }}</p>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- Action Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ my_requests_url }}" style="display: inline-block; padding: 14px 28px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">
+                View Lesson Request
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    {% if accepted_lessons %}Proceed to payment to confirm your lessons!{% else %}Feel free to submit a new request or contact {{ teacher_name }}.{% endif %}
+</p>
+{% endblock %}

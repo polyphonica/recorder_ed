@@ -1,0 +1,22 @@
+Subject: New Student Application from {{ student_name }}
+
+Hello {{ teacher.get_full_name|default:teacher.username }},
+
+You have received a new application to study with you.
+
+STUDENT DETAILS:
+Name: {{ student_name }}
+{% if child_profile %}Guardian: {{ applicant.get_full_name|default:applicant.username }}
+Guardian Email: {{ applicant.email }}
+{% else %}Email: {{ applicant.email }}
+{% endif %}{% if initial_message %}
+
+Message from student:
+{{ initial_message }}
+{% endif %}
+
+View and respond to this application:
+{{ applications_url }}
+
+Best regards,
+The {{ site_name }} Team
