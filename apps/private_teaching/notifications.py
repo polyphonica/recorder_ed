@@ -31,7 +31,7 @@ class TeacherNotificationService(BaseNotificationService):
                 'lessons': teacher_lessons,
                 'lesson_count': len(teacher_lessons),
                 'student_display_name': lesson_request.student_name,
-                'initial_message': lesson_request.messages.first().text if lesson_request.messages.exists() else None,
+                'initial_message': lesson_request.messages.first().message if lesson_request.messages.exists() else None,
                 'incoming_requests_url': incoming_requests_url,
             }
 
