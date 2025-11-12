@@ -1,0 +1,19 @@
+Subject: New Lesson Request from {{ student_display_name }}
+
+Hello {{ teacher.get_full_name|default:teacher.username }},
+
+You have received a new lesson request from {{ student_display_name }}.
+
+REQUESTED LESSONS ({{ lesson_count }}):
+{% for lesson in lessons %}- {{ lesson.subject.subject }} on {{ lesson.lesson_date }} at {{ lesson.lesson_time }}
+{% endfor %}
+{% if initial_message %}
+Message from student:
+{{ initial_message }}
+{% endif %}
+
+View and respond to this request:
+{{ incoming_requests_url }}
+
+Best regards,
+The {{ site_name }} Team

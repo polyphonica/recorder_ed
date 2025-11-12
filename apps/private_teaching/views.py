@@ -14,6 +14,7 @@ from django.conf import settings
 
 from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView
 from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication
+from .notifications import TeacherNotificationService
 from lessons.models import Lesson, Document, LessonAttachedUrl
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm
 from .cart import CartManager
@@ -203,30 +204,10 @@ class LessonRequestCreateView(AcceptedStudentRequiredMixin, StudentProfileComple
 
             for teacher in teachers:
                 try:
-                    student_display_name = lesson_request.student_name
-                    subject = f"New Lesson Request from {student_display_name}"
-
-                    # Build email body
-                    email_body = f"Hello {teacher.get_full_name() or teacher.username},\n\n"
-                    email_body += f"You have received a new lesson request from {student_display_name}.\n\n"
-                    email_body += f"REQUESTED LESSONS ({len(lessons)}):\n"
-
-                    for lesson in lessons:
-                        if lesson.teacher == teacher:
-                            email_body += f"- {lesson.subject.subject} on {lesson.lesson_date} at {lesson.lesson_time}\n"
-
-                    if initial_message:
-                        email_body += f"\nMessage from student:\n{initial_message}\n\n"
-
-                    email_body += f"\nView and respond to this request: {request.build_absolute_uri('/private-teaching/incoming-requests/')}\n\n"
-                    email_body += "Best regards,\nRECORDERED Team"
-
-                    send_mail(
-                        subject,
-                        email_body,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [teacher.email],
-                        fail_silently=True,
+                    TeacherNotificationService.send_new_lesson_request_notification(
+                        lesson_request=lesson_request,
+                        lessons=lessons,
+                        teacher=teacher
                     )
                 except Exception as e:
                     # Log error but don't fail the request
