@@ -5,6 +5,8 @@ from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
 import uuid
 
+from apps.core.models import PayableModel
+
 
 # Extend User model with display methods
 def user_display_name(self):
@@ -501,13 +503,15 @@ class WorkshopSession(models.Model):
         }
 
 
-class WorkshopRegistration(models.Model):
+class WorkshopRegistration(PayableModel):
     """
     Student registrations for workshop sessions.
 
     Supports both adult students and children (under 18).
     - For adults: student field is populated, child_profile is None
     - For children: student field = guardian, child_profile = child
+
+    Inherits payment-related fields from PayableModel.
     """
     STATUS_CHOICES = [
         ('pending_payment', 'Pending Payment'),
@@ -570,39 +574,12 @@ class WorkshopRegistration(models.Model):
     promotion_expires_at = models.DateTimeField(null=True, blank=True, help_text="Deadline to confirm promotion")
     promotion_notification_sent = models.BooleanField(default=False, help_text="Whether promotion notification was sent")
 
-    # Payment Information
-    payment_status = models.CharField(
-        max_length=20,
-        choices=[
-            ('not_required', 'Not Required'),
-            ('pending', 'Pending Payment'),
-            ('completed', 'Payment Completed'),
-            ('failed', 'Payment Failed'),
-        ],
-        default='not_required',
-        help_text="Payment status for paid workshops"
-    )
-    payment_amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=0.00,
-        help_text="Amount paid for this registration"
-    )
-    stripe_payment_intent_id = models.CharField(
-        max_length=255,
-        blank=True,
-        help_text="Stripe PaymentIntent ID"
-    )
-    stripe_checkout_session_id = models.CharField(
-        max_length=255,
-        blank=True,
-        help_text="Stripe Checkout Session ID"
-    )
-    paid_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="When payment was completed"
-    )
+    # Payment fields inherited from PayableModel:
+    # - payment_status
+    # - payment_amount
+    # - stripe_payment_intent_id
+    # - stripe_checkout_session_id
+    # - paid_at
 
     # Metadata
     updated_at = models.DateTimeField(auto_now=True)

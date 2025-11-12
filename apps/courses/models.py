@@ -20,6 +20,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django_ckeditor_5.fields import CKEditor5Field
 
+from apps.core.models import PayableModel
+
 
 # ============================================================================
 # COURSE STRUCTURE MODELS
@@ -389,7 +391,7 @@ class LessonAttachment(models.Model):
 # ENROLLMENT & PROGRESS TRACKING MODELS
 # ============================================================================
 
-class CourseEnrollment(models.Model):
+class CourseEnrollment(PayableModel):
     """
     Tracks student enrollment in courses.
     Created after successful payment or manual enrollment.
@@ -397,6 +399,8 @@ class CourseEnrollment(models.Model):
     Supports both adult students and children (under 18).
     - For adults: student field is populated, child_profile is None
     - For children: student field = guardian, child_profile = child
+
+    Inherits payment-related fields from PayableModel.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -423,39 +427,12 @@ class CourseEnrollment(models.Model):
     enrolled_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
-    # Payment Information
-    payment_status = models.CharField(
-        max_length=20,
-        choices=[
-            ('not_required', 'Not Required'),
-            ('pending', 'Pending Payment'),
-            ('completed', 'Payment Completed'),
-            ('failed', 'Payment Failed'),
-        ],
-        default='not_required',
-        help_text="Payment status for paid courses"
-    )
-    payment_amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=0.00,
-        help_text="Amount paid for this enrollment"
-    )
-    stripe_payment_intent_id = models.CharField(
-        max_length=255,
-        blank=True,
-        help_text="Stripe PaymentIntent ID"
-    )
-    stripe_checkout_session_id = models.CharField(
-        max_length=255,
-        blank=True,
-        help_text="Stripe Checkout Session ID"
-    )
-    paid_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="When payment was completed"
-    )
+    # Payment fields inherited from PayableModel:
+    # - payment_status
+    # - payment_amount
+    # - stripe_payment_intent_id
+    # - stripe_checkout_session_id
+    # - paid_at
 
     class Meta:
         ordering = ['-enrolled_at']
