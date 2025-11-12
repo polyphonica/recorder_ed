@@ -1,23 +1,14 @@
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.conf import settings
 from django.urls import reverse
 from django.contrib.sites.models import Site
 import logging
 
+from apps.core.notifications import BaseNotificationService
+
 logger = logging.getLogger(__name__)
 
 
-class InstructorNotificationService:
+class InstructorNotificationService(BaseNotificationService):
     """Service for sending course-related email notifications to instructors"""
-
-    @staticmethod
-    def get_site_name():
-        """Get the current site name"""
-        try:
-            return Site.objects.get_current().name
-        except:
-            return getattr(settings, 'SITE_NAME', 'RECORDERED')
 
     @staticmethod
     def send_new_enrollment_notification(enrollment):
@@ -29,9 +20,15 @@ class InstructorNotificationService:
                 logger.warning(f"No instructor email found for course {enrollment.course.id}")
                 return False
 
-            # Build URLs
-            course_url = f"https://www.recorder-ed.com/courses/{enrollment.course.slug}/"
-            analytics_url = f"https://www.recorder-ed.com/courses/instructor/{enrollment.course.slug}/analytics/"
+            # Build URLs - use Site.objects.get_current() for proper domain
+            try:
+                site = Site.objects.get_current()
+                domain = site.domain
+            except:
+                domain = "www.recorder-ed.com"
+
+            course_url = f"https://{domain}/courses/{enrollment.course.slug}/"
+            analytics_url = f"https://{domain}/courses/instructor/{enrollment.course.slug}/analytics/"
 
             # Determine student name
             if enrollment.child_profile:
@@ -48,31 +45,16 @@ class InstructorNotificationService:
                 'guardian_info': guardian_info,
                 'course_url': course_url,
                 'analytics_url': analytics_url,
-                'site_name': InstructorNotificationService.get_site_name(),
             }
 
-            # Render email content
-            subject_and_message = render_to_string(
-                'courses/emails/instructor_new_enrollment.txt',
-                context
-            )
-
-            # Extract subject (first line)
-            lines = subject_and_message.strip().split('\n')
-            subject = lines[0].replace('Subject: ', '') if lines else 'New Course Enrollment'
-            message = '\n'.join(lines[1:]).strip()
-
-            # Send email
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+            return InstructorNotificationService.send_templated_email(
+                template_path='courses/emails/instructor_new_enrollment.txt',
+                context=context,
                 recipient_list=[instructor.email],
+                default_subject='New Course Enrollment',
                 fail_silently=False,
+                log_description=f"New enrollment notification to instructor {instructor.username} for course {enrollment.course.id}"
             )
-
-            logger.info(f"New enrollment notification sent to instructor {instructor.username} for course {enrollment.course.id}")
-            return True
 
         except Exception as e:
             logger.error(f"Failed to send new enrollment notification to instructor: {str(e)}")
