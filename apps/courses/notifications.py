@@ -1,5 +1,3 @@
-from django.urls import reverse
-from django.contrib.sites.models import Site
 import logging
 
 from apps.core.notifications import BaseNotificationService
@@ -20,15 +18,15 @@ class InstructorNotificationService(BaseNotificationService):
                 logger.warning(f"No instructor email found for course {enrollment.course.id}")
                 return False
 
-            # Build URLs - use Site.objects.get_current() for proper domain
-            try:
-                site = Site.objects.get_current()
-                domain = site.domain
-            except:
-                domain = "www.recorder-ed.com"
-
-            course_url = f"https://{domain}/courses/{enrollment.course.slug}/"
-            analytics_url = f"https://{domain}/courses/instructor/{enrollment.course.slug}/analytics/"
+            # Build URLs using centralized URL builder
+            course_url = InstructorNotificationService.build_absolute_url(
+                'courses:detail',
+                kwargs={'slug': enrollment.course.slug}
+            )
+            analytics_url = InstructorNotificationService.build_absolute_url(
+                'courses:course_analytics',
+                kwargs={'slug': enrollment.course.slug}
+            )
 
             # Determine student name
             if enrollment.child_profile:
