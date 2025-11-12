@@ -7,26 +7,16 @@ from django.shortcuts import redirect
 from django.contrib import messages
 from django.urls import reverse
 
+from apps.core.mixins import InstructorRequiredMixin as BaseInstructorRequiredMixin
 
-class InstructorRequiredMixin(UserPassesTestMixin):
+
+class InstructorRequiredMixin(BaseInstructorRequiredMixin):
     """
     Mixin to ensure user has teacher/instructor status.
     Uses the unified user.is_instructor() which checks profile.is_teacher.
+    Redirects to courses list with error message on failure.
     """
-
-    def test_func(self):
-        if not self.request.user.is_authenticated:
-            return False
-
-        # Use the unified is_instructor() method (checks profile.is_teacher)
-        return self.request.user.is_instructor()
-
-    def handle_no_permission(self):
-        messages.error(
-            self.request,
-            'You must have instructor status to access this page.'
-        )
-        return redirect('courses:list')
+    instructor_redirect_url = 'courses:list'
 
 
 class CourseInstructorMixin(UserPassesTestMixin):
