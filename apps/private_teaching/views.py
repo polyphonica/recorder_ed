@@ -11,6 +11,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.core.mail import send_mail
 from django.conf import settings
+
+from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView
 from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication
 from lessons.models import Lesson, Document, LessonAttachedUrl
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm
@@ -1013,80 +1015,61 @@ class ProcessPaymentView(StudentProfileCompletedMixin, View):
             return redirect('private_teaching:cart')
 
 
-class CheckoutSuccessView(StudentProfileCompletedMixin, TemplateView):
+class CheckoutSuccessView(StudentProfileCompletedMixin, BaseCheckoutSuccessView):
     """Handle return from Stripe after successful checkout"""
     template_name = 'private_teaching/payment_success.html'
 
-    def get(self, request, *args, **kwargs):
-        order_id = kwargs.get('order_id')
+    def get_object_model(self):
+        return Order
 
-        try:
-            order = Order.objects.get(
-                id=order_id,
-                student=request.user
-            )
+    def get_object_id_kwarg(self):
+        return 'order_id'
 
-            # Clear the cart now that we've returned from Stripe
-            cart_manager = CartManager(request)
-            cart_manager.clear_cart()
+    def get_redirect_url_name(self):
+        return 'private_teaching:home'
 
-            # The webhook will handle marking the order as completed
-            # For now, just show the order details
+    def perform_post_checkout_actions(self, obj):
+        """Clear the cart after successful checkout"""
+        cart_manager = CartManager(self.request)
+        cart_manager.clear_cart()
 
-            return self.render_to_response(self.get_context_data(**kwargs))
+    def get_context_extras(self, obj):
+        order_items = obj.items.select_related(
+            'lesson__subject',
+            'lesson__teacher',
+            'lesson__student'
+        ).all()
 
-        except Order.DoesNotExist:
-            messages.error(request, "Order not found.")
-            return redirect('private_teaching:home')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        order_id = kwargs.get('order_id')
-
-        try:
-            order = Order.objects.get(
-                id=order_id,
-                student=self.request.user
-            )
-            context['order'] = order
-            context['order_items'] = order.items.select_related(
-                'lesson__subject',
-                'lesson__teacher',
-                'lesson__student'
-            ).all()
-
-            # Check if payment is still pending (webhook hasn't processed yet)
-            context['payment_pending'] = order.payment_status == 'pending'
-
-        except Order.DoesNotExist:
-            context['order'] = None
-
-        return context
+        return {
+            'order': obj,
+            'order_items': order_items,
+            'payment_pending': obj.payment_status == 'pending',
+        }
 
 
-class CheckoutCancelView(StudentProfileCompletedMixin, View):
+class CheckoutCancelView(StudentProfileCompletedMixin, BaseCheckoutCancelView):
     """Handle return from Stripe when payment is cancelled"""
+    redirect_on_cancel = True
 
-    def get(self, request, *args, **kwargs):
-        order_id = kwargs.get('order_id')
+    def get_object_model(self):
+        return Order
 
-        try:
-            order = Order.objects.get(
-                id=order_id,
-                student=request.user,
-                payment_status='pending'
-            )
+    def get_object_id_kwarg(self):
+        return 'order_id'
 
-            # Mark order as failed
-            order.payment_status = 'failed'
-            order.save()
+    def get_redirect_url_name(self):
+        return 'private_teaching:cart'
 
-            messages.warning(request, "Payment was cancelled. Your cart items are still available.")
-            return redirect('private_teaching:cart')
+    def get_cancel_message(self):
+        return "Payment was cancelled. Your cart items are still available."
 
-        except Order.DoesNotExist:
-            messages.error(request, "Order not found.")
-            return redirect('private_teaching:home')
+    def get_object_filter_kwargs(self, object_id):
+        """Override to add payment_status filter"""
+        return {
+            'id': object_id,
+            'student': self.request.user,
+            'payment_status': 'pending'
+        }
 
 
 class PaymentSuccessView(StudentProfileCompletedMixin, TemplateView):

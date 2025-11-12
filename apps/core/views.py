@@ -1,6 +1,8 @@
-from django.shortcuts import render
+from abc import ABC, abstractmethod
+from django.shortcuts import render, redirect
 from django.views.generic import TemplateView, FormView
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from .forms import ContactForm, ProfileForm, FilterForm
 
@@ -150,3 +152,196 @@ class InteractiveView(TemplateView):
             ]
         })
         return context
+
+
+# ============================================================================
+# Base Checkout Views (Shared across apps)
+# ============================================================================
+
+
+class BaseCheckoutSuccessView(LoginRequiredMixin, TemplateView, ABC):
+    """
+    Abstract base view for handling successful Stripe checkout returns
+
+    Subclasses must implement:
+    - get_object_model(): Return the model class for the purchase object
+    - get_object_id_kwarg(): Return the URL kwarg name for the object ID
+    - get_redirect_url_name(): Return the URL name to redirect on error
+    - get_context_extras(): Return additional context for the template
+    """
+
+    @abstractmethod
+    def get_object_model(self):
+        """Return the model class to query (e.g., WorkshopRegistration, CourseEnrollment, Order)"""
+        pass
+
+    @abstractmethod
+    def get_object_id_kwarg(self):
+        """Return the URL kwarg name for the object ID (e.g., 'registration_id', 'enrollment_id', 'order_id')"""
+        pass
+
+    @abstractmethod
+    def get_redirect_url_name(self):
+        """Return the URL name to redirect to on error (e.g., 'workshops:list', 'courses:list')"""
+        pass
+
+    @abstractmethod
+    def get_context_extras(self, obj):
+        """
+        Return additional context dictionary for the template
+
+        Args:
+            obj: The retrieved object (registration, enrollment, or order)
+
+        Returns:
+            Dictionary of additional context variables
+        """
+        pass
+
+    def get_object_queryset(self):
+        """
+        Return the queryset for retrieving the object
+        Override this to add select_related/prefetch_related optimizations
+        """
+        return self.get_object_model().objects.all()
+
+    def get_object_filter_kwargs(self, object_id):
+        """
+        Return filter kwargs for retrieving the object
+        Override this to customize the filter (e.g., add additional conditions)
+        """
+        return {
+            'id': object_id,
+            'student': self.request.user
+        }
+
+    def perform_post_checkout_actions(self, obj):
+        """
+        Perform any additional actions after successful checkout
+        Override this to add custom behavior (e.g., clear cart)
+
+        Args:
+            obj: The retrieved object
+        """
+        pass
+
+    def get(self, request, *args, **kwargs):
+        object_id = kwargs.get(self.get_object_id_kwarg())
+
+        try:
+            queryset = self.get_object_queryset()
+            filter_kwargs = self.get_object_filter_kwargs(object_id)
+            obj = queryset.get(**filter_kwargs)
+
+            # Perform any post-checkout actions (e.g., clear cart)
+            self.perform_post_checkout_actions(obj)
+
+            # Build context
+            context = self.get_context_data(**kwargs)
+            context.update(self.get_context_extras(obj))
+
+            return self.render_to_response(context)
+
+        except self.get_object_model().DoesNotExist:
+            messages.error(request, 'Item not found.')
+            return redirect(self.get_redirect_url_name())
+
+
+class BaseCheckoutCancelView(LoginRequiredMixin, TemplateView, ABC):
+    """
+    Abstract base view for handling cancelled Stripe checkout
+
+    Subclasses must implement:
+    - get_object_model(): Return the model class for the purchase object
+    - get_object_id_kwarg(): Return the URL kwarg name for the object ID
+    - get_redirect_url_name(): Return the URL name to redirect on error
+    - get_context_extras(): Return additional context for the template (optional for redirect-based views)
+    - get_cancel_message(): Return the message to display on cancellation
+    """
+
+    # Set to True if view should redirect instead of rendering a template
+    redirect_on_cancel = False
+
+    @abstractmethod
+    def get_object_model(self):
+        """Return the model class to query (e.g., WorkshopRegistration, CourseEnrollment, Order)"""
+        pass
+
+    @abstractmethod
+    def get_object_id_kwarg(self):
+        """Return the URL kwarg name for the object ID (e.g., 'registration_id', 'enrollment_id', 'order_id')"""
+        pass
+
+    @abstractmethod
+    def get_redirect_url_name(self):
+        """Return the URL name to redirect to on error or after cancellation (e.g., 'workshops:list', 'private_teaching:cart')"""
+        pass
+
+    @abstractmethod
+    def get_cancel_message(self):
+        """Return the warning message to display when payment is cancelled"""
+        pass
+
+    def get_context_extras(self, obj):
+        """
+        Return additional context dictionary for the template
+        Only needed if redirect_on_cancel is False
+
+        Args:
+            obj: The retrieved object (registration, enrollment, or order)
+
+        Returns:
+            Dictionary of additional context variables
+        """
+        return {}
+
+    def get_object_queryset(self):
+        """
+        Return the queryset for retrieving the object
+        Override this to add select_related/prefetch_related optimizations
+        """
+        return self.get_object_model().objects.all()
+
+    def get_object_filter_kwargs(self, object_id):
+        """
+        Return filter kwargs for retrieving the object
+        Override this to customize the filter
+        """
+        return {
+            'id': object_id,
+            'student': self.request.user
+        }
+
+    def mark_payment_failed(self, obj):
+        """
+        Mark the payment as failed
+        Override this if your model uses different field names or logic
+        """
+        obj.payment_status = 'failed'
+        obj.save()
+
+    def get(self, request, *args, **kwargs):
+        object_id = kwargs.get(self.get_object_id_kwarg())
+
+        try:
+            queryset = self.get_object_queryset()
+            filter_kwargs = self.get_object_filter_kwargs(object_id)
+            obj = queryset.get(**filter_kwargs)
+
+            # Mark payment as failed
+            self.mark_payment_failed(obj)
+
+            # Show warning message
+            messages.warning(request, self.get_cancel_message())
+
+            # Either redirect or render template
+            if self.redirect_on_cancel:
+                return redirect(self.get_redirect_url_name())
+            else:
+                context = self.get_context_data(**kwargs)
+                context.update(self.get_context_extras(obj))
+                return self.render_to_response(context)
+
+        except self.get_object_model().DoesNotExist:
+            messages.error(request, 'Item not found.')
+            return redirect(self.get_redirect_url_name())

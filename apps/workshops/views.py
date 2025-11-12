@@ -8,6 +8,7 @@ from django.urls import reverse_lazy, reverse
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 
+from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView
 from .models import (
     Workshop, WorkshopCategory, WorkshopSession,
     WorkshopRegistration, WorkshopMaterial, WorkshopInterest
@@ -419,62 +420,55 @@ class RegistrationConfirmView(LoginRequiredMixin, DetailView):
         return redirect('workshops:registration_confirm', registration_id=registration.id)
 
 
-class WorkshopCheckoutSuccessView(LoginRequiredMixin, TemplateView):
+class WorkshopCheckoutSuccessView(BaseCheckoutSuccessView):
     """Handle return from Stripe after successful checkout"""
     template_name = 'workshops/checkout_success.html'
 
-    def get(self, request, *args, **kwargs):
-        registration_id = kwargs.get('registration_id')
+    def get_object_model(self):
+        return WorkshopRegistration
 
-        try:
-            registration = WorkshopRegistration.objects.select_related(
-                'session__workshop'
-            ).get(id=registration_id, student=request.user)
+    def get_object_id_kwarg(self):
+        return 'registration_id'
 
-            # Webhook will update the status, but show intermediate page
-            context = self.get_context_data(**kwargs)
-            context['registration'] = registration
-            context['workshop'] = registration.session.workshop
-            context['session'] = registration.session
+    def get_redirect_url_name(self):
+        return 'workshops:list'
 
-            return self.render_to_response(context)
+    def get_object_queryset(self):
+        return WorkshopRegistration.objects.select_related('session__workshop')
 
-        except WorkshopRegistration.DoesNotExist:
-            messages.error(request, 'Registration not found.')
-            return redirect('workshops:list')
+    def get_context_extras(self, obj):
+        return {
+            'registration': obj,
+            'workshop': obj.session.workshop,
+            'session': obj.session,
+        }
 
 
-class WorkshopCheckoutCancelView(LoginRequiredMixin, TemplateView):
+class WorkshopCheckoutCancelView(BaseCheckoutCancelView):
     """Handle cancelled checkout"""
     template_name = 'workshops/checkout_cancel.html'
 
-    def get(self, request, *args, **kwargs):
-        registration_id = kwargs.get('registration_id')
+    def get_object_model(self):
+        return WorkshopRegistration
 
-        try:
-            registration = WorkshopRegistration.objects.select_related(
-                'session__workshop'
-            ).get(id=registration_id, student=request.user)
+    def get_object_id_kwarg(self):
+        return 'registration_id'
 
-            # Mark payment as failed
-            registration.payment_status = 'failed'
-            registration.save()
+    def get_redirect_url_name(self):
+        return 'workshops:list'
 
-            context = self.get_context_data(**kwargs)
-            context['registration'] = registration
-            context['workshop'] = registration.session.workshop
-            context['session'] = registration.session
+    def get_object_queryset(self):
+        return WorkshopRegistration.objects.select_related('session__workshop')
 
-            messages.warning(
-                request,
-                'Payment was cancelled. You can try again from your registrations page.'
-            )
+    def get_cancel_message(self):
+        return 'Payment was cancelled. You can try again from your registrations page.'
 
-            return self.render_to_response(context)
-
-        except WorkshopRegistration.DoesNotExist:
-            messages.error(request, 'Registration not found.')
-            return redirect('workshops:list')
+    def get_context_extras(self, obj):
+        return {
+            'registration': obj,
+            'workshop': obj.session.workshop,
+            'session': obj.session,
+        }
 
 
 class RegistrationCancelView(LoginRequiredMixin, DetailView):

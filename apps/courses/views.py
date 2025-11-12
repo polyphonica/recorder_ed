@@ -17,6 +17,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
 
+from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView
 from .models import (
     Course, Topic, Lesson, LessonAttachment,
     CourseEnrollment, LessonProgress,
@@ -945,62 +946,55 @@ class CourseEnrollView(LoginRequiredMixin, View):
             return redirect('courses:enrollment_confirm', enrollment_id=enrollment.id)
 
 
-class CourseCheckoutSuccessView(LoginRequiredMixin, TemplateView):
+class CourseCheckoutSuccessView(BaseCheckoutSuccessView):
     """Handle return from Stripe after successful checkout"""
     template_name = 'courses/checkout_success.html'
 
-    def get(self, request, *args, **kwargs):
-        enrollment_id = kwargs.get('enrollment_id')
+    def get_object_model(self):
+        return CourseEnrollment
 
-        try:
-            enrollment = CourseEnrollment.objects.select_related(
-                'course', 'student', 'child_profile'
-            ).get(id=enrollment_id, student=request.user)
+    def get_object_id_kwarg(self):
+        return 'enrollment_id'
 
-            # Webhook will update the status, but show intermediate page
-            context = self.get_context_data(**kwargs)
-            context['enrollment'] = enrollment
-            context['course'] = enrollment.course
-            context['child'] = enrollment.child_profile
+    def get_redirect_url_name(self):
+        return 'courses:list'
 
-            return self.render_to_response(context)
+    def get_object_queryset(self):
+        return CourseEnrollment.objects.select_related('course', 'student', 'child_profile')
 
-        except CourseEnrollment.DoesNotExist:
-            messages.error(request, 'Enrollment not found.')
-            return redirect('courses:list')
+    def get_context_extras(self, obj):
+        return {
+            'enrollment': obj,
+            'course': obj.course,
+            'child': obj.child_profile,
+        }
 
 
-class CourseCheckoutCancelView(LoginRequiredMixin, TemplateView):
+class CourseCheckoutCancelView(BaseCheckoutCancelView):
     """Handle cancelled checkout"""
     template_name = 'courses/checkout_cancel.html'
 
-    def get(self, request, *args, **kwargs):
-        enrollment_id = kwargs.get('enrollment_id')
+    def get_object_model(self):
+        return CourseEnrollment
 
-        try:
-            enrollment = CourseEnrollment.objects.select_related(
-                'course', 'student', 'child_profile'
-            ).get(id=enrollment_id, student=request.user)
+    def get_object_id_kwarg(self):
+        return 'enrollment_id'
 
-            # Mark payment as failed
-            enrollment.payment_status = 'failed'
-            enrollment.save()
+    def get_redirect_url_name(self):
+        return 'courses:list'
 
-            context = self.get_context_data(**kwargs)
-            context['enrollment'] = enrollment
-            context['course'] = enrollment.course
-            context['child'] = enrollment.child_profile
+    def get_object_queryset(self):
+        return CourseEnrollment.objects.select_related('course', 'student', 'child_profile')
 
-            messages.warning(
-                request,
-                'Payment was cancelled. You can try again from the course page.'
-            )
+    def get_cancel_message(self):
+        return 'Payment was cancelled. You can try again from the course page.'
 
-            return self.render_to_response(context)
-
-        except CourseEnrollment.DoesNotExist:
-            messages.error(request, 'Enrollment not found.')
-            return redirect('courses:list')
+    def get_context_extras(self, obj):
+        return {
+            'enrollment': obj,
+            'course': obj.course,
+            'child': obj.child_profile,
+        }
 
 
 class CourseEnrollmentConfirmView(LoginRequiredMixin, TemplateView):
