@@ -412,15 +412,8 @@ class CourseEnrollment(PayableModel):
         help_text="For adults: the student. For children: the guardian/parent."
     )
 
-    # Child profile (for students under 18)
-    child_profile = models.ForeignKey(
-        'accounts.ChildProfile',
-        on_delete=models.CASCADE,
-        related_name='course_enrollments',
-        null=True,
-        blank=True,
-        help_text="If enrolling a child, link to their child profile"
-    )
+    # Child profile field inherited from PayableModel:
+    # - child_profile (ForeignKey to ChildProfile)
 
     # Enrollment status
     is_active = models.BooleanField(default=True)
@@ -449,22 +442,15 @@ class CourseEnrollment(PayableModel):
             student_name = self.student.get_full_name() or self.student.username
             return f"{student_name} - {self.course.title}"
 
-    @property
-    def student_name(self):
-        """Return the name of the actual student (child or adult)"""
-        if self.child_profile:
-            return self.child_profile.full_name
-        return self.student.get_full_name() or self.student.username
-
-    @property
-    def guardian(self):
-        """Return guardian user if this is a child enrollment, None otherwise"""
-        return self.student if self.child_profile else None
+    # Child profile properties inherited from PayableModel:
+    # - student_name
+    # - guardian
+    # - is_for_child (replaces is_child_enrollment)
 
     @property
     def is_child_enrollment(self):
-        """Check if this is an enrollment for a child (under 18)"""
-        return self.child_profile is not None
+        """Alias for is_for_child for backward compatibility"""
+        return self.is_for_child
 
     @property
     def progress_percentage(self):

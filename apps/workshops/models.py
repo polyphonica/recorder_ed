@@ -532,15 +532,8 @@ class WorkshopRegistration(PayableModel):
         help_text="For adults: the student. For children: the guardian/parent."
     )
 
-    # Child profile (for students under 18)
-    child_profile = models.ForeignKey(
-        'accounts.ChildProfile',
-        on_delete=models.CASCADE,
-        related_name='workshop_registrations',
-        null=True,
-        blank=True,
-        help_text="If registering a child, link to their child profile"
-    )
+    # Child profile field inherited from PayableModel:
+    # - child_profile (ForeignKey to ChildProfile)
 
     # Registration Details
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='registered')
@@ -600,22 +593,15 @@ class WorkshopRegistration(PayableModel):
         else:
             return f"{self.student.get_full_name() or self.student.username} - {self.session}"
 
-    @property
-    def student_name(self):
-        """Return the name of the actual student (child or adult)"""
-        if self.child_profile:
-            return self.child_profile.full_name
-        return self.student.get_full_name() or self.student.username
-
-    @property
-    def guardian(self):
-        """Return guardian user if this is a child registration, None otherwise"""
-        return self.student if self.child_profile else None
+    # Child profile properties inherited from PayableModel:
+    # - student_name
+    # - guardian
+    # - is_for_child (replaces is_child_registration)
 
     @property
     def is_child_registration(self):
-        """Check if this is a registration for a child (under 18)"""
-        return self.child_profile is not None
+        """Alias for is_for_child for backward compatibility"""
+        return self.is_for_child
     
     def save(self, *args, **kwargs):
         """Override save to handle waitlist position assignment"""

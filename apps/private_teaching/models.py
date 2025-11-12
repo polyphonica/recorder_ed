@@ -3,6 +3,8 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 import uuid
 
+from apps.core.models import PayableModel
+
 User = get_user_model()
 
 # NOTE: Lesson model is imported at runtime to avoid circular import
@@ -42,13 +44,15 @@ class Subject(models.Model):
         return f"{self.subject} (${self.base_price_60min}/60min)"
 
 
-class LessonRequest(models.Model):
+class LessonRequest(PayableModel):
     """
     Container for lesson requests with message thread.
 
     Supports both adult students and children (under 18).
     - For adults: student field is populated, child_profile is None
     - For children: student field = guardian, child_profile = child
+
+    Inherits payment and child profile fields from PayableModel.
     """
     student = models.ForeignKey(
         User,
@@ -57,15 +61,8 @@ class LessonRequest(models.Model):
         help_text="For adults: the student. For children: the guardian/parent."
     )
 
-    # Child profile (for students under 18)
-    child_profile = models.ForeignKey(
-        'accounts.ChildProfile',
-        on_delete=models.CASCADE,
-        related_name='lesson_requests',
-        null=True,
-        blank=True,
-        help_text="If requesting lessons for a child, link to their child profile"
-    )
+    # Child profile field inherited from PayableModel:
+    # - child_profile (ForeignKey to ChildProfile)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -93,22 +90,15 @@ class LessonRequest(models.Model):
         first_lesson = self.lessons.first()
         return first_lesson.teacher if first_lesson else None
 
-    @property
-    def student_name(self):
-        """Return the name of the actual student (child or adult)"""
-        if self.child_profile:
-            return self.child_profile.full_name
-        return self.student.get_full_name() or self.student.username
-
-    @property
-    def guardian(self):
-        """Return guardian user if this is a child request, None otherwise"""
-        return self.student if self.child_profile else None
+    # Child profile properties inherited from PayableModel:
+    # - student_name
+    # - guardian
+    # - is_for_child (replaces is_child_request)
 
     @property
     def is_child_request(self):
-        """Check if this is a lesson request for a child (under 18)"""
-        return self.child_profile is not None
+        """Alias for is_for_child for backward compatibility"""
+        return self.is_for_child
 
     @property
     def subject_display(self):
