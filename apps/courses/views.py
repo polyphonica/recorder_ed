@@ -17,7 +17,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
 
-from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView
+from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, SearchableListViewMixin
 from .models import (
     Course, Topic, Lesson, LessonAttachment,
     CourseEnrollment, LessonProgress,
@@ -666,7 +666,7 @@ class QuizQuestionDeleteView(InstructorRequiredMixin, DeleteView):
 # PUBLIC COURSE BROWSING (Placeholder for Phase 3)
 # ============================================================================
 
-class CourseListView(ListView):
+class CourseListView(SearchableListViewMixin, ListView):
     """
     Public course catalog with filtering by grade and search.
     """
@@ -674,6 +674,16 @@ class CourseListView(ListView):
     template_name = 'courses/course_list.html'
     context_object_name = 'courses'
     paginate_by = 12
+
+    # Configure SearchableListViewMixin
+    search_fields = ['title', 'description']
+    filter_mappings = {
+        'grade': lambda qs, val: qs.filter(grade=val) if val != 'all' else qs,
+    }
+    sort_options = {
+        'featured': ('-is_featured', 'created_at'),
+    }
+    default_sort = 'featured'
 
     def get_queryset(self):
         # Include published courses AND draft courses with "coming soon" enabled
@@ -691,20 +701,10 @@ class CourseListView(ListView):
             )
         )
 
-        # Filter by grade level
-        grade = self.request.GET.get('grade')
-        if grade and grade != 'all':
-            queryset = queryset.filter(grade=grade)
+        # Apply search, filters, and sorting from mixin
+        queryset = self.filter_queryset(queryset)
 
-        # Search functionality
-        search = self.request.GET.get('search')
-        if search:
-            queryset = queryset.filter(
-                Q(title__icontains=search) |
-                Q(description__icontains=search)
-            )
-
-        return queryset.order_by('-is_featured', 'created_at')
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

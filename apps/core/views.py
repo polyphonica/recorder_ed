@@ -4,6 +4,7 @@ from django.views.generic import TemplateView, FormView
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
+from django.db.models import Q
 from .forms import ContactForm, ProfileForm, FilterForm
 
 
@@ -345,3 +346,86 @@ class BaseCheckoutCancelView(LoginRequiredMixin, TemplateView, ABC):
         except self.get_object_model().DoesNotExist:
             messages.error(request, 'Item not found.')
             return redirect(self.get_redirect_url_name())
+
+
+class SearchableListViewMixin:
+    """
+    Mixin for list views that provides common search, filtering, and sorting functionality.
+
+    Subclasses should define:
+    - search_fields: List of field names to search (e.g., ['title', 'description'])
+    - filter_mappings: Dict mapping GET params to queryset filters (e.g., {'category': 'category'})
+    - sort_options: Dict mapping sort params to queryset order_by values (e.g., {'title': 'title'})
+    - default_sort: Default sort order (e.g., 'title')
+
+    Usage example:
+        class MyListView(SearchableListViewMixin, ListView):
+            search_fields = ['title', 'description']
+            filter_mappings = {'category': 'category', 'status': 'status'}
+            sort_options = {'title': 'title', 'date': '-created_at'}
+            default_sort = 'title'
+    """
+
+    # Configuration attributes (override in subclass)
+    search_fields = []
+    filter_mappings = {}
+    sort_options = {}
+    default_sort = None
+
+    def apply_search_filter(self, queryset):
+        """Apply search filtering based on 'search' GET parameter"""
+        search_query = self.request.GET.get('search', '').strip()
+
+        if search_query and self.search_fields:
+            # Build Q object for OR search across all search fields
+            q_objects = Q()
+            for field in self.search_fields:
+                q_objects |= Q(**{f"{field}__icontains": search_query})
+            queryset = queryset.filter(q_objects)
+
+        return queryset
+
+    def apply_get_filters(self, queryset):
+        """Apply filters based on GET parameters and filter_mappings"""
+        for param_name, queryset_filter in self.filter_mappings.items():
+            param_value = self.request.GET.get(param_name)
+
+            if param_value:
+                # Support both simple filters and callable filters
+                if callable(queryset_filter):
+                    queryset = queryset_filter(queryset, param_value)
+                else:
+                    queryset = queryset.filter(**{queryset_filter: param_value})
+
+        return queryset
+
+    def apply_sorting(self, queryset):
+        """Apply sorting based on 'sort' GET parameter"""
+        sort_param = self.request.GET.get('sort', self.default_sort)
+
+        if sort_param and sort_param in self.sort_options:
+            order_by = self.sort_options[sort_param]
+            # Support both single field and tuple/list of fields
+            if isinstance(order_by, (tuple, list)):
+                queryset = queryset.order_by(*order_by)
+            else:
+                queryset = queryset.order_by(order_by)
+        elif self.default_sort:
+            # Apply default sort if no valid sort param provided
+            default_order = self.sort_options.get(self.default_sort, self.default_sort)
+            if isinstance(default_order, (tuple, list)):
+                queryset = queryset.order_by(*default_order)
+            else:
+                queryset = queryset.order_by(default_order)
+
+        return queryset
+
+    def filter_queryset(self, queryset):
+        """
+        Apply all filters to the queryset.
+        Override this method if you need custom filtering logic.
+        """
+        queryset = self.apply_search_filter(queryset)
+        queryset = self.apply_get_filters(queryset)
+        queryset = self.apply_sorting(queryset)
+        return queryset

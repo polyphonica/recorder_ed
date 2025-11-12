@@ -8,7 +8,7 @@ from django.urls import reverse_lazy, reverse
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 
-from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView
+from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, SearchableListViewMixin
 from .models import (
     Workshop, WorkshopCategory, WorkshopSession,
     WorkshopRegistration, WorkshopMaterial, WorkshopInterest
@@ -18,12 +18,28 @@ from .mixins import InstructorRequiredMixin
 from .notifications import WorkshopInterestNotificationService
 
 
-class WorkshopListView(ListView):
+class WorkshopListView(SearchableListViewMixin, ListView):
     """Display list of workshops with filtering and search"""
     model = Workshop
     template_name = 'workshops/workshop_list.html'
     context_object_name = 'workshops'
     paginate_by = 12
+
+    # Configure SearchableListViewMixin
+    search_fields = ['title', 'description', 'tags']
+    filter_mappings = {
+        'difficulty': 'difficulty_level',
+        'delivery_method': 'delivery_method',
+        'price': lambda qs, val: qs.filter(is_free=True) if val == 'free' else qs.filter(is_free=False) if val == 'paid' else qs,
+    }
+    sort_options = {
+        'featured': ('-is_featured', '-created_at'),
+        'newest': '-created_at',
+        'price_low': 'price',
+        'price_high': '-price',
+        'rating': '-average_rating',
+    }
+    default_sort = 'featured'
 
     def dispatch(self, request, *args, **kwargs):
         # If user is logged in and is a student (not a teacher), redirect to their dashboard
@@ -41,51 +57,15 @@ class WorkshopListView(ListView):
         queryset = Workshop.objects.filter(status='published').select_related(
             'instructor', 'category'
         ).prefetch_related('sessions')
-        
-        # Category filtering
+
+        # Category filtering from URL kwargs
         category_slug = self.kwargs.get('category_slug')
         if category_slug:
             queryset = queryset.filter(category__slug=category_slug)
-        
-        # Search functionality
-        search_query = self.request.GET.get('search')
-        if search_query:
-            queryset = queryset.filter(
-                Q(title__icontains=search_query) |
-                Q(description__icontains=search_query) |
-                Q(tags__icontains=search_query)
-            )
-        
-        # Difficulty filter
-        difficulty = self.request.GET.get('difficulty')
-        if difficulty:
-            queryset = queryset.filter(difficulty_level=difficulty)
-        
-        # Delivery method filter
-        delivery_method = self.request.GET.get('delivery_method')
-        if delivery_method:
-            queryset = queryset.filter(delivery_method=delivery_method)
-        
-        # Price filter
-        price_filter = self.request.GET.get('price')
-        if price_filter == 'free':
-            queryset = queryset.filter(is_free=True)
-        elif price_filter == 'paid':
-            queryset = queryset.filter(is_free=False)
-        
-        # Sorting
-        sort_by = self.request.GET.get('sort', 'featured')
-        if sort_by == 'newest':
-            queryset = queryset.order_by('-created_at')
-        elif sort_by == 'price_low':
-            queryset = queryset.order_by('price')
-        elif sort_by == 'price_high':
-            queryset = queryset.order_by('-price')
-        elif sort_by == 'rating':
-            queryset = queryset.order_by('-average_rating')
-        else:  # featured
-            queryset = queryset.order_by('-is_featured', '-created_at')
-        
+
+        # Apply search, filters, and sorting from mixin
+        queryset = self.filter_queryset(queryset)
+
         return queryset
     
     def get_context_data(self, **kwargs):
