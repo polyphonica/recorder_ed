@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Playalong: {{ lesson.lesson_title }} - {{ block.super }}{% endblock %}
+{% block title %}{% if is_private_lesson %}Playalong: {{ lesson.subject.subject }}{% else %}Playalong: {{ lesson.lesson_title }}{% endif %} - {{ block.super }}{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'audioplayer/css/styles.css' %}">
@@ -11,22 +11,36 @@
 <div class="container mx-auto px-4 py-8">
     <!-- Breadcrumbs -->
     <nav class="breadcrumbs text-sm mb-6">
-        <a href="{% url 'courses:list' %}" class="text-primary hover:underline">Courses</a>
-        <span class="mx-2">›</span>
-        <a href="{% url 'courses:detail' slug=lesson.topic.course.slug %}" class="text-primary hover:underline">
-            {{ lesson.topic.course.title }}
-        </a>
-        <span class="mx-2">›</span>
-        <a href="{% url 'courses:view_lesson' lesson.id %}" class="text-primary hover:underline">
-            {{ lesson.lesson_title }}
-        </a>
-        <span class="mx-2">›</span>
-        <span class="text-base-content/70">Playalong</span>
+        {% if is_private_lesson %}
+            <a href="{% url 'private_teaching:calendar' %}" class="text-primary hover:underline">My Calendar</a>
+            <span class="mx-2">›</span>
+            <a href="{% url 'lessons:lesson_detail' lesson.pk %}" class="text-primary hover:underline">
+                {{ lesson.subject.subject }} - {{ lesson.lesson_date }}
+            </a>
+            <span class="mx-2">›</span>
+            <span class="text-base-content/70">Playalong</span>
+        {% else %}
+            <a href="{% url 'courses:list' %}" class="text-primary hover:underline">Courses</a>
+            <span class="mx-2">›</span>
+            <a href="{% url 'courses:detail' slug=lesson.topic.course.slug %}" class="text-primary hover:underline">
+                {{ lesson.topic.course.title }}
+            </a>
+            <span class="mx-2">›</span>
+            <a href="{% url 'courses:view_lesson' lesson.id %}" class="text-primary hover:underline">
+                {{ lesson.lesson_title }}
+            </a>
+            <span class="mx-2">›</span>
+            <span class="text-base-content/70">Playalong</span>
+        {% endif %}
     </nav>
 
     <!-- Header Section -->
     <section class="section-class mb-6">
-        <h1 class="text-3xl font-bold mb-4">Playalong: {{ lesson.lesson_title }}</h1>
+        {% if is_private_lesson %}
+            <h1 class="text-3xl font-bold mb-4">Playalong: {{ lesson.subject.subject }}</h1>
+        {% else %}
+            <h1 class="text-3xl font-bold mb-4">Playalong: {{ lesson.lesson_title }}</h1>
+        {% endif %}
 
         {% if piece_count > 0 %}
         <div class="alert alert-info mb-4">
@@ -71,11 +85,19 @@
 
     <!-- Back to Lesson Button -->
     <div class="mt-8 mb-8 text-center">
-        <a href="{% url 'courses:view_lesson' lesson.id %}"
-           class="btn btn-primary">
-            <i class="fas fa-arrow-left mr-2"></i>
-            Back to Lesson
-        </a>
+        {% if is_private_lesson %}
+            <a href="{% url 'lessons:lesson_detail' lesson.pk %}"
+               class="btn btn-primary">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Lesson
+            </a>
+        {% else %}
+            <a href="{% url 'courses:view_lesson' lesson.id %}"
+               class="btn btn-primary">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Lesson
+            </a>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
