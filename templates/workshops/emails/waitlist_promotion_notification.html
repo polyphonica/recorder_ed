@@ -1,0 +1,114 @@
+{% extends "emails/base.html" %}
+{% load humanize %}
+
+{% block header_gradient %}linear-gradient(135deg, #10b981 0%, #059669 100%){% endblock %}
+{% block header_subtitle %}Spot Available!{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hi {{ registration.student.first_name|default:registration.student.username }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 18px; line-height: 1.6; color: #059669; font-weight: 600;">
+    Great news! A spot has opened up in "{{ session.workshop.title }}"!
+</p>
+
+<!-- Workshop Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #059669;">
+                Session Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Workshop:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 500;">{{ session.workshop.title }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Date:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.start_datetime|date:"l, F j, Y" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Time:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Instructor:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.workshop.instructor.display_name }}</span>
+                    </td>
+                </tr>
+                {% if session.location %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Location:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.location }}</span>
+                    </td>
+                </tr>
+                {% endif %}
+                {% if session.meeting_url %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Meeting URL:</span>
+                        <span style="font-size: 14px; color: #3b82f6;"><a href="{{ session.meeting_url }}" style="color: #3b82f6;">Join Here</a></span>
+                    </td>
+                </tr>
+                {% endif %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Important Notice -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="margin: 0; font-size: 16px; font-weight: 600; color: #d97706;">
+                ⏰ IMPORTANT
+            </p>
+            <p style="margin: 10px 0 0 0; font-size: 14px; line-height: 1.6; color: #333333;">
+                You have until <strong>{{ promotion.expires_at|date:"F j, Y" }} at {{ promotion.expires_at|time:"g:i A" }}</strong> to confirm your registration.
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 14px; line-height: 1.6; color: #6b7280;">
+                If you don't confirm by the deadline, this spot will be offered to the next person on the waitlist.
+            </p>
+        </td>
+    </tr>
+</table>
+
+<!-- Confirmation Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ confirmation_url }}" style="display: inline-block; padding: 16px 32px; background-color: #10b981; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: 700; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
+                Confirm Your Spot Now
+            </a>
+        </td>
+    </tr>
+</table>
+
+<!-- Workshop Description -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0; background-color: #f9fafb; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #374151;">
+                Workshop Description
+            </h3>
+            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280;">
+                {{ session.workshop.description|truncatewords:50 }}
+            </p>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    Questions? Reply to this email or contact your instructor.
+</p>
+{% endblock %}

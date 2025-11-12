@@ -1,0 +1,122 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%){% endblock %}
+{% block header_subtitle %}New Session Available!{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hi {{ user.first_name|default:user.username }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Great news! A new session for <strong style="color: #7c3aed;">"{{ workshop.title }}"</strong> is now available for registration.
+</p>
+
+<!-- Workshop Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #faf5ff; border-left: 4px solid #8b5cf6; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #7c3aed;">
+                Session Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Workshop:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 500;">{{ workshop.title }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Date:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.start_datetime|date:"l, F j, Y" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Time:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Instructor:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ workshop.instructor.display_name }}</span>
+                    </td>
+                </tr>
+                {% if session.location %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Location:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.location }}</span>
+                    </td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Spots Available:</span>
+                        <span style="font-size: 14px; color: #059669; font-weight: 600;">{{ session.max_participants }} participants</span>
+                    </td>
+                </tr>
+                {% if not workshop.is_free %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Price:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 500;">£{{ workshop.price }}</span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Price:</span>
+                        <span style="font-size: 14px; color: #059669; font-weight: 600;">FREE</span>
+                    </td>
+                </tr>
+                {% endif %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Workshop Description -->
+{% if workshop.description %}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #f9fafb; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #374151;">
+                About This Workshop
+            </h3>
+            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280;">
+                {{ workshop.description|truncatewords:60 }}
+            </p>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- Action Buttons -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 0 10px 0 0;">
+                        <a href="{{ registration_url }}" style="display: inline-block; padding: 14px 28px; background-color: #8b5cf6; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);">
+                            Register Now
+                        </a>
+                    </td>
+                    <td style="padding: 0 0 0 10px;">
+                        <a href="{{ workshop_url }}" style="display: inline-block; padding: 14px 28px; background-color: #a78bfa; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">
+                            View Details
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    Don't miss out - spaces fill up quickly!
+</p>
+{% endblock %}

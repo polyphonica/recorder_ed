@@ -1,0 +1,125 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #fb923c 0%, #f97316 100%){% endblock %}
+{% block header_subtitle %}Course Enrollment{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hi {{ course.instructor.first_name|default:course.instructor.username }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    <strong style="color: #059669;">Good news!</strong> A new student has enrolled in your course.
+</p>
+
+<!-- Student Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #fff7ed; border-left: 4px solid #fb923c; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #ea580c;">
+                Student Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Name:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 500;">{{ student_name }}</span>
+                    </td>
+                </tr>
+                {% if guardian_info %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Guardian:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ guardian_info }}</span>
+                    </td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Email:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ enrollment.student.email }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Enrolled:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ enrollment.enrolled_at|date:"F j, Y \a\t g:i A" }}</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Course Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #d97706;">
+                Course Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 150px;">Course:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 500;">{{ course.title }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 150px;">Grade Level:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ course.get_grade_display }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 150px;">Total Enrollments:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 600;">{{ course.total_enrollments }}</span>
+                    </td>
+                </tr>
+                {% if enrollment.payment_status == 'completed' %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 150px;">Payment Status:</span>
+                        <span style="font-size: 14px; color: #059669; font-weight: 600;">Paid - £{{ enrollment.payment_amount }}</span>
+                    </td>
+                </tr>
+                {% elif enrollment.payment_status == 'not_required' %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 150px;">Payment Status:</span>
+                        <span style="font-size: 14px; color: #3b82f6; font-weight: 600;">Free Course</span>
+                    </td>
+                </tr>
+                {% endif %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Action Buttons -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 0 10px 0 0;">
+                        <a href="{{ course_url }}" style="display: inline-block; padding: 12px 24px; background-color: #f97316; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600;">
+                            View Course
+                        </a>
+                    </td>
+                    <td style="padding: 0 0 0 10px;">
+                        <a href="{{ analytics_url }}" style="display: inline-block; padding: 12px 24px; background-color: #fb923c; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600;">
+                            View Analytics
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    Keep up the great work teaching!
+</p>
+{% endblock %}

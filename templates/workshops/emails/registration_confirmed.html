@@ -1,0 +1,109 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #10b981 0%, #059669 100%){% endblock %}
+{% block header_subtitle %}Registration Confirmed{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hi {{ registration.student.first_name|default:registration.student.username }},
+</p>
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 20px; background-color: #f0fdf4; border-radius: 8px;">
+            <p style="margin: 0; font-size: 24px; color: #10b981;">✓</p>
+            <p style="margin: 10px 0 0 0; font-size: 20px; font-weight: 600; color: #059669;">
+                You're all set!
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;">
+                Your registration has been confirmed
+            </p>
+        </td>
+    </tr>
+</table>
+
+<!-- Session Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #2563eb;">
+                Workshop Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Workshop:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 500;">{{ session.workshop.title }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Date:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.start_datetime|date:"l, F j, Y" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Time:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Instructor:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.workshop.instructor.display_name }}</span>
+                    </td>
+                </tr>
+                {% if session.location %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Location:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.location }}</span>
+                    </td>
+                </tr>
+                {% endif %}
+                {% if session.meeting_url %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Meeting URL:</span>
+                        <span style="font-size: 14px; color: #3b82f6;"><a href="{{ session.meeting_url }}" style="color: #3b82f6; text-decoration: none;">{{ session.meeting_url }}</a></span>
+                    </td>
+                </tr>
+                {% endif %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Next Steps -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #d97706;">
+                What's Next?
+            </h3>
+            <ul style="margin: 0; padding: 0 0 0 20px; font-size: 14px; line-height: 1.8; color: #333333;">
+                <li>Add this workshop to your calendar</li>
+                <li>Access course materials before the session</li>
+                <li>Prepare any required instruments or materials</li>
+                <li>Arrive a few minutes early to get settled</li>
+            </ul>
+        </td>
+    </tr>
+</table>
+
+<!-- Materials Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ materials_url }}" style="display: inline-block; padding: 14px 28px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">
+                View Course Materials
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    We're excited to see you there! If you have any questions, feel free to reach out.
+</p>
+{% endblock %}

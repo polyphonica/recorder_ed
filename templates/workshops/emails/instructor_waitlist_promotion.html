@@ -1,0 +1,101 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%){% endblock %}
+{% block header_subtitle %}Waitlist Student Promoted{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hi {{ workshop.instructor.first_name|default:workshop.instructor.username }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    A waitlisted student has been promoted and notified about an available spot in your workshop.
+</p>
+
+<!-- Student Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #faf5ff; border-left: 4px solid #8b5cf6; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #7c3aed;">
+                Student Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Name:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 500;">{{ registration.student.first_name }} {{ registration.student.last_name }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Email:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ registration.email }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Status:</span>
+                        <span style="font-size: 14px; color: #f59e0b; font-weight: 600;">Awaiting Confirmation</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Session Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #2563eb;">
+                Session Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 180px;">Workshop:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 500;">{{ session.workshop.title }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 180px;">Date:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.start_datetime|date:"l, F j, Y" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 180px;">Current Registrations:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 600;">{{ session.current_registrations }}/{{ session.max_participants }}</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Info Note -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: #d97706;">
+                What happens next?
+            </p>
+            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333333;">
+                The student has been sent a confirmation link and has a limited time to confirm their registration. If they don't confirm, the spot will be offered to the next person on the waitlist.
+            </p>
+        </td>
+    </tr>
+</table>
+
+<!-- Action Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ registrations_url }}" style="display: inline-block; padding: 14px 28px; background-color: #8b5cf6; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);">
+                Manage Registrations
+            </a>
+        </td>
+    </tr>
+</table>
+{% endblock %}

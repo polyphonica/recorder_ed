@@ -2,7 +2,7 @@
 Centralized email notification service for consistent email sending across apps
 """
 
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.conf import settings
@@ -84,6 +84,9 @@ class BaseNotificationService:
         """
         Send an email using a template with consistent error handling.
 
+        Automatically sends multipart emails (HTML + plain text) if an HTML template exists.
+        Falls back to plain text only if no HTML template is found.
+
         Args:
             template_path: Path to email template (e.g., 'app/emails/notification.txt')
             context: Dictionary of context variables for template
@@ -97,34 +100,59 @@ class BaseNotificationService:
             True if email sent successfully, False otherwise
 
         Template Format:
-            First line should be: Subject: Your subject here
-            Remaining lines are the email body
+            Plain text (.txt): First line should be: Subject: Your subject here
+            HTML (.html): Use {% block subject %}Your subject here{% endblock %} in template
         """
         try:
             # Ensure site_name is in context
             if 'site_name' not in context:
                 context['site_name'] = BaseNotificationService.get_site_name()
 
-            # Render template
+            # Render plain text template
             subject_and_message = render_to_string(template_path, context)
 
             # Extract subject from first line
             lines = subject_and_message.strip().split('\n')
             subject = lines[0].replace('Subject: ', '').strip() if lines else default_subject
-            message = '\n'.join(lines[1:]).strip()
+            text_message = '\n'.join(lines[1:]).strip()
 
-            # Send email
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=from_email or settings.DEFAULT_FROM_EMAIL,
-                recipient_list=recipient_list,
-                fail_silently=fail_silently,
-            )
+            # Check if HTML template exists
+            html_template_path = template_path.replace('.txt', '.html')
+            html_message = None
 
-            # Log success
-            if log_description:
-                logger.info(f"Email sent: {log_description}")
+            try:
+                # Try to render HTML template
+                html_message = render_to_string(html_template_path, context)
+            except Exception:
+                # HTML template doesn't exist, that's OK - we'll send plain text only
+                pass
+
+            # Send multipart email if we have HTML, otherwise plain text only
+            if html_message:
+                # Create multipart email
+                email = EmailMultiAlternatives(
+                    subject=subject,
+                    body=text_message,
+                    from_email=from_email or settings.DEFAULT_FROM_EMAIL,
+                    to=recipient_list
+                )
+                email.attach_alternative(html_message, "text/html")
+                email.send(fail_silently=fail_silently)
+
+                if log_description:
+                    logger.info(f"Multipart email sent: {log_description}")
+            else:
+                # Send plain text only
+                send_mail(
+                    subject=subject,
+                    message=text_message,
+                    from_email=from_email or settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=recipient_list,
+                    fail_silently=fail_silently,
+                )
+
+                if log_description:
+                    logger.info(f"Plain text email sent: {log_description}")
 
             return True
 

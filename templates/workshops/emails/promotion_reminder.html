@@ -1,0 +1,77 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #f59e0b 0%, #d97706 100%){% endblock %}
+{% block header_subtitle %}Reminder: Confirm Your Spot{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hi {{ registration.student.first_name|default:registration.student.username }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    This is a friendly reminder that you have <strong style="color: #ea580c;">{{ hours_remaining|floatformat:0 }} hours remaining</strong> to confirm your spot in "{{ session.workshop.title }}".
+</p>
+
+<!-- Urgent Notice -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="margin: 0; font-size: 18px; font-weight: 600; color: #d97706;">
+                ⏰ Time is Running Out!
+            </p>
+            <p style="margin: 10px 0 0 0; font-size: 14px; line-height: 1.6; color: #333333;">
+                Your confirmation deadline is <strong>{{ promotion.expires_at|date:"F j, Y" }} at {{ promotion.expires_at|time:"g:i A" }}</strong>.
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 14px; line-height: 1.6; color: #6b7280;">
+                Don't miss this opportunity! If you don't confirm, this spot will be offered to someone else.
+            </p>
+        </td>
+    </tr>
+</table>
+
+<!-- Session Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #2563eb;">
+                Workshop Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Workshop:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 500;">{{ session.workshop.title }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Date:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.start_datetime|date:"l, F j, Y" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Time:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Confirmation Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ confirmation_url }}" style="display: inline-block; padding: 16px 32px; background-color: #f59e0b; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: 700; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3);">
+                Confirm Your Spot Now
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    We look forward to seeing you at the workshop!
+</p>
+{% endblock %}

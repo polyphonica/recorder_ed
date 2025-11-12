@@ -1,0 +1,62 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #ef4444 0%, #dc2626 100%){% endblock %}
+{% block header_subtitle %}Registration Deadline Passed{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hi {{ registration.student.first_name|default:registration.student.username }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Unfortunately, the deadline to confirm your spot for "{{ session.workshop.title }}" has passed, and your registration has been cancelled.
+</p>
+
+<!-- Notice Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="margin: 0; font-size: 16px; font-weight: 600; color: #dc2626;">
+                Spot Released
+            </p>
+            <p style="margin: 10px 0 0 0; font-size: 14px; line-height: 1.6; color: #333333;">
+                Your spot has been offered to the next person on the waitlist. We understand that schedules change, and we hope you'll be able to join us at a future session.
+            </p>
+        </td>
+    </tr>
+</table>
+
+<!-- Next Steps Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #059669;">
+                Still Interested?
+            </h3>
+            <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.6; color: #333333;">
+                Don't worry! You can:
+            </p>
+            <ul style="margin: 0; padding: 0 0 0 20px; font-size: 14px; line-height: 1.8; color: #333333;">
+                <li>Check for other available sessions</li>
+                <li>Join the waitlist again for future sessions</li>
+                <li>Browse other workshops that might interest you</li>
+            </ul>
+        </td>
+    </tr>
+</table>
+
+<!-- Browse Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ workshop_url }}" style="display: inline-block; padding: 14px 28px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">
+                View Workshop Details
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    We hope to see you at a future workshop!
+</p>
+{% endblock %}
