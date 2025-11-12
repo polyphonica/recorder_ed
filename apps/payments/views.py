@@ -151,40 +151,26 @@ class StripeWebhookView(View):
                         except (Lesson.DoesNotExist, ValueError) as e:
                             print(f"Error updating lesson {lesson_id}: {e}")
 
-                # Send payment confirmation email
-                if order.student and order.student.email:
+                # Send payment confirmation email to student
+                try:
+                    from apps.private_teaching.notifications import StudentNotificationService
+                    StudentNotificationService.send_payment_confirmation(order)
+                except Exception as e:
+                    print(f"Error sending payment confirmation email: {e}")
+
+                # Send payment notification to teachers
+                order_items = OrderItem.objects.filter(order=order).select_related('lesson__teacher')
+                teachers = set()
+                for item in order_items:
+                    if item.lesson.teacher:
+                        teachers.add(item.lesson.teacher)
+
+                for teacher in teachers:
                     try:
-                        student_name = order.student.get_full_name() or order.student.username
-                        subject = f"Payment Confirmation - RECORDERED"
-
-                        email_body = f"Hello {student_name},\n\n"
-                        email_body += f"Thank you for your payment! Your order has been confirmed.\n\n"
-                        email_body += f"PAYMENT DETAILS:\n"
-                        email_body += f"Total Amount: £{order.total_amount:.2f}\n"
-                        email_body += f"Payment Date: {order.completed_at.strftime('%d %B %Y at %H:%M')}\n\n"
-                        email_body += f"LESSONS PURCHASED:\n"
-
-                        order_items = OrderItem.objects.filter(order=order).select_related('lesson__teacher', 'lesson__subject')
-                        for item in order_items:
-                            lesson = item.lesson
-                            teacher_name = lesson.teacher.get_full_name() if lesson.teacher else "TBA"
-                            email_body += f"- {lesson.subject.subject} with {teacher_name}\n"
-                            email_body += f"  Date: {lesson.lesson_date.strftime('%d %B %Y')}\n"
-                            email_body += f"  Time: {lesson.lesson_time.strftime('%H:%M')}\n"
-                            email_body += f"  Price: £{item.price_paid:.2f}\n\n"
-
-                        email_body += f"You can view your lessons at: https://recorder-ed.com/private-teaching/\n\n"
-                        email_body += "Best regards,\nRECORDERED Team"
-
-                        send_mail(
-                            subject,
-                            email_body,
-                            settings.DEFAULT_FROM_EMAIL,
-                            [order.student.email],
-                            fail_silently=True,
-                        )
+                        from apps.private_teaching.notifications import TeacherPaymentNotificationService
+                        TeacherPaymentNotificationService.send_lesson_payment_notification(order, teacher)
                     except Exception as e:
-                        print(f"Error sending payment confirmation email: {e}")
+                        print(f"Error sending teacher payment notification: {e}")
 
                 print(f"Private teaching order {order_id} marked as completed")
             except Order.DoesNotExist:

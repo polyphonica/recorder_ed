@@ -168,3 +168,91 @@ class StudentNotificationService(BaseNotificationService):
         except Exception as e:
             logger.error(f"Failed to send application status notification to student: {str(e)}")
             return False
+
+    @staticmethod
+    def send_payment_confirmation(order):
+        """Send payment confirmation email to student"""
+        try:
+            # Get student email
+            if not order.student or not order.student.email:
+                logger.warning(f"No student email found for order {order.id}")
+                return False
+
+            # Build URL for lessons page
+            lessons_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:home'
+            )
+
+            # Get order items
+            from apps.private_teaching.models import OrderItem
+            order_items = OrderItem.objects.filter(order=order).select_related(
+                'lesson__teacher', 'lesson__subject'
+            )
+
+            context = {
+                'order': order,
+                'student': order.student,
+                'order_items': order_items,
+                'lessons_url': lessons_url,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_payment_confirmation.txt',
+                context=context,
+                recipient_list=[order.student.email],
+                default_subject='Payment Confirmation',
+                fail_silently=False,
+                log_description=f"Payment confirmation to student {order.student.username} for order {order.id}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send payment confirmation to student: {str(e)}")
+            return False
+
+
+class TeacherPaymentNotificationService(BaseNotificationService):
+    """Service for sending payment notifications to teachers"""
+
+    @staticmethod
+    def send_lesson_payment_notification(order, teacher):
+        """Send notification to teacher when lessons are paid for"""
+        try:
+            # Get teacher email
+            if not teacher or not teacher.email:
+                logger.warning(f"No teacher email found for teacher {teacher.id if teacher else 'None'}")
+                return False
+
+            # Get order items for this teacher
+            from apps.private_teaching.models import OrderItem
+            teacher_items = OrderItem.objects.filter(
+                order=order,
+                lesson__teacher=teacher
+            ).select_related('lesson__subject', 'lesson__student')
+
+            if not teacher_items:
+                return False
+
+            # Build URLs
+            schedule_url = TeacherPaymentNotificationService.build_absolute_url(
+                'private_teaching:teacher_schedule'
+            )
+
+            context = {
+                'order': order,
+                'teacher': teacher,
+                'teacher_items': teacher_items,
+                'schedule_url': schedule_url,
+            }
+
+            return TeacherPaymentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/teacher_payment_notification.txt',
+                context=context,
+                recipient_list=[teacher.email],
+                default_subject='Lesson Payment Received',
+                fail_silently=False,
+                log_description=f"Payment notification to teacher {teacher.username} for order {order.id}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send payment notification to teacher: {str(e)}")
+            return False

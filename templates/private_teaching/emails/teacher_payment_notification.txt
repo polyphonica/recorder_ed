@@ -1,0 +1,24 @@
+Subject: Lesson Payment Received - {{ site_name }}
+
+Hello {{ teacher.get_full_name|default:teacher.username }},
+
+Great news! A student has paid for lessons with you.
+
+PAYMENT DETAILS:
+Student: {{ order.student.get_full_name|default:order.student.username }}
+Total Amount Paid: £{{ order.total_amount }}
+Payment Date: {{ order.completed_at|date:"d F Y \a\t H:i" }}
+
+LESSONS BOOKED:
+{% for item in teacher_items %}- {{ item.lesson.subject.subject }}
+  Student: {{ item.lesson.student.get_full_name|default:item.lesson.student.username }}
+  Date: {{ item.lesson.lesson_date|date:"d F Y" }}
+  Time: {{ item.lesson.lesson_time|time:"H:i" }}
+  Your Share: £{{ item.price_paid }}
+{% endfor %}
+
+View your schedule:
+{{ schedule_url }}
+
+Best regards,
+The {{ site_name }} Team

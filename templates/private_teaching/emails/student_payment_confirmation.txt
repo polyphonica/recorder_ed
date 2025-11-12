@@ -1,0 +1,22 @@
+Subject: Payment Confirmation - {{ site_name }}
+
+Hello {{ student.get_full_name|default:student.username }},
+
+Thank you for your payment! Your order has been confirmed.
+
+PAYMENT DETAILS:
+Total Amount: £{{ order.total_amount }}
+Payment Date: {{ order.completed_at|date:"d F Y \a\t H:i" }}
+
+LESSONS PURCHASED:
+{% for item in order_items %}- {{ item.lesson.subject.subject }} with {{ item.lesson.teacher.get_full_name|default:"TBA" }}
+  Date: {{ item.lesson.lesson_date|date:"d F Y" }}
+  Time: {{ item.lesson.lesson_time|time:"H:i" }}
+  Price: £{{ item.price_paid }}
+{% endfor %}
+
+View your lessons:
+{{ lessons_url }}
+
+Best regards,
+The {{ site_name }} Team

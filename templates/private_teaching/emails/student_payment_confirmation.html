@@ -1,0 +1,115 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #10b981 0%, #059669 100%){% endblock %}
+{% block header_subtitle %}Payment Confirmed{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ student.get_full_name|default:student.username }},
+</p>
+
+<!-- Success Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 20px; background-color: #f0fdf4; border-radius: 8px;">
+            <p style="margin: 0; font-size: 24px; color: #10b981;">✓</p>
+            <p style="margin: 10px 0 0 0; font-size: 20px; font-weight: 600; color: #059669;">
+                Payment Confirmed!
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;">
+                Your order has been successfully processed
+            </p>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Thank you for your payment! Your lessons are now confirmed.
+</p>
+
+<!-- Payment Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #2563eb;">
+                Payment Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 140px;">Total Amount:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 600;">£{{ order.total_amount }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 140px;">Payment Date:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ order.completed_at|date:"d F Y \a\t H:i" }}</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Lessons Purchased Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #059669;">
+                Lessons Purchased
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                {% for item in order_items %}
+                <tr>
+                    <td style="padding: 10px 0; {% if not forloop.last %}border-bottom: 1px solid #d1fae5;{% endif %}">
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                                <td style="padding: 3px 0;">
+                                    <span style="font-size: 15px; color: #333333; font-weight: 600;">{{ item.lesson.subject.subject }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 3px 0;">
+                                    <span style="font-size: 14px; color: #6b7280;">👨‍🏫 {{ item.lesson.teacher.get_full_name|default:"TBA" }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 3px 0;">
+                                    <span style="font-size: 14px; color: #6b7280;">📅 {{ item.lesson.lesson_date|date:"l, d F Y" }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 3px 0;">
+                                    <span style="font-size: 14px; color: #6b7280;">🕐 {{ item.lesson.lesson_time|time:"H:i" }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 3px 0;">
+                                    <span style="font-size: 14px; color: #333333; font-weight: 600;">£{{ item.price_paid }}</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Action Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ lessons_url }}" style="display: inline-block; padding: 14px 28px; background-color: #10b981; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">
+                View Your Lessons
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    Looking forward to your lessons!
+</p>
+{% endblock %}
