@@ -106,3 +106,61 @@ class PayableModel(models.Model):
     def is_for_child(self):
         """Check if this is for a child (under 18)"""
         return self.child_profile is not None
+
+
+class BaseMessage(models.Model):
+    """
+    Abstract base model for messaging functionality across apps.
+
+    Provides common fields and methods for threaded message systems:
+    - Author/sender tracking
+    - Message content
+    - Timestamp tracking
+    - Read/unread status
+    - Optional threading support
+
+    Subclasses should define:
+    - Foreign key to the parent object (e.g., course, lesson_request, application)
+    - Any additional fields specific to their use case
+    """
+
+    # Author field (creator of the message)
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='%(app_label)s_%(class)s_authored',
+        help_text="User who wrote this message"
+    )
+
+    # Message content
+    message = models.TextField(help_text="Message content")
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # Read tracking
+    is_read = models.BooleanField(
+        default=False,
+        help_text="Whether this message has been read"
+    )
+    read_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When this message was read"
+    )
+
+    class Meta:
+        abstract = True
+        ordering = ['created_at']
+
+    def __str__(self):
+        author_name = self.author.get_full_name() or self.author.username
+        return f"{author_name}: {self.message[:50]}"
+
+    def mark_as_read(self):
+        """Mark message as read"""
+        if not self.is_read:
+            from django.utils import timezone
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save(update_fields=['is_read', 'read_at'])

@@ -139,6 +139,10 @@ class LessonRequestMessage(models.Model):
     message = models.TextField(help_text="Message content")
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Read tracking (to match BaseMessage structure for future migration)
+    is_read = models.BooleanField(default=False, help_text="Whether this message has been read")
+    read_at = models.DateTimeField(null=True, blank=True, help_text="When this message was read")
+
     class Meta:
         ordering = ['created_at']
         verbose_name = 'Lesson Request Message'
@@ -146,6 +150,14 @@ class LessonRequestMessage(models.Model):
 
     def __str__(self):
         return f"{self.author.get_full_name()}: {self.message[:50]}"
+
+    def mark_as_read(self):
+        """Mark message as read"""
+        if not self.is_read:
+            from django.utils import timezone
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save(update_fields=['is_read', 'read_at'])
 
 
 class Cart(models.Model):
@@ -448,3 +460,11 @@ class ApplicationMessage(models.Model):
 
     def __str__(self):
         return f"{self.author.get_full_name()}: {self.message[:50]}"
+
+    def mark_as_read(self):
+        """Mark message as read"""
+        if not self.is_read:
+            from django.utils import timezone
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save(update_fields=['is_read', 'read_at'])

@@ -782,6 +782,7 @@ class CourseMessage(models.Model):
     )
 
     sent_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False, help_text="Whether this message has been read")
     read_at = models.DateTimeField(null=True, blank=True)
 
     # Threading support for conversations
@@ -805,16 +806,12 @@ class CourseMessage(models.Model):
         recipient_name = self.recipient.get_full_name() or self.recipient.username
         return f"From {sender_name} to {recipient_name}: {self.subject}"
 
-    @property
-    def is_read(self):
-        """Check if message has been read"""
-        return self.read_at is not None
-
     def mark_as_read(self):
         """Mark message as read"""
         if not self.is_read:
+            self.is_read = True
             self.read_at = timezone.now()
-            self.save()
+            self.save(update_fields=['is_read', 'read_at'])
 
 
 # ============================================================================
