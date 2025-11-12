@@ -51,38 +51,26 @@ class WaitlistNotificationService(BaseNotificationService):
         try:
             now = timezone.now()
             hours_remaining = (promotion.expires_at - now).total_seconds() / 3600
-            
+
             confirmation_url = WaitlistNotificationService._build_confirmation_url(registration)
-            
+
             context = {
                 'registration': registration,
                 'session': registration.session,
                 'promotion': promotion,
                 'confirmation_url': confirmation_url,
                 'hours_remaining': hours_remaining,
-                'site_name': WaitlistNotificationService.get_site_name(),
             }
-            
-            subject_and_message = render_to_string(
-                'workshops/emails/promotion_reminder.txt', 
-                context
-            )
-            
-            lines = subject_and_message.strip().split('\n')
-            subject = lines[0].replace('Subject: ', '') if lines else 'Reminder - Confirm Your Spot'
-            message = '\n'.join(lines[1:]).strip()
-            
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+
+            return WaitlistNotificationService.send_templated_email(
+                template_path='workshops/emails/promotion_reminder.txt',
+                context=context,
                 recipient_list=[registration.email],
+                default_subject='Reminder - Confirm Your Spot',
                 fail_silently=False,
+                log_description=f"Promotion reminder to {registration.student.username}"
             )
-            
-            logger.info(f"Promotion reminder sent to {registration.student.username}")
-            return True
-            
+
         except Exception as e:
             logger.error(f"Failed to send promotion reminder to {registration.student.username}: {str(e)}")
             return False
@@ -92,71 +80,47 @@ class WaitlistNotificationService(BaseNotificationService):
         """Send notification when promotion expires"""
         try:
             workshop_url = WaitlistNotificationService._build_workshop_url(registration.session.workshop)
-            
+
             context = {
                 'registration': registration,
                 'session': registration.session,
                 'workshop_url': workshop_url,
-                'site_name': WaitlistNotificationService.get_site_name(),
             }
-            
-            subject_and_message = render_to_string(
-                'workshops/emails/promotion_expired.txt', 
-                context
-            )
-            
-            lines = subject_and_message.strip().split('\n')
-            subject = lines[0].replace('Subject: ', '') if lines else 'Registration Deadline Passed'
-            message = '\n'.join(lines[1:]).strip()
-            
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+
+            return WaitlistNotificationService.send_templated_email(
+                template_path='workshops/emails/promotion_expired.txt',
+                context=context,
                 recipient_list=[registration.email],
+                default_subject='Registration Deadline Passed',
                 fail_silently=False,
+                log_description=f"Promotion expired notification to {registration.student.username}"
             )
-            
-            logger.info(f"Promotion expired notification sent to {registration.student.username}")
-            return True
-            
+
         except Exception as e:
             logger.error(f"Failed to send promotion expired notification to {registration.student.username}: {str(e)}")
             return False
-    
+
     @staticmethod
     def send_registration_confirmed_notification(registration):
         """Send confirmation when student confirms their promotion"""
         try:
             materials_url = WaitlistNotificationService._build_materials_url(registration.session)
-            
+
             context = {
                 'registration': registration,
                 'session': registration.session,
                 'materials_url': materials_url,
-                'site_name': WaitlistNotificationService.get_site_name(),
             }
-            
-            subject_and_message = render_to_string(
-                'workshops/emails/registration_confirmed.txt', 
-                context
-            )
-            
-            lines = subject_and_message.strip().split('\n')
-            subject = lines[0].replace('Subject: ', '') if lines else 'Registration Confirmed'
-            message = '\n'.join(lines[1:]).strip()
-            
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+
+            return WaitlistNotificationService.send_templated_email(
+                template_path='workshops/emails/registration_confirmed.txt',
+                context=context,
                 recipient_list=[registration.email],
+                default_subject='Registration Confirmed',
                 fail_silently=False,
+                log_description=f"Registration confirmed notification to {registration.student.username}"
             )
-            
-            logger.info(f"Registration confirmed notification sent to {registration.student.username}")
-            return True
-            
+
         except Exception as e:
             logger.error(f"Failed to send registration confirmed notification to {registration.student.username}: {str(e)}")
             return False
@@ -192,16 +156,8 @@ class WaitlistNotificationService(BaseNotificationService):
             return "#"  # Fallback
 
 
-class InstructorNotificationService:
+class InstructorNotificationService(BaseNotificationService):
     """Service for sending workshop-related email notifications to instructors"""
-
-    @staticmethod
-    def get_site_name():
-        """Get the current site name"""
-        try:
-            return Site.objects.get_current().name
-        except:
-            return getattr(settings, 'SITE_NAME', 'Workshop Platform')
 
     @staticmethod
     def send_new_registration_notification(registration):
@@ -221,31 +177,16 @@ class InstructorNotificationService:
                 'session': registration.session,
                 'workshop': registration.session.workshop,
                 'registrations_url': registrations_url,
-                'site_name': InstructorNotificationService.get_site_name(),
             }
 
-            # Render email content
-            subject_and_message = render_to_string(
-                'workshops/emails/instructor_new_registration.txt',
-                context
-            )
-
-            # Extract subject (first line)
-            lines = subject_and_message.strip().split('\n')
-            subject = lines[0].replace('Subject: ', '') if lines else 'New Workshop Registration'
-            message = '\n'.join(lines[1:]).strip()
-
-            # Send email
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+            return InstructorNotificationService.send_templated_email(
+                template_path='workshops/emails/instructor_new_registration.txt',
+                context=context,
                 recipient_list=[instructor.email],
+                default_subject='New Workshop Registration',
                 fail_silently=False,
+                log_description=f"New registration notification to instructor {instructor.username} for session {registration.session.id}"
             )
-
-            logger.info(f"New registration notification sent to instructor {instructor.username} for session {registration.session.id}")
-            return True
 
         except Exception as e:
             logger.error(f"Failed to send new registration notification to instructor: {str(e)}")
@@ -269,31 +210,16 @@ class InstructorNotificationService:
                 'session': registration.session,
                 'workshop': registration.session.workshop,
                 'registrations_url': registrations_url,
-                'site_name': InstructorNotificationService.get_site_name(),
             }
 
-            # Render email content
-            subject_and_message = render_to_string(
-                'workshops/emails/instructor_registration_cancelled.txt',
-                context
-            )
-
-            # Extract subject (first line)
-            lines = subject_and_message.strip().split('\n')
-            subject = lines[0].replace('Subject: ', '') if lines else 'Workshop Registration Cancelled'
-            message = '\n'.join(lines[1:]).strip()
-
-            # Send email
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+            return InstructorNotificationService.send_templated_email(
+                template_path='workshops/emails/instructor_registration_cancelled.txt',
+                context=context,
                 recipient_list=[instructor.email],
+                default_subject='Workshop Registration Cancelled',
                 fail_silently=False,
+                log_description=f"Cancellation notification to instructor {instructor.username} for session {registration.session.id}"
             )
-
-            logger.info(f"Cancellation notification sent to instructor {instructor.username} for session {registration.session.id}")
-            return True
 
         except Exception as e:
             logger.error(f"Failed to send cancellation notification to instructor: {str(e)}")
@@ -317,31 +243,16 @@ class InstructorNotificationService:
                 'session': registration.session,
                 'workshop': registration.session.workshop,
                 'registrations_url': registrations_url,
-                'site_name': InstructorNotificationService.get_site_name(),
             }
 
-            # Render email content
-            subject_and_message = render_to_string(
-                'workshops/emails/instructor_waitlist_promotion.txt',
-                context
-            )
-
-            # Extract subject (first line)
-            lines = subject_and_message.strip().split('\n')
-            subject = lines[0].replace('Subject: ', '') if lines else 'Waitlist Student Promoted'
-            message = '\n'.join(lines[1:]).strip()
-
-            # Send email
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+            return InstructorNotificationService.send_templated_email(
+                template_path='workshops/emails/instructor_waitlist_promotion.txt',
+                context=context,
                 recipient_list=[instructor.email],
+                default_subject='Waitlist Student Promoted',
                 fail_silently=False,
+                log_description=f"Waitlist promotion notification to instructor {instructor.username} for session {registration.session.id}"
             )
-
-            logger.info(f"Waitlist promotion notification sent to instructor {instructor.username} for session {registration.session.id}")
-            return True
 
         except Exception as e:
             logger.error(f"Failed to send waitlist promotion notification to instructor: {str(e)}")
@@ -358,16 +269,8 @@ class InstructorNotificationService:
             return "#"  # Fallback
 
 
-class WorkshopInterestNotificationService:
+class WorkshopInterestNotificationService(BaseNotificationService):
     """Service for sending workshop interest-related email notifications"""
-
-    @staticmethod
-    def get_site_name():
-        """Get the current site name"""
-        try:
-            return Site.objects.get_current().name
-        except:
-            return getattr(settings, 'SITE_NAME', 'Workshop Platform')
 
     @staticmethod
     def send_interest_confirmation(interest):
@@ -383,31 +286,16 @@ class WorkshopInterestNotificationService:
                 'user': interest.user,
                 'workshop_url': workshop_url,
                 'browse_url': browse_url,
-                'site_name': WorkshopInterestNotificationService.get_site_name(),
             }
 
-            # Render email content
-            subject_and_message = render_to_string(
-                'workshops/emails/workshop_interest_confirmation.txt',
-                context
-            )
-
-            # Extract subject (first line)
-            lines = subject_and_message.strip().split('\n')
-            subject = lines[0].replace('Subject: ', '') if lines else 'Workshop Interest Confirmation'
-            message = '\n'.join(lines[1:]).strip()
-
-            # Send email
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+            return WorkshopInterestNotificationService.send_templated_email(
+                template_path='workshops/emails/workshop_interest_confirmation.txt',
+                context=context,
                 recipient_list=[interest.email],
+                default_subject='Workshop Interest Confirmation',
                 fail_silently=False,
+                log_description=f"Interest confirmation to {interest.user.username} for workshop {interest.workshop.title}"
             )
-
-            logger.info(f"Interest confirmation sent to {interest.user.username} for workshop {interest.workshop.title}")
-            return True
 
         except Exception as e:
             logger.error(f"Failed to send interest confirmation to {interest.user.username}: {str(e)}")
@@ -448,31 +336,16 @@ class WorkshopInterestNotificationService:
                 'user': interest.user,
                 'workshop_url': workshop_url,
                 'registration_url': registration_url,
-                'site_name': WorkshopInterestNotificationService.get_site_name(),
             }
 
-            # Render email content
-            subject_and_message = render_to_string(
-                'workshops/emails/new_session_notification.txt',
-                context
-            )
-
-            # Extract subject (first line)
-            lines = subject_and_message.strip().split('\n')
-            subject = lines[0].replace('Subject: ', '') if lines else f'New Session Available - {interest.workshop.title}'
-            message = '\n'.join(lines[1:]).strip()
-
-            # Send email
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+            return WorkshopInterestNotificationService.send_templated_email(
+                template_path='workshops/emails/new_session_notification.txt',
+                context=context,
                 recipient_list=[interest.email],
+                default_subject=f'New Session Available - {interest.workshop.title}',
                 fail_silently=False,
+                log_description=f"New session notification to {interest.user.username} for workshop {interest.workshop.title}"
             )
-
-            logger.info(f"New session notification sent to {interest.user.username} for workshop {interest.workshop.title}")
-            return True
 
         except Exception as e:
             logger.error(f"Failed to send new session notification to {interest.user.username}: {str(e)}")
