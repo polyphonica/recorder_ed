@@ -174,7 +174,7 @@ class WorkshopAdmin(admin.ModelAdmin):
     def price_display(self, obj):
         if obj.is_free:
             return format_html('<span style="color: green;">Free</span>')
-        return f"${obj.price}"
+        return f"£{obj.price}"
     price_display.short_description = 'Price'
     
     def session_count(self, obj):

@@ -41,7 +41,7 @@ class Subject(models.Model):
         unique_together = ['teacher', 'subject']
 
     def __str__(self):
-        return f"{self.subject} (${self.base_price_60min}/60min)"
+        return f"{self.subject} (£{self.base_price_60min}/60min)"
 
 
 class LessonRequest(PayableModel):
