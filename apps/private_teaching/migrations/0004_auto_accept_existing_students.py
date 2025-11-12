@@ -59,7 +59,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('private_teaching', '0003_teacherstudentapplication_applicationmessage_and_more'),
-        ('lessons', '__latest__'),  # Ensure Lesson model is available
+        ('lessons', '0004_alter_lesson_lesson_content'),  # Ensure Lesson model is available
         ('accounts', '__latest__'),  # Ensure ChildProfile model is available
     ]
 
