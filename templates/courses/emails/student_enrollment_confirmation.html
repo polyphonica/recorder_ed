@@ -1,0 +1,103 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #f59e0b 0%, #d97706 100%){% endblock %}
+{% block header_subtitle %}Enrollment Confirmed{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ enrollment.student.get_full_name|default:enrollment.student.username }},
+</p>
+
+<!-- Success Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 20px; background-color: #fffbeb; border-radius: 8px;">
+            <p style="margin: 0; font-size: 24px; color: #f59e0b;">✓</p>
+            <p style="margin: 10px 0 0 0; font-size: 20px; font-weight: 600; color: #d97706;">
+                Enrollment Confirmed!
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;">
+                {% if is_child_enrollment %}{{ student_name }} is enrolled in the course{% else %}You're enrolled in the course{% endif %}
+            </p>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    {% if is_child_enrollment %}Thank you for enrolling {{ student_name }} in the course!{% else %}Thank you for enrolling in the course!{% endif %}
+</p>
+
+<!-- Course Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #2563eb;">
+                Course Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Course:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 600;">{{ course.title }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Grade Level:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ course.get_grade_display }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Instructor:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ course.instructor.get_full_name|default:course.instructor.username }}</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Payment Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #059669;">
+                Payment Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 140px;">Amount Paid:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 600;">£{{ enrollment.payment_amount }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 140px;">Payment Date:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ enrollment.paid_at|date:"d F Y \a\t H:i" }}</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Action Buttons -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ course_url }}" style="display: inline-block; padding: 14px 28px; background-color: #f59e0b; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3); margin: 0 5px;">
+                Start Learning
+            </a>
+            <a href="{{ my_courses_url }}" style="display: inline-block; padding: 14px 28px; background-color: #6b7280; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3); margin: 0 5px;">
+                My Courses
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    Happy learning!
+</p>
+{% endblock %}

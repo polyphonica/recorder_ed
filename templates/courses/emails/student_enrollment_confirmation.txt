@@ -1,0 +1,23 @@
+Subject: Course Enrollment Confirmed - {{ course.title }} - {{ site_name }}
+
+Hello {{ enrollment.student.get_full_name|default:enrollment.student.username }},
+
+{% if is_child_enrollment %}Thank you for enrolling {{ student_name }} in the course!{% else %}Thank you for enrolling in the course!{% endif %}
+
+COURSE DETAILS:
+Course: {{ course.title }}
+Grade Level: {{ course.get_grade_display }}
+Instructor: {{ course.instructor.get_full_name|default:course.instructor.username }}
+
+PAYMENT DETAILS:
+Amount Paid: £{{ enrollment.payment_amount }}
+Payment Date: {{ enrollment.paid_at|date:"d F Y \a\t H:i" }}
+
+Access your course:
+{{ course_url }}
+
+View all your courses:
+{{ my_courses_url }}
+
+Best regards,
+The {{ site_name }} Team

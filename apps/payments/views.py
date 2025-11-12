@@ -414,40 +414,12 @@ class StripeWebhookView(View):
                 except Exception as e:
                     print(f"Failed to send instructor notification: {e}")
 
-                # Send confirmation email
-                if enrollment.student and enrollment.student.email:
-                    try:
-                        student_name = enrollment.child_profile.full_name if enrollment.child_profile else (enrollment.student.get_full_name() or enrollment.student.username)
-                        guardian_email = enrollment.student.email
-
-                        subject = f"Course Enrollment Confirmed - {course.title}"
-
-                        email_body = f"Hello {enrollment.student.get_full_name() or enrollment.student.username},\n\n"
-
-                        if enrollment.child_profile:
-                            email_body += f"Thank you for enrolling {student_name} in the course!\n\n"
-                        else:
-                            email_body += f"Thank you for enrolling in the course!\n\n"
-
-                        email_body += f"COURSE DETAILS:\n"
-                        email_body += f"Course: {course.title}\n"
-                        email_body += f"Grade Level: {course.get_grade_display()}\n"
-                        email_body += f"Instructor: {course.instructor.get_full_name() or course.instructor.username}\n"
-                        email_body += f"\nAmount Paid: £{enrollment.payment_amount:.2f}\n"
-                        email_body += f"Payment Date: {enrollment.paid_at.strftime('%d %B %Y at %H:%M')}\n\n"
-
-                        email_body += f"You can access your course at: https://www.recorder-ed.com/courses/{course.slug}/\n\n"
-                        email_body += "Best regards,\nRECORDERED Team"
-
-                        send_mail(
-                            subject,
-                            email_body,
-                            settings.DEFAULT_FROM_EMAIL,
-                            [guardian_email],
-                            fail_silently=True,
-                        )
-                    except Exception as e:
-                        print(f"Error sending course confirmation email: {e}")
+                # Send confirmation email to student
+                try:
+                    from apps.courses.notifications import StudentNotificationService
+                    StudentNotificationService.send_enrollment_confirmation(enrollment)
+                except Exception as e:
+                    print(f"Error sending course confirmation email: {e}")
 
                 print(f"Course enrollment {enrollment_id} confirmed and email sent")
             except CourseEnrollment.DoesNotExist:
