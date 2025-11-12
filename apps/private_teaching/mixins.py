@@ -3,6 +3,8 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.contrib import messages
 
+from apps.core.mixins import ProfileCompletionMixin
+
 
 class PrivateTeachingLoginRequiredMixin(LoginRequiredMixin):
     """
@@ -11,42 +13,27 @@ class PrivateTeachingLoginRequiredMixin(LoginRequiredMixin):
     login_url = 'private_teaching:login'
 
 
-class StudentProfileNotCompletedMixin(PrivateTeachingLoginRequiredMixin):
+class StudentProfileNotCompletedMixin(ProfileCompletionMixin):
     """
     Mixin that allows access only to users whose profile is NOT completed.
     Used for profile completion views to prevent completed users from accessing them.
     """
-    
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return self.handle_no_permission()
-        
-        if hasattr(request.user, 'profile') and request.user.profile.profile_completed:
-            messages.info(request, 'Your profile is already completed.')
-            return redirect('private_teaching:home')
-        
-        return super().dispatch(request, *args, **kwargs)
+    login_url = 'private_teaching:login'
+    user_type = 'student'
+    require_completed = False
+    redirect_url = 'private_teaching:home'
 
 
-class StudentProfileCompletedMixin(PrivateTeachingLoginRequiredMixin):
+class StudentProfileCompletedMixin(ProfileCompletionMixin):
     """
     Mixin that requires the user's profile to be completed.
     Used for main private teaching views to enforce profile completion.
     """
-    
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return self.handle_no_permission()
-        
-        if not hasattr(request.user, 'profile'):
-            messages.warning(request, 'Please complete your profile to access private teaching.')
-            return redirect('private_teaching:profile_complete')
-        
-        if not request.user.profile.profile_completed:
-            messages.warning(request, 'Please complete your profile to access private teaching.')
-            return redirect('private_teaching:profile_complete')
-        
-        return super().dispatch(request, *args, **kwargs)
+    login_url = 'private_teaching:login'
+    user_type = 'student'
+    require_completed = True
+    redirect_url = 'private_teaching:profile_complete'
+    incomplete_message = 'Please complete your profile to access private teaching.'
 
 
 class StudentOnlyMixin(PrivateTeachingLoginRequiredMixin):
@@ -65,46 +52,30 @@ class StudentOnlyMixin(PrivateTeachingLoginRequiredMixin):
         return super().dispatch(request, *args, **kwargs)
 
 
-class TeacherProfileNotCompletedMixin(PrivateTeachingLoginRequiredMixin):
+class TeacherProfileNotCompletedMixin(ProfileCompletionMixin):
     """
     Mixin that allows access only to teachers whose profile is NOT completed.
     Used for teacher profile completion views.
     """
-    
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return self.handle_no_permission()
-        
-        if not hasattr(request.user, 'profile') or not request.user.profile.is_private_teacher:
-            messages.error(request, 'This section is only available to teachers.')
-            return redirect('private_teaching:home')
-            
-        if request.user.profile.profile_completed:
-            messages.info(request, 'Your teacher profile is already completed.')
-            return redirect('private_teaching:teacher_dashboard')
-        
-        return super().dispatch(request, *args, **kwargs)
+    login_url = 'private_teaching:login'
+    user_type = 'teacher'
+    require_completed = False
+    redirect_url = 'private_teaching:teacher_dashboard'
+    completion_message = 'Your teacher profile is already completed.'
+    wrong_type_message = 'This section is only available to teachers.'
 
 
-class TeacherProfileCompletedMixin(PrivateTeachingLoginRequiredMixin):
+class TeacherProfileCompletedMixin(ProfileCompletionMixin):
     """
     Mixin that requires the teacher's profile to be completed.
     Used for main teacher views to enforce profile completion.
     """
-    
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return self.handle_no_permission()
-        
-        if not hasattr(request.user, 'profile') or not request.user.profile.is_private_teacher:
-            messages.error(request, 'This section is only available to teachers.')
-            return redirect('private_teaching:home')
-            
-        if not request.user.profile.profile_completed:
-            messages.warning(request, 'Please complete your teacher profile to access teacher features.')
-            return redirect('private_teaching:teacher_profile_complete')
-        
-        return super().dispatch(request, *args, **kwargs)
+    login_url = 'private_teaching:login'
+    user_type = 'teacher'
+    require_completed = True
+    redirect_url = 'private_teaching:teacher_profile_complete'
+    incomplete_message = 'Please complete your teacher profile to access teacher features.'
+    wrong_type_message = 'This section is only available to teachers.'
 
 
 class TeacherOnlyMixin(PrivateTeachingLoginRequiredMixin):
