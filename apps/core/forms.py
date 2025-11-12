@@ -13,7 +13,7 @@ class ContactForm(forms.Form):
     email = forms.EmailField(
         widget=forms.EmailInput(attrs={
             'class': 'input input-bordered w-full',
-            'placeholder': 'your.email@example.com'
+            'placeholder': 'your.email@recorder-ed.com'
         })
     )
     subject = forms.ChoiceField(

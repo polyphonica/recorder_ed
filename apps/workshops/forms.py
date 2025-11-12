@@ -26,7 +26,7 @@ class WorkshopRegistrationForm(forms.ModelForm):
         widgets = {
             'email': forms.EmailInput(attrs={
                 'class': 'input input-bordered w-full',
-                'placeholder': 'your.email@example.com'
+                'placeholder': 'your.email@recorder-ed.com'
             }),
             'phone': forms.TextInput(attrs={
                 'class': 'input input-bordered w-full',
@@ -384,7 +384,7 @@ class WorkshopMaterialForm(forms.ModelForm):
             }),
             'external_url': forms.URLInput(attrs={
                 'class': 'input input-bordered w-full',
-                'placeholder': 'https://example.com/resource'
+                'placeholder': 'https://recorder-ed.com/resource'
             }),
             'access_timing': forms.Select(attrs={
                 'class': 'select select-bordered w-full'
@@ -478,7 +478,7 @@ class WorkshopInterestForm(forms.ModelForm):
         widgets = {
             'email': forms.EmailInput(attrs={
                 'class': 'input input-bordered input-sm w-full',
-                'placeholder': 'your.email@example.com'
+                'placeholder': 'your.email@recorder-ed.com'
             }),
             'preferred_timing': forms.Select(attrs={
                 'class': 'select select-bordered select-sm w-full'
