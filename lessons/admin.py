@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Lesson, Document, LessonOrder, LessonAttachedUrl
+from .models import Lesson, Document, LessonOrder, LessonAttachedUrl, PrivateLessonPiece
 
 
 @admin.register(Lesson)
@@ -53,7 +53,28 @@ class LessonOrderAdmin(admin.ModelAdmin):
     list_filter = ('payment_status', 'created', 'modified')
     search_fields = ('transaction_id',)
     readonly_fields = ('created', 'modified', 'get_total')
-    
+
     def get_total(self, obj):
         return f"£{obj.get_total:.2f}"
     get_total.short_description = 'Total Amount'
+
+
+@admin.register(PrivateLessonPiece)
+class PrivateLessonPieceAdmin(admin.ModelAdmin):
+    list_display = ('piece', 'lesson', 'order', 'is_visible', 'is_optional', 'created_at')
+    list_filter = ('is_visible', 'is_optional', 'created_at')
+    search_fields = ('piece__title', 'lesson__subject__subject', 'lesson__student__email')
+    readonly_fields = ('created_at',)
+
+    fieldsets = (
+        ('Piece Assignment', {
+            'fields': ('lesson', 'piece', 'order')
+        }),
+        ('Settings', {
+            'fields': ('is_visible', 'is_optional', 'instructions')
+        }),
+        ('Metadata', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )

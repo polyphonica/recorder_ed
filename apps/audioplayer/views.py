@@ -235,3 +235,99 @@ def piece_detail(request, pk):
         'title': piece.title
     }
     return render(request, 'audioplayer/piece_detail.html', context)
+
+
+# ===== PRIVATE TEACHING LESSON VIEWS =====
+
+@login_required
+def private_lesson_player(request, lesson_id):
+    """
+    Audio player page for private teaching lessons.
+    Accessible by the student or teacher once lesson status is 'Assigned'.
+    """
+    from lessons.models import Lesson as PrivateLesson
+
+    lesson = get_object_or_404(PrivateLesson, pk=lesson_id)
+
+    # Check access: user must be the student OR the teacher
+    is_student = lesson.student == request.user
+    is_teacher = lesson.teacher == request.user
+
+    if not (is_student or is_teacher):
+        messages.error(request, 'You do not have permission to access this lesson.')
+        return redirect('lessons:lesson_list')
+
+    # Check lesson status - only accessible when status is 'Assigned'
+    if lesson.status != 'Assigned' and not is_teacher:
+        messages.error(request, 'This lesson is not yet available. Playalong content will be accessible when the teacher assigns the lesson.')
+        return redirect('lessons:lesson_detail', pk=lesson_id)
+
+    # Get count of visible pieces
+    piece_count = lesson.lesson_pieces.filter(is_visible=True).count()
+
+    if piece_count == 0:
+        messages.info(request, 'No playalong pieces have been assigned to this lesson yet.')
+        return redirect('lessons:lesson_detail', pk=lesson_id)
+
+    context = {
+        'lesson': lesson,
+        'piece_count': piece_count,
+        'title': f'Playalong: {lesson.subject.subject} - {lesson.lesson_date}',
+        'is_private_lesson': True  # Flag to help template know this is a private lesson
+    }
+    return render(request, 'audioplayer/audio_player.html', context)
+
+
+def private_lesson_pieces_json(request, lesson_id):
+    """
+    JSON API endpoint for private lesson audio player JavaScript.
+    Returns all visible pieces and stems for a private teaching lesson.
+    """
+    from lessons.models import Lesson as PrivateLesson, PrivateLessonPiece
+
+    lesson = get_object_or_404(PrivateLesson, pk=lesson_id)
+
+    # Check access: user must be the student OR the teacher
+    is_student = lesson.student == request.user
+    is_teacher = lesson.teacher == request.user
+
+    if not (is_student or is_teacher):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    # For students, only show when lesson status is 'Assigned'
+    if not is_teacher and lesson.status != 'Assigned':
+        return JsonResponse({'error': 'Lesson not assigned yet'}, status=403)
+
+    # Get pieces through the PrivateLessonPiece relationship
+    lesson_pieces = PrivateLessonPiece.objects.filter(
+        lesson=lesson,
+        is_visible=True
+    ).select_related('piece').prefetch_related('piece__stems').order_by('order')
+
+    pieces_data = []
+    for lp in lesson_pieces:
+        # Get stems ordered by their order field
+        stems_data = [
+            {
+                'audio_file': stem.audio_file.url,
+                'instrument_name': stem.instrument_name
+            }
+            for stem in lp.piece.stems.all().order_by('order')
+        ]
+
+        piece_data = {
+            'title': lp.piece.title,
+            'stems': stems_data,
+            'svg_image': lp.piece.svg_image.url if lp.piece.svg_image else None,
+            'order': lp.order,
+        }
+
+        # Add lesson-specific customizations
+        if lp.instructions:
+            piece_data['instructions'] = lp.instructions
+        if lp.is_optional:
+            piece_data['is_optional'] = True
+
+        pieces_data.append(piece_data)
+
+    return JsonResponse({'pieces_data': pieces_data})

@@ -121,7 +121,16 @@ class Lesson(models.Model):
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
+    # Playalong pieces
+    pieces = models.ManyToManyField(
+        'audioplayer.Piece',
+        through='PrivateLessonPiece',
+        related_name='private_lessons',
+        blank=True,
+        help_text='Interactive playalong pieces for this lesson'
+    )
+
     class Meta:
         ordering = ["-lesson_date"]
 
@@ -189,6 +198,48 @@ class Lesson(models.Model):
             self.calculate_fee()
 
         super().save(*args, **kwargs)
+
+
+class PrivateLessonPiece(models.Model):
+    """Through model for associating playalong pieces with private lessons"""
+    lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name='lesson_pieces',
+        help_text="The lesson this piece is assigned to"
+    )
+    piece = models.ForeignKey(
+        'audioplayer.Piece',
+        on_delete=models.CASCADE,
+        related_name='private_lesson_assignments',
+        help_text="The playalong piece"
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Display order within the lesson"
+    )
+    is_visible = models.BooleanField(
+        default=True,
+        help_text="Whether students can see this piece"
+    )
+    instructions = models.TextField(
+        blank=True,
+        help_text="Lesson-specific instructions for this piece"
+    )
+    is_optional = models.BooleanField(
+        default=False,
+        help_text="Whether this piece is optional practice"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'created_at']
+        verbose_name = 'Lesson Piece'
+        verbose_name_plural = 'Lesson Pieces'
+        unique_together = ['lesson', 'piece']
+
+    def __str__(self):
+        return f"{self.piece.title} for {self.lesson}"
 
 
 class Document(models.Model):

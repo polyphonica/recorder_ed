@@ -164,6 +164,16 @@
         {% if request.user == lesson.teacher.user %}
             <a href="{% url 'lessons:lesson_update' lesson.pk %}" class="btn btn-primary">Edit Lesson</a>
         {% endif %}
+
+        {% if lesson.lesson_pieces.exists and lesson.status == 'Assigned' %}
+            <a href="{% url 'audioplayer:private_lesson_player' lesson.pk %}" class="btn btn-success">
+                🎵 Practice with Playalong
+            </a>
+        {% elif lesson.lesson_pieces.exists and lesson.status != 'Assigned' and request.user == lesson.student.user %}
+            <button type="button" class="btn btn-outline opacity-50 cursor-not-allowed" disabled title="Playalong will be available when lesson is assigned">
+                🎵 Playalong (Not Yet Available)
+            </button>
+        {% endif %}
     </div>
 
     <!-- Lesson Settings -->

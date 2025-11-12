@@ -19,7 +19,7 @@ from django.core.exceptions import PermissionDenied
 from apps.private_teaching.models import LessonRequest
 
 from .models import Lesson, LessonOrder
-from .forms import LessonForm, DocumentFormSet, LessonUrlsFormSet
+from .forms import LessonForm, DocumentFormSet, LessonUrlsFormSet, PrivateLessonPieceFormSet
 
 
 class CalendarView(LoginRequiredMixin, TemplateView):
@@ -235,23 +235,30 @@ class LessonUpdateView(LoginRequiredMixin, LessonInline, UpdateView):
         return lesson
 
     def get_context_data(self, **kwargs):
+        from apps.audioplayer.models import Piece
         ctx = super().get_context_data(**kwargs)
         ctx['named_formsets'] = self.get_named_formsets()
+        ctx['pieces'] = Piece.objects.all().order_by('title')  # For piece dropdown in JavaScript
         return ctx
 
     def get_named_formsets(self):
         return {
             'documents': DocumentFormSet(
-                self.request.POST or None, 
-                self.request.FILES or None, 
-                instance=self.object, 
+                self.request.POST or None,
+                self.request.FILES or None,
+                instance=self.object,
                 prefix='documents'
             ),
             'lesson_attached_urls': LessonUrlsFormSet(
-                self.request.POST or None, 
-                self.request.FILES or None, 
-                instance=self.object, 
+                self.request.POST or None,
+                self.request.FILES or None,
+                instance=self.object,
                 prefix='lesson_attached_urls'
+            ),
+            'pieces': PrivateLessonPieceFormSet(
+                self.request.POST or None,
+                instance=self.object,
+                prefix='pieces'
             ),
         }
 
