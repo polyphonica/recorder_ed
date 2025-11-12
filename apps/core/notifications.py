@@ -4,6 +4,7 @@ Centralized email notification service for consistent email sending across apps
 
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.conf import settings
 from django.contrib.sites.models import Site
 import logging
@@ -20,6 +21,7 @@ class BaseNotificationService:
     - Subject extraction from templates
     - Email sending with error handling
     - Site name retrieval
+    - Absolute URL building with current site domain
     """
 
     @staticmethod
@@ -29,6 +31,45 @@ class BaseNotificationService:
             return Site.objects.get_current().name
         except Exception:
             return getattr(settings, 'SITE_NAME', 'RECORDERED')
+
+    @staticmethod
+    def build_absolute_url(url_name, kwargs=None, use_https=True, fragment=None):
+        """
+        Build an absolute URL using the current site domain.
+
+        Args:
+            url_name: Django URL name to reverse (e.g., 'workshops:detail')
+            kwargs: Dictionary of URL parameters (e.g., {'slug': 'my-workshop'})
+            use_https: Whether to use https:// or http:// (default: True)
+            fragment: Optional fragment/anchor to append (e.g., 'materials' for #materials)
+
+        Returns:
+            Full absolute URL string, or "#" if URL building fails
+
+        Example:
+            build_absolute_url('workshops:detail', {'slug': 'recorder-101'})
+            # Returns: "https://www.recorder-ed.com/workshops/recorder-101/"
+        """
+        try:
+            # Build the path using Django's reverse
+            path = reverse(url_name, kwargs=kwargs) if kwargs else reverse(url_name)
+
+            # Get current site domain
+            site = Site.objects.get_current()
+            protocol = 'https' if use_https else 'http'
+
+            # Build full URL
+            url = f"{protocol}://{site.domain}{path}"
+
+            # Append fragment if provided
+            if fragment:
+                url = f"{url}#{fragment}"
+
+            return url
+
+        except Exception as e:
+            logger.warning(f"Failed to build URL for {url_name}: {str(e)}")
+            return "#"  # Fallback
 
     @staticmethod
     def send_templated_email(

@@ -128,32 +128,30 @@ class WaitlistNotificationService(BaseNotificationService):
     @staticmethod
     def _build_confirmation_url(registration):
         """Build URL for confirming waitlist promotion"""
-        try:
-            path = reverse('workshops:confirm_promotion', kwargs={'registration_id': registration.id})
-            site = Site.objects.get_current()
-            return f"http://{site.domain}{path}"
-        except:
-            return "#"  # Fallback
-    
+        return WaitlistNotificationService.build_absolute_url(
+            'workshops:confirm_promotion',
+            kwargs={'registration_id': registration.id},
+            use_https=False
+        )
+
     @staticmethod
     def _build_workshop_url(workshop):
         """Build URL for workshop detail page"""
-        try:
-            path = reverse('workshops:detail', kwargs={'slug': workshop.slug})
-            site = Site.objects.get_current()
-            return f"http://{site.domain}{path}"
-        except:
-            return "#"  # Fallback
-    
+        return WaitlistNotificationService.build_absolute_url(
+            'workshops:detail',
+            kwargs={'slug': workshop.slug},
+            use_https=False
+        )
+
     @staticmethod
     def _build_materials_url(session):
         """Build URL for session materials page"""
-        try:
-            path = reverse('workshops:detail', kwargs={'slug': session.workshop.slug})
-            site = Site.objects.get_current()
-            return f"http://{site.domain}{path}#materials"
-        except:
-            return "#"  # Fallback
+        return WaitlistNotificationService.build_absolute_url(
+            'workshops:detail',
+            kwargs={'slug': session.workshop.slug},
+            use_https=False,
+            fragment='materials'
+        )
 
 
 class InstructorNotificationService(BaseNotificationService):
@@ -261,12 +259,11 @@ class InstructorNotificationService(BaseNotificationService):
     @staticmethod
     def _build_registrations_url(session):
         """Build URL for session registrations management page"""
-        try:
-            path = reverse('workshops:session_registrations', kwargs={'session_id': session.id})
-            site = Site.objects.get_current()
-            return f"http://{site.domain}{path}"
-        except:
-            return "#"  # Fallback
+        return InstructorNotificationService.build_absolute_url(
+            'workshops:session_registrations',
+            kwargs={'session_id': session.id},
+            use_https=False
+        )
 
 
 class WorkshopInterestNotificationService(BaseNotificationService):
@@ -304,22 +301,19 @@ class WorkshopInterestNotificationService(BaseNotificationService):
     @staticmethod
     def _build_workshop_url(workshop):
         """Build URL for workshop detail page"""
-        try:
-            path = reverse('workshops:detail', kwargs={'slug': workshop.slug})
-            site = Site.objects.get_current()
-            return f"http://{site.domain}{path}"
-        except:
-            return "#"  # Fallback
+        return WorkshopInterestNotificationService.build_absolute_url(
+            'workshops:detail',
+            kwargs={'slug': workshop.slug},
+            use_https=False
+        )
 
     @staticmethod
     def _build_browse_url():
         """Build URL for workshop list page"""
-        try:
-            path = reverse('workshops:list')
-            site = Site.objects.get_current()
-            return f"http://{site.domain}{path}"
-        except:
-            return "#"  # Fallback
+        return WorkshopInterestNotificationService.build_absolute_url(
+            'workshops:list',
+            use_https=False
+        )
 
     @staticmethod
     def send_new_session_notification(interest, session):
@@ -354,12 +348,11 @@ class WorkshopInterestNotificationService(BaseNotificationService):
     @staticmethod
     def _build_registration_url(session):
         """Build URL for session registration page"""
-        try:
-            path = reverse('workshops:register', kwargs={
+        return WorkshopInterestNotificationService.build_absolute_url(
+            'workshops:register',
+            kwargs={
                 'workshop_slug': session.workshop.slug,
                 'session_id': session.id
-            })
-            site = Site.objects.get_current()
-            return f"http://{site.domain}{path}"
-        except:
-            return "#"  # Fallback
+            },
+            use_https=False
+        )
