@@ -350,6 +350,8 @@ class Lesson(models.Model):
 class LessonAttachment(models.Model):
     """
     File attachments for lessons (PDFs, documents, audio files, etc.)
+
+    Follows BaseAttachment pattern from apps.core.models with additional file_type field.
     """
 
     FILE_TYPE_CHOICES = [
@@ -359,15 +361,17 @@ class LessonAttachment(models.Model):
         ('other', 'Other'),
     ]
 
+    # Base fields (matching BaseAttachment pattern)
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='attachments')
 
     title = models.CharField(max_length=200)
     file = models.FileField(upload_to='courses/documents/')
-    file_type = models.CharField(max_length=20, choices=FILE_TYPE_CHOICES, default='other')
     order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now=True)
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    # Additional field specific to lesson attachments
+    file_type = models.CharField(max_length=20, choices=FILE_TYPE_CHOICES, default='other')
 
     class Meta:
         ordering = ['order', 'title']
@@ -376,14 +380,25 @@ class LessonAttachment(models.Model):
         return f"{self.lesson.lesson_title} - {self.title}"
 
     @property
+    def file_extension(self):
+        """Get file extension from filename"""
+        if self.file and self.file.name:
+            return self.file.name.split('.')[-1].lower()
+        return ''
+
+    @property
     def file_size(self):
         """Get human-readable file size"""
         if self.file:
-            size = self.file.size
-            for unit in ['B', 'KB', 'MB', 'GB']:
-                if size < 1024.0:
-                    return f"{size:.1f} {unit}"
-                size /= 1024.0
+            try:
+                size = self.file.size
+                for unit in ['B', 'KB', 'MB', 'GB']:
+                    if size < 1024.0:
+                        return f"{size:.1f} {unit}"
+                    size /= 1024.0
+                return f"{size:.1f} TB"
+            except (OSError, ValueError):
+                return "Unknown size"
         return "0 B"
 
 

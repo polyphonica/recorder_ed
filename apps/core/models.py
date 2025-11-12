@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.conf import settings
 
@@ -106,6 +108,70 @@ class PayableModel(models.Model):
     def is_for_child(self):
         """Check if this is for a child (under 18)"""
         return self.child_profile is not None
+
+
+class BaseAttachment(models.Model):
+    """
+    Abstract base model for file attachments and materials.
+
+    Provides common fields and methods for file management:
+    - UUID primary key
+    - Title and file fields
+    - Ordering support
+    - File size calculation
+    - Timestamps
+
+    Subclasses should define:
+    - Foreign key to the parent object (e.g., lesson, workshop, session)
+    - Any additional fields specific to their use case (e.g., file_type, access_timing)
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    # Basic fields
+    title = models.CharField(max_length=200, help_text="Title/name of the attachment")
+    file = models.FileField(
+        upload_to='attachments/',  # Subclasses should override upload_to
+        blank=True,
+        null=True,
+        help_text="Uploaded file"
+    )
+
+    # Organization
+    order = models.PositiveIntegerField(default=0, help_text="Display order")
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+        ordering = ['order', 'title']
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def file_extension(self):
+        """Get file extension from filename"""
+        if self.file and self.file.name:
+            return self.file.name.split('.')[-1].lower()
+        return ''
+
+    @property
+    def file_size(self):
+        """Get human-readable file size"""
+        if self.file:
+            try:
+                size = self.file.size
+                for unit in ['B', 'KB', 'MB', 'GB']:
+                    if size < 1024.0:
+                        return f"{size:.1f} {unit}"
+                    size /= 1024.0
+                return f"{size:.1f} TB"
+            except (OSError, ValueError):
+                return "Unknown size"
+        return "0 B"
 
 
 class BaseMessage(models.Model):

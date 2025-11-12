@@ -680,7 +680,12 @@ class WaitlistPromotion(models.Model):
 
 
 class WorkshopMaterial(models.Model):
-    """Resources and materials for workshops"""
+    """
+    Resources and materials for workshops.
+
+    Follows BaseAttachment pattern from apps.core.models with additional fields
+    for access control, material types, and workshop/session associations.
+    """
     TYPE_CHOICES = [
         ('slides', 'Presentation Slides'),
         ('handout', 'Handout/Worksheet'),
@@ -737,25 +742,30 @@ class WorkshopMaterial(models.Model):
     
     @property
     def file_extension(self):
-        """Get file extension"""
-        if self.file:
+        """Get file extension from filename"""
+        if self.file and self.file.name:
             return self.file.name.split('.')[-1].lower()
         return ''
-    
+
+    @property
+    def file_size(self):
+        """Get human-readable file size"""
+        if self.file:
+            try:
+                size = self.file.size
+                for unit in ['B', 'KB', 'MB', 'GB']:
+                    if size < 1024.0:
+                        return f"{size:.1f} {unit}"
+                    size /= 1024.0
+                return f"{size:.1f} TB"
+            except (OSError, ValueError):
+                return "Unknown size"
+        return "0 B"
+
     @property
     def file_size_display(self):
-        """Display file size in human-readable format"""
-        if self.file:
-            size = self.file.size
-            if size < 1024:
-                return f"{size} B"
-            elif size < 1024 * 1024:
-                return f"{size / 1024:.1f} KB"
-            elif size < 1024 * 1024 * 1024:
-                return f"{size / (1024 * 1024):.1f} MB"
-            else:
-                return f"{size / (1024 * 1024 * 1024):.1f} GB"
-        return 'Unknown size'
+        """Alias for file_size for backwards compatibility"""
+        return self.file_size
     
     def can_be_accessed_by_registration(self, registration):
         """Check if a registration can access this material"""
