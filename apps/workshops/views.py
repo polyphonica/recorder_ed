@@ -186,12 +186,22 @@ class WorkshopDetailView(DetailView):
                 has_sessions__gt=0
             ).select_related('instructor', 'category').distinct()[:4]
         
+        # Check if user is registered for this workshop (for messaging button)
+        user_is_registered = False
+        if self.request.user.is_authenticated:
+            user_is_registered = WorkshopRegistration.objects.filter(
+                student=self.request.user,
+                session__workshop=workshop,
+                status__in=['registered', 'promoted', 'attended']
+            ).exists()
+
         context.update({
             'upcoming_sessions': upcoming_sessions,
             'pre_materials': pre_materials,
             'session_materials': session_materials,
             'related_workshops': related_workshops,
             'similar_workshops_with_sessions': similar_workshops_with_sessions,
+            'user_is_registered': user_is_registered,
         })
 
         # Add cart session IDs for logged-in users

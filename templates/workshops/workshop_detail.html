@@ -79,7 +79,7 @@
                 </a>
 
                 <!-- Contact Instructor Button (for registered participants) -->
-                {% if user.is_authenticated and user.workshop_registrations.filter(session__workshop=workshop, status__in=['registered', 'promoted', 'attended']).exists %}
+                {% if user_is_registered %}
                     <div class="mb-6">
                         <a href="{% url 'messaging:start_workshop_conversation' workshop.id %}"
                            class="btn btn-outline btn-sm gap-2">
