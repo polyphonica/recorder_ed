@@ -195,13 +195,13 @@
             <!-- Messages -->
             {% if user.is_authenticated %}
                 <div class="mr-4">
-                    <a href="{% url 'courses:messages_inbox' %}" class="btn btn-ghost btn-circle">
+                    <a href="{% url 'messaging:inbox' %}" class="btn btn-ghost btn-circle">
                         <div class="indicator">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                             </svg>
-                            {% if unread_course_messages > 0 %}
-                                <span class="badge badge-sm badge-error indicator-item">{{ unread_course_messages }}</span>
+                            {% if total_unread_messages > 0 %}
+                                <span class="badge badge-sm badge-error indicator-item">{{ total_unread_messages }}</span>
                             {% endif %}
                         </div>
                     </a>
@@ -236,7 +236,7 @@
                                 <li><a href="{% url 'courses:instructor_dashboard' %}"><i class="fas fa-chart-line mr-2"></i>Dashboard</a></li>
                                 <li><a href="{% url 'courses:create' %}"><i class="fas fa-plus mr-2"></i>Create Course</a></li>
                                 <li><a href="{% url 'courses:analytics' %}"><i class="fas fa-chart-bar mr-2"></i>Analytics</a></li>
-                                <li><a href="{% url 'courses:messages_inbox' %}"><i class="fas fa-envelope mr-2"></i>Student Messages</a></li>
+                                <li><a href="{% url 'messaging:inbox' %}"><i class="fas fa-envelope mr-2"></i>Messages</a></li>
 
                             {% elif request.resolver_match.namespace == 'private_teaching' %}
                                 {# PRIVATE LESSONS APP MENU #}
@@ -343,7 +343,7 @@
                             <!-- Teacher Navigation -->
                             <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.url_name == 'instructor_dashboard' %}bg-primary text-primary-content{% endif %}">Dashboard</a></li>
                             <li><a href="{% url 'courses:analytics' %}" class="{% if request.resolver_match.url_name == 'analytics' %}bg-primary text-primary-content{% endif %}">Analytics</a></li>
-                            <li><a href="{% url 'courses:messages_inbox' %}" class="{% if request.resolver_match.url_name in 'messages_inbox,messages_view' %}bg-primary text-primary-content{% endif %}">Messages</a></li>
+                            <li><a href="{% url 'messaging:inbox' %}" class="{% if request.resolver_match.url_name == 'inbox' and request.resolver_match.namespace == 'messaging' %}bg-primary text-primary-content{% endif %}">Messages</a></li>
                             <li><a href="{% url 'audioplayer:piece_list' %}" class="{% if request.resolver_match.namespace == 'audioplayer' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-music mr-1"></i>Playalong Library</a></li>
                             <li><a href="{% url 'courses:teaching_tools' %}" class="{% if 'teaching_tools' in request.resolver_match.url_name or 'fingering_diagram' in request.resolver_match.url_name or 'time_signature' in request.resolver_match.url_name %}bg-primary text-primary-content{% endif %}"><i class="fas fa-tools mr-1"></i>Teaching Tools</a></li>
                         {% else %}
