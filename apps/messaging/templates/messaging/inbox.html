@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Messages - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6 max-w-6xl">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Messages</h1>
+        <div class="flex gap-2">
+            <a href="?domain=" class="btn btn-sm {% if not domain_filter %}btn-primary{% else %}btn-outline{% endif %}">
+                All
+            </a>
+            <a href="?domain=workshop" class="btn btn-sm {% if domain_filter == 'workshop' %}btn-primary{% else %}btn-outline{% endif %}">
+                Workshops
+            </a>
+            <a href="?domain=private_teaching" class="btn btn-sm {% if domain_filter == 'private_teaching' %}btn-primary{% else %}btn-outline{% endif %}">
+                Private Teaching
+            </a>
+        </div>
+    </div>
+
+    <!-- Conversations List -->
+    {% if conversations %}
+        <div class="space-y-3">
+            {% for item in conversations %}
+                <a href="{% url 'messaging:conversation_detail' item.conversation.id %}"
+                   class="block bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition {% if item.unread_count > 0 %}border-l-4 border-l-blue-500{% endif %}">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3">
+                                <!-- Domain Icon -->
+                                {% if item.conversation.domain == 'workshop' %}
+                                    <span class="text-2xl">🎵</span>
+                                {% elif item.conversation.domain == 'private_teaching' %}
+                                    <span class="text-2xl">🎓</span>
+                                {% endif %}
+
+                                <!-- Conversation Info -->
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-lg {% if item.unread_count > 0 %}text-gray-900{% else %}text-gray-700{% endif %}">
+                                        {{ item.other_participant.get_full_name|default:item.other_participant.username }}
+                                    </h3>
+                                    <p class="text-sm text-gray-500">
+                                        {{ item.conversation.get_display_title|default:"General conversation" }}
+                                    </p>
+                                    {% if item.last_message %}
+                                        <p class="text-sm text-gray-600 mt-1 {% if item.unread_count > 0 %}font-medium{% endif %}">
+                                            {{ item.last_message.content|truncatewords:15 }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col items-end gap-2">
+                            {% if item.last_message %}
+                                <span class="text-xs text-gray-400">
+                                    {{ item.last_message.created_at|timesince }} ago
+                                </span>
+                            {% endif %}
+                            {% if item.unread_count > 0 %}
+                                <span class="badge badge-primary badge-sm">
+                                    {{ item.unread_count }} new
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4">💬</div>
+            <h2 class="text-2xl font-semibold text-gray-700 mb-2">No messages yet</h2>
+            <p class="text-gray-500">Your conversations will appear here</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
