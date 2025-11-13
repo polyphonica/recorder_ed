@@ -1599,11 +1599,14 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
 
         # Paid workshops - use Stripe checkout
         try:
-            # Build item descriptions
-            item_descriptions = []
+            # Build line items for Stripe (each workshop as separate line item)
+            line_items = []
             for item in workshop_items:
-                desc = f"{item.session.workshop.title} ({item.session.start_datetime.strftime('%b %d, %Y')})"
-                item_descriptions.append(desc)
+                line_items.append({
+                    'name': item.session.workshop.title,
+                    'description': item.session.start_datetime.strftime('%b %d, %Y at %I:%M %p'),
+                    'amount': item.price
+                })
 
             # Store cart item IDs in metadata for webhook processing
             cart_item_ids = [str(item.id) for item in workshop_items]
@@ -1611,9 +1614,10 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
             # Get first instructor (for commission calculation)
             first_teacher = workshop_items[0].session.workshop.instructor if workshop_items else None
 
-            # Create Stripe checkout session
-            checkout_session = create_checkout_session(
-                amount=total_amount,
+            # Create Stripe checkout session with multiple line items
+            from apps.payments.stripe_service import create_checkout_session_with_items
+            checkout_session = create_checkout_session_with_items(
+                line_items=line_items,
                 student=request.user,
                 teacher=first_teacher,
                 domain='workshops',
@@ -1626,9 +1630,7 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
                 metadata={
                     'cart_item_ids': ','.join(cart_item_ids),
                     'item_count': len(cart_item_ids),
-                },
-                item_name=f"Workshop Registration ({len(cart_item_ids)} session{'s' if len(cart_item_ids) > 1 else ''})",
-                item_description='; '.join(item_descriptions[:3])  # First 3 items for brevity
+                }
             )
 
             # Redirect to Stripe

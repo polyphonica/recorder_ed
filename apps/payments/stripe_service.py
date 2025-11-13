@@ -95,6 +95,84 @@ def retrieve_session(session_id):
         raise
 
 
+def create_checkout_session_with_items(
+    line_items,
+    student,
+    teacher,
+    domain,
+    success_url,
+    cancel_url,
+    metadata=None
+):
+    """
+    Create a Stripe Checkout Session with multiple line items
+
+    Args:
+        line_items: List of dicts with 'name', 'description', and 'amount' keys
+                    Example: [{'name': 'Workshop 1', 'description': 'Jan 7, 2026', 'amount': Decimal('5.00')}]
+        student: User object (student/customer)
+        teacher: User object (teacher/instructor) - used for commission calculation
+        domain: Domain type ('workshops', 'courses', 'private_teaching')
+        success_url: URL to redirect after successful payment
+        cancel_url: URL to redirect if payment is cancelled
+        metadata: Additional metadata dict
+
+    Returns:
+        stripe.checkout.Session object
+    """
+    # Calculate total and commission
+    from decimal import Decimal
+    total_amount = sum(item['amount'] for item in line_items)
+    platform_commission, teacher_share = calculate_commission(total_amount)
+
+    # Prepare metadata
+    session_metadata = {
+        'domain': domain,
+        'student_id': str(student.id),
+        'student_email': student.email,
+        'teacher_id': str(teacher.id) if teacher else '',
+        'teacher_email': teacher.email if teacher else '',
+        'total_amount': str(total_amount),
+        'platform_commission': str(platform_commission),
+        'teacher_share': str(teacher_share),
+    }
+
+    # Add custom metadata
+    if metadata:
+        session_metadata.update(metadata)
+
+    # Build Stripe line items
+    stripe_line_items = []
+    for item in line_items:
+        stripe_line_items.append({
+            'price_data': {
+                'currency': 'gbp',
+                'unit_amount': format_stripe_amount(item['amount']),
+                'product_data': {
+                    'name': item['name'],
+                    'description': item.get('description', ''),
+                },
+            },
+            'quantity': 1,
+        })
+
+    # Create Checkout Session
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=stripe_line_items,
+            mode='payment',
+            success_url=success_url,
+            cancel_url=cancel_url,
+            customer_email=student.email,
+            metadata=session_metadata,
+        )
+        return session
+    except stripe.error.StripeError as e:
+        print(f"Stripe error: {str(e)}")
+        raise
+
+
 def retrieve_payment_intent(payment_intent_id):
     """Retrieve a Payment Intent by ID"""
     try:
