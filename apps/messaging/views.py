@@ -28,22 +28,20 @@ def inbox(request):
     if domain_filter:
         conversations = conversations.filter(domain=domain_filter)
 
-    # Now add select_related and prefetch
+    # Now add select_related (no prefetch to avoid slicing issues)
     conversations = conversations.select_related(
         'participant_1',
         'participant_2',
         'workshop',
         'child_profile'
-    ).prefetch_related(
-        Prefetch('messages', queryset=Message.objects.order_by('-created_at')[:1])
     ).order_by('-updated_at')
 
     # Annotate with unread counts
     conversations_with_unread = []
     for conv in conversations:
         unread_count = conv.get_unread_count(user)
-        # Get last message from prefetched messages (already limited to 1)
-        last_message = conv.messages.all()[0] if conv.messages.all() else None
+        # Get last message with a separate query (more reliable than prefetch slicing)
+        last_message = Message.objects.filter(conversation=conv).order_by('-created_at').first()
 
         conversations_with_unread.append({
             'conversation': conv,
