@@ -94,11 +94,15 @@ class Conversation(models.Model):
     def get_unread_count(self, user):
         """Get unread message count for a user"""
         last_read = self.read_status.filter(user=user).first()
+
+        # Use Message.objects instead of self.messages to avoid issues with prefetch slicing
+        messages_qs = Message.objects.filter(conversation=self)
+
         if not last_read:
             # Never read - count all messages not from this user
-            return self.messages.exclude(sender=user).count()
+            return messages_qs.exclude(sender=user).count()
         # Count messages after last read that aren't from this user
-        return self.messages.filter(
+        return messages_qs.filter(
             created_at__gt=last_read.last_read_at
         ).exclude(sender=user).count()
 
