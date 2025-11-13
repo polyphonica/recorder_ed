@@ -415,8 +415,10 @@
                     </div>
                 {% endfor %}
             </div>
-            <button type="button" id="add-piece" class="btn-add-form mt-3">+ Add Piece</button>
-            <a href="{% url 'audioplayer:piece_list' %}" target="_blank" class="btn btn-outline mt-3 ml-2">Manage Piece Library</a>
+            <div class="flex items-center gap-2 mt-3">
+                <button type="button" id="add-piece" class="btn-add-form">+ Add Piece</button>
+                <a href="{% url 'audioplayer:piece_list' %}" target="_blank" class="btn btn-outline">Manage Piece Library</a>
+            </div>
         </div>
 
         <!-- Form Actions -->
