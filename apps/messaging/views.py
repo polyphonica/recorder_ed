@@ -42,7 +42,8 @@ def inbox(request):
     conversations_with_unread = []
     for conv in conversations:
         unread_count = conv.get_unread_count(user)
-        last_message = conv.messages.first() if conv.messages.exists() else None
+        # Get last message from prefetched messages (already limited to 1)
+        last_message = conv.messages.all()[0] if conv.messages.all() else None
 
         conversations_with_unread.append({
             'conversation': conv,
