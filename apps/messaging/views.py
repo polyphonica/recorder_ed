@@ -16,10 +16,20 @@ def inbox(request):
     """
     user = request.user
 
+    # Filter by domain if requested (must be done before prefetch)
+    domain_filter = request.GET.get('domain')
+
     # Get all conversations where user is a participant
     conversations = Conversation.objects.filter(
         Q(participant_1=user) | Q(participant_2=user)
-    ).select_related(
+    )
+
+    # Apply domain filter if specified
+    if domain_filter:
+        conversations = conversations.filter(domain=domain_filter)
+
+    # Now add select_related and prefetch
+    conversations = conversations.select_related(
         'participant_1',
         'participant_2',
         'workshop',
@@ -27,11 +37,6 @@ def inbox(request):
     ).prefetch_related(
         Prefetch('messages', queryset=Message.objects.order_by('-created_at')[:1])
     ).order_by('-updated_at')
-
-    # Filter by domain if requested
-    domain_filter = request.GET.get('domain')
-    if domain_filter:
-        conversations = conversations.filter(domain=domain_filter)
 
     # Annotate with unread counts
     conversations_with_unread = []
