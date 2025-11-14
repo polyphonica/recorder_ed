@@ -41,7 +41,7 @@ class LessonNotificationService(BaseNotificationService):
                 context=context,
                 recipient_list=[lesson.student.email],
                 default_subject='Your Lesson is Ready to View',
-                fail_silently=False,
+                fail_silently=True,
                 log_description=f"Lesson assigned notification to {student_name} for lesson {lesson.id}"
             )
 
