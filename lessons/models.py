@@ -314,14 +314,17 @@ def pre_save_lesson_receiver(sender, instance, **kwargs):
             
         if previous_status != instance.approved_status:
             if instance.approved_status == "Accepted":
-                print("Lesson accepted")
-                # Email notification logic here
-                
+                # Don't send email here - it's handled in private_teaching app
+                # via lesson request response notification
+                pass
+
             elif instance.approved_status == "Rejected":
-                print("Lesson rejected")
-                # Email notification logic here
+                # Don't send email here - it's handled in private_teaching app
+                # via lesson request response notification
+                pass
         
         if previous_published_status != instance.status:
             if instance.status == "Assigned":
-                print("Lesson assigned")
-                # Email notification logic here
+                # Email notification is handled in lessons/views.py
+                # when teacher updates lesson from Draft to Assigned
+                pass
