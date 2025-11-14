@@ -30,7 +30,7 @@ class BaseNotificationService:
         try:
             return Site.objects.get_current().name
         except Exception:
-            return getattr(settings, 'SITE_NAME', 'RECORDERED')
+            return getattr(settings, 'SITE_NAME', 'Recorder-ed')
 
     @staticmethod
     def build_absolute_url(url_name, kwargs=None, use_https=True, fragment=None):
