@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('accounts', '0011_userprofile_email_on_new_message'),
-        ('courses', '0011_add_course_messaging'),
+        ('courses', '0010_coursemessage_is_read'),
         ('messaging', '0001_initial'),
         ('workshops', '0017_alter_workshopregistration_child_profile'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
