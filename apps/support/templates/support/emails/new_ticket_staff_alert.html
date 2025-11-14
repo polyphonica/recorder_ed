@@ -1,0 +1,79 @@
+{% extends "emails/base.html" %}
+
+{% block title %}New Support Ticket: {{ ticket.ticket_number }}{% endblock %}
+
+{% block header_gradient %}linear-gradient(135deg, #ef4444 0%, #dc2626 100%){% endblock %}
+{% block header_subtitle %}New Support Ticket Alert{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; color: #111827;">
+    A new support ticket has been submitted and requires attention.
+</p>
+
+<!-- Ticket Info -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 24px 0; background-color: #fef2f2; border-radius: 6px; border-left: 4px solid #ef4444;">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280;">
+                <strong style="color: #111827;">Ticket Number:</strong> {{ ticket.ticket_number }}
+            </p>
+            <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280;">
+                <strong style="color: #111827;">Subject:</strong> {{ ticket.subject }}
+            </p>
+            <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280;">
+                <strong style="color: #111827;">Category:</strong> {{ ticket.get_category_display }}
+            </p>
+            <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280;">
+                <strong style="color: #111827;">Priority:</strong>
+                {% if ticket.priority == 'urgent' %}
+                    <span style="color: #dc2626; font-weight: 600;">⚡ URGENT</span>
+                {% elif ticket.priority == 'high' %}
+                    <span style="color: #f59e0b; font-weight: 600;">🔥 HIGH</span>
+                {% elif ticket.priority == 'normal' %}
+                    <span style="color: #3b82f6;">Normal</span>
+                {% else %}
+                    <span style="color: #6b7280;">Low</span>
+                {% endif %}
+            </p>
+        </td>
+    </tr>
+</table>
+
+<!-- Submitter Info -->
+<div style="margin: 0 0 24px 0; padding: 20px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
+    <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #111827;">
+        Submitted by:
+    </p>
+    <p style="margin: 0 0 8px 0; font-size: 14px; color: #374151;">
+        <strong>{{ ticket.name }}</strong> ({{ ticket.email }})
+    </p>
+    {% if ticket.user %}
+    <p style="margin: 0; font-size: 12px; color: #6b7280;">
+        User Account: {{ ticket.user.username }}
+    </p>
+    {% else %}
+    <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+        Anonymous Submission (No User Account)
+    </p>
+    {% endif %}
+</div>
+
+<!-- Description -->
+<div style="margin: 0 0 24px 0; padding: 20px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
+    <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #111827;">
+        Description:
+    </p>
+    <p style="margin: 0; font-size: 14px; color: #374151; white-space: pre-wrap;">{{ ticket.description }}</p>
+</div>
+
+<!-- View and Respond Button -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0">
+    <tr>
+        <td style="border-radius: 6px; background-color: #ef4444;">
+            <a href="{{ ticket_url }}" style="display: inline-block; padding: 14px 28px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 6px;">
+                View and Respond to Ticket
+            </a>
+        </td>
+    </tr>
+</table>
+{% endblock %}

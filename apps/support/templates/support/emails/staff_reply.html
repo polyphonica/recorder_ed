@@ -1,0 +1,49 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Response to Ticket {{ ticket.ticket_number }}{% endblock %}
+
+{% block header_gradient %}linear-gradient(135deg, #10b981 0%, #059669 100%){% endblock %}
+{% block header_subtitle %}New Response from Support{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; color: #111827;">
+    Hello <strong>{{ ticket.name }}</strong>,
+</p>
+
+<p style="margin: 0 0 20px 0; font-size: 16px; color: #374151;">
+    <strong>{{ staff_name }}</strong> has replied to your support ticket.
+</p>
+
+<!-- Ticket Info -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 24px 0; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="margin: 0 0 8px 0; font-size: 14px; color: #6b7280;">
+                <strong style="color: #111827;">Ticket Number:</strong> {{ ticket.ticket_number }}
+            </p>
+            <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                <strong style="color: #111827;">Subject:</strong> {{ ticket.subject }}
+            </p>
+        </td>
+    </tr>
+</table>
+
+<!-- Staff Response -->
+<div style="margin: 0 0 24px 0; padding: 20px; background-color: #ecfdf5; border-radius: 6px; border-left: 4px solid: #10b981;">
+    <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #065f46;">
+        {{ staff_name }}'s Response:
+    </p>
+    <p style="margin: 0; font-size: 14px; color: #374151; white-space: pre-wrap;">{{ message.message }}</p>
+</div>
+
+<!-- View Conversation Button -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">
+    <tr>
+        <td style="border-radius: 6px; background-color: #10b981;">
+            <a href="{{ ticket_url }}" style="display: inline-block; padding: 14px 28px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 6px;">
+                View Full Conversation
+            </a>
+        </td>
+    </tr>
+</table>
+{% endblock %}

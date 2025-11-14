@@ -212,7 +212,7 @@ PLATFORM_COMMISSION_PERCENTAGE = config('PLATFORM_COMMISSION_PERCENTAGE', defaul
 
 # Site configuration
 SITE_ID = 1
-SITE_NAME = 'Workshop Platform'
+SITE_NAME = 'Recorder-ed'
 
 # Tailwind CSS Settings
 TAILWIND_APP_NAME = 'theme'

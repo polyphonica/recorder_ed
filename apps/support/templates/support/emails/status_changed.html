@@ -1,0 +1,73 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Ticket {{ ticket.ticket_number }} Status Updated{% endblock %}
+
+{% block header_gradient %}linear-gradient(135deg, #6366f1 0%, #4f46e5 100%){% endblock %}
+{% block header_subtitle %}Ticket Status Updated{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; color: #111827;">
+    Hello <strong>{{ ticket.name }}</strong>,
+</p>
+
+<p style="margin: 0 0 20px 0; font-size: 16px; color: #374151;">
+    The status of your support ticket has been updated.
+</p>
+
+<!-- Ticket Info -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 24px 0; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280;">
+                <strong style="color: #111827;">Ticket Number:</strong> {{ ticket.ticket_number }}
+            </p>
+            <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                <strong style="color: #111827;">Subject:</strong> {{ ticket.subject }}
+            </p>
+        </td>
+    </tr>
+</table>
+
+<!-- Status Change -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 24px 0; background-color: #eef2ff; border-radius: 6px; border-left: 4px solid #6366f1;">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="margin: 0; font-size: 16px; color: #3730a3;">
+                <strong>Status Changed:</strong> {{ old_status }} → <strong>{{ new_status }}</strong>
+            </p>
+        </td>
+    </tr>
+</table>
+
+<!-- Status-specific message -->
+{% if ticket.status == 'resolved' %}
+<div style="margin: 0 0 24px 0; padding: 20px; background-color: #f0fdf4; border-radius: 6px; border: 1px solid #bbf7d0;">
+    <p style="margin: 0; font-size: 14px; color: #166534;">
+        ✓ Your ticket has been marked as <strong>resolved</strong>. If you feel your issue is not fully resolved, please reply to the ticket and we'll reopen it.
+    </p>
+</div>
+{% elif ticket.status == 'closed' %}
+<div style="margin: 0 0 24px 0; padding: 20px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
+    <p style="margin: 0; font-size: 14px; color: #374151;">
+        This ticket has been <strong>closed</strong>. If you need further assistance with this issue, please create a new ticket.
+    </p>
+</div>
+{% elif ticket.status == 'waiting_user' %}
+<div style="margin: 0 0 24px 0; padding: 20px; background-color: #fffbeb; border-radius: 6px; border: 1px solid #fde68a;">
+    <p style="margin: 0; font-size: 14px; color: #92400e;">
+        ⏳ We're <strong>waiting for additional information</strong> from you. Please reply to the ticket with the requested details.
+    </p>
+</div>
+{% endif %}
+
+<!-- View Ticket Button -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0">
+    <tr>
+        <td style="border-radius: 6px; background-color: #6366f1;">
+            <a href="{{ ticket_url }}" style="display: inline-block; padding: 14px 28px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 6px;">
+                View Your Ticket
+            </a>
+        </td>
+    </tr>
+</table>
+{% endblock %}

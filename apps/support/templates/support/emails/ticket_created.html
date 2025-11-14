@@ -1,0 +1,78 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Support Ticket Created - {{ ticket.ticket_number }}{% endblock %}
+
+{% block header_gradient %}linear-gradient(135deg, #f59e0b 0%, #d97706 100%){% endblock %}
+{% block header_subtitle %}Support Ticket Created{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; color: #111827;">
+    Hello <strong>{{ ticket.name }}</strong>,
+</p>
+
+<p style="margin: 0 0 20px 0; font-size: 16px; color: #374151;">
+    Thank you for contacting Recorder-ed support. Your ticket has been created successfully.
+</p>
+
+<!-- Ticket Info Box -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 24px 0; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280;">
+                <strong style="color: #111827;">Ticket Number:</strong> {{ ticket.ticket_number }}
+            </p>
+            <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280;">
+                <strong style="color: #111827;">Category:</strong> {{ ticket.get_category_display }}
+            </p>
+            <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                <strong style="color: #111827;">Subject:</strong> {{ ticket.subject }}
+            </p>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0 0 16px 0; font-size: 16px; color: #374151;">
+    Our support team will review your request and respond as soon as possible.
+</p>
+
+<!-- Expected Response Time -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 24px 0; background-color: #eff6ff; border-radius: 6px; border-left: 4px solid #3b82f6;">
+    <tr>
+        <td style="padding: 16px 20px;">
+            <p style="margin: 0; font-size: 14px; color: #1e40af;">
+                <strong>Expected Response Time:</strong><br>
+                {% if ticket.priority == 'urgent' %}
+                ⚡ Urgent Priority: Within 4 hours
+                {% elif ticket.priority == 'high' %}
+                🔥 High Priority: Within 24 hours
+                {% else %}
+                ✓ Normal Priority: Within 48 hours
+                {% endif %}
+            </p>
+        </td>
+    </tr>
+</table>
+
+<!-- View Ticket Button -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 24px 0;">
+    <tr>
+        <td style="border-radius: 6px; background-color: #f59e0b;">
+            <a href="{{ ticket_url }}" style="display: inline-block; padding: 14px 28px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 6px;">
+                View Your Ticket
+            </a>
+        </td>
+    </tr>
+</table>
+
+<!-- Your Request -->
+<div style="margin: 24px 0; padding: 20px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
+    <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #111827;">
+        Your Request:
+    </p>
+    <p style="margin: 0; font-size: 14px; color: #374151; white-space: pre-wrap;">{{ ticket.description }}</p>
+</div>
+
+<p style="margin: 24px 0 0 0; font-size: 14px; color: #6b7280;">
+    If you have any additional information to add, please reply via the <a href="{{ ticket_url }}" style="color: #f59e0b; text-decoration: none;">ticket page</a>.
+</p>
+{% endblock %}
