@@ -73,7 +73,7 @@
                     </div>
                     <div>
                         <span class="font-semibold">Created:</span>
-                        <span>{{ ticket.created_at|date:"M d, Y H:i" }} ({{ ticket.age|timesince }} ago)</span>
+                        <span>{{ ticket.created_at|date:"M d, Y H:i" }} ({{ ticket.created_at|timesince }} ago)</span>
                     </div>
                     {% if user.is_staff %}
                     <div>
