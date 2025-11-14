@@ -13,9 +13,11 @@
         <div class="flex items-center gap-3 mt-2">
             <!-- Domain Icon -->
             {% if conversation.domain == 'workshop' %}
-                <span class="text-3xl">🎵</span>
-            {% elif conversation.domain == 'private_teaching' %}
+                <span class="text-3xl">🎼</span>
+            {% elif conversation.domain == 'course' %}
                 <span class="text-3xl">🎓</span>
+            {% elif conversation.domain == 'private_teaching' %}
+                <span class="text-3xl">🎵</span>
             {% endif %}
 
             <div>
@@ -25,6 +27,8 @@
                 <p class="text-sm text-gray-600">
                     {% if conversation.domain == 'workshop' and conversation.workshop %}
                         Workshop: {{ conversation.workshop.title }}
+                    {% elif conversation.domain == 'course' and conversation.course %}
+                        Course: {{ conversation.course.title }}
                     {% elif conversation.domain == 'private_teaching' %}
                         {% if conversation.child_profile %}
                             Private Teaching - {{ conversation.child_profile.full_name }}

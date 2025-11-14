@@ -7,11 +7,12 @@ from django.db.models import Q
 class Conversation(models.Model):
     """
     Two-person conversation thread.
-    Can be attached to workshop or private teaching relationship.
+    Can be attached to workshop, course, or private teaching relationship.
     """
 
     DOMAIN_CHOICES = [
         ('workshop', 'Workshop'),
+        ('course', 'Course'),
         ('private_teaching', 'Private Teaching'),
     ]
 
@@ -43,6 +44,15 @@ class Conversation(models.Model):
         help_text="Workshop this conversation is about (if applicable)"
     )
 
+    course = models.ForeignKey(
+        'courses.Course',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='conversations',
+        help_text="Course this conversation is about (if applicable)"
+    )
+
     # For private teaching with children
     child_profile = models.ForeignKey(
         'accounts.ChildProfile',
@@ -62,6 +72,7 @@ class Conversation(models.Model):
         indexes = [
             models.Index(fields=['domain', '-updated_at']),
             models.Index(fields=['workshop', '-updated_at']),
+            models.Index(fields=['course', '-updated_at']),
         ]
         # Ensure one conversation per context
         constraints = [
@@ -70,6 +81,12 @@ class Conversation(models.Model):
                 fields=['workshop', 'participant_1', 'participant_2'],
                 name='unique_workshop_conversation',
                 condition=Q(domain='workshop')
+            ),
+            # Course: One conversation per participant+course
+            models.UniqueConstraint(
+                fields=['course', 'participant_1', 'participant_2'],
+                name='unique_course_conversation',
+                condition=Q(domain='course')
             ),
             # Private teaching: One conversation per teacher+student (per child if applicable)
             models.UniqueConstraint(
@@ -82,6 +99,8 @@ class Conversation(models.Model):
     def __str__(self):
         if self.domain == 'workshop' and self.workshop:
             return f"Workshop: {self.workshop.title} - {self.participant_1.get_full_name()} & {self.participant_2.get_full_name()}"
+        elif self.domain == 'course' and self.course:
+            return f"Course: {self.course.title} - {self.participant_1.get_full_name()} & {self.participant_2.get_full_name()}"
         elif self.domain == 'private_teaching':
             child_info = f" (re: {self.child_profile.full_name})" if self.child_profile else ""
             return f"Private Teaching: {self.participant_1.get_full_name()} & {self.participant_2.get_full_name()}{child_info}"
@@ -121,6 +140,8 @@ class Conversation(models.Model):
 
         if self.domain == 'workshop' and self.workshop:
             return f"{other_name} - {self.workshop.title}"
+        elif self.domain == 'course' and self.course:
+            return f"{other_name} - {self.course.title}"
         elif self.domain == 'private_teaching':
             if self.child_profile:
                 return f"{other_name} - {self.child_profile.full_name}"

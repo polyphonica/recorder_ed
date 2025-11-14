@@ -50,6 +50,8 @@ class MessageNotificationService(BaseNotificationService):
             context_info = ""
             if conversation.domain == 'workshop' and conversation.workshop:
                 context_info = f"Workshop: {conversation.workshop.title}"
+            elif conversation.domain == 'course' and conversation.course:
+                context_info = f"Course: {conversation.course.title}"
             elif conversation.domain == 'private_teaching':
                 if conversation.child_profile:
                     context_info = f"Private Teaching - {conversation.child_profile.full_name}"

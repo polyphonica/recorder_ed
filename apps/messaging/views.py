@@ -9,6 +9,7 @@ from .models import Conversation, Message
 from .notifications import MessageNotificationService
 from apps.workshops.models import Workshop, WorkshopRegistration
 from apps.private_teaching.models import TeacherStudentApplication
+from apps.courses.models import Course, CourseEnrollment
 
 
 @login_required
@@ -178,6 +179,42 @@ def start_private_teaching_conversation(request, teacher_id, child_profile_id=No
         participant_1=p1,
         participant_2=p2,
         child_profile=child_profile
+    )
+
+    return redirect('messaging:conversation_detail', conversation_id=conversation.id)
+
+
+@login_required
+def start_course_conversation(request, course_slug):
+    """
+    Start or continue a conversation about a course.
+    Only enrolled students can message the instructor.
+    """
+    user = request.user
+    course = get_object_or_404(Course, slug=course_slug)
+
+    # Check if user is enrolled in this course
+    enrollment = CourseEnrollment.objects.filter(
+        course=course,
+        student=user,
+        payment_status='paid'
+    ).first()
+
+    if not enrollment:
+        django_messages.error(request, 'You must be enrolled in this course to contact the instructor.')
+        return redirect('courses:detail', slug=course.slug)
+
+    # Get or create conversation with instructor
+    instructor = course.instructor
+
+    # Ensure consistent participant ordering
+    p1, p2 = (user, instructor) if user.id < instructor.id else (instructor, user)
+
+    conversation, created = Conversation.objects.get_or_create(
+        domain='course',
+        course=course,
+        participant_1=p1,
+        participant_2=p2
     )
 
     return redirect('messaging:conversation_detail', conversation_id=conversation.id)
