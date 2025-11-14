@@ -291,6 +291,9 @@
                             <div class="divider my-1"></div>
                             <li><a href="{% url 'accounts:profile_edit' %}"><i class="fas fa-user-circle mr-2"></i>My Profile</a></li>
                             <li><a href="{% url 'support:my_tickets' %}"><i class="fas fa-ticket-alt mr-2"></i>Support Tickets</a></li>
+                            {% if user.is_staff %}
+                            <li><a href="{% url 'support:staff_dashboard' %}"><i class="fas fa-headset mr-2"></i>Support Dashboard</a></li>
+                            {% endif %}
                         {% endif %}
 
                         <div class="divider my-1"></div>
