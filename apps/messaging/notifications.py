@@ -4,11 +4,6 @@ Sends email notifications when users receive new messages.
 """
 
 import logging
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.conf import settings
-from django.urls import reverse
-
 from apps.core.notifications import BaseNotificationService
 
 logger = logging.getLogger(__name__)
