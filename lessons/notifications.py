@@ -23,7 +23,7 @@ class LessonNotificationService(BaseNotificationService):
             # Build lesson URL
             lesson_url = LessonNotificationService.build_absolute_url(
                 'lessons:lesson_detail',
-                args=[lesson.pk]
+                kwargs={'pk': lesson.pk}
             )
 
             # Get student name
