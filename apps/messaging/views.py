@@ -194,17 +194,26 @@ def start_course_conversation(request, course_slug):
     course = get_object_or_404(Course, slug=course_slug)
 
     # Check if user is enrolled in this course
-    enrollment = CourseEnrollment.objects.filter(
+    # First check if any enrollment exists
+    any_enrollment = CourseEnrollment.objects.filter(
         course=course,
-        student=user,
-        is_active=True
-    ).filter(
-        Q(payment_status='completed') | Q(payment_status='not_required')
+        student=user
     ).first()
 
-    if not enrollment:
+    if not any_enrollment:
         django_messages.error(request, 'You must be enrolled in this course to contact the instructor.')
         return redirect('courses:detail', slug=course.slug)
+
+    # Check if enrollment is active and paid
+    if not any_enrollment.is_active:
+        django_messages.error(request, 'Your enrollment is not currently active.')
+        return redirect('courses:detail', slug=course.slug)
+
+    if any_enrollment.payment_status not in ['completed', 'not_required']:
+        django_messages.error(request, f'Payment is required before you can message the instructor. Current status: {any_enrollment.get_payment_status_display()}')
+        return redirect('courses:detail', slug=course.slug)
+
+    enrollment = any_enrollment
 
     # Get or create conversation with instructor
     instructor = course.instructor

@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'apps.courses',
     'apps.audioplayer',
     'apps.messaging',
+    'apps.support',
     'lessons',
 ]
 
