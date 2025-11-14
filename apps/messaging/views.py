@@ -93,7 +93,6 @@ def conversation_detail(request, conversation_id):
             # Send email notification to recipient
             MessageNotificationService.send_new_message_notification(message)
 
-            django_messages.success(request, 'Message sent!')
             return redirect('messaging:conversation_detail', conversation_id=conversation.id)
         else:
             django_messages.error(request, 'Message cannot be empty.')
@@ -140,9 +139,6 @@ def start_workshop_conversation(request, workshop_id):
         participant_2=p2
     )
 
-    if created:
-        django_messages.success(request, f'Started conversation with {instructor.get_full_name()}')
-
     return redirect('messaging:conversation_detail', conversation_id=conversation.id)
 
 
@@ -183,9 +179,5 @@ def start_private_teaching_conversation(request, teacher_id, child_profile_id=No
         participant_2=p2,
         child_profile=child_profile
     )
-
-    if created:
-        teacher_name = teacher.get_full_name() or teacher.username
-        django_messages.success(request, f'Started conversation with {teacher_name}')
 
     return redirect('messaging:conversation_detail', conversation_id=conversation.id)
