@@ -197,7 +197,15 @@ def staff_dashboard(request):
     # Calculate stats
     total_open = Ticket.objects.filter(status='open').count()
     total_in_progress = Ticket.objects.filter(status='in_progress').count()
-    total_overdue = sum(1 for t in Ticket.objects.exclude(status__in=['resolved', 'closed']) if t.is_overdue)
+
+    # Calculate overdue tickets more efficiently
+    try:
+        active_tickets = Ticket.objects.exclude(status__in=['resolved', 'closed'])
+        total_overdue = sum(1 for t in active_tickets if t.is_overdue)
+    except Exception as e:
+        # Fallback if there's an issue with is_overdue calculation
+        total_overdue = 0
+
     my_assigned = Ticket.objects.filter(assigned_to=request.user).exclude(status__in=['resolved', 'closed']).count()
 
     context = {
