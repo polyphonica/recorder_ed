@@ -165,6 +165,12 @@
             <a href="{% url 'lessons:lesson_update' lesson.pk %}" class="btn btn-primary">Edit Lesson</a>
         {% endif %}
 
+        {% if request.user == lesson.student.user %}
+            <a href="{% url 'messaging:start_private_teaching_conversation' lesson.teacher.user.id %}" class="btn btn-outline">
+                💬 Message Teacher
+            </a>
+        {% endif %}
+
         {% if lesson.lesson_pieces.exists and lesson.status == 'Assigned' %}
             <a href="{% url 'audioplayer:private_lesson_player' lesson.pk %}" class="btn btn-success">
                 🎵 Practice with Playalong

@@ -9,6 +9,10 @@ class Migration(migrations.Migration):
         ('accounts', '0009_userprofile_accepting_new_private_students_and_more'),
     ]
 
+    run_before = [
+        ('private_teaching', '0004_auto_accept_existing_students'),
+    ]
+
     operations = [
         migrations.AddField(
             model_name='userprofile',

@@ -76,13 +76,18 @@
                                             <span class="badge badge-info">{{ data.total_lessons }}</span>
                                         </td>
                                         <td class="text-center">
-                                            <button
-                                                onclick="viewContactDetails({{ student.id }})"
-                                                class="btn btn-sm btn-primary"
-                                            >
-                                                <i class="fas fa-address-card mr-1"></i>
-                                                Contact Details
-                                            </button>
+                                            <div class="flex gap-2 justify-center">
+                                                <button
+                                                    onclick="viewContactDetails({{ student.id }})"
+                                                    class="btn btn-sm btn-primary"
+                                                >
+                                                    <i class="fas fa-address-card mr-1"></i>
+                                                    Contact Details
+                                                </button>
+                                                <a href="{% url 'messaging:start_private_teaching_conversation' student.id %}" class="btn btn-sm btn-outline">
+                                                    💬 Message
+                                                </a>
+                                            </div>
                                         </td>
                                     </tr>
                                 {% endwith %}

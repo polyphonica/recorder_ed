@@ -8,6 +8,7 @@ from django.utils import timezone
 from .models import Conversation, Message
 from .notifications import MessageNotificationService
 from apps.workshops.models import Workshop, WorkshopRegistration
+from apps.private_teaching.models import TeacherStudentApplication
 
 
 @login_required
@@ -141,5 +142,50 @@ def start_workshop_conversation(request, workshop_id):
 
     if created:
         django_messages.success(request, f'Started conversation with {instructor.get_full_name()}')
+
+    return redirect('messaging:conversation_detail', conversation_id=conversation.id)
+
+
+@login_required
+def start_private_teaching_conversation(request, teacher_id, child_profile_id=None):
+    """
+    Start or continue a conversation for private teaching.
+    Only allowed after teacher has accepted student's application.
+    """
+    user = request.user
+    from django.contrib.auth.models import User
+    teacher = get_object_or_404(User, id=teacher_id)
+
+    # Check if there's an accepted application
+    # User could be the applicant (student) OR the teacher
+    application = TeacherStudentApplication.objects.filter(
+        Q(teacher=teacher, applicant=user) | Q(teacher=user, applicant=teacher),
+        status='accepted'
+    ).first()
+
+    if not application:
+        django_messages.error(request, 'You must be accepted as a student by this teacher to send messages.')
+        return redirect('private_teaching:home')
+
+    # Get child profile if specified
+    child_profile = None
+    if child_profile_id:
+        from apps.accounts.models import ChildProfile
+        child_profile = get_object_or_404(ChildProfile, id=child_profile_id, guardian=user)
+
+    # Ensure consistent participant ordering
+    p1, p2 = (user, teacher) if user.id < teacher.id else (teacher, user)
+
+    # Get or create conversation
+    conversation, created = Conversation.objects.get_or_create(
+        domain='private_teaching',
+        participant_1=p1,
+        participant_2=p2,
+        child_profile=child_profile
+    )
+
+    if created:
+        teacher_name = teacher.get_full_name() or teacher.username
+        django_messages.success(request, f'Started conversation with {teacher_name}')
 
     return redirect('messaging:conversation_detail', conversation_id=conversation.id)
