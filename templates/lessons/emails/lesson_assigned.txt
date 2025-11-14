@@ -1,0 +1,22 @@
+Subject: Your Lesson is Ready to View - Recorder-ed
+
+Recorder-ed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ student_name }},
+
+Great news! {{ teacher_name }} has published your lesson and it's now ready to view.
+
+LESSON DETAILS:
+Subject: {{ lesson.subject.subject }}
+Date: {{ lesson.lesson_date|date:"d F Y" }}
+Time: {{ lesson.lesson_time|time:"H:i" }}{% if lesson.location %}
+Location: {{ lesson.location }}{% endif %}
+
+You can now access your lesson materials, documents, and links.
+
+View your lesson:
+{{ lesson_url }}
+
+Best regards,
+The Recorder-ed Team

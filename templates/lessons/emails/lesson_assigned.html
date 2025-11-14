@@ -1,0 +1,83 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%){% endblock %}
+{% block header_subtitle %}Lesson Ready to View{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello <strong>{{ student_name }}</strong>,
+</p>
+
+<!-- Success Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 20px; background-color: #f5f3ff; border-radius: 8px;">
+            <p style="margin: 0; font-size: 24px; color: #8b5cf6;">🎓</p>
+            <p style="margin: 10px 0 0 0; font-size: 20px; font-weight: 600; color: #7c3aed;">
+                Your Lesson is Ready!
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;">
+                {{ teacher_name }} has published your lesson content
+            </p>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Great news! <strong style="color: #8b5cf6;">{{ teacher_name }}</strong> has published your lesson and it's now ready to view. You can access your lesson materials, documents, and links.
+</p>
+
+<!-- Lesson Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #f5f3ff; border-left: 4px solid #8b5cf6; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #7c3aed;">
+                Lesson Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 80px;">Subject:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 600;">{{ lesson.subject.subject }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 80px;">Date:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ lesson.lesson_date|date:"l, d F Y" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 80px;">Time:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ lesson.lesson_time|time:"H:i" }}</span>
+                    </td>
+                </tr>
+                {% if lesson.location %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 80px;">Location:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ lesson.location }}</span>
+                    </td>
+                </tr>
+                {% endif %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Action Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ lesson_url }}" style="display: inline-block; padding: 14px 28px; background-color: #8b5cf6; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);">
+                View Your Lesson
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    Ready to learn? Access your lesson materials now!
+</p>
+{% endblock %}
