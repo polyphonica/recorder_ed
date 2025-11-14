@@ -182,7 +182,9 @@ class UserProfileForm(forms.ModelForm):
             # Public Teaching Profile
             'bio', 'website', 'teaching_experience', 'specializations',
             # Teaching Settings
-            'default_zoom_link'
+            'default_zoom_link',
+            # Notification Preferences
+            'email_on_new_message'
         ]
         widgets = {
             # Personal Information
@@ -224,6 +226,11 @@ class UserProfileForm(forms.ModelForm):
             'default_zoom_link': forms.URLInput(attrs={
                 'class': 'input input-bordered',
                 'placeholder': 'https://zoom.us/j/your-meeting-id'
+            }),
+
+            # Notification Preferences
+            'email_on_new_message': forms.CheckboxInput(attrs={
+                'class': 'checkbox checkbox-primary'
             }),
         }
 
