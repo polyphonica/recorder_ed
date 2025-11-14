@@ -197,7 +197,9 @@ def start_course_conversation(request, course_slug):
     enrollment = CourseEnrollment.objects.filter(
         course=course,
         student=user,
-        payment_status='paid'
+        is_active=True
+    ).filter(
+        Q(payment_status='completed') | Q(payment_status='not_required')
     ).first()
 
     if not enrollment:
