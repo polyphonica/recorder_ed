@@ -1,4 +1,7 @@
-Subject: New message from {{ sender_name }}
+Subject: New message from {{ sender_name }} - {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Hello {{ recipient_name }},
 
@@ -16,4 +19,4 @@ View and reply to this message:
 If you no longer wish to receive email notifications for new messages, you can disable them in your account settings.
 
 Best regards,
-{{ site_name }} Team
+The {{ site_name }} Team
