@@ -1,4 +1,5 @@
 import stripe
+import logging
 from django.conf import settings
 from django.http import JsonResponse, HttpResponse
 from django.views import View
@@ -11,6 +12,8 @@ from decimal import Decimal
 from .models import StripePayment
 from .stripe_service import retrieve_session, retrieve_payment_intent
 from .utils import format_amount_from_stripe
+
+logger = logging.getLogger(__name__)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -49,18 +52,15 @@ class StripeWebhookView(View):
     
     def handle_checkout_session_completed(self, session):
         """Handle successful checkout session completion"""
-        print(f"\n======================================")
-        print(f"WEBHOOK: checkout.session.completed")
-        print(f"======================================")
-
         metadata = session.get('metadata', {})
         domain = metadata.get('domain')
         payment_intent_id = session.get('payment_intent')
 
-        print(f"Session ID: {session['id']}")
-        print(f"Payment Intent: {payment_intent_id}")
-        print(f"Domain: {domain}")
-        print(f"Metadata: {metadata}")
+        logger.info(
+            f"Stripe webhook: checkout.session.completed - "
+            f"Session: {session['id']}, PaymentIntent: {payment_intent_id}, "
+            f"Domain: {domain}"
+        )
 
         # Create or update StripePayment record
         stripe_payment, created = StripePayment.objects.get_or_create(
@@ -79,22 +79,20 @@ class StripeWebhookView(View):
             }
         )
 
-        print(f"StripePayment created: {created}, ID: {stripe_payment.id}")
+        logger.info(f"StripePayment {'created' if created else 'updated'}: {stripe_payment.id}")
 
         # Domain-specific handling
         if domain == 'private_teaching':
-            print(f"→ Routing to PRIVATE TEACHING handler")
+            logger.info(f"Routing to private teaching payment handler")
             self.handle_private_teaching_payment(metadata, stripe_payment)
         elif domain == 'workshops':
-            print(f"→ Routing to WORKSHOPS handler")
+            logger.info(f"Routing to workshops payment handler")
             self.handle_workshop_payment(metadata, stripe_payment)
         elif domain == 'courses':
-            print(f"→ Routing to COURSES handler")
+            logger.info(f"Routing to courses payment handler")
             self.handle_course_payment(metadata, stripe_payment)
         else:
-            print(f"⚠️  WARNING: Unknown domain '{domain}' - no handler called!")
-
-        print(f"======================================\n")
+            logger.warning(f"Unknown payment domain '{domain}' - no handler called")
     
     def handle_payment_intent_succeeded(self, payment_intent):
         """Handle successful payment intent"""
@@ -103,9 +101,9 @@ class StripeWebhookView(View):
                 stripe_payment_intent_id=payment_intent['id']
             )
             stripe_payment.mark_completed()
-            print(f"Payment completed: {stripe_payment.id}")
+            logger.info(f"Payment completed: {stripe_payment.id}")
         except StripePayment.DoesNotExist:
-            print(f"StripePayment not found for payment_intent: {payment_intent['id']}")
+            logger.error(f"StripePayment not found for payment_intent: {payment_intent['id']}")
     
     def handle_payment_failed(self, payment_intent):
         """Handle failed payment intent"""
@@ -114,9 +112,9 @@ class StripeWebhookView(View):
                 stripe_payment_intent_id=payment_intent['id']
             )
             stripe_payment.mark_failed()
-            print(f"Payment failed: {stripe_payment.id}")
+            logger.warning(f"Payment failed: {stripe_payment.id}")
         except StripePayment.DoesNotExist:
-            print(f"StripePayment not found for failed payment_intent: {payment_intent['id']}")
+            logger.error(f"StripePayment not found for failed payment_intent: {payment_intent['id']}")
     
     def handle_private_teaching_payment(self, metadata, stripe_payment):
         """Update private teaching order when payment succeeds"""
@@ -147,16 +145,16 @@ class StripeWebhookView(View):
                             lesson = Lesson.objects.get(id=lesson_id.strip())
                             lesson.payment_status = 'Paid'
                             lesson.save()
-                            print(f"Marked lesson {lesson_id} as Paid")
+                            logger.info(f"Marked lesson {lesson_id} as Paid")
                         except (Lesson.DoesNotExist, ValueError) as e:
-                            print(f"Error updating lesson {lesson_id}: {e}")
+                            logger.error(f"updating lesson {lesson_id}: {e}")
 
                 # Send payment confirmation email to student
                 try:
                     from apps.private_teaching.notifications import StudentNotificationService
                     StudentNotificationService.send_payment_confirmation(order)
                 except Exception as e:
-                    print(f"Error sending payment confirmation email: {e}")
+                    logger.error(f"sending payment confirmation email: {e}")
 
                 # Send payment notification to teachers
                 order_items = OrderItem.objects.filter(order=order).select_related('lesson__teacher')
@@ -170,11 +168,11 @@ class StripeWebhookView(View):
                         from apps.private_teaching.notifications import TeacherPaymentNotificationService
                         TeacherPaymentNotificationService.send_lesson_payment_notification(order, teacher)
                     except Exception as e:
-                        print(f"Error sending teacher payment notification: {e}")
+                        logger.error(f"sending teacher payment notification: {e}")
 
-                print(f"Private teaching order {order_id} marked as completed")
+                logger.info(f"Private teaching order {order_id} marked as completed")
             except Order.DoesNotExist:
-                print(f"Order {order_id} not found")
+                logger.warning(f"Order {order_id} not found")
     
     def handle_workshop_payment(self, metadata, stripe_payment):
         """Update workshop registration when payment succeeds"""
@@ -183,20 +181,20 @@ class StripeWebhookView(View):
         from django.core.mail import send_mail
         from django.utils import timezone
 
-        print(f"\n>>> handle_workshop_payment called")
-        print(f"    Metadata keys: {list(metadata.keys())}")
+        logger.info(f"\n>>> handle_workshop_payment called")
+        logger.info(f"    Metadata keys: {list(metadata.keys())}")
 
         # Check if this is a cart payment (multiple items)
         cart_item_ids = metadata.get('cart_item_ids')
 
         if cart_item_ids:
             # CART PAYMENT - Multiple workshops
-            print(f"    Detected CART payment with {len(cart_item_ids.split(','))} items")
+            logger.info(f"    Detected CART payment with {len(cart_item_ids.split(','))} items")
             self.handle_workshop_cart_payment(metadata, stripe_payment, cart_item_ids)
             return
 
         # SINGLE REGISTRATION PAYMENT (legacy method)
-        print(f"    Detected SINGLE registration payment")
+        logger.info(f"    Detected SINGLE registration payment")
         registration_id = metadata.get('registration_id')
         if registration_id:
             try:
@@ -223,7 +221,7 @@ class StripeWebhookView(View):
                     from apps.workshops.notifications import InstructorNotificationService
                     InstructorNotificationService.send_new_registration_notification(registration)
                 except Exception as e:
-                    print(f"Failed to send instructor notification: {e}")
+                    logger.error(f"Failed to send instructor notification: {e}")
 
                 # Update workshop total registrations if needed
                 workshop = session.workshop
@@ -242,11 +240,11 @@ class StripeWebhookView(View):
                     from apps.workshops.notifications import StudentNotificationService
                     StudentNotificationService.send_registration_confirmation(registration)
                 except Exception as e:
-                    print(f"Error sending workshop confirmation email: {e}")
+                    logger.error(f"sending workshop confirmation email: {e}")
 
-                print(f"Workshop registration {registration_id} confirmed and email sent")
+                logger.info(f"Workshop registration {registration_id} confirmed and email sent")
             except WorkshopRegistration.DoesNotExist:
-                print(f"WorkshopRegistration {registration_id} not found")
+                logger.warning(f"WorkshopRegistration {registration_id} not found")
 
     def handle_workshop_cart_payment(self, metadata, stripe_payment, cart_item_ids):
         """Handle cart-based workshop payment (multiple sessions)"""
@@ -255,23 +253,23 @@ class StripeWebhookView(View):
         from django.core.mail import send_mail
         from django.utils import timezone
 
-        print(f"\n=== WORKSHOP CART PAYMENT WEBHOOK ===")
-        print(f"Metadata: {metadata}")
-        print(f"Cart Item IDs: {cart_item_ids}")
-        print(f"Stripe Payment ID: {stripe_payment.stripe_payment_intent_id}")
+        logger.info(f"\n=== WORKSHOP CART PAYMENT WEBHOOK ===")
+        logger.info(f"Metadata: {metadata}")
+        logger.info(f"Cart Item IDs: {cart_item_ids}")
+        logger.info(f"Stripe Payment ID: {stripe_payment.stripe_payment_intent_id}")
 
         item_ids = [id.strip() for id in cart_item_ids.split(',')]
         user_id = metadata.get('student_id')
 
-        print(f"Processing {len(item_ids)} cart items for user {user_id}")
+        logger.info(f"Processing {len(item_ids)} cart items for user {user_id}")
 
         try:
             user = User.objects.get(id=user_id)
-            print(f"Found user: {user.username} ({user.email})")
+            logger.info(f"Found user: {user.username} ({user.email})")
             created_registrations = []
 
             for item_id in item_ids:
-                print(f"\n  Processing cart item: {item_id}")
+                logger.info(f"\n  Processing cart item: {item_id}")
                 try:
                     cart_item = WorkshopCartItem.objects.select_related(
                         'session__workshop__instructor',
@@ -279,9 +277,9 @@ class StripeWebhookView(View):
                         'child_profile'
                     ).get(id=item_id)
 
-                    print(f"  Found cart item: {cart_item.session.workshop.title}")
-                    print(f"  Session: {cart_item.session.start_datetime}")
-                    print(f"  Price: £{cart_item.price}")
+                    logger.info(f"  Found cart item: {cart_item.session.workshop.title}")
+                    logger.info(f"  Session: {cart_item.session.start_datetime}")
+                    logger.info(f"  Price: £{cart_item.price}")
 
                     # Create registration with data from cart item
                     registration = WorkshopRegistration.objects.create(
@@ -302,11 +300,11 @@ class StripeWebhookView(View):
                         paid_at=timezone.now()
                     )
 
-                    print(f"  ✓ Created registration ID: {registration.id}")
-                    print(f"    - Status: {registration.status}")
-                    print(f"    - Payment Status: {registration.payment_status}")
-                    print(f"    - Paid At: {registration.paid_at}")
-                    print(f"    - Registration Date: {registration.registration_date}")
+                    logger.info(f"  ✓ Created registration ID: {registration.id}")
+                    logger.info(f"    - Status: {registration.status}")
+                    logger.info(f"    - Payment Status: {registration.payment_status}")
+                    logger.info(f"    - Paid At: {registration.paid_at}")
+                    logger.info(f"    - Registration Date: {registration.registration_date}")
 
                     # Update session registration count
                     session = cart_item.session
@@ -327,52 +325,52 @@ class StripeWebhookView(View):
                     try:
                         from apps.workshops.notifications import InstructorNotificationService
                         InstructorNotificationService.send_new_registration_notification(registration)
-                        print(f"  ✓ Sent notification to instructor {session.workshop.instructor.email}")
+                        logger.info(f"  ✓ Sent notification to instructor {session.workshop.instructor.email}")
                     except Exception as e:
-                        print(f"  ✗ Failed to send instructor notification: {e}")
+                        logger.info(f"  ✗ Failed to send instructor notification: {e}")
 
                     # Store for email
                     created_registrations.append(registration)
 
                     # Delete cart item
                     cart_item.delete()
-                    print(f"  ✓ Deleted cart item {item_id}")
+                    logger.info(f"  ✓ Deleted cart item {item_id}")
 
                 except WorkshopCartItem.DoesNotExist:
-                    print(f"  ✗ Cart item {item_id} not found (may have been already processed)")
+                    logger.warning(f"  ✗ Cart item {item_id} not found (may have been already processed)")
                 except Exception as e:
                     import traceback
-                    print(f"  ✗ Error processing cart item {item_id}: {str(e)}")
-                    print(f"  Traceback: {traceback.format_exc()}")
+                    logger.info(f"  ✗ Error processing cart item {item_id}: {str(e)}")
+                    logger.info(f"  Traceback: {traceback.format_exc()}")
 
             # Send consolidated confirmation email
             if created_registrations and user.email:
                 try:
-                    print(f"\nSending confirmation email to {user.email}...")
+                    logger.info(f"\nSending confirmation email to {user.email}...")
                     from apps.workshops.notifications import StudentNotificationService
                     StudentNotificationService.send_cart_registration_confirmation(
                         user, created_registrations, stripe_payment.total_amount
                     )
-                    print(f"✓ Email sent successfully")
+                    logger.info(f"✓ Email sent successfully")
                 except Exception as e:
-                    print(f"✗ Error sending cart confirmation email: {e}")
+                    logger.info(f"✗ Error sending cart confirmation email: {e}")
 
-            print(f"\n=== SUMMARY ===")
-            print(f"Successfully created {len(created_registrations)} registrations:")
+            logger.info(f"\n=== SUMMARY ===")
+            logger.info(f"Successfully created {len(created_registrations)} registrations:")
             for reg in created_registrations:
-                print(f"  - {reg.session.workshop.title} (ID: {reg.id}, Status: {reg.status}, Payment: {reg.payment_status})")
+                logger.info(f"  - {reg.session.workshop.title} (ID: {reg.id}, Status: {reg.status}, Payment: {reg.payment_status})")
 
             # Mark payment as completed
             stripe_payment.mark_completed()
-            print(f"✓ Marked StripePayment {stripe_payment.id} as completed")
-            print(f"=== END WORKSHOP CART PAYMENT ===\n")
+            logger.info(f"✓ Marked StripePayment {stripe_payment.id} as completed")
+            logger.info(f"=== END WORKSHOP CART PAYMENT ===\n")
 
         except User.DoesNotExist:
-            print(f"✗ User {user_id} not found")
+            logger.warning(f"✗ User {user_id} not found")
         except Exception as e:
             import traceback
-            print(f"✗ Error in handle_workshop_cart_payment: {str(e)}")
-            print(f"Traceback: {traceback.format_exc()}")
+            logger.info(f"✗ Error in handle_workshop_cart_payment: {str(e)}")
+            logger.info(f"Traceback: {traceback.format_exc()}")
 
 
     def handle_course_payment(self, metadata, stripe_payment):
@@ -412,18 +410,18 @@ class StripeWebhookView(View):
                     from apps.courses.notifications import InstructorNotificationService
                     InstructorNotificationService.send_new_enrollment_notification(enrollment)
                 except Exception as e:
-                    print(f"Failed to send instructor notification: {e}")
+                    logger.error(f"Failed to send instructor notification: {e}")
 
                 # Send confirmation email to student
                 try:
                     from apps.courses.notifications import StudentNotificationService
                     StudentNotificationService.send_enrollment_confirmation(enrollment)
                 except Exception as e:
-                    print(f"Error sending course confirmation email: {e}")
+                    logger.error(f"sending course confirmation email: {e}")
 
-                print(f"Course enrollment {enrollment_id} confirmed and email sent")
+                logger.info(f"Course enrollment {enrollment_id} confirmed and email sent")
             except CourseEnrollment.DoesNotExist:
-                print(f"CourseEnrollment {enrollment_id} not found")
+                logger.warning(f"CourseEnrollment {enrollment_id} not found")
 
 
 # ============================================================================
