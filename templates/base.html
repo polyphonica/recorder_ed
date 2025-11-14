@@ -358,25 +358,6 @@
         </div>
     {% endif %}
 
-    <!-- Messages -->
-    {% if messages %}
-        <div class="container mx-auto px-4 py-4">
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags|default:'info' }} mb-4" 
-                     x-data="{ show: true }" 
-                     x-show="show" 
-                     x-transition>
-                    <span>{{ message }}</span>
-                    <button @click="show = false" class="btn btn-ghost btn-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
-
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8">
         <!-- Django Messages -->
