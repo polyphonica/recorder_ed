@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Support Ticket - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold mb-4">Create Support Ticket</h1>
+            <p class="text-lg text-base-content/70">
+                Need help? Our support team is here to assist you.
+            </p>
+        </div>
+
+        <!-- Form Card -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+
+                    {% if form.errors %}
+                        <div class="alert alert-error">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Please correct the errors below.</span>
+                        </div>
+                    {% endif %}
+
+                    <!-- Category -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Category *</span>
+                        </label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.category.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Subject -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Subject *</span>
+                        </label>
+                        {{ form.subject }}
+                        {% if form.subject.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.subject.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Description -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Description *</span>
+                        </label>
+                        {{ form.description }}
+                        <label class="label">
+                            <span class="label-text-alt">Please provide as much detail as possible to help us assist you faster</span>
+                        </label>
+                        {% if form.description.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.description.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="card-actions justify-end">
+                        <a href="{% url 'support:my_tickets' %}" class="btn btn-ghost">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-wide">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                            Submit Ticket
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

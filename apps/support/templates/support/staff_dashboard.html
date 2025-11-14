@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Support Dashboard - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-2">Support Tickets</h1>
+        <p class="text-base-content/70">Manage all support requests</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Open</div>
+            <div class="stat-value text-primary">{{ stats.total_open }}</div>
+            <div class="stat-desc">Awaiting response</div>
+        </div>
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">In Progress</div>
+            <div class="stat-value text-info">{{ stats.total_in_progress }}</div>
+            <div class="stat-desc">Being handled</div>
+        </div>
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Overdue</div>
+            <div class="stat-value text-error">{{ stats.total_overdue }}</div>
+            <div class="stat-desc">Past SLA</div>
+        </div>
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">My Assigned</div>
+            <div class="stat-value text-secondary">{{ stats.my_assigned }}</div>
+            <div class="stat-desc">Active tickets</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <!-- Status Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Status</span>
+                    </label>
+                    <select name="status" class="select select-bordered select-sm" onchange="this.form.submit()">
+                        <option value="">All (exc. Closed)</option>
+                        <option value="open" {% if status_filter == 'open' %}selected{% endif %}>Open</option>
+                        <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+                        <option value="waiting_user" {% if status_filter == 'waiting_user' %}selected{% endif %}>Waiting User</option>
+                        <option value="resolved" {% if status_filter == 'resolved' %}selected{% endif %}>Resolved</option>
+                        <option value="closed" {% if status_filter == 'closed' %}selected{% endif %}>Closed</option>
+                    </select>
+                </div>
+
+                <!-- Category Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Category</span>
+                    </label>
+                    <select name="category" class="select select-bordered select-sm" onchange="this.form.submit()">
+                        <option value="">All Categories</option>
+                        <option value="payment" {% if category_filter == 'payment' %}selected{% endif %}>Payment</option>
+                        <option value="technical" {% if category_filter == 'technical' %}selected{% endif %}>Technical</option>
+                        <option value="general" {% if category_filter == 'general' %}selected{% endif %}>General</option>
+                        <option value="bug" {% if category_filter == 'bug' %}selected{% endif %}>Bug</option>
+                        <option value="feature" {% if category_filter == 'feature' %}selected{% endif %}>Feature</option>
+                    </select>
+                </div>
+
+                <!-- Priority Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Priority</span>
+                    </label>
+                    <select name="priority" class="select select-bordered select-sm" onchange="this.form.submit()">
+                        <option value="">All Priorities</option>
+                        <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>Urgent</option>
+                        <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>High</option>
+                        <option value="normal" {% if priority_filter == 'normal' %}selected{% endif %}>Normal</option>
+                        <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Low</option>
+                    </select>
+                </div>
+
+                <!-- Assignment Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Assignment</span>
+                    </label>
+                    <select name="assigned" class="select select-bordered select-sm" onchange="this.form.submit()">
+                        <option value="">All Tickets</option>
+                        <option value="me" {% if assigned_filter == 'me' %}selected{% endif %}>Assigned to Me</option>
+                        <option value="unassigned" {% if assigned_filter == 'unassigned' %}selected{% endif %}>Unassigned</option>
+                    </select>
+                </div>
+
+                <!-- Sort -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Sort By</span>
+                    </label>
+                    <select name="sort" class="select select-bordered select-sm" onchange="this.form.submit()">
+                        <option value="-created_at" {% if sort_by == '-created_at' %}selected{% endif %}>Newest First</option>
+                        <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Oldest First</option>
+                        <option value="-updated_at" {% if sort_by == '-updated_at' %}selected{% endif %}>Recently Updated</option>
+                        <option value="priority" {% if sort_by == 'priority' %}selected{% endif %}>Priority</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tickets Table -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-0">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Ticket #</th>
+                            <th>Subject</th>
+                            <th>Submitter</th>
+                            <th>Category</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Assigned To</th>
+                            <th>Age</th>
+                            <th>SLA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                        <tr class="hover">
+                            <td>
+                                <a href="{% url 'support:ticket_detail' ticket.ticket_number %}" class="link link-primary font-mono">
+                                    {{ ticket.ticket_number }}
+                                </a>
+                            </td>
+                            <td>
+                                <div class="max-w-xs truncate">
+                                    {{ ticket.subject }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="flex flex-col">
+                                    <span class="font-medium">{{ ticket.name }}</span>
+                                    <span class="text-xs text-base-content/60">{{ ticket.email }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="badge badge-outline">{{ ticket.get_category_display }}</div>
+                            </td>
+                            <td>
+                                {% if ticket.priority == 'urgent' %}
+                                    <div class="badge badge-error">Urgent</div>
+                                {% elif ticket.priority == 'high' %}
+                                    <div class="badge badge-warning">High</div>
+                                {% elif ticket.priority == 'normal' %}
+                                    <div class="badge badge-info">Normal</div>
+                                {% else %}
+                                    <div class="badge badge-ghost">Low</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ticket.status == 'open' %}
+                                    <div class="badge badge-primary">Open</div>
+                                {% elif ticket.status == 'in_progress' %}
+                                    <div class="badge badge-info">In Progress</div>
+                                {% elif ticket.status == 'waiting_user' %}
+                                    <div class="badge badge-warning">Waiting User</div>
+                                {% elif ticket.status == 'resolved' %}
+                                    <div class="badge badge-success">Resolved</div>
+                                {% else %}
+                                    <div class="badge badge-ghost">Closed</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ticket.assigned_to %}
+                                    <span class="text-sm">{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}</span>
+                                {% else %}
+                                    <span class="text-sm text-base-content/40">Unassigned</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-sm">
+                                {{ ticket.age|timesince }}
+                            </td>
+                            <td>
+                                {% if ticket.is_overdue %}
+                                    <span class="text-error font-bold">⚠ OVERDUE</span>
+                                {% else %}
+                                    <span class="text-success">✓</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-8 text-base-content/60">
+                                No tickets found matching your filters.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mt-6">
+        <p class="text-sm text-base-content/60">Showing {{ tickets|length }} ticket(s)</p>
+    </div>
+</div>
+{% endblock %}

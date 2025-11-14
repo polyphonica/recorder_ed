@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ ticket.ticket_number }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-5xl mx-auto">
+        <!-- Back Button -->
+        <div class="mb-4">
+            {% if user.is_staff %}
+                <a href="{% url 'support:staff_dashboard' %}" class="btn btn-ghost btn-sm">
+                    ← Back to Dashboard
+                </a>
+            {% else %}
+                <a href="{% url 'support:my_tickets' %}" class="btn btn-ghost btn-sm">
+                    ← Back to My Tickets
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- Ticket Header -->
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body">
+                <div class="flex flex-wrap justify-between items-start gap-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <h1 class="text-2xl font-bold">{{ ticket.subject }}</h1>
+                            {% if ticket.is_overdue %}
+                                <div class="badge badge-error gap-2">
+                                    ⚠ OVERDUE
+                                </div>
+                            {% endif %}
+                        </div>
+                        <p class="text-sm text-base-content/60 font-mono">{{ ticket.ticket_number }}</p>
+                    </div>
+
+                    <!-- Badges -->
+                    <div class="flex flex-wrap gap-2">
+                        {% if ticket.priority == 'urgent' %}
+                            <div class="badge badge-error badge-lg">Urgent</div>
+                        {% elif ticket.priority == 'high' %}
+                            <div class="badge badge-warning badge-lg">High Priority</div>
+                        {% elif ticket.priority == 'normal' %}
+                            <div class="badge badge-info badge-lg">Normal</div>
+                        {% else %}
+                            <div class="badge badge-ghost badge-lg">Low Priority</div>
+                        {% endif %}
+
+                        {% if ticket.status == 'open' %}
+                            <div class="badge badge-primary badge-lg">Open</div>
+                        {% elif ticket.status == 'in_progress' %}
+                            <div class="badge badge-info badge-lg">In Progress</div>
+                        {% elif ticket.status == 'waiting_user' %}
+                            <div class="badge badge-warning badge-lg">Waiting for You</div>
+                        {% elif ticket.status == 'resolved' %}
+                            <div class="badge badge-success badge-lg">Resolved</div>
+                        {% else %}
+                            <div class="badge badge-ghost badge-lg">Closed</div>
+                        {% endif %}
+
+                        <div class="badge badge-outline badge-lg">{{ ticket.get_category_display }}</div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Ticket Info -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="font-semibold">Submitted by:</span>
+                        <span>{{ ticket.name }} ({{ ticket.email }})</span>
+                    </div>
+                    <div>
+                        <span class="font-semibold">Created:</span>
+                        <span>{{ ticket.created_at|date:"M d, Y H:i" }} ({{ ticket.age|timesince }} ago)</span>
+                    </div>
+                    {% if user.is_staff %}
+                    <div>
+                        <span class="font-semibold">Assigned to:</span>
+                        <span>{{ ticket.assigned_to.get_full_name|default:"Unassigned" }}</span>
+                    </div>
+                    <div>
+                        <span class="font-semibold">Last updated:</span>
+                        <span>{{ ticket.updated_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Staff Actions -->
+                {% if user.is_staff %}
+                <div class="divider"></div>
+                <div class="flex flex-wrap gap-2">
+                    <form method="post" action="{% url 'support:update_ticket' ticket.ticket_number %}" class="inline">
+                        {% csrf_token %}
+                        <select name="status" class="select select-bordered select-sm" onchange="this.form.submit()">
+                            <option value="">Change Status...</option>
+                            <option value="open">Open</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="waiting_user">Waiting for User</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </form>
+
+                    <form method="post" action="{% url 'support:update_ticket' ticket.ticket_number %}" class="inline">
+                        {% csrf_token %}
+                        <select name="priority" class="select select-bordered select-sm" onchange="this.form.submit()">
+                            <option value="">Change Priority...</option>
+                            <option value="urgent">Urgent</option>
+                            <option value="high">High</option>
+                            <option value="normal">Normal</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </form>
+
+                    <form method="post" action="{% url 'support:update_ticket' ticket.ticket_number %}" class="inline">
+                        {% csrf_token %}
+                        <select name="assigned_to" class="select select-bordered select-sm" onchange="this.form.submit()">
+                            <option value="">Assign to...</option>
+                            <option value="unassign">Unassign</option>
+                            {% for staff in staff_members %}
+                            <option value="{{ staff.id }}">{{ staff.get_full_name|default:staff.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Original Message -->
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-lg">Original Request</h2>
+                <div class="prose max-w-none">
+                    <p class="whitespace-pre-wrap">{{ ticket.description }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conversation Thread -->
+        {% if messages %}
+        <div class="space-y-4 mb-6">
+            <h2 class="text-xl font-bold">Conversation</h2>
+            {% for message in messages %}
+            <div class="card {% if message.is_internal_note %}bg-warning/10 border-2 border-warning{% elif message.is_staff_reply %}bg-primary/5{% else %}bg-base-100{% endif %} shadow">
+                <div class="card-body py-4">
+                    <div class="flex items-start gap-3">
+                        <div class="avatar placeholder">
+                            <div class="bg-neutral text-neutral-content rounded-full w-10">
+                                <span class="text-xs">
+                                    {% if message.author %}
+                                        {{ message.author.get_full_name|slice:":2"|upper|default:"??" }}
+                                    {% else %}
+                                        {{ message.author_name|slice:":2"|upper|default:"??" }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="font-semibold">
+                                    {% if message.author %}
+                                        {{ message.author.get_full_name|default:message.author.username }}
+                                    {% else %}
+                                        {{ message.author_name }}
+                                    {% endif %}
+                                </span>
+                                {% if message.is_staff_reply %}
+                                    <div class="badge badge-primary badge-sm">Staff</div>
+                                {% endif %}
+                                {% if message.is_internal_note %}
+                                    <div class="badge badge-warning badge-sm">Internal Note</div>
+                                {% endif %}
+                                <span class="text-xs text-base-content/60">
+                                    {{ message.created_at|date:"M d, Y H:i" }}
+                                </span>
+                            </div>
+                            <div class="prose max-w-none">
+                                <p class="whitespace-pre-wrap text-sm">{{ message.message }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Reply Form -->
+        {% if ticket.status != 'closed' %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    {% if user.is_staff %}
+                        Reply or Add Internal Note
+                    {% else %}
+                        Add Reply
+                    {% endif %}
+                </h2>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="form-control mb-4">
+                        {{ form.message }}
+                    </div>
+
+                    {% if user.is_staff %}
+                    <div class="form-control mb-4">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            {{ form.is_internal_note }}
+                            <span class="label-text">
+                                <span class="font-semibold">Internal Note</span>
+                                <span class="text-sm text-base-content/60">(Not visible to user)</span>
+                            </span>
+                        </label>
+                    </div>
+                    {% endif %}
+
+                    <div class="card-actions justify-end">
+                        <button type="submit" class="btn btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                            Send Reply
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>This ticket is closed. No further replies can be added.</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

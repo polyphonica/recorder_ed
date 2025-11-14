@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Support Tickets - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold mb-2">My Support Tickets</h1>
+                <p class="text-base-content/70">View and manage your support requests</p>
+            </div>
+            <a href="{% url 'support:public_contact' %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                New Ticket
+            </a>
+        </div>
+
+        <!-- Filters -->
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body">
+                <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Status</span>
+                        </label>
+                        <select name="status" class="select select-bordered select-sm" onchange="this.form.submit()">
+                            <option value="">All Statuses</option>
+                            <option value="open" {% if status_filter == 'open' %}selected{% endif %}>Open</option>
+                            <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+                            <option value="waiting_user" {% if status_filter == 'waiting_user' %}selected{% endif %}>Waiting for Me</option>
+                            <option value="resolved" {% if status_filter == 'resolved' %}selected{% endif %}>Resolved</option>
+                            <option value="closed" {% if status_filter == 'closed' %}selected{% endif %}>Closed</option>
+                        </select>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Category</span>
+                        </label>
+                        <select name="category" class="select select-bordered select-sm" onchange="this.form.submit()">
+                            <option value="">All Categories</option>
+                            <option value="payment" {% if category_filter == 'payment' %}selected{% endif %}>Payment</option>
+                            <option value="technical" {% if category_filter == 'technical' %}selected{% endif %}>Technical</option>
+                            <option value="general" {% if category_filter == 'general' %}selected{% endif %}>General</option>
+                            <option value="bug" {% if category_filter == 'bug' %}selected{% endif %}>Bug</option>
+                            <option value="feature" {% if category_filter == 'feature' %}selected{% endif %}>Feature</option>
+                        </select>
+                    </div>
+
+                    <div class="form-control flex justify-end items-end">
+                        {% if status_filter or category_filter %}
+                        <a href="{% url 'support:my_tickets' %}" class="btn btn-outline btn-sm">
+                            Clear Filters
+                        </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tickets List -->
+        {% if tickets %}
+        <div class="space-y-4">
+            {% for ticket in tickets %}
+            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition">
+                <div class="card-body">
+                    <div class="flex justify-between items-start gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <h2 class="card-title">{{ ticket.subject }}</h2>
+                                {% if ticket.is_overdue %}
+                                    <div class="badge badge-error">Overdue</div>
+                                {% endif %}
+                            </div>
+                            <p class="text-sm text-base-content/60 font-mono mb-2">{{ ticket.ticket_number }}</p>
+                            <p class="text-sm text-base-content/70 line-clamp-2">
+                                {{ ticket.description|truncatewords:30 }}
+                            </p>
+                        </div>
+
+                        <div class="flex flex-col items-end gap-2">
+                            <!-- Status Badge -->
+                            {% if ticket.status == 'open' %}
+                                <div class="badge badge-primary">Open</div>
+                            {% elif ticket.status == 'in_progress' %}
+                                <div class="badge badge-info">In Progress</div>
+                            {% elif ticket.status == 'waiting_user' %}
+                                <div class="badge badge-warning">Waiting for You</div>
+                            {% elif ticket.status == 'resolved' %}
+                                <div class="badge badge-success">Resolved</div>
+                            {% else %}
+                                <div class="badge badge-ghost">Closed</div>
+                            {% endif %}
+
+                            <!-- Priority Badge -->
+                            {% if ticket.priority == 'urgent' %}
+                                <div class="badge badge-error badge-sm">Urgent</div>
+                            {% elif ticket.priority == 'high' %}
+                                <div class="badge badge-warning badge-sm">High</div>
+                            {% elif ticket.priority == 'normal' %}
+                                <div class="badge badge-info badge-sm">Normal</div>
+                            {% else %}
+                                <div class="badge badge-ghost badge-sm">Low</div>
+                            {% endif %}
+
+                            <div class="badge badge-outline badge-sm">{{ ticket.get_category_display }}</div>
+                        </div>
+                    </div>
+
+                    <div class="divider my-2"></div>
+
+                    <div class="flex justify-between items-center">
+                        <div class="text-sm text-base-content/60">
+                            <span>Created {{ ticket.created_at|timesince }} ago</span>
+                            {% if ticket.assigned_to %}
+                                <span class="ml-2">• Assigned to {{ ticket.assigned_to.get_full_name }}</span>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'support:ticket_detail' ticket.ticket_number %}" class="btn btn-primary btn-sm">
+                            View Details
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body text-center py-16">
+                <div class="text-6xl mb-4">🎫</div>
+                <h2 class="text-2xl font-semibold text-base-content/70 mb-2">No tickets found</h2>
+                <p class="text-base-content/60 mb-6">
+                    {% if status_filter or category_filter %}
+                        Try adjusting your filters or create a new support ticket.
+                    {% else %}
+                        You haven't created any support tickets yet.
+                    {% endif %}
+                </p>
+                <a href="{% url 'support:public_contact' %}" class="btn btn-primary btn-wide">
+                    Create Your First Ticket
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="text-center mt-6">
+            <p class="text-sm text-base-content/60">Showing {{ tickets|length }} ticket(s)</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

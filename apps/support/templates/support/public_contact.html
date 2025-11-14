@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Contact Support - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold mb-4">Contact Support</h1>
+            <p class="text-lg text-base-content/70">
+                Need help? Submit a support ticket and our team will get back to you as soon as possible.
+            </p>
+        </div>
+
+        <!-- Contact Form Card -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+
+                    {% if form.errors %}
+                        <div class="alert alert-error">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Please correct the errors below.</span>
+                        </div>
+                    {% endif %}
+
+                    <!-- Name -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Your Name *</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.name.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Email -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Your Email *</span>
+                        </label>
+                        {{ form.email }}
+                        <label class="label">
+                            <span class="label-text-alt">We'll use this to contact you about your ticket</span>
+                        </label>
+                        {% if form.email.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.email.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Category -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Category *</span>
+                        </label>
+                        {{ form.category }}
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.category.help_text }}</span>
+                        </label>
+                        {% if form.category.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.category.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Subject -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Subject *</span>
+                        </label>
+                        {{ form.subject }}
+                        {% if form.subject.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.subject.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Description -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Description *</span>
+                        </label>
+                        {{ form.description }}
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.description.help_text }}</span>
+                        </label>
+                        {% if form.description.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.description.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="card-actions justify-end">
+                        <button type="submit" class="btn btn-primary btn-wide">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                            Submit Ticket
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Text -->
+        <div class="alert alert-info mt-6">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+                <h3 class="font-bold">Response Times</h3>
+                <div class="text-sm">
+                    <ul class="list-disc list-inside mt-2">
+                        <li>Urgent: Within 4 hours</li>
+                        <li>High Priority: Within 24 hours</li>
+                        <li>Normal: Within 48 hours</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        {% if user.is_authenticated %}
+        <div class="text-center mt-6">
+            <a href="{% url 'support:my_tickets' %}" class="link link-primary">
+                View My Tickets
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
