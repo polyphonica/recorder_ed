@@ -182,7 +182,7 @@
                                 {% endif %}
                             </td>
                             <td class="text-sm">
-                                {{ ticket.age|timesince }}
+                                {{ ticket.created_at|timesince }}
                             </td>
                             <td>
                                 {% if ticket.is_overdue %}
