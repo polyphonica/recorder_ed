@@ -1,6 +1,6 @@
-Subject: Your Lesson is Ready to View - Recorder-ed
+Subject: Your Lesson is Ready to View - {{ site_name }}
 
-Recorder-ed
+{{ site_name }}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Hello {{ student_name }},
@@ -19,4 +19,4 @@ View your lesson:
 {{ lesson_url }}
 
 Best regards,
-The Recorder-ed Team
+The {{ site_name }} Team

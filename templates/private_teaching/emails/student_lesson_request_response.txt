@@ -1,6 +1,6 @@
-Subject: Lesson Request Update from {{ teacher_name }} - Recorder-ed
+Subject: Lesson Request Update from {{ teacher_name }} - {{ site_name }}
 
-Recorder-ed
+{{ site_name }}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Hello {{ student.get_full_name|default:student.username }},
@@ -27,4 +27,4 @@ View your lesson request:
 {{ my_requests_url }}
 
 Best regards,
-The Recorder-ed Team
+The {{ site_name }} Team

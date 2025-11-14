@@ -1,6 +1,6 @@
-Subject: Workshop Registration Confirmed - {{ workshop.title }} - Recorder-ed
+Subject: Workshop Registration Confirmed - {{ workshop.title }} - {{ site_name }}
 
-Recorder-ed
+{{ site_name }}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Hello {{ registration.student.get_full_name|default:registration.student.username }},
@@ -27,4 +27,4 @@ View your registration:
 {{ my_registrations_url }}
 
 Best regards,
-The Recorder-ed Team
+The {{ site_name }} Team

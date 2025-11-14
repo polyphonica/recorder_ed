@@ -1,6 +1,6 @@
-Subject: Workshop Registration Confirmed - {{ registration_count }} Session{{ registration_count|pluralize }} - Recorder-ed
+Subject: Workshop Registration Confirmed - {{ registration_count }} Session{{ registration_count|pluralize }} - {{ site_name }}
 
-Recorder-ed
+{{ site_name }}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Hello {{ user_name }},
@@ -28,4 +28,4 @@ View your registrations:
 {{ my_registrations_url }}
 
 Best regards,
-The Recorder-ed Team
+The {{ site_name }} Team

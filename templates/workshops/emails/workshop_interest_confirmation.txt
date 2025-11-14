@@ -1,7 +1,7 @@
 {% load humanize %}
-Subject: You're on the list for {{ workshop.title }} - Recorder-ed
+Subject: You're on the list for {{ workshop.title }} - {{ site_name }}
 
-Recorder-ed
+{{ site_name }}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Hi {{ user.first_name|default:user.username }},
@@ -32,4 +32,4 @@ In the meantime, you can:
 Questions? Feel free to reply to this email.
 
 Best regards,
-The Recorder-ed Team
+The {{ site_name }} Team
