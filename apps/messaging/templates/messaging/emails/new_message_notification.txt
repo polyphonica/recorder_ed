@@ -1,0 +1,19 @@
+Subject: New message from {{ sender_name }}
+
+Hello {{ recipient_name }},
+
+You have received a new message from {{ sender_name }}.
+
+{% if context_info %}{{ context_info }}{% endif %}
+
+Message:
+"{{ message.content|truncatewords:50 }}"
+
+View and reply to this message:
+{{ conversation_url }}
+
+---
+If you no longer wish to receive email notifications for new messages, you can disable them in your account settings.
+
+Best regards,
+{{ site_name }} Team

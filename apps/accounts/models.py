@@ -52,7 +52,13 @@ class UserProfile(models.Model):
 
     # Profile completion tracking
     profile_completed = models.BooleanField(default=False)
-    
+
+    # Notification preferences
+    email_on_new_message = models.BooleanField(
+        default=True,
+        help_text="Send email notification when you receive a new message"
+    )
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

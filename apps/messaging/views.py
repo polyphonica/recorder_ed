@@ -6,6 +6,7 @@ from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 
 from .models import Conversation, Message
+from .notifications import MessageNotificationService
 from apps.workshops.models import Workshop, WorkshopRegistration
 
 
@@ -83,11 +84,14 @@ def conversation_detail(request, conversation_id):
     if request.method == 'POST':
         content = request.POST.get('content', '').strip()
         if content:
-            Message.objects.create(
+            message = Message.objects.create(
                 conversation=conversation,
                 sender=user,
                 content=content
             )
+            # Send email notification to recipient
+            MessageNotificationService.send_new_message_notification(message)
+
             django_messages.success(request, 'Message sent!')
             return redirect('messaging:conversation_detail', conversation_id=conversation.id)
         else:
