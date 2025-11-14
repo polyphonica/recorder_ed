@@ -208,9 +208,11 @@
                                 {% endif %}
                                 <div class="mt-3 flex gap-2">
                                     <a href="{% url 'lessons:lesson_detail' lesson.pk %}" class="btn btn-xs btn-outline">View Details</a>
-                                    <a href="{% url 'messaging:start_private_teaching_conversation' lesson.teacher.user.id %}" class="btn btn-xs btn-outline">
+                                    {% if lesson.teacher %}
+                                    <a href="{% url 'messaging:start_private_teaching_conversation' lesson.teacher.id %}" class="btn btn-xs btn-outline">
                                         💬 Message Teacher
                                     </a>
+                                    {% endif %}
                                 </div>
                             </div>
                         {% endfor %}
