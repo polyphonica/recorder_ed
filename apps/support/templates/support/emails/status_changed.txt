@@ -1,0 +1,24 @@
+Subject: Ticket {{ ticket.ticket_number }} Status Updated
+
+Hello {{ ticket.name }},
+
+The status of your support ticket has been updated.
+
+Ticket Number: {{ ticket.ticket_number }}
+Subject: {{ ticket.subject }}
+
+Status Changed: {{ old_status }} → {{ new_status }}
+
+{% if ticket.status == 'resolved' %}
+Your ticket has been marked as resolved. If you feel your issue is not fully resolved, please reply to the ticket and we'll reopen it.
+{% elif ticket.status == 'closed' %}
+Your ticket has been closed. If you need further assistance with this issue, please create a new ticket.
+{% elif ticket.status == 'waiting_user' %}
+We're waiting for additional information from you. Please reply to the ticket with the requested details.
+{% endif %}
+
+You can view your ticket here:
+{{ ticket_url }}
+
+Best regards,
+{{ site_name }} Support Team

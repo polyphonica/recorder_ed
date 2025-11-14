@@ -1,0 +1,23 @@
+Subject: New Support Ticket: {{ ticket.ticket_number }}
+
+A new support ticket has been submitted.
+
+Ticket Number: {{ ticket.ticket_number }}
+Subject: {{ ticket.subject }}
+Category: {{ ticket.get_category_display }}
+Priority: {{ ticket.get_priority_display }}
+
+Submitted by: {{ ticket.name }} ({{ ticket.email }})
+{% if ticket.user %}User Account: {{ ticket.user.username }}{% else %}Anonymous Submission{% endif %}
+
+---
+Description:
+{{ ticket.description }}
+
+---
+
+View and respond to this ticket:
+{{ ticket_url }}
+
+---
+{{ site_name }} Support System

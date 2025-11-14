@@ -11,6 +11,7 @@ from .forms import (
     StaffReplyForm, TicketUpdateForm, TicketAttachmentForm
 )
 from .decorators import staff_required
+from .notifications import TicketNotificationService
 
 
 def public_contact(request):
@@ -23,6 +24,10 @@ def public_contact(request):
             if request.user.is_authenticated:
                 ticket.user = request.user
             ticket.save()
+
+            # Send notifications
+            TicketNotificationService.send_ticket_created_notification(ticket)
+            TicketNotificationService.send_new_ticket_alert_to_staff(ticket)
 
             django_messages.success(
                 request,
@@ -51,6 +56,10 @@ def create_ticket(request):
             ticket = form.save(commit=False)
             ticket.user = request.user
             ticket.save()
+
+            # Send notifications
+            TicketNotificationService.send_ticket_created_notification(ticket)
+            TicketNotificationService.send_new_ticket_alert_to_staff(ticket)
 
             django_messages.success(
                 request,
@@ -133,6 +142,10 @@ def ticket_detail(request, ticket_number):
 
             message.save()
 
+            # Send notification if staff replied (and not internal note)
+            if request.user.is_staff:
+                TicketNotificationService.send_staff_reply_notification(ticket, message)
+
             django_messages.success(request, 'Reply added successfully.')
             return redirect('support:ticket_detail', ticket_number=ticket.ticket_number)
     else:
@@ -145,6 +158,7 @@ def ticket_detail(request, ticket_number):
         'ticket': ticket,
         'messages': messages_list,
         'form': form,
+        'staff_members': User.objects.filter(is_staff=True),
     }
     return render(request, 'support/ticket_detail.html', context)
 
@@ -210,6 +224,8 @@ def update_ticket(request, ticket_number):
     ticket = get_object_or_404(Ticket, ticket_number=ticket_number)
 
     if request.method == 'POST':
+        old_status = ticket.status
+
         # Update status
         new_status = request.POST.get('status')
         if new_status and new_status in dict(Ticket.STATUS_CHOICES):
@@ -237,6 +253,11 @@ def update_ticket(request, ticket_number):
                     pass
 
         ticket.save()
+
+        # Send notification if status changed
+        if new_status and new_status != old_status:
+            TicketNotificationService.send_status_changed_notification(ticket, old_status, new_status)
+
         django_messages.success(request, f'Ticket {ticket.ticket_number} updated successfully.')
 
     return redirect('support:ticket_detail', ticket_number=ticket.ticket_number)

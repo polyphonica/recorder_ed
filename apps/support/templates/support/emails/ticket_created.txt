@@ -1,0 +1,33 @@
+Subject: Support Ticket Created - {{ ticket.ticket_number }}
+
+Hello {{ ticket.name }},
+
+Thank you for contacting {{ site_name }} support. Your ticket has been created successfully.
+
+Ticket Number: {{ ticket.ticket_number }}
+Category: {{ ticket.get_category_display }}
+Subject: {{ ticket.subject }}
+
+Our support team will review your request and respond as soon as possible.
+
+Expected Response Time:
+{% if ticket.priority == 'urgent' %}
+- Urgent Priority: Within 4 hours
+{% elif ticket.priority == 'high' %}
+- High Priority: Within 24 hours
+{% else %}
+- Normal Priority: Within 48 hours
+{% endif %}
+
+You can view your ticket and add additional information here:
+{{ ticket_url }}
+
+---
+Your Request:
+{{ ticket.description }}
+
+---
+If you have any additional information to add, please reply via the ticket page above.
+
+Best regards,
+{{ site_name }} Support Team

@@ -1,0 +1,20 @@
+Subject: Response to Ticket {{ ticket.ticket_number }}: {{ ticket.subject }}
+
+Hello {{ ticket.name }},
+
+{{ staff_name }} has replied to your support ticket.
+
+Ticket Number: {{ ticket.ticket_number }}
+Subject: {{ ticket.subject }}
+
+---
+{{ staff_name }}'s Response:
+{{ message.message }}
+
+---
+
+You can view the full conversation and reply here:
+{{ ticket_url }}
+
+Best regards,
+{{ site_name }} Support Team
