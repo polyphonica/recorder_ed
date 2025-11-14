@@ -1,4 +1,7 @@
-Subject: Lesson Payment Received - {{ site_name }}
+Subject: Lesson Payment Received - Recorder-ed
+
+Recorder-ed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Hello {{ teacher.get_full_name|default:teacher.username }},
 
@@ -21,4 +24,4 @@ View your schedule:
 {{ schedule_url }}
 
 Best regards,
-The {{ site_name }} Team
+The Recorder-ed Team

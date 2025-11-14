@@ -1,4 +1,7 @@
-Subject: Payment Confirmation - {{ site_name }}
+Subject: Payment Confirmation - Recorder-ed
+
+Recorder-ed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Hello {{ student.get_full_name|default:student.username }},
 
@@ -19,4 +22,4 @@ View your lessons:
 {{ lessons_url }}
 
 Best regards,
-The {{ site_name }} Team
+The Recorder-ed Team
