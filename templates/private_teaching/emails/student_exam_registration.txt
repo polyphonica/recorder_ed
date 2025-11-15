@@ -1,0 +1,32 @@
+Hello {{ recipient_name }},
+
+You have been registered for a music examination!
+
+EXAM DETAILS:
+Student: {{ student_name }}
+Exam: {{ exam.display_name }}
+Subject: {{ exam.subject.subject }}
+Teacher: {{ exam.teacher.get_full_name }}
+{% if exam.exam_date %}Exam Date: {{ exam.exam_date|date:"l, F j, Y" }}{% endif %}
+{% if exam.venue %}Venue: {{ exam.venue }}{% endif %}
+
+{% if exam.pieces.all %}
+EXAM PIECES:
+{% for piece in exam.pieces.all %}  {{ piece.piece_number }}. {{ piece.title }} by {{ piece.composer }}{% if piece.syllabus_list %} (List {{ piece.syllabus_list }}){% endif %}
+{% endfor %}
+{% endif %}
+
+{% if requires_payment %}
+PAYMENT REQUIRED:
+Registration Fee: £{{ exam.fee_amount }}
+Please log in to pay for this exam registration:
+{{ exam_detail_url }}
+{% endif %}
+
+You can view full exam details and requirements by logging into your account:
+{{ exam_detail_url }}
+
+Good luck with your exam preparation!
+
+Best regards,
+{{ exam.teacher.get_full_name }}

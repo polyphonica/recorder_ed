@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Register Student for Exam - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div class="mb-8">
+        <div class="flex items-center gap-4 mb-4">
+            <a href="{% url 'private_teaching:exam_list' %}" class="btn btn-ghost btn-sm">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Exams
+            </a>
+        </div>
+        <h1 class="text-4xl font-bold mb-2">Register Student for Exam</h1>
+        <p class="text-base-content/70">Complete the form below to register a student for a music examination</p>
+    </div>
+
+    <form method="post" class="space-y-8">
+        {% csrf_token %}
+
+        <!-- Student & Subject Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-user mr-2"></i>Student & Subject
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Student *</span>
+                        </label>
+                        {{ form.student }}
+                        {% if form.student.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.student.errors.0 }}</span></label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Child Profile (if applicable)</span>
+                        </label>
+                        {{ form.child_profile }}
+                        <label class="label"><span class="label-text-alt">{{ form.child_profile.help_text }}</span></label>
+                    </div>
+
+                    <div class="form-control md:col-span-2">
+                        <label class="label">
+                            <span class="label-text font-semibold">Subject/Instrument *</span>
+                        </label>
+                        {{ form.subject }}
+                        {% if form.subject.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.subject.errors.0 }}</span></label>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exam Details -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-graduation-cap mr-2"></i>Exam Details
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Exam Board *</span>
+                        </label>
+                        {{ form.exam_board }}
+                        {% if form.exam_board.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.exam_board.errors.0 }}</span></label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Grade Type *</span>
+                        </label>
+                        {{ form.grade_type }}
+                        {% if form.grade_type.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.grade_type.errors.0 }}</span></label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Grade Level *</span>
+                        </label>
+                        {{ form.grade_level }}
+                        <label class="label"><span class="label-text-alt">1-8 for Practical/Performance, 1-6 for Theory</span></label>
+                        {% if form.grade_level.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.grade_level.errors.0 }}</span></label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Exam Date</span>
+                        </label>
+                        {{ form.exam_date }}
+                        <label class="label"><span class="label-text-alt">Can be set later if not confirmed</span></label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Submission Deadline</span>
+                        </label>
+                        {{ form.submission_deadline }}
+                        <label class="label"><span class="label-text-alt">For video/recording submissions</span></label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Registration Number</span>
+                        </label>
+                        {{ form.registration_number }}
+                        <label class="label"><span class="label-text-alt">From exam board (optional)</span></label>
+                    </div>
+
+                    <div class="form-control md:col-span-2">
+                        <label class="label">
+                            <span class="label-text font-semibold">Venue / Submission Method</span>
+                        </label>
+                        {{ form.venue }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Requirements -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-music mr-2"></i>Technical Requirements
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Scales</span>
+                        </label>
+                        {{ form.scales }}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Arpeggios</span>
+                        </label>
+                        {{ form.arpeggios }}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Sight Reading</span>
+                        </label>
+                        {{ form.sight_reading }}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Aural Tests</span>
+                        </label>
+                        {{ form.aural_tests }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exam Pieces -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-file-music mr-2"></i>Exam Pieces
+                </h2>
+                <p class="text-base-content/70 mb-4">Add the pieces the student will perform in the exam</p>
+
+                {{ piece_formset.management_form }}
+                <div id="piece-formset" class="space-y-4">
+                    {% for piece_form in piece_formset %}
+                        <div class="piece-form border border-base-300 rounded-lg p-4">
+                            <div class="grid grid-cols-12 gap-4">
+                                <div class="col-span-1 form-control">
+                                    <label class="label"><span class="label-text font-semibold">#</span></label>
+                                    {{ piece_form.piece_number }}
+                                </div>
+                                <div class="col-span-5 form-control">
+                                    <label class="label"><span class="label-text font-semibold">Title</span></label>
+                                    {{ piece_form.title }}
+                                </div>
+                                <div class="col-span-4 form-control">
+                                    <label class="label"><span class="label-text font-semibold">Composer</span></label>
+                                    {{ piece_form.composer }}
+                                </div>
+                                <div class="col-span-2 form-control">
+                                    <label class="label"><span class="label-text font-semibold">List</span></label>
+                                    {{ piece_form.syllabus_list }}
+                                </div>
+                                <div class="col-span-12 form-control">
+                                    <label class="label"><span class="label-text">Notes</span></label>
+                                    {{ piece_form.teacher_notes }}
+                                </div>
+                                {{ piece_form.DELETE }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment & Notes -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-pound-sign mr-2"></i>Payment & Notes
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Registration Fee (£) *</span>
+                        </label>
+                        {{ form.fee_amount }}
+                        <label class="label"><span class="label-text-alt">Set to 0 if no payment required</span></label>
+                        {% if form.fee_amount.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.fee_amount.errors.0 }}</span></label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control md:col-span-2">
+                        <label class="label">
+                            <span class="label-text font-semibold">Private Teacher Notes</span>
+                        </label>
+                        {{ form.teacher_notes }}
+                        <label class="label"><span class="label-text-alt">Not visible to students</span></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex justify-end gap-4">
+            <a href="{% url 'private_teaching:exam_list' %}" class="btn btn-ghost">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-check mr-2"></i>Register Student for Exam
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Enter Exam Results - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="mb-8">
+        <div class="flex items-center gap-4 mb-4">
+            <a href="{% url 'private_teaching:exam_detail' exam.id %}" class="btn btn-ghost btn-sm">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Exam Details
+            </a>
+        </div>
+        <h1 class="text-4xl font-bold mb-2">Enter Exam Results</h1>
+        <p class="text-base-content/70">{{ exam.student_name }} - {{ exam.display_name }}</p>
+    </div>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-trophy mr-2"></i>Exam Results
+                </h2>
+
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Status *</span>
+                        </label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.status.errors.0 }}</span></label>
+                        {% endif %}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Mark Achieved</span>
+                            </label>
+                            {{ form.mark_achieved }}
+                            <label class="label"><span class="label-text-alt">Out of 100</span></label>
+                            {% if form.mark_achieved.errors %}
+                                <label class="label"><span class="label-text-alt text-error">{{ form.mark_achieved.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Grade Achieved</span>
+                            </label>
+                            {{ form.grade_achieved }}
+                            {% if form.grade_achieved.errors %}
+                                <label class="label"><span class="label-text-alt text-error">{{ form.grade_achieved.errors.0 }}</span></label>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Examiner Comments</span>
+                        </label>
+                        {{ form.examiner_comments }}
+                        <label class="label"><span class="label-text-alt">Feedback from the examiner</span></label>
+                        {% if form.examiner_comments.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.examiner_comments.errors.0 }}</span></label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Certificate Received Date</span>
+                        </label>
+                        {{ form.certificate_received_date }}
+                        <label class="label"><span class="label-text-alt">When the certificate was received</span></label>
+                        {% if form.certificate_received_date.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.certificate_received_date.errors.0 }}</span></label>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-4">
+                    <i class="fas fa-info-circle"></i>
+                    <span>The student/parent will be notified by email when you save these results.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-4">
+            <a href="{% url 'private_teaching:exam_detail' exam.id %}" class="btn btn-ghost">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-check mr-2"></i>Save Results & Notify Student
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

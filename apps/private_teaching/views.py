@@ -13,10 +13,10 @@ from django.core.mail import send_mail
 from django.conf import settings
 
 from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView
-from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication
+from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard
 from .notifications import TeacherNotificationService, StudentNotificationService
 from lessons.models import Lesson, Document, LessonAttachedUrl
-from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm
+from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, ExamRegistrationForm, ExamPieceFormSet, ExamResultsForm
 from .cart import CartManager
 from .mixins import (
     StudentProfileCompletedMixin,
@@ -1661,3 +1661,333 @@ class UpdateTeacherCapacityView(TeacherProfileCompletedMixin, View):
 
         messages.success(request, 'Capacity settings updated!')
         return redirect('private_teaching:teacher_applications')
+
+
+# ============================================================================
+# EXAM REGISTRATION VIEWS
+# ============================================================================
+
+class ExamRegistrationListView(PrivateTeachingLoginRequiredMixin, TeacherProfileCompletedMixin, ListView):
+    """List all exam registrations for a teacher"""
+    model = ExamRegistration
+    template_name = 'private_teaching/exams/list.html'
+    context_object_name = 'exams'
+    paginate_by = 20
+
+    def get_queryset(self):
+        return ExamRegistration.objects.filter(
+            teacher=self.request.user
+        ).select_related(
+            'student', 'child_profile', 'subject', 'exam_board'
+        ).prefetch_related('pieces').order_by('-exam_date', '-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Filter by status if provided
+        status_filter = self.request.GET.get('status')
+        if status_filter:
+            context['exams'] = context['exams'].filter(status=status_filter)
+            context['status_filter'] = status_filter
+
+        # Group exams
+        exams = context['exams']
+        context['upcoming_exams'] = exams.filter(
+            exam_date__gte=timezone.now().date(),
+            status=ExamRegistration.REGISTERED
+        )[:5]
+        context['pending_results'] = exams.filter(
+            status=ExamRegistration.SUBMITTED
+        )[:5]
+
+        return context
+
+
+class ExamRegistrationCreateView(PrivateTeachingLoginRequiredMixin, TeacherProfileCompletedMixin, View):
+    """Create a new exam registration"""
+    template_name = 'private_teaching/exams/create.html'
+
+    def get(self, request):
+        form = ExamRegistrationForm(teacher=request.user)
+        piece_formset = ExamPieceFormSet()
+
+        return render(request, self.template_name, {
+            'form': form,
+            'piece_formset': piece_formset,
+        })
+
+    def post(self, request):
+        form = ExamRegistrationForm(request.POST, teacher=request.user)
+        piece_formset = ExamPieceFormSet(request.POST)
+
+        if form.is_valid() and piece_formset.is_valid():
+            with transaction.atomic():
+                exam = form.save()
+
+                # Save pieces
+                pieces = piece_formset.save(commit=False)
+                for piece in pieces:
+                    piece.exam_registration = exam
+                    piece.save()
+
+                # Delete removed pieces
+                for obj in piece_formset.deleted_objects:
+                    obj.delete()
+
+                messages.success(request, f'Exam registration created for {exam.student_name}!')
+
+                # Send notification to student/parent
+                StudentNotificationService.send_exam_registration_notification(exam)
+
+                return redirect('private_teaching:exam_detail', pk=exam.id)
+
+        return render(request, self.template_name, {
+            'form': form,
+            'piece_formset': piece_formset,
+        })
+
+
+class ExamRegistrationDetailView(PrivateTeachingLoginRequiredMixin, View):
+    """View exam registration details"""
+    template_name = 'private_teaching/exams/detail.html'
+
+    def get(self, request, pk):
+        exam = get_object_or_404(ExamRegistration, pk=pk)
+
+        # Check permissions
+        if request.user == exam.teacher:
+            # Teacher view
+            is_teacher = True
+        elif request.user == exam.student or (exam.child_profile and request.user == exam.child_profile.guardian):
+            # Student/parent view
+            is_teacher = False
+        else:
+            messages.error(request, 'You do not have permission to view this exam.')
+            return redirect('private_teaching:home')
+
+        pieces = exam.pieces.all().order_by('piece_number')
+        preparation_lessons = exam.preparation_lessons.all().order_by('-lesson_date')[:10] if is_teacher else None
+
+        return render(request, self.template_name, {
+            'exam': exam,
+            'pieces': pieces,
+            'preparation_lessons': preparation_lessons,
+            'is_teacher': is_teacher,
+        })
+
+
+class ExamRegistrationUpdateView(PrivateTeachingLoginRequiredMixin, TeacherProfileCompletedMixin, View):
+    """Update exam registration"""
+    template_name = 'private_teaching/exams/edit.html'
+
+    def get(self, request, pk):
+        exam = get_object_or_404(ExamRegistration, pk=pk, teacher=request.user)
+        form = ExamRegistrationForm(instance=exam, teacher=request.user)
+        piece_formset = ExamPieceFormSet(instance=exam)
+
+        return render(request, self.template_name, {
+            'exam': exam,
+            'form': form,
+            'piece_formset': piece_formset,
+        })
+
+    def post(self, request, pk):
+        exam = get_object_or_404(ExamRegistration, pk=pk, teacher=request.user)
+        form = ExamRegistrationForm(request.POST, instance=exam, teacher=request.user)
+        piece_formset = ExamPieceFormSet(request.POST, instance=exam)
+
+        if form.is_valid() and piece_formset.is_valid():
+            with transaction.atomic():
+                exam = form.save()
+
+                # Save pieces
+                pieces = piece_formset.save(commit=False)
+                for piece in pieces:
+                    piece.exam_registration = exam
+                    piece.save()
+
+                # Delete removed pieces
+                for obj in piece_formset.deleted_objects:
+                    obj.delete()
+
+                messages.success(request, 'Exam registration updated!')
+                return redirect('private_teaching:exam_detail', pk=exam.id)
+
+        return render(request, self.template_name, {
+            'exam': exam,
+            'form': form,
+            'piece_formset': piece_formset,
+        })
+
+
+class ExamRegistrationDeleteView(PrivateTeachingLoginRequiredMixin, TeacherProfileCompletedMixin, View):
+    """Delete exam registration"""
+
+    def post(self, request, pk):
+        exam = get_object_or_404(ExamRegistration, pk=pk, teacher=request.user)
+
+        student_name = exam.student_name
+        exam.delete()
+
+        messages.success(request, f'Exam registration for {student_name} has been deleted.')
+        return redirect('private_teaching:exam_list')
+
+
+class ExamResultsUpdateView(PrivateTeachingLoginRequiredMixin, TeacherProfileCompletedMixin, View):
+    """Update exam results"""
+    template_name = 'private_teaching/exams/results.html'
+
+    def get(self, request, pk):
+        exam = get_object_or_404(ExamRegistration, pk=pk, teacher=request.user)
+        form = ExamResultsForm(instance=exam)
+
+        return render(request, self.template_name, {
+            'exam': exam,
+            'form': form,
+        })
+
+    def post(self, request, pk):
+        exam = get_object_or_404(ExamRegistration, pk=pk, teacher=request.user)
+        form = ExamResultsForm(request.POST, instance=exam)
+
+        if form.is_valid():
+            exam = form.save()
+            messages.success(request, 'Exam results updated!')
+
+            # Send notification to student/parent
+            StudentNotificationService.send_exam_results_notification(exam)
+
+            return redirect('private_teaching:exam_detail', pk=exam.id)
+
+        return render(request, self.template_name, {
+            'exam': exam,
+            'form': form,
+        })
+
+
+class StudentExamListView(PrivateTeachingLoginRequiredMixin, StudentProfileCompletedMixin, ListView):
+    """List all exams for a student"""
+    model = ExamRegistration
+    template_name = 'private_teaching/exams/student_list.html'
+    context_object_name = 'exams'
+    paginate_by = 20
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # Get exams where user is the student or guardian
+        return ExamRegistration.objects.filter(
+            Q(student=user) | Q(child_profile__guardian=user)
+        ).select_related(
+            'teacher', 'subject', 'exam_board', 'child_profile'
+        ).prefetch_related('pieces').order_by('-exam_date', '-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Group exams
+        exams = context['exams']
+        context['upcoming_exams'] = exams.filter(
+            exam_date__gte=timezone.now().date(),
+            status__in=[ExamRegistration.REGISTERED, ExamRegistration.SUBMITTED]
+        )
+        context['completed_exams'] = exams.filter(
+            status=ExamRegistration.RESULTS_RECEIVED
+        )
+        context['unpaid_exams'] = exams.filter(
+            payment_status='pending'
+        )
+
+        return context
+
+
+class ExamPaymentView(PrivateTeachingLoginRequiredMixin, View):
+    """Handle exam payment via Stripe"""
+
+    def post(self, request, pk):
+        exam = get_object_or_404(ExamRegistration, pk=pk)
+
+        # Check permissions (student or guardian can pay)
+        if not (request.user == exam.student or
+                (exam.child_profile and request.user == exam.child_profile.guardian)):
+            messages.error(request, 'You do not have permission to pay for this exam.')
+            return redirect('private_teaching:home')
+
+        # Check if already paid
+        if exam.is_paid:
+            messages.info(request, 'This exam has already been paid for.')
+            return redirect('private_teaching:exam_detail', pk=exam.id)
+
+        # Check if payment is required
+        if not exam.requires_payment or exam.fee_amount <= 0:
+            messages.error(request, 'No payment is required for this exam.')
+            return redirect('private_teaching:exam_detail', pk=exam.id)
+
+        # Create Stripe checkout session
+        import stripe
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+
+        try:
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'gbp',
+                        'unit_amount': int(exam.fee_amount * 100),  # Convert to pence
+                        'product_data': {
+                            'name': f'Exam Registration: {exam.display_name}',
+                            'description': f'{exam.student_name} - {exam.exam_board} {exam.get_grade_type_display()} Grade {exam.grade_level}',
+                        },
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=request.build_absolute_uri(
+                    reverse('private_teaching:exam_payment_success', kwargs={'pk': exam.id})
+                ),
+                cancel_url=request.build_absolute_uri(
+                    reverse('private_teaching:exam_payment_cancel', kwargs={'pk': exam.id})
+                ),
+                client_reference_id=str(exam.id),
+                metadata={
+                    'exam_id': str(exam.id),
+                    'student_id': str(exam.student.id),
+                    'teacher_id': str(exam.teacher.id),
+                }
+            )
+
+            # Save checkout session ID
+            exam.stripe_checkout_session_id = checkout_session.id
+            exam.payment_status = 'pending'
+            exam.save()
+
+            return redirect(checkout_session.url)
+
+        except Exception as e:
+            messages.error(request, f'Error creating payment session: {str(e)}')
+            return redirect('private_teaching:exam_detail', pk=exam.id)
+
+
+class ExamPaymentSuccessView(BaseCheckoutSuccessView):
+    """Handle successful exam payment"""
+
+    def get(self, request, pk):
+        exam = get_object_or_404(ExamRegistration, pk=pk)
+
+        # Mark as paid
+        exam.payment_status = 'completed'
+        exam.paid_at = timezone.now()
+        exam.save()
+
+        messages.success(request, f'Payment successful! Exam registration confirmed.')
+        return redirect('private_teaching:exam_detail', pk=exam.id)
+
+
+class ExamPaymentCancelView(BaseCheckoutCancelView):
+    """Handle cancelled exam payment"""
+
+    def get(self, request, pk):
+        exam = get_object_or_404(ExamRegistration, pk=pk)
+
+        messages.warning(request, 'Payment was cancelled. You can try again when ready.')
+        return redirect('private_teaching:exam_detail', pk=exam.id)

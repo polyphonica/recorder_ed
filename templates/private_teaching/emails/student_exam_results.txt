@@ -1,0 +1,35 @@
+Hello {{ recipient_name }},
+
+Your exam results are now available!
+
+EXAM DETAILS:
+Student: {{ student_name }}
+Exam: {{ exam.display_name }}
+Subject: {{ exam.subject.subject }}
+Teacher: {{ exam.teacher.get_full_name }}
+{% if exam.exam_date %}Exam Date: {{ exam.exam_date|date:"F j, Y" }}{% endif %}
+
+{% if has_results %}
+RESULTS:
+{% if exam.grade_achieved %}Grade: {{ exam.get_grade_achieved_display|upper }}{% endif %}
+{% if exam.mark_achieved %}Mark: {{ exam.mark_achieved }}/100{% endif %}
+
+{% if exam.examiner_comments %}EXAMINER COMMENTS:
+{{ exam.examiner_comments }}
+{% endif %}
+
+{% if exam.certificate_received_date %}Certificate received: {{ exam.certificate_received_date|date:"F j, Y" }}{% endif %}
+{% endif %}
+
+{% if exam.grade_achieved == 'distinction' %}Congratulations on achieving a Distinction! This is an excellent result.
+{% elif exam.grade_achieved == 'merit' %}Congratulations on achieving a Merit! Well done on your hard work.
+{% elif exam.grade_achieved == 'pass' %}Congratulations on passing your exam! Keep up the good work.
+{% endif %}
+
+View full exam details and results:
+{{ exam_detail_url }}
+
+Well done {{ student_name }}!
+
+Best regards,
+{{ exam.teacher.get_full_name }}

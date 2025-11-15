@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Exams - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold mb-2">My Exams</h1>
+        <p class="text-base-content/70">View your exam registrations and results</p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="stat bg-info text-info-content rounded-lg shadow-lg">
+            <div class="stat-title text-white text-lg font-semibold">Upcoming Exams</div>
+            <div class="stat-value text-white text-4xl">{{ upcoming_exams|length }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                {% if upcoming_exams %}
+                    Next: {{ upcoming_exams.0.exam_date|date:"M j" }}
+                {% else %}
+                    No upcoming exams
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="stat bg-success text-success-content rounded-lg shadow-lg">
+            <div class="stat-title text-white text-lg font-semibold">Completed</div>
+            <div class="stat-value text-white text-4xl">{{ completed_exams|length }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                Exams with results
+            </div>
+        </div>
+
+        <div class="stat bg-warning text-warning-content rounded-lg shadow-lg">
+            <div class="stat-title text-white text-lg font-semibold">Payment Required</div>
+            <div class="stat-value text-white text-4xl">{{ unpaid_exams|length }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                {% if unpaid_exams %}
+                    Action needed
+                {% else %}
+                    All paid
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Unpaid Exams Alert -->
+    {% if unpaid_exams %}
+        <div class="alert alert-warning mb-8">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+                <h3 class="font-bold">Payment Required</h3>
+                <div class="text-sm">You have {{ unpaid_exams|length }} exam registration(s) requiring payment.</div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Upcoming Exams -->
+    {% if upcoming_exams %}
+        <div class="card bg-base-100 shadow-xl mb-8">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-calendar-alt mr-2"></i>Upcoming Exams
+                </h2>
+                <div class="space-y-4">
+                    {% for exam in upcoming_exams %}
+                        <div class="border border-base-300 rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h3 class="font-bold text-lg">{{ exam.display_name }}</h3>
+                                    <div class="text-sm text-base-content/70 mt-1">
+                                        {{ exam.subject.subject }} with {{ exam.teacher.get_full_name }}
+                                    </div>
+                                    <div class="flex gap-4 mt-2">
+                                        {% if exam.exam_date %}
+                                            <div class="text-sm">
+                                                <i class="fas fa-calendar mr-1"></i>{{ exam.exam_date|date:"M j, Y" }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="text-sm">
+                                            <span class="badge badge-sm {% if exam.status == 'registered' %}badge-info{% else %}badge-warning{% endif %}">
+                                                {{ exam.get_status_display }}
+                                            </span>
+                                        </div>
+                                        {% if not exam.is_paid and exam.requires_payment %}
+                                            <div class="text-sm">
+                                                <span class="badge badge-sm badge-warning">Payment Required</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    {% if not exam.is_paid and exam.requires_payment %}
+                                        <form method="post" action="{% url 'private_teaching:exam_payment' exam.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-credit-card mr-1"></i>Pay
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    <a href="{% url 'private_teaching:exam_detail' exam.id %}" class="btn btn-sm btn-outline">
+                                        View Details <i class="fas fa-arrow-right ml-1"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Completed Exams -->
+    {% if completed_exams %}
+        <div class="card bg-base-100 shadow-xl mb-8">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-trophy mr-2"></i>Completed Exams
+                </h2>
+                <div class="space-y-4">
+                    {% for exam in completed_exams %}
+                        <div class="border border-base-300 rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h3 class="font-bold text-lg">{{ exam.display_name }}</h3>
+                                    <div class="text-sm text-base-content/70 mt-1">
+                                        {{ exam.subject.subject }} with {{ exam.teacher.get_full_name }}
+                                    </div>
+                                    <div class="flex gap-4 mt-2">
+                                        {% if exam.exam_date %}
+                                            <div class="text-sm">
+                                                <i class="fas fa-calendar mr-1"></i>{{ exam.exam_date|date:"M j, Y" }}
+                                            </div>
+                                        {% endif %}
+                                        {% if exam.grade_achieved %}
+                                            <div class="text-sm">
+                                                <span class="badge badge-sm {% if exam.grade_achieved == 'distinction' %}badge-success{% elif exam.grade_achieved == 'merit' %}badge-info{% elif exam.grade_achieved == 'pass' %}badge-primary{% else %}badge-error{% endif %}">
+                                                    {{ exam.get_grade_achieved_display }}
+                                                </span>
+                                            </div>
+                                        {% endif %}
+                                        {% if exam.mark_achieved %}
+                                            <div class="text-sm">{{ exam.mark_achieved }}/100</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <a href="{% url 'private_teaching:exam_detail' exam.id %}" class="btn btn-sm btn-outline">
+                                    View Details <i class="fas fa-arrow-right ml-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- All Exams -->
+    {% if not upcoming_exams and not completed_exams %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="text-center py-12">
+                    <i class="fas fa-graduation-cap text-6xl text-base-content/20 mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">No Exams Yet</h3>
+                    <p class="text-base-content/70 mb-6">Your teacher will register you for exams when you're ready.</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

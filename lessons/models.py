@@ -131,6 +131,16 @@ class Lesson(models.Model):
         help_text='Interactive playalong pieces for this lesson'
     )
 
+    # Exam preparation link
+    exam_registration = models.ForeignKey(
+        'private_teaching.ExamRegistration',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='preparation_lessons',
+        help_text='Link to exam if this lesson is for exam preparation'
+    )
+
     class Meta:
         ordering = ["-lesson_date"]
 

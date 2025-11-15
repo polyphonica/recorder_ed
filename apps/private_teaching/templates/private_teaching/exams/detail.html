@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ exam.display_name }} - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="{% if is_teacher %}{% url 'private_teaching:exam_list' %}{% else %}{% url 'private_teaching:student_exams' %}{% endif %}" class="btn btn-ghost btn-sm">
+                    <i class="fas fa-arrow-left mr-2"></i>Back
+                </a>
+                <div>
+                    <h1 class="text-4xl font-bold mb-2">{{ exam.display_name }}</h1>
+                    <p class="text-base-content/70">{{ exam.student_name }}</p>
+                </div>
+            </div>
+            {% if is_teacher %}
+                <div class="flex gap-2">
+                    <a href="{% url 'private_teaching:exam_edit' exam.id %}" class="btn btn-outline">
+                        <i class="fas fa-edit mr-2"></i>Edit
+                    </a>
+                    {% if exam.status == 'submitted' %}
+                        <a href="{% url 'private_teaching:exam_results' exam.id %}" class="btn btn-primary">
+                            <i class="fas fa-trophy mr-2"></i>Enter Results
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="stat bg-base-200 rounded-lg shadow">
+            <div class="stat-title">Exam Status</div>
+            <div class="stat-value text-2xl">{{ exam.get_status_display }}</div>
+            <div class="stat-desc">
+                {% if exam.exam_date %}{{ exam.exam_date|date:"M j, Y" }}{% else %}Date TBD{% endif %}
+            </div>
+        </div>
+
+        <div class="stat bg-base-200 rounded-lg shadow">
+            <div class="stat-title">Payment Status</div>
+            <div class="stat-value text-2xl">
+                {% if exam.is_paid %}<span class="text-success">Paid</span>
+                {% elif exam.requires_payment %}<span class="text-warning">Pending</span>
+                {% else %}<span class="text-base-content/50">N/A</span>{% endif %}
+            </div>
+            <div class="stat-desc">
+                {% if exam.fee_amount > 0 %}£{{ exam.fee_amount }}{% endif %}
+            </div>
+        </div>
+
+        <div class="stat bg-base-200 rounded-lg shadow">
+            <div class="stat-title">Result</div>
+            <div class="stat-value text-2xl">
+                {% if exam.has_results %}
+                    <span class="{% if exam.grade_achieved == 'distinction' %}text-success{% elif exam.grade_achieved == 'merit' %}text-info{% elif exam.grade_achieved == 'pass' %}text-primary{% else %}text-error{% endif %}">
+                        {{ exam.get_grade_achieved_display }}
+                    </span>
+                {% else %}
+                    <span class="text-base-content/50">-</span>
+                {% endif %}
+            </div>
+            <div class="stat-desc">
+                {% if exam.mark_achieved %}{{ exam.mark_achieved }}/100{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Action (if needed) -->
+    {% if not is_teacher and exam.requires_payment and not exam.is_paid %}
+        <div class="alert alert-warning mb-8">
+            <div class="flex justify-between items-center w-full">
+                <div>
+                    <h3 class="font-bold">Payment Required</h3>
+                    <div class="text-sm">Registration fee of £{{ exam.fee_amount }} is due for this exam.</div>
+                </div>
+                <form method="post" action="{% url 'private_teaching:exam_payment' exam.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-credit-card mr-2"></i>Pay Now
+                    </button>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Exam Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-info-circle mr-2"></i>Exam Information
+                </h2>
+                <div class="space-y-3">
+                    <div>
+                        <div class="text-sm text-base-content/70">Subject</div>
+                        <div class="font-semibold">{{ exam.subject.subject }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-base-content/70">Exam Board</div>
+                        <div class="font-semibold">{{ exam.exam_board }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-base-content/70">Grade & Type</div>
+                        <div class="font-semibold">{{ exam.get_grade_type_display }} Grade {{ exam.grade_level }}</div>
+                    </div>
+                    {% if exam.exam_date %}
+                        <div>
+                            <div class="text-sm text-base-content/70">Exam Date</div>
+                            <div class="font-semibold">{{ exam.exam_date|date:"l, F j, Y" }}</div>
+                        </div>
+                    {% endif %}
+                    {% if exam.submission_deadline %}
+                        <div>
+                            <div class="text-sm text-base-content/70">Submission Deadline</div>
+                            <div class="font-semibold">{{ exam.submission_deadline|date:"l, F j, Y" }}</div>
+                        </div>
+                    {% endif %}
+                    {% if exam.venue %}
+                        <div>
+                            <div class="text-sm text-base-content/70">Venue / Submission Method</div>
+                            <div class="font-semibold">{{ exam.venue }}</div>
+                        </div>
+                    {% endif %}
+                    {% if exam.registration_number %}
+                        <div>
+                            <div class="text-sm text-base-content/70">Registration Number</div>
+                            <div class="font-semibold">{{ exam.registration_number }}</div>
+                        </div>
+                    {% endif %}
+                    {% if is_teacher %}
+                        <div>
+                            <div class="text-sm text-base-content/70">Teacher</div>
+                            <div class="font-semibold">{{ exam.teacher.get_full_name }}</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Exam Pieces -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-file-music mr-2"></i>Exam Pieces
+                </h2>
+                {% if pieces %}
+                    <div class="space-y-4">
+                        {% for piece in pieces %}
+                            <div class="border border-base-300 rounded-lg p-4">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div class="font-semibold text-lg">Piece {{ piece.piece_number }}: {{ piece.title }}</div>
+                                    {% if piece.syllabus_list %}
+                                        <span class="badge badge-outline">List {{ piece.syllabus_list }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-base-content/70">{{ piece.composer }}</div>
+                                {% if piece.teacher_notes and is_teacher %}
+                                    <div class="mt-2 text-sm text-base-content/70 italic">{{ piece.teacher_notes }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-base-content/70">No pieces added yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Technical Requirements -->
+        {% if exam.scales or exam.arpeggios or exam.sight_reading or exam.aural_tests %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-music mr-2"></i>Technical Requirements
+                    </h2>
+                    <div class="space-y-3">
+                        {% if exam.scales %}
+                            <div>
+                                <div class="text-sm text-base-content/70 font-semibold">Scales</div>
+                                <div class="whitespace-pre-line">{{ exam.scales }}</div>
+                            </div>
+                        {% endif %}
+                        {% if exam.arpeggios %}
+                            <div>
+                                <div class="text-sm text-base-content/70 font-semibold">Arpeggios</div>
+                                <div class="whitespace-pre-line">{{ exam.arpeggios }}</div>
+                            </div>
+                        {% endif %}
+                        {% if exam.sight_reading %}
+                            <div>
+                                <div class="text-sm text-base-content/70 font-semibold">Sight Reading</div>
+                                <div class="whitespace-pre-line">{{ exam.sight_reading }}</div>
+                            </div>
+                        {% endif %}
+                        {% if exam.aural_tests %}
+                            <div>
+                                <div class="text-sm text-base-content/70 font-semibold">Aural Tests</div>
+                                <div class="whitespace-pre-line">{{ exam.aural_tests }}</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Results (if available) -->
+        {% if exam.has_results %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-trophy mr-2"></i>Exam Results
+                    </h2>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="text-sm text-base-content/70">Grade Achieved</div>
+                            <div class="font-semibold text-2xl {% if exam.grade_achieved == 'distinction' %}text-success{% elif exam.grade_achieved == 'merit' %}text-info{% elif exam.grade_achieved == 'pass' %}text-primary{% else %}text-error{% endif %}">
+                                {{ exam.get_grade_achieved_display }}
+                            </div>
+                        </div>
+                        {% if exam.mark_achieved %}
+                            <div>
+                                <div class="text-sm text-base-content/70">Mark</div>
+                                <div class="font-semibold">{{ exam.mark_achieved }} / 100</div>
+                            </div>
+                        {% endif %}
+                        {% if exam.examiner_comments %}
+                            <div>
+                                <div class="text-sm text-base-content/70">Examiner Comments</div>
+                                <div class="whitespace-pre-line">{{ exam.examiner_comments }}</div>
+                            </div>
+                        {% endif %}
+                        {% if exam.certificate_received_date %}
+                            <div>
+                                <div class="text-sm text-base-content/70">Certificate Received</div>
+                                <div class="font-semibold">{{ exam.certificate_received_date|date:"F j, Y" }}</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Preparation Lessons (Teacher only) -->
+        {% if is_teacher and preparation_lessons %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-chalkboard-teacher mr-2"></i>Preparation Lessons
+                    </h2>
+                    <div class="space-y-2">
+                        {% for lesson in preparation_lessons %}
+                            <div class="flex justify-between items-center border-b border-base-300 pb-2">
+                                <div>
+                                    <div class="font-semibold">{{ lesson.lesson_date|date:"M j, Y" }}</div>
+                                    <div class="text-sm text-base-content/70">{{ lesson.duration_in_minutes }} min</div>
+                                </div>
+                                <a href="{% url 'private_teaching:lesson_detail' lesson.id %}" class="btn btn-sm btn-ghost">
+                                    View <i class="fas fa-arrow-right ml-2"></i>
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

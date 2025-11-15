@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Exam Registrations - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Exam Registrations</h1>
+                <p class="text-base-content/70">Manage student exam registrations and results</p>
+            </div>
+            <a href="{% url 'private_teaching:exam_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus mr-2"></i>Register Student for Exam
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="stat bg-info text-info-content rounded-lg shadow-lg">
+            <div class="stat-title text-white text-lg font-semibold">Upcoming Exams</div>
+            <div class="stat-value text-white text-4xl">{{ upcoming_exams|length }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                {% if upcoming_exams %}
+                    Next: {{ upcoming_exams.0.exam_date|date:"M j" }}
+                {% else %}
+                    No upcoming exams
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="stat bg-warning text-warning-content rounded-lg shadow-lg">
+            <div class="stat-title text-white text-lg font-semibold">Pending Results</div>
+            <div class="stat-value text-white text-4xl">{{ pending_results|length }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                {% if pending_results %}
+                    Awaiting results entry
+                {% else %}
+                    All results entered
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="stat bg-success text-success-content rounded-lg shadow-lg">
+            <div class="stat-title text-white text-lg font-semibold">Total Registrations</div>
+            <div class="stat-value text-white text-4xl">{{ exams|length }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                All time
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="tabs tabs-boxed mb-6">
+        <a href="{% url 'private_teaching:exam_list' %}" class="tab {% if not status_filter %}tab-active{% endif %}">All Exams</a>
+        <a href="{% url 'private_teaching:exam_list' %}?status=registered" class="tab {% if status_filter == 'registered' %}tab-active{% endif %}">Registered</a>
+        <a href="{% url 'private_teaching:exam_list' %}?status=submitted" class="tab {% if status_filter == 'submitted' %}tab-active{% endif %}">Submitted</a>
+        <a href="{% url 'private_teaching:exam_list' %}?status=results_received" class="tab {% if status_filter == 'results_received' %}tab-active{% endif %}">Results Received</a>
+    </div>
+
+    <!-- Exams List -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            {% if exams %}
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Exam</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Payment</th>
+                                <th>Result</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for exam in exams %}
+                                <tr>
+                                    <td>
+                                        <div class="font-semibold">{{ exam.student_name }}</div>
+                                        <div class="text-sm text-base-content/70">{{ exam.subject.subject }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="font-semibold">{{ exam.exam_board }}</div>
+                                        <div class="text-sm text-base-content/70">
+                                            {{ exam.get_grade_type_display }} Grade {{ exam.grade_level }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if exam.exam_date %}
+                                            {{ exam.exam_date|date:"M j, Y" }}
+                                        {% else %}
+                                            <span class="text-base-content/50">TBD</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge
+                                            {% if exam.status == 'registered' %}badge-info{% elif exam.status == 'submitted' %}badge-warning{% else %}badge-success{% endif %}">
+                                            {{ exam.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if exam.is_paid %}
+                                            <span class="badge badge-success">Paid</span>
+                                        {% elif exam.requires_payment %}
+                                            <span class="badge badge-warning">Pending</span>
+                                        {% else %}
+                                            <span class="badge badge-ghost">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if exam.has_results %}
+                                            <span class="badge
+                                                {% if exam.grade_achieved == 'distinction' %}badge-success
+                                                {% elif exam.grade_achieved == 'merit' %}badge-info
+                                                {% elif exam.grade_achieved == 'pass' %}badge-primary
+                                                {% else %}badge-error{% endif %}">
+                                                {{ exam.get_grade_achieved_display }}
+                                            </span>
+                                            {% if exam.mark_achieved %}
+                                                <div class="text-sm text-base-content/70">{{ exam.mark_achieved }}/100</div>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-base-content/50">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="dropdown dropdown-end">
+                                            <label tabindex="0" class="btn btn-ghost btn-sm">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </label>
+                                            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                                <li><a href="{% url 'private_teaching:exam_detail' exam.id %}"><i class="fas fa-eye mr-2"></i>View Details</a></li>
+                                                <li><a href="{% url 'private_teaching:exam_edit' exam.id %}"><i class="fas fa-edit mr-2"></i>Edit</a></li>
+                                                {% if exam.status == 'submitted' %}
+                                                    <li><a href="{% url 'private_teaching:exam_results' exam.id %}"><i class="fas fa-trophy mr-2"></i>Enter Results</a></li>
+                                                {% endif %}
+                                                <li>
+                                                    <form method="post" action="{% url 'private_teaching:exam_delete' exam.id %}" onsubmit="return confirm('Are you sure you want to delete this exam registration?');">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="text-error"><i class="fas fa-trash mr-2"></i>Delete</button>
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-clipboard-list text-6xl text-base-content/20 mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">No Exam Registrations</h3>
+                    <p class="text-base-content/70 mb-6">You haven't registered any students for exams yet.</p>
+                    <a href="{% url 'private_teaching:exam_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus mr-2"></i>Register First Student
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -256,3 +256,83 @@ class TeacherPaymentNotificationService(BaseNotificationService):
         except Exception as e:
             logger.error(f"Failed to send payment notification to teacher: {str(e)}")
             return False
+
+    @staticmethod
+    def send_exam_registration_notification(exam):
+        """Send notification to student/parent when registered for an exam"""
+        try:
+            # Get recipient email (student or guardian)
+            recipient_email = exam.student.email
+            recipient_name = exam.student.get_full_name()
+
+            if not recipient_email:
+                logger.warning(f"No email found for exam registration {exam.id}")
+                return False
+
+            # Build URLs
+            exam_detail_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:exam_detail',
+                kwargs={'pk': exam.id}
+            )
+
+            context = {
+                'exam': exam,
+                'student_name': exam.student_name,
+                'recipient_name': recipient_name,
+                'teacher': exam.teacher,
+                'exam_detail_url': exam_detail_url,
+                'requires_payment': exam.requires_payment and not exam.is_paid,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_exam_registration.txt',
+                context=context,
+                recipient_list=[recipient_email],
+                default_subject=f'Exam Registration: {exam.display_name}',
+                fail_silently=True,
+                log_description=f"Exam registration notification to {recipient_name}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send exam registration notification: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_exam_results_notification(exam):
+        """Send notification to student/parent when exam results are available"""
+        try:
+            # Get recipient email (student or guardian)
+            recipient_email = exam.student.email
+            recipient_name = exam.student.get_full_name()
+
+            if not recipient_email:
+                logger.warning(f"No email found for exam results {exam.id}")
+                return False
+
+            # Build URLs
+            exam_detail_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:exam_detail',
+                kwargs={'pk': exam.id}
+            )
+
+            context = {
+                'exam': exam,
+                'student_name': exam.student_name,
+                'recipient_name': recipient_name,
+                'teacher': exam.teacher,
+                'exam_detail_url': exam_detail_url,
+                'has_results': exam.has_results,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_exam_results.txt',
+                context=context,
+                recipient_list=[recipient_email],
+                default_subject=f'Exam Results: {exam.display_name}',
+                fail_silently=True,
+                log_description=f"Exam results notification to {recipient_name}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send exam results notification: {str(e)}")
+            return False

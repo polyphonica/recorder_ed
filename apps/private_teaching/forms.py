@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.forms import inlineformset_factory
-from .models import LessonRequest, Subject, LessonRequestMessage
+from .models import LessonRequest, Subject, LessonRequestMessage, ExamRegistration, ExamPiece, ExamBoard
 from lessons.models import Lesson
 
 
@@ -440,3 +440,230 @@ class SubjectForm(forms.ModelForm):
         if commit:
             subject.save()
         return subject
+
+
+class ExamRegistrationForm(forms.ModelForm):
+    """Form for teachers to register students for exams"""
+
+    # Child selection for guardians
+    child_profile = forms.ChoiceField(
+        required=False,
+        label="Student (if child):",
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full'}),
+        help_text="Select which child this exam is for (if applicable)"
+    )
+
+    class Meta:
+        model = ExamRegistration
+        fields = [
+            'student', 'child_profile', 'subject', 'exam_board',
+            'grade_type', 'grade_level', 'exam_date', 'submission_deadline',
+            'registration_number', 'venue', 'scales', 'arpeggios',
+            'sight_reading', 'aural_tests', 'fee_amount', 'teacher_notes'
+        ]
+        widgets = {
+            'student': forms.Select(attrs={'class': 'select select-bordered w-full'}),
+            'subject': forms.Select(attrs={'class': 'select select-bordered w-full'}),
+            'exam_board': forms.Select(attrs={'class': 'select select-bordered w-full'}),
+            'grade_type': forms.Select(attrs={'class': 'select select-bordered w-full'}),
+            'grade_level': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full',
+                'min': '1',
+                'max': '8'
+            }),
+            'exam_date': forms.DateInput(attrs={
+                'class': 'input input-bordered w-full',
+                'type': 'date'
+            }),
+            'submission_deadline': forms.DateInput(attrs={
+                'class': 'input input-bordered w-full',
+                'type': 'date'
+            }),
+            'registration_number': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'Optional - from exam board'
+            }),
+            'venue': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'e.g., Video submission, London Centre'
+            }),
+            'scales': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 3,
+                'placeholder': 'e.g., C major, A minor melodic, chromatic'
+            }),
+            'arpeggios': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 2,
+                'placeholder': 'e.g., C major, A minor'
+            }),
+            'sight_reading': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 2,
+                'placeholder': 'Sight reading requirements'
+            }),
+            'aural_tests': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 2,
+                'placeholder': 'Aural test requirements'
+            }),
+            'fee_amount': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00'
+            }),
+            'teacher_notes': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 3,
+                'placeholder': 'Private notes about this exam registration'
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.teacher = kwargs.pop('teacher', None)
+        self.selected_student = kwargs.pop('student', None)
+        super().__init__(*args, **kwargs)
+
+        # Filter students to only accepted students of this teacher
+        if self.teacher:
+            from .models import TeacherStudentApplication
+            accepted_applications = TeacherStudentApplication.objects.filter(
+                teacher=self.teacher,
+                status='accepted'
+            ).select_related('applicant', 'child_profile')
+
+            # Build choices for student field
+            student_choices = []
+            child_choices = []
+
+            for app in accepted_applications:
+                if app.child_profile:
+                    # Add guardian to students if not already there
+                    if (str(app.applicant.id), f"{app.applicant.get_full_name()} (Guardian)") not in student_choices:
+                        student_choices.append((str(app.applicant.id), f"{app.applicant.get_full_name()} (Guardian)"))
+                    # Add child to child choices
+                    child_choices.append((str(app.child_profile.id), app.child_profile.full_name))
+                else:
+                    # Adult student
+                    student_choices.append((str(app.applicant.id), app.applicant.get_full_name()))
+
+            self.fields['student'].choices = [('', 'Select student')] + student_choices
+            self.fields['child_profile'].choices = [('', 'N/A - Adult student')] + child_choices
+
+            # Filter subjects to only this teacher's subjects
+            self.fields['subject'].queryset = Subject.objects.filter(
+                teacher=self.teacher,
+                is_active=True
+            )
+
+            # Filter exam boards to only active ones
+            self.fields['exam_board'].queryset = ExamBoard.objects.filter(is_active=True)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        grade_type = cleaned_data.get('grade_type')
+        grade_level = cleaned_data.get('grade_level')
+
+        if grade_type and grade_level:
+            if grade_type == ExamRegistration.THEORY:
+                if grade_level < 1 or grade_level > 6:
+                    self.add_error('grade_level', 'Theory grades must be between 1 and 6')
+            else:  # Practical or Performance
+                if grade_level < 1 or grade_level > 8:
+                    self.add_error('grade_level', 'Practical and Performance grades must be between 1 and 8')
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        exam = super().save(commit=False)
+        if self.teacher:
+            exam.teacher = self.teacher
+
+        # Set payment status to pending if fee is greater than 0
+        if exam.fee_amount > 0:
+            exam.payment_status = 'pending'
+        else:
+            exam.payment_status = 'not_required'
+
+        if commit:
+            exam.save()
+        return exam
+
+
+class ExamPieceForm(forms.ModelForm):
+    """Form for individual exam pieces"""
+
+    class Meta:
+        model = ExamPiece
+        fields = ['piece_number', 'title', 'composer', 'syllabus_list', 'teacher_notes']
+        widgets = {
+            'piece_number': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-20',
+                'min': '1',
+                'placeholder': '#'
+            }),
+            'title': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'Piece title'
+            }),
+            'composer': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'Composer name'
+            }),
+            'syllabus_list': forms.TextInput(attrs={
+                'class': 'input input-bordered w-32',
+                'placeholder': 'A, B, C...'
+            }),
+            'teacher_notes': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 2,
+                'placeholder': 'Notes about practice progress'
+            }),
+        }
+
+
+# Create formset for exam pieces
+ExamPieceFormSet = inlineformset_factory(
+    ExamRegistration,
+    ExamPiece,
+    form=ExamPieceForm,
+    extra=3,  # Show 3 empty forms by default (typical for most exams)
+    min_num=0,  # Pieces are optional (can be added later)
+    can_delete=True
+)
+
+
+class ExamResultsForm(forms.ModelForm):
+    """Form for teachers to enter exam results"""
+
+    class Meta:
+        model = ExamRegistration
+        fields = [
+            'status', 'mark_achieved', 'grade_achieved',
+            'examiner_comments', 'certificate_received_date'
+        ]
+        widgets = {
+            'status': forms.Select(attrs={'class': 'select select-bordered w-full'}),
+            'mark_achieved': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full',
+                'min': '0',
+                'max': '100',
+                'placeholder': 'e.g., 85'
+            }),
+            'grade_achieved': forms.Select(attrs={'class': 'select select-bordered w-full'}),
+            'examiner_comments': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 4,
+                'placeholder': 'Enter examiner feedback and comments'
+            }),
+            'certificate_received_date': forms.DateInput(attrs={
+                'class': 'input input-bordered w-full',
+                'type': 'date'
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make status required and set to results_received by default
+        self.fields['status'].initial = ExamRegistration.RESULTS_RECEIVED
