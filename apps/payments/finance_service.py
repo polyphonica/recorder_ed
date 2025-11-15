@@ -141,6 +141,16 @@ class FinanceService:
                 'private_teaching': {
                     'revenue': private_revenue,
                     'count': private_count,
+                    'breakdown': {
+                        'lessons': {
+                            'revenue': private_lessons_gross * (1 - Decimal(str(commission_rate))),
+                            'count': private_lessons_count,
+                        },
+                        'exams': {
+                            'revenue': exams_gross * (1 - Decimal(str(commission_rate))),
+                            'count': exams_count,
+                        },
+                    },
                 },
             }
         }
