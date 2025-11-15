@@ -1995,23 +1995,30 @@ class ExamPaymentView(PrivateTeachingLoginRequiredMixin, View):
 class ExamPaymentSuccessView(BaseCheckoutSuccessView):
     """Handle successful exam payment"""
 
-    def get(self, request, pk):
-        exam = get_object_or_404(ExamRegistration, pk=pk)
+    def get_object_model(self):
+        return ExamRegistration
 
-        # Mark as paid
-        exam.payment_status = 'completed'
-        exam.paid_at = timezone.now()
-        exam.save()
+    def get_object_id_kwarg(self):
+        return 'pk'
 
-        messages.success(request, f'Payment successful! Exam registration confirmed.')
-        return redirect('private_teaching:exam_detail', pk=exam.id)
+    def get_redirect_url_name(self):
+        return 'private_teaching:student_exams'
+
+    def get_context_extras(self, exam):
+        return {
+            'exam': exam,
+            'student_name': exam.student_name,
+        }
 
 
 class ExamPaymentCancelView(BaseCheckoutCancelView):
     """Handle cancelled exam payment"""
 
-    def get(self, request, pk):
-        exam = get_object_or_404(ExamRegistration, pk=pk)
+    def get_object_model(self):
+        return ExamRegistration
 
-        messages.warning(request, 'Payment was cancelled. You can try again when ready.')
-        return redirect('private_teaching:exam_detail', pk=exam.id)
+    def get_object_id_kwarg(self):
+        return 'pk'
+
+    def get_redirect_url_name(self):
+        return 'private_teaching:exam_detail'
