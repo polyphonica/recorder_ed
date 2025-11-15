@@ -1675,11 +1675,18 @@ class ExamRegistrationListView(PrivateTeachingLoginRequiredMixin, TeacherProfile
     paginate_by = 20
 
     def get_queryset(self):
-        return ExamRegistration.objects.filter(
+        queryset = ExamRegistration.objects.filter(
             teacher=self.request.user
         ).select_related(
             'student', 'child_profile', 'subject', 'exam_board'
-        ).prefetch_related('pieces').order_by('-exam_date', '-created_at')
+        ).prefetch_related('pieces')
+
+        # Filter by status if provided
+        status_filter = self.request.GET.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        return queryset.order_by('-exam_date', '-created_at')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1687,18 +1694,24 @@ class ExamRegistrationListView(PrivateTeachingLoginRequiredMixin, TeacherProfile
         # Filter by status if provided
         status_filter = self.request.GET.get('status')
         if status_filter:
-            context['exams'] = context['exams'].filter(status=status_filter)
             context['status_filter'] = status_filter
 
-        # Group exams
-        exams = context['exams']
-        context['upcoming_exams'] = exams.filter(
+        # Get all exams for this teacher (not paginated)
+        all_exams = ExamRegistration.objects.filter(
+            teacher=self.request.user
+        ).select_related(
+            'student', 'child_profile', 'subject', 'exam_board'
+        ).prefetch_related('pieces')
+
+        # Group exams for sidebar/stats
+        context['upcoming_exams'] = all_exams.filter(
             exam_date__gte=timezone.now().date(),
             status=ExamRegistration.REGISTERED
-        )[:5]
-        context['pending_results'] = exams.filter(
+        ).order_by('exam_date')[:5]
+
+        context['pending_results'] = all_exams.filter(
             status=ExamRegistration.SUBMITTED
-        )[:5]
+        ).order_by('-exam_date')[:5]
 
         return context
 
