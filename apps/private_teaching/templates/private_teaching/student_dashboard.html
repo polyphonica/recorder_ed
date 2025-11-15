@@ -239,7 +239,10 @@
                 <h2 class="card-title text-2xl mb-4">
                     <i class="fas fa-bolt mr-2"></i>Quick Actions
                 </h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <a href="{% url 'private_teaching:student_exams' %}" class="btn btn-outline btn-lg">
+                        <i class="fas fa-graduation-cap mr-2"></i>My Exams
+                    </a>
                     <a href="{% url 'private_teaching:student_library' %}" class="btn btn-outline btn-lg">
                         <i class="fas fa-book mr-2"></i>Document Library
                     </a>
