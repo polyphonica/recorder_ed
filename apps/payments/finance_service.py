@@ -616,8 +616,30 @@ class FinanceService:
                 'teacher_share': teacher_share,
             })
 
+        # Get exam registrations
+        from apps.private_teaching.models import ExamRegistration
+
+        exam_registrations = ExamRegistration.objects.filter(
+            teacher=teacher,
+            payment_status='completed'
+        ).select_related('student', 'exam_board', 'subject', 'child_profile').order_by('-paid_at')[:limit]
+
+        for exam in exam_registrations:
+            amount = exam.fee_amount
+            teacher_share = amount * (1 - Decimal(str(commission_rate)))
+
+            transactions.append({
+                'date': exam.paid_at,
+                'domain': 'private_teaching',
+                'domain_display': 'Exam Registration',
+                'description': f"{exam.display_name} - {exam.subject.subject}",
+                'student': exam.student,
+                'amount': amount,
+                'teacher_share': teacher_share,
+            })
+
         # Sort all transactions by date (most recent first) and limit
-        transactions.sort(key=lambda x: x['date'], reverse=True)
+        transactions.sort(key=lambda x: x['date'] if x['date'] else timezone.now() - timedelta(days=365), reverse=True)
         return transactions[:limit]
 
     @staticmethod
