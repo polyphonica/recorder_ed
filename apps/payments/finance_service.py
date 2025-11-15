@@ -79,7 +79,7 @@ class FinanceService:
         courses_count = course_enrollments.count()
         courses_revenue = courses_gross * (1 - Decimal(str(commission_rate)))
 
-        # ===== PRIVATE TEACHING =====
+        # ===== PRIVATE TEACHING - LESSONS =====
         private_orders = Order.objects.filter(
             items__lesson__teacher=teacher,
             payment_status='completed'
@@ -90,10 +90,32 @@ class FinanceService:
         if end_date:
             private_orders = private_orders.filter(created_at__lte=end_date)
 
-        private_gross = private_orders.aggregate(
+        private_lessons_gross = private_orders.aggregate(
             total=Sum('total_amount')
         )['total'] or Decimal('0.00')
-        private_count = private_orders.count()
+        private_lessons_count = private_orders.count()
+
+        # ===== PRIVATE TEACHING - EXAM REGISTRATIONS =====
+        from apps.private_teaching.models import ExamRegistration
+
+        exam_registrations = ExamRegistration.objects.filter(
+            teacher=teacher,
+            payment_status='completed'
+        )
+
+        if start_date:
+            exam_registrations = exam_registrations.filter(paid_at__gte=start_date)
+        if end_date:
+            exam_registrations = exam_registrations.filter(paid_at__lte=end_date)
+
+        exams_gross = exam_registrations.aggregate(
+            total=Sum('fee_amount')
+        )['total'] or Decimal('0.00')
+        exams_count = exam_registrations.count()
+
+        # Combine private teaching revenue
+        private_gross = private_lessons_gross + exams_gross
+        private_count = private_lessons_count + exams_count
         private_revenue = private_gross * (1 - Decimal(str(commission_rate)))
 
         # ===== TOTALS =====
@@ -188,23 +210,46 @@ class FinanceService:
             transactions = query.select_related('course', 'student').order_by('-paid_at')
 
         elif domain == 'private_teaching':
-            from apps.private_teaching.models import Order
+            from apps.private_teaching.models import Order, ExamRegistration
 
-            query = Order.objects.filter(
+            # Lesson orders
+            orders_query = Order.objects.filter(
                 items__lesson__teacher=teacher,
                 payment_status='completed'
             ).distinct()
 
             if start_date:
-                query = query.filter(created_at__gte=start_date)
+                orders_query = orders_query.filter(created_at__gte=start_date)
             if end_date:
-                query = query.filter(created_at__lte=end_date)
+                orders_query = orders_query.filter(created_at__lte=end_date)
 
-            total_gross = query.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
-            payment_count = query.count()
+            lessons_gross = orders_query.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+            lessons_count = orders_query.count()
+
+            # Exam registrations
+            exams_query = ExamRegistration.objects.filter(
+                teacher=teacher,
+                payment_status='completed'
+            )
+
+            if start_date:
+                exams_query = exams_query.filter(paid_at__gte=start_date)
+            if end_date:
+                exams_query = exams_query.filter(paid_at__lte=end_date)
+
+            exams_gross = exams_query.aggregate(total=Sum('fee_amount'))['total'] or Decimal('0.00')
+            exams_count = exams_query.count()
+
+            # Combine totals
+            total_gross = lessons_gross + exams_gross
+            payment_count = lessons_count + exams_count
             total_revenue = total_gross * (1 - Decimal(str(commission_rate)))
             total_commission = total_gross - total_revenue
-            transactions = query.select_related('student').order_by('-created_at')
+
+            # Combine transactions (orders and exams)
+            # Note: This returns a list instead of queryset since we're combining two models
+            transactions = list(orders_query.select_related('student').order_by('-created_at')) + \
+                          list(exams_query.select_related('student', 'teacher', 'exam_board').order_by('-paid_at'))
 
         else:
             return {
