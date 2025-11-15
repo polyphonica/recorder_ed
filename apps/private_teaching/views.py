@@ -2005,6 +2005,13 @@ class ExamPaymentSuccessView(BaseCheckoutSuccessView):
     def get_redirect_url_name(self):
         return 'private_teaching:student_exams'
 
+    def perform_post_checkout_actions(self, exam):
+        """Mark exam as paid after successful checkout"""
+        if exam.payment_status != 'completed':
+            exam.payment_status = 'completed'
+            exam.paid_at = timezone.now()
+            exam.save(update_fields=['payment_status', 'paid_at'])
+
     def get_context_extras(self, exam):
         return {
             'exam': exam,
