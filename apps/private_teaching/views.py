@@ -1900,18 +1900,27 @@ class StudentExamListView(PrivateTeachingLoginRequiredMixin, StudentProfileCompl
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Group exams
-        exams = context['exams']
-        context['upcoming_exams'] = exams.filter(
+        # Get all exams for this user (not paginated)
+        user = self.request.user
+        all_exams = ExamRegistration.objects.filter(
+            Q(student=user) | Q(child_profile__guardian=user)
+        ).select_related(
+            'teacher', 'subject', 'exam_board', 'child_profile'
+        ).prefetch_related('pieces')
+
+        # Group exams for stats
+        context['upcoming_exams'] = all_exams.filter(
             exam_date__gte=timezone.now().date(),
             status__in=[ExamRegistration.REGISTERED, ExamRegistration.SUBMITTED]
-        )
-        context['completed_exams'] = exams.filter(
+        ).order_by('exam_date')
+
+        context['completed_exams'] = all_exams.filter(
             status=ExamRegistration.RESULTS_RECEIVED
-        )
-        context['unpaid_exams'] = exams.filter(
+        ).order_by('-exam_date')
+
+        context['unpaid_exams'] = all_exams.filter(
             payment_status='pending'
-        )
+        ).order_by('exam_date')
 
         return context
 
