@@ -1721,7 +1721,9 @@ class ExamRegistrationCreateView(PrivateTeachingLoginRequiredMixin, TeacherProfi
     template_name = 'private_teaching/exams/create.html'
 
     def get(self, request):
-        form = ExamRegistrationForm(teacher=request.user)
+        # Get student from query parameter if provided
+        student_id = request.GET.get('student')
+        form = ExamRegistrationForm(teacher=request.user, student=student_id)
         piece_formset = ExamPieceFormSet()
 
         return render(request, self.template_name, {

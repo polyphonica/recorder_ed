@@ -445,7 +445,13 @@ class SubjectForm(forms.ModelForm):
 class ExamRegistrationForm(forms.ModelForm):
     """Form for teachers to register students for exams"""
 
-    # Child selection for guardians
+    # Override student and child_profile as ChoiceFields
+    student = forms.ChoiceField(
+        label="Student/Guardian:",
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full'}),
+        help_text="Select the student or guardian"
+    )
+
     child_profile = forms.ChoiceField(
         required=False,
         label="Student (if child):",
@@ -456,13 +462,12 @@ class ExamRegistrationForm(forms.ModelForm):
     class Meta:
         model = ExamRegistration
         fields = [
-            'student', 'child_profile', 'subject', 'exam_board',
+            'subject', 'exam_board',
             'grade_type', 'grade_level', 'exam_date', 'submission_deadline',
             'registration_number', 'venue', 'scales', 'arpeggios',
             'sight_reading', 'aural_tests', 'fee_amount', 'teacher_notes'
         ]
         widgets = {
-            'student': forms.Select(attrs={'class': 'select select-bordered w-full'}),
             'subject': forms.Select(attrs={'class': 'select select-bordered w-full'}),
             'exam_board': forms.Select(attrs={'class': 'select select-bordered w-full'}),
             'grade_type': forms.Select(attrs={'class': 'select select-bordered w-full'}),
@@ -551,6 +556,10 @@ class ExamRegistrationForm(forms.ModelForm):
             self.fields['student'].choices = [('', 'Select student')] + student_choices
             self.fields['child_profile'].choices = [('', 'N/A - Adult student')] + child_choices
 
+            # Pre-select student if provided
+            if self.selected_student:
+                self.fields['student'].initial = str(self.selected_student)
+
             # Filter subjects to only this teacher's subjects
             self.fields['subject'].queryset = Subject.objects.filter(
                 teacher=self.teacher,
@@ -579,6 +588,21 @@ class ExamRegistrationForm(forms.ModelForm):
         exam = super().save(commit=False)
         if self.teacher:
             exam.teacher = self.teacher
+
+        # Handle student conversion from string ID to User instance
+        student_id = self.cleaned_data.get('student')
+        if student_id:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            exam.student = User.objects.get(id=student_id)
+
+        # Handle child_profile conversion from string ID to instance
+        child_profile_id = self.cleaned_data.get('child_profile')
+        if child_profile_id:
+            from apps.users.models import ChildProfile
+            exam.child_profile = ChildProfile.objects.get(id=child_profile_id)
+        else:
+            exam.child_profile = None
 
         # Set payment status to pending if fee is greater than 0
         if exam.fee_amount > 0:
