@@ -1994,6 +1994,7 @@ class ExamPaymentView(PrivateTeachingLoginRequiredMixin, View):
 
 class ExamPaymentSuccessView(BaseCheckoutSuccessView):
     """Handle successful exam payment"""
+    template_name = 'core/checkout_success.html'
 
     def get_object_model(self):
         return ExamRegistration
@@ -2008,11 +2009,15 @@ class ExamPaymentSuccessView(BaseCheckoutSuccessView):
         return {
             'exam': exam,
             'student_name': exam.student_name,
+            'success_message': f'Payment successful! Your exam registration for {exam.display_name} is confirmed.',
+            'detail_url': reverse('private_teaching:exam_detail', kwargs={'pk': exam.id}),
+            'detail_button_text': 'View Exam Details',
         }
 
 
 class ExamPaymentCancelView(BaseCheckoutCancelView):
     """Handle cancelled exam payment"""
+    template_name = 'core/checkout_cancel.html'
 
     def get_object_model(self):
         return ExamRegistration
