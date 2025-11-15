@@ -80,7 +80,7 @@
         <div class="card bg-base-200 shadow-xl">
             <div class="card-body">
                 <h2 class="card-title text-2xl mb-4">
-                    <i class="fas fa-list mr-2"></i>Revenue by Student
+                    <i class="fas fa-list mr-2"></i>Revenue by Student & Subject
                 </h2>
 
                 {% if student_breakdown %}
@@ -89,9 +89,12 @@
                             <thead>
                                 <tr>
                                     <th>Student</th>
-                                    <th>Subjects</th>
+                                    <th>Subject</th>
                                     <th>Lessons</th>
-                                    <th>Gross Revenue</th>
+                                    <th>Lesson Revenue</th>
+                                    <th>Exams</th>
+                                    <th>Exam Revenue</th>
+                                    <th>Total Revenue</th>
                                     <th>Your Share</th>
                                 </tr>
                             </thead>
@@ -101,31 +104,49 @@
                                     <td>
                                         <div class="flex items-center gap-3">
                                             <div class="avatar placeholder">
-                                                <div class="bg-neutral text-neutral-content rounded-full w-10">
-                                                    <span class="text-sm">
+                                                <div class="bg-neutral text-neutral-content rounded-full w-8">
+                                                    <span class="text-xs">
                                                         {{ item.student.first_name|first|upper|default:item.student.username|first|upper }}
                                                     </span>
                                                 </div>
                                             </div>
                                             <div>
                                                 <div class="font-bold">{{ item.student.get_full_name|default:item.student.username }}</div>
-                                                <div class="text-sm text-base-content/70">{{ item.student.email }}</div>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
-                                        {% if item.subjects %}
-                                            <div class="flex flex-wrap gap-1">
-                                                {% for subject in item.subjects %}
-                                                    <span class="badge badge-sm badge-ghost">{{ subject }}</span>
-                                                {% endfor %}
-                                            </div>
+                                        <span class="badge badge-primary">{{ item.subject.subject }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if item.lessons_count > 0 %}
+                                            {{ item.lessons_count }}
                                         {% else %}
-                                            <span class="text-base-content/50 text-sm">-</span>
+                                            <span class="text-base-content/30">-</span>
                                         {% endif %}
                                     </td>
-                                    <td class="text-center">{{ item.lessons_count }}</td>
-                                    <td>£{{ item.total_revenue|floatformat:2 }}</td>
+                                    <td>
+                                        {% if item.lessons_revenue > 0 %}
+                                            £{{ item.lessons_revenue|floatformat:2 }}
+                                        {% else %}
+                                            <span class="text-base-content/30">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if item.exams_count > 0 %}
+                                            {{ item.exams_count }}
+                                        {% else %}
+                                            <span class="text-base-content/30">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.exams_revenue > 0 %}
+                                            £{{ item.exams_revenue|floatformat:2 }}
+                                        {% else %}
+                                            <span class="text-base-content/30">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="font-semibold">£{{ item.total_revenue|floatformat:2 }}</td>
                                     <td class="font-bold text-accent">£{{ item.teacher_share|floatformat:2 }}</td>
                                 </tr>
                                 {% endfor %}

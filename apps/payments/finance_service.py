@@ -391,73 +391,94 @@ class FinanceService:
     @staticmethod
     def get_private_teaching_revenue_breakdown(teacher, start_date=None, end_date=None):
         """
-        Get revenue breakdown by individual students for private teaching.
+        Get revenue breakdown by student and subject for private teaching.
+        Returns one row per subject per student, showing lessons and exam revenue separately.
 
         Returns:
-            list of dicts with student info and revenue
+            list of dicts with student, subject, and revenue info
         """
-        from apps.private_teaching.models import Order, OrderItem
+        from apps.private_teaching.models import Order, OrderItem, ExamRegistration, Subject
         from django.contrib.auth.models import User
         from lessons.models import Lesson
+        from django.conf import settings
 
-        query = Order.objects.filter(
-            items__lesson__teacher=teacher,
-            payment_status='completed'
-        ).distinct()
+        commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
+        breakdown_dict = {}  # Key: (student_id, subject_id)
+
+        # Get paid lessons and group by student and subject
+        lessons_query = Lesson.objects.filter(
+            teacher=teacher,
+            payment_status='Paid',
+            is_deleted=False
+        ).select_related('student', 'subject', 'order_item__order')
 
         if start_date:
-            query = query.filter(created_at__gte=start_date)
+            lessons_query = lessons_query.filter(lesson_date__gte=start_date)
         if end_date:
-            query = query.filter(created_at__lte=end_date)
+            lessons_query = lessons_query.filter(lesson_date__lte=end_date)
 
-        # Group by student
-        students_data = query.values('student').annotate(
-            total_revenue=Sum('total_amount'),
-            lessons_count=Count('id')
-        ).order_by('-total_revenue')
+        for lesson in lessons_query:
+            key = (lesson.student.id, lesson.subject.id)
+            if key not in breakdown_dict:
+                breakdown_dict[key] = {
+                    'student': lesson.student,
+                    'subject': lesson.subject,
+                    'lessons_count': 0,
+                    'lessons_revenue': Decimal('0.00'),
+                    'exams_count': 0,
+                    'exams_revenue': Decimal('0.00'),
+                }
 
+            breakdown_dict[key]['lessons_count'] += 1
+            # Get the price from the order item
+            if hasattr(lesson, 'order_item') and lesson.order_item:
+                breakdown_dict[key]['lessons_revenue'] += lesson.order_item.price_paid
+
+        # Get paid exam registrations and group by student and subject
+        exams_query = ExamRegistration.objects.filter(
+            teacher=teacher,
+            payment_status='completed'
+        ).select_related('student', 'subject')
+
+        if start_date:
+            exams_query = exams_query.filter(paid_at__gte=start_date)
+        if end_date:
+            exams_query = exams_query.filter(paid_at__lte=end_date)
+
+        for exam in exams_query:
+            key = (exam.student.id, exam.subject.id)
+            if key not in breakdown_dict:
+                breakdown_dict[key] = {
+                    'student': exam.student,
+                    'subject': exam.subject,
+                    'lessons_count': 0,
+                    'lessons_revenue': Decimal('0.00'),
+                    'exams_count': 0,
+                    'exams_revenue': Decimal('0.00'),
+                }
+
+            breakdown_dict[key]['exams_count'] += 1
+            breakdown_dict[key]['exams_revenue'] += exam.fee_amount
+
+        # Build final breakdown list
         breakdown = []
-        for student_data in students_data:
-            student = User.objects.get(id=student_data['student'])
-
-            # Calculate teacher share (after commission)
-            from django.conf import settings
-            commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
-            total_revenue = student_data['total_revenue']
+        for data in breakdown_dict.values():
+            total_revenue = data['lessons_revenue'] + data['exams_revenue']
             teacher_share = total_revenue * (1 - Decimal(str(commission_rate)))
 
-            # Get all lessons for this student from this teacher
-            lessons_query = Lesson.objects.filter(
-                student=student,
-                teacher=teacher,
-                payment_status='Paid',
-                is_deleted=False
-            ).select_related('subject')
-
-            if start_date:
-                lessons_query = lessons_query.filter(lesson_date__gte=start_date)
-            if end_date:
-                lessons_query = lessons_query.filter(lesson_date__lte=end_date)
-
-            lessons_with_subjects = lessons_query.values(
-                'subject__subject'
-            ).annotate(
-                count=Count('id')
-            ).order_by('-count')
-
-            # Format subjects as "Subject Name (x count)"
-            subjects_list = [
-                f"{item['subject__subject']} ({item['count']})" if item['count'] > 1 else item['subject__subject']
-                for item in lessons_with_subjects
-            ]
-
             breakdown.append({
-                'student': student,
+                'student': data['student'],
+                'subject': data['subject'],
+                'lessons_count': data['lessons_count'],
+                'lessons_revenue': data['lessons_revenue'],
+                'exams_count': data['exams_count'],
+                'exams_revenue': data['exams_revenue'],
                 'total_revenue': total_revenue,
                 'teacher_share': teacher_share,
-                'lessons_count': student_data['lessons_count'],
-                'subjects': subjects_list,
             })
+
+        # Sort by student name, then subject name
+        breakdown.sort(key=lambda x: (x['student'].get_full_name() or x['student'].username, x['subject'].subject))
 
         return breakdown
 
