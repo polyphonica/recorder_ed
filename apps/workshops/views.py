@@ -272,22 +272,49 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
         if not self.request.user.is_authenticated:
             return self.handle_no_permission()
 
-        # For in-person workshops, add to cart with registration data
-        # For online workshops, this form shouldn't normally be reached (they use direct Add to Cart)
-        # But we'll handle both cases
+        # Create registration object
+        registration = form.save(commit=False)
+        registration.student = self.request.user
+        registration.session = self.session
+        registration.email = registration.email or getattr(self.request.user, 'email', '')
 
-        # Get child profile ID if guardian
-        child_profile_id = None
+        # Handle child profile if guardian
         if self.request.user.profile.is_guardian:
             child_id = form.cleaned_data.get('child_profile')
             if child_id:
                 from apps.accounts.models import ChildProfile
                 try:
                     child = ChildProfile.objects.get(id=child_id, guardian=self.request.user)
-                    child_profile_id = str(child.id)
+                    registration.child_profile = child
                 except ChildProfile.DoesNotExist:
                     messages.error(self.request, 'Invalid child selected.')
                     return redirect('workshops:detail', slug=self.workshop.slug)
+
+        # WAITLIST FLOW: If session is full, add to waitlist directly (no payment)
+        if self.session.is_full:
+            if self.session.waitlist_enabled:
+                registration.status = 'waitlisted'
+                registration.payment_status = 'not_required'  # Payment only required when promoted
+                registration.save()
+
+                student_name = registration.child_profile.full_name if registration.child_profile else 'You'
+                messages.success(
+                    self.request,
+                    f'{student_name} {"has" if registration.child_profile else "have"} been added to the waitlist for this workshop.'
+                )
+                return redirect('workshops:registration_confirm', registration_id=registration.id)
+            else:
+                messages.error(
+                    self.request,
+                    'Sorry, this workshop session is full and waitlist is not available.'
+                )
+                return redirect('workshops:detail', slug=self.workshop.slug)
+
+        # NORMAL FLOW: Session has capacity - use cart for payment flow
+        # Get child profile ID if guardian
+        child_profile_id = None
+        if registration.child_profile:
+            child_profile_id = str(registration.child_profile.id)
 
         # Add to cart with registration data
         from .cart import WorkshopCartManager
@@ -295,12 +322,12 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
 
         # Prepare registration data
         registration_data = {
-            'email': form.cleaned_data.get('email') or self.request.user.email,
-            'phone': form.cleaned_data.get('phone', ''),
-            'emergency_contact': form.cleaned_data.get('emergency_contact', ''),
-            'experience_level': form.cleaned_data.get('experience_level', ''),
-            'expectations': form.cleaned_data.get('expectations', ''),
-            'special_requirements': form.cleaned_data.get('special_requirements', ''),
+            'email': registration.email,
+            'phone': registration.phone or '',
+            'emergency_contact': registration.emergency_contact or '',
+            'experience_level': registration.experience_level or '',
+            'expectations': registration.expectations or '',
+            'special_requirements': registration.special_requirements or '',
         }
 
         success, message = cart_manager.add_session(

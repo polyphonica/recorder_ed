@@ -413,9 +413,19 @@
                                                                 </form>
                                                             {% endif %}
                                                         {% else %}
-                                                            <button class="btn btn-disabled btn-sm w-full mt-2 tooltip tooltip-top" data-tip="This session is fully booked">
-                                                                Session Full
-                                                            </button>
+                                                            {% comment %}Session is full - check if waitlist is enabled{% endcomment %}
+                                                            {% if session.waitlist_enabled %}
+                                                                <a href="{% url 'workshops:register' workshop_slug=session.workshop.slug session_id=session.id %}"
+                                                                   class="btn btn-warning btn-sm w-full mt-2 tooltip tooltip-top"
+                                                                   data-tip="Join the waiting list for this workshop">
+                                                                    <i class="fas fa-list mr-1"></i>
+                                                                    Join Waitlist
+                                                                </a>
+                                                            {% else %}
+                                                                <button class="btn btn-disabled btn-sm w-full mt-2 tooltip tooltip-top" data-tip="This session is fully booked">
+                                                                    Session Full
+                                                                </button>
+                                                            {% endif %}
                                                         {% endif %}
                                                     {% endif %}
                                                 {% else %}
@@ -426,9 +436,17 @@
                                                             Login to Register
                                                         </a>
                                                     {% else %}
-                                                        <button class="btn btn-disabled btn-sm w-full mt-2 tooltip tooltip-top" data-tip="This session is fully booked">
-                                                            Session Full
-                                                        </button>
+                                                        {% comment %}Session is full - check if waitlist is enabled{% endcomment %}
+                                                        {% if session.waitlist_enabled %}
+                                                            <a href="{% url 'login' %}?next={{ request.path }}"
+                                                               class="btn btn-warning btn-sm w-full mt-2 tooltip tooltip-top" data-tip="Sign in to join the waiting list">
+                                                                Login to Join Waitlist
+                                                            </a>
+                                                        {% else %}
+                                                            <button class="btn btn-disabled btn-sm w-full mt-2 tooltip tooltip-top" data-tip="This session is fully booked">
+                                                                Session Full
+                                                            </button>
+                                                        {% endif %}
                                                     {% endif %}
                                                 {% endif %}
                                             </div>
