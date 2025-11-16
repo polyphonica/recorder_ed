@@ -146,6 +146,21 @@ class Course(models.Model):
         """Check if any lesson in the course has a quiz"""
         return Quiz.objects.filter(lesson__topic__course=self).exists()
 
+    def update_counts(self):
+        """Update denormalized count fields"""
+        from django.db.models import Count
+
+        # Count topics
+        self.total_topics = self.topics.count()
+
+        # Count lessons across all topics
+        self.total_lessons = Lesson.objects.filter(topic__course=self).count()
+
+        # Count enrollments
+        self.total_enrollments = self.enrollments.filter(is_active=True).count()
+
+        self.save(update_fields=['total_topics', 'total_lessons', 'total_enrollments'])
+
 
 class Topic(models.Model):
     """
