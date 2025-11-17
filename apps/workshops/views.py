@@ -405,20 +405,6 @@ class RegistrationConfirmView(LoginRequiredMixin, DetailView):
                 from decimal import Decimal
 
                 try:
-                    # Create line item for Stripe
-                    session_date_str = registration.session.start_datetime.strftime("%B %d, %Y at %I:%M %p")
-                    line_items = [{
-                        'price_data': {
-                            'currency': 'gbp',
-                            'product_data': {
-                                'name': f'{registration.session.workshop.title}',
-                                'description': f'Promoted from waitlist - Session on {session_date_str}',
-                            },
-                            'unit_amount': int(registration.session.workshop.price * 100),  # Convert to pence
-                        },
-                        'quantity': 1,
-                    }]
-
                     # Build success and cancel URLs
                     success_url = request.build_absolute_uri(
                         reverse('workshops:checkout_success', kwargs={'registration_id': registration.id})
@@ -427,12 +413,21 @@ class RegistrationConfirmView(LoginRequiredMixin, DetailView):
                         reverse('workshops:checkout_cancel', kwargs={'registration_id': registration.id})
                     )
 
+                    # Prepare item details
+                    session_date_str = registration.session.start_datetime.strftime("%B %d, %Y at %I:%M %p")
+                    item_name = registration.session.workshop.title
+                    item_description = f'Promoted from waitlist - Session on {session_date_str}'
+
                     # Create Stripe checkout session
                     checkout_session = create_checkout_session(
-                        line_items=line_items,
-                        customer_email=request.user.email,
+                        amount=registration.session.workshop.price,
+                        student=request.user,
+                        teacher=registration.session.workshop.instructor,
+                        domain='workshops',
                         success_url=success_url,
                         cancel_url=cancel_url,
+                        item_name=item_name,
+                        item_description=item_description,
                         metadata={
                             'registration_id': str(registration.id),
                             'workshop_id': str(registration.session.workshop.id),
