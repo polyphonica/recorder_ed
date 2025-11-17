@@ -406,12 +406,13 @@ class RegistrationConfirmView(LoginRequiredMixin, DetailView):
 
                 try:
                     # Create line item for Stripe
+                    session_date_str = registration.session.start_datetime.strftime("%B %d, %Y at %I:%M %p")
                     line_items = [{
                         'price_data': {
                             'currency': 'gbp',
                             'product_data': {
-                                'name': f'{registration.session.workshop.title} - {registration.session.title}',
-                                'description': f'Promoted from waitlist - Session on {registration.session.start_datetime.strftime("%B %d, %Y at %I:%M %p")}',
+                                'name': f'{registration.session.workshop.title}',
+                                'description': f'Promoted from waitlist - Session on {session_date_str}',
                             },
                             'unit_amount': int(registration.session.workshop.price * 100),  # Convert to pence
                         },
