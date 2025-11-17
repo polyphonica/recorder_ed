@@ -13,12 +13,19 @@ Session Details:
 {% if session.location %}- Location: {{ session.location }}{% endif %}
 {% if session.meeting_url %}- Meeting URL: {{ session.meeting_url }}{% endif %}
 
-IMPORTANT: You have until {{ promotion.expires_at|date:"F j, Y" }} at {{ promotion.expires_at|time:"g:i A" }} to confirm your registration.
+IMPORTANT: You have until {{ promotion.expires_at|date:"F j, Y" }} at {{ promotion.expires_at|time:"g:i A" }} to complete your registration.
 
-To secure your spot, please confirm your registration by clicking the link below:
+{% if session.workshop.price > 0 %}PAYMENT REQUIRED: This workshop costs £{{ session.workshop.price }}. You must complete payment to secure your spot.
+
+To pay and confirm your spot, click the link below:
+{{ confirmation_url }}
+
+If you don't complete payment by the deadline, this spot will be offered to the next person on the waitlist.
+{% else %}To secure your spot, please confirm your registration by clicking the link below:
 {{ confirmation_url }}
 
 If you don't confirm by the deadline, this spot will be offered to the next person on the waitlist.
+{% endif %}
 
 Workshop Description:
 {{ session.workshop.description|truncatewords:50 }}
