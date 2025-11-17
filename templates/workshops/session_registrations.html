@@ -194,9 +194,9 @@
         {% endif %}
 
         <!-- Participants Table -->
-        <div class="bg-base-100 rounded-lg shadow overflow-hidden">
+        <div class="bg-base-100 rounded-lg shadow">
         {% if registrations %}
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto overflow-y-visible">
                 <table class="table table-zebra w-full">
                     <thead>
                         <tr>
@@ -285,11 +285,11 @@
                                 {{ registration.registration_date|naturaltime }}
                             </td>
                             <td>
-                                <div class="dropdown dropdown-end dropdown-top">
+                                <div class="dropdown dropdown-end">
                                     <label tabindex="0" class="btn btn-ghost btn-sm">
                                         <i class="fas fa-ellipsis-v"></i>
                                     </label>
-                                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-[100]">
+                                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-[1000]">
                                         <li><a onclick="viewRegistrationDetails('{{ registration.id }}')">
                                             <i class="fas fa-info-circle text-info"></i> View Details
                                         </a></li>
