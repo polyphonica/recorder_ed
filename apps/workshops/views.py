@@ -389,47 +389,107 @@ class RegistrationConfirmView(LoginRequiredMixin, DetailView):
         ).select_related('session__workshop')
     
     def post(self, request, *args, **kwargs):
-        """Handle payment completion for promoted registrations"""
+        """Handle payment initiation for promoted registrations"""
         registration = self.get_object()
 
         if registration.status == 'promoted':
-            # Complete the registration (simulate payment completion)
-            registration.status = 'registered'
-            registration.save()
+            # Check if workshop requires payment
+            if registration.session.workshop.price > 0:
+                # Set payment fields
+                registration.payment_amount = registration.session.workshop.price
+                registration.payment_status = 'pending'
+                registration.save(update_fields=['payment_amount', 'payment_status'])
 
-            # Mark the promotion as confirmed
-            from django.apps import apps
-            WaitlistPromotion = apps.get_model('workshops', 'WaitlistPromotion')
-            promotion = WaitlistPromotion.objects.filter(
-                registration=registration,
-                confirmed_at__isnull=True
-            ).first()
+                # Create Stripe checkout session
+                from apps.payments.stripe_service import create_checkout_session
+                from decimal import Decimal
 
-            if promotion:
-                promotion.confirmed_at = timezone.now()
-                promotion.save()
+                try:
+                    # Create line item for Stripe
+                    line_items = [{
+                        'price_data': {
+                            'currency': 'gbp',
+                            'product_data': {
+                                'name': f'{registration.session.workshop.title} - {registration.session.title}',
+                                'description': f'Promoted from waitlist - Session on {registration.session.start_datetime.strftime("%B %d, %Y at %I:%M %p")}',
+                            },
+                            'unit_amount': int(registration.session.workshop.price * 100),  # Convert to pence
+                        },
+                        'quantity': 1,
+                    }]
 
-            # Update session registration count
-            registration.session.current_registrations = registration.session.registrations.filter(
-                status__in=['registered', 'promoted', 'attended']
-            ).count()
-            registration.session.save(update_fields=['current_registrations'])
+                    # Build success and cancel URLs
+                    success_url = request.build_absolute_uri(
+                        reverse('workshops:checkout_success', kwargs={'registration_id': registration.id})
+                    ) + '?session_id={CHECKOUT_SESSION_ID}'
+                    cancel_url = request.build_absolute_uri(
+                        reverse('workshops:checkout_cancel', kwargs={'registration_id': registration.id})
+                    )
 
-            messages.success(request, 'Payment completed! You are now registered for the workshop.')
+                    # Create Stripe checkout session
+                    checkout_session = create_checkout_session(
+                        line_items=line_items,
+                        customer_email=request.user.email,
+                        success_url=success_url,
+                        cancel_url=cancel_url,
+                        metadata={
+                            'registration_id': str(registration.id),
+                            'workshop_id': str(registration.session.workshop.id),
+                            'session_id': str(registration.session.id),
+                            'user_id': str(request.user.id),
+                            'type': 'workshop_promotion',
+                        }
+                    )
 
-            # Send confirmation notification to student
-            try:
-                from .notifications import WaitlistNotificationService
-                WaitlistNotificationService.send_registration_confirmed_notification(registration)
-            except Exception as e:
-                print(f"Failed to send student confirmation: {e}")
+                    # Save Stripe checkout session ID
+                    registration.stripe_checkout_session_id = checkout_session.id
+                    registration.save(update_fields=['stripe_checkout_session_id'])
 
-            # Send notification to instructor
-            try:
-                from .notifications import InstructorNotificationService
-                InstructorNotificationService.send_new_registration_notification(registration)
-            except Exception as e:
-                print(f"Failed to send instructor notification: {e}")
+                    # Redirect to Stripe checkout
+                    return redirect(checkout_session.url)
+
+                except Exception as e:
+                    messages.error(request, f'Payment processing error: {str(e)}')
+                    return redirect('workshops:registration_confirm', registration_id=registration.id)
+            else:
+                # Free workshop - complete immediately
+                registration.status = 'registered'
+                registration.payment_status = 'not_required'
+                registration.save()
+
+                # Mark the promotion as confirmed
+                from django.apps import apps
+                WaitlistPromotion = apps.get_model('workshops', 'WaitlistPromotion')
+                promotion = WaitlistPromotion.objects.filter(
+                    registration=registration,
+                    confirmed_at__isnull=True
+                ).first()
+
+                if promotion:
+                    promotion.confirmed_at = timezone.now()
+                    promotion.save()
+
+                # Update session registration count
+                registration.session.current_registrations = registration.session.registrations.filter(
+                    status__in=['registered', 'promoted', 'attended']
+                ).count()
+                registration.session.save(update_fields=['current_registrations'])
+
+                messages.success(request, 'Registration completed! You are now registered for the workshop.')
+
+                # Send confirmation notification to student
+                try:
+                    from .notifications import WaitlistNotificationService
+                    WaitlistNotificationService.send_registration_confirmed_notification(registration)
+                except Exception as e:
+                    print(f"Failed to send student confirmation: {e}")
+
+                # Send notification to instructor
+                try:
+                    from .notifications import InstructorNotificationService
+                    InstructorNotificationService.send_new_registration_notification(registration)
+                except Exception as e:
+                    print(f"Failed to send instructor notification: {e}")
 
         else:
             messages.warning(request, 'This registration cannot be completed.')
@@ -452,6 +512,48 @@ class WorkshopCheckoutSuccessView(BaseCheckoutSuccessView):
 
     def get_object_queryset(self):
         return WorkshopRegistration.objects.select_related('session__workshop')
+
+    def perform_post_checkout_actions(self, obj):
+        """Handle promotion confirmation for waitlist promotions"""
+        registration = obj
+
+        # Check if this is a promoted registration that needs confirmation
+        if registration.status == 'promoted' and registration.payment_status == 'completed':
+            # Update status to registered
+            registration.status = 'registered'
+            registration.save(update_fields=['status'])
+
+            # Mark the promotion as confirmed
+            from django.apps import apps
+            WaitlistPromotion = apps.get_model('workshops', 'WaitlistPromotion')
+            promotion = WaitlistPromotion.objects.filter(
+                registration=registration,
+                confirmed_at__isnull=True
+            ).first()
+
+            if promotion:
+                promotion.confirmed_at = timezone.now()
+                promotion.save()
+
+            # Update session registration count
+            registration.session.current_registrations = registration.session.registrations.filter(
+                status__in=['registered', 'promoted', 'attended']
+            ).count()
+            registration.session.save(update_fields=['current_registrations'])
+
+            # Send confirmation notification to student
+            try:
+                from .notifications import WaitlistNotificationService
+                WaitlistNotificationService.send_registration_confirmed_notification(registration)
+            except Exception as e:
+                print(f"Failed to send student confirmation: {e}")
+
+            # Send notification to instructor
+            try:
+                from .notifications import InstructorNotificationService
+                InstructorNotificationService.send_new_registration_notification(registration)
+            except Exception as e:
+                print(f"Failed to send instructor notification: {e}")
 
     def get_context_extras(self, obj):
         return {

@@ -188,15 +188,20 @@
                                 <!-- Actions -->
                                 <div class="flex flex-col gap-2 lg:w-48">
                                     {% if registration.status == 'promoted' %}
-                                        <!-- Promoted status - needs completion -->
-                                        <div class="alert alert-warning alert-compact">
-                                            <i class="fas fa-exclamation-triangle"></i>
-                                            <span class="text-xs">Complete registration within 48 hours</span>
+                                        <!-- Promoted status - needs payment -->
+                                        <div class="alert alert-warning alert-compact p-2">
+                                            <div class="flex flex-col gap-1">
+                                                <div class="flex items-center gap-1">
+                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                    <span class="text-xs font-bold">Payment Required</span>
+                                                </div>
+                                                <span class="text-xs">Complete payment within 48 hours to secure your spot</span>
+                                            </div>
                                         </div>
                                         <a href="{% url 'workshops:registration_confirm' registration_id=registration.id %}"
                                            class="btn btn-sm btn-warning animate-pulse">
                                             <i class="fas fa-credit-card"></i>
-                                            Complete Registration
+                                            Pay Now - £{{ registration.session.workshop.price }}
                                         </a>
                                     {% endif %}
                                     
