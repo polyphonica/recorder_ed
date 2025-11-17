@@ -285,33 +285,9 @@
                                 {{ registration.registration_date|naturaltime }}
                             </td>
                             <td>
-                                <div class="dropdown dropdown-end">
-                                    <label tabindex="0" class="btn btn-ghost btn-sm">
-                                        <i class="fas fa-ellipsis-v"></i>
-                                    </label>
-                                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-[1000]">
-                                        <li><a onclick="viewRegistrationDetails('{{ registration.id }}')">
-                                            <i class="fas fa-info-circle text-info"></i> View Details
-                                        </a></li>
-                                        <li class="divider"></li>
-                                        <li><a onclick="updateStatus('{{ registration.id }}', 'attended')">
-                                            <i class="fas fa-check text-success"></i> Mark Attended
-                                        </a></li>
-                                        <li><a onclick="updateStatus('{{ registration.id }}', 'no_show')">
-                                            <i class="fas fa-times text-warning"></i> Mark No Show
-                                        </a></li>
-                                        <li><a onclick="updateStatus('{{ registration.id }}', 'registered')">
-                                            <i class="fas fa-user text-primary"></i> Mark Registered
-                                        </a></li>
-                                        <li><a onclick="updateStatus('{{ registration.id }}', 'cancelled')">
-                                            <i class="fas fa-ban text-error"></i> Mark Cancelled
-                                        </a></li>
-                                        <li class="divider"></li>
-                                        <li><a href="mailto:{{ registration.student.email }}">
-                                            <i class="fas fa-envelope"></i> Send Email
-                                        </a></li>
-                                    </ul>
-                                </div>
+                                <button onclick="viewRegistrationDetails('{{ registration.id }}')" class="btn btn-ghost btn-sm">
+                                    <i class="fas fa-info-circle"></i>
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}
