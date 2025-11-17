@@ -285,11 +285,11 @@
                                 {{ registration.registration_date|naturaltime }}
                             </td>
                             <td>
-                                <div class="dropdown dropdown-end">
+                                <div class="dropdown dropdown-end dropdown-top">
                                     <label tabindex="0" class="btn btn-ghost btn-sm">
                                         <i class="fas fa-ellipsis-v"></i>
                                     </label>
-                                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+                                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-[100]">
                                         <li><a onclick="viewRegistrationDetails('{{ registration.id }}')">
                                             <i class="fas fa-info-circle text-info"></i> View Details
                                         </a></li>
