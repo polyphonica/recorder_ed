@@ -23,25 +23,37 @@ class WaitlistNotificationService(BaseNotificationService):
                 'confirmation_url': confirmation_url,
             }
 
+            # Determine recipient email - use registration.email if available, else student.email
+            recipient_email = registration.email if registration.email else registration.student.email
+
+            if not recipient_email:
+                logger.error(f"No email address found for registration {registration.id} - student {registration.student.username}")
+                return False
+
+            logger.info(f"Sending promotion notification to {recipient_email} for registration {registration.id}")
+
             # Send email using base service
             success = WaitlistNotificationService.send_templated_email(
                 template_path='workshops/emails/waitlist_promotion_notification.txt',
                 context=context,
-                recipient_list=[registration.email],
+                recipient_list=[recipient_email],
                 default_subject='Spot Available',
                 fail_silently=False,
-                log_description=f"Promotion notification to {registration.student.username} for session {registration.session.id}"
+                log_description=f"Promotion notification to {registration.student.username} ({recipient_email}) for session {registration.session.id}"
             )
 
             if success:
+                logger.info(f"Successfully sent promotion notification to {recipient_email}")
                 # Mark notification as sent
                 registration.promotion_notification_sent = True
                 registration.save(update_fields=['promotion_notification_sent'])
+            else:
+                logger.error(f"Failed to send promotion notification to {recipient_email} - send_templated_email returned False")
 
             return success
 
         except Exception as e:
-            logger.error(f"Failed to send promotion notification to {registration.student.username}: {str(e)}")
+            logger.error(f"Exception sending promotion notification to {registration.student.username}: {str(e)}", exc_info=True)
             return False
     
     @staticmethod
