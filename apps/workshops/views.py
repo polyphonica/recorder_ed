@@ -814,6 +814,10 @@ class MyRegistrationsView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        # Add current time for date comparisons in template
+        from django.utils import timezone
+        context['now'] = timezone.now()
+
         # Calculate registration counts by status
         all_registrations = self.get_queryset()
         context['confirmed_count'] = all_registrations.filter(status='registered').count()

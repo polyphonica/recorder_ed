@@ -227,12 +227,14 @@
                                         </a>
                                     {% endif %}
 
-                                    {% if registration.status in 'registered,promoted' and registration.session.start_datetime > now %}
-                                        <button class="btn btn-sm btn-warning" 
-                                                onclick="confirmCancel('{{ registration.id }}', '{{ registration.session.workshop.title }}')">
-                                            <i class="fas fa-times"></i>
-                                            Cancel
-                                        </button>
+                                    {% if registration.status == 'registered' or registration.status == 'promoted' %}
+                                        {% if registration.session.start_datetime > now %}
+                                            <button class="btn btn-sm btn-warning"
+                                                    onclick="confirmCancel('{{ registration.id }}', '{{ registration.session.workshop.title }}')">
+                                                <i class="fas fa-times"></i>
+                                                Cancel
+                                            </button>
+                                        {% endif %}
                                     {% endif %}
 
                                     {% if registration.attended and not registration.rating %}
