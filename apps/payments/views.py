@@ -132,31 +132,36 @@ class StripeWebhookView(View):
     def handle_refund(self, charge):
         """Handle refund event from Stripe"""
         payment_intent_id = charge.get('payment_intent')
-        refunds = charge.get('refunds', {}).get('data', [])
 
         print(f"[WEBHOOK DEBUG] handle_refund called, payment_intent={payment_intent_id}", flush=True)
+        print(f"[WEBHOOK DEBUG] charge keys: {list(charge.keys())}", flush=True)
+        print(f"[WEBHOOK DEBUG] amount_refunded: {charge.get('amount_refunded')}", flush=True)
+        print(f"[WEBHOOK DEBUG] refunded: {charge.get('refunded')}", flush=True)
+
         logger.info(f"Stripe refund webhook: payment_intent={payment_intent_id}")
 
-        if not refunds:
-            logger.warning(f"No refund data found in charge event")
+        # Get refund amount from charge object (amount is in cents)
+        amount_refunded = charge.get('amount_refunded', 0)
+        if amount_refunded == 0:
+            logger.warning(f"No refund amount found in charge event")
             return
+
+        refund_amount = Decimal(str(amount_refunded)) / 100  # Convert from cents
 
         try:
             stripe_payment = StripePayment.objects.get(
                 stripe_payment_intent_id=payment_intent_id
             )
 
-            # Get the most recent refund
-            refund = refunds[0]
-            refund_id = refund.get('id')
-            refund_amount = Decimal(str(refund.get('amount', 0))) / 100  # Convert from cents
+            # Use charge ID as refund reference if no specific refund ID available
+            charge_id = charge.get('id')
 
-            logger.info(f"Processing refund: {refund_id}, amount: £{refund_amount}")
+            logger.info(f"Processing refund for charge: {charge_id}, amount: £{refund_amount}")
 
-            # Mark payment as refunded
+            # Mark payment as refunded (use charge ID if no specific refund ID)
             stripe_payment.mark_refunded(
                 refund_amount=refund_amount,
-                stripe_refund_id=refund_id
+                stripe_refund_id=charge_id
             )
 
             # Log for audit trail
