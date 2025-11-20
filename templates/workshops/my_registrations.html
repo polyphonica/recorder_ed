@@ -321,12 +321,13 @@
 </div>
 
 <!-- Cancel Registration Modal -->
-<div id="cancelModal" class="modal">
+<input type="checkbox" id="cancelModal" class="modal-toggle" />
+<div class="modal">
     <div class="modal-box">
         <h3 class="font-bold text-lg">Cancel Registration</h3>
         <p class="py-4">Are you sure you want to cancel your registration for <span id="workshopTitle" class="font-semibold"></span>?</p>
         <div class="modal-action">
-            <button class="btn" onclick="document.getElementById('cancelModal').close()">Keep Registration</button>
+            <label for="cancelModal" class="btn">Keep Registration</label>
             <button class="btn btn-error" id="confirmCancelBtn">Yes, Cancel</button>
         </div>
     </div>
@@ -401,11 +402,10 @@ document.addEventListener('DOMContentLoaded', function() {
 function confirmCancel(registrationId, workshopTitle) {
     document.getElementById('workshopTitle').textContent = workshopTitle;
     document.getElementById('confirmCancelBtn').onclick = function() {
-        // Here you would typically make an AJAX call to cancel the registration
-        // For now, we'll redirect to the cancel URL
         window.location.href = `/workshops/registration/${registrationId}/cancel/`;
     };
-    document.getElementById('cancelModal').showModal();
+    // Open modal by checking the checkbox
+    document.getElementById('cancelModal').checked = true;
 }
 
 // My Registrations Tour
