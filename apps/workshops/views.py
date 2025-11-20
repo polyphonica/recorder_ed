@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView, RedirectView, DeleteView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView, RedirectView, DeleteView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.db.models import Q, Count, Avg, F
@@ -586,18 +586,31 @@ class WorkshopCheckoutCancelView(BaseCheckoutCancelView):
         }
 
 
-class RegistrationCancelView(LoginRequiredMixin, DetailView):
+class RegistrationCancelView(LoginRequiredMixin, View):
     """Cancel a workshop registration"""
-    model = WorkshopRegistration
-    pk_url_kwarg = 'registration_id'
-    
-    def get_queryset(self):
-        return WorkshopRegistration.objects.filter(
-            student=self.request.user
-        ).select_related('session__workshop')
-    
+
+    def get(self, request, *args, **kwargs):
+        """Handle GET request - process cancellation immediately"""
+        return self._cancel_registration(request, *args, **kwargs)
+
     def post(self, request, *args, **kwargs):
-        registration = self.get_object()
+        """Handle POST request - process cancellation"""
+        return self._cancel_registration(request, *args, **kwargs)
+
+    def _cancel_registration(self, request, *args, **kwargs):
+        """Common cancellation logic"""
+        registration_id = kwargs.get('registration_id')
+
+        try:
+            registration = WorkshopRegistration.objects.select_related(
+                'session__workshop'
+            ).get(
+                id=registration_id,
+                student=request.user
+            )
+        except WorkshopRegistration.DoesNotExist:
+            messages.error(request, 'Registration not found.')
+            return redirect('workshops:my_registrations')
 
         if registration.status in ['registered', 'waitlisted']:
             if registration.status == 'registered':
