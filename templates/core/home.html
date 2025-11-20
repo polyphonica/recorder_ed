@@ -1,7 +1,17 @@
 {% extends 'base.html' %}
 {% load design_system %}
 
-{% block title %}Home - {{ block.super }}{% endblock %}
+{% block title %}Recorder-ed - Learn Recorder Online with Expert Teachers{% endblock %}
+
+{% block meta_tags %}
+    {% include 'includes/meta_tags.html' with
+        page_title="Recorder-ed - Learn Recorder Online with Expert Teachers"
+        page_description="Master the recorder with online lessons, workshops, and courses from professional teachers. Flexible scheduling, comprehensive resources, and personalized instruction for all skill levels."
+        page_keywords="recorder lessons, learn recorder online, recorder workshops, recorder courses, music education, online music lessons"
+        page_url=request.build_absolute_uri
+        page_type="website"
+    %}
+{% endblock %}
 
 {% block content %}
 <!-- Under Construction Alert -->

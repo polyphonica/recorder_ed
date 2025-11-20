@@ -2,7 +2,18 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}{{ course.title }} - Courses{% endblock %}
+{% block title %}{{ course.title }} - Recorder Course | Recorder-ed{% endblock %}
+
+{% block meta_tags %}
+    {% include 'includes/meta_tags.html' with
+        page_title=course.title|add:" - Recorder Course | Recorder-ed"
+        page_description=course.description|truncatewords:25|striptags
+        page_keywords="recorder course, "|add:course.title|add:", online recorder course, music education"
+        page_url=request.build_absolute_uri
+        page_type="course"
+        page_image=course.cover_image.url|default:""
+    %}
+{% endblock %}
 
 {% block content %}
 <div class="section-courses min-h-screen bg-base-100">

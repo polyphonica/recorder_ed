@@ -1,7 +1,17 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Browse Courses{% endblock %}
+{% block title %}Recorder Courses - Comprehensive Online Learning | Recorder-ed{% endblock %}
+
+{% block meta_tags %}
+    {% include 'includes/meta_tags.html' with
+        page_title="Recorder Courses - Comprehensive Online Learning | Recorder-ed"
+        page_description="Browse comprehensive recorder courses for all skill levels. Learn at your own pace with structured lessons, video tutorials, and expert guidance. Start your musical journey today."
+        page_keywords="recorder courses, online music courses, recorder lessons, self-paced learning, music education"
+        page_url=request.build_absolute_uri
+        page_type="website"
+    %}
+{% endblock %}
 
 {% block content %}
 <div class="section-courses min-h-screen bg-base-100">

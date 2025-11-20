@@ -1,7 +1,17 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Workshops - {{ block.super }}{% endblock %}
+{% block title %}Recorder Workshops - Learn from Expert Musicians | Recorder-ed{% endblock %}
+
+{% block meta_tags %}
+    {% include 'includes/meta_tags.html' with
+        page_title="Recorder Workshops - Learn from Expert Musicians | Recorder-ed"
+        page_description="Discover hands-on recorder workshops led by professional musicians. Master techniques, repertoire, and performance skills in engaging group sessions. View upcoming workshops and register today."
+        page_keywords="recorder workshops, music workshops, recorder masterclass, group recorder lessons, recorder training"
+        page_url=request.build_absolute_uri
+        page_type="website"
+    %}
+{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-base-100">

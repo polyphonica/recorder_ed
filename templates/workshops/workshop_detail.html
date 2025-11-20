@@ -2,7 +2,18 @@
 {% load static %}
 {% load workshop_tags %}
 
-{% block title %}{{ workshop.title }} - {{ block.super }}{% endblock %}
+{% block title %}{{ workshop.title }} - Recorder Workshop | Recorder-ed{% endblock %}
+
+{% block meta_tags %}
+    {% include 'includes/meta_tags.html' with
+        page_title=workshop.title|add:" - Recorder Workshop | Recorder-ed"
+        page_description=workshop.description|truncatewords:25|striptags
+        page_keywords="recorder workshop, "|add:workshop.title|add:", recorder masterclass, music education"
+        page_url=request.build_absolute_uri
+        page_type="event"
+        page_image=workshop.promo_image.url|default:""
+    %}
+{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-base-100">
