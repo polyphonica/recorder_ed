@@ -1,5 +1,14 @@
 from django.shortcuts import render
 from django.views.generic import TemplateView
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+
+
+def robots_txt(request):
+    """Serve robots.txt file for search engine crawlers"""
+    content = render_to_string('robots.txt')
+    return HttpResponse(content, content_type='text/plain')
+
 
 class DomainSelectorView(TemplateView):
     """Landing page where users select their domain (Workshops, Private Teaching, Courses)"""

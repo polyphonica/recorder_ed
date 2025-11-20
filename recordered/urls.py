@@ -20,8 +20,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.sitemaps.views import sitemap
 
-# Import the domain selector view
-from views import DomainSelectorView
+# Import views
+from views import DomainSelectorView, robots_txt
 
 # Import sitemaps
 from .sitemaps import sitemaps
@@ -42,6 +42,7 @@ urlpatterns = [
     path('support/', include('apps.support.urls')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
+    path('robots.txt', robots_txt, name='robots_txt'),
     path('', DomainSelectorView.as_view(), name='domain_selector'),  # Landing page at root
 ]
 

@@ -1,0 +1,33 @@
+# Robots.txt for Recorder-ed
+# Controls search engine crawling behavior
+
+User-agent: *
+# Allow all pages by default
+Allow: /
+
+# Block admin and private areas
+Disallow: /admin/
+Disallow: /accounts/
+Disallow: /messages/
+Disallow: /expenses/
+
+# Block API endpoints if any
+Disallow: /api/
+
+# Block cart and checkout pages (no SEO value)
+Disallow: /workshops/cart/
+Disallow: /workshops/checkout/
+Disallow: /payments/
+
+# Block search result pages with query parameters
+Disallow: /*?*page=
+Disallow: /*?*search=
+
+# Allow important static content
+Allow: /static/
+
+# Sitemap location
+Sitemap: https://www.recorder-ed.com/sitemap.xml
+
+# Crawl delay (be nice to the server)
+Crawl-delay: 1
