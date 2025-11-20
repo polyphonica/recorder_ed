@@ -37,6 +37,7 @@ class StripeWebhookView(View):
 
         # Log the event type for debugging
         logger.info(f"Stripe webhook received: {event['type']}")
+        print(f"[WEBHOOK DEBUG] Event type: {event['type']}", flush=True)
 
         # Handle the event
         if event['type'] == 'checkout.session.completed':
@@ -58,6 +59,7 @@ class StripeWebhookView(View):
         else:
             # Log unhandled event types
             logger.info(f"Unhandled webhook event type: {event['type']}")
+            print(f"[WEBHOOK DEBUG] Unhandled event: {event['type']}", flush=True)
 
         return HttpResponse(status=200)
     
@@ -132,6 +134,7 @@ class StripeWebhookView(View):
         payment_intent_id = charge.get('payment_intent')
         refunds = charge.get('refunds', {}).get('data', [])
 
+        print(f"[WEBHOOK DEBUG] handle_refund called, payment_intent={payment_intent_id}", flush=True)
         logger.info(f"Stripe refund webhook: payment_intent={payment_intent_id}")
 
         if not refunds:
