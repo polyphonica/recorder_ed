@@ -39,15 +39,19 @@ class StripeWebhookView(View):
         if event['type'] == 'checkout.session.completed':
             session = event['data']['object']
             self.handle_checkout_session_completed(session)
-        
+
         elif event['type'] == 'payment_intent.succeeded':
             payment_intent = event['data']['object']
             self.handle_payment_intent_succeeded(payment_intent)
-        
+
         elif event['type'] == 'payment_intent.payment_failed':
             payment_intent = event['data']['object']
             self.handle_payment_failed(payment_intent)
-        
+
+        elif event['type'] == 'charge.refunded':
+            charge = event['data']['object']
+            self.handle_refund(charge)
+
         return HttpResponse(status=200)
     
     def handle_checkout_session_completed(self, session):
@@ -115,7 +119,47 @@ class StripeWebhookView(View):
             logger.warning(f"Payment failed: {stripe_payment.id}")
         except StripePayment.DoesNotExist:
             logger.error(f"StripePayment not found for failed payment_intent: {payment_intent['id']}")
-    
+
+    def handle_refund(self, charge):
+        """Handle refund event from Stripe"""
+        payment_intent_id = charge.get('payment_intent')
+        refunds = charge.get('refunds', {}).get('data', [])
+
+        logger.info(f"Stripe refund webhook: payment_intent={payment_intent_id}")
+
+        if not refunds:
+            logger.warning(f"No refund data found in charge event")
+            return
+
+        try:
+            stripe_payment = StripePayment.objects.get(
+                stripe_payment_intent_id=payment_intent_id
+            )
+
+            # Get the most recent refund
+            refund = refunds[0]
+            refund_id = refund.get('id')
+            refund_amount = Decimal(str(refund.get('amount', 0))) / 100  # Convert from cents
+
+            logger.info(f"Processing refund: {refund_id}, amount: £{refund_amount}")
+
+            # Mark payment as refunded
+            stripe_payment.mark_refunded(
+                refund_amount=refund_amount,
+                stripe_refund_id=refund_id
+            )
+
+            # Log for audit trail
+            logger.info(
+                f"Payment {stripe_payment.id} marked as refunded. "
+                f"Original: £{stripe_payment.total_amount}, "
+                f"Refunded: £{refund_amount}, "
+                f"Type: {'Full' if stripe_payment.is_full_refund() else 'Partial'}"
+            )
+
+        except StripePayment.DoesNotExist:
+            logger.error(f"StripePayment not found for payment_intent: {payment_intent_id}")
+
     def handle_private_teaching_payment(self, metadata, stripe_payment):
         """Update private teaching order when payment succeeds"""
         from apps.private_teaching.models import Order, OrderItem

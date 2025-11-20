@@ -45,6 +45,11 @@ class StripePayment(models.Model):
     # Metadata
     metadata = models.JSONField(default=dict, blank=True)
     
+    # Refund tracking
+    refund_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Amount refunded (if partial)")
+    refunded_at = models.DateTimeField(null=True, blank=True, help_text="When refund was processed")
+    stripe_refund_id = models.CharField(max_length=255, blank=True, null=True, help_text="Stripe refund ID")
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -67,3 +72,24 @@ class StripePayment(models.Model):
         """Mark payment as failed"""
         self.status = 'failed'
         self.save()
+
+    def mark_refunded(self, refund_amount=None, stripe_refund_id=None):
+        """Mark payment as refunded"""
+        self.status = 'refunded'
+        self.refunded_at = timezone.now()
+        self.refund_amount = refund_amount or self.total_amount  # Default to full refund
+        if stripe_refund_id:
+            self.stripe_refund_id = stripe_refund_id
+        self.save()
+
+    def is_full_refund(self):
+        """Check if this is a full refund"""
+        if self.status != 'refunded' or not self.refund_amount:
+            return False
+        return self.refund_amount >= self.total_amount
+
+    def is_partial_refund(self):
+        """Check if this is a partial refund"""
+        if self.status != 'refunded' or not self.refund_amount:
+            return False
+        return self.refund_amount < self.total_amount

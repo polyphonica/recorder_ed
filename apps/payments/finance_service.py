@@ -677,6 +677,7 @@ class FinanceService:
     def get_revenue_trend(teacher, domain=None, days=30):
         """
         Get daily revenue trend for the last N days.
+        Excludes refunded payments from revenue calculations.
 
         Returns:
             list of dicts with date and revenue
@@ -684,9 +685,10 @@ class FinanceService:
         end_date = timezone.now()
         start_date = end_date - timedelta(days=days)
 
+        # Only include completed payments, exclude refunded
         query = StripePayment.objects.filter(
             teacher=teacher,
-            status='completed',
+            status='completed',  # Exclude 'refunded', 'pending', 'failed'
             completed_at__gte=start_date
         )
 
