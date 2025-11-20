@@ -34,7 +34,10 @@ class StripeWebhookView(View):
         except stripe.error.SignatureVerificationError as e:
             # Invalid signature
             return HttpResponse(status=400)
-        
+
+        # Log the event type for debugging
+        logger.info(f"Stripe webhook received: {event['type']}")
+
         # Handle the event
         if event['type'] == 'checkout.session.completed':
             session = event['data']['object']
@@ -51,6 +54,10 @@ class StripeWebhookView(View):
         elif event['type'] == 'charge.refunded':
             charge = event['data']['object']
             self.handle_refund(charge)
+
+        else:
+            # Log unhandled event types
+            logger.info(f"Unhandled webhook event type: {event['type']}")
 
         return HttpResponse(status=200)
     
