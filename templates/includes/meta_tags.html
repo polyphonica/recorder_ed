@@ -1,76 +1,27 @@
 {% load static %}
-{#
-  SEO Meta Tags Include
-
-  Usage in templates:
-  {% include 'includes/meta_tags.html' with
-    page_title="Your Page Title"
-    page_description="Your page description (150-160 chars)"
-    page_image="url_to_image"
-    page_url=request.build_absolute_uri
-    page_type="website"
-  %}
-
-  Optional parameters:
-  - page_keywords: comma-separated keywords
-  - og_type: OpenGraph type (default: "website")
-  - twitter_card: Twitter card type (default: "summary_large_image")
-#}
-
-{# Default values #}
-{% if not page_title %}
-  {% with page_title="Recorder-ed - Learn Recorder Online with Expert Teachers" %}{% endwith %}
-{% endif %}
-
-{% if not page_description %}
-  {% with page_description="Join Recorder-ed for online recorder lessons, workshops, and courses. Learn from professional teachers with flexible scheduling and comprehensive resources." %}{% endwith %}
-{% endif %}
-
-{% if not page_url %}
-  {% with page_url=request.build_absolute_uri %}{% endwith %}
-{% endif %}
-
-{% if not page_type %}
-  {% with page_type="website" %}{% endwith %}
-{% endif %}
-
-{% if not twitter_card %}
-  {% with twitter_card="summary_large_image" %}{% endwith %}
-{% endif %}
-
 {# Basic Meta Tags #}
-<meta name="description" content="{{ page_description }}">
+<meta name="description" content="{{ page_description|default:'Master the recorder with online lessons, workshops, and courses from professional teachers at Recorder-ed.' }}">
 {% if page_keywords %}<meta name="keywords" content="{{ page_keywords }}">{% endif %}
 <meta name="author" content="Recorder-ed">
 
 {# Canonical URL #}
-<link rel="canonical" href="{{ page_url }}">
+{% if page_url %}<link rel="canonical" href="{{ page_url }}">{% endif %}
 
 {# Open Graph Tags #}
-<meta property="og:title" content="{{ page_title }}">
-<meta property="og:description" content="{{ page_description }}">
-<meta property="og:type" content="{{ page_type }}">
-<meta property="og:url" content="{{ page_url }}">
+<meta property="og:title" content="{{ page_title|default:'Recorder-ed - Learn Recorder Online' }}">
+<meta property="og:description" content="{{ page_description|default:'Master the recorder with online lessons, workshops, and courses from professional teachers at Recorder-ed.' }}">
+<meta property="og:type" content="{{ page_type|default:'website' }}">
+{% if page_url %}<meta property="og:url" content="{{ page_url }}">{% endif %}
 <meta property="og:site_name" content="Recorder-ed">
-{% if page_image %}
-<meta property="og:image" content="{{ page_image }}">
-<meta property="og:image:alt" content="{{ page_title }}">
-{% else %}
-<meta property="og:image" content="{% static 'images/og-default.jpg' %}">
-<meta property="og:image:alt" content="Recorder-ed - Learn Recorder Online">
-{% endif %}
+{% if page_image %}<meta property="og:image" content="{{ page_image }}">
+<meta property="og:image:alt" content="{{ page_title }}">{% endif %}
 
 {# Twitter Card Tags #}
-<meta name="twitter:card" content="{{ twitter_card }}">
-<meta name="twitter:title" content="{{ page_title }}">
-<meta name="twitter:description" content="{{ page_description }}">
-{% if page_image %}
-<meta name="twitter:image" content="{{ page_image }}">
-<meta name="twitter:image:alt" content="{{ page_title }}">
-{% else %}
-<meta name="twitter:image" content="{% static 'images/og-default.jpg' %}">
-<meta name="twitter:image:alt" content="Recorder-ed - Learn Recorder Online">
-{% endif %}
+<meta name="twitter:card" content="{{ twitter_card|default:'summary_large_image' }}">
+<meta name="twitter:title" content="{{ page_title|default:'Recorder-ed - Learn Recorder Online' }}">
+<meta name="twitter:description" content="{{ page_description|default:'Master the recorder with online lessons, workshops, and courses from professional teachers at Recorder-ed.' }}">
+{% if page_image %}<meta name="twitter:image" content="{{ page_image }}">
+<meta name="twitter:image:alt" content="{{ page_title }}">{% endif %}
 
 {# Additional SEO Tags #}
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
