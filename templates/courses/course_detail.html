@@ -6,6 +6,7 @@
 
 {% block meta_tags %}
 {% include 'includes/meta_tags.html' with page_title=course.title|add:" - Recorder Course | Recorder-ed" page_description=course.description|truncatewords:25|striptags page_keywords="recorder course, "|add:course.title|add:", online recorder course, music education" page_url=request.build_absolute_uri page_type="course" page_image=course.cover_image.url|default:"" %}
+{% include 'includes/schema_course.html' with course=course %}
 {% endblock %}
 
 {% block content %}

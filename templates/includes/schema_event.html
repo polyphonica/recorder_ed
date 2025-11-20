@@ -1,0 +1,41 @@
+{# Event Schema - Use on workshop detail pages
+   Parameters: workshop, session (optional - for specific session)
+#}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "EducationEvent",
+  "name": "{{ workshop.title }}",
+  "description": "{{ workshop.description|striptags|truncatewords:50 }}",
+  {% if session %}"startDate": "{{ session.start_datetime|date:'c' }}",
+  "endDate": "{{ session.end_datetime|date:'c' }}",
+  {% endif %}"eventStatus": "https://schema.org/EventScheduled",
+  "eventAttendanceMode": "{% if workshop.delivery_method == 'online' %}https://schema.org/OnlineEventAttendanceMode{% else %}https://schema.org/OfflineEventAttendanceMode{% endif %}",
+  {% if workshop.delivery_method == 'online' %}"location": {
+    "@type": "VirtualLocation",
+    "url": "https://www.recorder-ed.com"
+  },{% elif workshop.venue_name %}"location": {
+    "@type": "Place",
+    "name": "{{ workshop.venue_name }}",
+    {% if workshop.full_venue_address %}"address": "{{ workshop.full_venue_address }}"{% endif %}
+  },{% endif %}
+  "organizer": {
+    "@type": "EducationalOrganization",
+    "name": "Recorder-ed",
+    "url": "https://www.recorder-ed.com"
+  },
+  {% if workshop.instructor %}"performer": {
+    "@type": "Person",
+    "name": "{{ workshop.instructor.get_full_name }}"
+  },{% endif %}
+  {% if session and session.price %}"offers": {
+    "@type": "Offer",
+    "price": "{{ session.price }}",
+    "priceCurrency": "GBP",
+    "availability": "{% if session.spots_left > 0 %}https://schema.org/InStock{% else %}https://schema.org/SoldOut{% endif %}",
+    "url": "https://www.recorder-ed.com{% url 'workshops:register' workshop.slug session.id %}",
+    "validFrom": "{{ session.registration_open_date|date:'c' }}"
+  },{% endif %}
+  "teaches": "Recorder performance and technique"
+}
+</script>

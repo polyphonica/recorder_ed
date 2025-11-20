@@ -6,6 +6,7 @@
 
 {% block meta_tags %}
 {% include 'includes/meta_tags.html' with page_title=workshop.title|add:" - Recorder Workshop | Recorder-ed" page_description=workshop.description|truncatewords:25|striptags page_keywords="recorder workshop, "|add:workshop.title|add:", recorder masterclass, music education" page_url=request.build_absolute_uri page_type="event" page_image=workshop.promo_image.url|default:"" %}
+{% include 'includes/schema_event.html' with workshop=workshop %}
 {% endblock %}
 
 {% block content %}

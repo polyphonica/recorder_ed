@@ -1,0 +1,29 @@
+{# Course Schema - Use on course detail pages
+   Parameters: course (course object)
+#}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Course",
+  "name": "{{ course.title }}",
+  "description": "{{ course.description|striptags|truncatewords:50 }}",
+  "provider": {
+    "@type": "EducationalOrganization",
+    "name": "Recorder-ed",
+    "url": "https://www.recorder-ed.com"
+  },
+  {% if course.instructor %}"instructor": {
+    "@type": "Person",
+    "name": "{{ course.instructor.get_full_name }}"
+  },{% endif %}
+  {% if course.price %}"offers": {
+    "@type": "Offer",
+    "price": "{{ course.price }}",
+    "priceCurrency": "GBP",
+    "availability": "https://schema.org/InStock"
+  },{% endif %}
+  "educationalLevel": "{% if course.level %}{{ course.level }}{% else %}All Levels{% endif %}",
+  "inLanguage": "en-GB",
+  "teaches": "Recorder performance, music theory, and technique"
+}
+</script>
