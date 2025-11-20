@@ -18,9 +18,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.sitemaps.views import sitemap
 
 # Import the domain selector view
 from views import DomainSelectorView
+
+# Import sitemaps
+from .sitemaps import sitemaps
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -37,6 +41,7 @@ urlpatterns = [
     path('messages/', include('apps.messaging.urls')),
     path('support/', include('apps.support.urls')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('', DomainSelectorView.as_view(), name='domain_selector'),  # Landing page at root
 ]
 
