@@ -21,9 +21,11 @@ class StripeWebhookView(View):
     """Handle Stripe webhook events"""
     
     def post(self, request):
+        print(f"[WEBHOOK DEBUG] POST request received", flush=True)
         payload = request.body
         sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
-        
+        print(f"[WEBHOOK DEBUG] Signature present: {sig_header is not None}", flush=True)
+
         try:
             event = stripe.Webhook.construct_event(
                 payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
