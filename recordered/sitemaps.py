@@ -31,7 +31,7 @@ class WorkshopSitemap(Sitemap):
     priority = 0.8
 
     def items(self):
-        return Workshop.objects.filter(is_published=True)
+        return Workshop.objects.filter(status='published')
 
     def lastmod(self, obj):
         return obj.updated_at
@@ -46,7 +46,7 @@ class CourseSitemap(Sitemap):
     priority = 0.8
 
     def items(self):
-        return Course.objects.filter(is_published=True)
+        return Course.objects.filter(status='published')
 
     def lastmod(self, obj):
         return obj.updated_at
