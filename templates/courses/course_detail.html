@@ -234,14 +234,29 @@
                             </a>
                         {% else %}
                             {% if user.is_authenticated %}
-                                <a href="{% url 'courses:enroll' course.slug %}" class="btn btn-primary btn-block mb-2">
-                                    <i class="fas fa-check-circle mr-2"></i>
-                                    {% if course.cost > 0 %}
-                                        Enroll Now
-                                    {% else %}
-                                        Enroll Now (FREE)
-                                    {% endif %}
-                                </a>
+                                <form method="post" action="{% url 'courses:enroll' course.slug %}" id="enrollForm">
+                                    {% csrf_token %}
+
+                                    <!-- T&Cs Acceptance -->
+                                    <div class="form-control mb-3">
+                                        <label class="label cursor-pointer justify-start gap-2">
+                                            <input type="checkbox" id="termsAccepted" name="terms_accepted" class="checkbox checkbox-primary checkbox-sm" required>
+                                            <span class="label-text text-xs">
+                                                I accept the <a href="{% url 'courses:view_terms' %}" target="_blank" class="link link-primary">Course Terms & Conditions</a>
+                                                <span class="text-info block text-xs mt-1">✓ 7-day trial period - Full refund if cancelled within 7 days</span>
+                                            </span>
+                                        </label>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary btn-block mb-2">
+                                        <i class="fas fa-check-circle mr-2"></i>
+                                        {% if course.cost > 0 %}
+                                            Enroll Now
+                                        {% else %}
+                                            Enroll Now (FREE)
+                                        {% endif %}
+                                    </button>
+                                </form>
                                 {% if course.cost == 0 %}
                                 <div class="text-center text-xs text-base-content/70">
                                     Start learning immediately

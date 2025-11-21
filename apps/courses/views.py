@@ -817,6 +817,12 @@ class CourseEnrollView(LoginRequiredMixin, View):
         """Process enrollment"""
         course = get_object_or_404(Course, slug=slug, status='published')
         child_id = request.POST.get('child_id')
+        terms_accepted = request.POST.get('terms_accepted')
+
+        # Check T&Cs acceptance (unless selecting child)
+        if not child_id and not terms_accepted:
+            messages.error(request, 'You must accept the Terms and Conditions to enroll.')
+            return redirect('courses:detail', slug=course.slug)
 
         # Determine if enrolling a child or self
         child = None
@@ -865,6 +871,16 @@ class CourseEnrollView(LoginRequiredMixin, View):
                 payment_amount=course.cost,
                 is_active=True
             )
+
+            # Create T&Cs acceptance record
+            from .models import CourseTermsAndConditions, CourseTermsAcceptance
+            current_terms = CourseTermsAndConditions.objects.filter(is_current=True).first()
+            if current_terms:
+                CourseTermsAcceptance.objects.create(
+                    enrollment=enrollment,
+                    terms_version=current_terms,
+                    ip_address=request.META.get('REMOTE_ADDR')
+                )
 
             # Create Stripe checkout session
             from apps.payments.stripe_service import create_checkout_session
@@ -921,6 +937,16 @@ class CourseEnrollView(LoginRequiredMixin, View):
                 payment_amount=0,
                 is_active=True
             )
+
+            # Create T&Cs acceptance record
+            from .models import CourseTermsAndConditions, CourseTermsAcceptance
+            current_terms = CourseTermsAndConditions.objects.filter(is_current=True).first()
+            if current_terms:
+                CourseTermsAcceptance.objects.create(
+                    enrollment=enrollment,
+                    terms_version=current_terms,
+                    ip_address=request.META.get('REMOTE_ADDR')
+                )
 
             # Update course enrollment count
             course.total_enrollments = CourseEnrollment.objects.filter(
@@ -2531,3 +2557,19 @@ class AdminRejectCancellationView(LoginRequiredMixin, UserPassesTestMixin, View)
 
         messages.success(request, 'Cancellation request rejected.')
         return redirect('courses:admin_cancellation_detail', request_id=request_id)
+
+
+# ============================================================================
+# COURSE TERMS & CONDITIONS VIEW
+# ============================================================================
+
+class CourseTermsView(TemplateView):
+    """Public view of current Course Terms and Conditions"""
+    template_name = 'courses/terms_and_conditions.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from .models import CourseTermsAndConditions
+        current_terms = CourseTermsAndConditions.objects.filter(is_current=True).first()
+        context['terms'] = current_terms
+        return context

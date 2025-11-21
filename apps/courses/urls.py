@@ -107,6 +107,9 @@ urlpatterns = [
     # Certificate Verification (public, no login required)
     path('verify-certificate/', views.CertificateVerifyView.as_view(), name='verify_certificate'),
 
+    # Course Terms & Conditions (public, no login required)
+    path('terms-and-conditions/', views.CourseTermsView.as_view(), name='view_terms'),
+
     path('', views.CourseListView.as_view(), name='list'),
     path('<slug:slug>/', views.CourseDetailView.as_view(), name='detail'),
     path('<slug:slug>/enroll/', views.CourseEnrollView.as_view(), name='enroll'),

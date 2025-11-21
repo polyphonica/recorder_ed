@@ -140,6 +140,10 @@
                                     {% else %}
                                         <span class="btn btn-disabled btn-xs">No Lessons</span>
                                     {% endif %}
+                                    <a href="{% url 'courses:request_cancellation' enrollment.id %}"
+                                       class="btn btn-error btn-xs">
+                                        <i class="fas fa-times-circle"></i> Cancel
+                                    </a>
                                 </div>
                             </div>
                         </div>
