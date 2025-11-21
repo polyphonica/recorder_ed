@@ -1010,4 +1010,52 @@ function startWorkshopBookingTour() {
     <i class="fas fa-question-circle" style="font-size: 1.5rem;"></i>
 </button>
 
+<!-- Terms and Conditions Modal -->
+<input type="checkbox" id="termsModal" class="modal-toggle" />
+<div class="modal">
+    <div class="modal-box max-w-4xl max-h-[80vh] flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-2xl">Workshop Terms and Conditions</h3>
+            <label for="termsModal" class="btn btn-sm btn-circle btn-ghost">✕</label>
+        </div>
+
+        <!-- Scrollable content area -->
+        <div id="termsContent" class="flex-1 overflow-y-auto prose prose-sm max-w-none pr-4" style="max-height: 60vh;">
+            {% if current_terms %}
+                <div class="mb-4 text-sm text-base-content/70">
+                    <span class="badge badge-primary">Version {{ current_terms.version }}</span>
+                    <span class="ml-2">Effective {{ current_terms.effective_date|date:"d F Y" }}</span>
+                </div>
+                {% load markdown_extras %}
+                {{ current_terms.content|markdown }}
+            {% else %}
+                <div class="alert alert-warning">
+                    <p>Terms and Conditions are currently being updated. Please contact support.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Scroll indicator -->
+        <div id="scrollIndicator" class="alert alert-warning mt-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>Please scroll to the bottom to review all terms</span>
+        </div>
+
+        <!-- Modal actions -->
+        <div class="modal-action">
+            <label for="termsModal" class="btn btn-ghost">Close</label>
+            <button type="button" id="acceptTermsBtn" class="btn btn-primary" disabled onclick="acceptTermsForCart()">
+                <i class="fas fa-check mr-2"></i>I Agree to Terms
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/workshop_terms.js' %}"></script>
+<script src="{% static 'js/workshop_detail_terms.js' %}"></script>
 {% endblock %}

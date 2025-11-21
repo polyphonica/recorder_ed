@@ -195,6 +195,10 @@ class WorkshopDetailView(DetailView):
                 status__in=['registered', 'promoted', 'attended']
             ).exists()
 
+        # Get current terms for T&Cs modal
+        from .models import WorkshopTermsAndConditions
+        current_terms = WorkshopTermsAndConditions.objects.filter(is_current=True).first()
+
         context.update({
             'upcoming_sessions': upcoming_sessions,
             'pre_materials': pre_materials,
@@ -202,6 +206,7 @@ class WorkshopDetailView(DetailView):
             'related_workshops': related_workshops,
             'similar_workshops_with_sessions': similar_workshops_with_sessions,
             'user_is_registered': user_is_registered,
+            'current_terms': current_terms,
         })
 
         # Add cart session IDs for logged-in users
@@ -1713,6 +1718,16 @@ class AddToCartView(LoginRequiredMixin, View):
         session_id = kwargs.get('session_id')
         child_profile_id = request.POST.get('child_profile_id')
         notes = request.POST.get('notes', '')
+
+        # Store terms acceptance in session for later tracking
+        from .models import WorkshopTermsAndConditions
+        current_terms = WorkshopTermsAndConditions.objects.filter(is_current=True).first()
+        if current_terms:
+            request.session['terms_accepted'] = {
+                'version': current_terms.version,
+                'user_agent': request.META.get('HTTP_USER_AGENT', ''),
+                'ip_address': request.META.get('REMOTE_ADDR', ''),
+            }
 
         cart_manager = WorkshopCartManager(request)
         success, message = cart_manager.add_session(
