@@ -2416,6 +2416,14 @@ class CourseCancellationRequestView(LoginRequiredMixin, View):
                 enrollment.is_active = False
                 enrollment.save()
 
+                # Update course enrollment count
+                course = enrollment.course
+                course.total_enrollments = CourseEnrollment.objects.filter(
+                    course=course,
+                    is_active=True
+                ).count()
+                course.save(update_fields=['total_enrollments'])
+
                 messages.success(
                     request,
                     f'Your course has been cancelled and a full refund of £{cancellation.refund_amount} has been processed. '
@@ -2447,6 +2455,14 @@ class CourseCancellationRequestView(LoginRequiredMixin, View):
             # Deactivate enrollment
             enrollment.is_active = False
             enrollment.save()
+
+            # Update course enrollment count
+            course = enrollment.course
+            course.total_enrollments = CourseEnrollment.objects.filter(
+                course=course,
+                is_active=True
+            ).count()
+            course.save(update_fields=['total_enrollments'])
 
             messages.info(
                 request,
