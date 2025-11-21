@@ -311,6 +311,17 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
                 return redirect('workshops:detail', slug=self.workshop.slug)
 
         # NORMAL FLOW: Session has capacity - use cart for payment flow
+        # Store terms acceptance in session for later tracking
+        from .models import WorkshopTermsAndConditions
+        current_terms = WorkshopTermsAndConditions.objects.filter(is_current=True).first()
+        if current_terms:
+            # Store terms version and user agent for later acceptance tracking
+            self.request.session['terms_accepted'] = {
+                'version': current_terms.version,
+                'user_agent': self.request.META.get('HTTP_USER_AGENT', ''),
+                'ip_address': self.request.META.get('REMOTE_ADDR', ''),
+            }
+
         # Get child profile ID if guardian
         child_profile_id = None
         if registration.child_profile:
@@ -368,10 +379,16 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        from .models import WorkshopTermsAndConditions
+
+        # Get current terms for display in modal
+        current_terms = WorkshopTermsAndConditions.objects.filter(is_current=True).first()
+
         context.update({
             'workshop': self.workshop,
             'session': self.session,
             'is_waitlist': self.session.is_full,
+            'current_terms': current_terms,
         })
         return context
 

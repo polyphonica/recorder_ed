@@ -242,10 +242,40 @@
                                 </div>
                             </div>
 
+                            <!-- Terms and Conditions Acceptance -->
+                            <div class="form-section">
+                                <div class="alert alert-info">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <div>
+                                        <div class="text-sm">
+                                            <strong>Important:</strong> Before proceeding, please review and accept our
+                                            <button type="button" onclick="openTermsModal()" class="link link-primary font-semibold">
+                                                Workshop Terms and Conditions
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-control mt-4">
+                                    <label class="label cursor-pointer justify-start gap-3">
+                                        <input type="checkbox" id="acceptTerms" class="checkbox checkbox-primary" required />
+                                        <span class="label-text">
+                                            I have read and agree to the
+                                            <button type="button" onclick="openTermsModal()" class="link link-primary">
+                                                Terms and Conditions
+                                            </button>
+                                            <span class="text-error">*</span>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+
                             <!-- Form Actions -->
                             <div class="form-actions pt-6 border-t border-base-300">
                                 <div class="flex flex-col sm:flex-row gap-4">
-                                    <button type="submit" class="btn {% if is_waitlist %}btn-warning{% else %}btn-primary{% endif %} flex-1">
+                                    <button type="submit" id="submitBtn" class="btn {% if is_waitlist %}btn-warning{% else %}btn-primary{% endif %} flex-1" disabled>
                                         {% if is_waitlist %}
                                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                                 <path d="M10 2L3 7v11a2 2 0 002 2h10a2 2 0 002-2V7l-7-5z"></path>
@@ -405,4 +435,146 @@
         </div>
     </div>
 </div>
+
+<!-- Terms and Conditions Modal -->
+<input type="checkbox" id="termsModal" class="modal-toggle" />
+<div class="modal">
+    <div class="modal-box max-w-4xl max-h-[80vh] flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-2xl">Workshop Terms and Conditions</h3>
+            <label for="termsModal" class="btn btn-sm btn-circle btn-ghost">✕</label>
+        </div>
+
+        <!-- Scrollable content area -->
+        <div id="termsContent" class="flex-1 overflow-y-auto prose prose-sm max-w-none pr-4" style="max-height: 60vh;">
+            {% if current_terms %}
+                <div class="mb-4 text-sm text-base-content/70">
+                    <span class="badge badge-primary">Version {{ current_terms.version }}</span>
+                    <span class="ml-2">Effective {{ current_terms.effective_date|date:"d F Y" }}</span>
+                </div>
+                {% load markdown_extras %}
+                {{ current_terms.content|markdown }}
+            {% else %}
+                <div class="alert alert-warning">
+                    <p>Terms and Conditions are currently being updated. Please contact support.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Scroll indicator -->
+        <div id="scrollIndicator" class="alert alert-warning mt-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>Please scroll to the bottom to review all terms</span>
+        </div>
+
+        <!-- Modal actions -->
+        <div class="modal-action">
+            <label for="termsModal" class="btn btn-ghost">Close</label>
+            <button type="button" id="acceptTermsBtn" class="btn btn-primary" disabled onclick="acceptTerms()">
+                <i class="fas fa-check mr-2"></i>Accept & Continue
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Track whether user has scrolled to bottom
+    let hasScrolledToBottom = false;
+    let termsAccepted = false;
+
+    // Open terms modal
+    function openTermsModal() {
+        document.getElementById('termsModal').checked = true;
+        hasScrolledToBottom = false;
+        updateAcceptButton();
+    }
+
+    // Close terms modal
+    function closeTermsModal() {
+        document.getElementById('termsModal').checked = false;
+    }
+
+    // Accept terms
+    function acceptTerms() {
+        if (hasScrolledToBottom) {
+            document.getElementById('acceptTerms').checked = true;
+            termsAccepted = true;
+            updateSubmitButton();
+            closeTermsModal();
+        }
+    }
+
+    // Update accept button state based on scroll position
+    function updateAcceptButton() {
+        const acceptBtn = document.getElementById('acceptTermsBtn');
+        if (hasScrolledToBottom) {
+            acceptBtn.disabled = false;
+            acceptBtn.classList.remove('btn-disabled');
+        } else {
+            acceptBtn.disabled = true;
+            acceptBtn.classList.add('btn-disabled');
+        }
+    }
+
+    // Update submit button state based on terms acceptance
+    function updateSubmitButton() {
+        const submitBtn = document.getElementById('submitBtn');
+        const termsCheckbox = document.getElementById('acceptTerms');
+
+        if (termsCheckbox.checked) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('btn-disabled');
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('btn-disabled');
+        }
+    }
+
+    // Detect scroll to bottom
+    document.addEventListener('DOMContentLoaded', function() {
+        const termsContent = document.getElementById('termsContent');
+        const scrollIndicator = document.getElementById('scrollIndicator');
+        const termsCheckbox = document.getElementById('acceptTerms');
+
+        // Check if content is scrollable
+        function checkScrollable() {
+            if (termsContent.scrollHeight <= termsContent.clientHeight) {
+                // Content fits without scrolling
+                hasScrolledToBottom = true;
+                scrollIndicator.style.display = 'none';
+                updateAcceptButton();
+            }
+        }
+
+        // Scroll detection
+        termsContent.addEventListener('scroll', function() {
+            const scrolledToBottom = (termsContent.scrollHeight - termsContent.scrollTop) <= (termsContent.clientHeight + 50);
+
+            if (scrolledToBottom && !hasScrolledToBottom) {
+                hasScrolledToBottom = true;
+                scrollIndicator.style.display = 'none';
+                updateAcceptButton();
+            }
+        });
+
+        // Listen for checkbox changes
+        termsCheckbox.addEventListener('change', function() {
+            updateSubmitButton();
+        });
+
+        // Check scrollable when modal opens
+        const modalToggle = document.getElementById('termsModal');
+        modalToggle.addEventListener('change', function() {
+            if (this.checked) {
+                setTimeout(checkScrollable, 100);
+            }
+        });
+
+        // Initial state
+        updateSubmitButton();
+    });
+</script>
+
 {% endblock %}
