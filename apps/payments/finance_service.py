@@ -580,25 +580,38 @@ class FinanceService:
         commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
         transactions = []
 
-        # Get workshop registrations
+        # Get workshop registrations (both active and refunded)
         workshop_regs = WorkshopRegistration.objects.filter(
             session__workshop__instructor=teacher,
-            status='registered',
         ).filter(
-            Q(payment_status='paid') | Q(payment_status='completed') | Q(payment_status='not_required')
-        ).select_related('session__workshop', 'student').order_by('-paid_at')[:limit]
+            Q(payment_status='paid', status='registered') |
+            Q(payment_status='completed', status='registered') |
+            Q(payment_status='not_required', status='registered') |
+            Q(payment_status='completed', status='cancelled')  # Include refunded registrations
+        ).select_related('session__workshop', 'student').order_by('-paid_at')[:limit * 2]  # Get more to ensure we have enough after filtering
 
         for reg in workshop_regs:
             amount = reg.payment_amount
-            teacher_share = amount * (1 - Decimal(str(commission_rate)))
+            is_refunded = reg.status == 'cancelled'
+
+            if is_refunded:
+                # Refunded transaction shows as negative
+                teacher_share = Decimal('0.00')
+                display_amount = -amount
+            else:
+                # Active transaction
+                teacher_share = amount * (1 - Decimal(str(commission_rate)))
+                display_amount = amount
+
             transactions.append({
                 'date': reg.paid_at or reg.registration_date,
                 'domain': 'workshops',
-                'domain_display': 'Workshop',
+                'domain_display': 'Workshop (Refunded)' if is_refunded else 'Workshop',
                 'description': f"{reg.session.workshop.title} - {reg.session.start_datetime.strftime('%b %d, %Y')}",
                 'student': reg.student,
-                'amount': amount,
+                'amount': display_amount,
                 'teacher_share': teacher_share,
+                'is_refunded': is_refunded,
             })
 
         # Get course enrollments

@@ -250,11 +250,12 @@
                             </thead>
                             <tbody>
                                 {% for transaction in recent_transactions %}
-                                <tr>
+                                <tr {% if transaction.is_refunded %}class="bg-warning/10"{% endif %}>
                                     <td>{{ transaction.date|date:"M d, Y g:i A" }}</td>
                                     <td>
                                         <span class="badge
-                                            {% if transaction.domain == 'workshops' %}badge-primary
+                                            {% if transaction.is_refunded %}badge-warning
+                                            {% elif transaction.domain == 'workshops' %}badge-primary
                                             {% elif transaction.domain == 'courses' %}badge-secondary
                                             {% else %}badge-accent{% endif %}">
                                             {{ transaction.domain_display }}
@@ -262,8 +263,12 @@
                                     </td>
                                     <td class="text-sm">{{ transaction.description }}</td>
                                     <td>{{ transaction.student.get_full_name|default:transaction.student.username }}</td>
-                                    <td>£{{ transaction.amount|floatformat:2 }}</td>
-                                    <td class="font-bold text-primary">£{{ transaction.teacher_share|floatformat:2 }}</td>
+                                    <td {% if transaction.is_refunded %}class="text-warning"{% endif %}>
+                                        {% if transaction.amount < 0 %}-£{{ transaction.amount|abs|floatformat:2 }}{% else %}£{{ transaction.amount|floatformat:2 }}{% endif %}
+                                    </td>
+                                    <td class="font-bold {% if transaction.is_refunded %}text-base-content/50{% else %}text-primary{% endif %}">
+                                        £{{ transaction.teacher_share|floatformat:2 }}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
