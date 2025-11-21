@@ -2242,7 +2242,7 @@ class TeacherCancellationRequestsView(TeacherProfileCompletedMixin, ListView):
         if status_filter and status_filter != 'all':
             queryset = queryset.filter(status=status_filter)
 
-        return queryset.order_by('-requested_at')
+        return queryset.order_by('-created_at')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
