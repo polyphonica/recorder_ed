@@ -11,11 +11,64 @@ from django.core.paginator import Paginator
 from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, SearchableListViewMixin
 from .models import (
     Workshop, WorkshopCategory, WorkshopSession,
-    WorkshopRegistration, WorkshopMaterial, WorkshopInterest
+    WorkshopRegistration, WorkshopMaterial, WorkshopInterest,
+    WorkshopTermsAndConditions, TermsAcceptance
 )
 from .forms import WorkshopRegistrationForm, WorkshopForm, WorkshopSessionForm, WorkshopFilterForm, WorkshopInterestForm, WorkshopMaterialForm
 from .mixins import InstructorRequiredMixin
 from .notifications import WorkshopInterestNotificationService
+
+
+def create_terms_acceptance(registration, request_or_session_data):
+    """
+    Create a TermsAcceptance record for a workshop registration.
+
+    Args:
+        registration: WorkshopRegistration object
+        request_or_session_data: Either a Django request object or a dict with session data
+                                  containing 'terms_accepted' with version, ip_address, user_agent
+
+    Returns:
+        TermsAcceptance object or None if terms data not found
+    """
+    # Extract terms acceptance data
+    if hasattr(request_or_session_data, 'session'):
+        # It's a request object
+        terms_data = request_or_session_data.session.get('terms_accepted')
+        ip_address = request_or_session_data.META.get('REMOTE_ADDR', '')
+        user_agent = request_or_session_data.META.get('HTTP_USER_AGENT', '')
+    else:
+        # It's a dict with session data
+        terms_data = request_or_session_data.get('terms_accepted')
+        ip_address = terms_data.get('ip_address', '') if terms_data else ''
+        user_agent = terms_data.get('user_agent', '') if terms_data else ''
+
+    if not terms_data:
+        return None
+
+    # Get the terms version
+    version_number = terms_data.get('version')
+    if not version_number:
+        return None
+
+    try:
+        terms_version = WorkshopTermsAndConditions.objects.get(version=version_number)
+    except WorkshopTermsAndConditions.DoesNotExist:
+        # If specific version not found, use current version
+        terms_version = WorkshopTermsAndConditions.objects.filter(is_current=True).first()
+        if not terms_version:
+            return None
+
+    # Create TermsAcceptance record
+    terms_acceptance = TermsAcceptance.objects.create(
+        student=registration.student,
+        registration=registration,
+        terms_version=terms_version,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
+
+    return terms_acceptance
 
 
 class WorkshopListView(SearchableListViewMixin, ListView):
@@ -1833,7 +1886,7 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
         if total_amount == 0:
             # Free workshops - create registrations directly
             for item in workshop_items:
-                WorkshopRegistration.objects.create(
+                registration = WorkshopRegistration.objects.create(
                     session=item.session,
                     student=request.user,
                     email=request.user.email,
@@ -1842,6 +1895,9 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
                     payment_status='not_required',
                     payment_amount=0
                 )
+
+                # Create terms acceptance record
+                create_terms_acceptance(registration, request)
 
             # Clear cart
             cart.workshop_items.all().delete()
@@ -1866,6 +1922,19 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
             # Get first instructor (for commission calculation)
             first_teacher = workshop_items[0].session.workshop.instructor if workshop_items else None
 
+            # Prepare metadata including terms acceptance
+            metadata = {
+                'cart_item_ids': ','.join(cart_item_ids),
+                'item_count': len(cart_item_ids),
+            }
+
+            # Include terms acceptance data if available
+            terms_data = request.session.get('terms_accepted')
+            if terms_data:
+                metadata['terms_version'] = terms_data.get('version')
+                metadata['terms_ip_address'] = terms_data.get('ip_address', '')
+                metadata['terms_user_agent'] = terms_data.get('user_agent', '')
+
             # Create Stripe checkout session with multiple line items
             from apps.payments.stripe_service import create_checkout_session_with_items
             checkout_session = create_checkout_session_with_items(
@@ -1879,10 +1948,7 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
                 cancel_url=request.build_absolute_uri(
                     reverse('workshops:cart_checkout_cancel')
                 ),
-                metadata={
-                    'cart_item_ids': ','.join(cart_item_ids),
-                    'item_count': len(cart_item_ids),
-                }
+                metadata=metadata
             )
 
             # Redirect to Stripe

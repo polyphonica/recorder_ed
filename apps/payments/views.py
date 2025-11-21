@@ -177,6 +177,48 @@ class StripeWebhookView(View):
         except StripePayment.DoesNotExist:
             logger.error(f"StripePayment not found for payment_intent: {payment_intent_id}")
 
+    def _create_terms_acceptance_from_metadata(self, registration, metadata):
+        """
+        Create a TermsAcceptance record from Stripe metadata.
+
+        Args:
+            registration: WorkshopRegistration object
+            metadata: Stripe metadata dict containing terms acceptance data
+        """
+        from apps.workshops.models import WorkshopTermsAndConditions, TermsAcceptance
+
+        # Extract terms data from metadata
+        version_number = metadata.get('terms_version')
+        if not version_number:
+            logger.info(f"  No terms version in metadata for registration {registration.id}")
+            return None
+
+        try:
+            # Convert to int if it's a string
+            if isinstance(version_number, str):
+                version_number = int(version_number)
+
+            terms_version = WorkshopTermsAndConditions.objects.get(version=version_number)
+        except (WorkshopTermsAndConditions.DoesNotExist, ValueError):
+            # If specific version not found, use current version
+            logger.info(f"  Terms version {version_number} not found, using current")
+            terms_version = WorkshopTermsAndConditions.objects.filter(is_current=True).first()
+            if not terms_version:
+                logger.warning(f"  No current terms found")
+                return None
+
+        # Create TermsAcceptance record
+        terms_acceptance = TermsAcceptance.objects.create(
+            student=registration.student,
+            registration=registration,
+            terms_version=terms_version,
+            ip_address=metadata.get('terms_ip_address', ''),
+            user_agent=metadata.get('terms_user_agent', '')
+        )
+
+        logger.info(f"  ✓ Created TermsAcceptance for registration {registration.id}, version {terms_version.version}")
+        return terms_acceptance
+
     def handle_private_teaching_payment(self, metadata, stripe_payment):
         """Update private teaching order when payment succeeds"""
         from apps.private_teaching.models import Order, OrderItem
@@ -270,6 +312,9 @@ class StripeWebhookView(View):
                 registration.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
                 registration.save()
 
+                # Create terms acceptance record
+                self._create_terms_acceptance_from_metadata(registration, metadata)
+
                 # Update session registration count
                 session = registration.session
                 session.current_registrations = session.registrations.filter(
@@ -362,6 +407,9 @@ class StripeWebhookView(View):
                     )
 
                     logger.info(f"  ✓ Created registration ID: {registration.id}")
+
+                    # Create terms acceptance record
+                    self._create_terms_acceptance_from_metadata(registration, metadata)
                     logger.info(f"    - Status: {registration.status}")
                     logger.info(f"    - Payment Status: {registration.payment_status}")
                     logger.info(f"    - Paid At: {registration.paid_at}")
