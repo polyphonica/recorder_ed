@@ -429,3 +429,172 @@ class SearchableListViewMixin:
         queryset = self.apply_get_filters(queryset)
         queryset = self.apply_sorting(queryset)
         return queryset
+
+
+# ============================================================================
+# VIEW MIXINS FOR COMMON PATTERNS (Phase 2 Refactoring)
+# ============================================================================
+
+
+class SuccessMessageMixin:
+    """
+    Mixin to automatically show success messages after form submission.
+
+    Set success_message attribute on your view:
+        success_message = "Item created successfully!"
+
+    Or use template strings with object fields:
+        success_message = "{title} was created successfully!"
+
+    Usage:
+        class MyCreateView(SuccessMessageMixin, CreateView):
+            success_message = "Course '{title}' created successfully!"
+    """
+    success_message = ""
+
+    def get_success_message(self, cleaned_data=None):
+        """
+        Get the success message, optionally formatting with cleaned_data or object fields
+        Override this method for dynamic messages.
+        """
+        if not self.success_message:
+            return ""
+
+        # Try to format with object if available
+        if hasattr(self, 'object') and self.object:
+            try:
+                return self.success_message.format(**self.object.__dict__)
+            except (AttributeError, KeyError):
+                pass
+
+        # Try to format with cleaned_data
+        if cleaned_data:
+            try:
+                return self.success_message.format(**cleaned_data)
+            except (AttributeError, KeyError):
+                pass
+
+        return self.success_message
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        success_message = self.get_success_message(form.cleaned_data)
+        if success_message:
+            messages.success(self.request, success_message)
+        return response
+
+
+class SetUserFieldMixin:
+    """
+    Mixin to automatically set a user field on form submission.
+
+    Set user_field_name attribute (defaults to 'instructor'):
+        user_field_name = 'teacher'  # or 'author', 'created_by', etc.
+
+    Usage:
+        class MyCreateView(SetUserFieldMixin, CreateView):
+            user_field_name = 'instructor'  # Will set form.instance.instructor = request.user
+    """
+    user_field_name = 'instructor'  # Default field name
+
+    def form_valid(self, form):
+        # Set the user field on the instance
+        setattr(form.instance, self.user_field_name, self.request.user)
+        return super().form_valid(form)
+
+
+class UserFilterMixin:
+    """
+    Mixin to automatically filter queryset by current user.
+
+    Set user_field_name attribute (defaults to 'instructor'):
+        user_field_name = 'teacher'  # Filter by teacher=request.user
+
+    Usage:
+        class MyListView(UserFilterMixin, ListView):
+            user_field_name = 'instructor'  # Filters objects where instructor=request.user
+    """
+    user_field_name = 'instructor'  # Default field name
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        filter_kwargs = {self.user_field_name: self.request.user}
+        return queryset.filter(**filter_kwargs)
+
+
+class OwnershipRequiredMixin:
+    """
+    Mixin to ensure the current user owns the object being accessed.
+
+    Requires:
+    - ownership_check_method: Name of method on object to check ownership (default: 'is_owned_by')
+    - ownership_denied_message: Message to show on permission failure
+    - ownership_denied_url: URL name to redirect to on failure
+
+    The object's ownership check method should accept request.user and return bool:
+        def is_owned_by(self, user):
+            return self.instructor == user
+
+    Usage:
+        class MyUpdateView(OwnershipRequiredMixin, UpdateView):
+            ownership_check_method = 'is_owned_by'
+            ownership_denied_message = 'You do not have permission to edit this item.'
+            ownership_denied_url = 'courses:list'
+    """
+    ownership_check_method = 'is_owned_by'
+    ownership_denied_message = 'You do not have permission to access this item.'
+    ownership_denied_url = None  # Must be set by subclass
+
+    def dispatch(self, request, *args, **kwargs):
+        # Get the object
+        self.object = self.get_object()
+
+        # Check ownership
+        check_method = getattr(self.object, self.ownership_check_method, None)
+        if not check_method or not check_method(request.user):
+            messages.error(request, self.ownership_denied_message)
+            if self.ownership_denied_url:
+                return redirect(self.ownership_denied_url)
+            else:
+                raise ValueError("ownership_denied_url must be set on OwnershipRequiredMixin")
+
+        return super().dispatch(request, *args, **kwargs)
+
+
+class AjaxResponseMixin:
+    """
+    Mixin to handle AJAX requests and return JSON responses.
+
+    Provides:
+    - json_success(data): Return successful JSON response
+    - json_error(message, status=400): Return error JSON response
+    - is_ajax(): Check if request is AJAX
+
+    Usage:
+        class MyView(AjaxResponseMixin, View):
+            def post(self, request):
+                if not self.is_ajax():
+                    return HttpResponseBadRequest()
+                # ... do work ...
+                return self.json_success({'message': 'Done!'})
+    """
+
+    def is_ajax(self):
+        """Check if request is AJAX"""
+        return self.request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    def json_success(self, data=None):
+        """Return successful JSON response"""
+        from django.http import JsonResponse
+        response_data = {'success': True}
+        if data:
+            response_data.update(data)
+        return JsonResponse(response_data)
+
+    def json_error(self, message, status=400):
+        """Return error JSON response"""
+        from django.http import JsonResponse
+        return JsonResponse({
+            'success': False,
+            'error': message
+        }, status=status)
