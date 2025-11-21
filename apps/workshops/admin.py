@@ -9,7 +9,7 @@ from django.db.models import Q
 from .models import (
     WorkshopCategory, Workshop, WorkshopSession,
     WorkshopRegistration, WorkshopMaterial, WorkshopInterest, UserProfile,
-    WorkshopCartItem
+    WorkshopCartItem, WorkshopTermsAndConditions, TermsAcceptance
 )
 
 
@@ -432,6 +432,66 @@ class WorkshopCartItemAdmin(admin.ModelAdmin):
     def session_date(self, obj):
         return obj.session.start_datetime.strftime('%Y-%m-%d %H:%M')
     session_date.short_description = 'Session Date'
+
+
+@admin.register(WorkshopTermsAndConditions)
+class WorkshopTermsAndConditionsAdmin(admin.ModelAdmin):
+    list_display = ['version', 'effective_date', 'is_current', 'created_by', 'created_at']
+    list_filter = ['is_current', 'effective_date']
+    search_fields = ['content']
+    readonly_fields = ['created_at', 'updated_at', 'created_by']
+
+    fieldsets = (
+        ('Version Information', {
+            'fields': ('version', 'is_current', 'effective_date')
+        }),
+        ('Content', {
+            'fields': ('content',),
+            'description': 'Use Markdown formatting. This content will be displayed to users during registration.'
+        }),
+        ('Metadata', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def save_model(self, request, obj, form, change):
+        """Automatically set created_by to current user"""
+        if not change:  # Only set on creation
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deletion of accepted terms"""
+        if obj and obj.acceptances.exists():
+            return False
+        return super().has_delete_permission(request, obj)
+
+
+@admin.register(TermsAcceptance)
+class TermsAcceptanceAdmin(admin.ModelAdmin):
+    list_display = ['student', 'terms_version', 'registration', 'accepted_at', 'ip_address']
+    list_filter = ['terms_version', 'accepted_at']
+    search_fields = ['student__username', 'student__email', 'student__first_name', 'student__last_name']
+    readonly_fields = ['student', 'registration', 'terms_version', 'accepted_at', 'ip_address', 'user_agent']
+
+    fieldsets = (
+        ('Acceptance Details', {
+            'fields': ('student', 'registration', 'terms_version', 'accepted_at')
+        }),
+        ('Technical Details', {
+            'fields': ('ip_address', 'user_agent'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def has_add_permission(self, request):
+        """Prevent manual creation - acceptances should only be created through registration flow"""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deletion for legal/audit purposes"""
+        return False
 
 
 # Customize admin site

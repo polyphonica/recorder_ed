@@ -67,6 +67,9 @@ urlpatterns = [
     path('cart/checkout/success/', views.CheckoutSuccessView.as_view(), name='cart_checkout_success'),
     path('cart/checkout/cancel/', views.CheckoutCancelView.as_view(), name='cart_checkout_cancel'),
 
+    # Terms and Conditions
+    path('terms-and-conditions/', views.WorkshopTermsView.as_view(), name='terms'),
+
     # Individual workshop (MUST BE LAST - catches all remaining slugs)
     path('<slug:slug>/', views.WorkshopDetailView.as_view(), name='detail'),
 ]

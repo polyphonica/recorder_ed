@@ -952,3 +952,95 @@ class WorkshopCartItem(models.Model):
     def is_child_registration(self):
         """Check if this is a registration for a child"""
         return self.child_profile is not None
+
+
+class WorkshopTermsAndConditions(models.Model):
+    """
+    Platform-wide Terms and Conditions for workshop registrations.
+    Managed by platform administrators only.
+    """
+    version = models.IntegerField(
+        unique=True,
+        help_text="Version number (e.g., 1, 2, 3)"
+    )
+    content = models.TextField(
+        help_text="Full Terms and Conditions text (supports Markdown)"
+    )
+    effective_date = models.DateTimeField(
+        help_text="When these terms become effective"
+    )
+    is_current = models.BooleanField(
+        default=False,
+        help_text="Is this the current active version?"
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_terms'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Workshop Terms and Conditions"
+        verbose_name_plural = "Workshop Terms and Conditions"
+        ordering = ['-version']
+
+    def __str__(self):
+        status = "CURRENT" if self.is_current else "archived"
+        return f"Terms v{self.version} ({status}) - Effective {self.effective_date.strftime('%Y-%m-%d')}"
+
+    def save(self, *args, **kwargs):
+        """Ensure only one version is marked as current"""
+        if self.is_current:
+            # Set all other versions to not current
+            WorkshopTermsAndConditions.objects.exclude(pk=self.pk).update(is_current=False)
+        super().save(*args, **kwargs)
+
+
+class TermsAcceptance(models.Model):
+    """
+    Tracks when students accept Terms and Conditions.
+    Provides legal proof of agreement.
+    """
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='terms_acceptances'
+    )
+    registration = models.OneToOneField(
+        'WorkshopRegistration',
+        on_delete=models.CASCADE,
+        related_name='terms_acceptance',
+        null=True,
+        blank=True,
+        help_text="The workshop registration this acceptance is for"
+    )
+    terms_version = models.ForeignKey(
+        WorkshopTermsAndConditions,
+        on_delete=models.PROTECT,  # Don't allow deletion of accepted terms
+        related_name='acceptances'
+    )
+    accepted_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        help_text="IP address from which terms were accepted"
+    )
+    user_agent = models.TextField(
+        blank=True,
+        help_text="Browser user agent string"
+    )
+
+    class Meta:
+        verbose_name = "Terms Acceptance"
+        verbose_name_plural = "Terms Acceptances"
+        ordering = ['-accepted_at']
+        indexes = [
+            models.Index(fields=['student', 'accepted_at']),
+            models.Index(fields=['registration']),
+        ]
+
+    def __str__(self):
+        return f"{self.student.username} accepted v{self.terms_version.version} on {self.accepted_at.strftime('%Y-%m-%d %H:%M')}"

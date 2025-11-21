@@ -1859,3 +1859,18 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
         except Exception as e:
             messages.error(request, f'Payment error: {str(e)}. Please try again or contact support.')
             return redirect('workshops:cart')
+
+
+class WorkshopTermsView(TemplateView):
+    """Display current Workshop Terms and Conditions"""
+    template_name = 'workshops/terms_and_conditions.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from .models import WorkshopTermsAndConditions
+
+        # Get current terms
+        current_terms = WorkshopTermsAndConditions.objects.filter(is_current=True).first()
+        context['terms'] = current_terms
+
+        return context

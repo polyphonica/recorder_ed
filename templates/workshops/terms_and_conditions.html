@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load markdown_extras %}
+
+{% block title %}Workshop Terms and Conditions{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'domain_selector' %}">Home</a></li>
+            <li>Workshop Terms and Conditions</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-4">
+                <i class="fas fa-file-contract mr-3 text-primary"></i>Workshop Terms and Conditions
+            </h1>
+            {% if terms %}
+            <div class="flex gap-4 text-sm text-base-content/70">
+                <span><i class="fas fa-code-branch mr-1"></i>Version {{ terms.version }}</span>
+                <span><i class="fas fa-calendar mr-1"></i>Effective {{ terms.effective_date|date:"d F Y" }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if terms %}
+            <!-- Terms Content -->
+            <div class="card bg-base-200 shadow-xl">
+                <div class="card-body">
+                    <div class="prose prose-sm md:prose lg:prose-lg max-w-none">
+                        {{ terms.content|markdown }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Print Button -->
+            <div class="mt-6 flex gap-4">
+                <button onclick="window.print()" class="btn btn-outline">
+                    <i class="fas fa-print mr-2"></i>Print Terms
+                </button>
+                <a href="{% url 'domain_selector' %}" class="btn btn-ghost">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Home
+                </a>
+            </div>
+        {% else %}
+            <!-- No terms available -->
+            <div class="card bg-base-200 shadow-xl">
+                <div class="card-body text-center py-12">
+                    <i class="fas fa-exclamation-triangle text-5xl text-warning mb-4"></i>
+                    <h2 class="text-2xl font-bold mb-2">Terms Not Available</h2>
+                    <p class="text-base-content/70">
+                        The Terms and Conditions are currently being updated.
+                        Please check back soon or contact support.
+                    </p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    @media print {
+        .breadcrumbs, .btn, nav, footer {
+            display: none !important;
+        }
+        .card {
+            box-shadow: none !important;
+            background: white !important;
+        }
+    }
+</style>
+{% endblock %}
