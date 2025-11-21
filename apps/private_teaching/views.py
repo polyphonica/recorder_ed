@@ -13,7 +13,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 
 from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView
-from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard
+from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard, LessonCancellationRequest
 from .notifications import TeacherNotificationService, StudentNotificationService
 from lessons.models import Lesson, Document, LessonAttachedUrl
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, ExamRegistrationForm, ExamPieceFormSet, ExamResultsForm
@@ -2065,3 +2065,258 @@ class PrivateLessonTermsView(TemplateView):
         context['current_terms'] = current_terms
 
         return context
+
+
+# ============================================================================
+# LESSON CANCELLATION VIEWS
+# ============================================================================
+
+class RequestLessonCancellationView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
+    """Student submits cancellation/reschedule request for a lesson"""
+    template_name = 'private_teaching/request_cancellation.html'
+
+    def get_lesson(self):
+        """Get the lesson being cancelled"""
+        lesson_id = self.kwargs.get('lesson_id')
+        return get_object_or_404(
+            Lesson,
+            id=lesson_id,
+            student=self.request.user,
+            is_deleted=False
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        lesson = self.get_lesson()
+
+        # Calculate hours until lesson and check policy
+        from datetime import datetime
+        lesson_datetime = datetime.combine(lesson.lesson_date, lesson.lesson_time)
+        lesson_datetime = timezone.make_aware(lesson_datetime)
+        time_until_lesson = lesson_datetime - timezone.now()
+        hours_before_lesson = time_until_lesson.total_seconds() / 3600
+        is_within_policy = hours_before_lesson >= 48
+
+        # Calculate potential refund amount (lesson fee minus platform fee)
+        # Platform fee is typically 10% - adjust as needed
+        PLATFORM_FEE_PERCENTAGE = 0.10
+        if lesson.fee and lesson.payment_status == 'Paid':
+            platform_fee = lesson.fee * PLATFORM_FEE_PERCENTAGE
+            refund_amount = lesson.fee - platform_fee
+        else:
+            platform_fee = 0
+            refund_amount = 0
+
+        # Check if existing cancellation request exists
+        existing_request = LessonCancellationRequest.objects.filter(
+            lesson=lesson,
+            status__in=[LessonCancellationRequest.PENDING, LessonCancellationRequest.APPROVED]
+        ).first()
+
+        context['lesson'] = lesson
+        context['hours_before_lesson'] = hours_before_lesson
+        context['is_within_policy'] = is_within_policy
+        context['refund_amount'] = refund_amount
+        context['platform_fee'] = platform_fee
+        context['existing_request'] = existing_request
+        context['reason_choices'] = LessonCancellationRequest.REASON_CHOICES
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """Handle cancellation request submission"""
+        lesson = self.get_lesson()
+
+        # Check for existing pending/approved request
+        existing_request = LessonCancellationRequest.objects.filter(
+            lesson=lesson,
+            status__in=[LessonCancellationRequest.PENDING, LessonCancellationRequest.APPROVED]
+        ).first()
+
+        if existing_request:
+            messages.error(request, 'A cancellation request for this lesson is already pending.')
+            return redirect('private_teaching:my_lessons')
+
+        # Get form data
+        request_type = request.POST.get('request_type')
+        cancellation_reason = request.POST.get('cancellation_reason')
+        student_message = request.POST.get('student_message', '').strip()
+        proposed_new_date = request.POST.get('proposed_new_date', '').strip() if request_type == 'reschedule' else None
+        proposed_new_time = request.POST.get('proposed_new_time', '').strip() if request_type == 'reschedule' else None
+
+        # Validation
+        if not request_type or request_type not in ['cancel_refund', 'reschedule']:
+            messages.error(request, 'Please select a valid request type.')
+            return redirect('private_teaching:request_cancellation', lesson_id=lesson.id)
+
+        if not cancellation_reason:
+            messages.error(request, 'Please select a cancellation reason.')
+            return redirect('private_teaching:request_cancellation', lesson_id=lesson.id)
+
+        if not student_message:
+            messages.error(request, 'Please provide an explanation for your request.')
+            return redirect('private_teaching:request_cancellation', lesson_id=lesson.id)
+
+        # Create cancellation request
+        cancellation_request = LessonCancellationRequest.objects.create(
+            lesson=lesson,
+            student=request.user,
+            teacher=lesson.teacher,
+            request_type=request_type,
+            cancellation_reason=cancellation_reason,
+            student_message=student_message,
+            proposed_new_date=proposed_new_date if proposed_new_date else None,
+            proposed_new_time=proposed_new_time if proposed_new_time else None
+        )
+
+        # Calculate refund amounts if eligible
+        if cancellation_request.can_receive_refund:
+            PLATFORM_FEE_PERCENTAGE = 0.10
+            platform_fee = lesson.fee * PLATFORM_FEE_PERCENTAGE
+            refund_amount = lesson.fee - platform_fee
+
+            cancellation_request.refund_amount = refund_amount
+            cancellation_request.platform_fee_retained = platform_fee
+            cancellation_request.save(update_fields=['refund_amount', 'platform_fee_retained'])
+
+        # Send notification to teacher
+        if lesson.teacher and lesson.teacher.email:
+            try:
+                TeacherNotificationService.send_cancellation_request_notification(
+                    cancellation_request=cancellation_request,
+                    lesson=lesson,
+                    student=request.user
+                )
+            except Exception as e:
+                print(f"Error sending cancellation notification to teacher: {e}")
+
+        if request_type == 'reschedule':
+            messages.success(request, 'Reschedule request submitted! Your teacher will review it shortly.')
+        else:
+            messages.success(request, 'Cancellation request submitted! Your teacher will review it shortly.')
+
+        return redirect('private_teaching:cancellation_request_detail', request_id=cancellation_request.id)
+
+
+class CancellationRequestDetailView(PrivateTeachingLoginRequiredMixin, TemplateView):
+    """View details of a cancellation request (for both student and teacher)"""
+    template_name = 'private_teaching/cancellation_request_detail.html'
+
+    def get_cancellation_request(self):
+        """Get the cancellation request"""
+        request_id = self.kwargs.get('request_id')
+        cancellation_request = get_object_or_404(LessonCancellationRequest, id=request_id)
+
+        # Check permissions
+        if self.request.user not in [cancellation_request.student, cancellation_request.teacher]:
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("You don't have permission to view this cancellation request.")
+
+        return cancellation_request
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cancellation_request = self.get_cancellation_request()
+
+        context['cancellation_request'] = cancellation_request
+        context['lesson'] = cancellation_request.lesson
+        context['is_teacher'] = self.request.user == cancellation_request.teacher
+        context['is_student'] = self.request.user == cancellation_request.student
+
+        return context
+
+
+class TeacherCancellationRequestsView(TeacherProfileCompletedMixin, ListView):
+    """Teacher view of all cancellation requests"""
+    template_name = 'private_teaching/teacher_cancellation_requests.html'
+    context_object_name = 'cancellation_requests'
+    paginate_by = 20
+
+    def get_queryset(self):
+        status_filter = self.request.GET.get('status', 'pending')
+
+        queryset = LessonCancellationRequest.objects.filter(
+            teacher=self.request.user
+        ).select_related('lesson', 'student', 'lesson__subject')
+
+        if status_filter and status_filter != 'all':
+            queryset = queryset.filter(status=status_filter)
+
+        return queryset.order_by('-requested_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get counts for each status
+        context['pending_count'] = LessonCancellationRequest.objects.filter(
+            teacher=self.request.user, status=LessonCancellationRequest.PENDING
+        ).count()
+        context['approved_count'] = LessonCancellationRequest.objects.filter(
+            teacher=self.request.user, status=LessonCancellationRequest.APPROVED
+        ).count()
+        context['rejected_count'] = LessonCancellationRequest.objects.filter(
+            teacher=self.request.user, status=LessonCancellationRequest.REJECTED
+        ).count()
+        context['completed_count'] = LessonCancellationRequest.objects.filter(
+            teacher=self.request.user, status=LessonCancellationRequest.COMPLETED
+        ).count()
+
+        context['status_filter'] = self.request.GET.get('status', 'pending')
+
+        return context
+
+
+class TeacherRespondToCancellationView(TeacherProfileCompletedMixin, View):
+    """Teacher approves or rejects a cancellation request"""
+
+    def post(self, request, *args, **kwargs):
+        request_id = kwargs.get('request_id')
+        cancellation_request = get_object_or_404(
+            LessonCancellationRequest,
+            id=request_id,
+            teacher=request.user,
+            status=LessonCancellationRequest.PENDING
+        )
+
+        action = request.POST.get('action')
+        teacher_response = request.POST.get('teacher_response', '').strip()
+
+        if action == 'approve':
+            cancellation_request.status = LessonCancellationRequest.APPROVED
+            cancellation_request.teacher_response = teacher_response
+            cancellation_request.teacher_responded_at = timezone.now()
+            cancellation_request.save()
+
+            # Send notification to student
+            if cancellation_request.student and cancellation_request.student.email:
+                try:
+                    StudentNotificationService.send_cancellation_approved_notification(
+                        cancellation_request=cancellation_request,
+                        lesson=cancellation_request.lesson
+                    )
+                except Exception as e:
+                    print(f"Error sending cancellation approval email: {e}")
+
+            messages.success(request, 'Cancellation request approved. Refund will be processed shortly.')
+
+        elif action == 'reject':
+            cancellation_request.status = LessonCancellationRequest.REJECTED
+            cancellation_request.teacher_response = teacher_response
+            cancellation_request.teacher_responded_at = timezone.now()
+            cancellation_request.save()
+
+            # Send notification to student
+            if cancellation_request.student and cancellation_request.student.email:
+                try:
+                    StudentNotificationService.send_cancellation_rejected_notification(
+                        cancellation_request=cancellation_request,
+                        lesson=cancellation_request.lesson
+                    )
+                except Exception as e:
+                    print(f"Error sending cancellation rejection email: {e}")
+
+            messages.info(request, 'Cancellation request rejected.')
+        else:
+            messages.error(request, 'Invalid action.')
+
+        return redirect('private_teaching:teacher_cancellation_requests')

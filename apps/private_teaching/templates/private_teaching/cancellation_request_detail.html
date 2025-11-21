@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Cancellation Request Details - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <a href="{% if is_teacher %}{% url 'private_teaching:teacher_cancellation_requests' %}{% else %}{% url 'private_teaching:my_lessons' %}{% endif %}" class="btn btn-ghost btn-sm mb-4">
+            <i class="fas fa-arrow-left mr-2"></i>Back
+        </a>
+        <h1 class="text-4xl font-bold mb-2">Cancellation Request Details</h1>
+        <p class="text-base-content/70">{{ cancellation_request.get_request_type_display }}</p>
+    </div>
+
+    <!-- Status Alert -->
+    <div class="alert {% if cancellation_request.status == 'pending' %}alert-warning{% elif cancellation_request.status == 'approved' %}alert-success{% elif cancellation_request.status == 'rejected' %}alert-error{% else %}alert-info{% endif %} shadow-lg mb-6">
+        <i class="fas {% if cancellation_request.status == 'pending' %}fa-clock{% elif cancellation_request.status == 'approved' %}fa-check-circle{% elif cancellation_request.status == 'rejected' %}fa-times-circle{% else %}fa-info-circle{% endif %}"></i>
+        <div>
+            <h3 class="font-bold">Status: {{ cancellation_request.get_status_display }}</h3>
+            <div class="text-sm">
+                {% if cancellation_request.status == 'pending' %}
+                    Waiting for teacher to review this request
+                {% elif cancellation_request.status == 'approved' %}
+                    This request has been approved by the teacher
+                {% elif cancellation_request.status == 'rejected' %}
+                    This request has been rejected by the teacher
+                {% elif cancellation_request.status == 'completed' %}
+                    This request has been completed
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Lesson Details Card -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Lesson Details</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <p class="text-sm text-base-content/70">Subject</p>
+                            <p class="font-semibold">{{ lesson.subject.subject }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Teacher</p>
+                            <p class="font-semibold">{{ lesson.teacher.get_full_name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Date & Time</p>
+                            <p class="font-semibold">
+                                {{ lesson.lesson_date|date:"F j, Y" }} at {{ lesson.lesson_time|time:"g:i A" }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Duration</p>
+                            <p class="font-semibold">{{ lesson.duration_in_minutes }} minutes</p>
+                        </div>
+                        {% if lesson.fee %}
+                        <div>
+                            <p class="text-sm text-base-content/70">Lesson Price</p>
+                            <p class="font-semibold text-success">£{{ lesson.fee|floatformat:2 }}</p>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <p class="text-sm text-base-content/70">Payment Status</p>
+                            <p>
+                                {% if lesson.payment_status == 'Paid' %}
+                                    <span class="badge badge-success">Paid</span>
+                                {% else %}
+                                    <span class="badge badge-warning">Not Paid</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Request Details Card -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Request Details</h2>
+                    <div class="space-y-4 mt-4">
+                        <div>
+                            <p class="text-sm text-base-content/70">Request Type</p>
+                            <p class="font-semibold">
+                                <span class="badge badge-lg {% if cancellation_request.request_type == 'cancel_refund' %}badge-error{% else %}badge-info{% endif %}">
+                                    {{ cancellation_request.get_request_type_display }}
+                                </span>
+                            </p>
+                        </div>
+
+                        <div>
+                            <p class="text-sm text-base-content/70">Reason</p>
+                            <p class="font-semibold">{{ cancellation_request.get_cancellation_reason_display }}</p>
+                        </div>
+
+                        <div>
+                            <p class="text-sm text-base-content/70">Student's Message</p>
+                            <div class="bg-base-200 p-4 rounded-lg">
+                                <p>{{ cancellation_request.student_message }}</p>
+                            </div>
+                        </div>
+
+                        {% if cancellation_request.request_type == 'reschedule' and cancellation_request.proposed_new_date %}
+                        <div>
+                            <p class="text-sm text-base-content/70">Proposed New Date & Time</p>
+                            <p class="font-semibold">
+                                {{ cancellation_request.proposed_new_date|date:"F j, Y" }}
+                                {% if cancellation_request.proposed_new_time %}
+                                    at {{ cancellation_request.proposed_new_time|time:"g:i A" }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% endif %}
+
+                        {% if cancellation_request.teacher_response %}
+                        <div>
+                            <p class="text-sm text-base-content/70">Teacher's Response</p>
+                            <div class="bg-base-200 p-4 rounded-lg">
+                                <p>{{ cancellation_request.teacher_response }}</p>
+                            </div>
+                            <p class="text-xs text-base-content/70 mt-2">
+                                Responded {{ cancellation_request.teacher_responded_at|date:"F j, Y g:i A" }}
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teacher Response Form (Only for teachers on pending requests) -->
+            {% if is_teacher and cancellation_request.status == 'pending' %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Respond to Request</h2>
+                    <form method="post" action="{% url 'private_teaching:teacher_respond_cancellation' cancellation_request.id %}">
+                        {% csrf_token %}
+
+                        <div class="form-control mb-6">
+                            <label class="label">
+                                <span class="label-text font-semibold">Your Response (Optional)</span>
+                            </label>
+                            <textarea
+                                name="teacher_response"
+                                class="textarea textarea-bordered h-24"
+                                placeholder="Add a message to the student (optional)..."
+                            ></textarea>
+                        </div>
+
+                        <div class="card-actions justify-end">
+                            <button type="submit" name="action" value="reject" class="btn btn-error">
+                                <i class="fas fa-times mr-2"></i>
+                                Reject Request
+                            </button>
+                            <button type="submit" name="action" value="approve" class="btn btn-success">
+                                <i class="fas fa-check mr-2"></i>
+                                Approve Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- Timeline Card -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">Request Timeline</h2>
+                    <ul class="timeline timeline-vertical">
+                        <li>
+                            <div class="timeline-start timeline-box">
+                                <p class="font-semibold text-sm">Request Submitted</p>
+                                <p class="text-xs text-base-content/70">{{ cancellation_request.requested_at|date:"M j, Y g:i A" }}</p>
+                            </div>
+                            <div class="timeline-middle">
+                                <i class="fas fa-circle text-xs"></i>
+                            </div>
+                            <hr />
+                        </li>
+                        {% if cancellation_request.teacher_responded_at %}
+                        <li>
+                            <hr />
+                            <div class="timeline-start timeline-box">
+                                <p class="font-semibold text-sm">Teacher Responded</p>
+                                <p class="text-xs text-base-content/70">{{ cancellation_request.teacher_responded_at|date:"M j, Y g:i A" }}</p>
+                            </div>
+                            <div class="timeline-middle">
+                                <i class="fas fa-circle text-xs"></i>
+                            </div>
+                            {% if cancellation_request.completed_at %}<hr />{% endif %}
+                        </li>
+                        {% endif %}
+                        {% if cancellation_request.completed_at %}
+                        <li>
+                            <hr />
+                            <div class="timeline-start timeline-box">
+                                <p class="font-semibold text-sm">Completed</p>
+                                <p class="text-xs text-base-content/70">{{ cancellation_request.completed_at|date:"M j, Y g:i A" }}</p>
+                            </div>
+                            <div class="timeline-middle">
+                                <i class="fas fa-circle text-xs"></i>
+                            </div>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Policy Info Card -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">Policy Status</h2>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fas {% if cancellation_request.is_within_policy %}fa-check-circle text-success{% else %}fa-times-circle text-error{% endif %}"></i>
+                            <div>
+                                <p class="text-sm font-semibold">48-Hour Policy</p>
+                                <p class="text-xs text-base-content/70">
+                                    Requested {{ cancellation_request.hours_before_lesson|floatformat:1 }} hours before lesson
+                                </p>
+                            </div>
+                        </div>
+
+                        {% if cancellation_request.refund_amount %}
+                        <div class="divider my-2"></div>
+                        <div>
+                            <p class="text-sm font-semibold mb-2">Refund Breakdown</p>
+                            <div class="space-y-1 text-xs">
+                                <div class="flex justify-between">
+                                    <span>Lesson Price:</span>
+                                    <span>£{{ lesson.fee|floatformat:2 }}</span>
+                                </div>
+                                <div class="flex justify-between text-error">
+                                    <span>Platform Fee (non-refundable):</span>
+                                    <span>-£{{ cancellation_request.platform_fee_retained|floatformat:2 }}</span>
+                                </div>
+                                <div class="divider my-1"></div>
+                                <div class="flex justify-between font-bold text-success">
+                                    <span>Refund Amount:</span>
+                                    <span>£{{ cancellation_request.refund_amount|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if cancellation_request.refund_processed_at %}
+                        <div class="divider my-2"></div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <div>
+                                <p class="text-sm font-semibold">Refund Processed</p>
+                                <p class="text-xs text-base-content/70">
+                                    {{ cancellation_request.refund_processed_at|date:"M j, Y g:i A" }}
+                                </p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

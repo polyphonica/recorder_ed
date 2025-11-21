@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Cancellation Requests - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <a href="{% url 'private_teaching:teacher_dashboard' %}" class="btn btn-ghost btn-sm mb-4">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+        </a>
+        <h1 class="text-4xl font-bold mb-2">Student Cancellation Requests</h1>
+        <p class="text-base-content/70">Review and respond to lesson cancellation/reschedule requests</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats stats-vertical lg:stats-horizontal shadow mb-6 w-full">
+        <div class="stat">
+            <div class="stat-figure text-warning">
+                <i class="fas fa-clock text-3xl"></i>
+            </div>
+            <div class="stat-title">Pending</div>
+            <div class="stat-value text-warning">{{ pending_count }}</div>
+            <div class="stat-desc">Awaiting your response</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-figure text-success">
+                <i class="fas fa-check-circle text-3xl"></i>
+            </div>
+            <div class="stat-title">Approved</div>
+            <div class="stat-value text-success">{{ approved_count }}</div>
+            <div class="stat-desc">Approved requests</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-figure text-error">
+                <i class="fas fa-times-circle text-3xl"></i>
+            </div>
+            <div class="stat-title">Rejected</div>
+            <div class="stat-value text-error">{{ rejected_count }}</div>
+            <div class="stat-desc">Rejected requests</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-figure text-info">
+                <i class="fas fa-check-double text-3xl"></i>
+            </div>
+            <div class="stat-title">Completed</div>
+            <div class="stat-value text-info">{{ completed_count }}</div>
+            <div class="stat-desc">Fully processed</div>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="tabs tabs-boxed mb-6">
+        <a href="?status=pending" class="tab {% if status_filter == 'pending' %}tab-active{% endif %}">
+            <i class="fas fa-clock mr-2"></i>Pending ({{ pending_count }})
+        </a>
+        <a href="?status=approved" class="tab {% if status_filter == 'approved' %}tab-active{% endif %}">
+            <i class="fas fa-check-circle mr-2"></i>Approved ({{ approved_count }})
+        </a>
+        <a href="?status=rejected" class="tab {% if status_filter == 'rejected' %}tab-active{% endif %}">
+            <i class="fas fa-times-circle mr-2"></i>Rejected ({{ rejected_count }})
+        </a>
+        <a href="?status=completed" class="tab {% if status_filter == 'completed' %}tab-active{% endif %}">
+            <i class="fas fa-check-double mr-2"></i>Completed ({{ completed_count }})
+        </a>
+        <a href="?status=all" class="tab {% if status_filter == 'all' %}tab-active{% endif %}">
+            <i class="fas fa-list mr-2"></i>All
+        </a>
+    </div>
+
+    <!-- Cancellation Requests List -->
+    {% if cancellation_requests %}
+        <div class="space-y-4">
+            {% for request in cancellation_requests %}
+                <div class="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                    <div class="card-body">
+                        <div class="flex justify-between items-start flex-wrap gap-4">
+                            <div class="flex-1">
+                                <h3 class="card-title text-lg">
+                                    {{ request.lesson.subject.subject }}
+                                    <span class="badge {% if request.request_type == 'cancel_refund' %}badge-error{% else %}badge-info{% endif %} badge-sm">
+                                        {{ request.get_request_type_display }}
+                                    </span>
+                                    <span class="badge {% if request.status == 'pending' %}badge-warning{% elif request.status == 'approved' %}badge-success{% elif request.status == 'rejected' %}badge-error{% else %}badge-info{% endif %} badge-sm">
+                                        {{ request.get_status_display }}
+                                    </span>
+                                </h3>
+
+                                <div class="mt-3 space-y-2">
+                                    <p class="text-base-content/70">
+                                        <i class="fas fa-user mr-2"></i>
+                                        <span class="font-semibold">Student:</span> {{ request.student.get_full_name }}
+                                    </p>
+                                    <p class="text-base-content/70">
+                                        <i class="fas fa-calendar mr-2"></i>
+                                        <span class="font-semibold">Lesson:</span> {{ request.lesson.lesson_date|date:"F j, Y" }} at {{ request.lesson.lesson_time|time:"g:i A" }}
+                                    </p>
+                                    <p class="text-base-content/70">
+                                        <i class="fas fa-clock mr-2"></i>
+                                        <span class="font-semibold">Requested:</span> {{ request.requested_at|date:"F j, Y g:i A" }}
+                                        ({{ request.hours_before_lesson|floatformat:1 }} hours before lesson)
+                                    </p>
+                                    <p class="text-base-content/70">
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        <span class="font-semibold">Reason:</span> {{ request.get_cancellation_reason_display }}
+                                    </p>
+
+                                    {% if request.is_within_policy %}
+                                        <p class="text-success">
+                                            <i class="fas fa-check-circle mr-2"></i>
+                                            Within 48-hour policy - Eligible for refund
+                                        </p>
+                                    {% else %}
+                                        <p class="text-warning">
+                                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                                            Outside 48-hour policy - Emergency exception required
+                                        </p>
+                                    {% endif %}
+
+                                    {% if request.refund_amount %}
+                                        <p class="text-base-content/70">
+                                            <i class="fas fa-pound-sign mr-2"></i>
+                                            <span class="font-semibold">Refund Amount:</span> £{{ request.refund_amount|floatformat:2 }}
+                                        </p>
+                                    {% endif %}
+
+                                    {% if request.request_type == 'reschedule' and request.proposed_new_date %}
+                                        <p class="text-info">
+                                            <i class="fas fa-calendar-alt mr-2"></i>
+                                            <span class="font-semibold">Proposed:</span>
+                                            {{ request.proposed_new_date|date:"F j, Y" }}
+                                            {% if request.proposed_new_time %}
+                                                at {{ request.proposed_new_time|time:"g:i A" }}
+                                            {% endif %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Student Message Preview -->
+                                <div class="mt-4 p-3 bg-base-200 rounded-lg">
+                                    <p class="text-sm font-semibold mb-1">Student's Message:</p>
+                                    <p class="text-sm">
+                                        {% if request.student_message|length > 150 %}
+                                            {{ request.student_message|slice:":150" }}...
+                                        {% else %}
+                                            {{ request.student_message }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-2">
+                                <a href="{% url 'private_teaching:cancellation_request_detail' request.id %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-eye mr-2"></i>
+                                    View Details
+                                </a>
+
+                                {% if request.status == 'pending' %}
+                                    <form method="post" action="{% url 'private_teaching:teacher_respond_cancellation' request.id %}" class="space-y-2">
+                                        {% csrf_token %}
+                                        <button type="submit" name="action" value="approve" class="btn btn-success btn-sm w-full">
+                                            <i class="fas fa-check mr-2"></i>
+                                            Approve
+                                        </button>
+                                        <button type="submit" name="action" value="reject" class="btn btn-error btn-sm w-full">
+                                            <i class="fas fa-times mr-2"></i>
+                                            Reject
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <div class="flex justify-center mt-8">
+                <div class="join">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1&status={{ status_filter }}" class="join-item btn btn-sm">«</a>
+                        <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}" class="join-item btn btn-sm">‹</a>
+                    {% endif %}
+
+                    <button class="join-item btn btn-sm btn-active">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</button>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}" class="join-item btn btn-sm">›</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}&status={{ status_filter }}" class="join-item btn btn-sm">»</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-16">
+            <div class="text-8xl mb-6">📋</div>
+            <h2 class="text-3xl font-bold mb-4">No Cancellation Requests</h2>
+            <p class="text-lg text-base-content/70 mb-8">
+                {% if status_filter == 'pending' %}
+                    You don't have any pending cancellation requests at the moment.
+                {% elif status_filter == 'approved' %}
+                    You haven't approved any cancellation requests yet.
+                {% elif status_filter == 'rejected' %}
+                    You haven't rejected any cancellation requests yet.
+                {% elif status_filter == 'completed' %}
+                    You don't have any completed cancellation requests yet.
+                {% else %}
+                    You don't have any cancellation requests yet.
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

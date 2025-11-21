@@ -839,3 +839,156 @@ class PrivateLessonTermsAcceptance(models.Model):
     def __str__(self):
         lesson_info = f" for lesson {self.lesson.id}" if self.lesson else ""
         return f"{self.student.username} accepted v{self.terms_version.version}{lesson_info}"
+
+
+class LessonCancellationRequest(models.Model):
+    """Track student cancellation requests for private lessons"""
+
+    # Request Type Choices
+    CANCEL_WITH_REFUND = 'cancel_refund'
+    RESCHEDULE = 'reschedule'
+
+    REQUEST_TYPE_CHOICES = [
+        (CANCEL_WITH_REFUND, 'Cancel with Refund'),
+        (RESCHEDULE, 'Reschedule Lesson'),
+    ]
+
+    # Status Choices
+    PENDING = 'pending'
+    APPROVED = 'approved'
+    REJECTED = 'rejected'
+    COMPLETED = 'completed'
+
+    STATUS_CHOICES = [
+        (PENDING, 'Pending Teacher Decision'),
+        (APPROVED, 'Approved by Teacher'),
+        (REJECTED, 'Rejected by Teacher'),
+        (COMPLETED, 'Completed (Refunded/Rescheduled)'),
+    ]
+
+    # Cancellation Reason Choices
+    SCHEDULE_CONFLICT = 'schedule_conflict'
+    ILLNESS = 'illness'
+    EMERGENCY = 'emergency'
+    NO_LONGER_NEEDED = 'no_longer_needed'
+    DISCONTINUING = 'discontinuing'
+    OTHER = 'other'
+
+    REASON_CHOICES = [
+        (SCHEDULE_CONFLICT, 'Schedule Conflict'),
+        (ILLNESS, 'Illness'),
+        (EMERGENCY, 'Family Emergency'),
+        (NO_LONGER_NEEDED, 'No Longer Need Lessons'),
+        (DISCONTINUING, 'Discontinuing All Lessons'),
+        (OTHER, 'Other'),
+    ]
+
+    # Core Fields
+    lesson = models.ForeignKey('lessons.Lesson', on_delete=models.CASCADE, related_name='cancellation_requests')
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_cancellation_requests')
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_cancellation_requests')
+
+    # Request Details
+    request_type = models.CharField(max_length=20, choices=REQUEST_TYPE_CHOICES, default=CANCEL_WITH_REFUND)
+    cancellation_reason = models.CharField(max_length=30, choices=REASON_CHOICES)
+    student_message = models.TextField(help_text="Student's explanation for the cancellation/reschedule request")
+
+    # Timing Information
+    requested_at = models.DateTimeField(auto_now_add=True)
+    hours_before_lesson = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        help_text="Hours between request and lesson start time"
+    )
+    is_within_policy = models.BooleanField(
+        default=True,
+        help_text="True if requested 48+ hours before lesson (eligible for refund)"
+    )
+
+    # Status and Resolution
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
+    teacher_response = models.TextField(blank=True, help_text="Teacher's response to the request")
+    teacher_responded_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    # Refund Details (if applicable)
+    refund_amount = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Amount to be refunded (lesson price minus platform fee)"
+    )
+    platform_fee_retained = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Platform fee that is non-refundable"
+    )
+    refund_processed_at = models.DateTimeField(null=True, blank=True)
+
+    # Reschedule Details (if applicable)
+    proposed_new_date = models.DateField(null=True, blank=True)
+    proposed_new_time = models.TimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Lesson Cancellation Request'
+        verbose_name_plural = 'Lesson Cancellation Requests'
+        ordering = ['-requested_at']
+
+    def __str__(self):
+        return f"{self.get_request_type_display()} - {self.lesson} by {self.student.username}"
+
+    def save(self, *args, **kwargs):
+        """Calculate hours before lesson and policy compliance on first save"""
+        if not self.pk:  # Only on creation
+            from django.utils import timezone
+            from datetime import datetime, timedelta
+
+            # Combine lesson date and time
+            lesson_datetime = datetime.combine(
+                self.lesson.lesson_date,
+                self.lesson.lesson_time
+            )
+            lesson_datetime = timezone.make_aware(lesson_datetime)
+
+            # Calculate hours until lesson
+            time_until_lesson = lesson_datetime - timezone.now()
+            self.hours_before_lesson = time_until_lesson.total_seconds() / 3600
+
+            # Check if within 48-hour policy
+            self.is_within_policy = self.hours_before_lesson >= 48
+
+        super().save(*args, **kwargs)
+
+    @property
+    def can_receive_refund(self):
+        """Determine if this cancellation is eligible for a refund"""
+        # Must be within 48-hour policy
+        if not self.is_within_policy:
+            return False
+
+        # Lesson must have been paid
+        if self.lesson.payment_status != 'Paid':
+            return False
+
+        # Must be requesting a cancellation (not just reschedule)
+        if self.request_type != self.CANCEL_WITH_REFUND:
+            return False
+
+        # Request must be within 14 days of lesson date
+        from django.utils import timezone
+        from datetime import datetime, timedelta
+
+        lesson_datetime = datetime.combine(
+            self.lesson.lesson_date,
+            self.lesson.lesson_time
+        )
+        lesson_datetime = timezone.make_aware(lesson_datetime)
+
+        days_since_lesson = (timezone.now() - lesson_datetime).days
+        if days_since_lesson > 14:
+            return False
+
+        return True

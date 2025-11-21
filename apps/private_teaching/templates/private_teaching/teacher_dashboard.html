@@ -59,6 +59,9 @@
             <div class="stat-title text-success-content/70">Quick Actions</div>
             <div class="stat-actions mt-4 flex flex-col gap-2">
                 <a href="{% url 'private_teaching:incoming_requests' %}" class="btn btn-sm btn-outline btn-success-content">Review Requests</a>
+                <a href="{% url 'private_teaching:teacher_cancellation_requests' %}" class="btn btn-sm btn-outline btn-success-content">
+                    <i class="fas fa-times-circle mr-1"></i>Cancellations
+                </a>
                 <a href="{% url 'private_teaching:exam_list' %}" class="btn btn-sm btn-outline btn-success-content">
                     <i class="fas fa-graduation-cap mr-1"></i>Exam Registrations
                 </a>

@@ -129,6 +129,9 @@
                                                 </button>
                                             </form>
                                         {% endif %}
+                                        <a href="{% url 'private_teaching:request_cancellation' lesson.id %}" class="btn btn-sm btn-error btn-outline">
+                                            <i class="fas fa-times-circle mr-2"></i>Cancel/Reschedule
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -215,6 +218,9 @@
                                                 </button>
                                             </form>
                                         {% endif %}
+                                        <a href="{% url 'private_teaching:request_cancellation' lesson.id %}" class="btn btn-xs btn-error btn-outline" title="Cancel/Reschedule">
+                                            <i class="fas fa-times-circle"></i>
+                                        </a>
                                     </div>
                                 </td>
                             </tr>

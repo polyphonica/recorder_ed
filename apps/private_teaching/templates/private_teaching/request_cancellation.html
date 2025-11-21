@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Request Cancellation - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <a href="{% url 'private_teaching:my_lessons' %}" class="btn btn-ghost btn-sm mb-4">
+            <i class="fas fa-arrow-left mr-2"></i>Back to My Lessons
+        </a>
+        <h1 class="text-4xl font-bold mb-2">Request Lesson Cancellation/Reschedule</h1>
+        <p class="text-base-content/70">Submit a request to cancel or reschedule your lesson</p>
+    </div>
+
+    {% if existing_request %}
+        <!-- Existing Request Alert -->
+        <div class="alert alert-warning shadow-lg mb-6">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+                <h3 class="font-bold">Pending Request Exists</h3>
+                <div class="text-sm">
+                    You already have a {{ existing_request.get_request_type_display|lower }} request for this lesson.
+                    Status: <span class="badge">{{ existing_request.get_status_display }}</span>
+                </div>
+            </div>
+            <div>
+                <a href="{% url 'private_teaching:cancellation_request_detail' existing_request.id %}" class="btn btn-sm btn-primary">
+                    View Request
+                </a>
+            </div>
+        </div>
+    {% else %}
+        <!-- Lesson Details Card -->
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-2xl">Lesson Details</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <p class="text-sm text-base-content/70">Subject</p>
+                        <p class="font-semibold text-lg">{{ lesson.subject.subject }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-base-content/70">Teacher</p>
+                        <p class="font-semibold text-lg">{{ lesson.teacher.get_full_name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-base-content/70">Date & Time</p>
+                        <p class="font-semibold">
+                            <i class="fas fa-calendar mr-2"></i>{{ lesson.lesson_date|date:"l, F j, Y" }}
+                        </p>
+                        <p class="font-semibold">
+                            <i class="fas fa-clock mr-2"></i>{{ lesson.lesson_time|time:"g:i A" }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-base-content/70">Duration</p>
+                        <p class="font-semibold">{{ lesson.duration_in_minutes }} minutes</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-base-content/70">Location</p>
+                        <p class="font-semibold">{{ lesson.get_location_display }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-base-content/70">Price</p>
+                        <p class="font-semibold text-success">£{{ lesson.fee|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Policy Information Alert -->
+        <div class="alert {% if is_within_policy %}alert-info{% else %}alert-warning{% endif %} shadow-lg mb-6">
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <h3 class="font-bold">Cancellation Policy</h3>
+                <div class="text-sm">
+                    {% if is_within_policy %}
+                        <p>✓ This request is within our 48-hour cancellation policy.</p>
+                        {% if lesson.payment_status == 'Paid' %}
+                            <p>✓ Eligible for refund: £{{ refund_amount|floatformat:2 }} (lesson fee minus £{{ platform_fee|floatformat:2 }} non-refundable platform fee)</p>
+                        {% endif %}
+                    {% else %}
+                        <p>⚠ This request is within {{ hours_before_lesson|floatformat:1 }} hours of the lesson.</p>
+                        <p>⚠ Requests made less than 48 hours before the lesson are not eligible for automatic refund.</p>
+                        <p>However, your teacher may approve this request at their discretion for emergencies.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Cancellation Request Form -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">Submit Request</h2>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <!-- Request Type -->
+                    <div class="form-control mb-6">
+                        <label class="label">
+                            <span class="label-text font-semibold">Request Type *</span>
+                        </label>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-3 p-3 border border-base-300 rounded-lg cursor-pointer hover:bg-base-200">
+                                <input type="radio" name="request_type" value="cancel_refund" class="radio radio-primary" checked>
+                                <span>
+                                    <div class="font-medium">Cancel with Refund</div>
+                                    <div class="text-sm text-base-content/70">I want to cancel this lesson and receive a refund (if eligible)</div>
+                                </span>
+                            </label>
+                            <label class="flex items-center gap-3 p-3 border border-base-300 rounded-lg cursor-pointer hover:bg-base-200">
+                                <input type="radio" name="request_type" value="reschedule" class="radio radio-primary" onclick="document.getElementById('reschedule-fields').classList.remove('hidden')">
+                                <span>
+                                    <div class="font-medium">Reschedule Lesson</div>
+                                    <div class="text-sm text-base-content/70">I want to move this lesson to a different date/time</div>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Reschedule Fields (Hidden by default) -->
+                    <div id="reschedule-fields" class="hidden mb-6 p-4 bg-base-200 rounded-lg">
+                        <h3 class="font-semibold mb-3">Proposed New Date & Time</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">New Date</span>
+                                </label>
+                                <input type="date" name="proposed_new_date" class="input input-bordered" />
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">New Time</span>
+                                </label>
+                                <input type="time" name="proposed_new_time" class="input input-bordered" />
+                            </div>
+                        </div>
+                        <p class="text-sm text-base-content/70 mt-2">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Your teacher will review your proposed date/time and confirm availability.
+                        </p>
+                    </div>
+
+                    <!-- Cancellation Reason -->
+                    <div class="form-control mb-6">
+                        <label class="label">
+                            <span class="label-text font-semibold">Reason for Cancellation/Reschedule *</span>
+                        </label>
+                        <select name="cancellation_reason" class="select select-bordered" required>
+                            <option value="">Select a reason...</option>
+                            {% for value, label in reason_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Student Message -->
+                    <div class="form-control mb-6">
+                        <label class="label">
+                            <span class="label-text font-semibold">Explanation *</span>
+                            <span class="label-text-alt">Please explain your situation to your teacher</span>
+                        </label>
+                        <textarea
+                            name="student_message"
+                            class="textarea textarea-bordered h-32"
+                            placeholder="Please provide details about why you need to cancel/reschedule this lesson..."
+                            required
+                        ></textarea>
+                    </div>
+
+                    <!-- Important Notes -->
+                    <div class="alert alert-info mb-6">
+                        <i class="fas fa-info-circle"></i>
+                        <div class="text-sm">
+                            <p class="font-semibold mb-2">Important Notes:</p>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>Your teacher will review this request and respond shortly</li>
+                                <li>Refunds (if eligible) are processed minus a 10% non-refundable platform fee</li>
+                                <li>Refund requests must be made within 14 days of the lesson date</li>
+                                <li>Rescheduling is always preferred over cancellation when possible</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card-actions justify-end">
+                        <a href="{% url 'private_teaching:my_lessons' %}" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane mr-2"></i>
+                            Submit Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// Show/hide reschedule fields based on request type
+document.querySelectorAll('input[name="request_type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const rescheduleFields = document.getElementById('reschedule-fields');
+        if (this.value === 'reschedule') {
+            rescheduleFields.classList.remove('hidden');
+        } else {
+            rescheduleFields.classList.add('hidden');
+        }
+    });
+});
+</script>
+{% endblock %}

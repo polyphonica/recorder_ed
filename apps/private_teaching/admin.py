@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     Subject, LessonRequest, LessonRequestMessage, Cart, CartItem, Order, OrderItem,
     TeacherStudentApplication, ApplicationMessage, ExamBoard, ExamRegistration, ExamPiece,
-    PrivateLessonTermsAndConditions, PrivateLessonTermsAcceptance
+    PrivateLessonTermsAndConditions, PrivateLessonTermsAcceptance, LessonCancellationRequest
 )
 from lessons.models import Lesson
 
@@ -265,4 +265,37 @@ class PrivateLessonTermsAcceptanceAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         """Prevent deletion of acceptance records for legal/audit purposes"""
+        return False
+
+
+@admin.register(LessonCancellationRequest)
+class LessonCancellationRequestAdmin(admin.ModelAdmin):
+    list_display = ['lesson', 'student', 'teacher', 'request_type', 'status', 'is_within_policy', 'hours_before_lesson', 'requested_at']
+    list_filter = ['status', 'request_type', 'is_within_policy', 'cancellation_reason', 'requested_at']
+    search_fields = ['student__username', 'teacher__username', 'lesson__subject__subject', 'student_message']
+    readonly_fields = ['requested_at', 'hours_before_lesson', 'is_within_policy', 'teacher_responded_at', 'completed_at', 'refund_processed_at']
+    ordering = ['-requested_at']
+
+    fieldsets = (
+        ('Request Information', {
+            'fields': ('lesson', 'student', 'teacher', 'request_type', 'cancellation_reason', 'student_message')
+        }),
+        ('Timing & Policy', {
+            'fields': ('requested_at', 'hours_before_lesson', 'is_within_policy')
+        }),
+        ('Status & Resolution', {
+            'fields': ('status', 'teacher_response', 'teacher_responded_at', 'completed_at')
+        }),
+        ('Refund Details', {
+            'fields': ('refund_amount', 'platform_fee_retained', 'refund_processed_at'),
+            'classes': ('collapse',)
+        }),
+        ('Reschedule Details', {
+            'fields': ('proposed_new_date', 'proposed_new_time'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def has_add_permission(self, request):
+        """Prevent manual creation - should be created through student interface"""
         return False
