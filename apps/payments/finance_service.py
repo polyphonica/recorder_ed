@@ -545,7 +545,8 @@ class FinanceService:
             breakdown_dict[key]['lessons_count'] += 1
             # Get the price from the order item
             if hasattr(lesson, 'order_item') and lesson.order_item:
-                breakdown_dict[key]['lessons_revenue'] += lesson.order_item.price_paid
+                price = Decimal(str(lesson.order_item.price_paid)) if lesson.order_item.price_paid else Decimal('0.00')
+                breakdown_dict[key]['lessons_revenue'] += price
 
         # Get refunded lessons and subtract from revenue
         refund_requests = LessonCancellationRequest.objects.filter(
@@ -578,7 +579,8 @@ class FinanceService:
             # Track refunded lessons separately
             breakdown_dict[key]['refunded_count'] += 1
             # Original lesson fee (before platform fee deduction)
-            breakdown_dict[key]['refunded_amount'] += lesson.fee if lesson.fee else Decimal('0.00')
+            fee = Decimal(str(lesson.fee)) if lesson.fee else Decimal('0.00')
+            breakdown_dict[key]['refunded_amount'] += fee
 
         # Get paid exam registrations and group by student and subject
         exams_query = ExamRegistration.objects.filter(
@@ -604,7 +606,8 @@ class FinanceService:
                 }
 
             breakdown_dict[key]['exams_count'] += 1
-            breakdown_dict[key]['exams_revenue'] += exam.fee_amount
+            fee_amount = Decimal(str(exam.fee_amount)) if exam.fee_amount else Decimal('0.00')
+            breakdown_dict[key]['exams_revenue'] += fee_amount
 
         # Build final breakdown list
         breakdown = []
