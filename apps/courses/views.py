@@ -5,7 +5,7 @@ Views for courses app.
 import json
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
@@ -22,7 +22,7 @@ from .models import (
     Course, Topic, Lesson, LessonAttachment,
     CourseEnrollment, LessonProgress,
     Quiz, QuizQuestion, QuizAnswer, QuizAttempt,
-    CourseMessage
+    CourseMessage, CourseCancellationRequest
 )
 from .mixins import InstructorRequiredMixin, CourseInstructorMixin, EnrollmentRequiredMixin
 from .forms import (
