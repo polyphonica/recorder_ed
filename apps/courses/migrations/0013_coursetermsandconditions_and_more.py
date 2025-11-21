@@ -10,7 +10,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('courses', '0012_alter_courseenrollment_student_and_more'),
+        ('courses', '0010_coursemessage_is_read'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -31,11 +31,6 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': 'Course Terms and Conditions',
                 'ordering': ['-version'],
             },
-        ),
-        migrations.AlterField(
-            model_name='lessonattachment',
-            name='created_at',
-            field=models.DateTimeField(auto_now=True),
         ),
         migrations.CreateModel(
             name='CourseTermsAcceptance',
