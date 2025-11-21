@@ -1684,17 +1684,17 @@ class UpdateTeacherCapacityView(TeacherProfileCompletedMixin, View):
 # EXAM REGISTRATION VIEWS
 # ============================================================================
 
-class ExamRegistrationListView(PrivateTeachingLoginRequiredMixin, TeacherProfileCompletedMixin, ListView):
-    """List all exam registrations for a teacher"""
+class ExamRegistrationListView(UserFilterMixin, PrivateTeachingLoginRequiredMixin, TeacherProfileCompletedMixin, ListView):
+    """List all exam registrations for a teacher. Uses UserFilterMixin."""
     model = ExamRegistration
     template_name = 'private_teaching/exams/list.html'
     context_object_name = 'exams'
     paginate_by = 20
+    user_field_name = 'teacher'
 
     def get_queryset(self):
-        queryset = ExamRegistration.objects.filter(
-            teacher=self.request.user
-        ).select_related(
+        # UserFilterMixin automatically filters by teacher=self.request.user
+        queryset = super().get_queryset().select_related(
             'student', 'child_profile', 'subject', 'exam_board'
         ).prefetch_related('pieces')
 

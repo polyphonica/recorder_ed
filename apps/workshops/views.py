@@ -8,7 +8,10 @@ from django.urls import reverse_lazy, reverse
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 
-from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, SearchableListViewMixin
+from apps.core.views import (
+    BaseCheckoutSuccessView, BaseCheckoutCancelView, SearchableListViewMixin,
+    SuccessMessageMixin, SetUserFieldMixin, UserFilterMixin
+)
 from .models import (
     Workshop, WorkshopCategory, WorkshopSession,
     WorkshopRegistration, WorkshopMaterial, WorkshopInterest,
@@ -1086,38 +1089,27 @@ class InstructorWorkshopsView(InstructorRequiredMixin, ListView):
         return context
 
 
-class CreateWorkshopView(LoginRequiredMixin, CreateView):
-    """Create new workshop"""
+class CreateWorkshopView(SuccessMessageMixin, SetUserFieldMixin, LoginRequiredMixin, CreateView):
+    """Create new workshop. Uses SuccessMessageMixin and SetUserFieldMixin."""
     model = Workshop
     form_class = WorkshopForm
     template_name = 'workshops/workshop_form.html'
-    
-    def form_valid(self, form):
-        form.instance.instructor = self.request.user
-        messages.success(
-            self.request, 
-            'Workshop created successfully! Now add sessions to schedule when it will run.'
-        )
-        return super().form_valid(form)
-    
+    success_message = 'Workshop created successfully! Now add sessions to schedule when it will run.'
+    user_field_name = 'instructor'
+
     def get_success_url(self):
         # Redirect to session management for the newly created workshop
         return reverse('workshops:manage_sessions', kwargs={'slug': self.object.slug})
 
 
-class EditWorkshopView(LoginRequiredMixin, UpdateView):
-    """Edit existing workshop"""
+class EditWorkshopView(SuccessMessageMixin, UserFilterMixin, LoginRequiredMixin, UpdateView):
+    """Edit existing workshop. Uses SuccessMessageMixin and UserFilterMixin."""
     model = Workshop
     form_class = WorkshopForm
     template_name = 'workshops/workshop_form.html'
-    
-    def get_queryset(self):
-        return Workshop.objects.filter(instructor=self.request.user)
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Workshop updated successfully!')
-        return super().form_valid(form)
-    
+    success_message = 'Workshop updated successfully!'
+    user_field_name = 'instructor'
+
     def get_success_url(self):
         return reverse('workshops:instructor_workshops')
 

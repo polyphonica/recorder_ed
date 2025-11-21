@@ -108,9 +108,9 @@ class CourseCreateView(SuccessMessageMixin, SetUserFieldMixin, InstructorRequire
         return reverse('courses:manage_topics', kwargs={'slug': self.object.slug})
 
 
-class CourseUpdateView(InstructorRequiredMixin, CourseInstructorMixin, UpdateView):
+class CourseUpdateView(SuccessMessageMixin, InstructorRequiredMixin, CourseInstructorMixin, UpdateView):
     """
-    Edit an existing course.
+    Edit an existing course. Uses SuccessMessageMixin.
     """
     model = Course
     template_name = 'courses/instructor/course_form.html'
@@ -119,10 +119,7 @@ class CourseUpdateView(InstructorRequiredMixin, CourseInstructorMixin, UpdateVie
         'image', 'preview_video_url', 'status', 'is_featured',
         'show_as_coming_soon', 'expected_launch_date'
     ]
-
-    def form_valid(self, form):
-        messages.success(self.request, f'Course "{form.instance.title}" updated successfully!')
-        return super().form_valid(form)
+    success_message = 'Course "{title}" updated successfully!'
 
     def get_success_url(self):
         return reverse('courses:instructor_dashboard')
