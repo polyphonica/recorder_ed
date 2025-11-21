@@ -668,14 +668,15 @@ class RegistrationCancelView(LoginRequiredMixin, View):
 
                     stripe.api_key = settings.STRIPE_SECRET_KEY
 
-                    # Find the StripePayment record
-                    print(f"[REFUND DEBUG] Looking for StripePayment: student={request.user.email}, workshop_id={registration.session.workshop.id}", flush=True)
+                    # Find the StripePayment record using payment_intent_id from registration
+                    print(f"[REFUND DEBUG] Looking for StripePayment: student={request.user.email}, payment_intent={registration.stripe_payment_intent_id}", flush=True)
 
-                    stripe_payment = StripePayment.objects.filter(
-                        student=request.user,
-                        status='completed',
-                        workshop_id=registration.session.workshop.id
-                    ).order_by('-created_at').first()
+                    stripe_payment = None
+                    if registration.stripe_payment_intent_id:
+                        stripe_payment = StripePayment.objects.filter(
+                            stripe_payment_intent_id=registration.stripe_payment_intent_id,
+                            status='completed'
+                        ).first()
 
                     print(f"[REFUND DEBUG] StripePayment found: {stripe_payment is not None}", flush=True)
 
