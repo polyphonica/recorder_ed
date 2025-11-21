@@ -98,7 +98,9 @@ class FinanceService:
 
         total_course_refunds = course_refunds.aggregate(
             total=Sum('refund_amount')
-        )['total'] or Decimal('0.00')
+        )['total']
+        # Ensure it's a Decimal, not float
+        total_course_refunds = Decimal(str(total_course_refunds)) if total_course_refunds else Decimal('0.00')
 
         # Subtract refunds from gross revenue (can result in zero or negative if all refunded)
         courses_gross = courses_gross - total_course_refunds
@@ -138,7 +140,9 @@ class FinanceService:
         # Sum up refund amounts (these are already minus platform fee)
         total_refunds = refund_requests.aggregate(
             total=Sum('refund_amount')
-        )['total'] or Decimal('0.00')
+        )['total']
+        # Ensure it's a Decimal, not float
+        total_refunds = Decimal(str(total_refunds)) if total_refunds else Decimal('0.00')
 
         # Subtract refunds from gross revenue
         private_lessons_gross = private_lessons_gross - total_refunds
@@ -279,7 +283,9 @@ class FinanceService:
 
             total_refunds = course_refunds.aggregate(
                 total=Sum('refund_amount')
-            )['total'] or Decimal('0.00')
+            )['total']
+            # Ensure it's a Decimal, not float
+            total_refunds = Decimal(str(total_refunds)) if total_refunds else Decimal('0.00')
 
             # Net revenue after refunds (can be zero or negative if fully refunded)
             total_gross = total_gross - total_refunds
@@ -468,7 +474,9 @@ class FinanceService:
 
             refunded_amount = course_refunds.aggregate(
                 revenue=Sum('refund_amount')
-            )['revenue'] or Decimal('0.00')
+            )['revenue']
+            # Ensure it's a Decimal, not float
+            refunded_amount = Decimal(str(refunded_amount)) if refunded_amount else Decimal('0.00')
 
             # Calculate teacher share (after commission) - only on active revenue
             teacher_share = total_revenue * (1 - Decimal(str(commission_rate)))
