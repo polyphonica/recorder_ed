@@ -17,7 +17,10 @@ from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
 
-from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, SearchableListViewMixin
+from apps.core.views import (
+    BaseCheckoutSuccessView, BaseCheckoutCancelView, SearchableListViewMixin,
+    SuccessMessageMixin, SetUserFieldMixin
+)
 from .models import (
     Course, Topic, Lesson, LessonAttachment,
     CourseEnrollment, LessonProgress,
@@ -85,9 +88,10 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
         return context
 
 
-class CourseCreateView(InstructorRequiredMixin, CreateView):
+class CourseCreateView(SuccessMessageMixin, SetUserFieldMixin, InstructorRequiredMixin, CreateView):
     """
     Create a new course.
+    Uses SuccessMessageMixin for automatic success messages and SetUserFieldMixin to set instructor.
     """
     model = Course
     template_name = 'courses/instructor/course_form.html'
@@ -96,12 +100,8 @@ class CourseCreateView(InstructorRequiredMixin, CreateView):
         'image', 'preview_video_url', 'status', 'is_featured',
         'show_as_coming_soon', 'expected_launch_date'
     ]
-
-    def form_valid(self, form):
-        # Set instructor to current user
-        form.instance.instructor = self.request.user
-        messages.success(self.request, f'Course "{form.instance.title}" created successfully!')
-        return super().form_valid(form)
+    success_message = 'Course "{title}" created successfully!'
+    user_field_name = 'instructor'
 
     def get_success_url(self):
         # Redirect to topic management for the new course

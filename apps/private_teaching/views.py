@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.core.mail import send_mail
 from django.conf import settings
 
-from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView
+from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, UserFilterMixin
 from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard, LessonCancellationRequest
 from .notifications import TeacherNotificationService, StudentNotificationService
 from lessons.models import Lesson, Document, LessonAttachedUrl
@@ -1525,19 +1525,19 @@ class StudentApplicationDetailView(StudentProfileCompletedMixin, StudentOnlyMixi
 
 # Teacher Application Management Views
 
-class TeacherApplicationsListView(TeacherProfileCompletedMixin, ListView):
-    """Teacher view of all student applications"""
+class TeacherApplicationsListView(UserFilterMixin, TeacherProfileCompletedMixin, ListView):
+    """Teacher view of all student applications. Uses UserFilterMixin for automatic teacher filtering."""
+    model = TeacherStudentApplication
     template_name = 'private_teaching/teacher_applications_list.html'
     context_object_name = 'applications'
     paginate_by = 20
+    user_field_name = 'teacher'
 
     def get_queryset(self):
-        from apps.private_teaching.models import TeacherStudentApplication
         status_filter = self.request.GET.get('status', 'pending')
 
-        queryset = TeacherStudentApplication.objects.filter(
-            teacher=self.request.user
-        ).select_related('applicant', 'applicant__profile', 'child_profile')
+        # UserFilterMixin automatically filters by teacher=self.request.user
+        queryset = super().get_queryset().select_related('applicant', 'applicant__profile', 'child_profile')
 
         if status_filter and status_filter != 'all':
             queryset = queryset.filter(status=status_filter)
