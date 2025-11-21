@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeScrollDetection();
 
     // Find all "Add to Cart" forms
-    const addToCartForms = document.querySelectorAll('form[action*="add_to_cart"]');
+    const addToCartForms = document.querySelectorAll('form[action*="cart/add"]');
 
     console.log('Found', addToCartForms.length, 'add to cart forms'); // Debug log
 
