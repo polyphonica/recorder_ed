@@ -1372,11 +1372,16 @@ class ApplyToTeacherView(StudentProfileCompletedMixin, StudentOnlyMixin, Templat
             status='accepted'
         ).count()
 
+        # Get current terms for T&Cs modal
+        from .models import PrivateLessonTermsAndConditions
+        current_terms = PrivateLessonTermsAndConditions.objects.filter(is_current=True).first()
+
         context['teacher'] = teacher
         context['existing_application'] = existing_application
         context['accepted_count'] = accepted_count
         context['max_students'] = teacher.profile.max_private_students
         context['is_accepting'] = teacher.profile.accepting_new_private_students
+        context['current_terms'] = current_terms
 
         # Get child profiles if guardian
         if self.request.user.profile.is_guardian:
@@ -1425,6 +1430,18 @@ class ApplyToTeacherView(StudentProfileCompletedMixin, StudentOnlyMixin, Templat
             child_profile=child_profile,
             status='pending'
         )
+
+        # Create terms acceptance record
+        from .models import PrivateLessonTermsAndConditions, PrivateLessonTermsAcceptance
+        current_terms = PrivateLessonTermsAndConditions.objects.filter(is_current=True).first()
+        if current_terms:
+            PrivateLessonTermsAcceptance.objects.create(
+                student=request.user,
+                terms_version=current_terms,
+                ip_address=request.META.get('REMOTE_ADDR', ''),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+                # Note: lesson field will remain null - this tracks application-level acceptance
+            )
 
         # Add initial message if provided
         initial_message = request.POST.get('message', '').strip()
