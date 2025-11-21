@@ -270,18 +270,18 @@ class PrivateLessonTermsAcceptanceAdmin(admin.ModelAdmin):
 
 @admin.register(LessonCancellationRequest)
 class LessonCancellationRequestAdmin(admin.ModelAdmin):
-    list_display = ['lesson', 'student', 'teacher', 'request_type', 'status', 'is_within_policy', 'hours_before_lesson', 'requested_at']
-    list_filter = ['status', 'request_type', 'is_within_policy', 'cancellation_reason', 'requested_at']
-    search_fields = ['student__username', 'teacher__username', 'lesson__subject__subject', 'student_message']
-    readonly_fields = ['requested_at', 'hours_before_lesson', 'is_within_policy', 'teacher_responded_at', 'completed_at', 'refund_processed_at']
-    ordering = ['-requested_at']
+    list_display = ['lesson', 'student', 'teacher', 'request_type', 'status', 'is_within_policy', 'hours_before_lesson', 'created_at']
+    list_filter = ['status', 'request_type', 'is_within_policy', 'cancellation_reason', 'created_at']
+    search_fields = ['student__username', 'teacher__username', 'lesson__subject__subject', 'reason']
+    readonly_fields = ['created_at', 'updated_at', 'hours_before_lesson', 'is_within_policy', 'teacher_responded_at', 'completed_at', 'refund_processed_at']
+    ordering = ['-created_at']
 
     fieldsets = (
         ('Request Information', {
-            'fields': ('lesson', 'student', 'teacher', 'request_type', 'cancellation_reason', 'student_message')
+            'fields': ('lesson', 'student', 'teacher', 'request_type', 'cancellation_reason', 'reason')
         }),
         ('Timing & Policy', {
-            'fields': ('requested_at', 'hours_before_lesson', 'is_within_policy')
+            'fields': ('created_at', 'updated_at', 'hours_before_lesson', 'is_within_policy')
         }),
         ('Status & Resolution', {
             'fields': ('status', 'teacher_response', 'teacher_responded_at', 'completed_at')

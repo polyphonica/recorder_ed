@@ -230,3 +230,124 @@ class BaseMessage(models.Model):
             self.is_read = True
             self.read_at = timezone.now()
             self.save(update_fields=['is_read', 'read_at'])
+
+
+class BaseCancellationRequest(models.Model):
+    """
+    Abstract base model for cancellation requests across different domains.
+
+    Provides common fields and methods for tracking cancellation workflows:
+    - Student and status tracking
+    - Refund eligibility and amount calculation
+    - Admin review workflow
+    - Timestamps
+
+    Subclasses should define:
+    - Foreign key to the parent object (e.g., enrollment, lesson)
+    - Any domain-specific fields (e.g., hours_before_lesson, reschedule options)
+    - Override calculate_refund_eligibility() with domain-specific logic
+    """
+
+    # Common status choices
+    PENDING = 'pending'
+    APPROVED = 'approved'
+    REJECTED = 'rejected'
+    COMPLETED = 'completed'
+
+    STATUS_CHOICES = [
+        (PENDING, 'Pending Review'),
+        (APPROVED, 'Approved'),
+        (REJECTED, 'Rejected'),
+        (COMPLETED, 'Completed (Refund Processed)'),
+    ]
+
+    # Core fields
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='%(app_label)s_%(class)s_requests',
+        help_text="Student requesting cancellation"
+    )
+
+    # Cancellation details
+    reason = models.TextField(help_text="Student's reason for cancellation")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
+
+    # Refund eligibility
+    is_eligible_for_refund = models.BooleanField(
+        default=False,
+        help_text="Is this cancellation eligible for refund?"
+    )
+    refund_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Amount to be refunded"
+    )
+
+    # Admin review
+    admin_notes = models.TextField(blank=True, help_text="Admin notes/response")
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='%(app_label)s_%(class)s_reviewed',
+        help_text="Admin who reviewed this request"
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    # Refund processing
+    refund_processed_at = models.DateTimeField(null=True, blank=True)
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+        ordering = ['-created_at']
+
+    def calculate_refund_eligibility(self):
+        """
+        Calculate if student is eligible for refund.
+
+        This method should be overridden in subclasses to implement
+        domain-specific refund policies (e.g., 7-day trial, 48-hour notice).
+
+        Should update:
+        - self.is_eligible_for_refund
+        - self.refund_amount
+
+        Returns:
+            bool: True if eligible for refund
+        """
+        raise NotImplementedError("Subclasses must implement calculate_refund_eligibility()")
+
+    def approve(self, admin_user, notes=''):
+        """Approve the cancellation request"""
+        from django.utils import timezone
+        self.status = self.APPROVED
+        self.reviewed_by = admin_user
+        self.reviewed_at = timezone.now()
+        if notes:
+            self.admin_notes = notes
+        self.save()
+
+    def reject(self, admin_user, notes=''):
+        """Reject the cancellation request"""
+        from django.utils import timezone
+        self.status = self.REJECTED
+        self.reviewed_by = admin_user
+        self.reviewed_at = timezone.now()
+        if notes:
+            self.admin_notes = notes
+        self.save()
+
+    def mark_refund_processed(self):
+        """Mark the refund as processed"""
+        from django.utils import timezone
+        self.status = self.COMPLETED
+        self.refund_processed_at = timezone.now()
+        self.save()

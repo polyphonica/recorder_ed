@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.core.exceptions import ValidationError
 import uuid
 
-from apps.core.models import PayableModel
+from apps.core.models import PayableModel, BaseCancellationRequest
 
 User = get_user_model()
 
@@ -841,7 +841,7 @@ class PrivateLessonTermsAcceptance(models.Model):
         return f"{self.student.username} accepted v{self.terms_version.version}{lesson_info}"
 
 
-class LessonCancellationRequest(models.Model):
+class LessonCancellationRequest(BaseCancellationRequest):
     """Track student cancellation requests for private lessons"""
 
     # Request Type Choices
@@ -851,19 +851,6 @@ class LessonCancellationRequest(models.Model):
     REQUEST_TYPE_CHOICES = [
         (CANCEL_WITH_REFUND, 'Cancel with Refund'),
         (RESCHEDULE, 'Reschedule Lesson'),
-    ]
-
-    # Status Choices
-    PENDING = 'pending'
-    APPROVED = 'approved'
-    REJECTED = 'rejected'
-    COMPLETED = 'completed'
-
-    STATUS_CHOICES = [
-        (PENDING, 'Pending Teacher Decision'),
-        (APPROVED, 'Approved by Teacher'),
-        (REJECTED, 'Rejected by Teacher'),
-        (COMPLETED, 'Completed (Refunded/Rescheduled)'),
     ]
 
     # Cancellation Reason Choices
@@ -883,18 +870,16 @@ class LessonCancellationRequest(models.Model):
         (OTHER, 'Other'),
     ]
 
-    # Core Fields
+    # Core Fields (domain-specific)
     lesson = models.ForeignKey('lessons.Lesson', on_delete=models.CASCADE, related_name='cancellation_requests')
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_cancellation_requests')
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_cancellation_requests')
 
-    # Request Details
+    # Request Details (domain-specific)
     request_type = models.CharField(max_length=20, choices=REQUEST_TYPE_CHOICES, default=CANCEL_WITH_REFUND)
     cancellation_reason = models.CharField(max_length=30, choices=REASON_CHOICES)
-    student_message = models.TextField(help_text="Student's explanation for the cancellation/reschedule request")
+    # Note: 'reason' field inherited from BaseCancellationRequest serves as student_message
 
-    # Timing Information
-    requested_at = models.DateTimeField(auto_now_add=True)
+    # Timing Information (domain-specific)
     hours_before_lesson = models.DecimalField(
         max_digits=6,
         decimal_places=2,
@@ -905,20 +890,12 @@ class LessonCancellationRequest(models.Model):
         help_text="True if requested 48+ hours before lesson (eligible for refund)"
     )
 
-    # Status and Resolution
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
+    # Status and Resolution (domain-specific fields for teacher workflow)
     teacher_response = models.TextField(blank=True, help_text="Teacher's response to the request")
     teacher_responded_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
-    # Refund Details (if applicable)
-    refund_amount = models.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        help_text="Amount to be refunded (lesson price minus platform fee)"
-    )
+    # Refund Details (domain-specific - includes platform fee)
     platform_fee_retained = models.DecimalField(
         max_digits=8,
         decimal_places=2,
@@ -926,19 +903,33 @@ class LessonCancellationRequest(models.Model):
         blank=True,
         help_text="Platform fee that is non-refundable"
     )
-    refund_processed_at = models.DateTimeField(null=True, blank=True)
 
-    # Reschedule Details (if applicable)
+    # Reschedule Details (domain-specific)
     proposed_new_date = models.DateField(null=True, blank=True)
     proposed_new_time = models.TimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = 'Lesson Cancellation Request'
         verbose_name_plural = 'Lesson Cancellation Requests'
-        ordering = ['-requested_at']
+        ordering = ['-created_at']
 
     def __str__(self):
         return f"{self.get_request_type_display()} - {self.lesson} by {self.student.username}"
+
+    @property
+    def requested_at(self):
+        """Alias for created_at for backward compatibility"""
+        return self.created_at
+
+    @property
+    def student_message(self):
+        """Alias for reason field for backward compatibility"""
+        return self.reason
+
+    @student_message.setter
+    def student_message(self, value):
+        """Allow setting student_message which sets reason"""
+        self.reason = value
 
     def save(self, *args, **kwargs):
         """Calculate hours before lesson and policy compliance on first save"""
@@ -961,6 +952,62 @@ class LessonCancellationRequest(models.Model):
             self.is_within_policy = self.hours_before_lesson >= 48
 
         super().save(*args, **kwargs)
+
+    def calculate_refund_eligibility(self):
+        """
+        Calculate if student is eligible for refund based on 48-hour notice policy.
+        Updates is_eligible_for_refund and refund_amount fields.
+
+        Refund policy for private lessons:
+        - Must be within 48-hour notice period
+        - Lesson must have been paid
+        - Must be requesting cancellation (not reschedule)
+        - Request must be within 14 days of lesson date
+        - Refund amount = lesson price minus platform fee (20%)
+        """
+        from django.utils import timezone
+        from datetime import datetime, timedelta
+        from decimal import Decimal
+
+        # Check all eligibility criteria
+        eligible = True
+
+        # Must be within 48-hour policy
+        if not self.is_within_policy:
+            eligible = False
+
+        # Lesson must have been paid
+        if self.lesson.payment_status != 'Paid':
+            eligible = False
+
+        # Must be requesting a cancellation (not just reschedule)
+        if self.request_type != self.CANCEL_WITH_REFUND:
+            eligible = False
+
+        # Request must be within 14 days of lesson date
+        lesson_datetime = datetime.combine(
+            self.lesson.lesson_date,
+            self.lesson.lesson_time
+        )
+        lesson_datetime = timezone.make_aware(lesson_datetime)
+        days_since_lesson = (timezone.now() - lesson_datetime).days
+        if days_since_lesson > 14:
+            eligible = False
+
+        # Set eligibility
+        self.is_eligible_for_refund = eligible
+
+        if eligible:
+            # Calculate refund: lesson price minus 20% platform fee
+            lesson_price = self.lesson.price or Decimal('0.00')
+            platform_fee_rate = Decimal('0.20')
+            self.platform_fee_retained = lesson_price * platform_fee_rate
+            self.refund_amount = lesson_price - self.platform_fee_retained
+        else:
+            self.refund_amount = None
+            self.platform_fee_retained = None
+
+        return self.is_eligible_for_refund
 
     @property
     def can_receive_refund(self):

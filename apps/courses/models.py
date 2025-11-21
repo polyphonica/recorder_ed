@@ -20,7 +20,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django_ckeditor_5.fields import CKEditor5Field
 
-from apps.core.models import PayableModel
+from apps.core.models import PayableModel, BaseCancellationRequest
 
 
 # ============================================================================
@@ -970,24 +970,11 @@ class CourseTermsAcceptance(models.Model):
 # CANCELLATION & REFUND MODELS
 # ============================================================================
 
-class CourseCancellationRequest(models.Model):
+class CourseCancellationRequest(BaseCancellationRequest):
     """
     Tracks course cancellation requests from students.
     Implements 7-day trial period refund policy.
     """
-
-    # Status choices
-    PENDING = 'pending'
-    APPROVED = 'approved'
-    REJECTED = 'rejected'
-    COMPLETED = 'completed'
-
-    STATUS_CHOICES = [
-        (PENDING, 'Pending Review'),
-        (APPROVED, 'Approved'),
-        (REJECTED, 'Rejected'),
-        (COMPLETED, 'Completed (Refund Processed)'),
-    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
@@ -996,47 +983,6 @@ class CourseCancellationRequest(models.Model):
         on_delete=models.CASCADE,
         related_name='cancellation_requests'
     )
-
-    student = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='course_cancellation_requests'
-    )
-
-    # Cancellation details
-    reason = models.TextField(help_text="Student's reason for cancellation")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
-
-    # Refund eligibility
-    is_eligible_for_refund = models.BooleanField(
-        default=False,
-        help_text="Is this cancellation within the 7-day trial period?"
-    )
-    refund_amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        help_text="Full course price (no platform fee)"
-    )
-
-    # Admin response
-    admin_notes = models.TextField(blank=True, help_text="Admin notes/response")
-    reviewed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='reviewed_course_cancellations'
-    )
-    reviewed_at = models.DateTimeField(null=True, blank=True)
-
-    # Refund processing
-    refund_processed_at = models.DateTimeField(null=True, blank=True)
-
-    # Timestamps
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -1076,27 +1022,3 @@ class CourseCancellationRequest(models.Model):
             self.refund_amount = None
 
         return self.is_eligible_for_refund
-
-    def approve(self, admin_user, notes=''):
-        """Approve the cancellation request"""
-        self.status = self.APPROVED
-        self.reviewed_by = admin_user
-        self.reviewed_at = timezone.now()
-        if notes:
-            self.admin_notes = notes
-        self.save()
-
-    def reject(self, admin_user, notes=''):
-        """Reject the cancellation request"""
-        self.status = self.REJECTED
-        self.reviewed_by = admin_user
-        self.reviewed_at = timezone.now()
-        if notes:
-            self.admin_notes = notes
-        self.save()
-
-    def mark_refund_processed(self):
-        """Mark the refund as processed"""
-        self.status = self.COMPLETED
-        self.refund_processed_at = timezone.now()
-        self.save()
