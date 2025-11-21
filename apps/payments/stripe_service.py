@@ -180,3 +180,42 @@ def retrieve_payment_intent(payment_intent_id):
     except stripe.error.StripeError as e:
         print(f"Error retrieving payment intent: {str(e)}")
         raise
+
+
+def create_refund(payment_intent_id, amount=None, reason=None, metadata=None):
+    """
+    Create a refund for a payment
+
+    Args:
+        payment_intent_id: Stripe Payment Intent ID
+        amount: Refund amount in standard currency (Decimal). If None, full refund.
+        reason: Refund reason ('duplicate', 'fraudulent', or 'requested_by_customer')
+        metadata: Additional metadata dict
+
+    Returns:
+        stripe.Refund object
+    """
+    try:
+        refund_params = {
+            'payment_intent': payment_intent_id,
+        }
+
+        # Add amount if partial refund
+        if amount is not None:
+            refund_params['amount'] = format_stripe_amount(amount)
+
+        # Add reason if provided
+        if reason:
+            refund_params['reason'] = reason
+
+        # Add metadata if provided
+        if metadata:
+            refund_params['metadata'] = metadata
+
+        # Create the refund
+        refund = stripe.Refund.create(**refund_params)
+        return refund
+
+    except stripe.error.StripeError as e:
+        print(f"Stripe refund error: {str(e)}")
+        raise

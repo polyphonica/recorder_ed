@@ -2287,6 +2287,65 @@ class TeacherRespondToCancellationView(TeacherProfileCompletedMixin, View):
             cancellation_request.teacher_responded_at = timezone.now()
             cancellation_request.save()
 
+            # Process refund if eligible
+            if cancellation_request.can_receive_refund and cancellation_request.refund_amount:
+                lesson = cancellation_request.lesson
+
+                # Find the StripePayment record for this lesson
+                from apps.payments.models import StripePayment
+                from apps.payments.stripe_service import create_refund
+
+                try:
+                    # Get the order for this lesson
+                    order_item = OrderItem.objects.filter(lesson=lesson).select_related('order').first()
+                    if order_item and order_item.order.stripe_payment_intent_id:
+                        # Get StripePayment record
+                        stripe_payment = StripePayment.objects.get(
+                            stripe_payment_intent_id=order_item.order.stripe_payment_intent_id
+                        )
+
+                        # Create Stripe refund (partial refund - lesson fee minus platform fee)
+                        refund_metadata = {
+                            'cancellation_request_id': str(cancellation_request.id),
+                            'lesson_id': str(lesson.id),
+                            'student_id': str(cancellation_request.student.id),
+                            'teacher_id': str(cancellation_request.teacher.id),
+                            'refund_type': 'cancellation',
+                        }
+
+                        refund = create_refund(
+                            payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                            amount=cancellation_request.refund_amount,
+                            reason='requested_by_customer',
+                            metadata=refund_metadata
+                        )
+
+                        # Mark cancellation as completed
+                        cancellation_request.status = LessonCancellationRequest.COMPLETED
+                        cancellation_request.refund_processed_at = timezone.now()
+                        cancellation_request.save()
+
+                        # Soft delete the lesson
+                        if cancellation_request.request_type == LessonCancellationRequest.CANCEL_WITH_REFUND:
+                            lesson.is_deleted = True
+                            lesson.save()
+
+                        messages.success(request, f'Cancellation approved and refund of £{cancellation_request.refund_amount} processed successfully.')
+
+                    else:
+                        messages.warning(request, 'Cancellation approved but payment record not found. Please process refund manually.')
+
+                except StripePayment.DoesNotExist:
+                    messages.warning(request, 'Cancellation approved but payment record not found. Please process refund manually.')
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error processing refund: {e}")
+                    messages.error(request, f'Cancellation approved but refund failed: {str(e)}. Please process manually in Stripe.')
+            else:
+                # Not eligible for refund or reschedule request
+                messages.success(request, 'Cancellation/reschedule request approved.')
+
             # Send notification to student
             if cancellation_request.student and cancellation_request.student.email:
                 try:
@@ -2296,8 +2355,6 @@ class TeacherRespondToCancellationView(TeacherProfileCompletedMixin, View):
                     )
                 except Exception as e:
                     print(f"Error sending cancellation approval email: {e}")
-
-            messages.success(request, 'Cancellation request approved. Refund will be processed shortly.')
 
         elif action == 'reject':
             cancellation_request.status = LessonCancellationRequest.REJECTED
