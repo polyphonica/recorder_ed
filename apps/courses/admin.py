@@ -13,6 +13,7 @@ from .models import (
     CourseCancellationRequest
 )
 from .forms import CourseAdminForm
+from apps.core.admin import ColoredStatusMixin, StudentDisplayMixin
 
 
 # ============================================================================
@@ -598,10 +599,15 @@ class CourseTermsAcceptanceAdmin(admin.ModelAdmin):
 # ============================================================================
 
 @admin.register(CourseCancellationRequest)
-class CourseCancellationRequestAdmin(admin.ModelAdmin):
-    """Admin interface for Course Cancellation Requests"""
+class CourseCancellationRequestAdmin(ColoredStatusMixin, StudentDisplayMixin, admin.ModelAdmin):
+    """
+    Admin interface for Course Cancellation Requests.
+
+    Uses ColoredStatusMixin for colored status badges and StudentDisplayMixin
+    for formatted student names.
+    """
     list_display = [
-        'get_student', 'get_course', 'status_display',
+        'get_student_display', 'get_course', 'get_colored_status',
         'is_eligible_for_refund', 'refund_amount',
         'created_at', 'reviewed_at'
     ]
@@ -639,30 +645,13 @@ class CourseCancellationRequestAdmin(admin.ModelAdmin):
     )
     actions = ['approve_cancellations', 'reject_cancellations']
 
-    def get_student(self, obj):
-        """Display student name"""
-        return obj.student.get_full_name() or obj.student.username
-    get_student.short_description = 'Student'
+    # Note: get_student_display provided by StudentDisplayMixin
+    # Note: get_colored_status provided by ColoredStatusMixin
 
     def get_course(self, obj):
         """Display course title"""
         return obj.enrollment.course.title
     get_course.short_description = 'Course'
-
-    def status_display(self, obj):
-        """Display status with color"""
-        colors = {
-            'pending': 'orange',
-            'approved': 'blue',
-            'rejected': 'red',
-            'completed': 'green',
-        }
-        color = colors.get(obj.status, 'black')
-        return format_html(
-            '<span style="color: {}; font-weight: bold;">{}</span>',
-            color, obj.get_status_display()
-        )
-    status_display.short_description = 'Status'
 
     def get_days_since_enrollment(self, obj):
         """Calculate days since enrollment"""
