@@ -51,7 +51,7 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
         ).annotate(
             topic_count=Count('topics', distinct=True),
             lesson_count=Count('topics__lessons', distinct=True),
-            enrollment_count=Count('enrollments', distinct=True),
+            enrollment_count=Count('enrollments', filter=Q(enrollments__is_active=True), distinct=True),
             quiz_count=Count('topics__lessons__quiz', distinct=True)
         ).order_by('created_at')
 
