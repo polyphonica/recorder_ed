@@ -648,14 +648,72 @@ class RegistrationCancelView(LoginRequiredMixin, View):
             registration.status = 'cancelled'
             registration.save()
 
+            # Check if eligible for refund (7+ days before workshop)
+            from django.utils import timezone
+            from datetime import timedelta
+
+            days_until_workshop = (registration.session.start_datetime - timezone.now()).days
+            refund_processed = False
+
+            if days_until_workshop >= 7 and registration.payment_status in ['paid', 'completed']:
+                # Eligible for refund - process it automatically
+                try:
+                    from apps.payments.models import StripePayment
+                    import stripe
+                    from django.conf import settings
+
+                    stripe.api_key = settings.STRIPE_SECRET_KEY
+
+                    # Find the StripePayment record
+                    stripe_payment = StripePayment.objects.filter(
+                        student=request.user,
+                        status='completed',
+                        workshop_id=registration.session.workshop.id
+                    ).order_by('-created_at').first()
+
+                    if stripe_payment:
+                        # Process refund via Stripe API
+                        refund = stripe.Refund.create(
+                            payment_intent=stripe_payment.stripe_payment_intent_id,
+                            amount=int(registration.payment_amount * 100),  # Convert to cents
+                        )
+
+                        # Update our record
+                        stripe_payment.mark_refunded(
+                            refund_amount=registration.payment_amount,
+                            stripe_refund_id=refund.id
+                        )
+
+                        refund_processed = True
+                        messages.success(
+                            request,
+                            'You have cancelled with 7 or more days notice. Your registration has been cancelled and a refund will be issued.'
+                        )
+                    else:
+                        messages.success(request, 'Your registration has been cancelled.')
+
+                except Exception as e:
+                    print(f"Failed to process automatic refund: {e}")
+                    messages.warning(
+                        request,
+                        'Your registration has been cancelled. Please contact support regarding your refund.'
+                    )
+            else:
+                # Not eligible for refund
+                if days_until_workshop < 7:
+                    messages.warning(
+                        request,
+                        'Unfortunately, you have not given at least 7 days notice to cancel your registration. Your registration has been cancelled but no refund is possible.'
+                    )
+                else:
+                    messages.success(request, 'Your registration has been cancelled.')
+
             # Send cancellation notification to instructor
             try:
                 from .notifications import InstructorNotificationService
                 InstructorNotificationService.send_registration_cancelled_notification(registration)
             except Exception as e:
                 print(f"Failed to send instructor cancellation notification: {e}")
-
-            messages.success(request, 'Your registration has been cancelled.')
         else:
             messages.error(request, 'Cannot cancel this registration.')
 
