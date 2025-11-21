@@ -10,7 +10,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('courses', '0010_coursemessage_is_read'),
+        ('courses', '0012_alter_courseenrollment_student_and_more'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

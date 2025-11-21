@@ -180,7 +180,7 @@ def reverse_seed(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('courses', '0011_coursetermsandconditions_and_more'),
+        ('courses', '0013_coursetermsandconditions_and_more'),
     ]
 
     operations = [
