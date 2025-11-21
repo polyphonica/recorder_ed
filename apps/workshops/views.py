@@ -1056,17 +1056,17 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
         return context
 
 
-class InstructorWorkshopsView(InstructorRequiredMixin, ListView):
-    """List of instructor's workshops"""
+class InstructorWorkshopsView(UserFilterMixin, InstructorRequiredMixin, ListView):
+    """List of instructor's workshops. Uses UserFilterMixin."""
     model = Workshop
     template_name = 'workshops/instructor_workshops.html'
     context_object_name = 'workshops'
     paginate_by = 12
+    user_field_name = 'instructor'
 
     def get_queryset(self):
-        return Workshop.objects.filter(
-            instructor=self.request.user
-        ).select_related('category').prefetch_related('sessions').order_by('-created_at')
+        # UserFilterMixin automatically filters by instructor=self.request.user
+        return super().get_queryset().select_related('category').prefetch_related('sessions').order_by('-created_at')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
