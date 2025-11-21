@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (
     Subject, LessonRequest, LessonRequestMessage, Cart, CartItem, Order, OrderItem,
-    TeacherStudentApplication, ApplicationMessage, ExamBoard, ExamRegistration, ExamPiece
+    TeacherStudentApplication, ApplicationMessage, ExamBoard, ExamRegistration, ExamPiece,
+    PrivateLessonTermsAndConditions, PrivateLessonTermsAcceptance
 )
 from lessons.models import Lesson
 
@@ -213,3 +214,55 @@ class ExamPieceAdmin(admin.ModelAdmin):
     list_filter = ['exam_registration__exam_board', 'exam_registration__grade_type']
     search_fields = ['title', 'composer', 'exam_registration__student__first_name']
     ordering = ['exam_registration', 'piece_number']
+
+
+@admin.register(PrivateLessonTermsAndConditions)
+class PrivateLessonTermsAndConditionsAdmin(admin.ModelAdmin):
+    list_display = ['version', 'effective_date', 'is_current', 'created_by', 'created_at']
+    list_filter = ['is_current', 'effective_date']
+    search_fields = ['content']
+    readonly_fields = ['created_at', 'updated_at', 'created_by']
+    ordering = ['-version']
+
+    fieldsets = (
+        ('Version Information', {
+            'fields': ('version', 'is_current', 'effective_date')
+        }),
+        ('Content', {
+            'fields': ('content',),
+            'description': 'Use Markdown formatting for better readability'
+        }),
+        ('Metadata', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def save_model(self, request, obj, form, change):
+        """Automatically set created_by to current user"""
+        if not change:  # Only set on creation
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deletion of terms that have been accepted"""
+        if obj and obj.acceptances.exists():
+            return False
+        return super().has_delete_permission(request, obj)
+
+
+@admin.register(PrivateLessonTermsAcceptance)
+class PrivateLessonTermsAcceptanceAdmin(admin.ModelAdmin):
+    list_display = ['student', 'terms_version', 'lesson', 'accepted_at', 'ip_address']
+    list_filter = ['terms_version', 'accepted_at']
+    search_fields = ['student__username', 'student__email', 'ip_address']
+    readonly_fields = ['student', 'lesson', 'terms_version', 'accepted_at', 'ip_address', 'user_agent']
+    ordering = ['-accepted_at']
+
+    def has_add_permission(self, request):
+        """Prevent manual creation of acceptance records"""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deletion of acceptance records for legal/audit purposes"""
+        return False

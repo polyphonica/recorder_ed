@@ -789,3 +789,53 @@ class ExamPiece(models.Model):
 
     def __str__(self):
         return f"Piece {self.piece_number}: {self.title} by {self.composer}"
+
+
+class PrivateLessonTermsAndConditions(models.Model):
+    """Platform-wide Terms and Conditions for private lesson bookings"""
+    version = models.IntegerField(unique=True, help_text="Version number (e.g., 1, 2, 3)")
+    content = models.TextField(help_text="Full Terms and Conditions text (supports Markdown)")
+    effective_date = models.DateTimeField(help_text="When these terms become effective")
+    is_current = models.BooleanField(default=False, help_text="Is this the current active version?")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_private_lesson_terms')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Private Lesson Terms and Conditions'
+        verbose_name_plural = 'Private Lesson Terms and Conditions'
+        ordering = ['-version']
+
+    def save(self, *args, **kwargs):
+        """Ensure only one version is marked as current"""
+        if self.is_current:
+            PrivateLessonTermsAndConditions.objects.exclude(pk=self.pk).update(is_current=False)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        status = "CURRENT" if self.is_current else "archived"
+        return f"Private Lesson Terms v{self.version} ({status})"
+
+
+class PrivateLessonTermsAcceptance(models.Model):
+    """Tracks when students accept Private Lesson Terms and Conditions"""
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='private_lesson_terms_acceptances')
+    # Link to the actual lesson booking (will be populated when lesson is booked)
+    # Note: Using string reference to avoid circular import issues
+    lesson = models.OneToOneField('lessons.Lesson', on_delete=models.CASCADE,
+                                   related_name='terms_acceptance', null=True, blank=True,
+                                   help_text="The lesson this acceptance is associated with")
+    terms_version = models.ForeignKey(PrivateLessonTermsAndConditions, on_delete=models.PROTECT,
+                                     related_name='acceptances')
+    accepted_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, help_text="Browser user agent string")
+
+    class Meta:
+        verbose_name = 'Private Lesson Terms Acceptance'
+        verbose_name_plural = 'Private Lesson Terms Acceptances'
+        ordering = ['-accepted_at']
+
+    def __str__(self):
+        lesson_info = f" for lesson {self.lesson.id}" if self.lesson else ""
+        return f"{self.student.username} accepted v{self.terms_version.version}{lesson_info}"
