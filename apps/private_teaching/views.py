@@ -2034,3 +2034,17 @@ class ExamPaymentCancelView(BaseCheckoutCancelView):
 
     def get_redirect_url_name(self):
         return 'private_teaching:exam_detail'
+
+
+class PrivateLessonTermsView(TemplateView):
+    """Display current Private Lesson Terms and Conditions"""
+    template_name = 'private_teaching/terms_and_conditions.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from .models import PrivateLessonTermsAndConditions
+
+        current_terms = PrivateLessonTermsAndConditions.objects.filter(is_current=True).first()
+        context['current_terms'] = current_terms
+
+        return context

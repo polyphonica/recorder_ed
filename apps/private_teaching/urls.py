@@ -5,6 +5,7 @@ app_name = 'private_teaching'
 
 urlpatterns = [
     path('', views.PrivateTeachingHomeView.as_view(), name='home'),
+    path('terms-and-conditions/', views.PrivateLessonTermsView.as_view(), name='terms'),
     path('login/', views.PrivateTeachingLoginView.as_view(), name='login'),
     # path('register/', views.student_register, name='register'),  # REMOVED: Use unified /accounts/signup/
     path('profile/complete/', views.ProfileCompleteView.as_view(), name='profile_complete'),
