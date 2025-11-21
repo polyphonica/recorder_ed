@@ -264,7 +264,7 @@
                                     <td class="text-sm">{{ transaction.description }}</td>
                                     <td>{{ transaction.student.get_full_name|default:transaction.student.username }}</td>
                                     <td {% if transaction.is_refunded %}class="text-warning"{% endif %}>
-                                        {% if transaction.amount < 0 %}-£{{ transaction.amount|abs|floatformat:2 }}{% else %}£{{ transaction.amount|floatformat:2 }}{% endif %}
+                                        £{{ transaction.amount|floatformat:2 }}
                                     </td>
                                     <td class="font-bold {% if transaction.is_refunded %}text-base-content/50{% else %}text-primary{% endif %}">
                                         £{{ transaction.teacher_share|floatformat:2 }}
