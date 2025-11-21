@@ -79,8 +79,10 @@
                                 <tr>
                                     <th>Workshop</th>
                                     <th>Category</th>
-                                    <th>Registrations</th>
+                                    <th>Active</th>
+                                    <th>Refunded</th>
                                     <th>Gross Revenue</th>
+                                    <th>Refunded Amount</th>
                                     <th>Your Share</th>
                                     <th>Actions</th>
                                 </tr>
@@ -106,7 +108,21 @@
                                         </span>
                                     </td>
                                     <td class="text-center">{{ item.registrations_count }}</td>
+                                    <td class="text-center">
+                                        {% if item.refunded_count > 0 %}
+                                            <span class="badge badge-warning">{{ item.refunded_count }}</span>
+                                        {% else %}
+                                            <span class="text-base-content/40">0</span>
+                                        {% endif %}
+                                    </td>
                                     <td>£{{ item.total_revenue|floatformat:2 }}</td>
+                                    <td>
+                                        {% if item.refunded_amount > 0 %}
+                                            <span class="text-warning">-£{{ item.refunded_amount|floatformat:2 }}</span>
+                                        {% else %}
+                                            <span class="text-base-content/40">£0.00</span>
+                                        {% endif %}
+                                    </td>
                                     <td class="font-bold text-primary">£{{ item.teacher_share|floatformat:2 }}</td>
                                     <td>
                                         <a href="{% url 'workshops:detail' item.workshop.slug %}"

@@ -284,32 +284,27 @@ class FinanceService:
     def get_workshop_revenue_breakdown(teacher, start_date=None, end_date=None):
         """
         Get revenue breakdown by individual workshops.
+        Includes both active and refunded registrations.
 
         Returns:
-            list of dicts with workshop info and revenue
+            list of dicts with workshop info, revenue, and individual transactions
         """
         from apps.workshops.models import Workshop, WorkshopRegistration
+        from django.conf import settings
 
-        query = StripePayment.objects.filter(
-            teacher=teacher,
-            domain='workshops',
-            status='completed'
-        )
-
-        if start_date:
-            query = query.filter(completed_at__gte=start_date)
-        if end_date:
-            query = query.filter(completed_at__lte=end_date)
+        commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
 
         # Get all workshops for this teacher
         workshops = Workshop.objects.filter(instructor=teacher)
 
         breakdown = []
         for workshop in workshops:
-            # Get registrations for this workshop
+            # Get all registrations for this workshop (including cancelled with refunds)
             registrations = WorkshopRegistration.objects.filter(
                 session__workshop=workshop,
-                payment_status='completed'
+            ).filter(
+                Q(payment_status='completed', status='registered') |  # Active paid registrations
+                Q(payment_status='completed', status='cancelled')     # Cancelled/refunded registrations
             )
 
             if start_date:
@@ -317,25 +312,35 @@ class FinanceService:
             if end_date:
                 registrations = registrations.filter(paid_at__lte=end_date)
 
-            total_revenue = registrations.aggregate(
+            # Calculate revenue only from active (non-cancelled) registrations
+            active_registrations = registrations.filter(status='registered')
+            total_revenue = active_registrations.aggregate(
                 revenue=Sum('payment_amount')
             )['revenue'] or Decimal('0.00')
 
-            # Calculate teacher share (after commission)
-            from django.conf import settings
-            commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
+            # Get refunded registrations
+            refunded_registrations = registrations.filter(status='cancelled')
+            refunded_amount = refunded_registrations.aggregate(
+                revenue=Sum('payment_amount')
+            )['revenue'] or Decimal('0.00')
+
+            # Calculate teacher share (after commission) - only on active revenue
             teacher_share = total_revenue * (1 - Decimal(str(commission_rate)))
 
-            if total_revenue > 0:  # Only include workshops with revenue
+            # Include workshops that have any transactions (active or refunded)
+            if total_revenue > 0 or refunded_amount > 0:
                 breakdown.append({
                     'workshop': workshop,
                     'total_revenue': total_revenue,
                     'teacher_share': teacher_share,
-                    'registrations_count': registrations.count(),
+                    'registrations_count': active_registrations.count(),
+                    'refunded_count': refunded_registrations.count(),
+                    'refunded_amount': refunded_amount,
+                    'transactions': registrations.select_related('student', 'session').order_by('-paid_at'),
                 })
 
-        # Sort by revenue descending
-        breakdown.sort(key=lambda x: x['total_revenue'], reverse=True)
+        # Sort by total revenue (active + refunded) descending to show busiest workshops first
+        breakdown.sort(key=lambda x: x['total_revenue'] + x['refunded_amount'], reverse=True)
 
         return breakdown
 
