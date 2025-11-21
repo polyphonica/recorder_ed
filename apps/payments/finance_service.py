@@ -95,6 +95,29 @@ class FinanceService:
         )['total'] or Decimal('0.00')
         private_lessons_count = private_orders.count()
 
+        # Calculate refunds from cancelled lessons
+        from apps.private_teaching.models import LessonCancellationRequest
+        from lessons.models import Lesson
+
+        refund_requests = LessonCancellationRequest.objects.filter(
+            teacher=teacher,
+            status=LessonCancellationRequest.COMPLETED,
+            refund_processed_at__isnull=False
+        ).select_related('lesson')
+
+        if start_date:
+            refund_requests = refund_requests.filter(refund_processed_at__gte=start_date)
+        if end_date:
+            refund_requests = refund_requests.filter(refund_processed_at__lte=end_date)
+
+        # Sum up refund amounts (these are already minus platform fee)
+        total_refunds = refund_requests.aggregate(
+            total=Sum('refund_amount')
+        )['total'] or Decimal('0.00')
+
+        # Subtract refunds from gross revenue
+        private_lessons_gross = private_lessons_gross - total_refunds
+
         # ===== PRIVATE TEACHING - EXAM REGISTRATIONS =====
         from apps.private_teaching.models import ExamRegistration
 
@@ -398,11 +421,12 @@ class FinanceService:
         """
         Get revenue breakdown by student and subject for private teaching.
         Returns one row per subject per student, showing lessons and exam revenue separately.
+        Includes refunded lessons as negative amounts.
 
         Returns:
             list of dicts with student, subject, and revenue info
         """
-        from apps.private_teaching.models import Order, OrderItem, ExamRegistration, Subject
+        from apps.private_teaching.models import Order, OrderItem, ExamRegistration, Subject, LessonCancellationRequest
         from django.contrib.auth.models import User
         from lessons.models import Lesson
         from django.conf import settings
@@ -430,6 +454,8 @@ class FinanceService:
                     'subject': lesson.subject,
                     'lessons_count': 0,
                     'lessons_revenue': Decimal('0.00'),
+                    'refunded_count': 0,
+                    'refunded_amount': Decimal('0.00'),
                     'exams_count': 0,
                     'exams_revenue': Decimal('0.00'),
                 }
@@ -438,6 +464,39 @@ class FinanceService:
             # Get the price from the order item
             if hasattr(lesson, 'order_item') and lesson.order_item:
                 breakdown_dict[key]['lessons_revenue'] += lesson.order_item.price_paid
+
+        # Get refunded lessons and subtract from revenue
+        refund_requests = LessonCancellationRequest.objects.filter(
+            teacher=teacher,
+            status=LessonCancellationRequest.COMPLETED,
+            refund_processed_at__isnull=False
+        ).select_related('lesson__subject', 'student')
+
+        if start_date:
+            refund_requests = refund_requests.filter(refund_processed_at__gte=start_date)
+        if end_date:
+            refund_requests = refund_requests.filter(refund_processed_at__lte=end_date)
+
+        for refund in refund_requests:
+            lesson = refund.lesson
+            key = (refund.student.id, lesson.subject.id)
+
+            if key not in breakdown_dict:
+                breakdown_dict[key] = {
+                    'student': refund.student,
+                    'subject': lesson.subject,
+                    'lessons_count': 0,
+                    'lessons_revenue': Decimal('0.00'),
+                    'refunded_count': 0,
+                    'refunded_amount': Decimal('0.00'),
+                    'exams_count': 0,
+                    'exams_revenue': Decimal('0.00'),
+                }
+
+            # Track refunded lessons separately
+            breakdown_dict[key]['refunded_count'] += 1
+            # Original lesson fee (before platform fee deduction)
+            breakdown_dict[key]['refunded_amount'] += lesson.fee if lesson.fee else Decimal('0.00')
 
         # Get paid exam registrations and group by student and subject
         exams_query = ExamRegistration.objects.filter(
@@ -468,7 +527,9 @@ class FinanceService:
         # Build final breakdown list
         breakdown = []
         for data in breakdown_dict.values():
-            total_revenue = data['lessons_revenue'] + data['exams_revenue']
+            # Net revenue = lessons + exams - refunds
+            net_lessons_revenue = data['lessons_revenue'] - data['refunded_amount']
+            total_revenue = net_lessons_revenue + data['exams_revenue']
             teacher_share = total_revenue * (1 - Decimal(str(commission_rate)))
 
             breakdown.append({
@@ -476,6 +537,9 @@ class FinanceService:
                 'subject': data['subject'],
                 'lessons_count': data['lessons_count'],
                 'lessons_revenue': data['lessons_revenue'],
+                'refunded_count': data['refunded_count'],
+                'refunded_amount': data['refunded_amount'],
+                'net_lessons_revenue': net_lessons_revenue,
                 'exams_count': data['exams_count'],
                 'exams_revenue': data['exams_revenue'],
                 'total_revenue': total_revenue,
@@ -663,6 +727,36 @@ class FinanceService:
                 'student': order.student,
                 'amount': amount,
                 'teacher_share': teacher_share,
+                'is_refunded': False,
+            })
+
+        # Get refunded private lessons
+        from apps.private_teaching.models import LessonCancellationRequest
+
+        refund_requests = LessonCancellationRequest.objects.filter(
+            teacher=teacher,
+            status=LessonCancellationRequest.COMPLETED,
+            refund_processed_at__isnull=False
+        ).select_related('lesson__subject', 'student').order_by('-refund_processed_at')[:limit]
+
+        for refund in refund_requests:
+            # Refund shows as negative amount
+            # The refund_amount is already net of platform fee, but we need to show the original lesson fee
+            lesson = refund.lesson
+            original_amount = lesson.fee if lesson.fee else Decimal('0.00')
+
+            # Teacher loses their share of this lesson
+            teacher_lost = refund.refund_amount  # This is what student gets back (net of platform fee)
+
+            transactions.append({
+                'date': refund.refund_processed_at,
+                'domain': 'private_teaching',
+                'domain_display': 'Private Lesson (Refunded)',
+                'description': f"{lesson.subject.subject} - {lesson.lesson_date.strftime('%b %d, %Y')}",
+                'student': refund.student,
+                'amount': -original_amount,  # Show as negative
+                'teacher_share': -teacher_lost,  # Teacher loses this amount
+                'is_refunded': True,
             })
 
         # Get exam registrations
