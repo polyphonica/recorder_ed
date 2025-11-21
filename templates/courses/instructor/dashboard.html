@@ -77,6 +77,24 @@
             </div>
         </div>
 
+        <!-- Recent Cancellations Alert -->
+        {% if recent_cancellations_count > 0 %}
+        <div class="mb-8">
+            <div class="alert alert-info shadow-lg">
+                <div>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current flex-shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <h3 class="font-bold">Recent Course Cancellations</h3>
+                        <div class="text-xs">{{ recent_cancellations_count }} student{{ recent_cancellations_count|pluralize }} cancelled in the last 30 days</div>
+                    </div>
+                </div>
+                <div class="flex-none">
+                    <button class="btn btn-sm btn-ghost" onclick="document.getElementById('cancellations-section').scrollIntoView({behavior: 'smooth'})">View Details</button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Course Management Section -->
         <div class="mt-8">
             <div class="bg-base-100 rounded-lg shadow p-6">
@@ -184,6 +202,74 @@
                 {% endif %}
             </div>
         </div>
+
+        <!-- Recent Cancellations Section -->
+        {% if recent_cancellations %}
+        <div class="mt-8" id="cancellations-section">
+            <div class="bg-base-100 rounded-lg shadow p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold text-gray-900">Recent Course Cancellations (Last 30 Days)</h2>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Course</th>
+                                <th>Cancelled</th>
+                                <th>Refund</th>
+                                <th>Status</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cancellation in recent_cancellations %}
+                            <tr>
+                                <td>
+                                    <div class="font-medium">{{ cancellation.student.get_full_name|default:cancellation.student.username }}</div>
+                                    <div class="text-xs text-gray-500">{{ cancellation.student.email }}</div>
+                                </td>
+                                <td>
+                                    <div class="font-medium">{{ cancellation.enrollment.course.title }}</div>
+                                    <div class="text-xs text-gray-500">{{ cancellation.enrollment.progress_percentage }}% complete</div>
+                                </td>
+                                <td class="text-sm">{{ cancellation.created_at|naturaltime }}</td>
+                                <td>
+                                    {% if cancellation.is_eligible_for_refund %}
+                                    <span class="badge badge-success">£{{ cancellation.refund_amount }}</span>
+                                    {% else %}
+                                    <span class="badge badge-ghost">No refund</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if cancellation.status == 'completed' %}
+                                    <span class="badge badge-success">Completed</span>
+                                    {% elif cancellation.status == 'pending' %}
+                                    <span class="badge badge-warning">Pending</span>
+                                    {% elif cancellation.status == 'rejected' %}
+                                    <span class="badge badge-error">Rejected</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="text-sm max-w-xs truncate" title="{{ cancellation.reason }}">
+                                        {{ cancellation.reason|truncatewords:10 }}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 text-sm text-gray-600">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Cancellations within the 7-day trial period are processed automatically with full refunds.
+                    Refunds appear in your Finance Dashboard.
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

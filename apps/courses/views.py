@@ -64,12 +64,22 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
             is_active=True
         ).values('student').distinct().count()
 
+        # Get recent cancellations for instructor's courses (last 30 days)
+        from datetime import timedelta
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        recent_cancellations = CourseCancellationRequest.objects.filter(
+            enrollment__course__instructor=self.request.user,
+            created_at__gte=thirty_days_ago
+        ).select_related('enrollment', 'enrollment__course', 'student').order_by('-created_at')[:10]
+
         context.update({
             'courses': courses,
             'total_courses': total_courses,
             'published_courses': published_courses,
             'draft_courses': draft_courses,
             'total_students': total_students,
+            'recent_cancellations': recent_cancellations,
+            'recent_cancellations_count': recent_cancellations.count(),
         })
 
         return context
@@ -2364,11 +2374,85 @@ class CourseCancellationRequestView(LoginRequiredMixin, View):
         cancellation.calculate_refund_eligibility()
         cancellation.save()
 
-        messages.success(
-            request,
-            f'Your cancellation request has been submitted. '
-            f'{"You are eligible for a full refund of £{:.2f}".format(cancellation.refund_amount) if cancellation.is_eligible_for_refund else "This request is outside the 7-day trial period and is not eligible for a refund."}'
-        )
+        # If eligible for refund, process it automatically
+        if cancellation.is_eligible_for_refund:
+            from apps.payments.models import StripePayment
+            from apps.payments.stripe_service import create_refund
+            import logging
+
+            logger = logging.getLogger(__name__)
+
+            try:
+                # Get StripePayment record
+                stripe_payment = StripePayment.objects.get(
+                    stripe_payment_intent_id=enrollment.stripe_payment_intent_id
+                )
+
+                # Create Stripe refund
+                refund_metadata = {
+                    'cancellation_request_id': str(cancellation.id),
+                    'enrollment_id': str(enrollment.id),
+                    'course_id': str(enrollment.course.id),
+                    'student_id': str(request.user.id),
+                    'refund_type': 'course_cancellation_automatic',
+                }
+
+                refund = create_refund(
+                    payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                    amount=cancellation.refund_amount,
+                    reason='requested_by_customer',
+                    metadata=refund_metadata
+                )
+
+                # Mark as approved and completed
+                cancellation.status = CourseCancellationRequest.COMPLETED
+                cancellation.reviewed_by = request.user  # Self-approved (automatic)
+                cancellation.reviewed_at = timezone.now()
+                cancellation.refund_processed_at = timezone.now()
+                cancellation.admin_notes = 'Automatic refund - within 7-day trial period'
+                cancellation.save()
+
+                # Deactivate enrollment
+                enrollment.is_active = False
+                enrollment.save()
+
+                messages.success(
+                    request,
+                    f'Your course has been cancelled and a full refund of £{cancellation.refund_amount} has been processed. '
+                    f'The refund will appear in your payment method within 5-10 business days.'
+                )
+
+            except StripePayment.DoesNotExist:
+                logger.error(f"StripePayment not found for enrollment {enrollment.id}")
+                # Keep as pending for manual processing
+                messages.warning(
+                    request,
+                    'Your cancellation request has been submitted. Due to a payment record issue, '
+                    'your refund will be processed manually within 24 hours.'
+                )
+            except Exception as e:
+                logger.error(f"Error processing automatic refund for cancellation {cancellation.id}: {e}")
+                # Keep as pending for manual processing
+                messages.warning(
+                    request,
+                    'Your cancellation request has been submitted. Your refund will be processed shortly.'
+                )
+        else:
+            # Not eligible for refund
+            cancellation.status = CourseCancellationRequest.COMPLETED
+            cancellation.reviewed_at = timezone.now()
+            cancellation.admin_notes = 'Outside 7-day trial period - no refund applicable'
+            cancellation.save()
+
+            # Deactivate enrollment
+            enrollment.is_active = False
+            enrollment.save()
+
+            messages.info(
+                request,
+                'Your course enrollment has been cancelled. This cancellation is outside the 7-day trial period, '
+                'so no refund is applicable.'
+            )
 
         return redirect('courses:cancellation_status', request_id=cancellation.id)
 
@@ -2389,23 +2473,28 @@ class CourseCancellationStatusView(LoginRequiredMixin, DetailView):
 
 
 class AdminCourseCancellationListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
-    """Admin view to list all pending cancellation requests"""
+    """View to list cancellation requests - for staff or instructors"""
     model = CourseCancellationRequest
     template_name = 'courses/admin_cancellation_list.html'
     context_object_name = 'cancellations'
     paginate_by = 20
 
     def test_func(self):
-        """Only staff can access"""
-        return self.request.user.is_staff
+        """Staff or instructors can access"""
+        return self.request.user.is_staff or self.request.user.profile.is_instructor
 
     def get_queryset(self):
-        """Get pending cancellations, ordered by creation date"""
+        """Get cancellations - all for staff, own courses for instructors"""
         from .models import CourseCancellationRequest
         status_filter = self.request.GET.get('status', CourseCancellationRequest.PENDING)
-        return CourseCancellationRequest.objects.filter(
-            status=status_filter
-        ).select_related(
+
+        qs = CourseCancellationRequest.objects.filter(status=status_filter)
+
+        # If instructor (not staff), only show their own courses
+        if not self.request.user.is_staff and self.request.user.profile.is_instructor:
+            qs = qs.filter(enrollment__course__instructor=self.request.user)
+
+        return qs.select_related(
             'student', 'enrollment', 'enrollment__course'
         ).order_by('-created_at')
 
@@ -2416,29 +2505,53 @@ class AdminCourseCancellationListView(LoginRequiredMixin, UserPassesTestMixin, L
 
 
 class AdminCourseCancellationDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
-    """Admin view to review and process a cancellation request"""
+    """View to review and process a cancellation request - for staff or instructors"""
     model = CourseCancellationRequest
     template_name = 'courses/admin_cancellation_detail.html'
     context_object_name = 'cancellation'
     pk_url_kwarg = 'request_id'
 
     def test_func(self):
-        """Only staff can access"""
-        return self.request.user.is_staff
+        """Staff or course instructor can access"""
+        from .models import CourseCancellationRequest
+        if self.request.user.is_staff:
+            return True
+        if self.request.user.profile.is_instructor:
+            # Check if this cancellation is for their course
+            request_id = self.kwargs.get('request_id')
+            return CourseCancellationRequest.objects.filter(
+                id=request_id,
+                enrollment__course__instructor=self.request.user
+            ).exists()
+        return False
 
     def get_queryset(self):
         from .models import CourseCancellationRequest
-        return CourseCancellationRequest.objects.select_related(
+        qs = CourseCancellationRequest.objects.select_related(
             'student', 'enrollment', 'enrollment__course', 'reviewed_by'
         )
+        # If instructor (not staff), only show their own courses
+        if not self.request.user.is_staff and self.request.user.profile.is_instructor:
+            qs = qs.filter(enrollment__course__instructor=self.request.user)
+        return qs
 
 
 class AdminApproveCancellationView(LoginRequiredMixin, UserPassesTestMixin, View):
-    """Admin view to approve a cancellation and process refund"""
+    """View to approve a cancellation and process refund - for staff or instructors"""
 
     def test_func(self):
-        """Only staff can access"""
-        return self.request.user.is_staff
+        """Staff or course instructor can access"""
+        from .models import CourseCancellationRequest
+        if self.request.user.is_staff:
+            return True
+        if self.request.user.profile.is_instructor:
+            # Check if this cancellation is for their course
+            request_id = self.kwargs.get('request_id')
+            return CourseCancellationRequest.objects.filter(
+                id=request_id,
+                enrollment__course__instructor=self.request.user
+            ).exists()
+        return False
 
     def post(self, request, request_id):
         """Approve cancellation and process Stripe refund"""
