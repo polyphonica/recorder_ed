@@ -73,12 +73,14 @@ class FinanceService:
                 Q(paid_at__lte=end_date) | Q(paid_at__isnull=True, enrolled_at__lte=end_date)
             )
 
-        # Calculate gross from active enrollments
-        active_enrollments = course_enrollments.filter(is_active=True)
-        courses_gross = active_enrollments.aggregate(
+        # Calculate gross from ALL enrollments (including cancelled ones)
+        # This ensures refunds are netted against the original revenue
+        courses_gross = course_enrollments.aggregate(
             total=Sum('payment_amount')
         )['total'] or Decimal('0.00')
-        courses_count = active_enrollments.count()
+
+        # Count only active enrollments for enrollment count
+        courses_count = course_enrollments.filter(is_active=True).count()
 
         # Calculate refunds from cancelled course enrollments
         from apps.courses.models import CourseCancellationRequest
@@ -98,7 +100,7 @@ class FinanceService:
             total=Sum('refund_amount')
         )['total'] or Decimal('0.00')
 
-        # Subtract refunds from gross revenue
+        # Subtract refunds from gross revenue (can result in zero or negative if all refunded)
         courses_gross = courses_gross - total_course_refunds
         courses_revenue = courses_gross * (1 - Decimal(str(commission_rate)))
 
@@ -243,10 +245,9 @@ class FinanceService:
         elif domain == 'courses':
             from apps.courses.models import CourseEnrollment, CourseCancellationRequest
 
-            # Get active enrollments
+            # Get ALL enrollments (including cancelled) to properly account for refunds
             query = CourseEnrollment.objects.filter(
-                course__instructor=teacher,
-                is_active=True
+                course__instructor=teacher
             ).filter(
                 Q(payment_status='completed') | Q(payment_status='not_required')
             )
@@ -261,7 +262,8 @@ class FinanceService:
                 )
 
             total_gross = query.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
-            payment_count = query.count()
+            # Count only active enrollments
+            payment_count = query.filter(is_active=True).count()
 
             # Calculate refunds
             course_refunds = CourseCancellationRequest.objects.filter(
@@ -279,7 +281,7 @@ class FinanceService:
                 total=Sum('refund_amount')
             )['total'] or Decimal('0.00')
 
-            # Net revenue after refunds
+            # Net revenue after refunds (can be zero or negative if fully refunded)
             total_gross = total_gross - total_refunds
             total_revenue = total_gross * (1 - Decimal(str(commission_rate)))
             total_commission = total_gross - total_revenue
