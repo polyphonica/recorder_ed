@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load markdownify %}
+{% load markdown_extras %}
 
 {% block title %}Course Terms and Conditions{% endblock %}
 
@@ -18,7 +18,7 @@
         {% if terms %}
         <!-- Terms Content -->
         <div class="bg-white shadow-lg rounded-lg p-8 prose prose-lg max-w-none">
-            {{ terms.content|markdownify }}
+            {{ terms.content|markdown }}
         </div>
 
         <!-- Info Box -->
