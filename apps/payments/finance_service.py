@@ -56,9 +56,9 @@ class FinanceService:
         workshops_revenue = workshops_gross * (1 - Decimal(str(commission_rate)))
 
         # ===== COURSES =====
+        # Get all enrollments (both active and cancelled) for accurate revenue tracking
         course_enrollments = CourseEnrollment.objects.filter(
-            course__instructor=teacher,
-            is_active=True
+            course__instructor=teacher
         ).filter(
             Q(payment_status='completed') | Q(payment_status='not_required')
         )
@@ -73,10 +73,33 @@ class FinanceService:
                 Q(paid_at__lte=end_date) | Q(paid_at__isnull=True, enrolled_at__lte=end_date)
             )
 
-        courses_gross = course_enrollments.aggregate(
+        # Calculate gross from active enrollments
+        active_enrollments = course_enrollments.filter(is_active=True)
+        courses_gross = active_enrollments.aggregate(
             total=Sum('payment_amount')
         )['total'] or Decimal('0.00')
-        courses_count = course_enrollments.count()
+        courses_count = active_enrollments.count()
+
+        # Calculate refunds from cancelled course enrollments
+        from apps.courses.models import CourseCancellationRequest
+
+        course_refunds = CourseCancellationRequest.objects.filter(
+            enrollment__course__instructor=teacher,
+            status=CourseCancellationRequest.COMPLETED,
+            refund_processed_at__isnull=False
+        )
+
+        if start_date:
+            course_refunds = course_refunds.filter(refund_processed_at__gte=start_date)
+        if end_date:
+            course_refunds = course_refunds.filter(refund_processed_at__lte=end_date)
+
+        total_course_refunds = course_refunds.aggregate(
+            total=Sum('refund_amount')
+        )['total'] or Decimal('0.00')
+
+        # Subtract refunds from gross revenue
+        courses_gross = courses_gross - total_course_refunds
         courses_revenue = courses_gross * (1 - Decimal(str(commission_rate)))
 
         # ===== PRIVATE TEACHING - LESSONS =====
@@ -218,8 +241,9 @@ class FinanceService:
             transactions = query.select_related('session__workshop', 'student').order_by('-paid_at')
 
         elif domain == 'courses':
-            from apps.courses.models import CourseEnrollment
+            from apps.courses.models import CourseEnrollment, CourseCancellationRequest
 
+            # Get active enrollments
             query = CourseEnrollment.objects.filter(
                 course__instructor=teacher,
                 is_active=True
@@ -238,6 +262,25 @@ class FinanceService:
 
             total_gross = query.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
             payment_count = query.count()
+
+            # Calculate refunds
+            course_refunds = CourseCancellationRequest.objects.filter(
+                enrollment__course__instructor=teacher,
+                status=CourseCancellationRequest.COMPLETED,
+                refund_processed_at__isnull=False
+            )
+
+            if start_date:
+                course_refunds = course_refunds.filter(refund_processed_at__gte=start_date)
+            if end_date:
+                course_refunds = course_refunds.filter(refund_processed_at__lte=end_date)
+
+            total_refunds = course_refunds.aggregate(
+                total=Sum('refund_amount')
+            )['total'] or Decimal('0.00')
+
+            # Net revenue after refunds
+            total_gross = total_gross - total_refunds
             total_revenue = total_gross * (1 - Decimal(str(commission_rate)))
             total_commission = total_gross - total_revenue
             transactions = query.select_related('course', 'student').order_by('-paid_at')
@@ -371,48 +414,77 @@ class FinanceService:
     def get_course_revenue_breakdown(teacher, start_date=None, end_date=None):
         """
         Get revenue breakdown by individual courses.
+        Includes both active and refunded enrollments.
 
         Returns:
-            list of dicts with course info and revenue
+            list of dicts with course info, revenue, and refund details
         """
-        from apps.courses.models import Course, CourseEnrollment
+        from apps.courses.models import Course, CourseEnrollment, CourseCancellationRequest
+        from django.conf import settings
+
+        commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
 
         # Get all courses for this teacher
         courses = Course.objects.filter(instructor=teacher)
 
         breakdown = []
         for course in courses:
-            # Get enrollments for this course
+            # Get all enrollments for this course (including cancelled with refunds)
             enrollments = CourseEnrollment.objects.filter(
                 course=course
             ).filter(
-                Q(payment_status='completed') | Q(payment_status='not_required')
+                Q(payment_status='completed', is_active=True) |  # Active paid enrollments
+                Q(payment_status='completed', is_active=False)   # Cancelled/refunded enrollments
             )
 
             if start_date:
-                enrollments = enrollments.filter(enrolled_at__gte=start_date)
+                enrollments = enrollments.filter(
+                    Q(paid_at__gte=start_date) | Q(paid_at__isnull=True, enrolled_at__gte=start_date)
+                )
             if end_date:
-                enrollments = enrollments.filter(enrolled_at__lte=end_date)
+                enrollments = enrollments.filter(
+                    Q(paid_at__lte=end_date) | Q(paid_at__isnull=True, enrolled_at__lte=end_date)
+                )
 
-            total_revenue = enrollments.aggregate(
+            # Calculate revenue only from active (non-cancelled) enrollments
+            active_enrollments = enrollments.filter(is_active=True)
+            total_revenue = active_enrollments.aggregate(
                 revenue=Sum('payment_amount')
             )['revenue'] or Decimal('0.00')
 
-            # Calculate teacher share (after commission)
-            from django.conf import settings
-            commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
+            # Get refunded enrollments
+            course_refunds = CourseCancellationRequest.objects.filter(
+                enrollment__course=course,
+                status=CourseCancellationRequest.COMPLETED,
+                refund_processed_at__isnull=False
+            )
+
+            if start_date:
+                course_refunds = course_refunds.filter(refund_processed_at__gte=start_date)
+            if end_date:
+                course_refunds = course_refunds.filter(refund_processed_at__lte=end_date)
+
+            refunded_amount = course_refunds.aggregate(
+                revenue=Sum('refund_amount')
+            )['revenue'] or Decimal('0.00')
+
+            # Calculate teacher share (after commission) - only on active revenue
             teacher_share = total_revenue * (1 - Decimal(str(commission_rate)))
 
-            if total_revenue > 0:  # Only include courses with revenue
+            # Include courses that have any transactions (active or refunded)
+            if total_revenue > 0 or refunded_amount > 0:
                 breakdown.append({
                     'course': course,
                     'total_revenue': total_revenue,
                     'teacher_share': teacher_share,
-                    'enrollments_count': enrollments.count(),
+                    'enrollments_count': active_enrollments.count(),
+                    'refunded_count': course_refunds.count(),
+                    'refunded_amount': refunded_amount,
+                    'transactions': enrollments.select_related('student').order_by('-paid_at'),
                 })
 
-        # Sort by revenue descending
-        breakdown.sort(key=lambda x: x['total_revenue'], reverse=True)
+        # Sort by total revenue (active + refunded) descending to show busiest courses first
+        breakdown.sort(key=lambda x: x['total_revenue'] + x['refunded_amount'], reverse=True)
 
         return breakdown
 
@@ -678,25 +750,35 @@ class FinanceService:
                 'is_refunded': is_refunded,
             })
 
-        # Get course enrollments
+        # Get course enrollments (both active and refunded)
         course_enrollments = CourseEnrollment.objects.filter(
-            course__instructor=teacher,
-            is_active=True
+            course__instructor=teacher
         ).filter(
             Q(payment_status='completed') | Q(payment_status='not_required')
-        ).select_related('course', 'student').order_by('-paid_at')[:limit]
+        ).select_related('course', 'student').order_by('-paid_at')[:limit * 2]  # Get more to ensure we have enough after filtering
 
         for enrollment in course_enrollments:
             amount = enrollment.payment_amount
-            teacher_share = amount * (1 - Decimal(str(commission_rate)))
+            is_refunded = not enrollment.is_active
+
+            if is_refunded:
+                # Refunded transaction shows as negative
+                teacher_share = Decimal('0.00')
+                display_amount = -amount
+            else:
+                # Active transaction
+                teacher_share = amount * (1 - Decimal(str(commission_rate)))
+                display_amount = amount
+
             transactions.append({
                 'date': enrollment.paid_at or enrollment.enrolled_at,
                 'domain': 'courses',
-                'domain_display': 'Course',
+                'domain_display': 'Course (Refunded)' if is_refunded else 'Course',
                 'description': enrollment.course.title,
                 'student': enrollment.student,
-                'amount': amount,
+                'amount': display_amount,
                 'teacher_share': teacher_share,
+                'is_refunded': is_refunded,
             })
 
         # Get private teaching orders

@@ -8,7 +8,9 @@ from .models import (
     Course, Topic, Lesson, LessonAttachment,
     CourseEnrollment, LessonProgress,
     Quiz, QuizQuestion, QuizAnswer, QuizAttempt,
-    CourseMessage, CourseCertificate
+    CourseMessage, CourseCertificate,
+    CourseTermsAndConditions, CourseTermsAcceptance,
+    CourseCancellationRequest
 )
 from .forms import CourseAdminForm
 
@@ -515,3 +517,204 @@ class CourseCertificateAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('enrollment', 'enrollment__student', 'enrollment__course')
+
+
+# ============================================================================
+# TERMS & CONDITIONS ADMIN
+# ============================================================================
+
+@admin.register(CourseTermsAndConditions)
+class CourseTermsAndConditionsAdmin(admin.ModelAdmin):
+    """Admin interface for Course Terms and Conditions"""
+    list_display = ['version', 'is_current', 'effective_date', 'created_at', 'get_acceptance_count']
+    list_filter = ['is_current', 'effective_date', 'created_at']
+    search_fields = ['content']
+    readonly_fields = ['id', 'created_at', 'updated_at', 'get_acceptance_count']
+    fieldsets = (
+        ('Version Information', {
+            'fields': ('version', 'is_current', 'effective_date')
+        }),
+        ('Content', {
+            'fields': ('content',)
+        }),
+        ('Statistics', {
+            'fields': ('get_acceptance_count',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+        ('IDs', {
+            'fields': ('id',),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def get_acceptance_count(self, obj):
+        """Display number of students who accepted this version"""
+        return obj.acceptances.count()
+    get_acceptance_count.short_description = 'Acceptances'
+
+
+@admin.register(CourseTermsAcceptance)
+class CourseTermsAcceptanceAdmin(admin.ModelAdmin):
+    """Admin interface for Course Terms Acceptance records"""
+    list_display = ['get_student', 'get_course', 'terms_version', 'accepted_at', 'ip_address']
+    list_filter = ['terms_version', 'accepted_at']
+    search_fields = [
+        'enrollment__student__username',
+        'enrollment__student__email',
+        'enrollment__course__title',
+        'ip_address'
+    ]
+    readonly_fields = ['id', 'enrollment', 'terms_version', 'accepted_at', 'ip_address']
+    fieldsets = (
+        ('Acceptance Information', {
+            'fields': ('enrollment', 'terms_version', 'accepted_at', 'ip_address')
+        }),
+        ('IDs', {
+            'fields': ('id',),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def get_student(self, obj):
+        """Display student name"""
+        return obj.enrollment.student.get_full_name() or obj.enrollment.student.username
+    get_student.short_description = 'Student'
+
+    def get_course(self, obj):
+        """Display course title"""
+        return obj.enrollment.course.title
+    get_course.short_description = 'Course'
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('enrollment', 'enrollment__student', 'enrollment__course', 'terms_version')
+
+
+# ============================================================================
+# CANCELLATION & REFUND ADMIN
+# ============================================================================
+
+@admin.register(CourseCancellationRequest)
+class CourseCancellationRequestAdmin(admin.ModelAdmin):
+    """Admin interface for Course Cancellation Requests"""
+    list_display = [
+        'get_student', 'get_course', 'status_display',
+        'is_eligible_for_refund', 'refund_amount',
+        'created_at', 'reviewed_at'
+    ]
+    list_filter = ['status', 'is_eligible_for_refund', 'created_at', 'reviewed_at']
+    search_fields = [
+        'student__username', 'student__email',
+        'student__first_name', 'student__last_name',
+        'enrollment__course__title', 'reason'
+    ]
+    readonly_fields = [
+        'id', 'enrollment', 'student', 'created_at', 'updated_at',
+        'get_days_since_enrollment', 'get_student_progress'
+    ]
+    fieldsets = (
+        ('Request Information', {
+            'fields': (
+                'enrollment', 'student', 'reason', 'status',
+                'get_days_since_enrollment', 'get_student_progress'
+            )
+        }),
+        ('Refund Details', {
+            'fields': ('is_eligible_for_refund', 'refund_amount', 'refund_processed_at')
+        }),
+        ('Admin Review', {
+            'fields': ('admin_notes', 'reviewed_by', 'reviewed_at')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+        ('IDs', {
+            'fields': ('id',),
+            'classes': ('collapse',)
+        }),
+    )
+    actions = ['approve_cancellations', 'reject_cancellations']
+
+    def get_student(self, obj):
+        """Display student name"""
+        return obj.student.get_full_name() or obj.student.username
+    get_student.short_description = 'Student'
+
+    def get_course(self, obj):
+        """Display course title"""
+        return obj.enrollment.course.title
+    get_course.short_description = 'Course'
+
+    def status_display(self, obj):
+        """Display status with color"""
+        colors = {
+            'pending': 'orange',
+            'approved': 'blue',
+            'rejected': 'red',
+            'completed': 'green',
+        }
+        color = colors.get(obj.status, 'black')
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color, obj.get_status_display()
+        )
+    status_display.short_description = 'Status'
+
+    def get_days_since_enrollment(self, obj):
+        """Calculate days since enrollment"""
+        from django.utils import timezone
+        delta = timezone.now() - obj.enrollment.enrolled_at
+        days = delta.days
+        if days <= 7:
+            color = 'green'
+        else:
+            color = 'red'
+        return format_html(
+            '<span style="color: {};">{} days (enrolled: {})</span>',
+            color, days, obj.enrollment.enrolled_at.strftime('%Y-%m-%d %H:%M')
+        )
+    get_days_since_enrollment.short_description = 'Days Since Enrollment'
+
+    def get_student_progress(self, obj):
+        """Display student's progress in course"""
+        progress = obj.enrollment.progress_percentage
+        if progress < 10:
+            color = 'green'
+        elif progress < 25:
+            color = 'orange'
+        else:
+            color = 'red'
+        return format_html(
+            '<span style="color: {};">{}%</span>',
+            color, progress
+        )
+    get_student_progress.short_description = 'Course Progress'
+
+    def approve_cancellations(self, request, queryset):
+        """Bulk approve cancellations"""
+        count = 0
+        for cancellation in queryset.filter(status=CourseCancellationRequest.PENDING):
+            cancellation.approve(request.user, 'Bulk approved via admin')
+            count += 1
+        self.message_user(request, f'{count} cancellation(s) approved.')
+    approve_cancellations.short_description = 'Approve selected cancellations'
+
+    def reject_cancellations(self, request, queryset):
+        """Bulk reject cancellations"""
+        count = 0
+        for cancellation in queryset.filter(status=CourseCancellationRequest.PENDING):
+            cancellation.reject(request.user, 'Bulk rejected via admin')
+            count += 1
+        self.message_user(request, f'{count} cancellation(s) rejected.')
+    reject_cancellations.short_description = 'Reject selected cancellations'
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related(
+            'student', 'enrollment', 'enrollment__course',
+            'reviewed_by'
+        )

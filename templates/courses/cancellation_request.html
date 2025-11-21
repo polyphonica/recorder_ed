@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Cancel Course Enrollment - {{ enrollment.course.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Cancel Course Enrollment</h1>
+            <p class="text-gray-600">Request cancellation and refund for {{ enrollment.course.title }}</p>
+        </div>
+
+        <!-- Course Info Card -->
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden mb-6">
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">Course Details</h2>
+            </div>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">{{ enrollment.course.title }}</h3>
+                <div class="space-y-3 text-gray-700">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 mr-3 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <div>
+                            <div class="font-medium">Enrolled</div>
+                            <div class="text-sm text-gray-600">{{ enrollment.enrolled_at|date:"F d, Y" }} ({{ days_since_enrollment }} day{{ days_since_enrollment|pluralize }} ago)</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 mr-3 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div>
+                            <div class="font-medium">Amount Paid</div>
+                            <div class="text-sm text-gray-600">£{{ enrollment.payment_amount }}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 mr-3 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <div>
+                            <div class="font-medium">Course Progress</div>
+                            <div class="text-sm text-gray-600">{{ progress }}% complete</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Refund Eligibility Card -->
+        {% if within_trial %}
+        <div class="bg-green-50 border-2 border-green-500 rounded-lg p-6 mb-6">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-green-900 mb-2">Eligible for Full Refund</h3>
+                    <p class="text-green-800 mb-3">
+                        You enrolled {{ days_since_enrollment }} day{{ days_since_enrollment|pluralize }} ago, which is within our {{ trial_period_days }}-day trial period.
+                        You are eligible for a full refund of <strong>£{{ refund_amount }}</strong>.
+                    </p>
+                    <div class="bg-green-100 rounded-md p-3 text-sm text-green-800">
+                        <strong>Trial Period Policy:</strong> Cancel within {{ trial_period_days }} days of enrollment for a full refund, no questions asked.
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-orange-50 border-2 border-orange-500 rounded-lg p-6 mb-6">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-orange-900 mb-2">Not Eligible for Refund</h3>
+                    <p class="text-orange-800 mb-3">
+                        You enrolled {{ days_since_enrollment }} day{{ days_since_enrollment|pluralize }} ago, which is outside our {{ trial_period_days }}-day trial period.
+                        Unfortunately, refunds are not available after the trial period.
+                    </p>
+                    <div class="bg-orange-100 rounded-md p-3 text-sm text-orange-800">
+                        <strong>Note:</strong> You can still submit a cancellation request. Your enrollment will be cancelled, but no refund will be issued.
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Cancellation Form -->
+        <form method="post" class="bg-white shadow-lg rounded-lg overflow-hidden">
+            {% csrf_token %}
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">Cancellation Request</h2>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <label for="reason" class="block text-sm font-medium text-gray-700 mb-2">
+                        Please tell us why you're cancelling <span class="text-red-500">*</span>
+                    </label>
+                    <textarea
+                        id="reason"
+                        name="reason"
+                        rows="5"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Your feedback helps us improve our courses..."
+                    ></textarea>
+                    <p class="mt-2 text-sm text-gray-500">
+                        This information is confidential and helps us improve our courses.
+                    </p>
+                </div>
+
+                <!-- Warning -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-yellow-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <div class="text-sm text-yellow-800">
+                            <strong>Important:</strong> If your cancellation is approved, you will lose access to all course materials immediately.
+                            {% if within_trial %}
+                            Refunds are typically processed within 5-10 business days.
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button type="submit" class="btn btn-danger flex-1">
+                        Submit Cancellation Request
+                    </button>
+                    <a href="{% url 'courses:student_dashboard' %}" class="btn btn-outline flex-1">
+                        Keep Course
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Course Cancellation Requests - Admin{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Course Cancellation Requests</h1>
+        <p class="text-gray-600">Review and process student cancellation requests</p>
+    </div>
+
+    <!-- Status Filter Tabs -->
+    <div class="mb-6">
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex space-x-8">
+                <a href="?status=pending"
+                   class="{% if current_status == 'pending' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Pending
+                </a>
+                <a href="?status=approved"
+                   class="{% if current_status == 'approved' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Approved
+                </a>
+                <a href="?status=completed"
+                   class="{% if current_status == 'completed' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Completed
+                </a>
+                <a href="?status=rejected"
+                   class="{% if current_status == 'rejected' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                    Rejected
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Cancellation Requests Table -->
+    {% if cancellations %}
+    <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Student
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Course
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Days Since Enrollment
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Refund Amount
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Submitted
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for cancellation in cancellations %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">
+                            {{ cancellation.student.get_full_name|default:cancellation.student.username }}
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            {{ cancellation.student.email }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-gray-900">{{ cancellation.enrollment.course.title }}</div>
+                        <div class="text-sm text-gray-500">
+                            Progress: {{ cancellation.enrollment.progress_percentage }}%
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% with days_since=(cancellation.enrollment.enrolled_at|timesince) %}
+                        <div class="text-sm {% if cancellation.is_eligible_for_refund %}text-green-600 font-semibold{% else %}text-gray-500{% endif %}">
+                            {{ days_since }}
+                        </div>
+                        {% if cancellation.is_eligible_for_refund %}
+                        <div class="text-xs text-green-600">Within trial</div>
+                        {% else %}
+                        <div class="text-xs text-gray-500">Outside trial</div>
+                        {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if cancellation.is_eligible_for_refund %}
+                        <div class="text-sm font-semibold text-green-600">
+                            £{{ cancellation.refund_amount }}
+                        </div>
+                        {% else %}
+                        <div class="text-sm text-gray-400">
+                            No refund
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if cancellation.status == 'pending' %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800">
+                            Pending
+                        </span>
+                        {% elif cancellation.status == 'approved' %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                            Approved
+                        </span>
+                        {% elif cancellation.status == 'completed' %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            Completed
+                        </span>
+                        {% elif cancellation.status == 'rejected' %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                            Rejected
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ cancellation.created_at|date:"M d, Y" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="{% url 'courses:admin_cancellation_detail' cancellation.id %}"
+                           class="text-blue-600 hover:text-blue-900">
+                            View Details
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="mt-6 flex justify-between items-center">
+        <div class="text-sm text-gray-700">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} results
+        </div>
+        <div class="flex space-x-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&status={{ current_status }}"
+               class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                Previous
+            </a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&status={{ current_status }}"
+               class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                Next
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="bg-white shadow-lg rounded-lg p-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No cancellation requests</h3>
+        <p class="text-gray-500">
+            There are no {{ current_status }} cancellation requests at this time.
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

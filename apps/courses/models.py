@@ -889,3 +889,214 @@ class CourseCertificate(models.Model):
     def get_absolute_url(self):
         """Return URL to view/download certificate"""
         return reverse('courses:certificate_view', kwargs={'certificate_id': self.id})
+
+
+# ============================================================================
+# TERMS & CONDITIONS MODELS
+# ============================================================================
+
+class CourseTermsAndConditions(models.Model):
+    """
+    Course-specific Terms and Conditions.
+    Supports versioning - students accept a specific version at enrollment.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    version = models.PositiveIntegerField(unique=True, help_text="Version number (1, 2, 3...)")
+    content = models.TextField(help_text="Full T&Cs content in Markdown format")
+
+    is_current = models.BooleanField(
+        default=False,
+        help_text="Is this the current active version? Only one version can be current at a time."
+    )
+
+    effective_date = models.DateField(
+        default=timezone.now,
+        help_text="Date these terms became/will become effective"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Course Terms and Conditions"
+        verbose_name_plural = "Course Terms and Conditions"
+        ordering = ['-version']
+
+    def __str__(self):
+        current_marker = " (Current)" if self.is_current else ""
+        return f"Course T&C Version {self.version}{current_marker}"
+
+    def save(self, *args, **kwargs):
+        # If this version is being set as current, unset all others
+        if self.is_current:
+            CourseTermsAndConditions.objects.exclude(pk=self.pk).update(is_current=False)
+        super().save(*args, **kwargs)
+
+
+class CourseTermsAcceptance(models.Model):
+    """
+    Records when a student accepts Terms and Conditions for a course enrollment.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    enrollment = models.OneToOneField(
+        CourseEnrollment,
+        on_delete=models.CASCADE,
+        related_name='terms_acceptance',
+        help_text='The course enrollment this acceptance is for'
+    )
+
+    terms_version = models.ForeignKey(
+        CourseTermsAndConditions,
+        on_delete=models.PROTECT,
+        related_name='acceptances'
+    )
+
+    accepted_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Course Terms Acceptance"
+        verbose_name_plural = "Course Terms Acceptances"
+
+    def __str__(self):
+        student_name = self.enrollment.student.get_full_name() or self.enrollment.student.username
+        return f"{student_name} - Version {self.terms_version.version}"
+
+
+# ============================================================================
+# CANCELLATION & REFUND MODELS
+# ============================================================================
+
+class CourseCancellationRequest(models.Model):
+    """
+    Tracks course cancellation requests from students.
+    Implements 7-day trial period refund policy.
+    """
+
+    # Status choices
+    PENDING = 'pending'
+    APPROVED = 'approved'
+    REJECTED = 'rejected'
+    COMPLETED = 'completed'
+
+    STATUS_CHOICES = [
+        (PENDING, 'Pending Review'),
+        (APPROVED, 'Approved'),
+        (REJECTED, 'Rejected'),
+        (COMPLETED, 'Completed (Refund Processed)'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    enrollment = models.ForeignKey(
+        CourseEnrollment,
+        on_delete=models.CASCADE,
+        related_name='cancellation_requests'
+    )
+
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='course_cancellation_requests'
+    )
+
+    # Cancellation details
+    reason = models.TextField(help_text="Student's reason for cancellation")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
+
+    # Refund eligibility
+    is_eligible_for_refund = models.BooleanField(
+        default=False,
+        help_text="Is this cancellation within the 7-day trial period?"
+    )
+    refund_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Full course price (no platform fee)"
+    )
+
+    # Admin response
+    admin_notes = models.TextField(blank=True, help_text="Admin notes/response")
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_course_cancellations'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    # Refund processing
+    refund_processed_at = models.DateTimeField(null=True, blank=True)
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['student', 'status']),
+            models.Index(fields=['enrollment', 'status']),
+            models.Index(fields=['status', 'created_at']),
+        ]
+
+    def __str__(self):
+        student_name = self.student.get_full_name() or self.student.username
+        return f"{student_name} - {self.enrollment.course.title} ({self.get_status_display()})"
+
+    def calculate_refund_eligibility(self):
+        """
+        Calculate if student is eligible for refund based on 7-day trial period.
+        Updates is_eligible_for_refund and refund_amount fields.
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+
+        # Check if within 7-day trial period
+        trial_period_days = 7
+        enrollment_date = self.enrollment.enrolled_at
+        cutoff_date = enrollment_date + timedelta(days=trial_period_days)
+
+        now = timezone.now()
+        within_trial_period = now <= cutoff_date
+
+        if within_trial_period:
+            # Eligible for full refund
+            self.is_eligible_for_refund = True
+            self.refund_amount = self.enrollment.payment_amount
+        else:
+            # Not eligible
+            self.is_eligible_for_refund = False
+            self.refund_amount = None
+
+        return self.is_eligible_for_refund
+
+    def approve(self, admin_user, notes=''):
+        """Approve the cancellation request"""
+        self.status = self.APPROVED
+        self.reviewed_by = admin_user
+        self.reviewed_at = timezone.now()
+        if notes:
+            self.admin_notes = notes
+        self.save()
+
+    def reject(self, admin_user, notes=''):
+        """Reject the cancellation request"""
+        self.status = self.REJECTED
+        self.reviewed_by = admin_user
+        self.reviewed_at = timezone.now()
+        if notes:
+            self.admin_notes = notes
+        self.save()
+
+    def mark_refund_processed(self):
+        """Mark the refund as processed"""
+        self.status = self.COMPLETED
+        self.refund_processed_at = timezone.now()
+        self.save()

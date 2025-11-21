@@ -2242,3 +2242,292 @@ class TimeSignatureGeneratorView(InstructorRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Time Signature Generator'
         return context
+
+
+# ============================================================================
+# COURSE CANCELLATION VIEWS
+# ============================================================================
+
+class CourseCancellationRequestView(LoginRequiredMixin, View):
+    """
+    View for students to request course cancellation and refund.
+    Handles both GET (show form) and POST (submit request).
+    """
+
+    def get(self, request, enrollment_id):
+        """Display cancellation request form"""
+        from .models import CourseEnrollment, CourseCancellationRequest
+        from datetime import timedelta
+        from django.utils import timezone
+
+        try:
+            enrollment = CourseEnrollment.objects.select_related('course').get(
+                id=enrollment_id,
+                student=request.user,
+                is_active=True
+            )
+        except CourseEnrollment.DoesNotExist:
+            messages.error(request, 'Enrollment not found or you do not have permission to cancel it.')
+            return redirect('courses:dashboard')
+
+        # Check if there's already a pending cancellation request
+        existing_request = CourseCancellationRequest.objects.filter(
+            enrollment=enrollment,
+            status=CourseCancellationRequest.PENDING
+        ).first()
+
+        if existing_request:
+            messages.warning(request, 'You already have a pending cancellation request for this course.')
+            return redirect('courses:cancellation_status', request_id=existing_request.id)
+
+        # Calculate eligibility
+        days_since_enrollment = (timezone.now() - enrollment.enrolled_at).days
+        within_trial = days_since_enrollment <= 7
+        progress = enrollment.progress_percentage
+
+        context = {
+            'enrollment': enrollment,
+            'days_since_enrollment': days_since_enrollment,
+            'within_trial': within_trial,
+            'eligible_for_refund': within_trial,
+            'refund_amount': enrollment.payment_amount if within_trial else 0,
+            'progress': progress,
+            'trial_period_days': 7,
+        }
+
+        return render(request, 'courses/cancellation_request.html', context)
+
+    def post(self, request, enrollment_id):
+        """Submit cancellation request"""
+        from .models import CourseEnrollment, CourseCancellationRequest
+
+        try:
+            enrollment = CourseEnrollment.objects.select_related('course').get(
+                id=enrollment_id,
+                student=request.user,
+                is_active=True
+            )
+        except CourseEnrollment.DoesNotExist:
+            messages.error(request, 'Enrollment not found or you do not have permission to cancel it.')
+            return redirect('courses:dashboard')
+
+        # Check if there's already a pending cancellation request
+        existing_request = CourseCancellationRequest.objects.filter(
+            enrollment=enrollment,
+            status=CourseCancellationRequest.PENDING
+        ).first()
+
+        if existing_request:
+            messages.warning(request, 'You already have a pending cancellation request for this course.')
+            return redirect('courses:cancellation_status', request_id=existing_request.id)
+
+        # Get reason from form
+        reason = request.POST.get('reason', '').strip()
+        if not reason:
+            messages.error(request, 'Please provide a reason for cancellation.')
+            return redirect('courses:request_cancellation', enrollment_id=enrollment_id)
+
+        # Create cancellation request
+        cancellation = CourseCancellationRequest.objects.create(
+            enrollment=enrollment,
+            student=request.user,
+            reason=reason
+        )
+
+        # Calculate eligibility
+        cancellation.calculate_refund_eligibility()
+        cancellation.save()
+
+        messages.success(
+            request,
+            f'Your cancellation request has been submitted. '
+            f'{"You are eligible for a full refund of £{:.2f}".format(cancellation.refund_amount) if cancellation.is_eligible_for_refund else "This request is outside the 7-day trial period and is not eligible for a refund."}'
+        )
+
+        return redirect('courses:cancellation_status', request_id=cancellation.id)
+
+
+class CourseCancellationStatusView(LoginRequiredMixin, DetailView):
+    """View for students to check status of their cancellation request"""
+    model = CourseCancellationRequest
+    template_name = 'courses/cancellation_status.html'
+    context_object_name = 'cancellation'
+    pk_url_kwarg = 'request_id'
+
+    def get_queryset(self):
+        """Ensure students can only view their own cancellation requests"""
+        from .models import CourseCancellationRequest
+        return CourseCancellationRequest.objects.filter(
+            student=self.request.user
+        ).select_related('enrollment', 'enrollment__course', 'reviewed_by')
+
+
+class AdminCourseCancellationListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """Admin view to list all pending cancellation requests"""
+    model = CourseCancellationRequest
+    template_name = 'courses/admin_cancellation_list.html'
+    context_object_name = 'cancellations'
+    paginate_by = 20
+
+    def test_func(self):
+        """Only staff can access"""
+        return self.request.user.is_staff
+
+    def get_queryset(self):
+        """Get pending cancellations, ordered by creation date"""
+        from .models import CourseCancellationRequest
+        status_filter = self.request.GET.get('status', CourseCancellationRequest.PENDING)
+        return CourseCancellationRequest.objects.filter(
+            status=status_filter
+        ).select_related(
+            'student', 'enrollment', 'enrollment__course'
+        ).order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['current_status'] = self.request.GET.get('status', CourseCancellationRequest.PENDING)
+        return context
+
+
+class AdminCourseCancellationDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    """Admin view to review and process a cancellation request"""
+    model = CourseCancellationRequest
+    template_name = 'courses/admin_cancellation_detail.html'
+    context_object_name = 'cancellation'
+    pk_url_kwarg = 'request_id'
+
+    def test_func(self):
+        """Only staff can access"""
+        return self.request.user.is_staff
+
+    def get_queryset(self):
+        from .models import CourseCancellationRequest
+        return CourseCancellationRequest.objects.select_related(
+            'student', 'enrollment', 'enrollment__course', 'reviewed_by'
+        )
+
+
+class AdminApproveCancellationView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """Admin view to approve a cancellation and process refund"""
+
+    def test_func(self):
+        """Only staff can access"""
+        return self.request.user.is_staff
+
+    def post(self, request, request_id):
+        """Approve cancellation and process Stripe refund"""
+        from .models import CourseCancellationRequest
+        from apps.payments.models import StripePayment
+        from apps.payments.stripe_service import create_refund
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        try:
+            cancellation = CourseCancellationRequest.objects.select_related(
+                'enrollment', 'enrollment__course'
+            ).get(id=request_id)
+        except CourseCancellationRequest.DoesNotExist:
+            messages.error(request, 'Cancellation request not found.')
+            return redirect('courses:admin_cancellation_list')
+
+        if cancellation.status != CourseCancellationRequest.PENDING:
+            messages.warning(request, f'This request has already been {cancellation.get_status_display().lower()}.')
+            return redirect('courses:admin_cancellation_detail', request_id=request_id)
+
+        admin_notes = request.POST.get('admin_notes', '')
+
+        # Approve the request
+        cancellation.approve(request.user, admin_notes)
+
+        # Process refund if eligible
+        if cancellation.is_eligible_for_refund and cancellation.refund_amount:
+            enrollment = cancellation.enrollment
+
+            try:
+                # Get StripePayment record
+                stripe_payment = StripePayment.objects.get(
+                    stripe_payment_intent_id=enrollment.stripe_payment_intent_id
+                )
+
+                # Create Stripe refund
+                refund_metadata = {
+                    'cancellation_request_id': str(cancellation.id),
+                    'enrollment_id': str(enrollment.id),
+                    'course_id': str(enrollment.course.id),
+                    'student_id': str(cancellation.student.id),
+                    'refund_type': 'course_cancellation',
+                }
+
+                refund = create_refund(
+                    payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                    amount=cancellation.refund_amount,
+                    reason='requested_by_customer',
+                    metadata=refund_metadata
+                )
+
+                # Mark refund as processed
+                cancellation.mark_refund_processed()
+
+                # Deactivate enrollment
+                enrollment.is_active = False
+                enrollment.save()
+
+                messages.success(
+                    request,
+                    f'Cancellation approved and refund of £{cancellation.refund_amount} processed successfully.'
+                )
+
+            except StripePayment.DoesNotExist:
+                logger.error(f"StripePayment not found for enrollment {enrollment.id}")
+                messages.warning(
+                    request,
+                    'Cancellation approved but payment record not found. Please process refund manually in Stripe.'
+                )
+            except Exception as e:
+                logger.error(f"Error processing refund for cancellation {cancellation.id}: {e}")
+                messages.error(
+                    request,
+                    f'Cancellation approved but refund failed: {str(e)}. Please process manually in Stripe.'
+                )
+        else:
+            # No refund needed
+            enrollment = cancellation.enrollment
+            enrollment.is_active = False
+            enrollment.save()
+            messages.success(request, 'Cancellation approved (no refund applicable).')
+
+        return redirect('courses:admin_cancellation_detail', request_id=request_id)
+
+
+class AdminRejectCancellationView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """Admin view to reject a cancellation request"""
+
+    def test_func(self):
+        """Only staff can access"""
+        return self.request.user.is_staff
+
+    def post(self, request, request_id):
+        """Reject cancellation"""
+        from .models import CourseCancellationRequest
+
+        try:
+            cancellation = CourseCancellationRequest.objects.get(id=request_id)
+        except CourseCancellationRequest.DoesNotExist:
+            messages.error(request, 'Cancellation request not found.')
+            return redirect('courses:admin_cancellation_list')
+
+        if cancellation.status != CourseCancellationRequest.PENDING:
+            messages.warning(request, f'This request has already been {cancellation.get_status_display().lower()}.')
+            return redirect('courses:admin_cancellation_detail', request_id=request_id)
+
+        admin_notes = request.POST.get('admin_notes', '')
+        if not admin_notes:
+            messages.error(request, 'Please provide a reason for rejection.')
+            return redirect('courses:admin_cancellation_detail', request_id=request_id)
+
+        # Reject the request
+        cancellation.reject(request.user, admin_notes)
+
+        messages.success(request, 'Cancellation request rejected.')
+        return redirect('courses:admin_cancellation_detail', request_id=request_id)

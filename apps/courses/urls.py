@@ -54,6 +54,12 @@ urlpatterns = [
     path('instructor/<slug:course_slug>/student/<int:student_id>/',
          views.StudentProgressDetailView.as_view(), name='student_progress'),
 
+    # Admin - Course Cancellation Management
+    path('admin/cancellations/', views.AdminCourseCancellationListView.as_view(), name='admin_cancellation_list'),
+    path('admin/cancellations/<uuid:request_id>/', views.AdminCourseCancellationDetailView.as_view(), name='admin_cancellation_detail'),
+    path('admin/cancellations/<uuid:request_id>/approve/', views.AdminApproveCancellationView.as_view(), name='admin_approve_cancellation'),
+    path('admin/cancellations/<uuid:request_id>/reject/', views.AdminRejectCancellationView.as_view(), name='admin_reject_cancellation'),
+
     # ========================================================================
     # STUDENT URLs - Learning (must come before slug patterns!)
     # ========================================================================
@@ -65,6 +71,10 @@ urlpatterns = [
     path('enrollment/<uuid:enrollment_id>/confirm/', views.CourseEnrollmentConfirmView.as_view(), name='enrollment_confirm'),
     path('enrollment/<uuid:enrollment_id>/checkout/success/', views.CourseCheckoutSuccessView.as_view(), name='checkout_success'),
     path('enrollment/<uuid:enrollment_id>/checkout/cancel/', views.CourseCheckoutCancelView.as_view(), name='checkout_cancel'),
+
+    # Course Cancellation & Refunds
+    path('enrollment/<uuid:enrollment_id>/request-cancellation/', views.CourseCancellationRequestView.as_view(), name='request_cancellation'),
+    path('cancellation/<uuid:request_id>/status/', views.CourseCancellationStatusView.as_view(), name='cancellation_status'),
 
     path('lesson/<uuid:lesson_id>/', views.LessonViewView.as_view(), name='view_lesson'),
     path('lesson/<uuid:lesson_id>/complete/', views.MarkLessonCompleteView.as_view(), name='mark_complete'),
