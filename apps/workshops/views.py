@@ -655,6 +655,10 @@ class RegistrationCancelView(LoginRequiredMixin, View):
             days_until_workshop = (registration.session.start_datetime - timezone.now()).days
             refund_processed = False
 
+            print(f"[REFUND DEBUG] Days until workshop: {days_until_workshop}", flush=True)
+            print(f"[REFUND DEBUG] Payment status: {registration.payment_status}", flush=True)
+            print(f"[REFUND DEBUG] Eligible for refund: {days_until_workshop >= 7 and registration.payment_status in ['paid', 'completed']}", flush=True)
+
             if days_until_workshop >= 7 and registration.payment_status in ['paid', 'completed']:
                 # Eligible for refund - process it automatically
                 try:
@@ -665,13 +669,18 @@ class RegistrationCancelView(LoginRequiredMixin, View):
                     stripe.api_key = settings.STRIPE_SECRET_KEY
 
                     # Find the StripePayment record
+                    print(f"[REFUND DEBUG] Looking for StripePayment: student={request.user.email}, workshop_id={registration.session.workshop.id}", flush=True)
+
                     stripe_payment = StripePayment.objects.filter(
                         student=request.user,
                         status='completed',
                         workshop_id=registration.session.workshop.id
                     ).order_by('-created_at').first()
 
+                    print(f"[REFUND DEBUG] StripePayment found: {stripe_payment is not None}", flush=True)
+
                     if stripe_payment:
+                        print(f"[REFUND DEBUG] Processing Stripe refund for payment_intent: {stripe_payment.stripe_payment_intent_id}", flush=True)
                         # Process refund via Stripe API
                         refund = stripe.Refund.create(
                             payment_intent=stripe_payment.stripe_payment_intent_id,
