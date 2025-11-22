@@ -598,3 +598,122 @@ class AjaxResponseMixin:
             'success': False,
             'error': message
         }, status=status)
+
+
+class CourseOwnershipMixin:
+    """
+    Verify that the current user owns the course being accessed.
+    Works with views that access Course, Topic, Lesson, or Quiz objects.
+
+    Usage:
+        class MyView(CourseOwnershipMixin, UpdateView):
+            model = Lesson  # or Topic, Quiz, etc.
+            # Mixin automatically verifies course ownership
+
+    Attributes:
+        ownership_denied_message: Custom message for permission denial
+        ownership_denied_url: URL to redirect to on permission denial
+    """
+    ownership_denied_message = 'Permission denied'
+    ownership_denied_url = 'courses:instructor_dashboard'
+
+    def get_course_from_object(self, obj):
+        """
+        Extract the Course object from various model types.
+        Override this if you have custom model relationships.
+        """
+        from apps.courses.models import Course, Topic, Lesson, Quiz, QuizQuestion
+
+        if isinstance(obj, Course):
+            return obj
+        elif isinstance(obj, Topic):
+            return obj.course
+        elif isinstance(obj, Lesson):
+            return obj.topic.course
+        elif isinstance(obj, Quiz):
+            return obj.lesson.topic.course
+        elif isinstance(obj, QuizQuestion):
+            return obj.quiz.lesson.topic.course
+        else:
+            # Try generic attribute access
+            if hasattr(obj, 'course'):
+                return obj.course
+            elif hasattr(obj, 'topic'):
+                return obj.topic.course if hasattr(obj.topic, 'course') else None
+            elif hasattr(obj, 'lesson'):
+                return obj.lesson.topic.course if hasattr(obj.lesson, 'topic') else None
+
+        return None
+
+    def dispatch(self, request, *args, **kwargs):
+        """Verify ownership before dispatching"""
+        # Get the object (if it exists - for UpdateView, DeleteView, etc.)
+        if hasattr(self, 'get_object'):
+            try:
+                self.object = self.get_object()
+                course = self.get_course_from_object(self.object)
+            except:
+                # Object doesn't exist yet (CreateView) or error getting it
+                course = None
+        else:
+            course = None
+
+        # If we have a course, verify ownership
+        if course and hasattr(course, 'is_owned_by'):
+            if not course.is_owned_by(request.user):
+                from django.contrib import messages
+                from django.shortcuts import redirect
+                messages.error(request, self.ownership_denied_message)
+                return redirect(self.ownership_denied_url)
+
+        return super().dispatch(request, *args, **kwargs)
+
+
+class CourseContextMixin:
+    """
+    Automatically adds course, topic, and lesson to the context based on the object.
+
+    Usage:
+        class LessonUpdateView(CourseContextMixin, UpdateView):
+            model = Lesson
+            # Context automatically includes 'course', 'topic', 'lesson'
+    """
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        if hasattr(self, 'object') and self.object:
+            from apps.courses.models import Course, Topic, Lesson, Quiz, QuizQuestion
+
+            obj = self.object
+
+            # Add based on object type
+            if isinstance(obj, Lesson):
+                context['lesson'] = obj
+                context['topic'] = obj.topic
+                context['course'] = obj.topic.course
+            elif isinstance(obj, Topic):
+                context['topic'] = obj
+                context['course'] = obj.course
+            elif isinstance(obj, Course):
+                context['course'] = obj
+            elif isinstance(obj, Quiz):
+                context['quiz'] = obj
+                context['lesson'] = obj.lesson
+                context['topic'] = obj.lesson.topic
+                context['course'] = obj.lesson.topic.course
+            elif isinstance(obj, QuizQuestion):
+                context['question'] = obj
+                context['quiz'] = obj.quiz
+                context['lesson'] = obj.quiz.lesson
+                context['topic'] = obj.quiz.lesson.topic
+                context['course'] = obj.quiz.lesson.topic.course
+
+        # Also check for course/topic set in dispatch
+        if hasattr(self, 'course') and 'course' not in context:
+            context['course'] = self.course
+        if hasattr(self, 'topic') and 'topic' not in context:
+            context['topic'] = self.topic
+        if hasattr(self, 'lesson') and 'lesson' not in context:
+            context['lesson'] = self.lesson
+
+        return context

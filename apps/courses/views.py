@@ -19,7 +19,7 @@ from datetime import timedelta
 
 from apps.core.views import (
     BaseCheckoutSuccessView, BaseCheckoutCancelView, SearchableListViewMixin,
-    SuccessMessageMixin, SetUserFieldMixin
+    SuccessMessageMixin, SetUserFieldMixin, CourseOwnershipMixin, CourseContextMixin
 )
 from .models import (
     Course, Topic, Lesson, LessonAttachment,
@@ -319,9 +319,9 @@ class LessonCreateView(SuccessMessageMixin, InstructorRequiredMixin, CreateView)
         })
 
 
-class LessonUpdateView(InstructorRequiredMixin, UpdateView):
+class LessonUpdateView(CourseOwnershipMixin, CourseContextMixin, InstructorRequiredMixin, UpdateView):
     """
-    Edit an existing lesson.
+    Edit an existing lesson. Uses CourseOwnershipMixin and CourseContextMixin.
     """
     model = Lesson
     template_name = 'courses/instructor/lesson_form.html'
@@ -330,19 +330,9 @@ class LessonUpdateView(InstructorRequiredMixin, UpdateView):
         'video_url', 'duration_minutes', 'is_preview', 'status'
     ]
 
-    def dispatch(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        # Verify ownership
-        if not self.object.topic.course.is_owned_by(request.user):
-            messages.error(request, 'Permission denied')
-            return redirect('courses:instructor_dashboard')
-
-        return super().dispatch(request, *args, **kwargs)
-
     def get_context_data(self, **kwargs):
+        # CourseContextMixin automatically adds course, topic, lesson
         context = super().get_context_data(**kwargs)
-        context['course'] = self.object.topic.course
-        context['topic'] = self.object.topic
 
         # Add piece formset
         if self.request.POST:
@@ -383,21 +373,12 @@ class LessonUpdateView(InstructorRequiredMixin, UpdateView):
         })
 
 
-class LessonDeleteView(InstructorRequiredMixin, DeleteView):
+class LessonDeleteView(CourseOwnershipMixin, InstructorRequiredMixin, DeleteView):
     """
-    Delete a lesson.
+    Delete a lesson. Uses CourseOwnershipMixin.
     """
     model = Lesson
     template_name = 'courses/instructor/lesson_confirm_delete.html'
-
-    def dispatch(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        # Verify ownership
-        if not self.object.topic.course.is_owned_by(request.user):
-            messages.error(request, 'Permission denied')
-            return redirect('courses:instructor_dashboard')
-
-        return super().dispatch(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -576,26 +557,17 @@ class QuizQuestionCreateView(InstructorRequiredMixin, CreateView):
         return reverse('courses:manage_quiz', kwargs={'lesson_id': self.quiz.lesson.id})
 
 
-class QuizQuestionUpdateView(InstructorRequiredMixin, UpdateView):
+class QuizQuestionUpdateView(CourseOwnershipMixin, CourseContextMixin, InstructorRequiredMixin, UpdateView):
     """
-    Update a quiz question with answers (using formset).
+    Update a quiz question with answers (using formset). Uses CourseOwnershipMixin and CourseContextMixin.
     """
     model = QuizQuestion
     template_name = 'courses/instructor/question_form.html'
     fields = ['text', 'points', 'order']
     pk_url_kwarg = 'question_id'
 
-    def dispatch(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        lesson = self.object.quiz.lesson
-
-        if not lesson.topic.course.is_owned_by(request.user):
-            messages.error(request, 'Permission denied')
-            return redirect('courses:instructor_dashboard')
-
-        return super().dispatch(request, *args, **kwargs)
-
     def get_context_data(self, **kwargs):
+        # CourseContextMixin automatically adds quiz, lesson, course, topic
         context = super().get_context_data(**kwargs)
         from .forms import QuizAnswerFormSet
 
@@ -603,11 +575,6 @@ class QuizQuestionUpdateView(InstructorRequiredMixin, UpdateView):
             context['answer_formset'] = QuizAnswerFormSet(self.request.POST, instance=self.object)
         else:
             context['answer_formset'] = QuizAnswerFormSet(instance=self.object)
-
-        context['quiz'] = self.object.quiz
-        context['lesson'] = self.object.quiz.lesson
-        context['course'] = self.object.quiz.lesson.topic.course
-        context['topic'] = self.object.quiz.lesson.topic
 
         return context
 
@@ -638,31 +605,13 @@ class QuizQuestionUpdateView(InstructorRequiredMixin, UpdateView):
         return reverse('courses:manage_quiz', kwargs={'lesson_id': self.object.quiz.lesson.id})
 
 
-class QuizQuestionDeleteView(InstructorRequiredMixin, DeleteView):
+class QuizQuestionDeleteView(CourseOwnershipMixin, CourseContextMixin, InstructorRequiredMixin, DeleteView):
     """
-    Delete a quiz question.
+    Delete a quiz question. Uses CourseOwnershipMixin and CourseContextMixin.
     """
     model = QuizQuestion
     template_name = 'courses/instructor/question_confirm_delete.html'
     pk_url_kwarg = 'question_id'
-
-    def dispatch(self, request, *args, **kwargs):
-        # Get question and verify ownership
-        self.object = self.get_object()
-        lesson = self.object.quiz.lesson
-
-        if not lesson.topic.course.is_owned_by(request.user):
-            messages.error(request, 'Permission denied')
-            return redirect('courses:instructor_dashboard')
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['quiz'] = self.object.quiz
-        context['lesson'] = self.object.quiz.lesson
-        context['course'] = self.object.quiz.lesson.topic.course
-        return context
 
     def get_success_url(self):
         messages.success(self.request, 'Question deleted successfully!')
