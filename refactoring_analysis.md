@@ -225,7 +225,7 @@ def calculate_refund_eligibility(self):
     - Lesson must be paid
     - Must be cancellation (not reschedule)
     - Request within 14 days of lesson
-    - Refund = lesson price - 20% platform fee
+    - Refund = lesson price - 10% platform fee
 ```
 
 **2. Courses (7-day trial):**

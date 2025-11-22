@@ -963,7 +963,7 @@ class LessonCancellationRequest(BaseCancellationRequest):
         - Lesson must have been paid
         - Must be requesting cancellation (not reschedule)
         - Request must be within 14 days of lesson date
-        - Refund amount = lesson price minus platform fee (20%)
+        - Refund amount = lesson price minus platform fee (10%)
         """
         from django.utils import timezone
         from datetime import datetime, timedelta
@@ -998,9 +998,9 @@ class LessonCancellationRequest(BaseCancellationRequest):
         self.is_eligible_for_refund = eligible
 
         if eligible:
-            # Calculate refund: lesson price minus 20% platform fee
+            # Calculate refund: lesson price minus 10% platform fee
             lesson_price = self.lesson.price or Decimal('0.00')
-            platform_fee_rate = Decimal('0.20')
+            platform_fee_rate = Decimal('0.10')
             self.platform_fee_retained = lesson_price * platform_fee_rate
             self.refund_amount = lesson_price - self.platform_fee_retained
         else:
