@@ -279,9 +279,9 @@ class LessonManageView(InstructorRequiredMixin, TemplateView):
         return context
 
 
-class LessonCreateView(InstructorRequiredMixin, CreateView):
+class LessonCreateView(SuccessMessageMixin, InstructorRequiredMixin, CreateView):
     """
-    Create a new lesson.
+    Create a new lesson. Uses SuccessMessageMixin.
     """
     model = Lesson
     template_name = 'courses/instructor/lesson_form.html'
@@ -289,6 +289,7 @@ class LessonCreateView(InstructorRequiredMixin, CreateView):
         'lesson_number', 'lesson_title', 'content',
         'video_url', 'duration_minutes', 'is_preview', 'status'
     ]
+    success_message = 'Lesson "{lesson_title}" created successfully!'
 
     def dispatch(self, request, *args, **kwargs):
         # Get and verify ownership
@@ -303,7 +304,6 @@ class LessonCreateView(InstructorRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.topic = self.topic
-        messages.success(self.request, f'Lesson "{form.instance.lesson_title}" created successfully!')
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
