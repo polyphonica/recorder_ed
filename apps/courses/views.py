@@ -279,9 +279,9 @@ class LessonManageView(InstructorRequiredMixin, TemplateView):
         return context
 
 
-class LessonCreateView(SuccessMessageMixin, InstructorRequiredMixin, CreateView):
+class LessonCreateView(SuccessMessageMixin, CourseContextMixin, InstructorRequiredMixin, CreateView):
     """
-    Create a new lesson. Uses SuccessMessageMixin.
+    Create a new lesson. Uses SuccessMessageMixin and CourseContextMixin.
     """
     model = Lesson
     template_name = 'courses/instructor/lesson_form.html'
@@ -305,12 +305,6 @@ class LessonCreateView(SuccessMessageMixin, InstructorRequiredMixin, CreateView)
     def form_valid(self, form):
         form.instance.topic = self.topic
         return super().form_valid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['course'] = self.course
-        context['topic'] = self.topic
-        return context
 
     def get_success_url(self):
         return reverse('courses:manage_lessons', kwargs={
@@ -392,25 +386,17 @@ class LessonDeleteView(CourseOwnershipMixin, InstructorRequiredMixin, DeleteView
         return redirect('courses:manage_lessons', course_slug=course_slug, topic_number=topic_number)
 
 
-class QuizManageView(InstructorRequiredMixin, DetailView):
+class QuizManageView(CourseOwnershipMixin, CourseContextMixin, InstructorRequiredMixin, DetailView):
     """
-    Manage quiz for a lesson.
+    Manage quiz for a lesson. Uses CourseOwnershipMixin and CourseContextMixin.
     """
     model = Lesson
     template_name = 'courses/instructor/quiz_manage.html'
     context_object_name = 'lesson'
     pk_url_kwarg = 'lesson_id'
 
-    def dispatch(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        # Verify ownership
-        if not self.object.topic.course.is_owned_by(request.user):
-            messages.error(request, 'Permission denied')
-            return redirect('courses:instructor_dashboard')
-
-        return super().dispatch(request, *args, **kwargs)
-
     def get_context_data(self, **kwargs):
+        # CourseContextMixin automatically adds course, topic, lesson
         context = super().get_context_data(**kwargs)
 
         # Get or create quiz for this lesson
@@ -425,8 +411,6 @@ class QuizManageView(InstructorRequiredMixin, DetailView):
         questions = quiz.questions.all().prefetch_related('answers').order_by('order')
 
         context.update({
-            'course': self.object.topic.course,
-            'topic': self.object.topic,
             'quiz': quiz,
             'questions': questions,
         })
@@ -515,6 +499,7 @@ class QuizQuestionCreateView(InstructorRequiredMixin, CreateView):
         else:
             context['answer_formset'] = QuizAnswerFormSet(instance=self.object)
 
+        # Set context vars based on self.quiz
         context['quiz'] = self.quiz
         context['lesson'] = self.quiz.lesson
         context['course'] = self.quiz.lesson.topic.course
