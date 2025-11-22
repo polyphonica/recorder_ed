@@ -1177,7 +1177,7 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
 
             if registered_count > 0:
                 # Check if any registrations require refund (paid registrations)
-                has_paid = registrations.filter(payment_status='paid').exists()
+                has_paid = registrations.filter(payment_status='completed').exists()
                 if has_paid:
                     paid_registrations_exist = True
 
@@ -1236,7 +1236,7 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
         paid_registrations = WorkshopRegistration.objects.filter(
             session__workshop=self.object,
             status__in=['registered', 'waitlisted', 'attended', 'promoted'],
-            payment_status='paid'
+            payment_status='completed'  # PayableModel uses 'completed' not 'paid'
         )
         logger.info(f"Found {paid_registrations.count()} paid registrations")
 
@@ -1266,7 +1266,7 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
             print(f"[WORKSHOP DELETE DEBUG] Registration {reg.id}: status={reg.status}, payment_status={reg.payment_status}, student={reg.student.email}", flush=True)
 
         # Convert to list BEFORE filtering to preserve the data before deletion
-        all_registrations = list(all_registrations_query.exclude(payment_status='paid'))
+        all_registrations = list(all_registrations_query.exclude(payment_status='completed'))
         logger.info(f"After excluding paid: {len(all_registrations)} registrations to notify")
         print(f"[WORKSHOP DELETE DEBUG] After excluding paid: {len(all_registrations)} registrations to notify", flush=True)
 
