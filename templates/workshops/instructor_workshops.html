@@ -142,6 +142,10 @@
                                    target="_blank">
                                     <i class="fas fa-eye mr-2"></i>Preview
                                 </a>
+                                <a href="{% url 'workshops:delete_workshop' workshop.slug %}"
+                                   class="btn btn-error btn-outline btn-sm w-full">
+                                    <i class="fas fa-trash mr-2"></i>Delete
+                                </a>
                             </div>
                         </div>
                     </div>
