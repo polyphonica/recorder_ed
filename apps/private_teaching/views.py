@@ -1966,37 +1966,36 @@ class ExamPaymentView(PrivateTeachingLoginRequiredMixin, View):
             messages.error(request, 'No payment is required for this exam.')
             return redirect('private_teaching:exam_detail', pk=exam.id)
 
-        # Create Stripe checkout session
-        import stripe
-        stripe.api_key = settings.STRIPE_SECRET_KEY
+        # Create Stripe checkout session using centralized service
+        from apps.payments.stripe_service import create_checkout_session
 
         try:
-            checkout_session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=[{
-                    'price_data': {
-                        'currency': 'gbp',
-                        'unit_amount': int(exam.fee_amount * 100),  # Convert to pence
-                        'product_data': {
-                            'name': f'Exam Registration: {exam.display_name}',
-                            'description': f'{exam.student_name} - {exam.exam_board} {exam.get_grade_type_display()} Grade {exam.grade_level}',
-                        },
-                    },
-                    'quantity': 1,
-                }],
-                mode='payment',
-                success_url=request.build_absolute_uri(
-                    reverse('private_teaching:exam_payment_success', kwargs={'pk': exam.id})
-                ),
-                cancel_url=request.build_absolute_uri(
-                    reverse('private_teaching:exam_payment_cancel', kwargs={'pk': exam.id})
-                ),
-                client_reference_id=str(exam.id),
-                metadata={
-                    'exam_id': str(exam.id),
-                    'student_id': str(exam.student.id),
-                    'teacher_id': str(exam.teacher.id),
-                }
+            # Build URLs
+            success_url = request.build_absolute_uri(
+                reverse('private_teaching:exam_payment_success', kwargs={'pk': exam.id})
+            )
+            cancel_url = request.build_absolute_uri(
+                reverse('private_teaching:exam_payment_cancel', kwargs={'pk': exam.id})
+            )
+
+            # Prepare metadata
+            metadata = {
+                'exam_id': str(exam.id),
+                'student_id': str(exam.student.id),
+                'teacher_id': str(exam.teacher.id),
+            }
+
+            # Create checkout session
+            checkout_session = create_checkout_session(
+                amount=exam.fee_amount,
+                student=exam.student,
+                teacher=exam.teacher,
+                domain='private_teaching',
+                success_url=success_url,
+                cancel_url=cancel_url,
+                metadata=metadata,
+                item_name=f'Exam Registration: {exam.display_name}',
+                item_description=f'{exam.student_name} - {exam.exam_board} {exam.get_grade_type_display()} Grade {exam.grade_level}'
             )
 
             # Save checkout session ID

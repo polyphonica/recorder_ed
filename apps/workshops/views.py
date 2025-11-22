@@ -742,10 +742,7 @@ class RegistrationCancelView(LoginRequiredMixin, View):
                 # Eligible for refund - process it automatically
                 try:
                     from apps.payments.models import StripePayment
-                    import stripe
-                    from django.conf import settings
-
-                    stripe.api_key = settings.STRIPE_SECRET_KEY
+                    from apps.payments.stripe_service import create_refund
 
                     # Find the StripePayment record using payment_intent_id from registration
                     print(f"[REFUND DEBUG] Looking for StripePayment: student={request.user.email}, payment_intent={registration.stripe_payment_intent_id}", flush=True)
@@ -761,10 +758,11 @@ class RegistrationCancelView(LoginRequiredMixin, View):
 
                     if stripe_payment:
                         print(f"[REFUND DEBUG] Processing Stripe refund for payment_intent: {stripe_payment.stripe_payment_intent_id}", flush=True)
-                        # Process refund via Stripe API
-                        refund = stripe.Refund.create(
-                            payment_intent=stripe_payment.stripe_payment_intent_id,
-                            amount=int(registration.payment_amount * 100),  # Convert to cents
+                        # Process refund via centralized Stripe service
+                        refund = create_refund(
+                            payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                            amount=registration.payment_amount,
+                            reason='requested_by_customer'
                         )
 
                         # Update our record
