@@ -231,11 +231,12 @@
                                         <div class="font-semibold">
                                             {{ registration.student_name }}
                                             {% if registration.child_profile %}
-                                                <span class="badge badge-sm badge-info ml-1">Child</span>
+                                                <span class="badge badge-sm badge-info ml-1">Under 18</span>
                                             {% endif %}
                                         </div>
                                         {% if registration.child_profile %}
                                             <div class="text-sm text-gray-500">Age: {{ registration.child_profile.age }}</div>
+                                            <div class="text-xs text-gray-400">Guardian: {{ registration.student.get_full_name|default:registration.student.username }}</div>
                                         {% else %}
                                             <div class="text-sm text-gray-500">@{{ registration.student.username }}</div>
                                         {% endif %}
@@ -383,6 +384,12 @@
         "child_profile": {% if registration.child_profile %}{
             "name": "{{ registration.child_profile.full_name }}",
             "age": {{ registration.child_profile.age }}
+        }{% else %}null{% endif %},
+        "guardian": {% if registration.child_profile %}{
+            "name": "{{ registration.student.get_full_name|default:registration.student.username }}",
+            "username": "{{ registration.student.username }}",
+            "email": "{{ registration.email|default:registration.student.email }}",
+            "phone": "{{ registration.phone|default:'' }}"
         }{% else %}null{% endif %}
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
@@ -504,7 +511,10 @@ function viewRegistrationDetails(registrationId) {
     html += '<p><strong>Name:</strong> ' + data.name + '</p>';
     if (data.child_profile) {
         html += '<p><strong>Age:</strong> ' + data.child_profile.age + '</p>';
-        html += '<p class="text-info"><i class="fas fa-child mr-1"></i>Child Registration</p>';
+        html += '<p class="text-info"><i class="fas fa-child mr-1"></i>Child Registration (Under 18)</p>';
+    }
+    if (data.guardian) {
+        html += '<p><strong>Guardian:</strong> ' + data.guardian.name + '</p>';
     }
     html += '<p><strong>Status:</strong> <span class="badge badge-sm">' + data.status + '</span></p>';
     html += '<p><strong>Registered:</strong> ' + data.registered_date + '</p>';
@@ -513,7 +523,11 @@ function viewRegistrationDetails(registrationId) {
     // Contact Info
     html += '<div class="card bg-base-200">';
     html += '<div class="card-body">';
-    html += '<h4 class="card-title text-base"><i class="fas fa-address-book mr-2 text-primary"></i>Contact Information</h4>';
+    if (data.guardian) {
+        html += '<h4 class="card-title text-base"><i class="fas fa-address-book mr-2 text-primary"></i>Guardian Contact Information</h4>';
+    } else {
+        html += '<h4 class="card-title text-base"><i class="fas fa-address-book mr-2 text-primary"></i>Contact Information</h4>';
+    }
     html += '<div class="space-y-2 text-sm">';
     html += '<p><strong>Email:</strong> ' + data.email + '</p>';
     if (data.phone) {
