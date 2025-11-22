@@ -264,8 +264,8 @@ class PrivateLessonTermsAcceptanceAdmin(admin.ModelAdmin):
         return False
 
     def has_delete_permission(self, request, obj=None):
-        """Prevent deletion of acceptance records for legal/audit purposes"""
-        return False
+        """Allow deletion only for superusers (for database maintenance)"""
+        return request.user.is_superuser
 
 
 @admin.register(LessonCancellationRequest)

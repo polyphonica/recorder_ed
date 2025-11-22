@@ -490,8 +490,8 @@ class TermsAcceptanceAdmin(admin.ModelAdmin):
         return False
 
     def has_delete_permission(self, request, obj=None):
-        """Prevent deletion for legal/audit purposes"""
-        return False
+        """Allow deletion only for superusers (for database maintenance)"""
+        return request.user.is_superuser
 
 
 # Customize admin site
