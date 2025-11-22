@@ -98,18 +98,20 @@ class BaseNotificationService:
         Args:
             url_name: Django URL name (e.g., 'workshops:confirm_promotion')
             obj: Model instance with the identifier field
-            id_field: Name of the field to use (default: 'id')
+            id_field: Name of the kwarg in the URL pattern (e.g., 'registration_id', 'session_id')
 
         Returns:
             Absolute URL string
 
         Example:
             build_action_url('workshops:confirm_promotion', registration, 'registration_id')
-            # Same as build_absolute_url('workshops:confirm_promotion', {'registration_id': registration.id})
+            # Uses registration.id for the URL
+
+            build_action_url('workshops:session_registrations', session, 'session_id')
+            # Uses session.id for the URL
         """
-        field_value = getattr(obj, id_field.replace('_id', '') if id_field.endswith('_id') else id_field)
-        if hasattr(field_value, 'id'):
-            field_value = field_value.id
+        # Always use the object's id attribute for the URL value
+        field_value = obj.id
         return cls.build_absolute_url(url_name, kwargs={id_field: field_value})
 
     @staticmethod
