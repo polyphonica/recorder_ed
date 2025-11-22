@@ -374,16 +374,21 @@ class LessonDeleteView(CourseOwnershipMixin, InstructorRequiredMixin, DeleteView
     model = Lesson
     template_name = 'courses/instructor/lesson_confirm_delete.html'
 
+    def get_success_url(self):
+        """Return URL to redirect to after successful deletion"""
+        return reverse('courses:manage_lessons', kwargs={
+            'course_slug': self.object.topic.course.slug,
+            'topic_number': self.object.topic.topic_number
+        })
+
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
-        course_slug = self.object.topic.course.slug
-        topic_number = self.object.topic.topic_number
         lesson_title = self.object.lesson_title
 
-        self.object.delete()
+        response = super().delete(request, *args, **kwargs)
         messages.success(request, f'Lesson "{lesson_title}" has been deleted.')
 
-        return redirect('courses:manage_lessons', course_slug=course_slug, topic_number=topic_number)
+        return response
 
 
 class QuizManageView(CourseOwnershipMixin, CourseContextMixin, InstructorRequiredMixin, DetailView):
