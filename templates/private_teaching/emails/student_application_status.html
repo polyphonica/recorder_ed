@@ -2,7 +2,7 @@
 
 {% block header_gradient %}linear-gradient(135deg, #059669 0%, #047857 100%){% endblock %}
 
-{% block header_subtitle %}{% if new_status == 'accepted' %}Application Accepted!{% elif new_status == 'waitlist' %}Added to Waitlist{% else %}Application Update{% endif %}{% endblock %}
+{% block header_subtitle %}PRIVATE LESSONS - {% if new_status == 'accepted' %}Application Accepted{% elif new_status == 'waitlist' %}Waitlist{% else %}Application Update{% endif %}{% endblock %}
 
 {% block content %}
 <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
