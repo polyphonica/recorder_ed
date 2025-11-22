@@ -385,10 +385,10 @@ class LessonDeleteView(CourseOwnershipMixin, InstructorRequiredMixin, DeleteView
         self.object = self.get_object()
         lesson_title = self.object.lesson_title
 
-        response = super().delete(request, *args, **kwargs)
+        # Add success message before deleting
         messages.success(request, f'Lesson "{lesson_title}" has been deleted.')
 
-        return response
+        return super().delete(request, *args, **kwargs)
 
 
 class QuizManageView(CourseOwnershipMixin, CourseContextMixin, InstructorRequiredMixin, DetailView):
