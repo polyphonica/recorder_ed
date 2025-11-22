@@ -1,0 +1,130 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #059669 0%, #047857 100%){% endblock %}
+{% block header_subtitle %}PRIVATE LESSONS - Exam Results{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ recipient_name }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Your exam results are now available!
+</p>
+
+<!-- Exam Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #f0fdf4; border-left: 4px solid #059669; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #047857;">
+                Exam Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Student:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 600;">{{ student_name }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Exam:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ exam.display_name }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Subject:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ exam.subject.subject }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Teacher:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ exam.teacher.get_full_name }}</span>
+                    </td>
+                </tr>
+                {% if exam.exam_date %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Exam Date:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ exam.exam_date|date:"F j, Y" }}</span>
+                    </td>
+                </tr>
+                {% endif %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+{% if has_results %}
+<!-- Results Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: {% if exam.grade_achieved == 'distinction' %}#f0fdf4{% elif exam.grade_achieved == 'merit' %}#eff6ff{% else %}#fef3c7{% endif %}; border-left: 4px solid {% if exam.grade_achieved == 'distinction' %}#10b981{% elif exam.grade_achieved == 'merit' %}#3b82f6{% else %}#f59e0b{% endif %}; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: {% if exam.grade_achieved == 'distinction' %}#059669{% elif exam.grade_achieved == 'merit' %}#2563eb{% else %}#d97706{% endif %};">
+                Results
+            </h2>
+            {% if exam.grade_achieved %}
+            <p style="margin: 5px 0; font-size: 16px; color: #333333;">
+                <strong>Grade:</strong> {{ exam.get_grade_achieved_display|upper }}
+            </p>
+            {% endif %}
+            {% if exam.mark_achieved %}
+            <p style="margin: 5px 0; font-size: 16px; color: #333333;">
+                <strong>Mark:</strong> {{ exam.mark_achieved }}/100
+            </p>
+            {% endif %}
+
+            {% if exam.examiner_comments %}
+            <h3 style="margin: 15px 0 10px 0; font-size: 16px; font-weight: 600; color: #333333;">
+                Examiner Comments
+            </h3>
+            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333333; white-space: pre-wrap;">{{ exam.examiner_comments }}</p>
+            {% endif %}
+
+            {% if exam.certificate_received_date %}
+            <p style="margin: 15px 0 0 0; font-size: 14px; color: #6b7280;">
+                Certificate received: {{ exam.certificate_received_date|date:"F j, Y" }}
+            </p>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+
+<!-- Congratulations Card -->
+{% if exam.grade_achieved %}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 20px; background-color: #f9fafb; border-radius: 8px;">
+            <p style="margin: 0; font-size: 18px; font-weight: 600; color: #333333;">
+                {% if exam.grade_achieved == 'distinction' %}
+                🎉 Congratulations on achieving a Distinction! This is an excellent result.
+                {% elif exam.grade_achieved == 'merit' %}
+                🎉 Congratulations on achieving a Merit! Well done on your hard work.
+                {% elif exam.grade_achieved == 'pass' %}
+                🎉 Congratulations on passing your exam! Keep up the good work.
+                {% endif %}
+            </p>
+        </td>
+    </tr>
+</table>
+{% endif %}
+{% endif %}
+
+<!-- Action Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ exam_detail_url }}" style="display: inline-block; padding: 14px 28px; background-color: #059669; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);">
+                View Full Results
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    Well done {{ student_name }}!<br>
+    <strong>{{ exam.teacher.get_full_name }}</strong>
+</p>
+{% endblock %}

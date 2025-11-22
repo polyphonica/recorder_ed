@@ -1,0 +1,118 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #3b82f6 0%, #2563eb 100%){% endblock %}
+{% block header_subtitle %}WORKSHOPS - Cancellation & Refund{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ student_name }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Your registration for the following workshop session has been cancelled by the instructor:
+</p>
+
+<!-- Workshop Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #2563eb;">
+                Workshop Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Workshop:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 600;">{{ workshop.title }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Date:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.start_datetime|date:"l, d F Y" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Time:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ session.start_datetime|time:"H:i" }} - {{ session.end_datetime|time:"H:i" }}</span>
+                    </td>
+                </tr>
+                {% if workshop.delivery_method == 'online' %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Delivery:</span>
+                        <span style="font-size: 14px; color: #333333;">Online</span>
+                    </td>
+                </tr>
+                {% elif workshop.delivery_method == 'in_person' %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Delivery:</span>
+                        <span style="font-size: 14px; color: #333333;">In-Person</span>
+                    </td>
+                </tr>
+                {% if workshop.venue_name %}
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 100px;">Venue:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ workshop.venue_name }}</span>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endif %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Refund Information Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #059669;">
+                Refund Information
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 140px;">Refund Amount:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 600;">£{{ refund_amount }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 140px;">Processing Time:</span>
+                        <span style="font-size: 14px; color: #333333;">5-10 business days</span>
+                    </td>
+                </tr>
+            </table>
+            <p style="margin: 15px 0 0 0; font-size: 14px; line-height: 1.6; color: #333333;">
+                A full refund of £{{ refund_amount }} has been processed to your original payment method. Please allow 5-10 business days for the refund to appear on your statement.
+            </p>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    We apologize for any inconvenience this cancellation may cause.
+</p>
+
+<!-- Action Buttons -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px;">
+            <a href="{{ browse_workshops_url }}" style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; margin: 0 5px;">
+                Browse Other Workshops
+            </a>
+            <a href="{{ my_registrations_url }}" style="display: inline-block; padding: 12px 24px; background-color: #6b7280; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; margin: 0 5px;">
+                View My Registrations
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    If you have any questions, please don't hesitate to contact us.
+</p>
+{% endblock %}
