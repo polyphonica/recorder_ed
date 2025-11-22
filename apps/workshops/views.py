@@ -1663,19 +1663,18 @@ class DeleteSessionMaterialView(InstructorRequiredMixin, DeleteView):
         material = self.get_object()
         session_id = material.session.id
         material_title = material.title
-        
+
         # Delete the file if it exists
         if material.file:
             material.file.delete()
-        
-        result = super().delete(request, *args, **kwargs)
-        
+
+        # Add success message before deleting
         messages.success(
             request,
             f'Material "{material_title}" has been deleted successfully!'
         )
-        
-        return result
+
+        return super().delete(request, *args, **kwargs)
     
     def get_success_url(self):
         return reverse('workshops:session_materials', kwargs={'session_id': self.kwargs['session_id']})

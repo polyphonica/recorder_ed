@@ -604,8 +604,12 @@ class QuizQuestionDeleteView(CourseOwnershipMixin, CourseContextMixin, Instructo
     pk_url_kwarg = 'question_id'
 
     def get_success_url(self):
-        messages.success(self.request, 'Question deleted successfully!')
         return reverse('courses:manage_quiz', kwargs={'lesson_id': self.object.quiz.lesson.id})
+
+    def delete(self, request, *args, **kwargs):
+        # Add success message before deleting
+        messages.success(request, 'Question deleted successfully!')
+        return super().delete(request, *args, **kwargs)
 
 
 # ============================================================================
