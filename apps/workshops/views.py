@@ -328,6 +328,23 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
         kwargs['session'] = self.session
         kwargs['user'] = self.request.user
         return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Debug info for child profile issue
+        if self.request.user.is_authenticated:
+            debug_info = {
+                'user': self.request.user.username,
+                'has_profile': hasattr(self.request.user, 'profile'),
+                'is_guardian': self.request.user.profile.is_guardian if hasattr(self.request.user, 'profile') else 'No profile',
+                'children_count': self.request.user.children.count() if hasattr(self.request.user, 'children') else 0,
+                'delivery_method': self.session.workshop.delivery_method,
+                'form_has_child_field': 'child_profile' in context['form'].fields,
+            }
+            context['debug_info'] = debug_info
+
+        return context
     
     def form_valid(self, form):
         # Double-check user is authenticated
