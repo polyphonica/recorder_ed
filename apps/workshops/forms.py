@@ -83,20 +83,37 @@ class WorkshopRegistrationForm(forms.ModelForm):
             self.fields['emergency_contact'].label = 'Emergency Contact (Optional for online workshops)'
 
         # Setup child selection field for guardians
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Debug logging
+        logger.info(f"WorkshopRegistrationForm init - User: {self.user.username if self.user else 'None'}")
+        logger.info(f"  Is authenticated: {self.user.is_authenticated if self.user else 'N/A'}")
+        logger.info(f"  Has profile: {hasattr(self.user, 'profile') if self.user else 'N/A'}")
+        if self.user and hasattr(self.user, 'profile'):
+            logger.info(f"  Is guardian: {self.user.profile.is_guardian}")
+        if self.session:
+            logger.info(f"  Workshop: {self.session.workshop.title}")
+            logger.info(f"  Delivery method: {self.session.workshop.delivery_method}")
+
         if self.user and self.user.is_authenticated and self.user.profile.is_guardian:
             from apps.accounts.models import ChildProfile
             children = self.user.children.all()
+            logger.info(f"  Children count: {children.count()}")
 
             if children:
                 choices = [(str(child.id), f"{child.full_name} (Age: {child.age})") for child in children]
                 self.fields['child_profile'].choices = choices
                 self.fields['child_profile'].required = True
+                logger.info(f"  ✓ child_profile field added with {len(choices)} choices")
             else:
                 # Remove field if no children
                 del self.fields['child_profile']
+                logger.info(f"  ✗ child_profile field removed - no children")
         else:
             # Remove field for non-guardians
             del self.fields['child_profile']
+            logger.info(f"  ✗ child_profile field removed - not a guardian")
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
