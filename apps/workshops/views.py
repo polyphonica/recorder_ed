@@ -1132,6 +1132,19 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        # Write debug info for GET request (showing confirmation page)
+        try:
+            import os
+            from datetime import datetime
+            debug_file = os.path.join('/tmp', 'workshop_delete_debug.txt')
+            with open(debug_file, 'a') as f:
+                f.write(f"\n{'='*60}\n")
+                f.write(f"GET request at: {datetime.now()}\n")
+                f.write(f"Workshop: {self.object.title} (slug: {self.object.slug})\n")
+                f.write(f"Template: {self.template_name}\n")
+        except Exception as e:
+            pass
+
         # Get all sessions with their registration counts
         sessions = self.object.sessions.all()
         sessions_with_registrations = []
