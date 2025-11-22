@@ -1168,6 +1168,19 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
         self.object = self.get_object()
         logger.info(f"WorkshopDeleteView: Starting deletion of workshop '{self.object.title}' (ID: {self.object.id})")
 
+        # Write debug info to a file we can check
+        try:
+            import os
+            debug_file = os.path.join('/tmp', 'workshop_delete_debug.txt')
+            with open(debug_file, 'a') as f:
+                from datetime import datetime
+                f.write(f"\n{'='*60}\n")
+                f.write(f"Deletion started at: {datetime.now()}\n")
+                f.write(f"Workshop: {self.object.title} (ID: {self.object.id})\n")
+                f.write(f"User: {request.user.username}\n")
+        except Exception as e:
+            logger.error(f"Failed to write debug file: {e}")
+
         # Check if any sessions have paid registrations
         paid_registrations = WorkshopRegistration.objects.filter(
             session__workshop=self.object,
@@ -1205,6 +1218,16 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
         all_registrations = list(all_registrations_query.exclude(payment_status='paid'))
         logger.info(f"After excluding paid: {len(all_registrations)} registrations to notify")
         print(f"[WORKSHOP DELETE DEBUG] After excluding paid: {len(all_registrations)} registrations to notify", flush=True)
+
+        # Write to debug file
+        try:
+            with open(debug_file, 'a') as f:
+                f.write(f"Total registrations: {total_reg_count}\n")
+                f.write(f"Registrations to notify: {len(all_registrations)}\n")
+                for reg in all_registrations:
+                    f.write(f"  - {reg.student.email} (status={reg.status}, payment={reg.payment_status})\n")
+        except:
+            pass
 
         if all_registrations:
             # Send cancellation notification to each participant
@@ -1246,9 +1269,19 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
                     if success:
                         notification_count += 1
                         logger.info(f"Successfully sent notification to {recipient_email}")
+                        try:
+                            with open(debug_file, 'a') as f:
+                                f.write(f"  ✓ Email sent to: {recipient_email}\n")
+                        except:
+                            pass
                     else:
                         failed_count += 1
                         logger.error(f"Failed to send notification to {recipient_email}")
+                        try:
+                            with open(debug_file, 'a') as f:
+                                f.write(f"  ✗ Email FAILED to: {recipient_email}\n")
+                        except:
+                            pass
 
                 except Exception as e:
                     failed_count += 1
