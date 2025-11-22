@@ -1186,29 +1186,34 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
             return redirect('workshops:instructor_workshops')
 
         # Send cancellation notifications to all participants (free or unpaid registrations)
-        all_registrations = WorkshopRegistration.objects.filter(
+        # IMPORTANT: Convert to list() to fetch data before workshop deletion cascades
+        all_registrations_query = WorkshopRegistration.objects.filter(
             session__workshop=self.object,
             status__in=['registered', 'waitlisted', 'attended', 'promoted']
-        )
-        logger.info(f"Found {all_registrations.count()} total active registrations")
+        ).select_related('student', 'session', 'child_profile')
+
+        total_reg_count = all_registrations_query.count()
+        logger.info(f"Found {total_reg_count} total active registrations")
+        print(f"[WORKSHOP DELETE DEBUG] Found {total_reg_count} total active registrations", flush=True)
 
         # Log payment status of each registration for debugging
-        for reg in all_registrations:
+        for reg in all_registrations_query:
             logger.info(f"Registration {reg.id}: status={reg.status}, payment_status={reg.payment_status}, student={reg.student.email}")
             print(f"[WORKSHOP DELETE DEBUG] Registration {reg.id}: status={reg.status}, payment_status={reg.payment_status}, student={reg.student.email}", flush=True)
 
-        all_registrations = all_registrations.exclude(payment_status='paid')
-        logger.info(f"After excluding paid: {all_registrations.count()} registrations to notify")
-        print(f"[WORKSHOP DELETE DEBUG] After excluding paid: {all_registrations.count()} registrations to notify", flush=True)
+        # Convert to list BEFORE filtering to preserve the data before deletion
+        all_registrations = list(all_registrations_query.exclude(payment_status='paid'))
+        logger.info(f"After excluding paid: {len(all_registrations)} registrations to notify")
+        print(f"[WORKSHOP DELETE DEBUG] After excluding paid: {len(all_registrations)} registrations to notify", flush=True)
 
-        if all_registrations.exists():
+        if all_registrations:
             # Send cancellation notification to each participant
             from .notifications import StudentNotificationService
 
             notification_count = 0
             failed_count = 0
 
-            logger.info(f"Attempting to send {all_registrations.count()} cancellation notifications for workshop '{self.object.title}'")
+            logger.info(f"Attempting to send {len(all_registrations)} cancellation notifications for workshop '{self.object.title}'")
 
             for registration in all_registrations:
                 try:
@@ -1262,13 +1267,9 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
                 )
 
         workshop_title = self.object.title
-        total_reg_count = WorkshopRegistration.objects.filter(
-            session__workshop=self.object,
-            status__in=['registered', 'waitlisted', 'attended', 'promoted']
-        ).count()
 
         # Add success message before deleting
-        logger.info(f"About to delete workshop '{workshop_title}'")
+        logger.info(f"About to delete workshop '{workshop_title}' with {total_reg_count} registrations")
         messages.success(request, f'Workshop "{workshop_title}" has been deleted. (Had {total_reg_count} active registrations)')
 
         result = super().delete(request, *args, **kwargs)
