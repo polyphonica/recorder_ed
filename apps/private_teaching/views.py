@@ -2226,18 +2226,19 @@ class CancellationRequestDetailView(PrivateTeachingLoginRequiredMixin, TemplateV
         return context
 
 
-class TeacherCancellationRequestsView(TeacherProfileCompletedMixin, ListView):
-    """Teacher view of all cancellation requests"""
+class TeacherCancellationRequestsView(UserFilterMixin, TeacherProfileCompletedMixin, ListView):
+    """Teacher view of all cancellation requests. Uses UserFilterMixin."""
+    model = LessonCancellationRequest
     template_name = 'private_teaching/teacher_cancellation_requests.html'
     context_object_name = 'cancellation_requests'
     paginate_by = 20
+    user_field_name = 'teacher'
 
     def get_queryset(self):
         status_filter = self.request.GET.get('status', 'pending')
 
-        queryset = LessonCancellationRequest.objects.filter(
-            teacher=self.request.user
-        ).select_related('lesson', 'student', 'lesson__subject')
+        # UserFilterMixin automatically filters by teacher=self.request.user
+        queryset = super().get_queryset().select_related('lesson', 'student', 'lesson__subject')
 
         if status_filter and status_filter != 'all':
             queryset = queryset.filter(status=status_filter)

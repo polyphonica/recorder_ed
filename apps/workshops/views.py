@@ -1568,11 +1568,12 @@ class MaterialDownloadView(LoginRequiredMixin, RedirectView):
             return reverse('workshops:detail', kwargs={'slug': material.workshop.slug})
 
 
-class CreateSessionMaterialView(InstructorRequiredMixin, CreateView):
-    """Create a new material for a session"""
+class CreateSessionMaterialView(SuccessMessageMixin, InstructorRequiredMixin, CreateView):
+    """Create a new material for a session. Uses SuccessMessageMixin."""
     model = WorkshopMaterial
     form_class = WorkshopMaterialForm
     template_name = 'workshops/create_material.html'
+    success_message = 'Material "{title}" has been uploaded successfully!'
 
     def get_session(self):
         return get_object_or_404(
@@ -1604,11 +1605,6 @@ class CreateSessionMaterialView(InstructorRequiredMixin, CreateView):
         session = self.get_session()
         form.instance.workshop = session.workshop
         form.instance.session = session
-
-        messages.success(
-            self.request,
-            f'Material "{form.instance.title}" has been uploaded successfully!'
-        )
         return super().form_valid(form)
 
     def form_invalid(self, form):
@@ -1623,31 +1619,25 @@ class CreateSessionMaterialView(InstructorRequiredMixin, CreateView):
         return reverse('workshops:session_materials', kwargs={'session_id': self.kwargs['session_id']})
 
 
-class EditSessionMaterialView(InstructorRequiredMixin, UpdateView):
-    """Edit an existing session material"""
+class EditSessionMaterialView(SuccessMessageMixin, InstructorRequiredMixin, UpdateView):
+    """Edit an existing session material. Uses SuccessMessageMixin."""
     model = WorkshopMaterial
     form_class = WorkshopMaterialForm
     template_name = 'workshops/edit_material.html'
     pk_url_kwarg = 'material_id'
-    
+    success_message = 'Material "{title}" has been updated successfully!'
+
     def get_queryset(self):
         return WorkshopMaterial.objects.filter(
             session__workshop__instructor=self.request.user
         )
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['session'] = self.object.session
         context['workshop'] = self.object.workshop
         return context
-    
-    def form_valid(self, form):
-        messages.success(
-            self.request,
-            f'Material "{form.instance.title}" has been updated successfully!'
-        )
-        return super().form_valid(form)
-    
+
     def get_success_url(self):
         return reverse('workshops:session_materials', kwargs={'session_id': self.object.session.id})
 
