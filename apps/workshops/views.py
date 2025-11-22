@@ -1167,31 +1167,32 @@ class ManageSessionsView(LoginRequiredMixin, TemplateView):
             return self.render_to_response(self.get_context_data(session_form=form, **kwargs))
 
 
-class EditSessionView(LoginRequiredMixin, UpdateView):
-    """Edit an existing workshop session"""
+class EditSessionView(SuccessMessageMixin, LoginRequiredMixin, UpdateView):
+    """Edit an existing workshop session. Uses SuccessMessageMixin."""
     model = WorkshopSession
     form_class = WorkshopSessionForm
     template_name = 'workshops/edit_session.html'
     pk_url_kwarg = 'session_id'
-    
+    success_message = 'Session updated successfully!'
+
     def get_queryset(self):
         # Ensure instructor can only edit their own workshop sessions
         return WorkshopSession.objects.filter(
             workshop__instructor=self.request.user
         )
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['workshop'] = self.object.workshop
         return context
-    
+
     def form_valid(self, form):
         # Check if max_participants was changed
         old_max_participants = self.object.max_participants if self.object.pk else None
         response = super().form_valid(form)
-        
+
         # If max_participants increased, trigger waitlist processing
-        if (old_max_participants is not None and 
+        if (old_max_participants is not None and
             self.object.max_participants > old_max_participants):
             # Manually trigger the signal with update_fields
             from django.db.models.signals import post_save
@@ -1201,8 +1202,7 @@ class EditSessionView(LoginRequiredMixin, UpdateView):
                 created=False,
                 update_fields=['max_participants']
             )
-        
-        messages.success(self.request, 'Session updated successfully!')
+
         return response
     
     def get_success_url(self):
