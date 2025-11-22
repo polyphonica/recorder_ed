@@ -948,19 +948,19 @@ class StudentDashboardView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class MyRegistrationsView(LoginRequiredMixin, ListView):
-    """List of user's workshop registrations"""
+class MyRegistrationsView(UserFilterMixin, LoginRequiredMixin, ListView):
+    """List of user's workshop registrations. Uses UserFilterMixin."""
     model = WorkshopRegistration
     template_name = 'workshops/my_registrations.html'
     context_object_name = 'registrations'
     paginate_by = 20
+    user_field_name = 'student'
 
     def get_queryset(self):
+        # UserFilterMixin automatically filters by student=self.request.user
         # Show all registrations except those with pending payment
         # Cart-based registrations have payment_status='completed' after webhook processes
-        return WorkshopRegistration.objects.filter(
-            student=self.request.user
-        ).filter(
+        return super().get_queryset().filter(
             Q(payment_status='completed') |
             Q(payment_status='not_required') |
             Q(payment_status__isnull=True)  # Legacy registrations without payment_status

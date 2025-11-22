@@ -225,17 +225,17 @@ class LessonRequestCreateView(AcceptedStudentRequiredMixin, StudentProfileComple
         })
 
 
-class MyLessonRequestsView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
-    """View for students to see their lesson requests"""
+class MyLessonRequestsView(UserFilterMixin, StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
+    """View for students to see their lesson requests. Uses UserFilterMixin."""
     model = LessonRequest
     template_name = 'private_teaching/my_requests.html'
     context_object_name = 'lesson_requests'
     paginate_by = 10
+    user_field_name = 'student'
 
     def get_queryset(self):
-        return LessonRequest.objects.filter(
-            student=self.request.user
-        ).prefetch_related('messages', 'lessons__subject').order_by('-created_at')
+        # UserFilterMixin automatically filters by student=self.request.user
+        return super().get_queryset().prefetch_related('messages', 'lessons__subject').order_by('-created_at')
 
 
 class StudentLessonRequestDetailView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
@@ -535,15 +535,17 @@ class TeacherScheduleView(TeacherProfileCompletedMixin, TemplateView):
         return context
 
 
-class MyLessonsView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
-    """Student view of their approved/scheduled lessons"""
+class MyLessonsView(UserFilterMixin, StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
+    """Student view of their approved/scheduled lessons. Uses UserFilterMixin."""
+    model = Lesson
     template_name = 'private_teaching/my_lessons.html'
     context_object_name = 'lessons'
     paginate_by = 10
+    user_field_name = 'student'
 
     def get_queryset(self):
-        return Lesson.objects.filter(
-            student=self.request.user,
+        # UserFilterMixin automatically filters by student=self.request.user
+        return super().get_queryset().filter(
             approved_status='Accepted',
             is_deleted=False
         ).select_related('subject', 'teacher').order_by('lesson_date', 'lesson_time')
@@ -1469,17 +1471,17 @@ class ApplyToTeacherView(StudentProfileCompletedMixin, StudentOnlyMixin, Templat
         return redirect('private_teaching:student_application_detail', application_id=application.id)
 
 
-class StudentApplicationsListView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
-    """List all applications for the student"""
+class StudentApplicationsListView(UserFilterMixin, StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
+    """List all applications for the student. Uses UserFilterMixin."""
+    model = TeacherStudentApplication
     template_name = 'private_teaching/student_applications_list.html'
     context_object_name = 'applications'
     paginate_by = 10
+    user_field_name = 'applicant'
 
     def get_queryset(self):
-        from apps.private_teaching.models import TeacherStudentApplication
-        return TeacherStudentApplication.objects.filter(
-            applicant=self.request.user
-        ).select_related('teacher', 'teacher__profile', 'child_profile').order_by('-created_at')
+        # UserFilterMixin automatically filters by applicant=self.request.user
+        return super().get_queryset().select_related('teacher', 'teacher__profile', 'child_profile').order_by('-created_at')
 
 
 class StudentApplicationDetailView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
