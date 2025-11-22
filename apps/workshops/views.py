@@ -164,7 +164,8 @@ class WorkshopDetailView(DetailView):
         if self.request.user.is_authenticated:
             registrations = WorkshopRegistration.objects.filter(
                 student=self.request.user,
-                session__workshop=workshop
+                session__workshop=workshop,
+                status__in=['registered', 'promoted', 'attended', 'waitlisted']  # Exclude cancelled
             ).select_related('session')
             
             # Create a mapping for easy lookup
