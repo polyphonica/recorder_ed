@@ -1123,6 +1123,8 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
     model = Workshop
     template_name = 'workshops/workshop_confirm_delete.html'
     user_field_name = 'instructor'
+    slug_url_kwarg = 'slug'
+    slug_field = 'slug'
 
     def get_success_url(self):
         return reverse('workshops:instructor_workshops')
