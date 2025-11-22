@@ -138,7 +138,6 @@ class BaseNotificationService:
                 )
                 email.attach_alternative(html_message, "text/html")
                 email.send(fail_silently=fail_silently)
-                print(f"[EMAIL DEBUG] Multipart email sent to {recipient_list}: {subject}", flush=True)
 
                 if log_description:
                     logger.info(f"Multipart email sent: {log_description}")
@@ -151,7 +150,6 @@ class BaseNotificationService:
                     recipient_list=recipient_list,
                     fail_silently=fail_silently,
                 )
-                print(f"[EMAIL DEBUG] Plain text email sent to {recipient_list}: {subject}", flush=True)
 
                 if log_description:
                     logger.info(f"Plain text email sent: {log_description}")
@@ -159,7 +157,6 @@ class BaseNotificationService:
             return True
 
         except Exception as e:
-            print(f"[EMAIL DEBUG] ERROR sending email: {str(e)}", flush=True)
             logger.error(f"Error sending email: {log_description or template_path} - {str(e)}")
             if not fail_silently:
                 raise
