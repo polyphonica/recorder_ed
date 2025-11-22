@@ -113,6 +113,54 @@ class BaseNotificationService:
         return cls.build_absolute_url(url_name, kwargs={id_field: field_value})
 
     @staticmethod
+    def build_base_context(**extra):
+        """
+        Build base context for all notifications with site_name.
+
+        Args:
+            **extra: Additional context variables to include
+
+        Returns:
+            Dictionary with site_name and any additional context
+
+        Example:
+            context = build_base_context(user=user, action='enrollment')
+            # Returns: {'site_name': 'Recorder-ed', 'user': user, 'action': 'enrollment'}
+        """
+        context = {
+            'site_name': BaseNotificationService.get_site_name(),
+        }
+        context.update(extra)
+        return context
+
+    @staticmethod
+    def add_user_context(context, user, role='user'):
+        """
+        Add user-related context fields to existing context.
+
+        Args:
+            context: Existing context dictionary to update
+            user: User instance to add
+            role: Prefix for context keys (default: 'user')
+
+        Returns:
+            Updated context dictionary
+
+        Example:
+            context = {'site_name': 'Recorder-ed'}
+            add_user_context(context, instructor, 'instructor')
+            # context now has: instructor_name, instructor_email, instructor
+        """
+        if user:
+            full_name = user.get_full_name() if hasattr(user, 'get_full_name') else ''
+            username = user.username if hasattr(user, 'username') else str(user)
+
+            context[f'{role}_name'] = full_name or username
+            context[f'{role}_email'] = user.email if hasattr(user, 'email') else ''
+            context[role] = user
+        return context
+
+    @staticmethod
     def send_templated_email(
         template_path,
         context,

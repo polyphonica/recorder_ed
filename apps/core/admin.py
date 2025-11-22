@@ -125,6 +125,49 @@ class StudentDisplayMixin:
     get_student_display.admin_order_field = 'student__username'
 
 
+class InstructorQuerysetMixin:
+    """
+    Mixin to optimize queryset for models with instructor field.
+
+    Automatically adds select_related('instructor') to reduce database queries.
+
+    Usage:
+        class MyModelAdmin(InstructorQuerysetMixin, admin.ModelAdmin):
+            # queryset automatically optimized
+            pass
+    """
+
+    def get_queryset(self, request):
+        """Optimize queryset with select_related for instructor"""
+        qs = super().get_queryset(request)
+        return qs.select_related('instructor')
+
+
+class PriceDisplayMixin:
+    """
+    Mixin to provide formatted price display in admin list views.
+
+    Adds a price_display method that shows "Free" in green for free items,
+    or formatted price (e.g., "£50.00") for paid items.
+
+    Requires model to have 'is_free' and 'price' fields/properties.
+
+    Usage:
+        class MyModelAdmin(PriceDisplayMixin, admin.ModelAdmin):
+            list_display = ['title', 'price_display', ...]
+    """
+
+    def price_display(self, obj):
+        """Display price with special formatting for free items"""
+        if hasattr(obj, 'is_free') and obj.is_free:
+            return format_html('<span style="color: green;">Free</span>')
+        if hasattr(obj, 'price'):
+            return f"£{obj.price}"
+        return "-"
+    price_display.short_description = 'Price'
+    price_display.admin_order_field = 'price'
+
+
 class ColoredStatusMixin:
     """
     Mixin to provide colored status badges in admin list views.

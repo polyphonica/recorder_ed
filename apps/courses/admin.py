@@ -13,7 +13,7 @@ from .models import (
     CourseCancellationRequest
 )
 from .forms import CourseAdminForm
-from apps.core.admin import ColoredStatusMixin, StudentDisplayMixin
+from apps.core.admin import ColoredStatusMixin, StudentDisplayMixin, InstructorQuerysetMixin
 
 
 # ============================================================================
@@ -75,7 +75,7 @@ class LessonProgressInline(admin.TabularInline):
 # ============================================================================
 
 @admin.register(Course)
-class CourseAdmin(admin.ModelAdmin):
+class CourseAdmin(InstructorQuerysetMixin, admin.ModelAdmin):
     """Admin interface for Course model"""
     form = CourseAdminForm  # Use custom form with filtered instructor dropdown
 
@@ -123,9 +123,7 @@ class CourseAdmin(admin.ModelAdmin):
     inlines = [TopicInline]
     date_hierarchy = 'created_at'
 
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('instructor')
+    # get_queryset inherited from InstructorQuerysetMixin
 
 
 @admin.register(Topic)

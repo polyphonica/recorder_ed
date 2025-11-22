@@ -6,7 +6,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.db.models import Q
-from apps.core.admin import UserDisplayMixin
+from apps.core.admin import UserDisplayMixin, InstructorQuerysetMixin, PriceDisplayMixin
 from .models import (
     WorkshopCategory, Workshop, WorkshopSession,
     WorkshopRegistration, WorkshopMaterial, WorkshopInterest, UserProfile,
@@ -116,7 +116,7 @@ class WorkshopAdminForm(forms.ModelForm):
 
 
 @admin.register(Workshop)
-class WorkshopAdmin(UserDisplayMixin, admin.ModelAdmin):
+class WorkshopAdmin(UserDisplayMixin, InstructorQuerysetMixin, PriceDisplayMixin, admin.ModelAdmin):
     form = WorkshopAdminForm
     list_display = [
         'title', 'instructor_name', 'category', 'delivery_method', 'status', 'difficulty_level',
@@ -166,13 +166,9 @@ class WorkshopAdmin(UserDisplayMixin, admin.ModelAdmin):
     )
     
     inlines = [WorkshopSessionInline, WorkshopMaterialInline]
-    
-    def price_display(self, obj):
-        if obj.is_free:
-            return format_html('<span style="color: green;">Free</span>')
-        return f"£{obj.price}"
-    price_display.short_description = 'Price'
-    
+
+    # price_display inherited from PriceDisplayMixin
+
     def session_count(self, obj):
         upcoming = obj.sessions.filter(start_datetime__gte=timezone.now()).count()
         total = obj.sessions.count()
