@@ -1162,7 +1162,11 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
         return context
 
     def delete(self, request, *args, **kwargs):
+        import logging
+        logger = logging.getLogger(__name__)
+
         self.object = self.get_object()
+        logger.info(f"WorkshopDeleteView: Starting deletion of workshop '{self.object.title}' (ID: {self.object.id})")
 
         # Check if any sessions have paid registrations
         paid_registrations = WorkshopRegistration.objects.filter(
@@ -1170,8 +1174,10 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
             status__in=['registered', 'waitlisted', 'attended', 'promoted'],
             payment_status='paid'
         )
+        logger.info(f"Found {paid_registrations.count()} paid registrations")
 
         if paid_registrations.exists():
+            logger.warning(f"Blocking deletion due to paid registrations")
             messages.error(
                 request,
                 f'Cannot delete workshop "{self.object.title}". '
@@ -1183,13 +1189,19 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
         all_registrations = WorkshopRegistration.objects.filter(
             session__workshop=self.object,
             status__in=['registered', 'waitlisted', 'attended', 'promoted']
-        ).exclude(payment_status='paid')
+        )
+        logger.info(f"Found {all_registrations.count()} total active registrations")
+
+        # Log payment status of each registration for debugging
+        for reg in all_registrations:
+            logger.info(f"Registration {reg.id}: status={reg.status}, payment_status={reg.payment_status}, student={reg.student.email}")
+
+        all_registrations = all_registrations.exclude(payment_status='paid')
+        logger.info(f"After excluding paid: {all_registrations.count()} registrations to notify")
 
         if all_registrations.exists():
             # Send cancellation notification to each participant
             from .notifications import StudentNotificationService
-            import logging
-            logger = logging.getLogger(__name__)
 
             notification_count = 0
             failed_count = 0
@@ -1250,9 +1262,12 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
         workshop_title = self.object.title
 
         # Add success message before deleting
+        logger.info(f"About to delete workshop '{workshop_title}'")
         messages.success(request, f'Workshop "{workshop_title}" has been deleted.')
 
-        return super().delete(request, *args, **kwargs)
+        result = super().delete(request, *args, **kwargs)
+        logger.info(f"Workshop '{workshop_title}' deletion completed")
+        return result
 
 
 class ManageSessionsView(LoginRequiredMixin, TemplateView):
