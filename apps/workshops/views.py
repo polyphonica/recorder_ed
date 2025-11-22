@@ -1547,8 +1547,109 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
             count = registrations.update(status='registered')
             messages.success(request, f'Moved {count} participants to registered status.')
         elif action == 'cancel_registration':
-            count = registrations.update(status='cancelled')
-            messages.success(request, f'Cancelled {count} registrations.')
+            # Process cancellations with automatic refunds
+            from django.utils import timezone
+            from apps.payments.models import StripePayment
+            from apps.payments.stripe_service import create_refund
+
+            cancelled_count = 0
+            refunded_count = 0
+            refund_errors = []
+
+            for registration in registrations:
+                # Cancel the registration
+                registration.status = 'cancelled'
+                registration.save()
+                cancelled_count += 1
+
+                # Check if eligible for automatic refund
+                days_until_workshop = (registration.session.start_datetime - timezone.now()).days
+
+                if days_until_workshop >= 7 and registration.payment_status == 'completed':
+                    # Eligible for refund - process it automatically
+                    try:
+                        if registration.stripe_payment_intent_id:
+                            # Find the StripePayment record
+                            stripe_payment = StripePayment.objects.filter(
+                                stripe_payment_intent_id=registration.stripe_payment_intent_id,
+                                status='completed'
+                            ).first()
+
+                            if stripe_payment:
+                                # Create refund metadata
+                                refund_metadata = {
+                                    'registration_id': str(registration.id),
+                                    'session_id': str(registration.session.id),
+                                    'workshop_id': str(registration.session.workshop.id),
+                                    'student_id': str(registration.student.id),
+                                    'refund_type': 'instructor_cancellation',
+                                }
+
+                                # Process refund via Stripe
+                                refund = create_refund(
+                                    payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                                    amount=registration.payment_amount,
+                                    reason='requested_by_customer',
+                                    metadata=refund_metadata
+                                )
+
+                                # Update our record
+                                stripe_payment.mark_refunded(
+                                    refund_amount=registration.payment_amount,
+                                    stripe_refund_id=refund.id
+                                )
+
+                                refunded_count += 1
+
+                                # Send refund notification to student
+                                try:
+                                    from .notifications import StudentNotificationService
+                                    StudentNotificationService.send_cancellation_with_refund_notification(
+                                        registration=registration,
+                                        refund_amount=registration.payment_amount
+                                    )
+                                except Exception as e:
+                                    print(f"Failed to send refund notification: {e}")
+                            else:
+                                refund_errors.append(f"{registration.student.get_full_name() or registration.student.username} (no payment record)")
+                        else:
+                            refund_errors.append(f"{registration.student.get_full_name() or registration.student.username} (no payment intent)")
+
+                    except Exception as e:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"Error processing refund for registration {registration.id}: {e}")
+                        refund_errors.append(f"{registration.student.get_full_name() or registration.student.username} ({str(e)})")
+                elif registration.payment_status == 'completed' and days_until_workshop < 7:
+                    # Paid but not eligible for refund (less than 7 days notice)
+                    try:
+                        from .notifications import StudentNotificationService
+                        StudentNotificationService.send_cancellation_no_refund_notification(
+                            registration=registration,
+                            reason='less_than_7_days'
+                        )
+                    except Exception as e:
+                        print(f"Failed to send cancellation notification: {e}")
+                else:
+                    # Free or unpaid registration - just send cancellation notice
+                    try:
+                        from .notifications import StudentNotificationService
+                        StudentNotificationService.send_cancellation_notification(registration)
+                    except Exception as e:
+                        print(f"Failed to send cancellation notification: {e}")
+
+            # Show appropriate messages
+            if cancelled_count > 0:
+                messages.success(request, f'Cancelled {cancelled_count} registration(s).')
+
+            if refunded_count > 0:
+                messages.success(request, f'Processed {refunded_count} automatic refund(s).')
+
+            if refund_errors:
+                messages.warning(
+                    request,
+                    f'Some refunds could not be processed automatically: {", ".join(refund_errors)}. Please process manually in Stripe.'
+                )
         elif action == 'promote_from_waitlist':
             # Manual promotion from waitlist - only promote selected waitlisted registrations
             waitlisted_registrations = registrations.filter(status='waitlisted')

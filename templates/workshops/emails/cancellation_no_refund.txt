@@ -1,0 +1,35 @@
+Subject: Workshop Cancellation - {{ workshop.title }} - {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ student_name }},
+
+Your registration for the following workshop session has been cancelled:
+
+WORKSHOP DETAILS:
+Workshop: {{ workshop.title }}
+Date: {{ session.start_datetime|date:"l, d F Y" }}
+Time: {{ session.start_datetime|time:"H:i" }} - {{ session.end_datetime|time:"H:i" }}
+
+{% if workshop.delivery_method == 'online' %}Delivery: Online
+{% elif workshop.delivery_method == 'in_person' %}Delivery: In-Person
+{% if workshop.venue_name %}Venue: {{ workshop.venue_name }}
+{% endif %}{% endif %}
+
+REFUND INFORMATION:
+{% if reason == 'less_than_7_days' %}Unfortunately, as this cancellation occurred with less than 7 days notice before the workshop, no refund can be provided according to our cancellation policy.
+{% else %}No refund is applicable for this cancellation.{% endif %}
+
+We apologize for any inconvenience this cancellation may cause.
+
+Browse other workshops:
+{{ browse_workshops_url }}
+
+View your registrations:
+{{ my_registrations_url }}
+
+If you have any questions about this cancellation, please contact us.
+
+Best regards,
+The {{ site_name }} Team

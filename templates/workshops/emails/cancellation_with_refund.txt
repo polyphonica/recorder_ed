@@ -1,0 +1,37 @@
+Subject: Workshop Cancellation & Refund - {{ workshop.title}} - {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ student_name }},
+
+Your registration for the following workshop session has been cancelled by the instructor:
+
+WORKSHOP DETAILS:
+Workshop: {{ workshop.title }}
+Date: {{ session.start_datetime|date:"l, d F Y" }}
+Time: {{ session.start_datetime|time:"H:i" }} - {{ session.end_datetime|time:"H:i" }}
+
+{% if workshop.delivery_method == 'online' %}Delivery: Online
+{% elif workshop.delivery_method == 'in_person' %}Delivery: In-Person
+{% if workshop.venue_name %}Venue: {{ workshop.venue_name }}
+{% endif %}{% endif %}
+
+REFUND INFORMATION:
+Refund Amount: £{{ refund_amount }}
+Processing Time: 5-10 business days
+
+A full refund of £{{ refund_amount }} has been processed to your original payment method. Please allow 5-10 business days for the refund to appear on your statement.
+
+We apologize for any inconvenience this cancellation may cause.
+
+Browse other workshops:
+{{ browse_workshops_url }}
+
+View your registrations:
+{{ my_registrations_url }}
+
+If you have any questions, please don't hesitate to contact us.
+
+Best regards,
+The {{ site_name }} Team

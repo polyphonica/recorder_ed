@@ -355,6 +355,116 @@ class StudentNotificationService(BaseNotificationService):
             logger.error(f"Failed to send cart confirmation to student: {str(e)}")
             return False
 
+    @staticmethod
+    def send_cancellation_with_refund_notification(registration, refund_amount):
+        """Send notification when registration is cancelled with refund"""
+        try:
+            if not registration.student or not registration.student.email:
+                logger.warning(f"No student email found for registration {registration.id}")
+                return False
+
+            recipient_email = registration.email or registration.student.email
+
+            # Build URLs
+            my_registrations_url = StudentNotificationService.build_absolute_url('workshops:my_registrations')
+            browse_workshops_url = StudentNotificationService.build_absolute_url('workshops:list')
+
+            context = {
+                'registration': registration,
+                'session': registration.session,
+                'workshop': registration.session.workshop,
+                'student_name': registration.student_name,
+                'refund_amount': refund_amount,
+                'my_registrations_url': my_registrations_url,
+                'browse_workshops_url': browse_workshops_url,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='workshops/emails/cancellation_with_refund.txt',
+                context=context,
+                recipient_list=[recipient_email],
+                default_subject=f'Workshop Cancellation & Refund - {registration.session.workshop.title}',
+                fail_silently=False,
+                log_description=f"Cancellation with refund notification to {registration.student.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send cancellation with refund notification: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_cancellation_no_refund_notification(registration, reason='less_than_7_days'):
+        """Send notification when registration is cancelled without refund"""
+        try:
+            if not registration.student or not registration.student.email:
+                logger.warning(f"No student email found for registration {registration.id}")
+                return False
+
+            recipient_email = registration.email or registration.student.email
+
+            # Build URLs
+            my_registrations_url = StudentNotificationService.build_absolute_url('workshops:my_registrations')
+            browse_workshops_url = StudentNotificationService.build_absolute_url('workshops:list')
+
+            context = {
+                'registration': registration,
+                'session': registration.session,
+                'workshop': registration.session.workshop,
+                'student_name': registration.student_name,
+                'reason': reason,
+                'my_registrations_url': my_registrations_url,
+                'browse_workshops_url': browse_workshops_url,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='workshops/emails/cancellation_no_refund.txt',
+                context=context,
+                recipient_list=[recipient_email],
+                default_subject=f'Workshop Cancellation - {registration.session.workshop.title}',
+                fail_silently=False,
+                log_description=f"Cancellation without refund notification to {registration.student.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send cancellation without refund notification: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_cancellation_notification(registration):
+        """Send simple cancellation notification for free/unpaid registrations"""
+        try:
+            if not registration.student or not registration.student.email:
+                logger.warning(f"No student email found for registration {registration.id}")
+                return False
+
+            recipient_email = registration.email or registration.student.email
+
+            # Build URLs
+            my_registrations_url = StudentNotificationService.build_absolute_url('workshops:my_registrations')
+            browse_workshops_url = StudentNotificationService.build_absolute_url('workshops:list')
+
+            context = {
+                'registration': registration,
+                'session': registration.session,
+                'workshop': registration.session.workshop,
+                'student_name': registration.student_name,
+                'my_registrations_url': my_registrations_url,
+                'browse_workshops_url': browse_workshops_url,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='workshops/emails/cancellation_notification.txt',
+                context=context,
+                recipient_list=[recipient_email],
+                default_subject=f'Workshop Cancellation - {registration.session.workshop.title}',
+                fail_silently=False,
+                log_description=f"Cancellation notification to {registration.student.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send cancellation notification: {str(e)}")
+            return False
+
 
 class WorkshopInterestNotificationService(BaseNotificationService):
     """Service for sending workshop interest-related email notifications"""
