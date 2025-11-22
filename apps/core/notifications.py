@@ -71,6 +71,47 @@ class BaseNotificationService:
             logger.warning(f"Failed to build URL for {url_name}: {str(e)}")
             return "#"  # Fallback
 
+    @classmethod
+    def build_detail_url(cls, url_name, obj, slug_field='slug'):
+        """
+        Build URL for detail pages using an object's slug or other identifier.
+
+        Args:
+            url_name: Django URL name (e.g., 'workshops:detail')
+            obj: Model instance with the identifier field
+            slug_field: Name of the field to use (default: 'slug')
+
+        Returns:
+            Absolute URL string
+
+        Example:
+            build_detail_url('workshops:detail', workshop)
+            # Same as build_absolute_url('workshops:detail', {'slug': workshop.slug})
+        """
+        return cls.build_absolute_url(url_name, kwargs={slug_field: getattr(obj, slug_field)})
+
+    @classmethod
+    def build_action_url(cls, url_name, obj, id_field='id'):
+        """
+        Build URL for action pages using an object's ID or other identifier.
+
+        Args:
+            url_name: Django URL name (e.g., 'workshops:confirm_promotion')
+            obj: Model instance with the identifier field
+            id_field: Name of the field to use (default: 'id')
+
+        Returns:
+            Absolute URL string
+
+        Example:
+            build_action_url('workshops:confirm_promotion', registration, 'registration_id')
+            # Same as build_absolute_url('workshops:confirm_promotion', {'registration_id': registration.id})
+        """
+        field_value = getattr(obj, id_field.replace('_id', '') if id_field.endswith('_id') else id_field)
+        if hasattr(field_value, 'id'):
+            field_value = field_value.id
+        return cls.build_absolute_url(url_name, kwargs={id_field: field_value})
+
     @staticmethod
     def send_templated_email(
         template_path,

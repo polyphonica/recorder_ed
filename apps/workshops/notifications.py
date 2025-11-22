@@ -139,20 +139,16 @@ class WaitlistNotificationService(BaseNotificationService):
     @staticmethod
     def _build_confirmation_url(registration):
         """Build URL for confirming waitlist promotion"""
-        return WaitlistNotificationService.build_absolute_url(
+        return WaitlistNotificationService.build_action_url(
             'workshops:confirm_promotion',
-            kwargs={'registration_id': registration.id},
-            use_https=False
+            registration,
+            'registration_id'
         )
 
     @staticmethod
     def _build_workshop_url(workshop):
         """Build URL for workshop detail page"""
-        return WaitlistNotificationService.build_absolute_url(
-            'workshops:detail',
-            kwargs={'slug': workshop.slug},
-            use_https=False
-        )
+        return WaitlistNotificationService.build_detail_url('workshops:detail', workshop)
 
     @staticmethod
     def _build_materials_url(session):
@@ -160,7 +156,6 @@ class WaitlistNotificationService(BaseNotificationService):
         return WaitlistNotificationService.build_absolute_url(
             'workshops:detail',
             kwargs={'slug': session.workshop.slug},
-            use_https=False,
             fragment='materials'
         )
 
@@ -270,10 +265,10 @@ class InstructorNotificationService(BaseNotificationService):
     @staticmethod
     def _build_registrations_url(session):
         """Build URL for session registrations management page"""
-        return InstructorNotificationService.build_absolute_url(
+        return InstructorNotificationService.build_action_url(
             'workshops:session_registrations',
-            kwargs={'session_id': session.id},
-            use_https=False
+            session,
+            'session_id'
         )
 
 
@@ -301,7 +296,7 @@ class StudentNotificationService(BaseNotificationService):
                 'session': registration.session,
                 'workshop': registration.session.workshop,
                 'student_name': registration.student_name,  # Uses property for child or adult
-                'is_child_registration': registration.child_profile is not None,
+                'is_child_registration': registration.is_for_child,  # Uses inherited property
                 'my_registrations_url': my_registrations_url,
             }
 
@@ -501,19 +496,12 @@ class WorkshopInterestNotificationService(BaseNotificationService):
     @staticmethod
     def _build_workshop_url(workshop):
         """Build URL for workshop detail page"""
-        return WorkshopInterestNotificationService.build_absolute_url(
-            'workshops:detail',
-            kwargs={'slug': workshop.slug},
-            use_https=False
-        )
+        return WorkshopInterestNotificationService.build_detail_url('workshops:detail', workshop)
 
     @staticmethod
     def _build_browse_url():
         """Build URL for workshop list page"""
-        return WorkshopInterestNotificationService.build_absolute_url(
-            'workshops:list',
-            use_https=False
-        )
+        return WorkshopInterestNotificationService.build_absolute_url('workshops:list')
 
     @staticmethod
     def send_new_session_notification(interest, session):

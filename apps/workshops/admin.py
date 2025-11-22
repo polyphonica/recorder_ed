@@ -6,6 +6,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.db.models import Q
+from apps.core.admin import UserDisplayMixin
 from .models import (
     WorkshopCategory, Workshop, WorkshopSession,
     WorkshopRegistration, WorkshopMaterial, WorkshopInterest, UserProfile,
@@ -83,14 +84,9 @@ class WorkshopMaterialInline(admin.TabularInline):
 
 class InstructorChoiceField(forms.ModelChoiceField):
     """Custom choice field that displays full name for instructors"""
-    
+
     def label_from_instance(self, obj):
-        if obj.first_name and obj.last_name:
-            return f"{obj.first_name} {obj.last_name} ({obj.username})"
-        elif obj.first_name or obj.last_name:
-            return f"{obj.first_name}{obj.last_name} ({obj.username})"
-        else:
-            return obj.username
+        return UserDisplayMixin.format_user_display(obj)
 
 
 class WorkshopAdminForm(forms.ModelForm):
@@ -120,7 +116,7 @@ class WorkshopAdminForm(forms.ModelForm):
 
 
 @admin.register(Workshop)
-class WorkshopAdmin(admin.ModelAdmin):
+class WorkshopAdmin(UserDisplayMixin, admin.ModelAdmin):
     form = WorkshopAdminForm
     list_display = [
         'title', 'instructor_name', 'category', 'delivery_method', 'status', 'difficulty_level',
@@ -189,12 +185,7 @@ class WorkshopAdmin(admin.ModelAdmin):
     
     def instructor_name(self, obj):
         """Display instructor full name in admin list"""
-        if obj.instructor.first_name and obj.instructor.last_name:
-            return f"{obj.instructor.first_name} {obj.instructor.last_name}"
-        elif obj.instructor.first_name or obj.instructor.last_name:
-            return f"{obj.instructor.first_name}{obj.instructor.last_name}"
-        else:
-            return obj.instructor.username
+        return self.format_user_display(obj.instructor)
     instructor_name.short_description = 'Instructor'
     instructor_name.admin_order_field = 'instructor__first_name'
 
@@ -279,7 +270,7 @@ class WorkshopSessionAdmin(admin.ModelAdmin):
 
 
 @admin.register(WorkshopRegistration)
-class WorkshopRegistrationAdmin(admin.ModelAdmin):
+class WorkshopRegistrationAdmin(UserDisplayMixin, admin.ModelAdmin):
     list_display = [
         'student_name', 'workshop_title', 'session_date', 
         'status', 'registration_date', 'attended'
@@ -309,7 +300,7 @@ class WorkshopRegistrationAdmin(admin.ModelAdmin):
     )
     
     def student_name(self, obj):
-        return obj.student.get_full_name() or obj.student.username
+        return self.format_user_display(obj.student)
     student_name.short_description = 'Student'
     
     def workshop_title(self, obj):

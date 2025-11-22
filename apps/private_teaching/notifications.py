@@ -222,9 +222,10 @@ class StudentNotificationService(BaseNotificationService):
                 return False
 
             # Build URLs
-            exam_detail_url = StudentNotificationService.build_absolute_url(
+            exam_detail_url = StudentNotificationService.build_action_url(
                 'private_teaching:exam_detail',
-                kwargs={'pk': exam.id}
+                exam,
+                'pk'
             )
 
             context = {
@@ -262,9 +263,10 @@ class StudentNotificationService(BaseNotificationService):
                 return False
 
             # Build URLs
-            exam_detail_url = StudentNotificationService.build_absolute_url(
+            exam_detail_url = StudentNotificationService.build_action_url(
                 'private_teaching:exam_detail',
-                kwargs={'pk': exam.id}
+                exam,
+                'pk'
             )
 
             context = {

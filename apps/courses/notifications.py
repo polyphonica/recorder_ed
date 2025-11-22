@@ -20,21 +20,17 @@ class StudentNotificationService(BaseNotificationService):
             guardian_email = enrollment.student.email
 
             # Build URLs
-            course_url = StudentNotificationService.build_absolute_url(
+            course_url = StudentNotificationService.build_detail_url(
                 'courses:detail',
-                kwargs={'slug': enrollment.course.slug}
+                enrollment.course
             )
             my_courses_url = StudentNotificationService.build_absolute_url(
                 'courses:my_courses'
             )
 
-            # Determine student name
-            if enrollment.child_profile:
-                student_name = enrollment.child_profile.full_name
-                is_child_enrollment = True
-            else:
-                student_name = enrollment.student.get_full_name() or enrollment.student.username
-                is_child_enrollment = False
+            # Use inherited properties from PayableModel
+            student_name = enrollment.student_name
+            is_child_enrollment = enrollment.is_for_child
 
             context = {
                 'enrollment': enrollment,
@@ -73,22 +69,20 @@ class InstructorNotificationService(BaseNotificationService):
                 return False
 
             # Build URLs using centralized URL builder
-            course_url = InstructorNotificationService.build_absolute_url(
+            course_url = InstructorNotificationService.build_detail_url(
                 'courses:detail',
-                kwargs={'slug': enrollment.course.slug}
+                enrollment.course
             )
-            analytics_url = InstructorNotificationService.build_absolute_url(
+            analytics_url = InstructorNotificationService.build_detail_url(
                 'courses:course_analytics',
-                kwargs={'slug': enrollment.course.slug}
+                enrollment.course
             )
 
-            # Determine student name
-            if enrollment.child_profile:
-                student_name = enrollment.child_profile.full_name
+            # Use inherited properties from PayableModel
+            student_name = enrollment.student_name
+            guardian_info = None
+            if enrollment.is_for_child:
                 guardian_info = f"{enrollment.student.get_full_name() or enrollment.student.username} (Guardian)"
-            else:
-                student_name = enrollment.student.get_full_name() or enrollment.student.username
-                guardian_info = None
 
             context = {
                 'enrollment': enrollment,

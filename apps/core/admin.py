@@ -60,6 +60,41 @@ class TimestampFieldsetMixin:
         return readonly
 
 
+class UserDisplayMixin:
+    """
+    Mixin to provide standardized user name formatting across admin.
+
+    Provides a static method for formatting user display consistently:
+    Full Name (username) if full name exists, otherwise just username.
+
+    Usage:
+        class MyModelAdmin(UserDisplayMixin, admin.ModelAdmin):
+            def instructor_display(self, obj):
+                return self.format_user_display(obj.instructor)
+    """
+
+    @staticmethod
+    def format_user_display(user):
+        """
+        Standard user display: Full Name (username)
+
+        Args:
+            user: User instance
+
+        Returns:
+            Formatted string with full name and username, or just username
+        """
+        if not user:
+            return "-"
+
+        full_name = user.get_full_name() if hasattr(user, 'get_full_name') else ''
+        username = user.username if hasattr(user, 'username') else str(user)
+
+        if full_name:
+            return f"{full_name} ({username})"
+        return username
+
+
 class StudentDisplayMixin:
     """
     Mixin to provide formatted student name display in admin.
