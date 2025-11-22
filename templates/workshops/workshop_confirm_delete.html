@@ -19,15 +19,17 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     <div>
                         <h3 class="font-bold">Cannot Delete Workshop</h3>
-                        <div class="text-sm">This workshop has sessions with registered participants. Please cancel those sessions first to ensure refunds are processed.</div>
+                        <div class="text-sm">This workshop has sessions with paid registrations. Please cancel those sessions first to ensure refunds are processed.</div>
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <p class="font-semibold mb-2">Sessions with registered participants:</p>
+                    <p class="font-semibold mb-2">Sessions with paid registrations:</p>
                     <ul class="list-disc list-inside space-y-1">
                         {% for item in sessions_with_registrations %}
+                        {% if item.has_paid %}
                         <li>{{ item.session.start_datetime|date:"M d, Y g:i A" }} - {{ item.registered_count }} participant{{ item.registered_count|pluralize }}</li>
+                        {% endif %}
                         {% endfor %}
                     </ul>
                 </div>
@@ -37,6 +39,25 @@
                 </div>
 
                 {% else %}
+
+                {% if sessions_with_registrations and is_free_workshop %}
+                <div class="alert alert-info mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <div>
+                        <h3 class="font-bold">Participants Will Be Notified</h3>
+                        <div class="text-sm">This is a free workshop with registered participants. Cancellation notifications will be sent to all participants when you delete the workshop.</div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <p class="font-semibold mb-2">Sessions with free registrations:</p>
+                    <ul class="list-disc list-inside space-y-1">
+                        {% for item in sessions_with_registrations %}
+                        <li>{{ item.session.start_datetime|date:"M d, Y g:i A" }} - {{ item.registered_count }} participant{{ item.registered_count|pluralize }} (will be notified)</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
 
                 <div class="alert alert-warning mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>

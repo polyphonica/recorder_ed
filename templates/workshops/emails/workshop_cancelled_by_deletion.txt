@@ -1,0 +1,30 @@
+Subject: Workshop Cancelled - {{ workshop.title }} - {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ student_name }},
+
+We regret to inform you that the following workshop has been cancelled:
+
+WORKSHOP DETAILS:
+Workshop: {{ workshop.title }}
+Date: {{ session.start_datetime|date:"l, d F Y" }}
+Time: {{ session.start_datetime|time:"H:i" }} - {{ session.end_datetime|time:"H:i" }}
+
+{% if workshop.delivery_method == 'online' %}Delivery: Online
+{% elif workshop.delivery_method == 'in_person' %}Delivery: In-Person
+{% if workshop.venue_name %}Venue: {{ workshop.venue_name }}
+{% endif %}{% endif %}
+
+This was a free workshop, so no refund is required.
+
+We apologize for any inconvenience this may cause. We encourage you to browse our other available workshops that may interest you.
+
+Browse Workshops:
+{{ browse_url }}
+
+If you have any questions, please don't hesitate to contact us.
+
+Best regards,
+The {{ site_name }} Team

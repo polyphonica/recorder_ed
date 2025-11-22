@@ -1117,7 +1117,8 @@ class EditWorkshopView(SuccessMessageMixin, UserFilterMixin, LoginRequiredMixin,
 class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
     """
     Delete a workshop. Uses UserFilterMixin for ownership verification.
-    Prevents deletion if workshop has sessions with registered participants.
+    For paid workshops: Prevents deletion if sessions have registered participants (must cancel first for refunds).
+    For free workshops: Allows deletion but sends cancellation notifications to participants.
     """
     model = Workshop
     template_name = 'workshops/workshop_confirm_delete.html'
@@ -1132,38 +1133,93 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
         # Get all sessions with their registration counts
         sessions = self.object.sessions.all()
         sessions_with_registrations = []
+        paid_registrations_exist = False
 
         for session in sessions:
-            registered_count = session.registrations.filter(
+            registrations = session.registrations.filter(
                 status__in=['registered', 'waitlisted', 'attended', 'promoted']
-            ).count()
+            )
+            registered_count = registrations.count()
 
             if registered_count > 0:
+                # Check if any registrations require refund (paid registrations)
+                has_paid = registrations.filter(payment_status='paid').exists()
+                if has_paid:
+                    paid_registrations_exist = True
+
                 sessions_with_registrations.append({
                     'session': session,
-                    'registered_count': registered_count
+                    'registered_count': registered_count,
+                    'has_paid': has_paid
                 })
 
+        # Can only delete if workshop is free OR has no paid registrations
         context['sessions_with_registrations'] = sessions_with_registrations
-        context['can_delete'] = len(sessions_with_registrations) == 0
+        context['paid_registrations_exist'] = paid_registrations_exist
+        context['is_free_workshop'] = self.object.is_free
+        context['can_delete'] = not paid_registrations_exist
 
         return context
 
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
 
-        # Check if any sessions have registered participants
-        has_registrations = self.object.sessions.filter(
-            registrations__status__in=['registered', 'waitlisted', 'attended', 'promoted']
-        ).exists()
+        # Check if any sessions have paid registrations
+        paid_registrations = WorkshopRegistration.objects.filter(
+            session__workshop=self.object,
+            status__in=['registered', 'waitlisted', 'attended', 'promoted'],
+            payment_status='paid'
+        )
 
-        if has_registrations:
+        if paid_registrations.exists():
             messages.error(
                 request,
                 f'Cannot delete workshop "{self.object.title}". '
-                'Please cancel all sessions with registered participants first to ensure refunds are processed.'
+                'Please cancel all sessions with paid registrations first to ensure refunds are processed.'
             )
             return redirect('workshops:instructor_workshops')
+
+        # For free workshops, send cancellation notifications to all participants
+        if self.object.is_free:
+            free_registrations = WorkshopRegistration.objects.filter(
+                session__workshop=self.object,
+                status__in=['registered', 'waitlisted', 'attended', 'promoted']
+            )
+
+            if free_registrations.exists():
+                # Send cancellation notification to each participant
+                from .notifications import StudentNotificationService
+                notification_count = 0
+
+                for registration in free_registrations:
+                    try:
+                        # We'll use the existing notification service, but customize the message
+                        recipient_email = registration.email or registration.student.email
+                        if recipient_email:
+                            browse_url = StudentNotificationService.build_absolute_url('workshops:list')
+                            StudentNotificationService.send_templated_email(
+                                template_path='workshops/emails/workshop_cancelled_by_deletion.txt',
+                                context={
+                                    'registration': registration,
+                                    'session': registration.session,
+                                    'workshop': self.object,
+                                    'student_name': registration.student_name,
+                                    'browse_url': browse_url,
+                                },
+                                recipient_list=[recipient_email],
+                                default_subject=f'Workshop Cancelled - {self.object.title}',
+                                fail_silently=True,
+                                log_description=f"Workshop deletion notification to {registration.student.username}"
+                            )
+                            notification_count += 1
+                    except Exception:
+                        pass  # Continue even if individual notification fails
+
+                if notification_count > 0:
+                    messages.info(
+                        request,
+                        f'Sent cancellation notifications to {notification_count} participant(s).'
+                    )
 
         workshop_title = self.object.title
 
