@@ -1130,40 +1130,8 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
     def get_success_url(self):
         return reverse('workshops:instructor_workshops')
 
-    def get_object(self, queryset=None):
-        """Override to add logging"""
-        import os
-        from datetime import datetime
-
-        obj = super().get_object(queryset)
-
-        # Log that get_object was called
-        try:
-            debug_file = os.path.join('/tmp', 'workshop_delete_debug.txt')
-            with open(debug_file, 'a') as f:
-                f.write(f"get_object() called at: {datetime.now()}\n")
-                f.write(f"  Object: {obj.title}\n")
-                f.write(f"  Method: {self.request.method}\n")
-        except:
-            pass
-
-        return obj
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        # Write debug info for GET request (showing confirmation page)
-        try:
-            import os
-            from datetime import datetime
-            debug_file = os.path.join('/tmp', 'workshop_delete_debug.txt')
-            with open(debug_file, 'a') as f:
-                f.write(f"\n{'='*60}\n")
-                f.write(f"GET request at: {datetime.now()}\n")
-                f.write(f"Workshop: {self.object.title} (slug: {self.object.slug})\n")
-                f.write(f"Template: {self.template_name}\n")
-        except Exception as e:
-            pass
 
         # Get all sessions with their registration counts
         sessions = self.object.sessions.all()
@@ -1198,15 +1166,6 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
 
     def post(self, request, *args, **kwargs):
         """Override post to handle deletion with our custom logic"""
-        import os
-        from datetime import datetime
-        debug_file = os.path.join('/tmp', 'workshop_delete_debug.txt')
-
-        with open(debug_file, 'a') as f:
-            f.write(f"\n{'='*60}\n")
-            f.write(f"POST received at: {datetime.now()}\n")
-            f.write(f"User: {request.user.username}\n")
-
         # Get the object first (this sets self.object)
         self.object = self.get_object()
 
@@ -1214,24 +1173,8 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
         return self.delete(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
-        import logging
-        logger = logging.getLogger(__name__)
-
+        """Handle workshop deletion with registration validation and notifications"""
         self.object = self.get_object()
-        logger.info(f"WorkshopDeleteView: Starting deletion of workshop '{self.object.title}' (ID: {self.object.id})")
-
-        # Write debug info to a file we can check
-        try:
-            import os
-            debug_file = os.path.join('/tmp', 'workshop_delete_debug.txt')
-            with open(debug_file, 'a') as f:
-                from datetime import datetime
-                f.write(f"\n")
-                f.write(f"DELETE METHOD CALLED at: {datetime.now()}\n")
-                f.write(f"Workshop: {self.object.title} (ID: {self.object.id})\n")
-                f.write(f"User: {request.user.username}\n")
-        except Exception as e:
-            logger.error(f"Failed to write debug file: {e}")
 
         # Check if any sessions have paid registrations
         paid_registrations = WorkshopRegistration.objects.filter(
@@ -1239,10 +1182,8 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
             status__in=['registered', 'waitlisted', 'attended', 'promoted'],
             payment_status='completed'  # PayableModel uses 'completed' not 'paid'
         )
-        logger.info(f"Found {paid_registrations.count()} paid registrations")
 
         if paid_registrations.exists():
-            logger.warning(f"Blocking deletion due to paid registrations")
             messages.error(
                 request,
                 f'Cannot delete workshop "{self.object.title}". '
@@ -1258,28 +1199,9 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
         ).select_related('student', 'session', 'child_profile')
 
         total_reg_count = all_registrations_query.count()
-        logger.info(f"Found {total_reg_count} total active registrations")
-        print(f"[WORKSHOP DELETE DEBUG] Found {total_reg_count} total active registrations", flush=True)
-
-        # Log payment status of each registration for debugging
-        for reg in all_registrations_query:
-            logger.info(f"Registration {reg.id}: status={reg.status}, payment_status={reg.payment_status}, student={reg.student.email}")
-            print(f"[WORKSHOP DELETE DEBUG] Registration {reg.id}: status={reg.status}, payment_status={reg.payment_status}, student={reg.student.email}", flush=True)
 
         # Convert to list BEFORE filtering to preserve the data before deletion
         all_registrations = list(all_registrations_query.exclude(payment_status='completed'))
-        logger.info(f"After excluding paid: {len(all_registrations)} registrations to notify")
-        print(f"[WORKSHOP DELETE DEBUG] After excluding paid: {len(all_registrations)} registrations to notify", flush=True)
-
-        # Write to debug file
-        try:
-            with open(debug_file, 'a') as f:
-                f.write(f"Total registrations: {total_reg_count}\n")
-                f.write(f"Registrations to notify: {len(all_registrations)}\n")
-                for reg in all_registrations:
-                    f.write(f"  - {reg.student.email} (status={reg.status}, payment={reg.payment_status})\n")
-        except:
-            pass
 
         if all_registrations:
             # Send cancellation notification to each participant
@@ -1288,19 +1210,13 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
             notification_count = 0
             failed_count = 0
 
-            logger.info(f"Attempting to send {len(all_registrations)} cancellation notifications for workshop '{self.object.title}'")
-
             for registration in all_registrations:
                 try:
-                    # We'll use the existing notification service, but customize the message
                     recipient_email = registration.email or registration.student.email
 
                     if not recipient_email:
-                        logger.warning(f"No email address for registration {registration.id} - student {registration.student.username}")
                         failed_count += 1
                         continue
-
-                    logger.info(f"Sending cancellation notification to {recipient_email} for registration {registration.id}")
 
                     browse_url = StudentNotificationService.build_absolute_url('workshops:list')
                     success = StudentNotificationService.send_templated_email(
@@ -1314,30 +1230,17 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
                         },
                         recipient_list=[recipient_email],
                         default_subject=f'Workshop Cancelled - {self.object.title}',
-                        fail_silently=False,
+                        fail_silently=True,
                         log_description=f"Workshop deletion notification to {registration.student.username}"
                     )
 
                     if success:
                         notification_count += 1
-                        logger.info(f"Successfully sent notification to {recipient_email}")
-                        try:
-                            with open(debug_file, 'a') as f:
-                                f.write(f"  ✓ Email sent to: {recipient_email}\n")
-                        except:
-                            pass
                     else:
                         failed_count += 1
-                        logger.error(f"Failed to send notification to {recipient_email}")
-                        try:
-                            with open(debug_file, 'a') as f:
-                                f.write(f"  ✗ Email FAILED to: {recipient_email}\n")
-                        except:
-                            pass
 
-                except Exception as e:
+                except Exception:
                     failed_count += 1
-                    logger.error(f"Exception sending notification for registration {registration.id}: {str(e)}", exc_info=True)
 
             if notification_count > 0:
                 messages.info(
@@ -1354,12 +1257,9 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
         workshop_title = self.object.title
 
         # Add success message before deleting
-        logger.info(f"About to delete workshop '{workshop_title}' with {total_reg_count} registrations")
-        messages.success(request, f'Workshop "{workshop_title}" has been deleted. (Had {total_reg_count} active registrations)')
+        messages.success(request, f'Workshop "{workshop_title}" has been deleted.')
 
-        result = super().delete(request, *args, **kwargs)
-        logger.info(f"Workshop '{workshop_title}' deletion completed")
-        return result
+        return super().delete(request, *args, **kwargs)
 
 
 class ManageSessionsView(LoginRequiredMixin, TemplateView):
