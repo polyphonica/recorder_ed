@@ -1196,25 +1196,21 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
         return context
 
     def post(self, request, *args, **kwargs):
-        """Override post to intercept deletion"""
-        import logging
+        """Override post to handle deletion with our custom logic"""
         import os
         from datetime import datetime
-        logger = logging.getLogger(__name__)
-
         debug_file = os.path.join('/tmp', 'workshop_delete_debug.txt')
 
-        # Write that POST was received
-        try:
-            with open(debug_file, 'a') as f:
-                f.write(f"\n{'='*60}\n")
-                f.write(f"POST received at: {datetime.now()}\n")
-                f.write(f"User: {request.user.username}\n")
-        except:
-            pass
+        with open(debug_file, 'a') as f:
+            f.write(f"\n{'='*60}\n")
+            f.write(f"POST received at: {datetime.now()}\n")
+            f.write(f"User: {request.user.username}\n")
 
-        # Call the parent post which will call delete()
-        return super().post(request, *args, **kwargs)
+        # Get the object first (this sets self.object)
+        self.object = self.get_object()
+
+        # Call our custom delete method directly
+        return self.delete(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         import logging
