@@ -1176,6 +1176,27 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
 
         return context
 
+    def post(self, request, *args, **kwargs):
+        """Override post to intercept deletion"""
+        import logging
+        import os
+        from datetime import datetime
+        logger = logging.getLogger(__name__)
+
+        debug_file = os.path.join('/tmp', 'workshop_delete_debug.txt')
+
+        # Write that POST was received
+        try:
+            with open(debug_file, 'a') as f:
+                f.write(f"\n{'='*60}\n")
+                f.write(f"POST received at: {datetime.now()}\n")
+                f.write(f"User: {request.user.username}\n")
+        except:
+            pass
+
+        # Call the parent post which will call delete()
+        return super().post(request, *args, **kwargs)
+
     def delete(self, request, *args, **kwargs):
         import logging
         logger = logging.getLogger(__name__)
@@ -1189,8 +1210,8 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
             debug_file = os.path.join('/tmp', 'workshop_delete_debug.txt')
             with open(debug_file, 'a') as f:
                 from datetime import datetime
-                f.write(f"\n{'='*60}\n")
-                f.write(f"Deletion started at: {datetime.now()}\n")
+                f.write(f"\n")
+                f.write(f"DELETE METHOD CALLED at: {datetime.now()}\n")
                 f.write(f"Workshop: {self.object.title} (ID: {self.object.id})\n")
                 f.write(f"User: {request.user.username}\n")
         except Exception as e:
