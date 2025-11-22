@@ -1,6 +1,6 @@
 {% extends "emails/base.html" %}
 
-{% block header_gradient %}{% if new_status == 'accepted' %}linear-gradient(135deg, #10b981 0%, #059669 100%){% elif new_status == 'waitlist' %}linear-gradient(135deg, #f59e0b 0%, #d97706 100%){% else %}linear-gradient(135deg, #6b7280 0%, #4b5563 100%){% endif %}{% endblock %}
+{% block header_gradient %}linear-gradient(135deg, #059669 0%, #047857 100%){% endblock %}
 
 {% block header_subtitle %}{% if new_status == 'accepted' %}Application Accepted!{% elif new_status == 'waitlist' %}Added to Waitlist{% else %}Application Update{% endif %}{% endblock %}
 
