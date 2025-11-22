@@ -1179,47 +1179,73 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
             )
             return redirect('workshops:instructor_workshops')
 
-        # For free workshops, send cancellation notifications to all participants
-        if self.object.is_free:
-            free_registrations = WorkshopRegistration.objects.filter(
-                session__workshop=self.object,
-                status__in=['registered', 'waitlisted', 'attended', 'promoted']
-            )
+        # Send cancellation notifications to all participants (free or unpaid registrations)
+        all_registrations = WorkshopRegistration.objects.filter(
+            session__workshop=self.object,
+            status__in=['registered', 'waitlisted', 'attended', 'promoted']
+        ).exclude(payment_status='paid')
 
-            if free_registrations.exists():
-                # Send cancellation notification to each participant
-                from .notifications import StudentNotificationService
-                notification_count = 0
+        if all_registrations.exists():
+            # Send cancellation notification to each participant
+            from .notifications import StudentNotificationService
+            import logging
+            logger = logging.getLogger(__name__)
 
-                for registration in free_registrations:
-                    try:
-                        # We'll use the existing notification service, but customize the message
-                        recipient_email = registration.email or registration.student.email
-                        if recipient_email:
-                            browse_url = StudentNotificationService.build_absolute_url('workshops:list')
-                            StudentNotificationService.send_templated_email(
-                                template_path='workshops/emails/workshop_cancelled_by_deletion.txt',
-                                context={
-                                    'registration': registration,
-                                    'session': registration.session,
-                                    'workshop': self.object,
-                                    'student_name': registration.student_name,
-                                    'browse_url': browse_url,
-                                },
-                                recipient_list=[recipient_email],
-                                default_subject=f'Workshop Cancelled - {self.object.title}',
-                                fail_silently=True,
-                                log_description=f"Workshop deletion notification to {registration.student.username}"
-                            )
-                            notification_count += 1
-                    except Exception:
-                        pass  # Continue even if individual notification fails
+            notification_count = 0
+            failed_count = 0
 
-                if notification_count > 0:
-                    messages.info(
-                        request,
-                        f'Sent cancellation notifications to {notification_count} participant(s).'
+            logger.info(f"Attempting to send {all_registrations.count()} cancellation notifications for workshop '{self.object.title}'")
+
+            for registration in all_registrations:
+                try:
+                    # We'll use the existing notification service, but customize the message
+                    recipient_email = registration.email or registration.student.email
+
+                    if not recipient_email:
+                        logger.warning(f"No email address for registration {registration.id} - student {registration.student.username}")
+                        failed_count += 1
+                        continue
+
+                    logger.info(f"Sending cancellation notification to {recipient_email} for registration {registration.id}")
+
+                    browse_url = StudentNotificationService.build_absolute_url('workshops:list')
+                    success = StudentNotificationService.send_templated_email(
+                        template_path='workshops/emails/workshop_cancelled_by_deletion.txt',
+                        context={
+                            'registration': registration,
+                            'session': registration.session,
+                            'workshop': self.object,
+                            'student_name': registration.student_name,
+                            'browse_url': browse_url,
+                        },
+                        recipient_list=[recipient_email],
+                        default_subject=f'Workshop Cancelled - {self.object.title}',
+                        fail_silently=False,
+                        log_description=f"Workshop deletion notification to {registration.student.username}"
                     )
+
+                    if success:
+                        notification_count += 1
+                        logger.info(f"Successfully sent notification to {recipient_email}")
+                    else:
+                        failed_count += 1
+                        logger.error(f"Failed to send notification to {recipient_email}")
+
+                except Exception as e:
+                    failed_count += 1
+                    logger.error(f"Exception sending notification for registration {registration.id}: {str(e)}", exc_info=True)
+
+            if notification_count > 0:
+                messages.info(
+                    request,
+                    f'Sent cancellation notifications to {notification_count} participant(s).'
+                )
+
+            if failed_count > 0:
+                messages.warning(
+                    request,
+                    f'Failed to send notifications to {failed_count} participant(s). Check logs for details.'
+                )
 
         workshop_title = self.object.title
 
