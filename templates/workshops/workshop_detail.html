@@ -408,14 +408,26 @@
                                                                     Register for Session
                                                                 </a>
                                                             {% else %}
-                                                                <form method="post" action="{% url 'workshops:add_to_cart' session.id %}">
-                                                                    {% csrf_token %}
-                                                                    <input type="hidden" name="next" value="{{ request.path }}">
-                                                                    <button type="submit" class="btn btn-primary btn-sm w-full mt-2 tooltip tooltip-top" data-tip="Reserve your place in this workshop session">
+                                                                {% if user.profile.is_guardian and user.children.exists %}
+                                                                    {# Guardian with children - show modal for child selection #}
+                                                                    <button type="button"
+                                                                            onclick="openChildSelectionModal('{{ session.id }}')"
+                                                                            class="btn btn-primary btn-sm w-full mt-2 tooltip tooltip-top"
+                                                                            data-tip="Select who to register for this workshop">
                                                                         <i class="fas fa-shopping-cart mr-1"></i>
                                                                         Add to Cart
                                                                     </button>
-                                                                </form>
+                                                                {% else %}
+                                                                    {# Non-guardian or guardian without children - direct add to cart #}
+                                                                    <form method="post" action="{% url 'workshops:add_to_cart' session.id %}">
+                                                                        {% csrf_token %}
+                                                                        <input type="hidden" name="next" value="{{ request.path }}">
+                                                                        <button type="submit" class="btn btn-primary btn-sm w-full mt-2 tooltip tooltip-top" data-tip="Reserve your place in this workshop session">
+                                                                            <i class="fas fa-shopping-cart mr-1"></i>
+                                                                            Add to Cart
+                                                                        </button>
+                                                                    </form>
+                                                                {% endif %}
                                                             {% endif %}
                                                         {% else %}
                                                             {% comment %}Session is full - check if waitlist is enabled{% endcomment %}
@@ -1053,8 +1065,65 @@ function startWorkshopBookingTour() {
     </div>
 </div>
 
+<!-- Child Selection Modal for Guardians -->
+<input type="checkbox" id="childSelectionModal" class="modal-toggle" />
+<div class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Who is attending this workshop?</h3>
+        <p class="text-sm text-base-content/70 mb-4">Select who you want to register for this workshop session:</p>
+
+        <form id="childSelectionForm" method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <input type="hidden" name="child_profile_id" id="selectedChildId">
+
+            <div class="space-y-2">
+                <!-- Option to register for yourself -->
+                <label class="flex items-center gap-3 p-3 border border-base-300 rounded-lg hover:bg-base-200 cursor-pointer">
+                    <input type="radio" name="attendee" value="" class="radio radio-primary" checked>
+                    <span class="label-text font-medium">Myself ({{ user.get_full_name|default:user.username }})</span>
+                </label>
+
+                <!-- Option for each child -->
+                {% for child in user.children.all %}
+                <label class="flex items-center gap-3 p-3 border border-base-300 rounded-lg hover:bg-base-200 cursor-pointer">
+                    <input type="radio" name="attendee" value="{{ child.id }}" class="radio radio-primary">
+                    <span class="label-text font-medium">{{ child.full_name }} (Age: {{ child.age }})</span>
+                </label>
+                {% endfor %}
+            </div>
+
+            <div class="modal-action">
+                <label for="childSelectionModal" class="btn btn-ghost">Cancel</label>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-shopping-cart mr-2"></i>
+                    Add to Cart
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/workshop_detail_terms.js' %}"></script>
+<script>
+function openChildSelectionModal(sessionId) {
+    // Set the form action to the correct add-to-cart URL
+    const form = document.getElementById('childSelectionForm');
+    form.action = `/workshops/cart/add/${sessionId}/`;
+
+    // Update hidden field when radio selection changes
+    const radioButtons = document.querySelectorAll('input[name="attendee"]');
+    radioButtons.forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.getElementById('selectedChildId').value = this.value;
+        });
+    });
+
+    // Open the modal
+    document.getElementById('childSelectionModal').checked = true;
+}
+</script>
 {% endblock %}
