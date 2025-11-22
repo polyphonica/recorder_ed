@@ -1129,6 +1129,25 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
     def get_success_url(self):
         return reverse('workshops:instructor_workshops')
 
+    def get_object(self, queryset=None):
+        """Override to add logging"""
+        import os
+        from datetime import datetime
+
+        obj = super().get_object(queryset)
+
+        # Log that get_object was called
+        try:
+            debug_file = os.path.join('/tmp', 'workshop_delete_debug.txt')
+            with open(debug_file, 'a') as f:
+                f.write(f"get_object() called at: {datetime.now()}\n")
+                f.write(f"  Object: {obj.title}\n")
+                f.write(f"  Method: {self.request.method}\n")
+        except:
+            pass
+
+        return obj
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
