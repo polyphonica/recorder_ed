@@ -1114,6 +1114,65 @@ class EditWorkshopView(SuccessMessageMixin, UserFilterMixin, LoginRequiredMixin,
         return reverse('workshops:instructor_workshops')
 
 
+class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
+    """
+    Delete a workshop. Uses UserFilterMixin for ownership verification.
+    Prevents deletion if workshop has sessions with registered participants.
+    """
+    model = Workshop
+    template_name = 'workshops/workshop_confirm_delete.html'
+    user_field_name = 'instructor'
+
+    def get_success_url(self):
+        return reverse('workshops:instructor_workshops')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get all sessions with their registration counts
+        sessions = self.object.sessions.all()
+        sessions_with_registrations = []
+
+        for session in sessions:
+            registered_count = session.registrations.filter(
+                status__in=['registered', 'waitlisted', 'attended', 'promoted']
+            ).count()
+
+            if registered_count > 0:
+                sessions_with_registrations.append({
+                    'session': session,
+                    'registered_count': registered_count
+                })
+
+        context['sessions_with_registrations'] = sessions_with_registrations
+        context['can_delete'] = len(sessions_with_registrations) == 0
+
+        return context
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+
+        # Check if any sessions have registered participants
+        has_registrations = self.object.sessions.filter(
+            registrations__status__in=['registered', 'waitlisted', 'attended', 'promoted']
+        ).exists()
+
+        if has_registrations:
+            messages.error(
+                request,
+                f'Cannot delete workshop "{self.object.title}". '
+                'Please cancel all sessions with registered participants first to ensure refunds are processed.'
+            )
+            return redirect('workshops:instructor_workshops')
+
+        workshop_title = self.object.title
+
+        # Add success message before deleting
+        messages.success(request, f'Workshop "{workshop_title}" has been deleted.')
+
+        return super().delete(request, *args, **kwargs)
+
+
 class ManageSessionsView(LoginRequiredMixin, TemplateView):
     """Manage workshop sessions"""
     template_name = 'workshops/manage_sessions.html'

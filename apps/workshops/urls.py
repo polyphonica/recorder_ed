@@ -18,6 +18,7 @@ urlpatterns = [
     path('instructor/workshops/', views.InstructorWorkshopsView.as_view(), name='instructor_workshops'),
     path('instructor/workshop/create/', views.CreateWorkshopView.as_view(), name='create_workshop'),
     path('instructor/workshop/<slug:slug>/edit/', views.EditWorkshopView.as_view(), name='edit_workshop'),
+    path('instructor/workshop/<slug:slug>/delete/', views.WorkshopDeleteView.as_view(), name='delete_workshop'),
     path('instructor/workshop/<slug:slug>/sessions/', views.ManageSessionsView.as_view(), name='manage_sessions'),
     path('instructor/session/<uuid:session_id>/edit/', views.EditSessionView.as_view(), name='edit_session'),
     path('instructor/session/<uuid:session_id>/registrations/',
