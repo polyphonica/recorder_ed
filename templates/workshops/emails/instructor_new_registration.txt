@@ -5,8 +5,7 @@ Hi {{ workshop.instructor.first_name|default:workshop.instructor.username }},
 Good news! A new student has registered for your workshop.
 
 Student Details:
-- Name: {{ registration.student.first_name }} {{ registration.student.last_name }}
-- Username: {{ registration.student.username }}
+- Name: {{ registration.student_name }}
 - Email: {{ registration.email }}
 - Status: {{ registration.get_status_display }}
 
