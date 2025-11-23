@@ -19,7 +19,15 @@ class AboutView(TemplateView):
         context['faqs'] = [
             {
                 'question': 'What types of lessons do you offer?',
-                'answer': 'We offer private one-on-one lessons, group workshops, and structured online courses. Private lessons are tailored to your specific goals and skill level, workshops provide collaborative learning experiences, and courses offer comprehensive curriculum-based learning paths.'
+                'answer': 'We offer three main types of learning: <strong>Private Lessons</strong> - personalized one-on-one instruction tailored to your goals; <strong>Group Workshops</strong> - collaborative sessions covering specific topics or techniques; and <strong>Online Courses</strong> - self-paced structured learning with video lessons and materials.'
+            },
+            {
+                'question': 'How do group workshops work?',
+                'answer': 'Workshops are scheduled group sessions focused on specific topics like technique, ensemble playing, or music theory. Browse available workshops, register for ones that interest you, and pay online. You\'ll receive confirmation and details about the workshop location (online or in-person). Workshops are a great way to learn with other musicians in a collaborative environment.'
+            },
+            {
+                'question': 'What are online courses and how do they work?',
+                'answer': 'Online courses are self-paced learning programs with structured curriculum. Each course includes video lessons, practice materials, assignments, and progress tracking. You can work through the content at your own pace, on your own schedule. Once enrolled, you have access to all course materials and can track your progress through each module.'
             },
             {
                 'question': 'How do I get started with private lessons?',
@@ -27,27 +35,27 @@ class AboutView(TemplateView):
             },
             {
                 'question': 'Are lessons available online or in-person?',
-                'answer': 'We offer both! Each teacher sets their preferences for lesson locations - this can include online via Zoom, in-person at their studio, or at your location. You can specify your preference when requesting lessons.'
+                'answer': 'Yes! For <strong>private lessons</strong>, each teacher sets their preferences - online via Zoom, in-person at their studio, or at your location. <strong>Workshops</strong> can be held online or in-person, as specified in the workshop details. <strong>Online courses</strong> are entirely self-paced and accessible from anywhere.'
             },
             {
                 'question': 'What is your cancellation policy?',
-                'answer': 'Students can request to cancel or reschedule lessons by submitting a cancellation request to their teacher. Cancellations made 48+ hours before the lesson may be eligible for a refund (minus platform fees). Teachers review each request individually.'
+                'answer': 'For <strong>private lessons</strong>, students can request to cancel or reschedule by submitting a request to their teacher. Cancellations made 48+ hours in advance may be eligible for a refund (minus platform fees). For <strong>workshops</strong>, cancellation policies are listed on each workshop page. <strong>Course</strong> enrollments are generally non-refundable once you\'ve accessed the content.'
             },
             {
                 'question': 'How does payment work?',
-                'answer': 'All payments are processed securely through Stripe. For private lessons, you pay after your teacher approves your lesson request. For workshops and courses, payment is required during registration. A small platform fee is applied to support the platform infrastructure.'
+                'answer': 'All payments are processed securely through Stripe. For <strong>private lessons</strong>, you pay after your teacher approves your lesson request. For <strong>workshops and courses</strong>, payment is required during registration. A small platform fee helps support platform infrastructure and ongoing development.'
             },
             {
-                'question': 'Can I register my child for lessons?',
-                'answer': 'Yes! Parents and guardians can create child profiles and apply for lessons or register for workshops on behalf of their children. Simply add a child profile in your account settings.'
+                'question': 'Can I register my child for lessons, workshops, or courses?',
+                'answer': 'Yes! Parents and guardians can create child profiles and register them for any of our offerings. For private lessons, you apply on behalf of your child. For workshops and courses, you can enroll them during registration. Simply add a child profile in your account settings.'
             },
             {
-                'question': 'What resources are included with lessons?',
-                'answer': 'Teachers can share documents, sheet music, practice materials, and helpful links through the platform. Once you complete a lesson, all shared materials are available in your document library for future reference.'
+                'question': 'What resources and materials are included?',
+                'answer': 'For <strong>private lessons</strong>, teachers share documents, sheet music, and practice materials that stay in your document library. <strong>Workshops</strong> often include handouts and follow-up materials. <strong>Online courses</strong> include comprehensive video lessons, downloadable materials, practice exercises, and sometimes quizzes or assignments - all accessible anytime.'
             },
             {
                 'question': 'Do you offer exam preparation?',
-                'answer': 'Yes! Teachers can register students for music exams including ABRSM, Trinity, and other exam boards. We help track your preparation, repertoire pieces, and exam registration details all in one place.'
+                'answer': 'Yes! Teachers can register students for music exams including ABRSM, Trinity, and other exam boards through the private lessons program. We help track your preparation, repertoire pieces, and exam registration details all in one place.'
             },
         ]
 
