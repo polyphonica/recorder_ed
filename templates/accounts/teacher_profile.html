@@ -139,11 +139,7 @@
                     {% if teacher.profile.professional_memberships %}
                         <div class="mb-4">
                             <h3 class="font-bold text-lg mb-2">Professional Memberships</h3>
-                            <div class="flex flex-wrap gap-2">
-                                {% for membership in teacher.profile.professional_memberships.split ',' %}
-                                    <div class="badge badge-outline badge-lg">{{ membership|striptags }}</div>
-                                {% endfor %}
-                            </div>
+                            <p class="text-base-content/80">{{ teacher.profile.professional_memberships }}</p>
                         </div>
                     {% endif %}
 
@@ -188,22 +184,14 @@
                     {% if teacher.profile.exam_boards_offered %}
                         <div class="mb-4">
                             <h3 class="font-bold text-lg mb-2">Exam Boards</h3>
-                            <div class="flex flex-wrap gap-2">
-                                {% for board in teacher.profile.exam_boards_offered.split ',' %}
-                                    <div class="badge badge-secondary badge-lg">{{ board|striptags }}</div>
-                                {% endfor %}
-                            </div>
+                            <p class="text-base-content/80">{{ teacher.profile.exam_boards_offered }}</p>
                         </div>
                     {% endif %}
 
                     {% if teacher.profile.age_groups_taught %}
                         <div>
                             <h3 class="font-bold text-lg mb-2">Age Groups</h3>
-                            <div class="flex flex-wrap gap-2">
-                                {% for group in teacher.profile.age_groups_taught.split ',' %}
-                                    <div class="badge badge-outline badge-lg">{{ group|striptags }}</div>
-                                {% endfor %}
-                            </div>
+                            <p class="text-base-content/80">{{ teacher.profile.age_groups_taught }}</p>
                         </div>
                     {% endif %}
                 </div>
