@@ -38,10 +38,20 @@
     <!-- Header -->
     <nav class="navbar bg-base-200 shadow-lg">
         <div class="flex-1">
-            <a class="btn btn-ghost text-xl font-bold">
+            <a class="btn btn-ghost text-xl font-bold" href="{% url 'domain_selector' %}">
                 <i class="fas fa-music mr-2"></i>
                 RECORDER-ED
             </a>
+        </div>
+        <div class="flex-none">
+            <ul class="menu menu-horizontal px-1">
+                <li><a href="{% url 'core:about' %}"><i class="fas fa-info-circle mr-2"></i>About</a></li>
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a></li>
+                {% else %}
+                    <li><a href="{% url 'account_login' %}"><i class="fas fa-sign-in-alt mr-2"></i>Login</a></li>
+                {% endif %}
+            </ul>
         </div>
     </nav>
 
@@ -137,6 +147,11 @@
     <!-- Footer -->
     <footer class="footer footer-center p-10 bg-base-200 text-base-content rounded">
         <div>
+            <div class="mb-4">
+                <a href="{% url 'core:about' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-info-circle mr-2"></i>Learn More About Us
+                </a>
+            </div>
             <div class="grid grid-flow-col gap-4">
                 <i class="fab fa-twitter text-2xl"></i>
                 <i class="fab fa-youtube text-2xl"></i>
