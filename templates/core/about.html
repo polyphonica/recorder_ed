@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}About Us{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Hero Section -->
+    <section class="bg-gradient-to-r from-primary to-secondary text-white py-20">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto text-center">
+                <h1 class="text-5xl font-bold mb-6">About RecorderEd</h1>
+                <p class="text-xl mb-8 leading-relaxed">
+                    Empowering musicians through personalized education, innovative teaching methods,
+                    and a passion for musical excellence.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mission & Vision -->
+    <section class="py-16 bg-base-200">
+        <div class="container mx-auto px-4">
+            <div class="max-w-6xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Our Mission -->
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body">
+                            <div class="flex items-center mb-4">
+                                <i class="fas fa-bullseye text-4xl text-primary mr-4"></i>
+                                <h2 class="card-title text-3xl">Our Mission</h2>
+                            </div>
+                            <p class="text-lg leading-relaxed">
+                                To make high-quality music education accessible to everyone by combining
+                                traditional teaching excellence with modern technology. We believe every
+                                student deserves personalized attention, flexible scheduling, and resources
+                                that support their unique musical journey.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Our Platform -->
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body">
+                            <div class="flex items-center mb-4">
+                                <i class="fas fa-laptop-code text-4xl text-secondary mr-4"></i>
+                                <h2 class="card-title text-3xl">Our Platform</h2>
+                            </div>
+                            <p class="text-lg leading-relaxed">
+                                RecorderEd brings together expert music instruction with cutting-edge
+                                platform features. From scheduling and payments to resource sharing and
+                                progress tracking, we handle the logistics so teachers and students can
+                                focus on what matters most: making music.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About the Founder -->
+    <section class="py-16">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl font-bold mb-4">
+                        <i class="fas fa-user-tie mr-3 text-accent"></i>Meet the Founder
+                    </h2>
+                    <div class="w-24 h-1 bg-accent mx-auto mb-8"></div>
+                </div>
+
+                <div class="card bg-base-200 shadow-xl">
+                    <div class="card-body">
+                        <div class="flex flex-col lg:flex-row gap-8 items-start">
+                            <!-- Placeholder for photo - replace with actual image -->
+                            <div class="avatar placeholder">
+                                <div class="bg-accent text-accent-content rounded-full w-40 h-40">
+                                    <span class="text-6xl">
+                                        <i class="fas fa-music"></i>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="flex-1">
+                                <h3 class="text-2xl font-bold mb-4">[Your Name]</h3>
+                                <div class="space-y-4 text-lg">
+                                    <p>
+                                        <strong>Qualifications & Credentials:</strong>
+                                    </p>
+                                    <ul class="list-disc list-inside space-y-2 ml-4">
+                                        <li>[Degree/Certification 1]</li>
+                                        <li>[Degree/Certification 2]</li>
+                                        <li>[Professional Memberships]</li>
+                                        <li>[Awards/Recognition]</li>
+                                    </ul>
+
+                                    <p class="mt-6">
+                                        <strong>Teaching Philosophy:</strong>
+                                    </p>
+                                    <p class="leading-relaxed">
+                                        [Your teaching philosophy - e.g., "I believe that every student has
+                                        unique potential waiting to be unlocked. My approach combines
+                                        classical technique with contemporary methods, adapting to each
+                                        student's learning style and musical interests. Whether preparing
+                                        for exams, developing performance skills, or simply enjoying music
+                                        for pleasure, I create a supportive environment where students
+                                        can thrive."]
+                                    </p>
+
+                                    <p class="mt-6">
+                                        <strong>Experience:</strong>
+                                    </p>
+                                    <p class="leading-relaxed">
+                                        [Brief summary - e.g., "With over [X] years of teaching experience,
+                                        I have helped hundreds of students achieve their musical goals,
+                                        from complete beginners to advanced performers preparing for
+                                        prestigious music colleges."]
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- What We Offer -->
+    <section class="py-16 bg-base-200">
+        <div class="container mx-auto px-4">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl font-bold mb-4">What We Offer</h2>
+                    <p class="text-xl text-base-content/70">Comprehensive music education tailored to your needs</p>
+                    <div class="w-24 h-1 bg-primary mx-auto mt-6"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Private Lessons -->
+                    <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                        <div class="card-body">
+                            <div class="text-center mb-4">
+                                <i class="fas fa-user-graduate text-5xl text-primary"></i>
+                            </div>
+                            <h3 class="card-title text-2xl justify-center">Private Lessons</h3>
+                            <p class="text-center">
+                                One-on-one instruction tailored to your goals, skill level, and musical interests.
+                                Available online or in-person with flexible scheduling.
+                            </p>
+                            <div class="card-actions justify-center mt-4">
+                                <a href="{% url 'private_teaching:home' %}" class="btn btn-primary">
+                                    Learn More
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Workshops -->
+                    <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                        <div class="card-body">
+                            <div class="text-center mb-4">
+                                <i class="fas fa-users text-5xl text-secondary"></i>
+                            </div>
+                            <h3 class="card-title text-2xl justify-center">Group Workshops</h3>
+                            <p class="text-center">
+                                Collaborative learning experiences covering technique, ensemble playing,
+                                music theory, and performance skills in a supportive group environment.
+                            </p>
+                            <div class="card-actions justify-center mt-4">
+                                <a href="{% url 'workshops:workshop_list' %}" class="btn btn-secondary">
+                                    View Workshops
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Courses -->
+                    <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                        <div class="card-body">
+                            <div class="text-center mb-4">
+                                <i class="fas fa-graduation-cap text-5xl text-accent"></i>
+                            </div>
+                            <h3 class="card-title text-2xl justify-center">Online Courses</h3>
+                            <p class="text-center">
+                                Structured curriculum-based learning paths with video lessons, practice materials,
+                                and progress tracking. Learn at your own pace, on your schedule.
+                            </p>
+                            <div class="card-actions justify-center mt-4">
+                                <a href="{% url 'courses:course_list' %}" class="btn btn-accent">
+                                    Browse Courses
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Choose Us -->
+    <section class="py-16">
+        <div class="container mx-auto px-4">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl font-bold mb-4">Why Choose RecorderEd?</h2>
+                    <div class="w-24 h-1 bg-secondary mx-auto mt-6"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="text-center">
+                        <div class="bg-primary text-primary-content rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-award text-3xl"></i>
+                        </div>
+                        <h3 class="font-bold text-xl mb-2">Expert Instruction</h3>
+                        <p class="text-base-content/70">
+                            Qualified, experienced teachers with proven track records of student success
+                        </p>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="bg-secondary text-secondary-content rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-calendar-alt text-3xl"></i>
+                        </div>
+                        <h3 class="font-bold text-xl mb-2">Flexible Scheduling</h3>
+                        <p class="text-base-content/70">
+                            Book lessons at times that work for you, with easy rescheduling options
+                        </p>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="bg-accent text-accent-content rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-book-open text-3xl"></i>
+                        </div>
+                        <h3 class="font-bold text-xl mb-2">Rich Resources</h3>
+                        <p class="text-base-content/70">
+                            Access to sheet music, practice materials, and learning resources
+                        </p>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="bg-info text-info-content rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-chart-line text-3xl"></i>
+                        </div>
+                        <h3 class="font-bold text-xl mb-2">Track Progress</h3>
+                        <p class="text-base-content/70">
+                            Monitor your development with organized lesson history and materials
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="py-16 bg-base-200">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl font-bold mb-4">
+                        <i class="fas fa-question-circle mr-3 text-info"></i>Frequently Asked Questions
+                    </h2>
+                    <div class="w-24 h-1 bg-info mx-auto mt-6"></div>
+                </div>
+
+                <div class="space-y-4">
+                    {% for faq in faqs %}
+                    <div class="collapse collapse-plus bg-base-100 shadow">
+                        <input type="radio" name="faq-accordion" {% if forloop.first %}checked{% endif %} />
+                        <div class="collapse-title text-xl font-medium">
+                            {{ faq.question }}
+                        </div>
+                        <div class="collapse-content">
+                            <p class="text-base-content/80">{{ faq.answer }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="py-20 bg-gradient-to-r from-accent to-primary text-white">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-4xl font-bold mb-6">Ready to Start Your Musical Journey?</h2>
+                <p class="text-xl mb-8">
+                    Explore our offerings and find the perfect learning path for you
+                </p>
+                <div class="flex flex-wrap gap-4 justify-center">
+                    <a href="{% url 'workshops:workshop_list' %}" class="btn btn-lg btn-white bg-white text-primary hover:bg-base-200">
+                        <i class="fas fa-calendar mr-2"></i>Browse Workshops
+                    </a>
+                    <a href="{% url 'courses:course_list' %}" class="btn btn-lg btn-outline btn-white text-white border-white hover:bg-white hover:text-primary">
+                        <i class="fas fa-book mr-2"></i>View Courses
+                    </a>
+                    <a href="{% url 'private_teaching:home' %}" class="btn btn-lg btn-outline btn-white text-white border-white hover:bg-white hover:text-primary">
+                        <i class="fas fa-music mr-2"></i>Private Lessons
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

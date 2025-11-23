@@ -8,6 +8,52 @@ from django.db.models import Q
 from .forms import ContactForm, ProfileForm, FilterForm
 
 
+class AboutView(TemplateView):
+    """Public About page showcasing platform mission and founder"""
+    template_name = 'core/about.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # FAQ data
+        context['faqs'] = [
+            {
+                'question': 'What types of lessons do you offer?',
+                'answer': 'We offer private one-on-one lessons, group workshops, and structured online courses. Private lessons are tailored to your specific goals and skill level, workshops provide collaborative learning experiences, and courses offer comprehensive curriculum-based learning paths.'
+            },
+            {
+                'question': 'How do I get started with private lessons?',
+                'answer': 'First, create an account and complete your profile. Then apply to study with a teacher by visiting their profile. Once accepted, you can request lessons at times that work for you. Your teacher will review and approve your lesson requests, after which you can pay and confirm your booking.'
+            },
+            {
+                'question': 'Are lessons available online or in-person?',
+                'answer': 'We offer both! Each teacher sets their preferences for lesson locations - this can include online via Zoom, in-person at their studio, or at your location. You can specify your preference when requesting lessons.'
+            },
+            {
+                'question': 'What is your cancellation policy?',
+                'answer': 'Students can request to cancel or reschedule lessons by submitting a cancellation request to their teacher. Cancellations made 48+ hours before the lesson may be eligible for a refund (minus platform fees). Teachers review each request individually.'
+            },
+            {
+                'question': 'How does payment work?',
+                'answer': 'All payments are processed securely through Stripe. For private lessons, you pay after your teacher approves your lesson request. For workshops and courses, payment is required during registration. A small platform fee is applied to support the platform infrastructure.'
+            },
+            {
+                'question': 'Can I register my child for lessons?',
+                'answer': 'Yes! Parents and guardians can create child profiles and apply for lessons or register for workshops on behalf of their children. Simply add a child profile in your account settings.'
+            },
+            {
+                'question': 'What resources are included with lessons?',
+                'answer': 'Teachers can share documents, sheet music, practice materials, and helpful links through the platform. Once you complete a lesson, all shared materials are available in your document library for future reference.'
+            },
+            {
+                'question': 'Do you offer exam preparation?',
+                'answer': 'Yes! Teachers can register students for music exams including ABRSM, Trinity, and other exam boards. We help track your preparation, repertoire pieces, and exam registration details all in one place.'
+            },
+        ]
+
+        return context
+
+
 class HomeView(TemplateView):
     template_name = 'core/home.html'
 

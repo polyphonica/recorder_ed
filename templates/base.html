@@ -83,6 +83,8 @@
                     </svg>
                 </label>
                 <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+                    <li><a href="{% url 'core:about' %}"><i class="fas fa-info-circle mr-1"></i>About</a></li>
+                    <li class="border-t mt-2 pt-2"></li>
                     {% if user.is_authenticated and user.is_instructor %}
                         {# Teacher mobile navigation #}
                         <li><a href="{% url 'workshops:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold{% endif %}">Workshops</a></li>
@@ -107,6 +109,7 @@
         <!-- Tier 1: Domain Navigation -->
         <div class="navbar-center hidden lg:flex">
             <ul class="menu menu-horizontal px-1">
+                <li><a href="{% url 'core:about' %}" class="{% if request.resolver_match.url_name == 'about' %}font-bold bg-primary text-primary-content{% endif %}">About</a></li>
                 {% if user.is_authenticated and user.is_instructor %}
                     {# Teacher navigation - goes to dashboards #}
                     <li><a href="{% url 'workshops:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold bg-primary text-primary-content{% endif %}">Workshops</a></li>
