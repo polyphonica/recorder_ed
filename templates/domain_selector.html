@@ -47,9 +47,9 @@
             <ul class="menu menu-horizontal px-1">
                 <li><a href="{% url 'core:about' %}"><i class="fas fa-info-circle mr-2"></i>About</a></li>
                 {% if user.is_authenticated %}
-                    <li><a href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a></li>
+                    <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a></li>
                 {% else %}
-                    <li><a href="{% url 'account_login' %}"><i class="fas fa-sign-in-alt mr-2"></i>Login</a></li>
+                    <li><a href="{% url 'login' %}"><i class="fas fa-sign-in-alt mr-2"></i>Login</a></li>
                 {% endif %}
             </ul>
         </div>
