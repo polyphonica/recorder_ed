@@ -43,7 +43,7 @@ class AboutView(TemplateView):
             },
             {
                 'question': 'How does payment work?',
-                'answer': 'All payments are processed securely through Stripe. For <strong>private lessons</strong>, you pay after your teacher approves your lesson request. For <strong>workshops and courses</strong>, payment is required during registration. A small platform fee helps support platform infrastructure and ongoing development.'
+                'answer': 'All payments are processed securely through Stripe. For <strong>private lessons</strong>, you pay the full lesson fee after your teacher approves your request - teachers receive their share after a platform commission is deducted. For <strong>workshops and courses</strong>, payment is required during registration. The platform commission helps support infrastructure, payment processing, and ongoing development.'
             },
             {
                 'question': 'Can I register my child for lessons, workshops, or courses?',
