@@ -752,12 +752,24 @@ class TeacherSettingsView(TeacherProfileCompletedMixin, TemplateView):
 
 class SubjectCreateView(TeacherProfileCompletedMixin, View):
     """Create new subject for teacher"""
-    
+
     def post(self, request, *args, **kwargs):
         form = SubjectForm(request.POST, teacher=request.user)
         if form.is_valid():
-            form.save()
-            messages.success(request, f'Subject "{form.cleaned_data["subject"]}" created successfully!')
+            try:
+                form.save()
+                messages.success(request, f'Subject "{form.cleaned_data["subject"]}" created successfully!')
+            except Exception as e:
+                # Handle duplicate subject error gracefully
+                if 'unique constraint' in str(e).lower() or 'duplicate key' in str(e).lower():
+                    messages.error(
+                        request,
+                        f'You already have a subject called "{form.cleaned_data["subject"]}". '
+                        f'Please choose a different name or edit your existing subject.'
+                    )
+                else:
+                    # Re-raise unexpected errors
+                    raise
         else:
             for field, errors in form.errors.items():
                 for error in errors:
@@ -767,16 +779,28 @@ class SubjectCreateView(TeacherProfileCompletedMixin, View):
 
 class SubjectUpdateView(TeacherProfileCompletedMixin, View):
     """Update existing subject for teacher"""
-    
+
     def get_subject(self):
         return get_object_or_404(Subject, id=self.kwargs['subject_id'], teacher=self.request.user)
-    
+
     def post(self, request, *args, **kwargs):
         subject = self.get_subject()
         form = SubjectForm(request.POST, instance=subject, teacher=request.user)
         if form.is_valid():
-            form.save()
-            messages.success(request, f'Subject "{subject.subject}" updated successfully!')
+            try:
+                form.save()
+                messages.success(request, f'Subject "{subject.subject}" updated successfully!')
+            except Exception as e:
+                # Handle duplicate subject error gracefully
+                if 'unique constraint' in str(e).lower() or 'duplicate key' in str(e).lower():
+                    messages.error(
+                        request,
+                        f'You already have another subject with this name. '
+                        f'Please choose a different name.'
+                    )
+                else:
+                    # Re-raise unexpected errors
+                    raise
         else:
             for field, errors in form.errors.items():
                 for error in errors:
