@@ -2350,6 +2350,26 @@ class TeacherStudentPracticeView(TeacherProfileCompletedMixin, ListView):
         student = self.get_student()
         context['viewed_student'] = student
 
+        # Check if this is a child student by looking at practice entries
+        # If all practice entries have a child_profile, get the child info
+        practice_entries = PracticeEntry.objects.filter(
+            student=student,
+            teacher=self.request.user
+        ).select_related('child_profile')
+
+        # Get unique child profiles from practice entries
+        child_profiles = set()
+        for entry in practice_entries:
+            if entry.child_profile:
+                child_profiles.add(entry.child_profile)
+
+        # If there's only one child profile, use that as the display name
+        if len(child_profiles) == 1:
+            context['child_profile'] = list(child_profiles)[0]
+            context['is_child_student'] = True
+        else:
+            context['is_child_student'] = False
+
         # Get all practice entries for stats
         all_entries = PracticeEntry.objects.filter(
             student=student,

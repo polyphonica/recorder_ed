@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ viewed_student.get_full_name }}'s Practice Log{% endblock %}
+{% block title %}{% if is_child_student %}{{ child_profile.full_name }}{% else %}{{ viewed_student.get_full_name }}{% endif %}'s Practice Log{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-base-100">
@@ -11,15 +11,32 @@
             <li><a href="{% url 'private_teaching:home' %}">Private Teaching</a></li>
             <li><a href="{% url 'private_teaching:teacher_dashboard' %}">Teacher Dashboard</a></li>
             <li><a href="{% url 'private_teaching:teacher_students' %}">Students</a></li>
-            <li>{{ viewed_student.get_full_name }}'s Practice Log</li>
+            <li>{% if is_child_student %}{{ child_profile.full_name }}{% else %}{{ viewed_student.get_full_name }}{% endif %}'s Practice Log</li>
         </ul>
     </div>
 
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
         <div class="mb-6">
-            <h1 class="text-4xl font-bold">{{ viewed_student.get_full_name }}'s Practice Log</h1>
-            <p class="text-base-content/70 mt-2">View and comment on student practice sessions</p>
+            <h1 class="text-4xl font-bold">
+                {% if is_child_student %}
+                    {{ child_profile.full_name }}'s Practice Log
+                    <span class="badge badge-warning badge-lg ml-3">
+                        <i class="fas fa-child mr-1"></i>
+                        Child
+                    </span>
+                {% else %}
+                    {{ viewed_student.get_full_name }}'s Practice Log
+                {% endif %}
+            </h1>
+            <p class="text-base-content/70 mt-2">
+                {% if is_child_student %}
+                    View and comment on student practice sessions
+                    <span class="ml-2 text-sm">Guardian: {{ viewed_student.get_full_name }}</span>
+                {% else %}
+                    View and comment on student practice sessions
+                {% endif %}
+            </p>
         </div>
 
         <!-- Statistics Cards -->
