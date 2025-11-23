@@ -180,7 +180,11 @@ class UserProfileForm(forms.ModelForm):
             # Address Information
             'address_line_1', 'address_line_2', 'city', 'state_province', 'postal_code', 'country',
             # Public Teaching Profile
-            'bio', 'website', 'teaching_experience', 'specializations',
+            'bio', 'teaching_philosophy', 'website',
+            # Professional Background
+            'qualifications', 'professional_memberships', 'dbs_check_status',
+            # Teaching Specializations
+            'instruments_taught', 'exam_boards_offered', 'age_groups_taught',
             # Teaching Settings
             'default_zoom_link',
             # Notification Preferences
@@ -204,28 +208,52 @@ class UserProfileForm(forms.ModelForm):
             # Public Teaching Profile
             'bio': forms.Textarea(attrs={
                 'class': 'textarea textarea-bordered',
-                'placeholder': 'Tell students about yourself, your teaching philosophy, and experience...',
-                'rows': 5
+                'placeholder': 'Introduce yourself and share what makes you unique as a music teacher...',
+                'rows': 4
+            }),
+            'teaching_philosophy': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered',
+                'placeholder': 'Describe your approach to teaching music (e.g., student-centered, emphasis on technique and musicality, preparing for performances)...',
+                'rows': 4
             }),
             'website': forms.URLInput(attrs={
                 'class': 'input input-bordered',
                 'placeholder': 'https://yourwebsite.com'
             }),
-            'teaching_experience': forms.Textarea(attrs={
+
+            # Professional Background
+            'qualifications': forms.Textarea(attrs={
                 'class': 'textarea textarea-bordered',
-                'placeholder': 'Your teaching qualifications, certifications, and experience...',
+                'placeholder': 'List your qualifications, one per line:\n• BA (Hons) Music - Royal College of Music\n• DipABRSM Performance Diploma\n• PGCE Music Education',
+                'rows': 5
+            }),
+            'professional_memberships': forms.TextInput(attrs={
+                'class': 'input input-bordered',
+                'placeholder': 'e.g., Musicians\' Union, ISM, Trinity College London'
+            }),
+            'dbs_check_status': forms.Select(attrs={
+                'class': 'select select-bordered'
+            }),
+
+            # Teaching Specializations
+            'instruments_taught': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered',
+                'placeholder': 'List instruments and levels, one per line:\n• Recorder: Beginner to Grade 8\n• Flute: Beginner to Grade 5\n• Music Theory: Grades 1-5',
                 'rows': 4
             }),
-            'specializations': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered',
-                'placeholder': 'Musical instruments, genres, exam boards (e.g., Trinity, ABRSM)...',
-                'rows': 3
+            'exam_boards_offered': forms.TextInput(attrs={
+                'class': 'input input-bordered',
+                'placeholder': 'e.g., Trinity College London, ABRSM, Rock School'
+            }),
+            'age_groups_taught': forms.TextInput(attrs={
+                'class': 'input input-bordered',
+                'placeholder': 'e.g., Children (5-12), Teens (13-18), Adults (18+)'
             }),
 
             # Teaching Settings
             'default_zoom_link': forms.URLInput(attrs={
                 'class': 'input input-bordered',
-                'placeholder': 'https://zoom.us/j/your-meeting-id'
+                'placeholder': 'https://zoom.us/j/your-meeting-id or Google Meet link'
             }),
 
             # Notification Preferences

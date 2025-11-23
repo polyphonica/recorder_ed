@@ -35,8 +35,47 @@ class UserProfile(models.Model):
     # Teacher/Instructor Information (unified across all domains)
     bio = models.TextField(blank=True, help_text="Teacher biography displayed on profile")
     website = models.URLField(blank=True, help_text="Teacher's personal or professional website")
-    teaching_experience = models.TextField(blank=True, help_text="Teaching experience and qualifications")
-    specializations = models.TextField(blank=True, help_text="Musical specializations and expertise")
+
+    # Professional Background - Structured Fields
+    teaching_philosophy = models.TextField(blank=True, help_text="Your approach to teaching music")
+    qualifications = models.TextField(blank=True, help_text="Degrees, diplomas, certifications (one per line)")
+    professional_memberships = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Professional organizations (e.g., Musicians' Union, ISM)"
+    )
+    dbs_check_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('current', 'Current DBS Check'),
+            ('in_progress', 'DBS Check In Progress'),
+            ('equivalent', 'Equivalent Background Check'),
+            ('none', 'No DBS Check'),
+        ],
+        blank=True,
+        help_text="Required for teaching children in the UK"
+    )
+
+    # Teaching Specializations
+    instruments_taught = models.TextField(
+        blank=True,
+        help_text="Instruments and levels you teach (e.g., Recorder: Beginner to Grade 8)"
+    )
+    exam_boards_offered = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Exam boards you prepare students for (e.g., Trinity, ABRSM, Rock School)"
+    )
+    age_groups_taught = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Age groups you teach (e.g., Children 5-12, Teens, Adults)"
+    )
+
+    # Legacy field - kept for backward compatibility
+    teaching_experience = models.TextField(blank=True, help_text="Teaching experience and qualifications (legacy)")
+    specializations = models.TextField(blank=True, help_text="Musical specializations and expertise (legacy)")
+
     default_zoom_link = models.URLField(blank=True, help_text="Default Zoom link for online lessons")
 
     # Private teaching capacity management

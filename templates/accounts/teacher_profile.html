@@ -96,32 +96,117 @@
             </div>
         {% endif %}
 
-        <!-- Teaching Experience & Specializations -->
-        {% if teacher.profile.teaching_experience or teacher.profile.specializations %}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {% if teacher.profile.teaching_experience %}
-                    <div class="card bg-base-100 shadow-xl">
-                        <div class="card-body">
-                            <h3 class="card-title text-xl mb-3">
-                                <i class="fas fa-graduation-cap mr-2 text-primary"></i>
-                                Teaching Experience
-                            </h3>
-                            <p class="text-base-content/80">{{ teacher.profile.teaching_experience }}</p>
-                        </div>
+        <!-- Teaching Philosophy -->
+        {% if teacher.profile.teaching_philosophy %}
+            <div class="card bg-base-100 shadow-xl mb-8">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-lightbulb mr-2 text-primary"></i>
+                        Teaching Philosophy
+                    </h2>
+                    <div class="prose max-w-none text-lg">
+                        {{ teacher.profile.teaching_philosophy|linebreaks }}
                     </div>
-                {% endif %}
+                </div>
+            </div>
+        {% endif %}
 
-                {% if teacher.profile.specializations %}
-                    <div class="card bg-base-100 shadow-xl">
-                        <div class="card-body">
-                            <h3 class="card-title text-xl mb-3">
-                                <i class="fas fa-star mr-2 text-primary"></i>
-                                Specializations
-                            </h3>
-                            <p class="text-base-content/80">{{ teacher.profile.specializations }}</p>
+        <!-- Professional Background -->
+        {% if teacher.profile.qualifications or teacher.profile.professional_memberships or teacher.profile.dbs_check_status %}
+            <div class="card bg-base-100 shadow-xl mb-8">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-graduation-cap mr-2 text-primary"></i>
+                        Professional Background
+                    </h2>
+
+                    {% if teacher.profile.qualifications %}
+                        <div class="mb-4">
+                            <h3 class="font-bold text-lg mb-2">Qualifications</h3>
+                            <ul class="space-y-1">
+                                {% for line in teacher.profile.qualifications.splitlines %}
+                                    {% if line.strip %}
+                                        <li class="flex gap-2">
+                                            <span class="text-primary">✓</span>
+                                            <span>{{ line|striptags }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                            </ul>
                         </div>
-                    </div>
-                {% endif %}
+                    {% endif %}
+
+                    {% if teacher.profile.professional_memberships %}
+                        <div class="mb-4">
+                            <h3 class="font-bold text-lg mb-2">Professional Memberships</h3>
+                            <div class="flex flex-wrap gap-2">
+                                {% for membership in teacher.profile.professional_memberships.split ',' %}
+                                    <div class="badge badge-outline badge-lg">{{ membership|striptags }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if teacher.profile.dbs_check_status %}
+                        <div>
+                            <h3 class="font-bold text-lg mb-2">Safeguarding</h3>
+                            <div class="badge {% if teacher.profile.dbs_check_status == 'current' %}badge-success{% elif teacher.profile.dbs_check_status == 'in_progress' %}badge-warning{% elif teacher.profile.dbs_check_status == 'equivalent' %}badge-info{% else %}badge-ghost{% endif %} badge-lg">
+                                <i class="fas fa-shield-alt mr-2"></i>
+                                {{ teacher.profile.get_dbs_check_status_display }}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Teaching Specializations -->
+        {% if teacher.profile.instruments_taught or teacher.profile.exam_boards_offered or teacher.profile.age_groups_taught %}
+            <div class="card bg-base-100 shadow-xl mb-8">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-music mr-2 text-primary"></i>
+                        Teaching Specializations
+                    </h2>
+
+                    {% if teacher.profile.instruments_taught %}
+                        <div class="mb-4">
+                            <h3 class="font-bold text-lg mb-2">Instruments & Levels</h3>
+                            <ul class="space-y-1">
+                                {% for line in teacher.profile.instruments_taught.splitlines %}
+                                    {% if line.strip %}
+                                        <li class="flex gap-2">
+                                            <span class="text-secondary">♪</span>
+                                            <span>{{ line|striptags }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if teacher.profile.exam_boards_offered %}
+                        <div class="mb-4">
+                            <h3 class="font-bold text-lg mb-2">Exam Boards</h3>
+                            <div class="flex flex-wrap gap-2">
+                                {% for board in teacher.profile.exam_boards_offered.split ',' %}
+                                    <div class="badge badge-secondary badge-lg">{{ board|striptags }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if teacher.profile.age_groups_taught %}
+                        <div>
+                            <h3 class="font-bold text-lg mb-2">Age Groups</h3>
+                            <div class="flex flex-wrap gap-2">
+                                {% for group in teacher.profile.age_groups_taught.split ',' %}
+                                    <div class="badge badge-outline badge-lg">{{ group|striptags }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         {% endif %}
 

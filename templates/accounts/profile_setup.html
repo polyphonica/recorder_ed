@@ -96,27 +96,17 @@
                             </label>
                             {{ form.bio }}
                             <label class="label">
-                                <span class="label-text-alt text-gray-500">Introduce yourself, share your teaching philosophy and what makes you unique</span>
+                                <span class="label-text-alt text-gray-500">Introduce yourself and share what makes you unique as a music teacher</span>
                             </label>
                         </div>
 
                         <div class="form-control mb-4">
                             <label class="label">
-                                <span class="label-text font-semibold">Teaching Experience & Qualifications</span>
+                                <span class="label-text font-semibold">Teaching Philosophy</span>
                             </label>
-                            {{ form.teaching_experience }}
+                            {{ form.teaching_philosophy }}
                             <label class="label">
-                                <span class="label-text-alt text-gray-500">Your certifications, years of experience, degrees, and credentials</span>
-                            </label>
-                        </div>
-
-                        <div class="form-control mb-4">
-                            <label class="label">
-                                <span class="label-text font-semibold">Specializations</span>
-                            </label>
-                            {{ form.specializations }}
-                            <label class="label">
-                                <span class="label-text-alt text-gray-500">Instruments, musical genres, exam boards (Trinity, ABRSM), age groups, etc.</span>
+                                <span class="label-text-alt text-gray-500">Describe your approach to teaching music</span>
                             </label>
                         </div>
 
@@ -128,6 +118,88 @@
                             {{ form.website }}
                             <label class="label">
                                 <span class="label-text-alt text-gray-500">Your personal or professional website (e.g., portfolio, YouTube channel)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Professional Background Section -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-graduation-cap"></i> Professional Background
+                        </h3>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text font-semibold">Qualifications</span>
+                            </label>
+                            {{ form.qualifications }}
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">List your degrees, diplomas, and certifications (one per line)</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text font-semibold">Professional Memberships</span>
+                                <span class="label-text-alt">Optional</span>
+                            </label>
+                            {{ form.professional_memberships }}
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">Professional organizations you belong to</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">DBS/Background Check Status</span>
+                                <span class="label-text-alt">Required for teaching children</span>
+                            </label>
+                            {{ form.dbs_check_status }}
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">Required for teaching children in the UK</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Teaching Specializations Section -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-music"></i> Teaching Specializations
+                        </h3>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text font-semibold">Instruments Taught</span>
+                            </label>
+                            {{ form.instruments_taught }}
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">List instruments and levels you teach (one per line)</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text font-semibold">Exam Boards Offered</span>
+                                <span class="label-text-alt">Optional</span>
+                            </label>
+                            {{ form.exam_boards_offered }}
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">Exam boards you prepare students for</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Age Groups Taught</span>
+                                <span class="label-text-alt">Optional</span>
+                            </label>
+                            {{ form.age_groups_taught }}
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">Age ranges you're comfortable teaching</span>
                             </label>
                         </div>
                     </div>
