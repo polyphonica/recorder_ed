@@ -31,6 +31,18 @@
             </div>
         </div>
 
+        <div class="stat bg-warning text-warning-content rounded-lg shadow-lg">
+            <div class="stat-title text-white text-lg font-semibold">Waiting List</div>
+            <div class="stat-value text-white text-4xl">{{ waitlist_applications_count }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                {% if waitlist_applications_count > 0 %}
+                    {% if waitlist_applications_count == 1 %}1 student{% else %}{{ waitlist_applications_count }} students{% endif %} waiting
+                {% else %}
+                    No one waiting
+                {% endif %}
+            </div>
+        </div>
+
         <div class="stat bg-primary text-primary-content rounded-lg shadow-lg">
             <div class="stat-title text-white text-lg font-semibold">Pending Lesson Requests</div>
             <div class="stat-value text-white text-4xl">{{ pending_count }}</div>
@@ -72,7 +84,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Pending Applications -->
         <div class="card card-section shadow-xl">
             <div class="card-body">
@@ -121,6 +133,59 @@
                         <div class="text-6xl mb-4">✅</div>
                         <h3 class="text-xl font-semibold mb-2">No pending applications</h3>
                         <p class="text-base-content/70">All applications have been reviewed.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Waiting List -->
+        <div class="card card-section shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title text-2xl">
+                        <i class="fas fa-hourglass-half mr-2"></i>Waiting List
+                    </h2>
+                    {% if waitlist_applications_count > 3 %}
+                        <a href="{% url 'private_teaching:teacher_applications' %}?status=waitlist" class="btn btn-sm btn-outline">View All</a>
+                    {% endif %}
+                </div>
+
+                {% if waitlist_applications %}
+                    <div class="space-y-4">
+                        {% for application in waitlist_applications|slice:":3" %}
+                            <div class="border border-base-300 rounded-lg p-4 bg-warning/5">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="font-semibold">{{ application.student_name }}</h3>
+                                    <span class="badge badge-warning">Waiting</span>
+                                </div>
+
+                                <div class="text-sm text-base-content/70 mb-3">
+                                    <p><strong>From:</strong> {{ application.applicant.get_full_name|default:application.applicant.username }}</p>
+                                    <p><strong>Waiting since:</strong> {{ application.status_changed_at|date:"M j, Y"|default:application.created_at|date:"M j, Y" }}</p>
+                                    {% if application.is_child_application %}
+                                        <p class="text-info"><i class="fas fa-child mr-1"></i>Child student</p>
+                                    {% endif %}
+                                </div>
+
+                                <div class="flex gap-2">
+                                    <a href="{% url 'private_teaching:teacher_application_detail' application_id=application.id %}" class="btn btn-sm btn-warning">Review</a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if waitlist_applications_count > 3 %}
+                        <div class="mt-4 text-center">
+                            <a href="{% url 'private_teaching:teacher_applications' %}?status=waitlist" class="btn btn-outline btn-sm">
+                                View all {{ waitlist_applications_count }} on waiting list
+                            </a>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-8">
+                        <div class="text-6xl mb-4">📋</div>
+                        <h3 class="text-xl font-semibold mb-2">No waiting list</h3>
+                        <p class="text-base-content/70">No students are currently waiting.</p>
                     </div>
                 {% endif %}
             </div>

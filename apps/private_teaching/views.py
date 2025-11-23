@@ -323,6 +323,12 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             status='pending'
         ).select_related('applicant', 'child_profile').order_by('-created_at')
 
+        # Get waitlist applications
+        waitlist_applications = TeacherStudentApplication.objects.filter(
+            teacher=self.request.user,
+            status='waitlist'
+        ).select_related('applicant', 'child_profile').order_by('created_at')
+
         # Get lesson requests for this teacher's subjects with pending lessons
         teacher_subjects = Subject.objects.filter(teacher=self.request.user)
         pending_requests = LessonRequest.objects.filter(
@@ -349,6 +355,8 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
         context.update({
             'pending_applications': pending_applications,
             'pending_applications_count': pending_applications.count(),
+            'waitlist_applications': waitlist_applications,
+            'waitlist_applications_count': waitlist_applications.count(),
             'pending_requests': pending_requests,
             'pending_count': pending_requests.count(),
             'today_lessons': today_lessons,
