@@ -12,6 +12,7 @@ class Ticket(models.Model):
     """
 
     CATEGORY_CHOICES = [
+        ('teacher_application', 'Teacher Application'),
         ('payment', 'Payment Issue'),
         ('technical', 'Technical Support'),
         ('general', 'General Inquiry'),

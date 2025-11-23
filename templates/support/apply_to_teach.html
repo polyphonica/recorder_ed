@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Apply to Teach on RECORDER-ED{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'domain_selector' %}">Home</a></li>
+            <li><a href="{% url 'core:about' %}">About</a></li>
+            <li>Apply to Teach</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-12">
+        <div class="max-w-4xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-12">
+                <h1 class="text-5xl font-bold mb-4">Apply to Teach on RECORDER-ED</h1>
+                <p class="text-xl text-base-content/70">
+                    Share your expertise and help students achieve their musical goals
+                </p>
+            </div>
+
+            <!-- Why Teach With Us Section -->
+            <div class="card bg-base-200 shadow-xl mb-8">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-star mr-2 text-warning"></i>Why Teach With Us?
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="font-bold text-lg mb-2">
+                                <i class="fas fa-calendar-check mr-2 text-primary"></i>Flexible Schedule
+                            </h3>
+                            <p class="text-base-content/70">Set your own availability and teach when it works for you</p>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg mb-2">
+                                <i class="fas fa-pound-sign mr-2 text-success"></i>You Set Your Rates
+                            </h3>
+                            <p class="text-base-content/70">Choose your own pricing - we handle payments and admin</p>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg mb-2">
+                                <i class="fas fa-globe mr-2 text-info"></i>Online & In-Person
+                            </h3>
+                            <p class="text-base-content/70">Teach from your studio or online via Zoom</p>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg mb-2">
+                                <i class="fas fa-users mr-2 text-secondary"></i>Ready Student Base
+                            </h3>
+                            <p class="text-base-content/70">Access students actively looking for teachers</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Application Form -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-6">Application Form</h2>
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <!-- Contact Information -->
+                        <div class="mb-8">
+                            <h3 class="text-xl font-bold mb-4 flex items-center">
+                                <i class="fas fa-user mr-2 text-primary"></i>Contact Information
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="label">
+                                        <span class="label-text font-semibold">{{ form.name.label }}</span>
+                                        <span class="label-text-alt text-error">*</span>
+                                    </label>
+                                    {{ form.name }}
+                                    {% if form.name.errors %}
+                                        <label class="label">
+                                            <span class="label-text-alt text-error">{{ form.name.errors.0 }}</span>
+                                        </label>
+                                    {% endif %}
+                                </div>
+
+                                <div>
+                                    <label class="label">
+                                        <span class="label-text font-semibold">{{ form.email.label }}</span>
+                                        <span class="label-text-alt text-error">*</span>
+                                    </label>
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                        <label class="label">
+                                            <span class="label-text-alt text-error">{{ form.email.errors.0 }}</span>
+                                        </label>
+                                    {% endif %}
+                                </div>
+
+                                <div>
+                                    <label class="label">
+                                        <span class="label-text font-semibold">{{ form.phone.label }}</span>
+                                        <span class="label-text-alt">{{ form.phone.help_text }}</span>
+                                    </label>
+                                    {{ form.phone }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Teaching Experience -->
+                        <div class="mb-8">
+                            <h3 class="text-xl font-bold mb-4 flex items-center">
+                                <i class="fas fa-chalkboard-teacher mr-2 text-secondary"></i>Teaching Experience
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="label">
+                                        <span class="label-text font-semibold">{{ form.teaching_biography.label }}</span>
+                                        <span class="label-text-alt text-error">*</span>
+                                    </label>
+                                    <label class="label">
+                                        <span class="label-text-alt">{{ form.teaching_biography.help_text }}</span>
+                                    </label>
+                                    {{ form.teaching_biography }}
+                                    {% if form.teaching_biography.errors %}
+                                        <label class="label">
+                                            <span class="label-text-alt text-error">{{ form.teaching_biography.errors.0 }}</span>
+                                        </label>
+                                    {% endif %}
+                                </div>
+
+                                <div>
+                                    <label class="label">
+                                        <span class="label-text font-semibold">{{ form.qualifications.label }}</span>
+                                        <span class="label-text-alt text-error">*</span>
+                                    </label>
+                                    <label class="label">
+                                        <span class="label-text-alt">{{ form.qualifications.help_text }}</span>
+                                    </label>
+                                    {{ form.qualifications }}
+                                    {% if form.qualifications.errors %}
+                                        <label class="label">
+                                            <span class="label-text-alt text-error">{{ form.qualifications.errors.0 }}</span>
+                                        </label>
+                                    {% endif %}
+                                </div>
+
+                                <div>
+                                    <label class="label">
+                                        <span class="label-text font-semibold">{{ form.subjects.label }}</span>
+                                        <span class="label-text-alt text-error">*</span>
+                                    </label>
+                                    <label class="label">
+                                        <span class="label-text-alt">{{ form.subjects.help_text }}</span>
+                                    </label>
+                                    {{ form.subjects }}
+                                    {% if form.subjects.errors %}
+                                        <label class="label">
+                                            <span class="label-text-alt text-error">{{ form.subjects.errors.0 }}</span>
+                                        </label>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Safeguarding & Format -->
+                        <div class="mb-8">
+                            <h3 class="text-xl font-bold mb-4 flex items-center">
+                                <i class="fas fa-shield-alt mr-2 text-success"></i>Safeguarding & Teaching Format
+                            </h3>
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="label">
+                                        <span class="label-text font-semibold">{{ form.dbs_check.label }}</span>
+                                        <span class="label-text-alt text-error">*</span>
+                                    </label>
+                                    <label class="label">
+                                        <span class="label-text-alt">{{ form.dbs_check.help_text }}</span>
+                                    </label>
+                                    <div class="space-y-2 ml-4">
+                                        {% for choice in form.dbs_check %}
+                                            <div class="form-control">
+                                                <label class="label cursor-pointer justify-start gap-3">
+                                                    {{ choice.tag }}
+                                                    <span class="label-text">{{ choice.choice_label }}</span>
+                                                </label>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% if form.dbs_check.errors %}
+                                        <label class="label">
+                                            <span class="label-text-alt text-error">{{ form.dbs_check.errors.0 }}</span>
+                                        </label>
+                                    {% endif %}
+                                </div>
+
+                                <div>
+                                    <label class="label">
+                                        <span class="label-text font-semibold">{{ form.teaching_format.label }}</span>
+                                        <span class="label-text-alt text-error">*</span>
+                                    </label>
+                                    <label class="label">
+                                        <span class="label-text-alt">{{ form.teaching_format.help_text }}</span>
+                                    </label>
+                                    <div class="space-y-2 ml-4">
+                                        {% for choice in form.teaching_format %}
+                                            <div class="form-control">
+                                                <label class="label cursor-pointer justify-start gap-3">
+                                                    {{ choice.tag }}
+                                                    <span class="label-text">{{ choice.choice_label }}</span>
+                                                </label>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% if form.teaching_format.errors %}
+                                        <label class="label">
+                                            <span class="label-text-alt text-error">{{ form.teaching_format.errors.0 }}</span>
+                                        </label>
+                                    {% endif %}
+                                </div>
+
+                                <div>
+                                    <label class="label">
+                                        <span class="label-text font-semibold">{{ form.availability.label }}</span>
+                                        <span class="label-text-alt text-error">*</span>
+                                    </label>
+                                    <label class="label">
+                                        <span class="label-text-alt">{{ form.availability.help_text }}</span>
+                                    </label>
+                                    {{ form.availability }}
+                                    {% if form.availability.errors %}
+                                        <label class="label">
+                                            <span class="label-text-alt text-error">{{ form.availability.errors.0 }}</span>
+                                        </label>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Terms Agreement -->
+                        <div class="mb-8">
+                            <div class="alert alert-info">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current flex-shrink-0 w-6 h-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div class="text-sm">
+                                    <p class="font-bold mb-2">Important Information:</p>
+                                    <ul class="list-disc list-inside space-y-1">
+                                        <li>The platform administrator or representative may request to observe your online lessons</li>
+                                        <li>A platform commission will be deducted from lesson fees</li>
+                                        <li>You must comply with safeguarding requirements when teaching children</li>
+                                        <li>Formal qualifications are not required, but teaching competence will be assessed</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="form-control mt-4">
+                                <label class="label cursor-pointer justify-start gap-3">
+                                    {{ form.terms_agreement }}
+                                    <span class="label-text font-semibold">{{ form.terms_agreement.label }}</span>
+                                    <span class="label-text-alt text-error">*</span>
+                                </label>
+                                {% if form.terms_agreement.errors %}
+                                    <label class="label">
+                                        <span class="label-text-alt text-error">{{ form.terms_agreement.errors.0 }}</span>
+                                    </label>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="flex gap-4 justify-end">
+                            <a href="{% url 'core:about' %}" class="btn btn-ghost">Cancel</a>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane mr-2"></i>Submit Application
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- What Happens Next -->
+            <div class="alert alert-success mt-8">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                    <h3 class="font-bold">What Happens Next?</h3>
+                    <div class="text-sm">
+                        <ol class="list-decimal list-inside space-y-1 mt-2">
+                            <li>You'll receive an email confirmation of your application</li>
+                            <li>We'll review your information within 3-5 business days</li>
+                            <li>We may contact you for additional information or to schedule a brief interview</li>
+                            <li>Once approved, we'll help you set up your teacher profile and get started!</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

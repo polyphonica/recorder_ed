@@ -6,6 +6,7 @@ app_name = 'support'
 urlpatterns = [
     # Public
     path('contact/', views.public_contact, name='public_contact'),
+    path('apply-to-teach/', views.apply_to_teach, name='apply_to_teach'),
 
     # Authenticated users
     path('tickets/create/', views.create_ticket, name='create_ticket'),

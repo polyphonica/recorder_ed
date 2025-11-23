@@ -8,7 +8,8 @@ from django.contrib.auth.models import User
 from .models import Ticket, TicketMessage, TicketAttachment
 from .forms import (
     PublicTicketForm, AuthenticatedTicketForm, TicketReplyForm,
-    StaffReplyForm, TicketUpdateForm, TicketAttachmentForm
+    StaffReplyForm, TicketUpdateForm, TicketAttachmentForm,
+    TeacherApplicationForm
 )
 from .decorators import staff_required
 from .notifications import TicketNotificationService
@@ -269,3 +270,37 @@ def update_ticket(request, ticket_number):
         django_messages.success(request, f'Ticket {ticket.ticket_number} updated successfully.')
 
     return redirect('support:ticket_detail', ticket_number=ticket.ticket_number)
+
+
+def apply_to_teach(request):
+    """Public page for prospective teachers to apply"""
+    if request.method == 'POST':
+        form = TeacherApplicationForm(request.POST)
+        if form.is_valid():
+            ticket = form.save(commit=False)
+            # Link to user if authenticated
+            if request.user.is_authenticated:
+                ticket.user = request.user
+            ticket.save()
+
+            # Send notifications - will use admin email for teacher applications
+            TicketNotificationService.send_ticket_created_notification(ticket)
+            TicketNotificationService.send_new_ticket_alert_to_staff(ticket)
+
+            django_messages.success(
+                request,
+                f'Thank you for applying! Your application ({ticket.ticket_number}) has been submitted. '
+                f'We will review your information and contact you at {ticket.email} within 3-5 business days.'
+            )
+            return redirect('support:ticket_detail', ticket_number=ticket.ticket_number)
+    else:
+        # Pre-fill if user is authenticated
+        initial_data = {}
+        if request.user.is_authenticated:
+            initial_data = {
+                'name': request.user.get_full_name() or request.user.username,
+                'email': request.user.email,
+            }
+        form = TeacherApplicationForm(initial=initial_data)
+
+    return render(request, 'support/apply_to_teach.html', {'form': form})

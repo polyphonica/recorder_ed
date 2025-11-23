@@ -58,23 +58,6 @@
                         <form method="post" class="space-y-6">
                             {% csrf_token %}
 
-                            <!-- DEBUG INFO - REMOVE AFTER TROUBLESHOOTING -->
-                            {% if debug_info %}
-                                <div class="alert alert-warning">
-                                    <div>
-                                        <h4 class="font-bold">Debug Info (Guardian/Child Registration)</h4>
-                                        <ul class="text-xs mt-2">
-                                            <li>User: {{ debug_info.user }}</li>
-                                            <li>Has Profile: {{ debug_info.has_profile }}</li>
-                                            <li>Is Guardian: {{ debug_info.is_guardian }}</li>
-                                            <li>Children Count: {{ debug_info.children_count }}</li>
-                                            <li>Delivery Method: {{ debug_info.delivery_method }}</li>
-                                            <li>Form Has Child Field: {{ debug_info.form_has_child_field }}</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            {% endif %}
-
                             <!-- Child Selection for Guardians -->
                             {% if form.child_profile %}
                                 <div class="form-section">
