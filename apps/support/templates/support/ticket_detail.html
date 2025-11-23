@@ -133,9 +133,25 @@
         <div class="card bg-base-100 shadow-xl mb-6">
             <div class="card-body">
                 <h2 class="card-title text-lg">Original Request</h2>
-                <div class="prose max-w-none">
-                    <p class="whitespace-pre-wrap">{{ ticket.description }}</p>
-                </div>
+                {% if ticket.category == 'teacher_application' and user.is_staff %}
+                    <!-- Formatted view for teacher applications (staff only) -->
+                    <div class="space-y-4">
+                        {% for line in ticket.description.splitlines %}
+                            {% if line|slice:":2" == "**" %}
+                                <!-- This is a heading/label line -->
+                                <div class="font-bold text-base mt-4 first:mt-0">{{ line|cut:"**" }}</div>
+                            {% elif line %}
+                                <!-- This is content -->
+                                <div class="text-base-content/80 ml-4">{{ line }}</div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <!-- Standard plain text view -->
+                    <div class="prose max-w-none">
+                        <p class="whitespace-pre-wrap">{{ ticket.description }}</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
 
