@@ -23,7 +23,7 @@ class AboutView(TemplateView):
             },
             {
                 'question': 'How do group workshops work?',
-                'answer': 'Workshops are scheduled group sessions focused on specific topics like technique, ensemble playing, or music theory. Browse available workshops, register for ones that interest you, and pay online. You\'ll receive confirmation and details about the workshop location (online or in-person). Workshops are a great way to learn with other musicians in a collaborative environment.'
+                'answer': 'Workshops are scheduled group sessions focused on specific topics like technique, ensemble playing, or music theory. Browse available workshops, register for ones that interest you, and pay online. You\'ll receive confirmation and details about the workshop location (online or in-person). Workshops are a great way to learn in a fun and active environment. Workshops are often recorded for your future reference.'
             },
             {
                 'question': 'What are online courses and how do they work?',
