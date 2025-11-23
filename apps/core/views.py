@@ -8,6 +8,16 @@ from django.db.models import Q
 from .forms import ContactForm, ProfileForm, FilterForm
 
 
+class PrivacyPolicyView(TemplateView):
+    """Privacy Policy and GDPR compliance page"""
+    template_name = 'core/privacy.html'
+
+
+class TermsConditionsView(TemplateView):
+    """Terms and Conditions page"""
+    template_name = 'core/terms.html'
+
+
 class AboutView(TemplateView):
     """Public About page showcasing platform mission and founder"""
     template_name = 'core/about.html'

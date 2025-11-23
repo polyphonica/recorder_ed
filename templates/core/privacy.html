@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Privacy Policy{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'domain_selector' %}">Home</a></li>
+            <li>Privacy Policy</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-12">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-4xl font-bold mb-6">Privacy Policy</h1>
+            <p class="text-base-content/70 mb-8">Last updated: {{ "now"|date:"F d, Y" }}</p>
+
+            <!-- Introduction -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">1. Introduction</h2>
+                <p class="mb-4">
+                    RECORDER-ED ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains
+                    how we collect, use, disclose, and safeguard your information when you use our music education platform.
+                </p>
+                <p class="mb-4">
+                    We comply with the UK General Data Protection Regulation (UK GDPR) and the Data Protection Act 2018.
+                    This policy applies to all users including students, teachers, parents, and guardians.
+                </p>
+            </section>
+
+            <!-- Data Controller -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">2. Data Controller</h2>
+                <p class="mb-4">
+                    The data controller responsible for your personal data is:
+                </p>
+                <div class="bg-base-200 p-4 rounded-lg mb-4">
+                    <p><strong>RECORDER-ED</strong></p>
+                    <p>[Your Business Address]</p>
+                    <p>Email: [contact email]</p>
+                </div>
+            </section>
+
+            <!-- Information We Collect -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">3. Information We Collect</h2>
+
+                <h3 class="text-xl font-semibold mb-3">3.1 Personal Information</h3>
+                <p class="mb-4">We collect information that you provide directly to us:</p>
+                <ul class="list-disc list-inside mb-4 space-y-2 ml-4">
+                    <li><strong>Account Information:</strong> Name, email address, password, username</li>
+                    <li><strong>Profile Information:</strong> Date of birth, phone number, address</li>
+                    <li><strong>Child Profiles:</strong> Names and dates of birth of children (for parent/guardian accounts)</li>
+                    <li><strong>Payment Information:</strong> Processed securely through Stripe (we do not store card details)</li>
+                    <li><strong>Communications:</strong> Messages between students and teachers, support tickets</li>
+                    <li><strong>Educational Data:</strong> Lesson history, progress notes, shared materials, exam registrations</li>
+                </ul>
+
+                <h3 class="text-xl font-semibold mb-3">3.2 Automatically Collected Information</h3>
+                <ul class="list-disc list-inside mb-4 space-y-2 ml-4">
+                    <li>IP address and device information</li>
+                    <li>Browser type and version</li>
+                    <li>Usage data (pages visited, features used)</li>
+                    <li>Cookies and similar tracking technologies</li>
+                </ul>
+            </section>
+
+            <!-- How We Use Your Information -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">4. How We Use Your Information</h2>
+                <p class="mb-4">We process your personal data on the following lawful bases:</p>
+
+                <h3 class="text-xl font-semibold mb-3">4.1 Contract Performance</h3>
+                <ul class="list-disc list-inside mb-4 space-y-2 ml-4">
+                    <li>Providing access to lessons, workshops, and courses</li>
+                    <li>Processing payments and managing bookings</li>
+                    <li>Facilitating communication between students and teachers</li>
+                    <li>Managing your account and preferences</li>
+                </ul>
+
+                <h3 class="text-xl font-semibold mb-3">4.2 Legitimate Interests</h3>
+                <ul class="list-disc list-inside mb-4 space-y-2 ml-4">
+                    <li>Improving and personalizing your experience</li>
+                    <li>Sending service-related notifications</li>
+                    <li>Analyzing platform usage to improve our services</li>
+                    <li>Preventing fraud and ensuring platform security</li>
+                </ul>
+
+                <h3 class="text-xl font-semibold mb-3">4.3 Legal Obligations</h3>
+                <ul class="list-disc list-inside mb-4 space-y-2 ml-4">
+                    <li>Complying with legal and regulatory requirements</li>
+                    <li>Responding to legal requests and preventing illegal activity</li>
+                </ul>
+
+                <h3 class="text-xl font-semibold mb-3">4.4 Consent</h3>
+                <ul class="list-disc list-inside mb-4 space-y-2 ml-4">
+                    <li>Marketing communications (you can opt out at any time)</li>
+                    <li>Non-essential cookies (you can manage preferences)</li>
+                </ul>
+            </section>
+
+            <!-- Data Sharing -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">5. How We Share Your Information</h2>
+                <p class="mb-4">We share your information only in the following circumstances:</p>
+
+                <ul class="list-disc list-inside mb-4 space-y-2 ml-4">
+                    <li><strong>Teachers and Students:</strong> We share necessary information between teachers and students to facilitate lessons (names, contact details, lesson schedules)</li>
+                    <li><strong>Payment Processors:</strong> Stripe processes payments securely (see Stripe's privacy policy)</li>
+                    <li><strong>Service Providers:</strong> Cloud hosting, email services, and analytics providers under strict data protection agreements</li>
+                    <li><strong>Legal Requirements:</strong> When required by law or to protect rights and safety</li>
+                </ul>
+
+                <p class="mb-4">
+                    <strong>We never sell your personal data to third parties.</strong>
+                </p>
+            </section>
+
+            <!-- Children's Privacy -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">6. Children's Privacy</h2>
+                <p class="mb-4">
+                    We take special care with children's data. Users under 18 must have a parent or guardian create
+                    and manage their account through a child profile system.
+                </p>
+                <ul class="list-disc list-inside mb-4 space-y-2 ml-4">
+                    <li>Parents/guardians provide consent for data processing</li>
+                    <li>We collect only necessary information for educational purposes</li>
+                    <li>Parents can access, update, or delete child data at any time</li>
+                    <li>We comply with children's privacy regulations</li>
+                </ul>
+            </section>
+
+            <!-- Your Rights (GDPR) -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">7. Your Rights Under GDPR</h2>
+                <p class="mb-4">You have the following rights regarding your personal data:</p>
+
+                <ul class="list-disc list-inside mb-4 space-y-2 ml-4">
+                    <li><strong>Right to Access:</strong> Request a copy of your personal data</li>
+                    <li><strong>Right to Rectification:</strong> Correct inaccurate or incomplete data</li>
+                    <li><strong>Right to Erasure:</strong> Request deletion of your data ("right to be forgotten")</li>
+                    <li><strong>Right to Restrict Processing:</strong> Limit how we use your data</li>
+                    <li><strong>Right to Data Portability:</strong> Receive your data in a portable format</li>
+                    <li><strong>Right to Object:</strong> Object to certain types of processing</li>
+                    <li><strong>Right to Withdraw Consent:</strong> Withdraw consent at any time (where processing is based on consent)</li>
+                </ul>
+
+                <p class="mb-4">
+                    To exercise these rights, contact us at [contact email]. We will respond within one month.
+                </p>
+            </section>
+
+            <!-- Data Retention -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">8. Data Retention</h2>
+                <p class="mb-4">We retain your personal data only as long as necessary:</p>
+
+                <ul class="list-disc list-inside mb-4 space-y-2 ml-4">
+                    <li><strong>Active Accounts:</strong> Retained while your account is active</li>
+                    <li><strong>Financial Records:</strong> 7 years (UK tax requirements)</li>
+                    <li><strong>Educational Records:</strong> Deleted when no longer needed for educational purposes</li>
+                    <li><strong>Inactive Accounts:</strong> Deleted after 2 years of inactivity (with notice)</li>
+                </ul>
+            </section>
+
+            <!-- Data Security -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">9. Data Security</h2>
+                <p class="mb-4">We implement appropriate technical and organizational measures to protect your data:</p>
+
+                <ul class="list-disc list-inside mb-4 space-y-2 ml-4">
+                    <li>Encryption of data in transit and at rest</li>
+                    <li>Secure password hashing</li>
+                    <li>Regular security assessments</li>
+                    <li>Access controls and authentication</li>
+                    <li>Secure cloud infrastructure</li>
+                </ul>
+
+                <p class="mb-4">
+                    However, no method of transmission over the internet is 100% secure. We cannot guarantee absolute security.
+                </p>
+            </section>
+
+            <!-- International Transfers -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">10. International Data Transfers</h2>
+                <p class="mb-4">
+                    Your data may be transferred to and stored in countries outside the UK/EEA. When we do this,
+                    we ensure appropriate safeguards are in place, such as:
+                </p>
+                <ul class="list-disc list-inside mb-4 space-y-2 ml-4">
+                    <li>Standard Contractual Clauses approved by the UK ICO</li>
+                    <li>Adequacy decisions by the UK government</li>
+                    <li>Service providers certified under recognized data protection frameworks</li>
+                </ul>
+            </section>
+
+            <!-- Cookies -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">11. Cookies</h2>
+                <p class="mb-4">
+                    We use cookies and similar technologies to enhance your experience. Essential cookies are
+                    necessary for the platform to function. You can control non-essential cookies through your
+                    browser settings.
+                </p>
+                <p class="mb-4">
+                    See our Cookie Policy for detailed information about the cookies we use.
+                </p>
+            </section>
+
+            <!-- Changes to Privacy Policy -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">12. Changes to This Policy</h2>
+                <p class="mb-4">
+                    We may update this Privacy Policy from time to time. We will notify you of significant changes
+                    by email or through a prominent notice on our platform. Continued use after changes constitutes
+                    acceptance of the updated policy.
+                </p>
+            </section>
+
+            <!-- Contact and Complaints -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">13. Contact Us</h2>
+                <p class="mb-4">
+                    If you have questions about this Privacy Policy or wish to exercise your rights:
+                </p>
+                <div class="bg-base-200 p-4 rounded-lg mb-4">
+                    <p><strong>Email:</strong> [privacy email]</p>
+                    <p><strong>Address:</strong> [Your Business Address]</p>
+                </div>
+
+                <p class="mb-4">
+                    <strong>Right to Lodge a Complaint:</strong><br>
+                    You have the right to lodge a complaint with the UK Information Commissioner's Office (ICO):
+                </p>
+                <div class="bg-base-200 p-4 rounded-lg mb-4">
+                    <p><strong>ICO Website:</strong> <a href="https://ico.org.uk" target="_blank" class="link link-primary">https://ico.org.uk</a></p>
+                    <p><strong>Helpline:</strong> 0303 123 1113</p>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

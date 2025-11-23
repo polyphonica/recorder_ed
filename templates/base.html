@@ -401,16 +401,13 @@
     <!-- Footer -->
     <footer class="footer footer-center p-10 bg-base-200 text-base-content rounded mt-16">
         <div class="grid grid-flow-col gap-4">
-            <a class="link link-hover">About us</a>
+            <a href="{% url 'core:about' %}" class="link link-hover">About Us</a>
+            <a href="{% url 'core:privacy' %}" class="link link-hover">Privacy Policy</a>
+            <a href="{% url 'core:terms' %}" class="link link-hover">Terms & Conditions</a>
             <a href="{% url 'support:public_contact' %}" class="link link-hover">Contact Support</a>
             {% if user.is_authenticated %}
             <a href="{% url 'support:my_tickets' %}" class="link link-hover">My Tickets</a>
             {% endif %}
-            <a href="{% url 'courses:view_terms' %}" class="link link-hover">Course Terms & Conditions</a>
-            <a href="{% url 'workshops:terms' %}" class="link link-hover">Workshop Terms & Conditions</a>
-            <a href="{% url 'private_teaching:terms' %}" class="link link-hover">Private Lesson Terms & Conditions</a>
-            <a class="link link-hover">Jobs</a>
-            <a class="link link-hover">Press kit</a>
         </div>
         <div class="grid grid-flow-col gap-4">
             <a class="link">
