@@ -77,6 +77,10 @@
                                         </td>
                                         <td class="text-center">
                                             <div class="flex gap-2 justify-center flex-wrap">
+                                                <a href="{% url 'private_teaching:teacher_student_practice' student_id=student.id %}" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-clipboard-list mr-1"></i>
+                                                    Practice Log
+                                                </a>
                                                 <button
                                                     onclick="viewContactDetails({{ student.id }})"
                                                     class="btn btn-sm btn-primary"

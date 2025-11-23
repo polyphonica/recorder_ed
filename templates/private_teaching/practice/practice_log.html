@@ -1,0 +1,293 @@
+{% extends 'private_teaching/base.html' %}
+{% load static %}
+
+{% block title %}My Practice Log{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'private_teaching:home' %}">Private Teaching</a></li>
+            <li><a href="{% url 'private_teaching:student_dashboard' %}">Dashboard</a></li>
+            <li>Practice Log</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-4xl font-bold">My Practice Log</h1>
+                <p class="text-base-content/70 mt-2">Track your practice sessions and progress</p>
+            </div>
+            <a href="{% url 'private_teaching:log_practice' %}" class="btn btn-primary">
+                <i class="fas fa-plus mr-2"></i>
+                Log Practice Session
+            </a>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <!-- Total Sessions -->
+            <div class="card bg-primary text-primary-content">
+                <div class="card-body">
+                    <h2 class="card-title text-sm opacity-90">Total Sessions</h2>
+                    <p class="text-3xl font-bold">{{ total_sessions }}</p>
+                </div>
+            </div>
+
+            <!-- Total Time -->
+            <div class="card bg-secondary text-secondary-content">
+                <div class="card-body">
+                    <h2 class="card-title text-sm opacity-90">Total Practice Time</h2>
+                    <p class="text-3xl font-bold">{{ total_hours }}h</p>
+                    <p class="text-sm opacity-75">{{ total_minutes }} minutes</p>
+                </div>
+            </div>
+
+            <!-- Last Week -->
+            <div class="card bg-accent text-accent-content">
+                <div class="card-body">
+                    <h2 class="card-title text-sm opacity-90">Last 7 Days</h2>
+                    <p class="text-3xl font-bold">{{ last_week_sessions }}</p>
+                    <p class="text-sm opacity-75">{{ last_week_hours }}h practice</p>
+                </div>
+            </div>
+
+            <!-- Average Enjoyment -->
+            <div class="card bg-success text-success-content">
+                <div class="card-body">
+                    <h2 class="card-title text-sm opacity-90">Avg Enjoyment</h2>
+                    <p class="text-3xl font-bold">
+                        {% if avg_enjoyment %}
+                            {{ avg_enjoyment }}/5
+                            <i class="fas fa-star text-yellow-300 text-xl ml-1"></i>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exam/Performance Stats -->
+        {% if exam_prep_count or performance_prep_count %}
+            <div class="alert alert-info mb-6">
+                <i class="fas fa-trophy text-xl"></i>
+                <div class="flex gap-6">
+                    {% if exam_prep_count %}
+                        <span><i class="fas fa-graduation-cap mr-2"></i>{{ exam_prep_count }} exam prep session{{ exam_prep_count|pluralize }}</span>
+                    {% endif %}
+                    {% if performance_prep_count %}
+                        <span><i class="fas fa-music mr-2"></i>{{ performance_prep_count }} performance prep session{{ performance_prep_count|pluralize }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Filters -->
+        <div class="card bg-base-200 mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-lg mb-4">Filter Practice Entries</h2>
+                <form method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Teacher Filter -->
+                    {% if teachers %}
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Teacher</span>
+                            </label>
+                            <select name="teacher" class="select select-bordered select-sm">
+                                <option value="">All Teachers</option>
+                                {% for teacher in teachers %}
+                                    <option value="{{ teacher.id }}" {% if teacher_filter == teacher.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ teacher.get_full_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    {% endif %}
+
+                    <!-- Child Filter (if guardian) -->
+                    {% if children %}
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Child</span>
+                            </label>
+                            <select name="child" class="select select-bordered select-sm">
+                                <option value="">All Children</option>
+                                {% for child in children %}
+                                    <option value="{{ child.id }}" {% if child_filter == child.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ child.full_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    {% endif %}
+
+                    <!-- Exam Prep Filter -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Exam Preparation</span>
+                        </label>
+                        <select name="exam_prep" class="select select-bordered select-sm">
+                            <option value="">All</option>
+                            <option value="yes" {% if exam_prep_filter == 'yes' %}selected{% endif %}>Exam Prep Only</option>
+                        </select>
+                    </div>
+
+                    <!-- Performance Prep Filter -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Performance Prep</span>
+                        </label>
+                        <select name="performance_prep" class="select select-bordered select-sm">
+                            <option value="">All</option>
+                            <option value="yes" {% if performance_prep_filter == 'yes' %}selected{% endif %}>Performance Prep Only</option>
+                        </select>
+                    </div>
+
+                    <div class="form-control lg:col-span-4 flex flex-row gap-2 justify-end items-end">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fas fa-filter mr-2"></i>
+                            Apply Filters
+                        </button>
+                        <a href="{% url 'private_teaching:practice_log' %}" class="btn btn-ghost btn-sm">
+                            Clear Filters
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Practice Entries List -->
+        {% if practice_entries %}
+            <div class="space-y-4">
+                {% for entry in practice_entries %}
+                    <div class="card bg-base-200 hover:shadow-lg transition">
+                        <div class="card-body">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <h3 class="text-xl font-bold">{{ entry.practice_date|date:"F j, Y" }}</h3>
+                                        <div class="badge badge-primary">{{ entry.duration_minutes }} min</div>
+                                        {% if entry.preparing_for_exam %}
+                                            <div class="badge badge-warning gap-1">
+                                                <i class="fas fa-graduation-cap"></i>
+                                                Exam Prep
+                                            </div>
+                                        {% endif %}
+                                        {% if entry.preparing_for_performance %}
+                                            <div class="badge badge-secondary gap-1">
+                                                <i class="fas fa-music"></i>
+                                                Performance Prep
+                                            </div>
+                                        {% endif %}
+                                        {% if entry.teacher_viewed_at %}
+                                            <div class="badge badge-success gap-1">
+                                                <i class="fas fa-eye"></i>
+                                                Viewed by teacher
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="text-sm text-base-content/70 mb-3">
+                                        <span><i class="fas fa-user mr-1"></i>Teacher: {{ entry.teacher.get_full_name }}</span>
+                                        {% if entry.child_profile %}
+                                            <span class="ml-4"><i class="fas fa-child mr-1"></i>{{ entry.child_profile.full_name }}</span>
+                                        {% endif %}
+                                        {% if entry.enjoyment_rating %}
+                                            <span class="ml-4">
+                                                <i class="fas fa-star mr-1 text-warning"></i>
+                                                Enjoyment: {{ entry.enjoyment_rating }}/5
+                                            </span>
+                                        {% endif %}
+                                    </div>
+
+                                    {% if entry.pieces_practiced %}
+                                        <div class="mb-2">
+                                            <span class="font-semibold text-sm">Pieces:</span>
+                                            <p class="text-sm">{{ entry.pieces_practiced }}</p>
+                                        </div>
+                                    {% endif %}
+
+                                    {% if entry.exercises_practiced %}
+                                        <div class="mb-2">
+                                            <span class="font-semibold text-sm">Exercises:</span>
+                                            <p class="text-sm">{{ entry.exercises_practiced }}</p>
+                                        </div>
+                                    {% endif %}
+
+                                    {% if entry.focus_areas %}
+                                        <div class="mb-2">
+                                            <span class="font-semibold text-sm">Focus:</span>
+                                            <p class="text-sm">{{ entry.focus_areas }}</p>
+                                        </div>
+                                    {% endif %}
+
+                                    {% if entry.achievements %}
+                                        <div class="mb-2">
+                                            <span class="font-semibold text-sm">Achievements:</span>
+                                            <p class="text-sm text-success">{{ entry.achievements }}</p>
+                                        </div>
+                                    {% endif %}
+
+                                    {% if entry.struggles %}
+                                        <div class="mb-2">
+                                            <span class="font-semibold text-sm">Struggles:</span>
+                                            <p class="text-sm text-warning">{{ entry.struggles }}</p>
+                                        </div>
+                                    {% endif %}
+
+                                    {% if entry.teacher_comment %}
+                                        <div class="alert alert-info mt-3">
+                                            <i class="fas fa-comment"></i>
+                                            <div>
+                                                <p class="font-semibold text-sm">Teacher's Comment:</p>
+                                                <p class="text-sm">{{ entry.teacher_comment }}</p>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+                <div class="flex justify-center mt-8">
+                    <div class="join">
+                        {% if page_obj.has_previous %}
+                            <a href="?page=1{% if teacher_filter %}&teacher={{ teacher_filter }}{% endif %}{% if child_filter %}&child={{ child_filter }}{% endif %}{% if exam_prep_filter %}&exam_prep={{ exam_prep_filter }}{% endif %}{% if performance_prep_filter %}&performance_prep={{ performance_prep_filter }}{% endif %}" class="join-item btn btn-sm">«</a>
+                            <a href="?page={{ page_obj.previous_page_number }}{% if teacher_filter %}&teacher={{ teacher_filter }}{% endif %}{% if child_filter %}&child={{ child_filter }}{% endif %}{% if exam_prep_filter %}&exam_prep={{ exam_prep_filter }}{% endif %}{% if performance_prep_filter %}&performance_prep={{ performance_prep_filter }}{% endif %}" class="join-item btn btn-sm">‹</a>
+                        {% endif %}
+
+                        <button class="join-item btn btn-sm btn-active">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</button>
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}{% if teacher_filter %}&teacher={{ teacher_filter }}{% endif %}{% if child_filter %}&child={{ child_filter }}{% endif %}{% if exam_prep_filter %}&exam_prep={{ exam_prep_filter }}{% endif %}{% if performance_prep_filter %}&performance_prep={{ performance_prep_filter }}{% endif %}" class="join-item btn btn-sm">›</a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}{% if teacher_filter %}&teacher={{ teacher_filter }}{% endif %}{% if child_filter %}&child={{ child_filter }}{% endif %}{% if exam_prep_filter %}&exam_prep={{ exam_prep_filter }}{% endif %}{% if performance_prep_filter %}&performance_prep={{ performance_prep_filter }}{% endif %}" class="join-item btn btn-sm">»</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="card bg-base-200">
+                <div class="card-body text-center py-12">
+                    <i class="fas fa-clipboard-list text-6xl text-base-content/20 mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">No Practice Entries Yet</h3>
+                    <p class="text-base-content/70 mb-6">Start logging your practice sessions to track your progress!</p>
+                    <div>
+                        <a href="{% url 'private_teaching:log_practice' %}" class="btn btn-primary">
+                            <i class="fas fa-plus mr-2"></i>
+                            Log Your First Practice Session
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

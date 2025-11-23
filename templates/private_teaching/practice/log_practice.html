@@ -1,0 +1,223 @@
+{% extends 'private_teaching/base.html' %}
+{% load static %}
+
+{% block title %}Log Practice Session{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'private_teaching:home' %}">Private Teaching</a></li>
+            <li><a href="{% url 'private_teaching:student_dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'private_teaching:practice_log' %}">Practice Log</a></li>
+            <li>Log Session</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <div class="mb-6">
+            <h1 class="text-4xl font-bold">Log Practice Session</h1>
+            <p class="text-base-content/70 mt-2">Record your practice session to track progress and share with your teacher</p>
+        </div>
+
+        <!-- Exam/Performance Preparation Alert -->
+        <div class="alert alert-info mb-6">
+            <i class="fas fa-trophy text-xl"></i>
+            <div>
+                <h3 class="font-bold">Track Your Exam & Performance Preparation</h3>
+                <p class="text-sm">Use the checkboxes below to mark sessions preparing for exams or recitals. Your teacher will see your dedication!</p>
+            </div>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Teacher Selection -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Teacher <span class="text-error">*</span></span>
+                </label>
+                <select name="teacher" class="select select-bordered w-full" required>
+                    <option value="">Select your teacher</option>
+                    {% for teacher in teachers %}
+                        <option value="{{ teacher.id }}">{{ teacher.get_full_name }}</option>
+                    {% endfor %}
+                </select>
+                <label class="label">
+                    <span class="label-text-alt">Select which teacher this practice relates to</span>
+                </label>
+            </div>
+
+            <!-- Child Profile (if guardian) -->
+            {% if form.child_profile %}
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">{{ form.child_profile.label }}</span>
+                    </label>
+                    {{ form.child_profile }}
+                    {% if form.child_profile.help_text %}
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.child_profile.help_text }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <!-- Practice Date -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">{{ form.practice_date.label }} <span class="text-error">*</span></span>
+                </label>
+                {{ form.practice_date }}
+                {% if form.practice_date.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.practice_date.errors.0 }}</span>
+                    </label>
+                {% endif %}
+            </div>
+
+            <!-- Duration -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">{{ form.duration_minutes.label }} <span class="text-error">*</span></span>
+                </label>
+                {{ form.duration_minutes }}
+                {% if form.duration_minutes.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.duration_minutes.errors.0 }}</span>
+                    </label>
+                {% endif %}
+            </div>
+
+            <!-- What did you practice? -->
+            <div class="card bg-base-200">
+                <div class="card-body">
+                    <h2 class="card-title">What Did You Practice?</h2>
+
+                    <!-- Pieces Practiced -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ form.pieces_practiced.label }}</span>
+                        </label>
+                        {{ form.pieces_practiced }}
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.pieces_practiced.help_text }}</span>
+                        </label>
+                    </div>
+
+                    <!-- Exercises Practiced -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ form.exercises_practiced.label }}</span>
+                        </label>
+                        {{ form.exercises_practiced }}
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.exercises_practiced.help_text }}</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reflections -->
+            <div class="card bg-base-200">
+                <div class="card-body">
+                    <h2 class="card-title">Reflections</h2>
+
+                    <!-- Focus Areas -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ form.focus_areas.label }}</span>
+                        </label>
+                        {{ form.focus_areas }}
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.focus_areas.help_text }}</span>
+                        </label>
+                    </div>
+
+                    <!-- Struggles -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ form.struggles.label }}</span>
+                        </label>
+                        {{ form.struggles }}
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.struggles.help_text }}</span>
+                        </label>
+                    </div>
+
+                    <!-- Achievements -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ form.achievements.label }}</span>
+                        </label>
+                        {{ form.achievements }}
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.achievements.help_text }}</span>
+                        </label>
+                    </div>
+
+                    <!-- Enjoyment Rating -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ form.enjoyment_rating.label }}</span>
+                        </label>
+                        {{ form.enjoyment_rating }}
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.enjoyment_rating.help_text }}</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exam/Performance Preparation (HIGHLIGHTED) -->
+            <div class="card bg-primary/10 border-2 border-primary">
+                <div class="card-body">
+                    <h2 class="card-title text-primary">
+                        <i class="fas fa-star"></i>
+                        Preparing for Something Special?
+                    </h2>
+                    <p class="text-sm mb-4">Mark if this practice session was in preparation for an upcoming exam or performance!</p>
+
+                    <!-- Preparing for Exam -->
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            {{ form.preparing_for_exam }}
+                            <span class="label-text font-semibold">
+                                <i class="fas fa-graduation-cap text-primary"></i>
+                                {{ form.preparing_for_exam.label }}
+                            </span>
+                        </label>
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.preparing_for_exam.help_text }}</span>
+                        </label>
+                    </div>
+
+                    <!-- Preparing for Performance -->
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            {{ form.preparing_for_performance }}
+                            <span class="label-text font-semibold">
+                                <i class="fas fa-music text-secondary"></i>
+                                {{ form.preparing_for_performance.label }}
+                            </span>
+                        </label>
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.preparing_for_performance.help_text }}</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="flex gap-4 justify-end">
+                <a href="{% url 'private_teaching:practice_log' %}" class="btn btn-ghost">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save mr-2"></i>
+                    Log Practice Session
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

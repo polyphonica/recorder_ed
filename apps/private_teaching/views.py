@@ -13,10 +13,10 @@ from django.core.mail import send_mail
 from django.conf import settings
 
 from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, UserFilterMixin
-from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard, LessonCancellationRequest
+from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard, LessonCancellationRequest, PracticeEntry
 from .notifications import TeacherNotificationService, StudentNotificationService
 from lessons.models import Lesson, Document, LessonAttachedUrl
-from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, ExamRegistrationForm, ExamPieceFormSet, ExamResultsForm
+from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, ExamRegistrationForm, ExamPieceFormSet, ExamResultsForm, PracticeEntryForm
 from .cart import CartManager
 from .mixins import (
     StudentProfileCompletedMixin,
@@ -2074,6 +2074,354 @@ class PrivateLessonTermsView(TemplateView):
         context['current_terms'] = current_terms
 
         return context
+
+
+# ============================================================================
+# PRACTICE DIARY VIEWS
+# ============================================================================
+
+class LogPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
+    """Student logs a new practice session"""
+    template_name = 'private_teaching/practice/log_practice.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = PracticeEntryForm(user=self.request.user)
+
+        # Get teacher options for this student
+        # Find teachers student has lessons with
+        teacher_ids = Lesson.objects.filter(
+            student=self.request.user,
+            approved_status='Accepted',
+            is_deleted=False
+        ).values_list('teacher__id', flat=True).distinct()
+
+        context['teachers'] = User.objects.filter(id__in=teacher_ids).select_related('profile')
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        form = PracticeEntryForm(request.POST, user=request.user)
+
+        if form.is_valid():
+            practice_entry = form.save(commit=False)
+            practice_entry.student = request.user
+
+            # Get selected teacher
+            teacher_id = request.POST.get('teacher')
+            if teacher_id:
+                try:
+                    teacher = User.objects.get(id=teacher_id)
+                    # Verify student has lessons with this teacher
+                    has_lessons = Lesson.objects.filter(
+                        student=request.user,
+                        teacher=teacher,
+                        approved_status='Accepted',
+                        is_deleted=False
+                    ).exists()
+
+                    if has_lessons:
+                        practice_entry.teacher = teacher
+                    else:
+                        messages.error(request, 'Invalid teacher selected.')
+                        return render(request, self.template_name, {
+                            'form': form,
+                            'teachers': User.objects.filter(
+                                id__in=Lesson.objects.filter(
+                                    student=request.user,
+                                    approved_status='Accepted',
+                                    is_deleted=False
+                                ).values_list('teacher__id', flat=True).distinct()
+                            ).select_related('profile')
+                        })
+                except User.DoesNotExist:
+                    messages.error(request, 'Teacher not found.')
+                    return render(request, self.template_name, {
+                        'form': form,
+                        'teachers': User.objects.filter(
+                            id__in=Lesson.objects.filter(
+                                student=request.user,
+                                approved_status='Accepted',
+                                is_deleted=False
+                            ).values_list('teacher__id', flat=True).distinct()
+                        ).select_related('profile')
+                    })
+
+            practice_entry.save()
+
+            # Show success message emphasizing exam/performance prep if applicable
+            success_msg = 'Practice session logged successfully!'
+            if practice_entry.preparing_for_exam:
+                success_msg += ' Keep up the great exam preparation work!'
+            elif practice_entry.preparing_for_performance:
+                success_msg += ' Excellent performance preparation!'
+
+            messages.success(request, success_msg)
+            return redirect('private_teaching:practice_log')
+
+        return render(request, self.template_name, {
+            'form': form,
+            'teachers': User.objects.filter(
+                id__in=Lesson.objects.filter(
+                    student=request.user,
+                    approved_status='Accepted',
+                    is_deleted=False
+                ).values_list('teacher__id', flat=True).distinct()
+            ).select_related('profile')
+        })
+
+
+class PracticeLogView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
+    """Student views their practice log history with statistics"""
+    model = PracticeEntry
+    template_name = 'private_teaching/practice/practice_log.html'
+    context_object_name = 'practice_entries'
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = PracticeEntry.objects.filter(
+            student=self.request.user
+        ).select_related('teacher', 'teacher__profile', 'child_profile', 'lesson_request').order_by('-practice_date', '-created_at')
+
+        # Filter by child if guardian
+        child_id = self.request.GET.get('child')
+        if child_id:
+            queryset = queryset.filter(child_profile__id=child_id)
+
+        # Filter by teacher
+        teacher_id = self.request.GET.get('teacher')
+        if teacher_id:
+            queryset = queryset.filter(teacher__id=teacher_id)
+
+        # Filter by exam prep
+        exam_prep = self.request.GET.get('exam_prep')
+        if exam_prep == 'yes':
+            queryset = queryset.filter(preparing_for_exam=True)
+
+        # Filter by performance prep
+        performance_prep = self.request.GET.get('performance_prep')
+        if performance_prep == 'yes':
+            queryset = queryset.filter(preparing_for_performance=True)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from datetime import timedelta
+        from django.db.models import Sum, Avg, Count
+
+        # Get all practice entries for stats (not filtered by pagination)
+        all_entries = PracticeEntry.objects.filter(student=self.request.user)
+
+        # Apply same filters as queryset
+        child_id = self.request.GET.get('child')
+        if child_id:
+            all_entries = all_entries.filter(child_profile__id=child_id)
+
+        teacher_id = self.request.GET.get('teacher')
+        if teacher_id:
+            all_entries = all_entries.filter(teacher__id=teacher_id)
+
+        exam_prep = self.request.GET.get('exam_prep')
+        if exam_prep == 'yes':
+            all_entries = all_entries.filter(preparing_for_exam=True)
+
+        performance_prep = self.request.GET.get('performance_prep')
+        if performance_prep == 'yes':
+            all_entries = all_entries.filter(preparing_for_performance=True)
+
+        # Calculate statistics
+        stats = all_entries.aggregate(
+            total_sessions=Count('id'),
+            total_minutes=Sum('duration_minutes'),
+            avg_duration=Avg('duration_minutes'),
+            avg_enjoyment=Avg('enjoyment_rating')
+        )
+
+        # Calculate last 7 days stats
+        from datetime import date
+        seven_days_ago = date.today() - timedelta(days=7)
+        last_week_entries = all_entries.filter(practice_date__gte=seven_days_ago)
+        last_week_stats = last_week_entries.aggregate(
+            sessions=Count('id'),
+            minutes=Sum('duration_minutes')
+        )
+
+        # Count exam and performance prep entries
+        exam_prep_count = all_entries.filter(preparing_for_exam=True).count()
+        performance_prep_count = all_entries.filter(preparing_for_performance=True).count()
+
+        context.update({
+            'total_sessions': stats['total_sessions'] or 0,
+            'total_minutes': stats['total_minutes'] or 0,
+            'total_hours': round((stats['total_minutes'] or 0) / 60, 1),
+            'avg_duration': round(stats['avg_duration'] or 0),
+            'avg_enjoyment': round(stats['avg_enjoyment'] or 0, 1) if stats['avg_enjoyment'] else None,
+            'last_week_sessions': last_week_stats['sessions'] or 0,
+            'last_week_minutes': last_week_stats['minutes'] or 0,
+            'last_week_hours': round((last_week_stats['minutes'] or 0) / 60, 1),
+            'exam_prep_count': exam_prep_count,
+            'performance_prep_count': performance_prep_count,
+        })
+
+        # Get filter options
+        if self.request.user.profile.is_guardian:
+            from apps.accounts.models import ChildProfile
+            context['children'] = ChildProfile.objects.filter(guardian=self.request.user)
+
+        teacher_ids = PracticeEntry.objects.filter(
+            student=self.request.user
+        ).values_list('teacher__id', flat=True).distinct()
+        context['teachers'] = User.objects.filter(id__in=teacher_ids).select_related('profile')
+
+        # Pass current filters
+        context['child_filter'] = child_id
+        context['teacher_filter'] = teacher_id
+        context['exam_prep_filter'] = exam_prep
+        context['performance_prep_filter'] = performance_prep
+
+        return context
+
+
+class TeacherStudentPracticeView(TeacherProfileCompletedMixin, ListView):
+    """Teacher views a specific student's practice log"""
+    model = PracticeEntry
+    template_name = 'private_teaching/practice/teacher_student_practice.html'
+    context_object_name = 'practice_entries'
+    paginate_by = 20
+
+    def get_student(self):
+        """Get the student whose practice log is being viewed"""
+        student_id = self.kwargs.get('student_id')
+        student = get_object_or_404(User, id=student_id)
+
+        # Verify teacher has lessons with this student
+        has_lessons = Lesson.objects.filter(
+            teacher=self.request.user,
+            student=student,
+            approved_status='Accepted',
+            is_deleted=False
+        ).exists()
+
+        if not has_lessons:
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("You don't have permission to view this student's practice log.")
+
+        return student
+
+    def get_queryset(self):
+        student = self.get_student()
+
+        queryset = PracticeEntry.objects.filter(
+            student=student,
+            teacher=self.request.user
+        ).select_related('child_profile', 'lesson_request').order_by('-practice_date', '-created_at')
+
+        # Filter by exam prep
+        exam_prep = self.request.GET.get('exam_prep')
+        if exam_prep == 'yes':
+            queryset = queryset.filter(preparing_for_exam=True)
+
+        # Filter by performance prep
+        performance_prep = self.request.GET.get('performance_prep')
+        if performance_prep == 'yes':
+            queryset = queryset.filter(preparing_for_performance=True)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from datetime import timedelta
+        from django.db.models import Sum, Avg, Count
+
+        student = self.get_student()
+        context['viewed_student'] = student
+
+        # Get all practice entries for stats
+        all_entries = PracticeEntry.objects.filter(
+            student=student,
+            teacher=self.request.user
+        )
+
+        # Apply same filters as queryset
+        exam_prep = self.request.GET.get('exam_prep')
+        if exam_prep == 'yes':
+            all_entries = all_entries.filter(preparing_for_exam=True)
+
+        performance_prep = self.request.GET.get('performance_prep')
+        if performance_prep == 'yes':
+            all_entries = all_entries.filter(preparing_for_performance=True)
+
+        # Calculate statistics
+        stats = all_entries.aggregate(
+            total_sessions=Count('id'),
+            total_minutes=Sum('duration_minutes'),
+            avg_duration=Avg('duration_minutes'),
+            avg_enjoyment=Avg('enjoyment_rating')
+        )
+
+        # Calculate last 7 days stats
+        from datetime import date
+        seven_days_ago = date.today() - timedelta(days=7)
+        last_week_entries = all_entries.filter(practice_date__gte=seven_days_ago)
+        last_week_stats = last_week_entries.aggregate(
+            sessions=Count('id'),
+            minutes=Sum('duration_minutes')
+        )
+
+        # Count exam and performance prep entries
+        exam_prep_count = all_entries.filter(preparing_for_exam=True).count()
+        performance_prep_count = all_entries.filter(preparing_for_performance=True).count()
+
+        # Mark entries as viewed by teacher
+        PracticeEntry.objects.filter(
+            student=student,
+            teacher=self.request.user,
+            teacher_viewed_at__isnull=True
+        ).update(teacher_viewed_at=timezone.now())
+
+        context.update({
+            'total_sessions': stats['total_sessions'] or 0,
+            'total_minutes': stats['total_minutes'] or 0,
+            'total_hours': round((stats['total_minutes'] or 0) / 60, 1),
+            'avg_duration': round(stats['avg_duration'] or 0),
+            'avg_enjoyment': round(stats['avg_enjoyment'] or 0, 1) if stats['avg_enjoyment'] else None,
+            'last_week_sessions': last_week_stats['sessions'] or 0,
+            'last_week_minutes': last_week_stats['minutes'] or 0,
+            'last_week_hours': round((last_week_stats['minutes'] or 0) / 60, 1),
+            'exam_prep_count': exam_prep_count,
+            'performance_prep_count': performance_prep_count,
+        })
+
+        # Pass current filters
+        context['exam_prep_filter'] = exam_prep
+        context['performance_prep_filter'] = performance_prep
+
+        return context
+
+
+class AddPracticeCommentView(TeacherProfileCompletedMixin, View):
+    """Teacher adds comment to a practice entry"""
+
+    def post(self, request, *args, **kwargs):
+        entry_id = kwargs.get('entry_id')
+        practice_entry = get_object_or_404(
+            PracticeEntry,
+            id=entry_id,
+            teacher=request.user
+        )
+
+        teacher_comment = request.POST.get('teacher_comment', '').strip()
+
+        if teacher_comment:
+            practice_entry.teacher_comment = teacher_comment
+            practice_entry.teacher_viewed_at = timezone.now()
+            practice_entry.save(update_fields=['teacher_comment', 'teacher_viewed_at'])
+            messages.success(request, 'Comment added successfully!')
+        else:
+            messages.error(request, 'Comment cannot be empty.')
+
+        return redirect('private_teaching:teacher_student_practice', student_id=practice_entry.student.id)
 
 
 # ============================================================================
