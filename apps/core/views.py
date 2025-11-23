@@ -35,7 +35,7 @@ class AboutView(TemplateView):
             },
             {
                 'question': 'Are lessons available online or in-person?',
-                'answer': 'Yes! For <strong>private lessons</strong>, each teacher sets their preferences - online via Zoom, in-person at their studio, or at your location. <strong>Workshops</strong> can be held online or in-person, as specified in the workshop details. <strong>Online courses</strong> are entirely self-paced and accessible from anywhere.'
+                'answer': 'Both options are available! For <strong>private lessons</strong>, each teacher sets their preferences - online via Zoom, in-person at their studio, or at your location. <strong>Workshops</strong> can be held online or in-person, as specified in the workshop details. <strong>Online courses</strong> are entirely self-paced and accessible from anywhere.'
             },
             {
                 'question': 'What is your cancellation policy?',
