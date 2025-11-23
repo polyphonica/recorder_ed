@@ -45,58 +45,120 @@
                         <tbody>
                             {% for data in student_data %}
                                 {% with student=data.user %}
-                                    <tr class="hover">
-                                        <td class="font-semibold">
-                                            {% if student.profile.last_name %}
-                                                {{ student.profile.last_name }}
-                                            {% else %}
-                                                {{ student.last_name|default:"—" }}
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if student.profile.first_name %}
-                                                {{ student.profile.first_name }}
-                                            {% else %}
-                                                {{ student.first_name|default:"—" }}
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ student.email|default:"No email" }}</td>
-                                        <td>
-                                            {% if data.subjects %}
-                                                <div class="flex flex-wrap gap-1">
-                                                    {% for subject in data.subjects %}
-                                                        <span class="badge badge-primary badge-sm">{{ subject.subject }}</span>
-                                                    {% endfor %}
+                                    {% if data.is_guardian %}
+                                        {# Guardian with child students - show each child as a separate row #}
+                                        {% for child in data.child_profiles %}
+                                            <tr class="hover">
+                                                <td class="font-semibold">
+                                                    {{ child.last_name }}
+                                                </td>
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        {{ child.first_name }}
+                                                        <span class="badge badge-warning badge-sm">
+                                                            <i class="fas fa-child mr-1"></i>
+                                                            Child ({{ child.age }} yrs)
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="text-sm">
+                                                        <div>Guardian: {{ student.get_full_name }}</div>
+                                                        <div class="text-base-content/70">{{ student.email|default:"No email" }}</div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    {% if data.subjects %}
+                                                        <div class="flex flex-wrap gap-1">
+                                                            {% for subject in data.subjects %}
+                                                                <span class="badge badge-primary badge-sm">{{ subject.subject }}</span>
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% else %}
+                                                        —
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-info">{{ data.total_lessons }}</span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <div class="flex gap-2 justify-center flex-wrap">
+                                                        <a href="{% url 'private_teaching:teacher_student_practice' student_id=student.id %}" class="btn btn-sm btn-success">
+                                                            <i class="fas fa-clipboard-list mr-1"></i>
+                                                            Practice Log
+                                                        </a>
+                                                        <button
+                                                            onclick="viewContactDetails({{ student.id }})"
+                                                            class="btn btn-sm btn-primary"
+                                                        >
+                                                            <i class="fas fa-address-card mr-1"></i>
+                                                            Contact Details
+                                                        </button>
+                                                        <a href="{% url 'private_teaching:exam_create' %}?student={{ student.id }}" class="btn btn-sm btn-accent">
+                                                            <i class="fas fa-graduation-cap mr-1"></i>Register for Exam
+                                                        </a>
+                                                        <a href="{% url 'messaging:start_private_teaching_conversation' student.id %}" class="btn btn-sm btn-outline">
+                                                            💬 Message
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        {# Adult student #}
+                                        <tr class="hover">
+                                            <td class="font-semibold">
+                                                {% if student.profile.last_name %}
+                                                    {{ student.profile.last_name }}
+                                                {% else %}
+                                                    {{ student.last_name|default:"—" }}
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if student.profile.first_name %}
+                                                    {{ student.profile.first_name }}
+                                                {% else %}
+                                                    {{ student.first_name|default:"—" }}
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ student.email|default:"No email" }}</td>
+                                            <td>
+                                                {% if data.subjects %}
+                                                    <div class="flex flex-wrap gap-1">
+                                                        {% for subject in data.subjects %}
+                                                            <span class="badge badge-primary badge-sm">{{ subject.subject }}</span>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% else %}
+                                                    —
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-info">{{ data.total_lessons }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="flex gap-2 justify-center flex-wrap">
+                                                    <a href="{% url 'private_teaching:teacher_student_practice' student_id=student.id %}" class="btn btn-sm btn-success">
+                                                        <i class="fas fa-clipboard-list mr-1"></i>
+                                                        Practice Log
+                                                    </a>
+                                                    <button
+                                                        onclick="viewContactDetails({{ student.id }})"
+                                                        class="btn btn-sm btn-primary"
+                                                    >
+                                                        <i class="fas fa-address-card mr-1"></i>
+                                                        Contact Details
+                                                    </button>
+                                                    <a href="{% url 'private_teaching:exam_create' %}?student={{ student.id }}" class="btn btn-sm btn-accent">
+                                                        <i class="fas fa-graduation-cap mr-1"></i>Register for Exam
+                                                    </a>
+                                                    <a href="{% url 'messaging:start_private_teaching_conversation' student.id %}" class="btn btn-sm btn-outline">
+                                                        💬 Message
+                                                    </a>
                                                 </div>
-                                            {% else %}
-                                                —
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <span class="badge badge-info">{{ data.total_lessons }}</span>
-                                        </td>
-                                        <td class="text-center">
-                                            <div class="flex gap-2 justify-center flex-wrap">
-                                                <a href="{% url 'private_teaching:teacher_student_practice' student_id=student.id %}" class="btn btn-sm btn-success">
-                                                    <i class="fas fa-clipboard-list mr-1"></i>
-                                                    Practice Log
-                                                </a>
-                                                <button
-                                                    onclick="viewContactDetails({{ student.id }})"
-                                                    class="btn btn-sm btn-primary"
-                                                >
-                                                    <i class="fas fa-address-card mr-1"></i>
-                                                    Contact Details
-                                                </button>
-                                                <a href="{% url 'private_teaching:exam_create' %}?student={{ student.id }}" class="btn btn-sm btn-accent">
-                                                    <i class="fas fa-graduation-cap mr-1"></i>Register for Exam
-                                                </a>
-                                                <a href="{% url 'messaging:start_private_teaching_conversation' student.id %}" class="btn btn-sm btn-outline">
-                                                    💬 Message
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
                                 {% endwith %}
                             {% endfor %}
                         </tbody>

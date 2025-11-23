@@ -1265,6 +1265,8 @@ class TeacherStudentsListView(TeacherProfileCompletedMixin, ListView):
 
         # Add lesson counts and subjects for each student
         from lessons.models import Lesson
+        from apps.accounts.models import ChildProfile
+
         student_data = []
         for student in context['students']:
             lessons = Lesson.objects.filter(
@@ -1272,7 +1274,7 @@ class TeacherStudentsListView(TeacherProfileCompletedMixin, ListView):
                 student=student,
                 approved_status='Accepted',
                 is_deleted=False
-            ).select_related('subject')
+            ).select_related('subject', 'lesson_request', 'lesson_request__child_profile')
 
             # Get unique subjects for this student
             subjects = Subject.objects.filter(
@@ -1282,10 +1284,21 @@ class TeacherStudentsListView(TeacherProfileCompletedMixin, ListView):
                 lesson__is_deleted=False
             ).distinct()
 
+            # Check if any lessons are for a child
+            # Get all unique child profiles for this guardian
+            child_profiles = []
+            for lesson in lessons:
+                if lesson.lesson_request and lesson.lesson_request.child_profile:
+                    child_profile = lesson.lesson_request.child_profile
+                    if child_profile not in child_profiles:
+                        child_profiles.append(child_profile)
+
             student_data.append({
                 'user': student,
                 'total_lessons': lessons.count(),
-                'subjects': subjects
+                'subjects': subjects,
+                'child_profiles': child_profiles,  # List of children this guardian has lessons for
+                'is_guardian': len(child_profiles) > 0,
             })
 
         context['student_data'] = student_data
