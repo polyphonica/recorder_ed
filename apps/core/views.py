@@ -53,7 +53,11 @@ class AboutView(TemplateView):
             },
             {
                 'question': 'How does payment work?',
-                'answer': 'All payments are processed securely through Stripe. For <strong>private lessons</strong>, you pay the full lesson fee after your teacher approves your request - teachers receive their share after a platform commission is deducted. For <strong>workshops and courses</strong>, payment is required during registration. The platform commission helps support infrastructure, payment processing, and ongoing development.'
+                'answer': 'All payments are processed securely through Stripe in GBP (£). For <strong>private lessons</strong>, you pay the full lesson fee after your teacher approves your request - teachers receive their share after a platform commission is deducted. For <strong>workshops and courses</strong>, payment is required during registration. The platform commission helps support infrastructure, payment processing, and ongoing development.'
+            },
+            {
+                'question': 'What currencies do you accept?',
+                'answer': 'RECORDER-ED currently operates in the UK market with all pricing in GBP (£). Students can pay from anywhere in the world - your bank or card provider will handle the currency conversion. As we grow, we may add support for additional currencies for teachers in the future.'
             },
             {
                 'question': 'Can I register my child for lessons, workshops, or courses?',
