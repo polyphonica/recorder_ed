@@ -271,7 +271,7 @@
                             {{ faq.question }}
                         </div>
                         <div class="collapse-content">
-                            <p class="text-base-content/80">{{ faq.answer }}</p>
+                            <p class="text-base-content/80">{{ faq.answer|safe }}</p>
                         </div>
                     </div>
                     {% endfor %}
