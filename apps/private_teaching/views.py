@@ -808,6 +808,27 @@ class SubjectUpdateView(TeacherProfileCompletedMixin, View):
         return redirect('private_teaching:teacher_settings')
 
 
+class SubjectReorderView(TeacherProfileCompletedMixin, View):
+    """Reorder subjects via AJAX"""
+
+    def post(self, request, *args, **kwargs):
+        import json
+        try:
+            data = json.loads(request.body)
+            subject_ids = data.get('subject_ids', [])
+
+            # Update display_order for each subject
+            for index, subject_id in enumerate(subject_ids):
+                Subject.objects.filter(
+                    id=subject_id,
+                    teacher=request.user
+                ).update(display_order=index)
+
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
 class SubjectDeleteView(TeacherProfileCompletedMixin, View):
     """Delete subject for teacher"""
 

@@ -32,11 +32,15 @@ class Subject(models.Model):
         default=True,
         help_text="Whether this subject is currently offered"
     )
+    display_order = models.IntegerField(
+        default=0,
+        help_text="Order in which subjects are displayed (lower numbers appear first)"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['subject']
+        ordering = ['display_order', 'subject']
         verbose_name = 'Subject'
         verbose_name_plural = 'Subjects'
         unique_together = ['teacher', 'subject']
