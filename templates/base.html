@@ -85,7 +85,10 @@
                 <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
                     <li><a href="{% url 'core:about' %}"><i class="fas fa-info-circle mr-1"></i>About</a></li>
                     <li class="border-t mt-2 pt-2"></li>
-                    {% if user.is_authenticated and user.is_instructor %}
+                    {% if user.is_authenticated and user.is_staff %}
+                        {# Staff mobile navigation - only Support Dashboard #}
+                        <li><a href="{% url 'support:staff_dashboard' %}"><i class="fas fa-headset mr-1"></i>Support Dashboard</a></li>
+                    {% elif user.is_authenticated and user.is_instructor %}
                         {# Teacher mobile navigation #}
                         <li><a href="{% url 'workshops:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold{% endif %}">Workshops</a></li>
                         <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold{% endif %}">Private Lessons</a></li>
@@ -110,7 +113,10 @@
         <div class="navbar-center hidden lg:flex">
             <ul class="menu menu-horizontal px-1">
                 <li><a href="{% url 'core:about' %}" class="{% if request.resolver_match.url_name == 'about' %}font-bold bg-primary text-primary-content{% endif %}">About</a></li>
-                {% if user.is_authenticated and user.is_instructor %}
+                {% if user.is_authenticated and user.is_staff %}
+                    {# Staff navigation - only Support Dashboard #}
+                    <li><a href="{% url 'support:staff_dashboard' %}" class="{% if request.resolver_match.url_name == 'staff_dashboard' %}font-bold bg-primary text-primary-content{% endif %}"><i class="fas fa-headset mr-2"></i>Support Dashboard</a></li>
+                {% elif user.is_authenticated and user.is_instructor %}
                     {# Teacher navigation - goes to dashboards #}
                     <li><a href="{% url 'workshops:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold bg-primary text-primary-content{% endif %}">Workshops</a></li>
                     <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold bg-primary text-primary-content{% endif %}">Private Lessons</a></li>
@@ -151,7 +157,7 @@
             </div>
 
             <!-- Shopping Cart (Students only) - Context-aware -->
-            {% if user.is_authenticated and not user.is_instructor %}
+            {% if user.is_authenticated and not user.is_instructor and not user.is_staff %}
                 <div class="mr-4">
                     {% if request.resolver_match.namespace == 'workshops' %}
                         {# In workshops section → link to workshop cart #}
@@ -226,8 +232,18 @@
                             <span>{{ user.profile.full_name|default:user.username }}</span>
                         </li>
 
+                        <!-- Staff menu items - simplified view -->
+                        {% if user.is_staff %}
+                            <li class="menu-title"><span>Support</span></li>
+                            <li><a href="{% url 'support:staff_dashboard' %}"><i class="fas fa-headset mr-2"></i>Support Dashboard</a></li>
+                            <li><a href="{% url 'support:my_tickets' %}"><i class="fas fa-ticket-alt mr-2"></i>My Tickets</a></li>
+
+                            <div class="divider my-1"></div>
+                            <li><a href="{% url 'accounts:profile_edit' %}"><i class="fas fa-user-circle mr-2"></i>My Profile</a></li>
+                            <li><a href="{% url 'messaging:inbox' %}"><i class="fas fa-envelope mr-2"></i>Messages</a></li>
+
                         <!-- Teacher menu items - contextual by app -->
-                        {% if user.is_instructor %}
+                        {% elif user.is_instructor %}
                             {% if request.resolver_match.namespace == 'workshops' %}
                                 {# WORKSHOPS APP MENU #}
                                 <li class="menu-title"><span>My Workshops</span></li>
@@ -262,9 +278,6 @@
                             <div class="divider my-1"></div>
                             <li><a href="{% url 'accounts:profile_edit' %}"><i class="fas fa-user-circle mr-2"></i>My Profile</a></li>
                             <li><a href="{% url 'support:my_tickets' %}"><i class="fas fa-ticket-alt mr-2"></i>Support Tickets</a></li>
-                            {% if user.is_staff %}
-                            <li><a href="{% url 'support:staff_dashboard' %}"><i class="fas fa-headset mr-2"></i>Support Dashboard</a></li>
-                            {% endif %}
 
                         {% else %}
                             {# STUDENT MENU #}
@@ -284,9 +297,6 @@
                             <div class="divider my-1"></div>
                             <li><a href="{% url 'accounts:profile_edit' %}"><i class="fas fa-user-circle mr-2"></i>My Profile</a></li>
                             <li><a href="{% url 'support:my_tickets' %}"><i class="fas fa-ticket-alt mr-2"></i>Support Tickets</a></li>
-                            {% if user.is_staff %}
-                            <li><a href="{% url 'support:staff_dashboard' %}"><i class="fas fa-headset mr-2"></i>Support Dashboard</a></li>
-                            {% endif %}
                         {% endif %}
 
                         <div class="divider my-1"></div>
@@ -321,7 +331,7 @@
     </nav>
 
     <!-- Tier 2: Domain-Specific Navigation -->
-    {% if user.is_authenticated and request.resolver_match.namespace in 'private_teaching,lessons,expenses' %}
+    {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace in 'private_teaching,lessons,expenses' %}
         <div class="bg-base-300 shadow-sm">
             <div class="container mx-auto">
                 <div class="navbar justify-center py-2">
@@ -347,7 +357,7 @@
     {% endif %}
 
     <!-- Courses Domain-Specific Navigation -->
-    {% if user.is_authenticated and request.resolver_match.namespace in 'courses,audioplayer' %}
+    {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace in 'courses,audioplayer' %}
         <div class="bg-base-300 shadow-sm">
             <div class="container mx-auto">
                 <div class="navbar justify-center py-2">
