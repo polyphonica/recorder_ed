@@ -1,10 +1,13 @@
 from django.urls import path
+from django.contrib.auth import views as auth_views
 from . import views
 from .revenue_views import TeacherRevenueDashboardView, TeacherRevenueExportView
 
 app_name = 'accounts'
 
 urlpatterns = [
+    # Custom login view with role-based redirects
+    path('login/', views.CustomLoginView.as_view(), name='login'),
     path('signup/', views.SignUpView.as_view(), name='signup'),
     path('profile/setup/', views.profile_setup_view, name='profile_setup'),
     path('profile/edit/', views.profile_edit_view, name='profile_edit'),

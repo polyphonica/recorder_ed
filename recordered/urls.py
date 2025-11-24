@@ -28,8 +28,8 @@ from .sitemaps import sitemaps
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('accounts/', include('django.contrib.auth.urls')),
-    path('accounts/', include('apps.accounts.urls')),
+    path('accounts/', include('apps.accounts.urls')),  # Custom login view here
+    path('accounts/', include('django.contrib.auth.urls')),  # Other auth views (logout, password reset, etc.)
     path('core/', include('apps.core.urls')),  # Core demo pages
     path('workshops/', include('apps.workshops.urls')),
     path('payments/', include('apps.payments.urls')),

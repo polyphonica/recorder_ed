@@ -3,11 +3,29 @@ from django.contrib.auth import login, authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, DetailView
+from django.contrib.auth.views import LoginView
 from .forms import CustomUserCreationForm, UserProfileForm, ChildProfileForm, AccountTransferForm
 from .models import UserProfile, ChildProfile
 from django.db import transaction
+
+
+class CustomLoginView(LoginView):
+    """
+    Custom login view that redirects users based on their role:
+    - Staff members → Support Dashboard
+    - Instructors → Workshops Dashboard (default)
+    - Students → Workshops list (default)
+    """
+    def get_success_url(self):
+        # Check if user is staff
+        if self.request.user.is_staff:
+            return reverse('support:staff_dashboard')
+
+        # Use the default LOGIN_REDIRECT_URL for other users
+        return super().get_success_url()
+
 
 class SignUpView(CreateView):
     form_class = CustomUserCreationForm
