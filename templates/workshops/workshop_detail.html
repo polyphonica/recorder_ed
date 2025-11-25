@@ -343,35 +343,88 @@
                                 {% if workshop.is_series %}
                                     <!-- Series Pricing Display -->
                                     <div class="mb-2">
-                                        <div class="badge badge-secondary badge-lg mb-2">{{ workshop.series_session_count }}-Session Series</div>
+                                        <div class="badge badge-secondary badge-lg mb-2">
+                                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            {{ workshop.series_session_count }}-Session Series
+                                        </div>
+                                        {% if workshop.require_full_series_registration %}
+                                            <div class="badge badge-warning badge-sm">Must purchase all sessions</div>
+                                        {% else %}
+                                            <div class="badge badge-info badge-sm">Individual or series purchase</div>
+                                        {% endif %}
                                     </div>
-                                    {% if workshop.has_series_discount %}
-                                        <div class="text-3xl font-bold">
+
+                                    {% if workshop.require_full_series_registration %}
+                                        {# Mandatory series - emphasize total price #}
+                                        <div class="text-4xl font-bold mb-1">
                                             <span class="text-primary">£{{ workshop.series_price }}</span>
                                         </div>
                                         <p class="text-base-content/70 mb-2">for all {{ workshop.series_session_count }} sessions</p>
-                                        <div class="bg-success/10 border border-success/20 rounded-lg p-2 mb-2">
-                                            <p class="text-sm text-success font-semibold">
-                                                Save £{{ workshop.series_savings }} vs individual sessions!
-                                            </p>
-                                            <p class="text-xs text-base-content/60">
-                                                (£{{ workshop.price }} per session individually)
-                                            </p>
-                                        </div>
+
+                                        {% if workshop.has_series_discount %}
+                                            <div class="bg-success/10 border-2 border-success/30 rounded-lg p-3 mb-2">
+                                                <div class="flex items-center justify-center gap-2 mb-1">
+                                                    <svg class="w-5 h-5 text-success" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    <p class="text-lg text-success font-bold">
+                                                        💰 Save £{{ workshop.series_savings }}!
+                                                    </p>
+                                                </div>
+                                                <p class="text-sm text-base-content/70">
+                                                    That's £{{ workshop.price|floatformat:2 }} per session
+                                                    <span class="text-xs">(normally £{{ workshop.price }} each)</span>
+                                                </p>
+                                            </div>
+                                        {% else %}
+                                            <div class="bg-base-200 rounded-lg p-2 mb-2">
+                                                <p class="text-sm text-base-content/70">
+                                                    £{{ workshop.price|floatformat:2 }} per session
+                                                </p>
+                                            </div>
+                                        {% endif %}
                                     {% else %}
-                                        <div class="text-3xl font-bold">
-                                            {% if workshop.is_free %}
-                                                <span class="text-success">Free</span>
+                                        {# Optional series - show both options #}
+                                        <div class="space-y-3">
+                                            <!-- Per Session Option -->
+                                            <div class="border-2 border-base-300 rounded-lg p-3">
+                                                <p class="text-xs text-base-content/60 mb-1">Individual Session</p>
+                                                <div class="text-2xl font-bold text-primary">£{{ workshop.price }}</div>
+                                                <p class="text-xs text-base-content/60">per session</p>
+                                            </div>
+
+                                            {% if workshop.has_series_discount %}
+                                                <!-- Series Option with Discount -->
+                                                <div class="relative">
+                                                    <div class="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                                                        <span class="badge badge-success badge-sm">Best Value!</span>
+                                                    </div>
+                                                    <div class="border-2 border-success rounded-lg p-3 bg-success/5">
+                                                        <p class="text-xs text-base-content/60 mb-1">Full Series</p>
+                                                        <div class="text-3xl font-bold text-primary">£{{ workshop.series_price }}</div>
+                                                        <p class="text-xs text-base-content/60 mb-2">for all {{ workshop.series_session_count }} sessions</p>
+                                                        <div class="flex items-center justify-center gap-1 text-success font-semibold text-sm">
+                                                            💰 Save £{{ workshop.series_savings }}!
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             {% else %}
-                                                <span class="text-primary">£{{ workshop.series_price|default:workshop.price }}</span>
+                                                <!-- Series Option without Discount -->
+                                                <div class="border-2 border-base-300 rounded-lg p-3">
+                                                    <p class="text-xs text-base-content/60 mb-1">Full Series</p>
+                                                    <div class="text-2xl font-bold text-primary">£{{ workshop.series_price|default:workshop.price }}</div>
+                                                    <p class="text-xs text-base-content/60">for all {{ workshop.series_session_count }} sessions</p>
+                                                </div>
                                             {% endif %}
                                         </div>
-                                        <p class="text-base-content/70">for all {{ workshop.series_session_count }} sessions</p>
                                     {% endif %}
 
                                     {% if workshop.series_description %}
                                         <div class="text-left mt-4 p-3 bg-base-200 rounded-lg">
-                                            <h5 class="font-semibold text-sm mb-2">About This Series:</h5>
+                                            <h5 class="font-semibold text-sm mb-2">📋 About This Series:</h5>
                                             <p class="text-xs text-base-content/70">{{ workshop.series_description|linebreaks }}</p>
                                         </div>
                                     {% endif %}
