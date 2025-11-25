@@ -76,7 +76,22 @@
                     </div>
                 </div>
             {% endif %}
-            
+
+            <!-- Session Title (full width) -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">Session Title</span>
+                    <span class="badge badge-sm badge-ghost">Optional - Useful for series</span>
+                </label>
+                {{ session_form.session_title }}
+                {% if session_form.session_title.errors %}
+                    <div class="text-error text-sm mt-1">{{ session_form.session_title.errors.0 }}</div>
+                {% endif %}
+                <div class="label">
+                    <span class="label-text-alt">e.g., "Session 1: Basic Technique", "Articulation Part 1"</span>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="form-control">
                     <label class="label">

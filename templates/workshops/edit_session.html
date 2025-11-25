@@ -47,7 +47,22 @@
         
         <form method="post" class="space-y-4">
             {% csrf_token %}
-            
+
+            <!-- Session Title -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">Session Title</span>
+                    <span class="badge badge-sm badge-ghost">Optional</span>
+                </label>
+                {{ form.session_title }}
+                {% if form.session_title.errors %}
+                    <div class="text-error text-sm mt-1">{{ form.session_title.errors.0 }}</div>
+                {% endif %}
+                <div class="label">
+                    <span class="label-text-alt">{{ form.session_title.help_text }}</span>
+                </div>
+            </div>
+
             <!-- Date and Time -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="form-control">
