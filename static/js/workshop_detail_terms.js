@@ -94,10 +94,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize scroll detection
     initializeScrollDetection();
 
-    // Find all "Add to Cart" forms
-    const addToCartForms = document.querySelectorAll('form[action*="cart/add"]');
+    // Find all "Add to Cart" and "Add Series to Cart" forms
+    const addToCartForms = document.querySelectorAll('form[action*="cart/add"], form[action*="add-series"]');
 
-    console.log('Found', addToCartForms.length, 'add to cart forms'); // Debug log
+    console.log('Found', addToCartForms.length, 'add to cart forms (including series)'); // Debug log
 
     addToCartForms.forEach(form => {
         form.addEventListener('submit', function(e) {
