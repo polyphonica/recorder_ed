@@ -441,27 +441,24 @@
                                 {% endif %}
                             </div>
 
-                            <!-- Terms and Conditions Acceptance (for authenticated users only) -->
-                            {% if user.is_authenticated and not workshop.instructor == user %}
-                                <div class="mb-4 p-3 bg-base-200 rounded-lg">
-                                    <div class="form-control">
-                                        <label class="label cursor-pointer justify-start gap-3">
-                                            <input type="checkbox" id="workshopTermsCheckbox" class="checkbox checkbox-primary checkbox-sm">
-                                            <span class="label-text text-xs">
-                                                I accept the <a href="{% url 'workshops:terms' %}" target="_blank" class="link link-primary">Workshop Terms & Conditions</a>
-                                            </span>
-                                        </label>
-                                    </div>
-                                </div>
-                            {% endif %}
-
                             <!-- Series Registration Button -->
                             {% if workshop.is_series and upcoming_sessions.count == workshop.series_session_count %}
                                 <div class="mb-4">
                                     {% if user.is_authenticated %}
                                         {% if not workshop.instructor == user %}
-                                            <form method="post" action="{% url 'workshops:add_series_to_cart' workshop.id %}" class="workshop-registration-form">
+                                            <form method="post" action="{% url 'workshops:add_series_to_cart' workshop.id %}">
                                                 {% csrf_token %}
+
+                                                <!-- T&Cs Acceptance -->
+                                                <div class="form-control mb-3">
+                                                    <label class="label cursor-pointer justify-start gap-2">
+                                                        <input type="checkbox" name="terms_accepted" value="true" class="checkbox checkbox-primary checkbox-sm" required>
+                                                        <span class="label-text text-xs">
+                                                            I accept the <a href="{% url 'workshops:terms' %}" target="_blank" class="link link-primary">Workshop Terms & Conditions</a>
+                                                        </span>
+                                                    </label>
+                                                </div>
+
                                                 <button type="submit" class="btn btn-primary btn-lg w-full gap-2">
                                                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                                         <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
@@ -562,9 +559,20 @@
                                                                     </button>
                                                                 {% else %}
                                                                     {# Non-guardian or guardian without children - direct add to cart #}
-                                                                    <form method="post" action="{% url 'workshops:add_to_cart' session.id %}" class="workshop-registration-form">
+                                                                    <form method="post" action="{% url 'workshops:add_to_cart' session.id %}">
                                                                         {% csrf_token %}
                                                                         <input type="hidden" name="next" value="{{ request.path }}">
+
+                                                                        <!-- T&Cs Acceptance -->
+                                                                        <div class="form-control mt-2">
+                                                                            <label class="label cursor-pointer justify-start gap-2 py-1">
+                                                                                <input type="checkbox" name="terms_accepted" value="true" class="checkbox checkbox-primary checkbox-xs" required>
+                                                                                <span class="label-text text-xs">
+                                                                                    I accept the <a href="{% url 'workshops:terms' %}" target="_blank" class="link link-primary">Terms & Conditions</a>
+                                                                                </span>
+                                                                            </label>
+                                                                        </div>
+
                                                                         <button type="submit" class="btn btn-primary btn-sm w-full mt-2 tooltip tooltip-top" data-tip="Reserve your place in this workshop session">
                                                                             <i class="fas fa-shopping-cart mr-1"></i>
                                                                             Add to Cart
@@ -1096,10 +1104,20 @@ function startWorkshopBookingTour() {
         <h3 class="font-bold text-lg mb-4">Who is attending this workshop?</h3>
         <p class="text-sm text-base-content/70 mb-4">Select who you want to register for this workshop session:</p>
 
-        <form id="childSelectionForm" method="post" action="" class="workshop-registration-form">
+        <form id="childSelectionForm" method="post" action="">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.path }}">
             <input type="hidden" name="child_profile_id" id="selectedChildId">
+
+            <!-- T&Cs Acceptance -->
+            <div class="form-control mb-3">
+                <label class="label cursor-pointer justify-start gap-2">
+                    <input type="checkbox" name="terms_accepted" value="true" class="checkbox checkbox-primary checkbox-sm" required>
+                    <span class="label-text text-xs">
+                        I accept the <a href="{% url 'workshops:terms' %}" target="_blank" class="link link-primary">Workshop Terms & Conditions</a>
+                    </span>
+                </label>
+            </div>
 
             <div class="space-y-2">
                 <!-- Option to register for yourself -->
@@ -1131,7 +1149,6 @@ function startWorkshopBookingTour() {
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/workshop_detail_terms.js' %}"></script>
 <script>
 function openChildSelectionModal(sessionId) {
     // Set the form action to the correct add-to-cart URL

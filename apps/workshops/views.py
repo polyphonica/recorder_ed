@@ -1996,9 +1996,11 @@ class AddToCartView(LoginRequiredMixin, View):
     """Add workshop session to cart"""
 
     def post(self, request, *args, **kwargs):
-        # Check if terms have been accepted
-        terms_accepted = request.POST.get('terms_accepted', 'false')
-        if terms_accepted != 'true':
+        # Check if terms have been accepted (checkbox with value="true")
+        # When checkbox is checked, POST will contain 'terms_accepted': 'true'
+        # When unchecked, 'terms_accepted' won't be in POST at all
+        terms_accepted = request.POST.get('terms_accepted')
+        if not terms_accepted:
             messages.error(request, 'Please accept the Terms and Conditions before adding items to your cart.')
             next_url = request.POST.get('next', request.META.get('HTTP_REFERER', '/workshops/'))
             return redirect(next_url)
@@ -2038,9 +2040,11 @@ class AddSeriesToCartView(LoginRequiredMixin, View):
     """Add all sessions from a workshop series to cart at once"""
 
     def post(self, request, *args, **kwargs):
-        # Check if terms have been accepted
-        terms_accepted = request.POST.get('terms_accepted', 'false')
-        if terms_accepted != 'true':
+        # Check if terms have been accepted (checkbox with value="true")
+        # When checkbox is checked, POST will contain 'terms_accepted': 'true'
+        # When unchecked, 'terms_accepted' won't be in POST at all
+        terms_accepted = request.POST.get('terms_accepted')
+        if not terms_accepted:
             messages.error(request, 'Please accept the Terms and Conditions before adding items to your cart.')
             return redirect(request.META.get('HTTP_REFERER', '/workshops/'))
 
