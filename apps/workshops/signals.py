@@ -26,7 +26,7 @@ def update_session_registrations_on_delete(sender, instance, **kwargs):
     """Update session registration count when registration is deleted"""
     session = instance.session
     
-    # Count active registrations (including promoted students who hold spots)
+    # Count active registrations (including promoted students who hold places)
     active_count = WorkshopRegistration.objects.filter(
         session=session,
         status__in=['registered', 'promoted', 'promoted', 'attended', 'waitlisted']

@@ -289,7 +289,7 @@ class Workshop(models.Model):
     
     @property
     def has_available_sessions(self):
-        """Check if workshop has any upcoming sessions with spots available"""
+        """Check if workshop has any upcoming sessions with places available"""
         return self.upcoming_sessions.filter(
             current_registrations__lt=models.F('max_participants')
         ).exists()
@@ -439,6 +439,11 @@ class WorkshopSession(models.Model):
     
     @property
     def spots_remaining(self):
+        """Legacy property name for backwards compatibility"""
+        return self.places_remaining
+
+    @property
+    def places_remaining(self):
         return max(0, self.max_participants - self.current_registrations)
     
     @property
@@ -502,19 +507,19 @@ class WorkshopSession(models.Model):
         from django.utils import timezone
         from datetime import timedelta
         
-        # Calculate available spots
+        # Calculate available places
         active_registrations = self.registrations.filter(
             status__in=['registered', 'promoted', 'attended']
         ).count()
-        available_spots = self.max_participants - active_registrations
-        
-        if available_spots <= 0:
+        available_places = self.max_participants - active_registrations
+
+        if available_places <= 0:
             return []
         
         # Get waitlisted students in order
         waitlisted = self.registrations.filter(
             status='waitlisted'
-        ).order_by('waitlist_position', 'registration_date')[:available_spots]
+        ).order_by('waitlist_position', 'registration_date')[:available_places]
         
         promoted_registrations = []
         promotion_deadline = timezone.now() + timedelta(hours=48)  # 48-hour confirmation window
@@ -539,7 +544,7 @@ class WorkshopSession(models.Model):
             
             promoted_registrations.append(registration)
         
-        # Update session registration count (include promoted students as they hold spots)
+        # Update session registration count (include promoted students as they hold places)
         self.current_registrations = self.registrations.filter(
             status__in=['registered', 'promoted', 'attended']
         ).count()
@@ -708,7 +713,7 @@ class WaitlistPromotion(models.Model):
     REASON_CHOICES = [
         ('capacity_increase', 'Session capacity increased'),
         ('manual_promotion', 'Manual promotion by instructor'),
-        ('cancellation', 'Student cancellation opened spot'),
+        ('cancellation', 'Student cancellation opened place'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

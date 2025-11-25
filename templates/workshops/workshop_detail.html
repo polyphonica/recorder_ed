@@ -487,7 +487,7 @@
                                                         </div>
                                                     </div>
                                                     <div class="badge badge-sm badge-outline tooltip tooltip-left" data-tip="Number of places available in this session">
-                                                        {{ session.spots_remaining }} spots
+                                                        {{ session.places_remaining }} places
                                                     </div>
                                                 </div>
                                                 <div class="text-xs text-base-content/70">
@@ -528,7 +528,7 @@
                                                             <button class="btn btn-accent btn-sm w-full mt-2">
                                                                 ✓ In Cart
                                                             </button>
-                                                        {% elif session.spots_remaining > 0 %}
+                                                        {% elif session.places_remaining > 0 %}
                                                             {% if session.workshop.delivery_method == 'in_person' %}
                                                                 <a href="{% url 'workshops:register' workshop_slug=session.workshop.slug session_id=session.id %}"
                                                                    class="btn btn-primary btn-sm w-full mt-2 tooltip tooltip-top"
@@ -576,7 +576,7 @@
                                                     {% endif %}
                                                 {% else %}
                                                     {% comment %}Unauthenticated user{% endcomment %}
-                                                    {% if session.spots_remaining > 0 %}
+                                                    {% if session.places_remaining > 0 %}
                                                         <a href="{% url 'login' %}?next={{ request.path }}"
                                                            class="btn btn-primary btn-sm w-full mt-2 tooltip tooltip-top" data-tip="Sign in to book this session">
                                                             Login to Register
@@ -608,7 +608,7 @@
                                         </svg>
                                         <div>
                                             <div class="font-semibold">All sessions are full</div>
-                                            <div class="text-sm">Join the waitlist to be notified if spots become available!</div>
+                                            <div class="text-sm">Join the waitlist to be notified if places become available!</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1012,13 +1012,13 @@ function startWorkshopBookingTour() {
                 element: '.badge.badge-sm.badge-outline',
                 popover: {
                     title: 'Places Available',
-                    description: 'This shows how many spots are left in the session. Book early to secure your place!',
+                    description: 'This shows how many places are left in the session. Book early to secure your place!',
                     side: "left",
                     align: 'start'
                 }
             },
             {% if user.is_authenticated %}
-                {% if upcoming_sessions.0.spots_remaining > 0 %}
+                {% if upcoming_sessions.0.places_remaining > 0 %}
             {
                 element: 'button[type="submit"].btn-primary',
                 popover: {

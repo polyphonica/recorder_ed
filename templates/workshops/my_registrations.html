@@ -195,7 +195,7 @@
                                                     <i class="fas fa-exclamation-triangle"></i>
                                                     <span class="text-xs font-bold">Payment Required</span>
                                                 </div>
-                                                <span class="text-xs">Complete payment within 48 hours to secure your spot</span>
+                                                <span class="text-xs">Complete payment within 48 hours to secure your place</span>
                                             </div>
                                         </div>
                                         <a href="{% url 'workshops:registration_confirm' registration_id=registration.id %}"
@@ -489,7 +489,7 @@ function startMyRegistrationsTour() {
                 element: '.registration-item:first-child .badge',
                 popover: {
                     title: 'Registration Status',
-                    description: 'This badge shows your registration status: "Confirmed" (you\'re booked), "Waitlisted" (waiting for a spot), or "Attended" (past workshop).',
+                    description: 'This badge shows your registration status: "Confirmed" (you\'re booked), "Waitlisted" (waiting for a place), or "Attended" (past workshop).',
                     side: "left",
                     align: 'start'
                 }

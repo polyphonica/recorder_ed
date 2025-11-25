@@ -25,10 +25,10 @@
                     <i class="fas fa-credit-card"></i>
                 </div>
                 <h1 class="text-3xl font-bold text-warning mb-2">Complete Your Registration</h1>
-                <p class="text-lg">You've been promoted from the waitlist! Complete your payment to secure your spot.</p>
+                <p class="text-lg">You've been promoted from the waitlist! Complete your payment to secure your place.</p>
                 <div class="bg-warning/20 rounded-lg p-4 mt-4">
                     <p class="text-sm font-semibold">⏰ You have 48 hours to complete registration</p>
-                    <p class="text-xs text-warning/80">After this deadline, your spot may be offered to someone else</p>
+                    <p class="text-xs text-warning/80">After this deadline, your place may be offered to someone else</p>
                 </div>
             </div>
             {% elif registration.status == 'waitlisted' %}
@@ -39,7 +39,7 @@
                 <h1 class="text-3xl font-bold text-info mb-2">Added to Waitlist</h1>
                 <p class="text-lg">You've been added to the waitlist for this workshop session.</p>
                 <div class="bg-info/20 rounded-lg p-4 mt-4">
-                    <p class="text-sm font-semibold">📋 We'll notify you if a spot becomes available</p>
+                    <p class="text-sm font-semibold">📋 We'll notify you if a place becomes available</p>
                     <p class="text-xs text-info/80">You'll receive an email if someone cancels or additional capacity is added</p>
                 </div>
             </div>
@@ -221,7 +221,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="text-lg font-bold text-warning mb-2">Payment Required</h3>
-                            <p class="text-sm">Complete your payment to secure your workshop spot.</p>
+                            <p class="text-sm">Complete your payment to secure your workshop place.</p>
                             {% if registration.promotion_expires_at %}
                             <p class="text-xs text-warning/80 mt-1">
                                 Deadline: {{ registration.promotion_expires_at|date:"M j, Y g:i A" }}

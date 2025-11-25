@@ -24,7 +24,7 @@
         </div>
         <div class="text-center mt-8">
             <h2 class="text-2xl font-bold mb-4">Promotion Expired</h2>
-            <p class="mb-6">Unfortunately, you missed the deadline to confirm your spot. The position has been offered to the next person on the waitlist.</p>
+            <p class="mb-6">Unfortunately, you missed the deadline to confirm your place. The position has been offered to the next person on the waitlist.</p>
             <a href="{% url 'workshops:detail' workshop.slug %}" class="btn btn-primary">View Workshop</a>
         </div>
     {% else %}
@@ -35,7 +35,7 @@
                         <i class="fas fa-ticket-alt"></i>
                     </div>
                     <h1 class="text-3xl font-bold text-gray-900">Confirm Your Spot</h1>
-                    <p class="text-lg text-gray-600 mt-2">A spot has opened up in this workshop!</p>
+                    <p class="text-lg text-gray-600 mt-2">A place has opened up in this workshop!</p>
                 </div>
                 
                 <!-- Workshop Details -->
@@ -103,7 +103,7 @@
                         <i class="fas fa-exclamation-triangle"></i>
                         <div>
                             <strong>Important:</strong> You must confirm by {{ promotion.expires_at|date:"F j, Y" }} at {{ promotion.expires_at|time:"g:i A" }}.
-                            <br>If you don't confirm by then, this spot will be offered to the next person on the waitlist.
+                            <br>If you don't confirm by then, this place will be offered to the next person on the waitlist.
                         </div>
                     </div>
                 </div>

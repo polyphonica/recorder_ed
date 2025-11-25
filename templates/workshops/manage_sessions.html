@@ -229,8 +229,8 @@
                                         {{ session.current_registrations }}/{{ session.max_participants }}
                                     </div>
                                     <div class="text-xs text-gray-500">
-                                        {% if session.spots_remaining > 0 %}
-                                            {{ session.spots_remaining }} spots left
+                                        {% if session.places_remaining > 0 %}
+                                            {{ session.places_remaining }} places left
                                         {% else %}
                                             {% if session.waitlist_enabled %}Waitlist available{% else %}Full{% endif %}
                                         {% endif %}

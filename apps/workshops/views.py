@@ -315,7 +315,7 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
         if existing_registration:
             if existing_registration.status == 'promoted':
                 # Redirect promoted users to complete their payment
-                messages.warning(request, 'Complete your payment to secure your workshop spot.')
+                messages.warning(request, 'Complete your payment to secure your workshop place.')
                 return redirect('workshops:registration_confirm', registration_id=existing_registration.id)
             else:
                 messages.info(request, f'You are already {existing_registration.status} for this session.')
@@ -693,7 +693,7 @@ class RegistrationCancelView(LoginRequiredMixin, View):
 
         if registration.status in ['registered', 'waitlisted']:
             if registration.status == 'registered':
-                # Free up a spot
+                # Free up a place
                 session = registration.session
                 session.current_registrations = max(0, session.current_registrations - 1)
                 session.save()
@@ -1558,16 +1558,16 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
                 return redirect('workshops:session_registrations', session_id=self.kwargs['session_id'])
             
             promoted_count = 0
-            available_spots = self.session.max_participants - self.session.registrations.filter(
+            available_places = self.session.max_participants - self.session.registrations.filter(
                 status__in=['registered', 'promoted', 'attended']
             ).count()
             
-            if available_spots <= 0:
-                messages.warning(request, 'No spots available for promotion.')
+            if available_places <= 0:
+                messages.warning(request, 'No places available for promotion.')
                 return redirect('workshops:session_registrations', session_id=self.kwargs['session_id'])
             
             # Promote selected waitlisted students up to available spots
-            to_promote = waitlisted_registrations.order_by('waitlist_position', 'registration_date')[:available_spots]
+            to_promote = waitlisted_registrations.order_by('waitlist_position', 'registration_date')[:available_places]
             
             for registration in to_promote:
                 from django.utils import timezone

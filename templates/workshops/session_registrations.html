@@ -102,7 +102,7 @@
                 <div class="text-sm mt-1">
                     {{ waitlist_info.total_waitlisted }} student{{ waitlist_info.total_waitlisted|pluralize }} currently waitlisted.
                     {% if session.current_registrations < session.max_participants %}
-                        <strong>{{ session.spots_remaining }} spot{{ session.spots_remaining|pluralize }} available</strong> - 
+                        <strong>{{ session.places_remaining }} place{{ session.places_remaining|pluralize }} available</strong> - 
                         you can promote students from the waitlist.
                     {% else %}
                         Session is currently full ({{ session.current_registrations }}/{{ session.max_participants }}).
