@@ -66,7 +66,7 @@ class WorkshopCategoryAdmin(admin.ModelAdmin):
 class WorkshopSessionInline(admin.TabularInline):
     model = WorkshopSession
     extra = 1
-    fields = ['start_datetime', 'end_datetime', 'max_participants', 'current_registrations', 'is_active']
+    fields = ['session_title', 'start_datetime', 'end_datetime', 'max_participants', 'current_registrations', 'is_active']
     readonly_fields = ['current_registrations']
 
 

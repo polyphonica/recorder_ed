@@ -423,8 +423,15 @@
                                         {% for session in upcoming_sessions|slice:":3" %}
                                             <div class="p-3 bg-base-200 rounded-lg">
                                                 <div class="flex justify-between items-start mb-1">
-                                                    <div class="text-sm font-medium">
-                                                        {{ session.start_datetime|date:"M j" }}
+                                                    <div>
+                                                        {% if session.session_title %}
+                                                            <div class="text-sm font-semibold text-primary">
+                                                                {{ session.session_title }}
+                                                            </div>
+                                                        {% endif %}
+                                                        <div class="text-sm {% if session.session_title %}text-base-content/70{% else %}font-medium{% endif %}">
+                                                            {{ session.start_datetime|date:"M j" }}
+                                                        </div>
                                                     </div>
                                                     <div class="badge badge-sm badge-outline tooltip tooltip-left" data-tip="Number of places available in this session">
                                                         {{ session.spots_remaining }} spots

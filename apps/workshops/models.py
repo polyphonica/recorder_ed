@@ -371,7 +371,14 @@ class WorkshopSession(models.Model):
     """Scheduled instances of workshops"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     workshop = models.ForeignKey(Workshop, on_delete=models.CASCADE, related_name='sessions')
-    
+
+    # Session Identity
+    session_title = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Optional title for this session (e.g., 'Session 1: Basic Technique', 'Articulation Part 1')"
+    )
+
     # Schedule
     start_datetime = models.DateTimeField()
     end_datetime = models.DateTimeField()
@@ -421,7 +428,10 @@ class WorkshopSession(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.workshop.title} - {self.start_datetime.strftime('%Y-%m-%d %H:%M')}"
+        date_str = self.start_datetime.strftime('%Y-%m-%d %H:%M')
+        if self.session_title:
+            return f"{self.workshop.title} - {self.session_title} ({date_str})"
+        return f"{self.workshop.title} - {date_str}"
     
     @property
     def is_full(self):

@@ -305,16 +305,21 @@ class WorkshopForm(forms.ModelForm):
 
 class WorkshopSessionForm(forms.ModelForm):
     """Form for creating workshop sessions"""
-    
+
     class Meta:
         model = WorkshopSession
         fields = [
+            'session_title',
             'start_datetime', 'end_datetime', 'timezone_name',
             'max_participants', 'waitlist_enabled',
             'meeting_url', 'meeting_id', 'meeting_password',
             'session_notes'
         ]
         widgets = {
+            'session_title': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'e.g., Session 1: Basic Technique, Articulation Part 1'
+            }),
             'start_datetime': forms.DateTimeInput(attrs={
                 'class': 'input input-bordered w-full',
                 'type': 'datetime-local'
@@ -361,6 +366,7 @@ class WorkshopSessionForm(forms.ModelForm):
             'waitlist_enabled': forms.CheckboxInput(attrs={'class': 'checkbox'}),
         }
         help_texts = {
+            'session_title': 'Optional descriptive title for this session (especially useful for series)',
             'start_datetime': 'When the session begins',
             'end_datetime': 'When the session ends',
             'max_participants': 'Maximum number of registered participants',
