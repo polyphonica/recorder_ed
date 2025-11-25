@@ -829,7 +829,10 @@
                 <div class="p-4 bg-base-200 rounded-lg">
                     <div class="flex justify-between items-start mb-2">
                         <div>
-                            <div class="font-medium">{{ session.start_datetime|date:"l, F j, Y" }}</div>
+                            {% if session.session_title %}
+                                <div class="font-semibold text-primary">{{ session.session_title }}</div>
+                            {% endif %}
+                            <div class="font-medium {% if session.session_title %}text-sm{% endif %}">{{ session.start_datetime|date:"l, F j, Y" }}</div>
                             <div class="text-sm text-base-content/70">
                                 {{ session.start_datetime|date:"g:i A" }} - {{ session.end_datetime|date:"g:i A" }}
                                 ({{ session.timezone_name }})
