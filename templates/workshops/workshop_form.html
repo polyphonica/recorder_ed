@@ -216,11 +216,11 @@
                             <div class="text-error text-sm mt-1">{{ form.is_free.errors.0 }}</div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="form-control">
                         <label class="label">
-                            <span class="label-text font-medium">Price</span>
-                            <span class="label-text-alt">Leave blank if free</span>
+                            <span class="label-text font-medium">Price Per Session</span>
+                            <span class="label-text-alt">Individual session price</span>
                         </label>
                         {{ form.price }}
                         {% if form.price.errors %}
@@ -229,7 +229,81 @@
                     </div>
                 </div>
             </div>
-            
+
+            <!-- Series Configuration -->
+            <div class="bg-base-200 p-6 rounded-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-900">Workshop Series Configuration</h2>
+                    <span class="badge badge-secondary">Optional</span>
+                </div>
+                <p class="text-sm text-gray-600 mb-6">
+                    Configure this workshop as a multi-session series (e.g., "Interpretation for Beginners" with 5 weekly sessions).
+                    Students can register for all sessions at once with optional discounted pricing.
+                </p>
+
+                <div class="space-y-6">
+                    <!-- Is Series Checkbox -->
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            {{ form.is_series }}
+                            <div>
+                                <span class="label-text font-medium text-base">This is a multi-session series</span>
+                                <p class="text-sm text-gray-500 mt-1">Students will be able to register for all sessions together</p>
+                            </div>
+                        </label>
+                        {% if form.is_series.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.is_series.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Series fields (shown when is_series is checked) -->
+                    <div id="series-fields" class="space-y-6 pl-8 border-l-4 border-primary">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-medium">Series Price</span>
+                                    <span class="label-text-alt">Total price for all sessions</span>
+                                </label>
+                                {{ form.series_price }}
+                                {% if form.series_price.errors %}
+                                    <div class="text-error text-sm mt-1">{{ form.series_price.errors.0 }}</div>
+                                {% endif %}
+                                <label class="label">
+                                    <span class="label-text-alt">Example: 5 sessions @ £50 each = £250 individual, or £200 series price (save £50)</span>
+                                </label>
+                            </div>
+
+                            <div class="form-control">
+                                <label class="label cursor-pointer justify-start gap-4">
+                                    {{ form.require_full_series_registration }}
+                                    <div>
+                                        <span class="label-text font-medium">Require Full Series Registration</span>
+                                        <p class="text-sm text-gray-500 mt-1">Students must register for ALL sessions (cannot pick individual sessions)</p>
+                                    </div>
+                                </label>
+                                {% if form.require_full_series_registration.errors %}
+                                    <div class="text-error text-sm mt-1">{{ form.require_full_series_registration.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Series Description</span>
+                                <span class="label-text-alt">Describe what each session covers</span>
+                            </label>
+                            {{ form.series_description }}
+                            {% if form.series_description.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.series_description.errors.0 }}</div>
+                            {% endif %}
+                            <label class="label">
+                                <span class="label-text-alt">This helps students understand the series structure and progression</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Delivery Method and Venue -->
             <div>
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">Delivery Method and Venue</h2>
@@ -435,10 +509,27 @@ document.addEventListener('DOMContentLoaded', function() {
         togglePriceField(); // Initial state
     }
     
+    // Toggle series fields based on is_series checkbox
+    const isSeriesCheckbox = document.querySelector('input[name="is_series"]');
+    const seriesFields = document.getElementById('series-fields');
+
+    if (isSeriesCheckbox && seriesFields) {
+        function toggleSeriesFields() {
+            if (isSeriesCheckbox.checked) {
+                seriesFields.style.display = 'block';
+            } else {
+                seriesFields.style.display = 'none';
+            }
+        }
+
+        isSeriesCheckbox.addEventListener('change', toggleSeriesFields);
+        toggleSeriesFields(); // Initial state
+    }
+
     // Toggle venue fields based on delivery method
     const deliveryMethodSelect = document.querySelector('select[name="delivery_method"]');
     const venueFields = document.getElementById('venue-fields');
-    
+
     if (deliveryMethodSelect && venueFields) {
         function toggleVenueFields() {
             const isOnlineOnly = deliveryMethodSelect.value === 'online';

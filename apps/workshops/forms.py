@@ -122,7 +122,9 @@ class WorkshopForm(forms.ModelForm):
             'featured_image', 'promo_video_url',
             'delivery_method', 'venue_name', 'venue_address', 'venue_city',
             'venue_postcode', 'venue_map_link', 'venue_notes', 'max_venue_capacity',
-            'is_free', 'price', 'status', 'is_featured'
+            'is_free', 'price',
+            'is_series', 'series_price', 'require_full_series_registration', 'series_description',
+            'status', 'is_featured'
         ]
         widgets = {
             'title': forms.TextInput(attrs={
@@ -228,6 +230,24 @@ class WorkshopForm(forms.ModelForm):
             'is_free': forms.CheckboxInput(attrs={
                 'class': 'checkbox checkbox-primary'
             }),
+            # Series Configuration
+            'is_series': forms.CheckboxInput(attrs={
+                'class': 'checkbox checkbox-primary'
+            }),
+            'series_price': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full',
+                'min': 0,
+                'step': 0.01,
+                'placeholder': '200.00'
+            }),
+            'require_full_series_registration': forms.CheckboxInput(attrs={
+                'class': 'checkbox checkbox-primary'
+            }),
+            'series_description': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 4,
+                'placeholder': 'Session 1 (Jan 15): Introduction to Interpretation\nSession 2 (Jan 22): Phrasing and Dynamics\n...'
+            }),
             'is_featured': forms.CheckboxInput(attrs={
                 'class': 'checkbox checkbox-primary'
             }),
@@ -240,7 +260,11 @@ class WorkshopForm(forms.ModelForm):
         cleaned_data = super().clean()
         is_free = cleaned_data.get('is_free')
         price = cleaned_data.get('price')
-        
+        is_series = cleaned_data.get('is_series')
+        series_price = cleaned_data.get('series_price')
+        require_full_series = cleaned_data.get('require_full_series_registration')
+
+        # Validate regular pricing
         if is_free:
             # If workshop is free, set price to 0
             cleaned_data['price'] = 0.00
@@ -254,7 +278,28 @@ class WorkshopForm(forms.ModelForm):
                 raise forms.ValidationError({
                     'price': 'Price cannot be negative.'
                 })
-        
+
+        # Validate series pricing
+        if is_series:
+            if not series_price:
+                raise forms.ValidationError({
+                    'series_price': 'Series price is required when creating a series workshop.'
+                })
+            if series_price < 0:
+                raise forms.ValidationError({
+                    'series_price': 'Series price cannot be negative.'
+                })
+            # Warn if series price is higher than individual session price
+            # (though this might be intentional in some cases)
+            if price and series_price < price:
+                # This is unusual but allowed - might be a deep discount for series
+                pass
+        else:
+            # If not a series, clear series-related fields
+            cleaned_data['series_price'] = None
+            cleaned_data['require_full_series_registration'] = False
+            cleaned_data['series_description'] = ''
+
         return cleaned_data
 
 
