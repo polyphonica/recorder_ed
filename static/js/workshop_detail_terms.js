@@ -1,51 +1,40 @@
 /**
- * Workshop Detail Page - Simple Terms and Conditions Checkbox Handler
- * Enables/disables registration buttons based on terms acceptance checkbox
+ * Workshop Detail Page - Terms and Conditions Handler
+ * Syncs a single checkbox to multiple registration forms
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    const termsCheckbox = document.getElementById('workshopTermsAccepted');
-    const submitButtons = document.querySelectorAll('.workshop-submit-btn');
-    const termsInputs = document.querySelectorAll('.terms-accepted-input');
+    const termsCheckbox = document.querySelector('.workshop-terms-checkbox');
 
-    console.log('Terms acceptance script loaded');
-    console.log('Found checkbox:', termsCheckbox);
-    console.log('Found buttons:', submitButtons.length);
-    console.log('Found inputs:', termsInputs.length);
-
-    // Only run if checkbox exists (for authenticated non-instructor users)
     if (!termsCheckbox) {
-        console.log('No terms checkbox found, exiting');
+        // No terms checkbox on page (user not authenticated or is instructor)
         return;
     }
 
-    // Update all submit buttons and hidden inputs when checkbox changes
-    termsCheckbox.addEventListener('change', function() {
-        const isChecked = this.checked;
-        console.log('Checkbox changed, isChecked:', isChecked);
+    const registrationForms = document.querySelectorAll('.workshop-registration-form');
 
-        // Enable/disable all registration buttons
-        submitButtons.forEach(button => {
-            console.log('Updating button:', button);
-            button.disabled = !isChecked;
-            if (isChecked) {
-                button.classList.remove('btn-disabled');
+    // Handle form submission - add terms_accepted based on checkbox state
+    registrationForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            if (!termsCheckbox.checked) {
+                e.preventDefault();
+                alert('Please accept the Terms and Conditions before registering.');
+                termsCheckbox.focus();
+                return false;
+            }
+
+            // Find or create the terms_accepted input in this form
+            let termsInput = form.querySelector('input[name="terms_accepted"]');
+            if (termsInput) {
+                termsInput.value = 'true';
             } else {
-                button.classList.add('btn-disabled');
+                // Create it if it doesn't exist
+                termsInput = document.createElement('input');
+                termsInput.type = 'hidden';
+                termsInput.name = 'terms_accepted';
+                termsInput.value = 'true';
+                form.appendChild(termsInput);
             }
         });
-
-        // Update all hidden terms_accepted inputs
-        termsInputs.forEach(input => {
-            input.value = isChecked ? 'true' : 'false';
-            console.log('Updated input value:', input.value);
-        });
-    });
-
-    // Initial state - disable all buttons until terms are accepted
-    submitButtons.forEach(button => {
-        button.disabled = true;
-        button.classList.add('btn-disabled');
-        console.log('Initially disabled button:', button);
     });
 });
