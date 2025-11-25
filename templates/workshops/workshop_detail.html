@@ -473,7 +473,7 @@
                                 <div class="mb-4">
                                     <h4 class="font-semibold mb-3">Upcoming Sessions:</h4>
                                     <div class="space-y-2">
-                                        {% for session in upcoming_sessions|slice:":3" %}
+                                        {% for session in upcoming_sessions %}
                                             <div class="p-3 bg-base-200 rounded-lg">
                                                 <div class="flex justify-between items-start mb-1">
                                                     <div>
@@ -598,15 +598,6 @@
                                             </div>
                                         {% endfor %}
                                     </div>
-                                    {% if upcoming_sessions|length > 3 %}
-                                        <div class="text-center mt-3">
-                                            <button class="btn btn-ghost btn-sm" 
-                                                    x-data 
-                                                    @click="$dispatch('open-sessions-modal')">
-                                                View All Sessions
-                                            </button>
-                                        </div>
-                                    {% endif %}
                                 </div>
                             {% elif workshop.has_upcoming_sessions %}
                                 <!-- Sessions exist but none are available -->
@@ -871,76 +862,6 @@
         </div>
     </div>
 </div>
-
-<!-- All Sessions Modal -->
-{% if upcoming_sessions|length > 3 %}
-<div class="modal" x-data="{ open: false }" :class="{ 'modal-open': open }" @open-sessions-modal.window="open = true">
-    <div class="modal-box">
-        <h3 class="font-bold text-lg mb-4">All Upcoming Sessions</h3>
-        <div class="space-y-3 max-h-96 overflow-y-auto">
-            {% for session in upcoming_sessions %}
-                <div class="p-4 bg-base-200 rounded-lg">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            {% if session.session_title %}
-                                <div class="font-semibold text-primary">{{ session.session_title }}</div>
-                            {% endif %}
-                            <div class="font-medium {% if session.session_title %}text-sm{% endif %}">{{ session.start_datetime|date:"l, F j, Y" }}</div>
-                            <div class="text-sm text-base-content/70">
-                                {{ session.start_datetime|date:"g:i A" }} - {{ session.end_datetime|date:"g:i A" }}
-                                ({{ session.timezone_name }})
-                            </div>
-                        </div>
-                        <div class="badge badge-outline">
-                            {{ session.spots_remaining }} spots
-                        </div>
-                    </div>
-                    {% if user.is_authenticated %}
-                        {% if session.user_registration and session.user_registration.status == 'registered' %}
-                            <button class="btn btn-success btn-sm">✓ Registered</button>
-                        {% elif workshop.instructor == user %}
-                            <a href="{% url 'workshops:session_registrations' session_id=session.id %}"
-                               class="btn btn-outline btn-sm">
-                                👥 Manage Session
-                            </a>
-                        {% elif session.id in cart_session_ids %}
-                            <button class="btn btn-accent btn-sm">✓ In Cart</button>
-                        {% elif session.spots_remaining > 0 %}
-                            {% if session.workshop.delivery_method == 'in_person' %}
-                                <a href="{% url 'workshops:register' workshop_slug=session.workshop.slug session_id=session.id %}"
-                                   class="btn btn-primary btn-sm tooltip tooltip-left"
-                                   data-tip="Fill out registration form for this in-person workshop">
-                                    <i class="fas fa-clipboard-list mr-1"></i>
-                                    Register
-                                </a>
-                            {% else %}
-                                <form method="post" action="{% url 'workshops:add_to_cart' session.id %}">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="next" value="{{ request.path }}">
-                                    <button type="submit" class="btn btn-primary btn-sm tooltip tooltip-left" data-tip="Reserve your place in this session">
-                                        <i class="fas fa-shopping-cart mr-1"></i>
-                                        Add to Cart
-                                    </button>
-                                </form>
-                            {% endif %}
-                        {% else %}
-                            <button class="btn btn-disabled btn-sm tooltip tooltip-left" data-tip="This session is fully booked">Session Full</button>
-                        {% endif %}
-                    {% else %}
-                        <a href="{% url 'login' %}?next={{ request.path }}"
-                           class="btn btn-primary btn-sm tooltip tooltip-left" data-tip="Sign in to book this session">
-                            Login to Register
-                        </a>
-                    {% endif %}
-                </div>
-            {% endfor %}
-        </div>
-        <div class="modal-action">
-            <button class="btn" @click="open = false">Close</button>
-        </div>
-    </div>
-</div>
-{% endif %}
 
 <script>
 function shareWorkshop(event) {
