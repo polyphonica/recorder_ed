@@ -441,14 +441,29 @@
                                 {% endif %}
                             </div>
 
+                            <!-- Terms and Conditions Acceptance (for authenticated users only) -->
+                            {% if user.is_authenticated and not workshop.instructor == user %}
+                                <div class="mb-4 p-3 bg-base-200 rounded-lg">
+                                    <div class="form-control">
+                                        <label class="label cursor-pointer justify-start gap-3">
+                                            <input type="checkbox" id="workshopTermsAccepted" class="checkbox checkbox-primary checkbox-sm">
+                                            <span class="label-text text-xs">
+                                                I accept the <a href="{% url 'workshops:terms' %}" target="_blank" class="link link-primary">Workshop Terms & Conditions</a>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            {% endif %}
+
                             <!-- Series Registration Button -->
                             {% if workshop.is_series and upcoming_sessions.count == workshop.series_session_count %}
                                 <div class="mb-4">
                                     {% if user.is_authenticated %}
                                         {% if not workshop.instructor == user %}
-                                            <form method="post" action="{% url 'workshops:add_series_to_cart' workshop.id %}">
+                                            <form method="post" action="{% url 'workshops:add_series_to_cart' workshop.id %}" class="workshop-registration-form">
                                                 {% csrf_token %}
-                                                <button type="submit" class="btn btn-primary btn-lg w-full gap-2">
+                                                <input type="hidden" name="terms_accepted" value="false" class="terms-accepted-input">
+                                                <button type="submit" class="btn btn-primary btn-lg w-full gap-2 workshop-submit-btn" disabled>
                                                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                                         <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                                                         <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
@@ -548,10 +563,11 @@
                                                                     </button>
                                                                 {% else %}
                                                                     {# Non-guardian or guardian without children - direct add to cart #}
-                                                                    <form method="post" action="{% url 'workshops:add_to_cart' session.id %}">
+                                                                    <form method="post" action="{% url 'workshops:add_to_cart' session.id %}" class="workshop-registration-form">
                                                                         {% csrf_token %}
                                                                         <input type="hidden" name="next" value="{{ request.path }}">
-                                                                        <button type="submit" class="btn btn-primary btn-sm w-full mt-2 tooltip tooltip-top" data-tip="Reserve your place in this workshop session">
+                                                                        <input type="hidden" name="terms_accepted" value="false" class="terms-accepted-input">
+                                                                        <button type="submit" class="btn btn-primary btn-sm w-full mt-2 tooltip tooltip-top workshop-submit-btn" data-tip="Reserve your place in this workshop session" disabled>
                                                                             <i class="fas fa-shopping-cart mr-1"></i>
                                                                             Add to Cart
                                                                         </button>
@@ -1075,49 +1091,6 @@ function startWorkshopBookingTour() {
     <i class="fas fa-question-circle" style="font-size: 1.5rem;"></i>
 </button>
 
-<!-- Terms and Conditions Modal -->
-<input type="checkbox" id="termsModal" class="modal-toggle" />
-<div class="modal">
-    <div class="modal-box max-w-4xl max-h-[80vh] flex flex-col">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="font-bold text-2xl">Workshop Terms and Conditions</h3>
-            <label for="termsModal" class="btn btn-sm btn-circle btn-ghost">✕</label>
-        </div>
-
-        <!-- Scrollable content area -->
-        <div id="termsContent" class="flex-1 overflow-y-auto prose prose-sm max-w-none pr-4" style="max-height: 60vh;">
-            {% if current_terms %}
-                <div class="mb-4 text-sm text-base-content/70">
-                    <span class="badge badge-primary">Version {{ current_terms.version }}</span>
-                    <span class="ml-2">Effective {{ current_terms.effective_date|date:"d F Y" }}</span>
-                </div>
-                {% load markdown_extras %}
-                {{ current_terms.content|markdown }}
-            {% else %}
-                <div class="alert alert-warning">
-                    <p>Terms and Conditions are currently being updated. Please contact support.</p>
-                </div>
-            {% endif %}
-        </div>
-
-        <!-- Scroll indicator -->
-        <div id="scrollIndicator" class="alert alert-warning mt-4">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <span>Please scroll to the bottom to review all terms</span>
-        </div>
-
-        <!-- Modal actions -->
-        <div class="modal-action">
-            <label for="termsModal" class="btn btn-ghost">Close</label>
-            <button type="button" id="acceptTermsBtn" class="btn btn-primary" disabled onclick="acceptTermsForCart()">
-                <i class="fas fa-check mr-2"></i>I Agree to Terms
-            </button>
-        </div>
-    </div>
-</div>
-
 <!-- Child Selection Modal for Guardians -->
 <input type="checkbox" id="childSelectionModal" class="modal-toggle" />
 <div class="modal">
@@ -1125,10 +1098,11 @@ function startWorkshopBookingTour() {
         <h3 class="font-bold text-lg mb-4">Who is attending this workshop?</h3>
         <p class="text-sm text-base-content/70 mb-4">Select who you want to register for this workshop session:</p>
 
-        <form id="childSelectionForm" method="post" action="">
+        <form id="childSelectionForm" method="post" action="" class="workshop-registration-form">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.path }}">
             <input type="hidden" name="child_profile_id" id="selectedChildId">
+            <input type="hidden" name="terms_accepted" value="false" class="terms-accepted-input">
 
             <div class="space-y-2">
                 <!-- Option to register for yourself -->
@@ -1148,7 +1122,7 @@ function startWorkshopBookingTour() {
 
             <div class="modal-action">
                 <label for="childSelectionModal" class="btn btn-ghost">Cancel</label>
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary workshop-submit-btn" disabled>
                     <i class="fas fa-shopping-cart mr-2"></i>
                     Add to Cart
                 </button>

@@ -1996,6 +1996,13 @@ class AddToCartView(LoginRequiredMixin, View):
     """Add workshop session to cart"""
 
     def post(self, request, *args, **kwargs):
+        # Check if terms have been accepted
+        terms_accepted = request.POST.get('terms_accepted', 'false')
+        if terms_accepted != 'true':
+            messages.error(request, 'Please accept the Terms and Conditions before adding items to your cart.')
+            next_url = request.POST.get('next', request.META.get('HTTP_REFERER', '/workshops/'))
+            return redirect(next_url)
+
         session_id = kwargs.get('session_id')
         child_profile_id = request.POST.get('child_profile_id')
         notes = request.POST.get('notes', '')
@@ -2031,6 +2038,12 @@ class AddSeriesToCartView(LoginRequiredMixin, View):
     """Add all sessions from a workshop series to cart at once"""
 
     def post(self, request, *args, **kwargs):
+        # Check if terms have been accepted
+        terms_accepted = request.POST.get('terms_accepted', 'false')
+        if terms_accepted != 'true':
+            messages.error(request, 'Please accept the Terms and Conditions before adding items to your cart.')
+            return redirect(request.META.get('HTTP_REFERER', '/workshops/'))
+
         workshop_id = kwargs.get('workshop_id')
         child_profile_id = request.POST.get('child_profile_id')
         notes = request.POST.get('notes', '')
