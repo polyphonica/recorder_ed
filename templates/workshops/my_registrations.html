@@ -129,9 +129,16 @@
                                         <!-- Details -->
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-2 mb-2">
-                                                <h3 class="font-bold text-lg truncate">
-                                                    {{ registration.session.workshop.title }}
-                                                </h3>
+                                                <div>
+                                                    <h3 class="font-bold text-lg truncate">
+                                                        {{ registration.session.workshop.title }}
+                                                    </h3>
+                                                    {% if registration.session.session_title %}
+                                                        <div class="text-sm text-primary font-semibold">
+                                                            {{ registration.session.session_title }}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
                                                 <span class="badge 
                                                     {% if registration.status == 'registered' %}badge-success
                                                     {% elif registration.status == 'promoted' %}badge-warning
