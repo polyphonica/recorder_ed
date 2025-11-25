@@ -203,14 +203,19 @@
                         <tr>
                             <td>
                                 <div>
-                                    <div class="font-semibold">
+                                    {% if session.session_title %}
+                                        <div class="font-bold text-primary mb-1">
+                                            {{ session.session_title }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="font-semibold {% if session.session_title %}text-sm{% endif %}">
                                         {{ session.start_datetime|date:"l, M j, Y" }}
                                     </div>
                                     <div class="text-sm text-gray-500">
                                         {{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}
                                     </div>
                                     {% if session.meeting_url %}
-                                        <a href="{{ session.meeting_url }}" target="_blank" 
+                                        <a href="{{ session.meeting_url }}" target="_blank"
                                            class="text-xs text-primary hover:underline">
                                             <i class="fas fa-video mr-1"></i>Meeting Link
                                         </a>
