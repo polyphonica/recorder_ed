@@ -4,7 +4,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    const termsCheckbox = document.querySelector('.workshop-terms-checkbox');
+    const termsCheckbox = document.getElementById('workshopTermsCheckbox');
 
     if (!termsCheckbox) {
         // No terms checkbox on page (user not authenticated or is instructor)
