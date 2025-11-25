@@ -134,6 +134,27 @@ class Workshop(models.Model):
     # Pricing
     is_free = models.BooleanField(default=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    # Series Configuration
+    is_series = models.BooleanField(
+        default=False,
+        help_text="Is this workshop a multi-session series that should be purchased together?"
+    )
+    series_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Discounted price for purchasing all sessions in the series (leave blank if no discount)"
+    )
+    series_description = models.TextField(
+        blank=True,
+        help_text="Describe the series structure and what each session covers"
+    )
+    require_full_series_registration = models.BooleanField(
+        default=False,
+        help_text="If checked, students must register for ALL sessions together (cannot register for individual sessions)"
+    )
     
     # Delivery Method and Venue
     DELIVERY_CHOICES = [
@@ -318,6 +339,32 @@ class Workshop(models.Model):
             session__workshop=self,
             status__in=['registered', 'attended', 'waitlisted']
         ).count()
+
+    @property
+    def series_savings(self):
+        """Calculate savings when buying series vs individual sessions"""
+        if not self.is_series or not self.series_price:
+            return 0
+
+        # Calculate total individual session cost
+        total_individual_cost = self.price * self.total_sessions
+        savings = total_individual_cost - self.series_price
+        return max(0, savings)  # Ensure non-negative
+
+    @property
+    def has_series_discount(self):
+        """Check if series offers a discount"""
+        return self.is_series and self.series_price and self.series_savings > 0
+
+    @property
+    def series_sessions(self):
+        """Get all sessions for this series in order"""
+        return self.sessions.filter(is_active=True).order_by('start_datetime')
+
+    @property
+    def series_session_count(self):
+        """Count of active sessions in the series"""
+        return self.series_sessions.count()
 
 
 class WorkshopSession(models.Model):

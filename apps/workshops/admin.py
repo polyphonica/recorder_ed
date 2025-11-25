@@ -137,7 +137,7 @@ class WorkshopAdmin(UserDisplayMixin, InstructorQuerysetMixin, PriceDisplayMixin
             'fields': ('title', 'slug', 'instructor', 'category', 'status')
         }),
         ('Content', {
-            'fields': ('description', 'short_description', 'learning_objectives', 
+            'fields': ('description', 'short_description', 'learning_objectives',
                       'prerequisites', 'materials_needed')
         }),
         ('Classification', {
@@ -159,6 +159,17 @@ class WorkshopAdmin(UserDisplayMixin, InstructorQuerysetMixin, PriceDisplayMixin
         }),
         ('Pricing', {
             'fields': ('is_free', 'price')
+        }),
+        ('Series Configuration', {
+            'fields': (
+                'is_series',
+                'series_price',
+                'require_full_series_registration',
+                'series_description'
+            ),
+            'description': 'Configure this workshop as a multi-session series with optional discounted pricing. '
+                          'Students can purchase all sessions together at the series price.',
+            'classes': ('collapse',)
         }),
         ('Publishing', {
             'fields': ('is_featured', 'published_at')

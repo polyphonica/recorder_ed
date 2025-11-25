@@ -15,8 +15,18 @@ class WorkshopCartManager(BaseCartManager):
         """Return the Cart model class to use"""
         return Cart
 
-    def add_session(self, session_id, child_profile_id=None, notes='', registration_data=None):
-        """Add a workshop session to cart with optional registration data"""
+    def add_session(self, session_id, child_profile_id=None, notes='', registration_data=None, is_series_purchase=False, series_price=None):
+        """
+        Add a workshop session to cart with optional registration data
+
+        Args:
+            session_id: UUID of the workshop session
+            child_profile_id: Optional child profile ID for guardian purchases
+            notes: Optional notes for the instructor
+            registration_data: Dict with registration form data (for in-person workshops)
+            is_series_purchase: Boolean indicating if this is part of a series purchase
+            series_price: Decimal series price to use for series purchases
+        """
         # Check authentication
         is_auth, error = self._require_authentication("add workshops to cart")
         if not is_auth:
@@ -45,8 +55,14 @@ class WorkshopCartManager(BaseCartManager):
         if error_tuple:
             return error_tuple
 
-        # Use workshop's price
-        price = session.workshop.price
+        # Determine price
+        if is_series_purchase and series_price and session.workshop.is_series:
+            # For series purchases, divide the series price equally among all sessions
+            session_count = session.workshop.series_session_count
+            price = series_price / session_count if session_count > 0 else session.workshop.price
+        else:
+            # Use workshop's regular price
+            price = session.workshop.price
 
         # Check if session already in cart
         existing_item = WorkshopCartItem.objects.filter(

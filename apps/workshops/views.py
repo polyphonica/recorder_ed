@@ -2027,6 +2027,79 @@ class AddToCartView(LoginRequiredMixin, View):
         return redirect(next_url)
 
 
+class AddSeriesToCartView(LoginRequiredMixin, View):
+    """Add all sessions from a workshop series to cart at once"""
+
+    def post(self, request, *args, **kwargs):
+        workshop_id = kwargs.get('workshop_id')
+        child_profile_id = request.POST.get('child_profile_id')
+        notes = request.POST.get('notes', '')
+
+        try:
+            workshop = Workshop.objects.get(id=workshop_id, is_series=True, status='published')
+        except Workshop.DoesNotExist:
+            messages.error(request, 'Workshop series not found or not available.')
+            return redirect('workshops:list')
+
+        # Get all active upcoming sessions for this series
+        sessions = workshop.series_sessions
+
+        if not sessions.exists():
+            messages.error(request, 'No sessions available for this series.')
+            return redirect('workshops:detail', slug=workshop.slug)
+
+        # Store terms acceptance in session
+        from .models import WorkshopTermsAndConditions
+        current_terms = WorkshopTermsAndConditions.objects.filter(is_current=True).first()
+        if current_terms:
+            request.session['terms_accepted'] = {
+                'version': current_terms.version,
+                'user_agent': request.META.get('HTTP_USER_AGENT', ''),
+                'ip_address': request.META.get('REMOTE_ADDR', ''),
+            }
+
+        cart_manager = WorkshopCartManager(request)
+        added_count = 0
+        errors = []
+
+        # Add each session to cart
+        for session in sessions:
+            success, message = cart_manager.add_session(
+                str(session.id),
+                child_profile_id=child_profile_id,
+                notes=notes,
+                is_series_purchase=True,
+                series_price=workshop.series_price
+            )
+            if success:
+                added_count += 1
+            else:
+                errors.append(f"{session.start_datetime.strftime('%b %d')}: {message}")
+
+        # Show appropriate message
+        if added_count == sessions.count():
+            savings_msg = ""
+            if workshop.has_series_discount:
+                savings_msg = f" (Save £{workshop.series_savings:.2f}!)"
+            messages.success(
+                request,
+                f'All {added_count} sessions added to cart{savings_msg}'
+            )
+        elif added_count > 0:
+            messages.warning(
+                request,
+                f'{added_count} of {sessions.count()} sessions added. Some sessions could not be added: {"; ".join(errors)}'
+            )
+        else:
+            messages.error(
+                request,
+                f'Could not add series to cart: {"; ".join(errors)}'
+            )
+
+        # Redirect to cart to review
+        return redirect('workshops:cart')
+
+
 class RemoveFromCartView(LoginRequiredMixin, View):
     """Remove workshop session from cart"""
 
