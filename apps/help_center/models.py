@@ -87,6 +87,10 @@ class Article(models.Model):
         default=False,
         help_text="Show on help center homepage as promoted article"
     )
+    order = models.IntegerField(
+        default=0,
+        help_text="Display order within category (lower numbers appear first)"
+    )
 
     # Metrics
     view_count = models.IntegerField(default=0, help_text="Number of times viewed")
@@ -106,10 +110,10 @@ class Article(models.Model):
     published_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['order', '-created_at']
         indexes = [
             models.Index(fields=['status', '-created_at']),
-            models.Index(fields=['category', 'status']),
+            models.Index(fields=['category', 'status', 'order']),
             models.Index(fields=['is_promoted', 'status']),
         ]
 

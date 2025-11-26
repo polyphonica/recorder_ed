@@ -54,6 +54,7 @@ class ArticleAdmin(admin.ModelAdmin):
     list_display = [
         'title',
         'category',
+        'order',
         'status',
         'is_promoted',
         'view_count',
@@ -62,7 +63,7 @@ class ArticleAdmin(admin.ModelAdmin):
         'updated_at'
     ]
     list_filter = ['status', 'is_promoted', 'category', 'created_at', 'published_at']
-    list_editable = ['status', 'is_promoted']
+    list_editable = ['order', 'status', 'is_promoted']
     search_fields = ['title', 'summary', 'content']
     prepopulated_fields = {'slug': ('title',)}
     readonly_fields = [
@@ -79,7 +80,7 @@ class ArticleAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Basic Information', {
-            'fields': ('category', 'title', 'slug', 'summary')
+            'fields': ('category', 'title', 'slug', 'summary', 'order')
         }),
         ('Content', {
             'fields': ('content',)

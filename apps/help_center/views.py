@@ -41,7 +41,7 @@ class CategoryDetailView(DetailView):
         context['articles'] = Article.objects.filter(
             category=self.object,
             status='published'
-        ).order_by('-created_at')
+        ).order_by('order', '-created_at')
         return context
 
 
