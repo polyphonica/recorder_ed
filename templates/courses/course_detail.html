@@ -46,7 +46,7 @@
                     {% if course.is_featured %}
                         <div class="badge badge-secondary">Featured</div>
                     {% endif %}
-                    {% if course.status == 'draft' and course.show_as_coming_soon %}
+                    {% if course.show_as_coming_soon %}
                         <div class="badge badge-warning badge-lg font-bold">🎉 Coming Soon!</div>
                     {% endif %}
                     <div class="badge badge-ghost">
@@ -58,7 +58,7 @@
                         </div>
                     {% endif %}
                 </div>
-                {% if course.status == 'draft' and course.show_as_coming_soon and course.expected_launch_date %}
+                {% if course.show_as_coming_soon and course.expected_launch_date %}
                 <div class="alert alert-warning mb-4">
                     <i class="fas fa-calendar-alt"></i>
                     <span><strong>Expected Launch:</strong> {{ course.expected_launch_date|date:"F Y" }}</span>
@@ -189,7 +189,7 @@
                         <div class="divider"></div>
 
                         <!-- Enrollment Status / Actions -->
-                        {% if course.status == 'draft' and course.show_as_coming_soon %}
+                        {% if course.show_as_coming_soon %}
                             <div class="alert alert-warning mb-4">
                                 <i class="fas fa-clock"></i>
                                 <div>

@@ -636,14 +636,13 @@ class CourseListView(SearchableListViewMixin, ListView):
     default_sort = 'featured'
 
     def get_queryset(self):
-        # Include published courses AND draft courses with "coming soon" enabled
+        # Include published courses AND courses with "coming soon" enabled (regardless of status)
         # For coming soon courses, auto-hide if expected launch date is 30+ days past
         thirty_days_ago = timezone.now().date() - timedelta(days=30)
 
         queryset = Course.objects.filter(
             Q(status='published') |
             Q(
-                status='draft',
                 show_as_coming_soon=True
             ) & (
                 Q(expected_launch_date__isnull=True) |  # No launch date set
@@ -673,7 +672,7 @@ class CourseDetailView(DetailView):
     context_object_name = 'course'
 
     def get_queryset(self):
-        # Show published courses AND draft courses with "coming soon" enabled to everyone
+        # Show published courses AND courses with "coming soon" enabled (regardless of status)
         # Owners can see all their courses regardless of status
         if self.request.user.is_authenticated and hasattr(self, 'object'):
             if self.object.is_owned_by(self.request.user):
@@ -684,7 +683,6 @@ class CourseDetailView(DetailView):
         return Course.objects.filter(
             Q(status='published') |
             Q(
-                status='draft',
                 show_as_coming_soon=True
             ) & (
                 Q(expected_launch_date__isnull=True) |

@@ -98,11 +98,11 @@
                             {% if course.is_featured %}
                             <span class="badge badge-accent">Featured</span>
                             {% endif %}
-                            {% if course.status == 'draft' and course.show_as_coming_soon %}
+                            {% if course.show_as_coming_soon %}
                             <span class="badge badge-warning badge-lg font-bold">🎉 Coming Soon!</span>
                             {% endif %}
                         </div>
-                        {% if course.status == 'draft' and course.show_as_coming_soon and course.expected_launch_date %}
+                        {% if course.show_as_coming_soon and course.expected_launch_date %}
                         <div class="text-xs text-warning font-semibold mb-2">
                             Expected Launch: {{ course.expected_launch_date|date:"F Y" }}
                         </div>
@@ -137,7 +137,7 @@
                         </div>
 
                         <div class="card-actions justify-between items-center">
-                            {% if course.status == 'draft' and course.show_as_coming_soon %}
+                            {% if course.show_as_coming_soon %}
                             <div class="text-lg font-semibold text-warning">Coming Soon</div>
                             <a href="{% url 'courses:detail' course.slug %}" class="btn btn-outline btn-warning">Learn More</a>
                             {% else %}
