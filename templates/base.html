@@ -100,7 +100,8 @@
                         <li><a href="{% url 'workshops:list' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold{% endif %}">Workshops</a></li>
                         <li><a href="{% url 'private_teaching:home' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold{% endif %}">Private Lessons</a></li>
                         <li><a href="{% url 'courses:list' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold{% endif %}">Courses</a></li>
-                        <li class="border-t mt-2 pt-2"><a href="{% url 'support:public_contact' %}"><i class="fas fa-life-ring mr-1"></i>Support</a></li>
+                        <li class="border-t mt-2 pt-2"><a href="{% url 'help_center:home' %}"><i class="fas fa-book-open mr-1"></i>Help Center</a></li>
+                        <li><a href="{% url 'support:public_contact' %}"><i class="fas fa-life-ring mr-1"></i>Support</a></li>
                     {% endif %}
                 </ul>
             </div>
@@ -141,6 +142,9 @@
                     <div class="card-body">
                         <h3 class="font-bold text-base mb-2">Help & Support</h3>
                         <div class="space-y-2">
+                            <a href="{% url 'help_center:home' %}" class="btn btn-outline btn-sm btn-block">
+                                <i class="fas fa-book-open mr-2"></i>Help Center
+                            </a>
                             <a href="{% url 'support:public_contact' %}" class="btn btn-primary btn-sm btn-block">
                                 <i class="fas fa-ticket-alt mr-2"></i>Create Support Ticket
                             </a>
@@ -150,7 +154,7 @@
                             </a>
                             {% endif %}
                             <div class="divider my-2"></div>
-                            <p class="text-xs text-base-content/70">Hover over buttons for quick tips!</p>
+                            <p class="text-xs text-base-content/70">Browse articles or create a ticket for help!</p>
                         </div>
                     </div>
                 </div>
