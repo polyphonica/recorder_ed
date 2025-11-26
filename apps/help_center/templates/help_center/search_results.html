@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Search Results: {{ query }} - Help Center | Recorder-ed{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'domain_selector' %}">Home</a></li>
+            <li><a href="{% url 'help_center:home' %}">Help Center</a></li>
+            <li>Search Results</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-12">
+        <div class="max-w-4xl mx-auto">
+            <!-- Search Header -->
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold mb-4">
+                    {% if query %}
+                    Search Results for "{{ query }}"
+                    {% else %}
+                    Search Help Center
+                    {% endif %}
+                </h1>
+
+                <!-- Search Form -->
+                <form action="{% url 'help_center:search' %}" method="get">
+                    <div class="join w-full">
+                        <input
+                            type="search"
+                            name="q"
+                            value="{{ query }}"
+                            placeholder="Search for help articles..."
+                            class="input input-bordered join-item w-full"
+                            required
+                        />
+                        <button type="submit" class="btn btn-primary join-item">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Results -->
+            {% if articles %}
+            <div class="mb-6">
+                <p class="text-base-content/70">
+                    Found {{ paginator.count }} article{{ paginator.count|pluralize }} matching your search
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                {% for article in articles %}
+                <a href="{{ article.get_absolute_url }}" class="block card bg-base-100 shadow hover:shadow-xl transition-all duration-300">
+                    <div class="card-body">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1">
+                                <div class="badge badge-ghost badge-sm mb-2">{{ article.category.name }}</div>
+                                <h2 class="card-title text-xl mb-2 hover:text-primary transition-colors">
+                                    {{ article.title }}
+                                </h2>
+                                {% if article.summary %}
+                                <p class="text-base-content/70 line-clamp-2">{{ article.summary }}</p>
+                                {% endif %}
+                                <div class="flex items-center gap-4 mt-3 text-sm text-base-content/60">
+                                    <span><i class="fas fa-eye mr-1"></i>{{ article.view_count }} views</span>
+                                    {% if article.helpfulness_score %}
+                                    <span><i class="fas fa-thumbs-up mr-1"></i>{{ article.helpfulness_score }}% helpful</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="text-primary text-2xl">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <div class="flex justify-center mt-8">
+                <div class="join">
+                    {% if page_obj.has_previous %}
+                    <a href="?q={{ query }}&page=1" class="join-item btn btn-outline">«</a>
+                    <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}" class="join-item btn btn-outline">‹</a>
+                    {% endif %}
+
+                    <button class="join-item btn btn-outline btn-active">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </button>
+
+                    {% if page_obj.has_next %}
+                    <a href="?q={{ query }}&page={{ page_obj.next_page_number }}" class="join-item btn btn-outline">›</a>
+                    <a href="?q={{ query }}&page={{ page_obj.paginator.num_pages }}" class="join-item btn btn-outline">»</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% elif query %}
+            <!-- No Results -->
+            <div class="alert alert-warning">
+                <i class="fas fa-search"></i>
+                <div>
+                    <h3 class="font-bold">No articles found</h3>
+                    <div class="text-sm">Try different keywords or browse by category.</div>
+                </div>
+            </div>
+
+            <div class="mt-8 text-center">
+                <a href="{% url 'help_center:home' %}" class="btn btn-primary">
+                    Browse All Categories
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Contact Support -->
+            <div class="card bg-base-200 mt-8">
+                <div class="card-body text-center">
+                    <h3 class="text-xl font-semibold mb-2">Can't find what you're looking for?</h3>
+                    <p class="text-base-content/70 mb-4">Contact our support team for help.</p>
+                    <a href="{% url 'support:create_ticket' %}" class="btn btn-primary">
+                        <i class="fas fa-life-ring mr-2"></i>
+                        Contact Support
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

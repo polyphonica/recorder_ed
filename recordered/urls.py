@@ -40,6 +40,7 @@ urlpatterns = [
     path('audioplayer/', include('apps.audioplayer.urls')),
     path('messages/', include('apps.messaging.urls')),
     path('support/', include('apps.support.urls')),
+    path('help/', include('apps.help_center.urls')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('robots.txt', robots_txt, name='robots_txt'),

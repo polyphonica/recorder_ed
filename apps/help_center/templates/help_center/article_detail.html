@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ article.title }} - Help Center | Recorder-ed{% endblock %}
+
+{% block meta_tags %}
+{% include 'includes/meta_tags.html' with page_title=article.title|add:" - Help Center | Recorder-ed" page_description=article.meta_description|default:article.summary %}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'domain_selector' %}">Home</a></li>
+            <li><a href="{% url 'help_center:home' %}">Help Center</a></li>
+            <li><a href="{{ article.category.get_absolute_url }}">{{ article.category.name }}</a></li>
+            <li>{{ article.title }}</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-12">
+        <div class="max-w-4xl mx-auto">
+            <!-- Article Header -->
+            <div class="mb-8">
+                <div class="flex items-center gap-2 mb-4">
+                    <a href="{{ article.category.get_absolute_url }}" class="badge badge-primary badge-lg">
+                        <i class="{{ article.category.icon }} mr-2"></i>
+                        {{ article.category.name }}
+                    </a>
+                </div>
+                <h1 class="text-4xl font-bold mb-4">{{ article.title }}</h1>
+                <div class="flex items-center gap-4 text-sm text-base-content/60">
+                    <span><i class="fas fa-calendar mr-1"></i>Updated {{ article.updated_at|date:"M d, Y" }}</span>
+                    <span><i class="fas fa-eye mr-1"></i>{{ article.view_count }} view{{ article.view_count|pluralize }}</span>
+                </div>
+            </div>
+
+            <!-- Article Content -->
+            <div class="card bg-base-100 shadow-xl mb-8">
+                <div class="card-body">
+                    <div class="prose prose-lg max-w-none ck-content">
+                        {{ article.content|safe }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Helpfulness Feedback -->
+            <div class="card bg-base-200 mb-8">
+                <div class="card-body text-center">
+                    <h3 class="text-xl font-semibold mb-4">Was this article helpful?</h3>
+                    <div class="flex gap-4 justify-center">
+                        <button class="btn btn-success btn-outline" onclick="alert('Thank you for your feedback!')">
+                            <i class="fas fa-thumbs-up mr-2"></i>
+                            Yes
+                        </button>
+                        <button class="btn btn-error btn-outline" onclick="alert('Thank you for your feedback. Please contact support for more help.')">
+                            <i class="fas fa-thumbs-down mr-2"></i>
+                            No
+                        </button>
+                    </div>
+                    <p class="text-sm text-base-content/70 mt-4">
+                        {% if article.helpfulness_score %}
+                        {{ article.helpfulness_score }}% of {{ article.helpful_count|add:article.not_helpful_count }} readers found this helpful
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Related Articles -->
+            {% if related_articles %}
+            <div class="card bg-base-100 shadow-xl mb-8">
+                <div class="card-body">
+                    <h3 class="card-title text-2xl mb-4">
+                        <i class="fas fa-lightbulb text-accent mr-2"></i>
+                        Related Articles
+                    </h3>
+                    <div class="space-y-2">
+                        {% for related in related_articles %}
+                        <a href="{{ related.get_absolute_url }}" class="block p-3 rounded-lg hover:bg-base-200 transition-colors">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-file-alt text-primary"></i>
+                                <span class="hover:text-primary transition-colors">{{ related.title }}</span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Still Need Help -->
+            <div class="card bg-base-200">
+                <div class="card-body text-center">
+                    <h3 class="text-xl font-semibold mb-2">Still need help?</h3>
+                    <p class="text-base-content/70 mb-4">Contact our support team for personalized assistance.</p>
+                    <a href="{% url 'support:create_ticket' %}" class="btn btn-primary">
+                        <i class="fas fa-life-ring mr-2"></i>
+                        Contact Support
+                    </a>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="text-center mt-8">
+                <a href="{{ article.category.get_absolute_url }}" class="btn btn-ghost">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Back to {{ article.category.name }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CKEditor Custom Styles -->
+<link rel="stylesheet" type="text/css" href="{% static 'css/ckeditor_custom.css' %}">
+{% endblock %}

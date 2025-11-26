@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ category.name }} - Help Center | Recorder-ed{% endblock %}
+
+{% block meta_tags %}
+{% include 'includes/meta_tags.html' with page_title=category.name|add:" - Help Center | Recorder-ed" page_description=category.description %}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'domain_selector' %}">Home</a></li>
+            <li><a href="{% url 'help_center:home' %}">Help Center</a></li>
+            <li>{{ category.name }}</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-12">
+        <!-- Category Header -->
+        <div class="text-center mb-12">
+            <div class="text-6xl text-primary mb-4">
+                <i class="{{ category.icon }}"></i>
+            </div>
+            <h1 class="text-4xl font-bold mb-4">{{ category.name }}</h1>
+            <p class="text-xl text-base-content/70 max-w-2xl mx-auto">{{ category.description }}</p>
+        </div>
+
+        <!-- Articles List -->
+        {% if articles %}
+        <div class="max-w-4xl mx-auto">
+            <div class="space-y-3">
+                {% for article in articles %}
+                <a href="{{ article.get_absolute_url }}" class="block card bg-base-100 shadow hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                    <div class="card-body p-6">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1">
+                                <h2 class="card-title text-xl mb-2 hover:text-primary transition-colors">
+                                    {{ article.title }}
+                                </h2>
+                                {% if article.summary %}
+                                <p class="text-base-content/70">{{ article.summary }}</p>
+                                {% endif %}
+                                <div class="flex items-center gap-4 mt-3 text-sm text-base-content/60">
+                                    <span><i class="fas fa-eye mr-1"></i>{{ article.view_count }} view{{ article.view_count|pluralize }}</span>
+                                    {% if article.helpfulness_score %}
+                                    <span><i class="fas fa-thumbs-up mr-1"></i>{{ article.helpfulness_score }}% helpful</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="text-primary text-2xl">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info max-w-2xl mx-auto">
+            <i class="fas fa-info-circle"></i>
+            <span>No articles in this category yet. Check back soon!</span>
+        </div>
+        {% endif %}
+
+        <!-- Back Button -->
+        <div class="text-center mt-12">
+            <a href="{% url 'help_center:home' %}" class="btn btn-ghost">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Help Center
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

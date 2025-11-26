@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'apps.audioplayer',
     'apps.messaging',
     'apps.support',
+    'apps.help_center',
     'lessons',
 ]
 

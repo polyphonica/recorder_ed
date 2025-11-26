@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Help Center | Recorder-ed{% endblock %}
+
+{% block meta_tags %}
+{% include 'includes/meta_tags.html' with page_title="Help Center | Recorder-ed" page_description="Get help and support for Recorder-ed courses, workshops, and private lessons. Search our knowledge base for answers." %}
+{% endblock %}
+
+{% block content %}
+<main role="main">
+    <!-- Hero Section with Search -->
+    <section class="hero bg-gradient-to-r from-primary to-secondary text-white py-20">
+        <div class="hero-content text-center w-full max-w-4xl">
+            <div class="w-full">
+                <h1 class="text-5xl font-bold mb-6">Recorder-ed Help Center</h1>
+                <p class="text-xl mb-8">Find answers to your questions and get the most out of Recorder-ed</p>
+
+                <form role="search" action="{% url 'help_center:search' %}" method="get" class="w-full">
+                    <div class="join w-full max-w-2xl mx-auto">
+                        <input
+                            type="search"
+                            name="q"
+                            placeholder="Type your question here..."
+                            class="input input-bordered input-lg join-item w-full text-base-content"
+                            aria-label="Search help articles"
+                            required
+                        />
+                        <button type="submit" class="btn btn-lg join-item bg-white text-primary hover:bg-base-200 border-none">
+                            <i class="fas fa-search"></i>
+                            <span class="ml-2">Search</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <div class="container mx-auto px-4 py-16">
+        <!-- Categories Section -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center">Browse by Category</h2>
+
+            {% if categories %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for category in categories %}
+                <a href="{{ category.get_absolute_url }}" class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+                    <div class="card-body">
+                        <div class="text-4xl text-primary mb-4">
+                            <i class="{{ category.icon }}"></i>
+                        </div>
+                        <h3 class="card-title text-2xl">{{ category.name }}</h3>
+                        <p class="text-base-content/70">{{ category.description }}</p>
+                        <div class="mt-4">
+                            <span class="badge badge-ghost">{{ category.article_count }} article{{ category.article_count|pluralize }}</span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <span>No categories available yet. Check back soon!</span>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- Promoted Articles Section -->
+        {% if promoted_articles %}
+        <section>
+            <h2 class="text-3xl font-bold mb-8 text-center">Popular Articles</h2>
+
+            <div class="bg-base-100 rounded-lg shadow-xl p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for article in promoted_articles %}
+                    <a href="{{ article.get_absolute_url }}" class="p-4 rounded-lg hover:bg-base-200 transition-colors group">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-file-alt text-primary mt-1 group-hover:scale-110 transition-transform"></i>
+                            <div class="flex-1">
+                                <h3 class="font-semibold group-hover:text-primary transition-colors">{{ article.title }}</h3>
+                                <p class="text-sm text-base-content/70 mt-1">{{ article.category.name }}</p>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Still Need Help Section -->
+        <section class="mt-16 text-center">
+            <div class="card bg-base-200">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl justify-center">Still need help?</h2>
+                    <p class="text-base-content/70">Can't find what you're looking for? Contact our support team.</p>
+                    <div class="card-actions justify-center mt-4">
+                        <a href="{% url 'support:create_ticket' %}" class="btn btn-primary">
+                            <i class="fas fa-life-ring mr-2"></i>
+                            Contact Support
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+{% endblock %}
