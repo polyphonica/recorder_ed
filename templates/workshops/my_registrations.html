@@ -97,9 +97,15 @@
 
             <!-- Registrations List -->
             <div class="space-y-4" id="registrationsList">
-                {% for registration in registrations %}
-                    <div class="card bg-base-200 shadow-xl registration-item" 
-                         data-status="{{ registration.status }}" 
+                {% for item in grouped_registrations %}
+                    {% if item.is_series %}
+                        {# Include series registration card #}
+                        {% include 'workshops/_series_registration_card.html' with item=item now=now %}
+                    {% else %}
+                        {# Individual registration #}
+                        {% with registration=item.registration %}
+                    <div class="card bg-base-200 shadow-xl registration-item"
+                         data-status="{{ registration.status }}"
                          data-workshop="{{ registration.session.workshop.title|lower }}"
                          data-session-date="{{ registration.session.start_datetime|date:'Y-m-d' }}"
                          data-reg-date="{{ registration.registration_date|date:'Y-m-d' }}">
@@ -278,6 +284,8 @@
                             {% endif %}
                         </div>
                     </div>
+                        {% endwith %}
+                    {% endif %}
                 {% endfor %}
             </div>
 
@@ -440,6 +448,43 @@ function confirmCancel(registrationId, workshopTitle, sessionDateTime, paymentSt
     } else {
         // No payment or other status
         refundMessage.style.display = 'none';
+    }
+
+    document.getElementById('confirmCancelBtn').onclick = function() {
+        window.location.href = `/workshops/registration/${registrationId}/cancel/`;
+    };
+    // Open modal by checking the checkbox
+    document.getElementById('cancelModal').checked = true;
+}
+
+// Cancel Series Function
+function confirmCancelSeries(registrationId, workshopTitle, sessionCount, earliestSessionDateTime, paymentStatus, totalPaid) {
+    document.getElementById('workshopTitle').textContent = workshopTitle + ` (${sessionCount}-Session Series)`;
+
+    // Calculate days until earliest workshop
+    const sessionDate = new Date(earliestSessionDateTime);
+    const now = new Date();
+    const daysUntil = Math.floor((sessionDate - now) / (1000 * 60 * 60 * 24));
+
+    // Determine refund eligibility for series
+    const refundMessage = document.getElementById('refundMessage');
+    const refundMessageText = document.getElementById('refundMessageText');
+
+    if (daysUntil >= 7 && totalPaid > 0) {
+        // Eligible for refund
+        refundMessage.style.display = 'block';
+        refundMessage.className = 'alert alert-success mb-4';
+        refundMessageText.innerHTML = `<strong>Good news!</strong> You are cancelling with 7 or more days notice. All ${sessionCount} sessions will be cancelled and you will receive a full refund of £${totalPaid.toFixed(2)}.`;
+    } else if (daysUntil < 7 && totalPaid > 0) {
+        // Not eligible for refund
+        refundMessage.style.display = 'block';
+        refundMessage.className = 'alert alert-warning mb-4';
+        refundMessageText.innerHTML = `<strong>Please note:</strong> You are cancelling with less than 7 days notice. All ${sessionCount} sessions will be cancelled but unfortunately no refund is possible.`;
+    } else {
+        // No payment
+        refundMessage.style.display = 'block';
+        refundMessage.className = 'alert alert-info mb-4';
+        refundMessageText.innerHTML = `All ${sessionCount} sessions in this series will be cancelled.`;
     }
 
     document.getElementById('confirmCancelBtn').onclick = function() {

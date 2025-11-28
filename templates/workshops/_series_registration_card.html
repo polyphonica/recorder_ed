@@ -1,0 +1,102 @@
+{# Series Registration Card - shows all sessions in a mandatory series grouped together #}
+<div class="card bg-base-200 shadow-xl border-2 border-secondary registration-item"
+     data-status="{{ item.status }}"
+     data-workshop="{{ item.workshop.title|lower }}"
+     data-session-date="{{ item.earliest_session.start_datetime|date:'Y-m-d' }}"
+     data-reg-date="{{ item.registrations.0.registration_date|date:'Y-m-d' }}">
+    <div class="card-body">
+        {# Series Badge #}
+        <div class="badge badge-secondary mb-2">
+            <i class="fas fa-list mr-1"></i>
+            {{ item.registrations|length }}-Session Series
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-6">
+            {# Workshop Info #}
+            <div class="flex-1">
+                <div class="flex items-start gap-4">
+                    {# Workshop Image #}
+                    {% if item.workshop.featured_image %}
+                        <div class="avatar flex-shrink-0">
+                            <div class="w-16 h-16 rounded-lg">
+                                <img src="{{ item.workshop.featured_image.url }}"
+                                     alt="{{ item.workshop.title }}" />
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="avatar placeholder flex-shrink-0">
+                            <div class="bg-neutral text-neutral-content rounded-lg w-16 h-16">
+                                <span class="text-xl">
+                                    <i class="fas fa-chalkboard-teacher"></i>
+                                </span>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {# Details #}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div>
+                                <h3 class="font-bold text-lg truncate">
+                                    {{ item.workshop.title }}
+                                </h3>
+                                <div class="text-sm text-secondary font-semibold">
+                                    Multi-Session Series ({{ item.registrations|length }} sessions)
+                                </div>
+                            </div>
+                            <span class="badge
+                                {% if item.status == 'registered' %}badge-success
+                                {% elif item.status == 'promoted' %}badge-warning
+                                {% elif item.status == 'waitlisted' %}badge-warning
+                                {% elif item.status == 'attended' %}badge-info
+                                {% elif item.status == 'cancelled' %}badge-error
+                                {% else %}badge-ghost{% endif %}">
+                                {{ item.registrations.0.get_status_display }}
+                            </span>
+                        </div>
+
+                        {# All Sessions in Series #}
+                        <div class="text-sm text-base-content/70 space-y-2 mt-3">
+                            <div class="font-semibold text-base-content">Session Schedule:</div>
+                            {% for reg in item.registrations %}
+                            <div class="flex items-center gap-2 pl-4">
+                                <i class="fas fa-calendar-alt text-primary text-xs"></i>
+                                <span>Session {{ forloop.counter }}: {{ reg.session.start_datetime|date:"M j, Y" }} at {{ reg.session.start_datetime|time:"g:i A" }}</span>
+                                {% if reg.session.session_title %}
+                                    <span class="text-primary">- {{ reg.session.session_title }}</span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+
+                            {% if item.total_paid > 0 %}
+                            <div class="flex items-center gap-2 mt-3 font-semibold text-success">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Paid: £{{ item.total_paid }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Actions #}
+            <div class="flex flex-col gap-2 lg:w-48">
+                <a href="{% url 'workshops:detail' slug=item.workshop.slug %}"
+                   class="btn btn-sm btn-primary">
+                    <i class="fas fa-eye"></i>
+                    View Workshop
+                </a>
+
+                {% if item.status == 'registered' or item.status == 'promoted' %}
+                    {% if item.earliest_session.start_datetime > now %}
+                        <button class="btn btn-sm btn-error"
+                                onclick="confirmCancelSeries('{{ item.registrations.0.id }}', '{{ item.workshop.title }}', {{ item.registrations|length }}, '{{ item.earliest_session.start_datetime|date:"c" }}', '{{ item.payment_status }}', {{ item.total_paid }})">
+                            <i class="fas fa-times-circle"></i>
+                            Cancel Entire Series
+                        </button>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

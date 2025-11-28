@@ -691,54 +691,97 @@ class RegistrationCancelView(LoginRequiredMixin, View):
             messages.error(request, 'Registration not found.')
             return redirect('workshops:my_registrations')
 
+        # REFACTORING NOTE: This cancellation logic handles both individual and series cancellations.
+        # Consider splitting into separate methods: _cancel_single_registration() and _cancel_series_registrations()
+        # to improve readability and testability.
+
+        # Check if this is part of a mandatory series
+        is_series_cancellation = False
+        series_registrations = []
+        total_refund_amount = 0
+
+        if registration.series_registration_id:
+            # Get all registrations in this series
+            series_registrations = list(WorkshopRegistration.objects.filter(
+                series_registration_id=registration.series_registration_id,
+                student=request.user
+            ).select_related('session__workshop'))
+
+            # Check if this is a mandatory series
+            if series_registrations and series_registrations[0].session.workshop.require_full_series_registration:
+                is_series_cancellation = True
+                # Calculate total refund for the series
+                for reg in series_registrations:
+                    if reg.payment_status in ['paid', 'completed']:
+                        total_refund_amount += reg.payment_amount
+
+        # Determine which registrations to cancel
+        registrations_to_cancel = series_registrations if is_series_cancellation else [registration]
+
         if registration.status in ['registered', 'waitlisted']:
-            if registration.status == 'registered':
-                # Free up a place
-                session = registration.session
-                session.current_registrations = max(0, session.current_registrations - 1)
-                session.save()
-
-                # Promote someone from waitlist
-                waitlisted = WorkshopRegistration.objects.filter(
-                    session=session,
-                    status='waitlisted'
-                ).order_by('registration_date').first()
-
-                if waitlisted:
-                    waitlisted.status = 'registered'
-                    waitlisted.save()
-                    session.current_registrations += 1
+            # Cancel all registrations (either single or entire series)
+            for reg in registrations_to_cancel:
+                if reg.status == 'registered':
+                    # Free up a place
+                    session = reg.session
+                    session.current_registrations = max(0, session.current_registrations - 1)
                     session.save()
 
-                    # Send notification to promoted student
-                    try:
-                        from .notifications import WaitlistNotificationService
-                        WaitlistNotificationService.send_registration_confirmed_notification(waitlisted)
-                    except Exception as e:
-                        print(f"Failed to send student promotion notification: {e}")
+                    # Promote someone from waitlist
+                    waitlisted = WorkshopRegistration.objects.filter(
+                        session=session,
+                        status='waitlisted'
+                    ).order_by('registration_date').first()
 
-                    # Send notification to instructor about promotion
-                    try:
-                        from .notifications import InstructorNotificationService
-                        InstructorNotificationService.send_new_registration_notification(waitlisted)
-                    except Exception as e:
-                        print(f"Failed to send instructor promotion notification: {e}")
+                    if waitlisted:
+                        waitlisted.status = 'registered'
+                        waitlisted.save()
+                        session.current_registrations += 1
+                        session.save()
 
-            registration.status = 'cancelled'
-            registration.save()
+                        # Send notification to promoted student
+                        try:
+                            from .notifications import WaitlistNotificationService
+                            WaitlistNotificationService.send_registration_confirmed_notification(waitlisted)
+                        except Exception as e:
+                            print(f"Failed to send student promotion notification: {e}")
+
+                        # Send notification to instructor about promotion
+                        try:
+                            from .notifications import InstructorNotificationService
+                            InstructorNotificationService.send_new_registration_notification(waitlisted)
+                        except Exception as e:
+                            print(f"Failed to send instructor promotion notification: {e}")
+
+                reg.status = 'cancelled'
+                reg.save()
+
+                # Send cancellation notification to instructor for each session
+                try:
+                    from .notifications import InstructorNotificationService
+                    InstructorNotificationService.send_registration_cancelled_notification(reg)
+                except Exception as e:
+                    print(f"Failed to send instructor cancellation notification: {e}")
 
             # Check if eligible for refund (7+ days before workshop)
             from django.utils import timezone
             from datetime import timedelta
 
-            days_until_workshop = (registration.session.start_datetime - timezone.now()).days
+            # For series cancellations, use the earliest session date
+            # For single cancellations, use the registration's session date
+            earliest_session_date = min(reg.session.start_datetime for reg in registrations_to_cancel)
+            days_until_workshop = (earliest_session_date - timezone.now()).days
             refund_processed = False
 
             print(f"[REFUND DEBUG] Days until workshop: {days_until_workshop}", flush=True)
-            print(f"[REFUND DEBUG] Payment status: {registration.payment_status}", flush=True)
-            print(f"[REFUND DEBUG] Eligible for refund: {days_until_workshop >= 7 and registration.payment_status in ['paid', 'completed']}", flush=True)
+            print(f"[REFUND DEBUG] Is series cancellation: {is_series_cancellation}", flush=True)
+            print(f"[REFUND DEBUG] Total refund amount: {total_refund_amount if is_series_cancellation else registration.payment_amount}", flush=True)
 
-            if days_until_workshop >= 7 and registration.payment_status in ['paid', 'completed']:
+            # Determine refund amount (series total or single registration)
+            refund_amount = total_refund_amount if is_series_cancellation else registration.payment_amount
+            has_payment = registration.payment_status in ['paid', 'completed']
+
+            if days_until_workshop >= 7 and has_payment and refund_amount > 0:
                 # Eligible for refund - process it automatically
                 try:
                     from apps.payments.models import StripePayment
@@ -761,23 +804,31 @@ class RegistrationCancelView(LoginRequiredMixin, View):
                         # Process refund via centralized Stripe service
                         refund = create_refund(
                             payment_intent_id=stripe_payment.stripe_payment_intent_id,
-                            amount=registration.payment_amount,
+                            amount=refund_amount,
                             reason='requested_by_customer'
                         )
 
                         # Update our record
                         stripe_payment.mark_refunded(
-                            refund_amount=registration.payment_amount,
+                            refund_amount=refund_amount,
                             stripe_refund_id=refund.id
                         )
 
                         refund_processed = True
-                        messages.success(
-                            request,
-                            'You have cancelled with 7 or more days notice. Your registration has been cancelled and a refund will be issued.'
-                        )
+                        if is_series_cancellation:
+                            session_count = len(registrations_to_cancel)
+                            messages.success(
+                                request,
+                                f'You have cancelled the entire {session_count}-session series with 7 or more days notice. All sessions have been cancelled and a full refund of £{refund_amount:.2f} will be issued.'
+                            )
+                        else:
+                            messages.success(
+                                request,
+                                'You have cancelled with 7 or more days notice. Your registration has been cancelled and a refund will be issued.'
+                            )
                     else:
-                        messages.success(request, 'Your registration has been cancelled.')
+                        cancel_msg = f'Your {len(registrations_to_cancel)}-session series has been cancelled.' if is_series_cancellation else 'Your registration has been cancelled.'
+                        messages.success(request, cancel_msg)
 
                 except Exception as e:
                     print(f"Failed to process automatic refund: {e}")
@@ -788,19 +839,20 @@ class RegistrationCancelView(LoginRequiredMixin, View):
             else:
                 # Not eligible for refund
                 if days_until_workshop < 7:
-                    messages.warning(
-                        request,
-                        'Unfortunately, you have not given at least 7 days notice to cancel your registration. Your registration has been cancelled but no refund is possible.'
-                    )
+                    if is_series_cancellation:
+                        session_count = len(registrations_to_cancel)
+                        messages.warning(
+                            request,
+                            f'Unfortunately, you have not given at least 7 days notice. The entire {session_count}-session series has been cancelled but no refund is possible.'
+                        )
+                    else:
+                        messages.warning(
+                            request,
+                            'Unfortunately, you have not given at least 7 days notice to cancel your registration. Your registration has been cancelled but no refund is possible.'
+                        )
                 else:
-                    messages.success(request, 'Your registration has been cancelled.')
-
-            # Send cancellation notification to instructor
-            try:
-                from .notifications import InstructorNotificationService
-                InstructorNotificationService.send_registration_cancelled_notification(registration)
-            except Exception as e:
-                print(f"Failed to send instructor cancellation notification: {e}")
+                    cancel_msg = f'Your {len(registrations_to_cancel)}-session series has been cancelled.' if is_series_cancellation else 'Your registration has been cancelled.'
+                    messages.success(request, cancel_msg)
         else:
             messages.error(request, 'Cannot cancel this registration.')
 
@@ -981,6 +1033,52 @@ class MyRegistrationsView(UserFilterMixin, LoginRequiredMixin, ListView):
         context['confirmed_count'] = all_registrations.filter(status='registered').count()
         context['waitlisted_count'] = all_registrations.filter(status='waitlisted').count()
         context['attended_count'] = all_registrations.filter(attended=True).count()
+
+        # REFACTORING NOTE: This grouping logic could be moved to a model manager method
+        # or a separate utility function for better testability and reusability.
+
+        # Group registrations: if they have a series_registration_id and belong to a mandatory series,
+        # group them together. Otherwise, show individually.
+        from collections import OrderedDict
+        grouped_registrations = []
+        processed_series_ids = set()
+
+        for registration in context['registrations']:
+            # Skip if already processed as part of a series
+            if registration.series_registration_id and registration.series_registration_id in processed_series_ids:
+                continue
+
+            # Check if this is part of a mandatory series
+            if (registration.series_registration_id and
+                registration.session.workshop.is_series and
+                registration.session.workshop.require_full_series_registration):
+
+                # Get all registrations in this series
+                series_regs = [r for r in context['registrations']
+                              if r.series_registration_id == registration.series_registration_id]
+
+                # Create a series group object
+                series_group = {
+                    'is_series': True,
+                    'workshop': registration.session.workshop,
+                    'registrations': sorted(series_regs, key=lambda r: r.session.start_datetime),
+                    'status': registration.status,
+                    'payment_status': registration.payment_status,
+                    'series_registration_id': registration.series_registration_id,
+                    'child_profile': registration.child_profile,
+                    'earliest_session': min((r.session for r in series_regs), key=lambda s: s.start_datetime),
+                    'total_paid': sum(r.payment_amount for r in series_regs if r.payment_status in ['paid', 'completed']),
+                }
+                grouped_registrations.append(series_group)
+                processed_series_ids.add(registration.series_registration_id)
+            else:
+                # Individual registration
+                grouped_registrations.append({
+                    'is_series': False,
+                    'registration': registration,
+                })
+
+        context['grouped_registrations'] = grouped_registrations
 
         return context
 
@@ -2202,6 +2300,22 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
         total_amount = sum(item.total_price for item in workshop_items)
 
         if total_amount == 0:
+            # REFACTORING NOTE: This free workshop logic duplicates series detection from webhook.
+            # Consider extracting to a shared utility function.
+
+            # Check if this is a mandatory series purchase
+            import uuid
+            is_mandatory_series = False
+            series_registration_id = None
+
+            if workshop_items.count() > 1:
+                workshops = set(item.session.workshop for item in workshop_items)
+                if len(workshops) == 1:
+                    workshop = list(workshops)[0]
+                    if workshop.is_series and workshop.require_full_series_registration:
+                        is_mandatory_series = True
+                        series_registration_id = uuid.uuid4()
+
             # Free workshops - create registrations directly
             for item in workshop_items:
                 registration = WorkshopRegistration.objects.create(
@@ -2211,7 +2325,8 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
                     child_profile=item.child_profile,
                     status='registered',
                     payment_status='not_required',
-                    payment_amount=0
+                    payment_amount=0,
+                    series_registration_id=series_registration_id  # Link series registrations
                 )
 
                 # Create terms acceptance record

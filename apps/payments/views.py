@@ -358,6 +358,7 @@ class StripeWebhookView(View):
         from django.contrib.auth.models import User
         from django.core.mail import send_mail
         from django.utils import timezone
+        import uuid
 
         logger.info(f"\n=== WORKSHOP CART PAYMENT WEBHOOK ===")
         logger.info(f"Metadata: {metadata}")
@@ -373,6 +374,29 @@ class StripeWebhookView(View):
             user = User.objects.get(id=user_id)
             logger.info(f"Found user: {user.username} ({user.email})")
             created_registrations = []
+
+            # REFACTORING NOTE: This series detection logic is complex and should be simplified.
+            # Consider adding an explicit 'is_series_purchase' flag to WorkshopCartItem model
+            # to avoid having to query and analyze all items before processing.
+
+            # Check if this is a mandatory series purchase by examining all cart items
+            cart_items = WorkshopCartItem.objects.select_related(
+                'session__workshop'
+            ).filter(id__in=item_ids)
+
+            # Detect if all items belong to same workshop with mandatory series registration
+            is_mandatory_series = False
+            series_registration_id = None
+
+            if len(item_ids) > 1:
+                workshops = set(item.session.workshop for item in cart_items)
+                if len(workshops) == 1:
+                    workshop = workshops.pop()
+                    if workshop.is_series and workshop.require_full_series_registration:
+                        is_mandatory_series = True
+                        series_registration_id = uuid.uuid4()
+                        logger.info(f"Detected mandatory series purchase: {workshop.title}")
+                        logger.info(f"Generated series_registration_id: {series_registration_id}")
 
             for item_id in item_ids:
                 logger.info(f"\n  Processing cart item: {item_id}")
@@ -403,7 +427,8 @@ class StripeWebhookView(View):
                         payment_amount=cart_item.price,
                         stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
                         stripe_checkout_session_id=stripe_payment.stripe_checkout_session_id,
-                        paid_at=timezone.now()
+                        paid_at=timezone.now(),
+                        series_registration_id=series_registration_id  # Link series registrations together
                     )
 
                     logger.info(f"  ✓ Created registration ID: {registration.id}")
