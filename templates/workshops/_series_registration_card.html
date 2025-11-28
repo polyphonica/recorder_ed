@@ -122,8 +122,8 @@
 
                                         {# Session Actions #}
                                         <div class="flex flex-col gap-1">
-                                            {# Zoom link - show if online and session is today or in future #}
-                                            {% if reg.session.meeting_url and reg.session.start_datetime >= now|date:"Y-m-d" and item.status == 'registered' %}
+                                            {# Zoom link - show if meeting URL exists and session hasn't ended yet #}
+                                            {% if reg.session.meeting_url and reg.session.end_datetime > now and item.status == 'registered' %}
                                                 <a href="{{ reg.session.meeting_url }}" target="_blank"
                                                    class="btn btn-xs btn-success">
                                                     <i class="fas fa-video"></i>
