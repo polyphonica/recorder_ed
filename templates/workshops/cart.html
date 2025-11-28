@@ -35,7 +35,15 @@
                     <div class="card-body">
                         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                             <div class="flex-grow">
-                                <h3 class="card-title text-xl">{{ item.session.workshop.title }}</h3>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <h3 class="card-title text-xl">{{ item.session.workshop.title }}</h3>
+                                    {% if item.session.workshop.is_series and item.session.workshop.require_full_series_registration %}
+                                        <span class="badge badge-secondary">
+                                            <i class="fas fa-list mr-1"></i>
+                                            Mandatory Series
+                                        </span>
+                                    {% endif %}
+                                </div>
                                 <div class="text-sm text-base-content/70 mt-2 space-y-1">
                                     <p><i class="fas fa-calendar mr-2"></i>{{ item.session.start_datetime|date:"l, F j, Y" }}</p>
                                     <p><i class="fas fa-clock mr-2"></i>{{ item.session.start_datetime|date:"g:i A" }} - {{ item.session.end_datetime|date:"g:i A" }}</p>
@@ -81,13 +89,24 @@
                                 {% else %}
                                     <div class="badge badge-success badge-lg">FREE</div>
                                 {% endif %}
-                                <form method="post" action="{% url 'workshops:remove_from_cart' item.session.id %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-error btn-outline">
+                                {% if item.session.workshop.is_series and item.session.workshop.require_full_series_registration %}
+                                    {# Mandatory series - use confirmation #}
+                                    <button type="button"
+                                            class="btn btn-sm btn-error btn-outline"
+                                            onclick="confirmRemoveSeries('{{ item.session.id }}', '{{ item.session.workshop.title }}', {{ item.session.workshop.series_session_count }})">
                                         <i class="fas fa-trash mr-1"></i>
-                                        Remove
+                                        Remove Series
                                     </button>
-                                </form>
+                                {% else %}
+                                    {# Individual session - direct removal #}
+                                    <form method="post" action="{% url 'workshops:remove_from_cart' item.session.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-error btn-outline">
+                                            <i class="fas fa-trash mr-1"></i>
+                                            Remove
+                                        </button>
+                                    </form>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -150,4 +169,44 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Remove Series Confirmation Modal -->
+<input type="checkbox" id="removeSeriesModal" class="modal-toggle" />
+<div class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Remove Entire Series from Cart?</h3>
+        <div class="py-4">
+            <div class="alert alert-warning mb-4">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <p class="font-semibold">This is a mandatory series</p>
+                    <p class="text-sm">You must register for all sessions together. Removing one session will remove the entire series from your cart.</p>
+                </div>
+            </div>
+            <p>Are you sure you want to remove <span id="seriesTitle" class="font-semibold"></span> (<span id="seriesCount"></span> sessions) from your cart?</p>
+        </div>
+        <div class="modal-action">
+            <label for="removeSeriesModal" class="btn btn-ghost">Cancel</label>
+            <form id="removeSeriesForm" method="post" action="">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-error">Yes, Remove Entire Series</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmRemoveSeries(sessionId, workshopTitle, sessionCount) {
+    // Set modal content
+    document.getElementById('seriesTitle').textContent = workshopTitle;
+    document.getElementById('seriesCount').textContent = sessionCount;
+
+    // Set form action
+    document.getElementById('removeSeriesForm').action = `/workshops/cart/remove/${sessionId}/`;
+
+    // Open modal
+    document.getElementById('removeSeriesModal').checked = true;
+}
+</script>
+
 {% endblock %}

@@ -107,7 +107,10 @@ class WorkshopCartManager(BaseCartManager):
             return False, f"Error adding workshop to cart: {str(e)}"
 
     def remove_session(self, session_id):
-        """Remove a workshop session from cart"""
+        """Remove a workshop session from cart.
+
+        For mandatory series, removes ALL sessions from that series.
+        """
         is_auth, error = self._require_authentication()
         if not is_auth:
             return False, error
@@ -121,7 +124,24 @@ class WorkshopCartManager(BaseCartManager):
                 cart=cart,
                 session_id=session_id
             )
-            workshop_name = cart_item.session.workshop.title
+            workshop = cart_item.session.workshop
+
+            # Check if this is part of a mandatory series
+            if workshop.is_series and workshop.require_full_series_registration:
+                # Count how many sessions from this series are in cart
+                series_items = WorkshopCartItem.objects.filter(
+                    cart=cart,
+                    session__workshop=workshop
+                )
+                session_count = series_items.count()
+
+                # Remove ALL sessions from this mandatory series
+                series_items.delete()
+
+                return True, f"Removed entire {workshop.title} series ({session_count} sessions) from cart"
+
+            # Individual session removal (not part of mandatory series)
+            workshop_name = workshop.title
             cart_item.delete()
             return True, f"Removed {workshop_name} from cart"
         except WorkshopCartItem.DoesNotExist:
