@@ -52,7 +52,9 @@
                         <div class="text-sm text-base-content/70 space-y-1">
                             <div class="flex items-center gap-2">
                                 <i class="fas fa-calendar-alt text-primary"></i>
-                                <span>{{ item.registrations|length }} sessions from {{ item.earliest_session.start_datetime|date:"M j" }} to {{ item.registrations|last.session.start_datetime|date:"M j, Y" }}</span>
+                                {% with last_session=item.registrations|last %}
+                                <span>{{ item.registrations|length }} sessions from {{ item.earliest_session.start_datetime|date:"M j" }} to {{ last_session.session.start_datetime|date:"M j, Y" }}</span>
+                                {% endwith %}
                             </div>
                             {% if item.total_paid > 0 %}
                             <div class="flex items-center gap-2 font-semibold text-success">
