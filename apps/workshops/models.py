@@ -629,6 +629,13 @@ class WorkshopRegistration(PayableModel):
     promotion_expires_at = models.DateTimeField(null=True, blank=True, help_text="Deadline to confirm promotion")
     promotion_notification_sent = models.BooleanField(default=False, help_text="Whether promotion notification was sent")
 
+    # Series Registration Grouping
+    series_registration_id = models.UUIDField(
+        null=True,
+        blank=True,
+        help_text="Links registrations that were purchased together as a mandatory series. All registrations with the same series_registration_id should be cancelled together."
+    )
+
     # Payment fields inherited from PayableModel:
     # - payment_status
     # - payment_amount
