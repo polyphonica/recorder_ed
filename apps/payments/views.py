@@ -567,6 +567,7 @@ from django.views.generic import TemplateView
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Sum
+from apps.core.views import DateRangeMixin
 from .finance_service import FinanceService
 
 
@@ -584,7 +585,7 @@ class TeacherOnlyMixin(UserPassesTestMixin):
         return redirect('core:home')
 
 
-class FinanceDashboardView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
+class FinanceDashboardView(LoginRequiredMixin, TeacherOnlyMixin, DateRangeMixin, TemplateView):
     """
     Unified finance dashboard showing revenue from all domains.
     Single source of truth for teacher's financial data.
@@ -595,26 +596,13 @@ class FinanceDashboardView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         teacher = self.request.user
 
-        # Get date range from query params (default to last 30 days)
-        date_range = self.request.GET.get('range', '30')
+        # Get date range using mixin
+        start_date, end_date = self.get_date_range()
 
-        if date_range == 'all':
-            start_date = None
-            end_date = None
-        elif date_range == '7':
-            start_date = timezone.now() - timedelta(days=7)
-            end_date = None
-        elif date_range == '30':
-            start_date = timezone.now() - timedelta(days=30)
-            end_date = None
-        elif date_range == '90':
-            start_date = timezone.now() - timedelta(days=90)
-            end_date = None
-        elif date_range == 'year':
+        # Handle 'year' range (not in default mixin)
+        date_range = self.request.GET.get('range', '30')
+        if date_range == 'year':
             start_date = timezone.now() - timedelta(days=365)
-            end_date = None
-        else:
-            start_date = timezone.now() - timedelta(days=30)
             end_date = None
 
         # Get overall summary
@@ -671,7 +659,7 @@ class FinanceDashboardView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
         return context
 
 
-class WorkshopRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
+class WorkshopRevenueView(LoginRequiredMixin, TeacherOnlyMixin, DateRangeMixin, TemplateView):
     """Detailed workshop revenue breakdown"""
     template_name = 'payments/workshop_revenue.html'
 
@@ -679,23 +667,8 @@ class WorkshopRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         teacher = self.request.user
 
-        # Get date range
-        date_range = self.request.GET.get('range', '30')
-        if date_range == 'all':
-            start_date = None
-            end_date = None
-        elif date_range == '7':
-            start_date = timezone.now() - timedelta(days=7)
-            end_date = None
-        elif date_range == '30':
-            start_date = timezone.now() - timedelta(days=30)
-            end_date = None
-        elif date_range == '90':
-            start_date = timezone.now() - timedelta(days=90)
-            end_date = None
-        else:
-            start_date = timezone.now() - timedelta(days=30)
-            end_date = None
+        # Get date range using mixin
+        start_date, end_date = self.get_date_range()
 
         # Get domain revenue
         domain_data = FinanceService.get_domain_revenue(teacher, 'workshops', start_date, end_date)
@@ -726,7 +699,7 @@ class WorkshopRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
         return context
 
 
-class CourseRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
+class CourseRevenueView(LoginRequiredMixin, TeacherOnlyMixin, DateRangeMixin, TemplateView):
     """Detailed course revenue breakdown"""
     template_name = 'payments/course_revenue.html'
 
@@ -734,23 +707,8 @@ class CourseRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         teacher = self.request.user
 
-        # Get date range
-        date_range = self.request.GET.get('range', '30')
-        if date_range == 'all':
-            start_date = None
-            end_date = None
-        elif date_range == '7':
-            start_date = timezone.now() - timedelta(days=7)
-            end_date = None
-        elif date_range == '30':
-            start_date = timezone.now() - timedelta(days=30)
-            end_date = None
-        elif date_range == '90':
-            start_date = timezone.now() - timedelta(days=90)
-            end_date = None
-        else:
-            start_date = timezone.now() - timedelta(days=30)
-            end_date = None
+        # Get date range using mixin
+        start_date, end_date = self.get_date_range()
 
         # Get domain revenue
         domain_data = FinanceService.get_domain_revenue(teacher, 'courses', start_date, end_date)
@@ -781,7 +739,7 @@ class CourseRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
         return context
 
 
-class PrivateTeachingRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
+class PrivateTeachingRevenueView(LoginRequiredMixin, TeacherOnlyMixin, DateRangeMixin, TemplateView):
     """Detailed private teaching revenue breakdown"""
     template_name = 'payments/private_teaching_revenue.html'
 
@@ -789,23 +747,8 @@ class PrivateTeachingRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateV
         context = super().get_context_data(**kwargs)
         teacher = self.request.user
 
-        # Get date range
-        date_range = self.request.GET.get('range', '30')
-        if date_range == 'all':
-            start_date = None
-            end_date = None
-        elif date_range == '7':
-            start_date = timezone.now() - timedelta(days=7)
-            end_date = None
-        elif date_range == '30':
-            start_date = timezone.now() - timedelta(days=30)
-            end_date = None
-        elif date_range == '90':
-            start_date = timezone.now() - timedelta(days=90)
-            end_date = None
-        else:
-            start_date = timezone.now() - timedelta(days=30)
-            end_date = None
+        # Get date range using mixin
+        start_date, end_date = self.get_date_range()
 
         # Get domain revenue
         domain_data = FinanceService.get_domain_revenue(teacher, 'private_teaching', start_date, end_date)
@@ -836,7 +779,7 @@ class PrivateTeachingRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateV
         return context
 
 
-class PrivateTeachingSubjectRevenueView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
+class PrivateTeachingSubjectRevenueView(LoginRequiredMixin, TeacherOnlyMixin, DateRangeMixin, TemplateView):
     """Detailed private teaching revenue breakdown by subject"""
     template_name = 'payments/private_teaching_subject_revenue.html'
 
@@ -844,23 +787,8 @@ class PrivateTeachingSubjectRevenueView(LoginRequiredMixin, TeacherOnlyMixin, Te
         context = super().get_context_data(**kwargs)
         teacher = self.request.user
 
-        # Get date range
-        date_range = self.request.GET.get('range', '30')
-        if date_range == 'all':
-            start_date = None
-            end_date = None
-        elif date_range == '7':
-            start_date = timezone.now() - timedelta(days=7)
-            end_date = None
-        elif date_range == '30':
-            start_date = timezone.now() - timedelta(days=30)
-            end_date = None
-        elif date_range == '90':
-            start_date = timezone.now() - timedelta(days=90)
-            end_date = None
-        else:
-            start_date = timezone.now() - timedelta(days=30)
-            end_date = None
+        # Get date range using mixin
+        start_date, end_date = self.get_date_range()
 
         # Get domain revenue
         domain_data = FinanceService.get_domain_revenue(teacher, 'private_teaching', start_date, end_date)
@@ -891,7 +819,7 @@ class PrivateTeachingSubjectRevenueView(LoginRequiredMixin, TeacherOnlyMixin, Te
         return context
 
 
-class ProfitLossView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
+class ProfitLossView(LoginRequiredMixin, TeacherOnlyMixin, DateRangeMixin, TemplateView):
     """
     Profit & Loss statement showing revenue vs expenses by business area.
     Provides complete financial picture with net profit calculations.
@@ -902,84 +830,49 @@ class ProfitLossView(LoginRequiredMixin, TeacherOnlyMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         teacher = self.request.user
 
-        # Check for custom date range first
-        start_date_str = self.request.GET.get('start_date')
-        end_date_str = self.request.GET.get('end_date')
+        # Get date range parameter
+        date_range = self.request.GET.get('range', 'tax_year')
 
-        if start_date_str and end_date_str:
-            # Custom date range provided
-            from datetime import datetime
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-            start_date = timezone.make_aware(start_date)
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
-            end_date = timezone.make_aware(end_date.replace(hour=23, minute=59, second=59))
-            date_range = 'custom'
-        else:
-            # Use quick select range
-            date_range = self.request.GET.get('range', 'tax_year')
+        # Handle special cases not in DateRangeMixin
+        if date_range == 'year':
+            # Calendar year
+            start_date = timezone.now() - timedelta(days=365)
+            end_date = timezone.now()
+            start_date_str = start_date.strftime('%Y-%m-%d')
+            end_date_str = end_date.strftime('%Y-%m-%d')
+        elif date_range == 'tax_year':
+            # UK tax year: April 6 to April 5
+            from datetime import date
+            today = timezone.now().date()
+            current_year = today.year
 
-            if date_range == 'all':
-                start_date = None
-                end_date = None
-                start_date_str = ''
-                end_date_str = ''
-            elif date_range == '7':
-                start_date = timezone.now() - timedelta(days=7)
-                end_date = timezone.now()
-                start_date_str = start_date.strftime('%Y-%m-%d')
-                end_date_str = end_date.strftime('%Y-%m-%d')
-            elif date_range == '30':
-                start_date = timezone.now() - timedelta(days=30)
-                end_date = timezone.now()
-                start_date_str = start_date.strftime('%Y-%m-%d')
-                end_date_str = end_date.strftime('%Y-%m-%d')
-            elif date_range == '90':
-                start_date = timezone.now() - timedelta(days=90)
-                end_date = timezone.now()
-                start_date_str = start_date.strftime('%Y-%m-%d')
-                end_date_str = end_date.strftime('%Y-%m-%d')
-            elif date_range == 'year':
-                start_date = timezone.now() - timedelta(days=365)
-                end_date = timezone.now()
-                start_date_str = start_date.strftime('%Y-%m-%d')
-                end_date_str = end_date.strftime('%Y-%m-%d')
-            elif date_range == 'tax_year':
-                # UK tax year: April 6 to April 5
-                from datetime import date
-                today = timezone.now().date()
-                current_year = today.year
-
-                # Determine current tax year
-                if today >= date(current_year, 4, 6):
-                    # After April 6 - tax year is April 6 current_year to April 5 next_year
-                    tax_year_start = date(current_year, 4, 6)
-                    tax_year_end = date(current_year + 1, 4, 5)
-                else:
-                    # Before April 6 - tax year is April 6 last_year to April 5 current_year
-                    tax_year_start = date(current_year - 1, 4, 6)
-                    tax_year_end = date(current_year, 4, 5)
-
-                start_date = timezone.make_aware(timezone.datetime.combine(tax_year_start, timezone.datetime.min.time()))
-                end_date = timezone.make_aware(timezone.datetime.combine(tax_year_end, timezone.datetime.max.time()))
-                start_date_str = tax_year_start.strftime('%Y-%m-%d')
-                end_date_str = tax_year_end.strftime('%Y-%m-%d')
+            # Determine current tax year
+            if today >= date(current_year, 4, 6):
+                # After April 6 - tax year is April 6 current_year to April 5 next_year
+                tax_year_start = date(current_year, 4, 6)
+                tax_year_end = date(current_year + 1, 4, 5)
             else:
-                # Default to current tax year
-                from datetime import date
-                today = timezone.now().date()
-                current_year = today.year
+                # Before April 6 - tax year is April 6 last_year to April 5 current_year
+                tax_year_start = date(current_year - 1, 4, 6)
+                tax_year_end = date(current_year, 4, 5)
 
-                if today >= date(current_year, 4, 6):
-                    tax_year_start = date(current_year, 4, 6)
-                    tax_year_end = date(current_year + 1, 4, 5)
-                else:
-                    tax_year_start = date(current_year - 1, 4, 6)
-                    tax_year_end = date(current_year, 4, 5)
-
-                start_date = timezone.make_aware(timezone.datetime.combine(tax_year_start, timezone.datetime.min.time()))
-                end_date = timezone.make_aware(timezone.datetime.combine(tax_year_end, timezone.datetime.max.time()))
-                start_date_str = tax_year_start.strftime('%Y-%m-%d')
-                end_date_str = tax_year_end.strftime('%Y-%m-%d')
+            start_date = timezone.make_aware(timezone.datetime.combine(tax_year_start, timezone.datetime.min.time()))
+            end_date = timezone.make_aware(timezone.datetime.combine(tax_year_end, timezone.datetime.max.time()))
+            start_date_str = tax_year_start.strftime('%Y-%m-%d')
+            end_date_str = tax_year_end.strftime('%Y-%m-%d')
+        elif date_range == 'custom':
+            # Use DateRangeMixin to handle custom dates
+            start_date, end_date = self.get_date_range()
+            start_date_str = self.request.GET.get('start_date', '')
+            end_date_str = self.request.GET.get('end_date', '')
+        else:
+            # Use DateRangeMixin for standard ranges (all, 7, 30, 90)
+            start_date, end_date = self.get_date_range()
+            # Set end_date to now for these ranges (unlike other views)
+            if end_date is None and start_date is not None:
+                end_date = timezone.now()
+            start_date_str = start_date.strftime('%Y-%m-%d') if start_date else ''
+            end_date_str = end_date.strftime('%Y-%m-%d') if end_date else ''
 
         # Get revenue summary
         summary = FinanceService.get_teacher_revenue_summary(teacher, start_date, end_date)

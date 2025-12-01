@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.conf import settings as django_settings
 from django.urls import reverse
 from django.core.exceptions import ValidationError
 import uuid
@@ -952,22 +953,22 @@ class LessonCancellationRequest(BaseCancellationRequest):
             time_until_lesson = lesson_datetime - timezone.now()
             self.hours_before_lesson = time_until_lesson.total_seconds() / 3600
 
-            # Check if within 48-hour policy
-            self.is_within_policy = self.hours_before_lesson >= 48
+            # Check if within cancellation policy
+            self.is_within_policy = self.hours_before_lesson >= django_settings.PRIVATE_LESSON_CANCELLATION_HOURS
 
         super().save(*args, **kwargs)
 
     def calculate_refund_eligibility(self):
         """
-        Calculate if student is eligible for refund based on 48-hour notice policy.
+        Calculate if student is eligible for refund based on cancellation notice policy.
         Updates is_eligible_for_refund and refund_amount fields.
 
         Refund policy for private lessons:
-        - Must be within 48-hour notice period
+        - Must provide advance notice (hours configured in settings.PRIVATE_LESSON_CANCELLATION_HOURS)
         - Lesson must have been paid
         - Must be requesting cancellation (not reschedule)
-        - Request must be within 14 days of lesson date
-        - Refund amount = lesson price minus platform fee (10%)
+        - Request must be within refund window (days configured in settings.PRIVATE_LESSON_REFUND_REQUEST_DAYS)
+        - Refund amount = lesson price minus platform fee (configured in settings.PLATFORM_COMMISSION_PERCENTAGE)
         """
         from django.utils import timezone
         from datetime import datetime, timedelta
@@ -988,14 +989,14 @@ class LessonCancellationRequest(BaseCancellationRequest):
         if self.request_type != self.CANCEL_WITH_REFUND:
             eligible = False
 
-        # Request must be within 14 days of lesson date
+        # Request must be within refund request window
         lesson_datetime = datetime.combine(
             self.lesson.lesson_date,
             self.lesson.lesson_time
         )
         lesson_datetime = timezone.make_aware(lesson_datetime)
         days_since_lesson = (timezone.now() - lesson_datetime).days
-        if days_since_lesson > 14:
+        if days_since_lesson > django_settings.PRIVATE_LESSON_REFUND_REQUEST_DAYS:
             eligible = False
 
         # Set eligibility
@@ -1015,34 +1016,12 @@ class LessonCancellationRequest(BaseCancellationRequest):
 
     @property
     def can_receive_refund(self):
-        """Determine if this cancellation is eligible for a refund"""
-        # Must be within 48-hour policy
-        if not self.is_within_policy:
-            return False
-
-        # Lesson must have been paid
-        if self.lesson.payment_status != 'Paid':
-            return False
-
-        # Must be requesting a cancellation (not just reschedule)
-        if self.request_type != self.CANCEL_WITH_REFUND:
-            return False
-
-        # Request must be within 14 days of lesson date
-        from django.utils import timezone
-        from datetime import datetime, timedelta
-
-        lesson_datetime = datetime.combine(
-            self.lesson.lesson_date,
-            self.lesson.lesson_time
-        )
-        lesson_datetime = timezone.make_aware(lesson_datetime)
-
-        days_since_lesson = (timezone.now() - lesson_datetime).days
-        if days_since_lesson > 14:
-            return False
-
-        return True
+        """
+        Determine if this cancellation is eligible for a refund.
+        Uses calculate_refund_eligibility() to avoid code duplication.
+        """
+        # Use the existing calculation method to determine eligibility
+        return self.calculate_refund_eligibility()
 
 
 class PracticeEntry(models.Model):

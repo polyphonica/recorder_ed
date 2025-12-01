@@ -590,6 +590,70 @@ class UserFilterMixin:
         return queryset.filter(**filter_kwargs)
 
 
+class DateRangeMixin:
+    """
+    Mixin to parse date range from query parameters.
+
+    Parses the 'range' query parameter and returns (start_date, end_date) tuple.
+
+    Supported range values:
+        - 'all': (None, None) - no date filtering
+        - '7': Last 7 days
+        - '30': Last 30 days (default)
+        - '90': Last 90 days
+        - 'custom': Uses 'start_date' and 'end_date' query params
+
+    Usage:
+        class MyView(DateRangeMixin, TemplateView):
+            def get_context_data(self, **kwargs):
+                context = super().get_context_data(**kwargs)
+                start_date, end_date = self.get_date_range()
+                # Use start_date and end_date for filtering
+    """
+
+    def get_date_range(self):
+        """Parse date range from query parameters and return (start_date, end_date)"""
+        from django.utils import timezone
+        from datetime import timedelta
+
+        date_range = self.request.GET.get('range', '30')
+
+        if date_range == 'all':
+            return None, None
+        elif date_range == '7':
+            return timezone.now() - timedelta(days=7), None
+        elif date_range == '30':
+            return timezone.now() - timedelta(days=30), None
+        elif date_range == '90':
+            return timezone.now() - timedelta(days=90), None
+        elif date_range == 'custom':
+            # Parse custom start/end dates from query params
+            start_str = self.request.GET.get('start_date')
+            end_str = self.request.GET.get('end_date')
+
+            start_date = None
+            end_date = None
+
+            if start_str:
+                try:
+                    from datetime import datetime
+                    start_date = timezone.make_aware(datetime.strptime(start_str, '%Y-%m-%d'))
+                except (ValueError, TypeError):
+                    pass
+
+            if end_str:
+                try:
+                    from datetime import datetime
+                    end_date = timezone.make_aware(datetime.strptime(end_str, '%Y-%m-%d'))
+                except (ValueError, TypeError):
+                    pass
+
+            return start_date, end_date
+        else:
+            # Default to 30 days
+            return timezone.now() - timedelta(days=30), None
+
+
 class OwnershipRequiredMixin:
     """
     Mixin to ensure the current user owns the object being accessed.

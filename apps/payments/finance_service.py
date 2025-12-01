@@ -365,52 +365,61 @@ class FinanceService:
         """
         from apps.workshops.models import Workshop, WorkshopRegistration
         from django.conf import settings
+        from django.db.models import Prefetch
 
         commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
 
-        # Get all workshops for this teacher
-        workshops = Workshop.objects.filter(instructor=teacher)
+        # Build registration queryset with filters
+        registration_qs = WorkshopRegistration.objects.filter(
+            Q(payment_status='completed', status='registered') |  # Active paid registrations
+            Q(payment_status='completed', status='cancelled')     # Cancelled/refunded registrations
+        )
+
+        if start_date:
+            registration_qs = registration_qs.filter(paid_at__gte=start_date)
+        if end_date:
+            registration_qs = registration_qs.filter(paid_at__lte=end_date)
+
+        # Prefetch registrations to avoid N+1 queries
+        workshops = Workshop.objects.filter(instructor=teacher).prefetch_related(
+            Prefetch(
+                'sessions__registrations',
+                queryset=registration_qs.select_related('student', 'session'),
+                to_attr='filtered_registrations'
+            )
+        )
 
         breakdown = []
         for workshop in workshops:
-            # Get all registrations for this workshop (including cancelled with refunds)
-            registrations = WorkshopRegistration.objects.filter(
-                session__workshop=workshop,
-            ).filter(
-                Q(payment_status='completed', status='registered') |  # Active paid registrations
-                Q(payment_status='completed', status='cancelled')     # Cancelled/refunded registrations
-            )
-
-            if start_date:
-                registrations = registrations.filter(paid_at__gte=start_date)
-            if end_date:
-                registrations = registrations.filter(paid_at__lte=end_date)
+            # Collect all registrations across all sessions for this workshop
+            registrations = []
+            for session in workshop.sessions.all():
+                registrations.extend(session.filtered_registrations)
 
             # Calculate revenue only from active (non-cancelled) registrations
-            active_registrations = registrations.filter(status='registered')
-            total_revenue = active_registrations.aggregate(
-                revenue=Sum('payment_amount')
-            )['revenue'] or Decimal('0.00')
+            active_registrations = [r for r in registrations if r.status == 'registered']
+            total_revenue = sum((r.payment_amount or Decimal('0.00') for r in active_registrations), Decimal('0.00'))
 
             # Get refunded registrations
-            refunded_registrations = registrations.filter(status='cancelled')
-            refunded_amount = refunded_registrations.aggregate(
-                revenue=Sum('payment_amount')
-            )['revenue'] or Decimal('0.00')
+            refunded_registrations = [r for r in registrations if r.status == 'cancelled']
+            refunded_amount = sum((r.payment_amount or Decimal('0.00') for r in refunded_registrations), Decimal('0.00'))
 
             # Calculate teacher share (after commission) - only on active revenue
             teacher_share = total_revenue * (1 - Decimal(str(commission_rate)))
 
             # Include workshops that have any transactions (active or refunded)
             if total_revenue > 0 or refunded_amount > 0:
+                # Sort transactions by paid_at descending
+                sorted_registrations = sorted(registrations, key=lambda r: r.paid_at or timezone.now(), reverse=True)
+
                 breakdown.append({
                     'workshop': workshop,
                     'total_revenue': total_revenue,
                     'teacher_share': teacher_share,
-                    'registrations_count': active_registrations.count(),
-                    'refunded_count': refunded_registrations.count(),
+                    'registrations_count': len(active_registrations),
+                    'refunded_count': len(refunded_registrations),
                     'refunded_amount': refunded_amount,
-                    'transactions': registrations.select_related('student', 'session').order_by('-paid_at'),
+                    'transactions': sorted_registrations,
                 })
 
         # Sort by total revenue (active + refunded) descending to show busiest workshops first

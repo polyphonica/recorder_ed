@@ -53,11 +53,14 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django.contrib.sitemaps',
     'django.contrib.humanize',
-    
+
     # Third party apps
     'django_ckeditor_5',
     'django_filters',
-    
+    'tailwind',
+    'theme',
+    'django_browser_reload',
+
     # Local apps
     'apps.core',
     'apps.workshops',
@@ -82,6 +85,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_browser_reload.middleware.BrowserReloadMiddleware',
     'apps.accounts.middleware.ProfileCompletionMiddleware',
 ]
 
@@ -211,6 +215,15 @@ CURRENCY_SYMBOL = '£'
 
 # Platform Settings
 PLATFORM_COMMISSION_PERCENTAGE = config('PLATFORM_COMMISSION_PERCENTAGE', default=10, cast=int)
+
+# Business Logic Settings
+# Workshop refund and cancellation policies
+WORKSHOP_REFUND_DAYS = config('WORKSHOP_REFUND_DAYS', default=7, cast=int)  # Days before workshop for full refund
+WAITLIST_PROMOTION_HOURS = config('WAITLIST_PROMOTION_HOURS', default=48, cast=int)  # Hours to accept waitlist promotion
+
+# Private lesson policies
+PRIVATE_LESSON_CANCELLATION_HOURS = config('PRIVATE_LESSON_CANCELLATION_HOURS', default=48, cast=int)  # Hours notice required
+PRIVATE_LESSON_REFUND_REQUEST_DAYS = config('PRIVATE_LESSON_REFUND_REQUEST_DAYS', default=14, cast=int)  # Days after lesson to request refund
 
 # Site configuration
 SITE_ID = 1

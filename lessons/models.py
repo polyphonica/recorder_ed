@@ -2,10 +2,6 @@ from django.urls import reverse
 from django.db import models
 from django_ckeditor_5.fields import CKEditor5Field
 from django.conf import settings
-from django.core.mail import send_mail, EmailMessage
-from django.template.loader import render_to_string
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 
 # Import models from other apps
@@ -151,6 +147,20 @@ class Lesson(models.Model):
     def price(self):
         """Get the lesson price"""
         return self.fee or 0
+
+    @property
+    def calendar_color(self):
+        """Return color code for calendar display based on lesson status"""
+        if self.status == 'Assigned':
+            return '#1e40af'  # Dark blue for assigned
+        elif self.payment_status == 'Paid':
+            return '#3b82f6'  # Blue for paid
+        elif self.approved_status == 'Accepted':
+            return '#10b981'  # Green for accepted but not paid
+        elif self.approved_status == 'Rejected':
+            return '#ef4444'  # Red for rejected
+        else:
+            return '#f59e0b'  # Yellow/orange for pending
 
     @property
     def get_student_url(self):
@@ -306,35 +316,3 @@ class LessonOrder(models.Model):
 
     class Meta:
         ordering = ["-created"]
-
-
-# Signal handlers for automatic lesson creation and email notifications
-@receiver(pre_save, sender=Lesson)
-def pre_save_lesson_receiver(sender, instance, **kwargs):
-    if instance.id is None:
-        pass
-    else:
-        try:
-            lesson = Lesson.objects.get(id=instance.id)
-            previous_status = lesson.approved_status
-            previous_published_status = lesson.status
-        except Lesson.DoesNotExist:
-            previous_status = None
-            previous_published_status = None
-            
-        if previous_status != instance.approved_status:
-            if instance.approved_status == "Accepted":
-                # Don't send email here - it's handled in private_teaching app
-                # via lesson request response notification
-                pass
-
-            elif instance.approved_status == "Rejected":
-                # Don't send email here - it's handled in private_teaching app
-                # via lesson request response notification
-                pass
-        
-        if previous_published_status != instance.status:
-            if instance.status == "Assigned":
-                # Email notification is handled in lessons/views.py
-                # when teacher updates lesson from Draft to Assigned
-                pass

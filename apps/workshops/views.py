@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView, RedirectView, DeleteView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from django.conf import settings
 from django.db.models import Q, Count, Avg, F
 from django.utils import timezone
 from django.urls import reverse_lazy, reverse
@@ -416,29 +417,6 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
             messages.error(self.request, message)
             return redirect('workshops:detail', slug=self.workshop.slug)
 
-        # OLD DIRECT REGISTRATION CODE - Keeping for reference but now using cart flow
-        """
-        registration = form.save(commit=False)
-        registration.student = self.request.user
-        registration.session = self.session
-        registration.email = registration.email or getattr(self.request.user, 'email', '')
-
-        # Handle child profile if guardian
-        if self.request.user.profile.is_guardian:
-            child_id = form.cleaned_data.get('child_profile')
-            if child_id:
-                from apps.accounts.models import ChildProfile
-                try:
-                    child = ChildProfile.objects.get(id=child_id, guardian=self.request.user)
-                    registration.child_profile = child
-                except ChildProfile.DoesNotExist:
-                    messages.error(self.request, 'Invalid child selected.')
-                    return redirect('workshops:detail', slug=self.workshop.slug)
-
-        # Check if workshop requires payment (code moved to cart checkout process)
-        # All workshop registration now goes through cart for consistency
-        """
-    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from .models import WorkshopTermsAndConditions
@@ -781,7 +759,7 @@ class RegistrationCancelView(LoginRequiredMixin, View):
             refund_amount = total_refund_amount if is_series_cancellation else registration.payment_amount
             has_payment = registration.payment_status in ['paid', 'completed']
 
-            if days_until_workshop >= 7 and has_payment and refund_amount > 0:
+            if days_until_workshop >= settings.WORKSHOP_REFUND_DAYS and has_payment and refund_amount > 0:
                 # Eligible for refund - process it automatically
                 try:
                     from apps.payments.models import StripePayment
@@ -1562,7 +1540,7 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
                 # Check if eligible for automatic refund
                 days_until_workshop = (registration.session.start_datetime - timezone.now()).days
 
-                if days_until_workshop >= 7 and registration.payment_status == 'completed':
+                if days_until_workshop >= settings.WORKSHOP_REFUND_DAYS and registration.payment_status == 'completed':
                     # Eligible for refund - process it automatically
                     try:
                         if registration.stripe_payment_intent_id:
@@ -1670,9 +1648,9 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
             for registration in to_promote:
                 from django.utils import timezone
                 from datetime import timedelta
-                
+
                 # Update registration status
-                promotion_deadline = timezone.now() + timedelta(hours=48)
+                promotion_deadline = timezone.now() + timedelta(hours=settings.WAITLIST_PROMOTION_HOURS)
                 registration.status = 'promoted'
                 registration.promoted_at = timezone.now()
                 registration.promotion_expires_at = promotion_deadline

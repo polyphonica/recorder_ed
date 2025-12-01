@@ -53,24 +53,11 @@ class CalendarView(LoginRequiredMixin, TemplateView):
         # Convert lessons to calendar events
         calendar_events = []
         for lesson in lessons:
-            # Determine color based on status hierarchy:
-            # Pending (yellow), Accepted + Not Paid (green), Paid (blue), Assigned (darker)
-            if lesson.status == 'Assigned':
-                color = '#1e40af'  # Dark blue for assigned
-            elif lesson.payment_status == 'Paid':
-                color = '#3b82f6'  # Blue for paid
-            elif lesson.approved_status == 'Accepted':
-                color = '#10b981'  # Green for accepted but not paid
-            elif lesson.approved_status == 'Rejected':
-                color = '#ef4444'  # Red for rejected
-            else:
-                color = '#f59e0b'  # Yellow/orange for pending
-
             event = {
                 'id': str(lesson.id),
                 'title': f"{lesson.subject.subject}",
                 'start': f"{lesson.lesson_date}T{lesson.lesson_time}",
-                'color': color,
+                'color': lesson.calendar_color,
                 'extendedProps': {
                     'subject': lesson.subject.subject,
                     'student': lesson.student.get_full_name() if lesson.student else 'Unknown',
@@ -296,23 +283,11 @@ def calendar_events_api(request):
 
     events = []
     for lesson in lessons:
-        # Color based on status hierarchy
-        if lesson.status == 'Assigned':
-            color = '#1e40af'  # Dark blue
-        elif lesson.payment_status == 'Paid':
-            color = '#3b82f6'  # Blue
-        elif lesson.approved_status == 'Accepted':
-            color = '#10b981'  # Green
-        elif lesson.approved_status == 'Rejected':
-            color = '#ef4444'  # Red
-        else:
-            color = '#f59e0b'  # Yellow/orange
-
         event = {
             'id': str(lesson.id),
             'title': f"{lesson.subject.subject}",
             'start': f"{lesson.lesson_date}T{lesson.lesson_time}",
-            'color': color,
+            'color': lesson.calendar_color,
             'url': reverse('lessons:lesson_detail', args=[lesson.id]),
             'extendedProps': {
                 'subject': lesson.subject.subject,
