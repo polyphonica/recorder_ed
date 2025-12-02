@@ -9,6 +9,7 @@ urlpatterns = [
     # Custom login view with role-based redirects
     path('login/', views.CustomLoginView.as_view(), name='login'),
     path('signup/', views.SignUpView.as_view(), name='signup'),
+    path('signup/complete/', views.signup_complete_view, name='signup_complete'),
     path('profile/setup/', views.profile_setup_view, name='profile_setup'),
     path('profile/edit/', views.profile_edit_view, name='profile_edit'),
 

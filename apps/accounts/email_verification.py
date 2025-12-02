@@ -20,7 +20,10 @@ class EmailVerificationTokenGenerator(PasswordResetTokenGenerator):
     """
     def _make_hash_value(self, user, timestamp):
         # Use email_verified status instead of last_login
-        email_verified = getattr(user.profile, 'email_verified', False)
+        try:
+            email_verified = user.profile.email_verified if hasattr(user, 'profile') else False
+        except:
+            email_verified = False
         return f"{user.pk}{timestamp}{user.password}{email_verified}"
 
 

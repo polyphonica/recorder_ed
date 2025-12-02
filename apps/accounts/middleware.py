@@ -25,6 +25,9 @@ class ProfileCompletionMiddleware:
 
         # Paths that don't require profile completion or verification
         self.exempt_paths = [
+            '/accounts/login/',
+            '/accounts/signup/',
+            '/accounts/signup/complete/',
             '/accounts/profile/setup/',
             '/accounts/profile/edit/',
             '/accounts/logout/',

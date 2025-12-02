@@ -48,11 +48,8 @@ class SignUpView(CreateView):
     template_name = 'registration/signup.html'
 
     def get_success_url(self):
-        # Store the 'next' parameter in session for use after profile setup
-        next_url = self.request.GET.get('next') or self.request.POST.get('next')
-        if next_url:
-            self.request.session['signup_next'] = next_url
-        return reverse_lazy('accounts:profile_setup')
+        # Redirect to a page telling user to check their email
+        return reverse_lazy('accounts:signup_complete')
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -72,29 +69,15 @@ class SignUpView(CreateView):
             user.profile.save()
 
             # Create child profile
-            child_profile = ChildProfile.objects.create(
+            ChildProfile.objects.create(
                 guardian=user,
                 first_name=form.cleaned_data['child_first_name'],
                 last_name=form.cleaned_data['child_last_name'],
                 date_of_birth=form.cleaned_data['child_date_of_birth']
             )
 
-            # Log the user in after successful registration with explicit backend
-            login(self.request, user, backend='apps.core.backends.EmailBackend')
-            messages.success(
-                self.request,
-                f'Guardian account created successfully for {child_profile.full_name}! '
-                'Please check your email to verify your account and complete your profile.'
-            )
-        else:
-            # Regular student signup
-            # Log the user in after successful registration with explicit backend
-            login(self.request, user, backend='apps.core.backends.EmailBackend')
-            messages.success(
-                self.request,
-                'Account created successfully! Please check your email to verify your account and complete your profile.'
-            )
-
+        # Don't log the user in - they need to verify email first
+        # Success message will be shown on signup_complete page
         return response
 
 @login_required
@@ -361,6 +344,14 @@ def transfer_account_view(request, child_id):
     })
 
 
+def signup_complete_view(request):
+    """
+    Page shown after successful registration.
+    Tells user to check their email for verification.
+    """
+    return render(request, 'accounts/signup_complete.html')
+
+
 def verify_email_view(request, uidb64, token):
     """
     Verify user's email address using the token sent via email.
@@ -376,23 +367,22 @@ def verify_email_view(request, uidb64, token):
         user.profile.email_verified_at = timezone.now()
         user.profile.save()
 
+        # Log the user in after successful verification
+        login(request, user, backend='apps.core.backends.EmailBackend')
+
         messages.success(
             request,
-            'Email verified successfully! You now have full access to all platform features.'
+            'Email verified successfully! Please complete your profile to get started.'
         )
 
-        # If user is logged in, redirect to their dashboard
-        if request.user.is_authenticated:
-            return redirect('workshops:student_dashboard')
-        else:
-            # Otherwise redirect to login
-            return redirect('accounts:login')
+        # Redirect to profile setup
+        return redirect('accounts:profile_setup')
     else:
         messages.error(
             request,
             'Email verification link is invalid or has expired. Please request a new verification email.'
         )
-        return redirect('accounts:resend_verification')
+        return redirect('accounts:login')
 
 
 @login_required

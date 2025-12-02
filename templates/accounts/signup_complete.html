@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Check Your Email - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100 flex items-center justify-center p-4">
+    <div class="card w-full max-w-2xl bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="text-center mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 mx-auto text-success mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h2 class="card-title justify-center text-3xl">Account Created Successfully!</h2>
+            </div>
+
+            <div class="alert alert-success mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div>
+                    <p class="font-semibold">Registration complete!</p>
+                    <p class="text-sm">We've sent a verification email to your inbox.</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <h3 class="text-xl font-semibold">What's Next?</h3>
+
+                <div class="steps steps-vertical lg:steps-horizontal">
+                    <div class="step step-primary">Create Account</div>
+                    <div class="step step-primary">Check Email</div>
+                    <div class="step">Verify Email</div>
+                    <div class="step">Complete Profile</div>
+                </div>
+
+                <div class="divider"></div>
+
+                <p class="text-lg"><strong>1. Check your email inbox</strong></p>
+                <p>We sent a verification email with a confirmation link.</p>
+
+                <p class="text-lg mt-4"><strong>2. Click the verification link</strong></p>
+                <p>Click the "Verify Email Address" button in the email to confirm your account.</p>
+
+                <p class="text-lg mt-4"><strong>3. Complete your profile</strong></p>
+                <p>After verifying, you'll be able to log in and set up your profile.</p>
+
+                <div class="alert alert-info mt-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <p class="font-semibold">Didn't receive the email?</p>
+                        <p class="text-sm">Check your spam folder or wait a few minutes for it to arrive.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="text-center">
+                <p class="text-base-content/70 mb-4">Already verified your email?</p>
+                <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                    </svg>
+                    Login to Your Account
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
