@@ -19,6 +19,21 @@ class CustomLoginView(LoginView):
     - Instructors → Workshops Dashboard (default)
     - Students → Workshops list (default)
     """
+    def dispatch(self, request, *args, **kwargs):
+        # If user is already authenticated, redirect them away from login page
+        if request.user.is_authenticated:
+            return redirect(self.get_redirect_url_for_authenticated_user())
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_redirect_url_for_authenticated_user(self):
+        """Determine where to redirect already-authenticated users"""
+        if self.request.user.is_staff:
+            return reverse('support:staff_dashboard')
+        elif hasattr(self.request.user, 'profile') and self.request.user.profile.is_teacher:
+            return reverse('workshops:instructor_dashboard')
+        else:
+            return reverse('workshops:list')
+
     def get_success_url(self):
         # Check if user is staff
         if self.request.user.is_staff:
