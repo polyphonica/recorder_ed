@@ -105,6 +105,7 @@ TEMPLATES = [
                 'apps.private_teaching.context_processors.cart_context',
                 'apps.workshops.context_processors.unified_cart_context',
                 'apps.messaging.context_processors.unread_messages',  # Unified messaging (includes course messages)
+                'apps.accounts.context_processors.email_verification_status',
             ],
         },
     },

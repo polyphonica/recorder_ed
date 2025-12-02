@@ -27,11 +27,15 @@
         .button {
             display: inline-block;
             background-color: #4F46E5;
-            color: white;
+            color: #ffffff !important;
             padding: 12px 30px;
             text-decoration: none;
             border-radius: 5px;
             margin: 20px 0;
+        }
+        .button:hover {
+            background-color: #4338CA;
+            color: #ffffff !important;
         }
         .footer {
             text-align: center;
@@ -60,7 +64,7 @@
         <p>Please verify your email address to get full access to all features:</p>
 
         <div style="text-align: center;">
-            <a href="{{ verification_link }}" class="button">Verify Email Address</a>
+            <a href="{{ verification_link }}" class="button" style="display: inline-block; background-color: #4F46E5; color: #ffffff !important; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0;">Verify Email Address</a>
         </div>
 
         <p style="font-size: 14px; color: #6b7280;">
