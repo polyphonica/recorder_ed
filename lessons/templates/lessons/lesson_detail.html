@@ -225,7 +225,8 @@
     {% if lesson.teacher_notes %}
     <div class="content-section">
         <h3>Teacher Notes</h3>
-        <div class="prose max-w-none">{{ lesson.teacher_notes|linebreaks }}</div>
+        {% load markdown_extras %}
+        <div class="prose max-w-none">{{ lesson.teacher_notes|markdown }}</div>
     </div>
     {% endif %}
 
@@ -233,7 +234,8 @@
     {% if lesson.homework %}
     <div class="content-section">
         <h3>Homework</h3>
-        <div class="prose max-w-none">{{ lesson.homework|linebreaks }}</div>
+        {% load markdown_extras %}
+        <div class="prose max-w-none">{{ lesson.homework|markdown }}</div>
     </div>
     {% endif %}
 
