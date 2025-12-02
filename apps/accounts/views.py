@@ -8,6 +8,7 @@ from django.views.generic import CreateView, DetailView
 from django.contrib.auth.views import LoginView
 from .forms import CustomUserCreationForm, UserProfileForm, ChildProfileForm, AccountTransferForm
 from .models import UserProfile, ChildProfile
+from .email_verification import send_verification_email
 from django.db import transaction
 
 
@@ -42,6 +43,13 @@ class SignUpView(CreateView):
         response = super().form_valid(form)
         user = self.object
 
+        # Send verification email
+        try:
+            send_verification_email(self.request, user)
+        except Exception as e:
+            # Log error but don't block registration
+            print(f"Failed to send verification email: {e}")
+
         # Check if this is a guardian signup
         if form.cleaned_data.get('is_guardian'):
             # Mark user profile as guardian
@@ -60,13 +68,17 @@ class SignUpView(CreateView):
             login(self.request, user, backend='apps.core.backends.EmailBackend')
             messages.success(
                 self.request,
-                f'Guardian account created successfully for {child_profile.full_name}! Please complete your profile.'
+                f'Guardian account created successfully for {child_profile.full_name}! '
+                'Please check your email to verify your account and complete your profile.'
             )
         else:
             # Regular student signup
             # Log the user in after successful registration with explicit backend
             login(self.request, user, backend='apps.core.backends.EmailBackend')
-            messages.success(self.request, 'Account created successfully! Please complete your profile.')
+            messages.success(
+                self.request,
+                'Account created successfully! Please check your email to verify your account and complete your profile.'
+            )
 
         return response
 
@@ -332,3 +344,67 @@ def transfer_account_view(request, child_id):
         'form': form,
         'child': child
     })
+
+
+def verify_email_view(request, uidb64, token):
+    """
+    Verify user's email address using the token sent via email.
+    """
+    from .email_verification import verify_token
+    from django.utils import timezone
+
+    user = verify_token(uidb64, token)
+
+    if user is not None:
+        # Mark email as verified
+        user.profile.email_verified = True
+        user.profile.email_verified_at = timezone.now()
+        user.profile.save()
+
+        messages.success(
+            request,
+            'Email verified successfully! You now have full access to all platform features.'
+        )
+
+        # If user is logged in, redirect to their dashboard
+        if request.user.is_authenticated:
+            return redirect('workshops:student_dashboard')
+        else:
+            # Otherwise redirect to login
+            return redirect('accounts:login')
+    else:
+        messages.error(
+            request,
+            'Email verification link is invalid or has expired. Please request a new verification email.'
+        )
+        return redirect('accounts:resend_verification')
+
+
+@login_required
+def resend_verification_view(request):
+    """
+    Resend verification email to the logged-in user.
+    """
+    user = request.user
+
+    # Check if already verified
+    if user.profile.email_verified:
+        messages.info(request, 'Your email is already verified.')
+        return redirect('workshops:student_dashboard')
+
+    if request.method == 'POST':
+        try:
+            send_verification_email(request, user)
+            messages.success(
+                request,
+                'Verification email sent! Please check your inbox and spam folder.'
+            )
+        except Exception as e:
+            messages.error(
+                request,
+                'Failed to send verification email. Please try again later or contact support.'
+            )
+
+        return redirect('workshops:student_dashboard')
+
+    return render(request, 'accounts/resend_verification.html')

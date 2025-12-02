@@ -98,6 +98,10 @@ class UserProfile(models.Model):
         help_text="Send email notification when you receive a new message"
     )
 
+    # Email verification
+    email_verified = models.BooleanField(default=False, help_text="Whether the user has verified their email address")
+    email_verified_at = models.DateTimeField(null=True, blank=True, help_text="When the email was verified")
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -27,4 +27,8 @@ urlpatterns = [
 
     # Account transfer for 18+ children
     path('transfer/<uuid:child_id>/', views.transfer_account_view, name='transfer_account'),
+
+    # Email verification
+    path('verify-email/<uidb64>/<token>/', views.verify_email_view, name='verify_email'),
+    path('resend-verification/', views.resend_verification_view, name='resend_verification'),
 ]

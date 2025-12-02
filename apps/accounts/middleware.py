@@ -1,12 +1,13 @@
 """
-Middleware to enforce profile completion after signup.
+Middleware to enforce profile completion and email verification after signup.
 
-This ensures all users complete their profile before accessing
-any part of the platform (courses, workshops, private lessons).
+This ensures all users complete their profile and verify their email before accessing
+certain parts of the platform (courses, workshops, private lessons).
 """
 
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.contrib import messages
 
 
 class ProfileCompletionMiddleware:
@@ -22,15 +23,26 @@ class ProfileCompletionMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
-        # Paths that don't require profile completion
+        # Paths that don't require profile completion or verification
         self.exempt_paths = [
             '/accounts/profile/setup/',
             '/accounts/profile/edit/',
             '/accounts/logout/',
+            '/accounts/verify-email/',
+            '/accounts/resend-verification/',
             '/logout/',
             '/static/',
             '/media/',
             '/admin/',
+        ]
+
+        # Paths that require email verification (booking/payment actions)
+        self.verification_required_paths = [
+            '/workshops/enroll/',
+            '/workshops/register/',
+            '/courses/enroll/',
+            '/private-teaching/request/',
+            '/payments/',
         ]
 
     def __call__(self, request):
@@ -62,6 +74,17 @@ class ProfileCompletionMiddleware:
             profile_setup_url = reverse('accounts:profile_setup')
             if path != profile_setup_url:
                 return redirect(profile_setup_url)
+
+        # Check if email verification is required for this path
+        if any(path.startswith(required) for required in self.verification_required_paths):
+            profile = request.user.profile
+            if not profile.email_verified:
+                messages.warning(
+                    request,
+                    'Please verify your email address before making bookings or purchases. '
+                    'Check your inbox for the verification link.'
+                )
+                return redirect('accounts:resend_verification')
 
         # Profile is completed or user is on setup page - continue
         response = self.get_response(request)

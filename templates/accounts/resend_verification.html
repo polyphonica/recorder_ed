@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Verify Your Email - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100 flex items-center justify-center p-4">
+    <div class="card w-full max-w-2xl bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="text-center mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-warning mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <h2 class="card-title justify-center text-2xl">Verify Your Email Address</h2>
+            </div>
+
+            <div class="alert alert-info mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div>
+                    <p class="font-semibold">Email verification required</p>
+                    <p class="text-sm">Please verify your email address (<strong>{{ user.email }}</strong>) to book courses, workshops, or request private lessons.</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <p>We sent a verification email to <strong>{{ user.email }}</strong> when you registered.</p>
+
+                <p>Please check:</p>
+                <ul class="list-disc list-inside ml-4 space-y-2">
+                    <li>Your inbox for an email from {{ site_name|default:"Recorder-ed" }}</li>
+                    <li>Your spam or junk folder</li>
+                    <li>That the email address is correct</li>
+                </ul>
+            </div>
+
+            <div class="divider">OR</div>
+
+            <form method="post" class="text-center">
+                {% csrf_token %}
+                <p class="mb-4">Didn't receive the email? We can send you a new one.</p>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Resend Verification Email
+                </button>
+            </form>
+
+            <div class="divider"></div>
+
+            <div class="text-center text-sm">
+                <p class="text-base-content/70">You can still browse the platform while unverified.</p>
+                <a href="{% url 'workshops:student_dashboard' %}" class="link link-primary">Go to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
