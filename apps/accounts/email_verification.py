@@ -2,7 +2,7 @@
 Email verification utilities for user registration.
 Uses Django's built-in token generation for security.
 """
-from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
@@ -10,6 +10,22 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.models import User
+
+
+class EmailVerificationTokenGenerator(PasswordResetTokenGenerator):
+    """
+    Custom token generator for email verification.
+    Only uses password and email verified status (not last_login).
+    This prevents tokens from being invalidated when user logs in.
+    """
+    def _make_hash_value(self, user, timestamp):
+        # Use email_verified status instead of last_login
+        email_verified = getattr(user.profile, 'email_verified', False)
+        return f"{user.pk}{timestamp}{user.password}{email_verified}"
+
+
+# Create instance of custom token generator
+email_verification_token = EmailVerificationTokenGenerator()
 
 
 def send_verification_email(request, user):
@@ -20,8 +36,8 @@ def send_verification_email(request, user):
         request: HTTP request object (for building absolute URLs)
         user: User instance to send verification email to
     """
-    # Generate token
-    token = default_token_generator.make_token(user)
+    # Generate token using custom generator
+    token = email_verification_token.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
 
     # Build verification URL
@@ -68,8 +84,8 @@ def verify_token(uidb64, token):
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         return None
 
-    # Check if token is valid
-    if default_token_generator.check_token(user, token):
+    # Check if token is valid using custom generator
+    if email_verification_token.check_token(user, token):
         return user
 
     return None
