@@ -792,6 +792,7 @@ class PrivateTeachingSubjectRevenueView(LoginRequiredMixin, TeacherOnlyMixin, Da
 
         # Get date range using mixin
         start_date, end_date = self.get_date_range()
+        date_range = self.request.GET.get('range', '30')
 
         # Get domain revenue
         domain_data = FinanceService.get_domain_revenue(teacher, 'private_teaching', start_date, end_date)
