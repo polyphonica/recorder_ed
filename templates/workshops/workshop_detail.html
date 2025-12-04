@@ -44,6 +44,13 @@
                 <div class="flex flex-wrap gap-2 mb-4">
                     <div class="badge badge-primary">{{ workshop.category.name }}</div>
                     <div class="badge badge-outline">{{ workshop.get_difficulty_level_display }}</div>
+                    {% if workshop.delivery_method == 'online' %}
+                        <div class="badge badge-info">Online</div>
+                    {% elif workshop.delivery_method == 'in_person' %}
+                        <div class="badge badge-success">In-Person</div>
+                    {% else %}
+                        <div class="badge badge-accent">Hybrid</div>
+                    {% endif %}
                     {% if workshop.is_featured %}
                         <div class="badge badge-secondary">Featured</div>
                     {% endif %}
