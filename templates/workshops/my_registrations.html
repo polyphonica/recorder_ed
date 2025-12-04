@@ -546,10 +546,21 @@ function startMyRegistrationsTour() {
                     align: 'start'
                 }
             },
+            {% if registrations.0.session.meeting_url %}
+            {
+                element: '.registration-item:first-child .btn-success',
+                popover: {
+                    title: 'Join Meeting',
+                    description: 'When it\'s time for your workshop, click the "Join Meeting" button to open the Zoom session. This button appears for online workshops.',
+                    side: "left",
+                    align: 'start'
+                }
+            },
+            {% endif %}
             {
                 element: '.registration-item:first-child .btn-primary',
                 popover: {
-                    title: 'View Workshop Details',
+                    title: 'View Workshop',
                     description: 'Click this button to see full details about the workshop, including what you\'ll learn and what to bring.',
                     side: "left",
                     align: 'start'
@@ -557,7 +568,7 @@ function startMyRegistrationsTour() {
             },
             {% if registrations.0.session.materials.exists %}
             {
-                element: '.btn-info',
+                element: '.registration-item:first-child .btn-info',
                 popover: {
                     title: 'Download Materials',
                     description: 'Click the "Materials" button to download any handouts, slides, or resources for this workshop. You can download them before or after the session.',
@@ -566,26 +577,6 @@ function startMyRegistrationsTour() {
                 }
             },
             {% endif %}
-            {% if registrations.0.session.meeting_url %}
-            {
-                element: '.btn-success',
-                popover: {
-                    title: 'Join Zoom Session',
-                    description: 'When it\'s time for your workshop, click the "Join Meeting" button to open the Zoom session. This button appears when the workshop is about to start.',
-                    side: "left",
-                    align: 'start'
-                }
-            },
-            {% endif %}
-            {
-                element: '.btn-outline',
-                popover: {
-                    title: 'View Full Details',
-                    description: 'Click "View Details" to see your complete registration information, including any special requirements you noted when booking.',
-                    side: "left",
-                    align: 'start'
-                }
-            },
             {% else %}
             {
                 element: '.btn-primary.btn-lg',
