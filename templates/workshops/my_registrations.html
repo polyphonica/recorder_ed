@@ -546,17 +546,6 @@ function startMyRegistrationsTour() {
                     align: 'start'
                 }
             },
-            {% if registrations.0.session.meeting_url and registrations.0.status == 'registered' %}
-            {
-                element: '.registration-item:first-child a.btn-success[target="_blank"]',
-                popover: {
-                    title: 'Join Meeting',
-                    description: 'When it\'s time for your workshop, click the "Join Meeting" button to open the Zoom session. This button appears for confirmed online workshops.',
-                    side: "left",
-                    align: 'start'
-                }
-            },
-            {% endif %}
             {
                 element: '.registration-item:first-child a.btn-primary',
                 popover: {
