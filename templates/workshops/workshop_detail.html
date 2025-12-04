@@ -483,7 +483,7 @@
                             {% if upcoming_sessions %}
                                 <div class="mb-4">
                                     <h4 class="font-semibold mb-3">Upcoming Sessions:</h4>
-                                    <div class="space-y-2">
+                                    <div id="upcoming-sessions-list" class="space-y-2">
                                         {% for session in upcoming_sessions %}
                                             <div class="p-3 bg-base-200 rounded-lg">
                                                 <div class="flex justify-between items-start mb-1">
@@ -1022,7 +1022,7 @@ function startWorkshopBookingTour() {
             },
             {% if upcoming_sessions %}
             {
-                element: '.space-y-2',
+                element: '#upcoming-sessions-list',
                 popover: {
                     title: 'Available Sessions',
                     description: 'Each card shows a session date, time, and how many places are still available. Look for sessions that fit your schedule.',
