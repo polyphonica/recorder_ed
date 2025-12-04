@@ -546,19 +546,17 @@ function startMyRegistrationsTour() {
                     align: 'start'
                 }
             },
-            {% if registrations.0.session.meeting_url %}
             {
-                element: '.registration-item:first-child .btn-success',
+                element: '.registration-item:first-child a.btn-success',
                 popover: {
                     title: 'Join Meeting',
-                    description: 'When it\'s time for your workshop, click the "Join Meeting" button to open the Zoom session. This button appears for online workshops.',
+                    description: 'When it\'s time for your workshop, click the "Join Meeting" button to open the Zoom session. This button appears for confirmed online workshops.',
                     side: "left",
                     align: 'start'
                 }
             },
-            {% endif %}
             {
-                element: '.registration-item:first-child .btn-primary',
+                element: '.registration-item:first-child a.btn-primary',
                 popover: {
                     title: 'View Workshop',
                     description: 'Click this button to see full details about the workshop, including what you\'ll learn and what to bring.',
