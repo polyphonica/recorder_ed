@@ -219,22 +219,25 @@
                                     {% endif %}
                                     
                                     <a href="{% url 'workshops:detail' slug=registration.session.workshop.slug %}"
-                                       class="btn btn-sm btn-primary">
+                                       class="btn btn-sm btn-primary tooltip"
+                                       data-tip="View full workshop details and description">
                                         <i class="fas fa-eye"></i>
                                         View Workshop
                                     </a>
 
                                     {% if registration.session.meeting_url and registration.status == 'registered' %}
                                         <a href="{{ registration.session.meeting_url }}" target="_blank"
-                                           class="btn btn-sm btn-success">
+                                           class="btn btn-sm btn-success tooltip"
+                                           data-tip="Join the online workshop session">
                                             <i class="fas fa-video"></i>
                                             Join Meeting
                                         </a>
                                     {% endif %}
 
                                     {% if registration.session.materials.exists %}
-                                        <a href="{% url 'workshops:participant_materials' session_id=registration.session.id %}" 
-                                           class="btn btn-sm btn-info">
+                                        <a href="{% url 'workshops:participant_materials' session_id=registration.session.id %}"
+                                           class="btn btn-sm btn-info tooltip"
+                                           data-tip="Access and download workshop materials">
                                             <i class="fas fa-download"></i>
                                             Materials
                                         </a>
@@ -242,7 +245,8 @@
 
                                     {% if registration.status == 'registered' or registration.status == 'promoted' %}
                                         {% if registration.session.start_datetime > now %}
-                                            <button class="btn btn-sm btn-warning"
+                                            <button class="btn btn-sm btn-warning tooltip"
+                                                    data-tip="Cancel your workshop registration"
                                                     onclick="confirmCancel('{{ registration.id }}', '{{ registration.session.workshop.title }}', '{{ registration.session.start_datetime|date:"c" }}', '{{ registration.payment_status }}')">
                                                 <i class="fas fa-times"></i>
                                                 Cancel
