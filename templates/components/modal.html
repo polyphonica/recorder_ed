@@ -1,14 +1,28 @@
-<input type="checkbox" id="{{ id }}" class="modal-toggle" />
-<div class="modal">
-    <div class="modal-box {% if size == 'sm' %}max-w-md{% elif size == 'lg' %}max-w-4xl{% elif size == 'xl' %}max-w-6xl{% else %}max-w-2xl{% endif %}">
-        <h3 class="font-bold text-lg">{{ title }}</h3>
+{# Usage: {% include 'components/modal.html' with id='myModal' title='Modal Title' content='Content here' size='md' %} #}
+{# Trigger button should use: <button @click="$refs.{{ id }}.showModal()" class="btn">Open Modal</button> #}
+
+<dialog id="{{ id }}"
+        x-ref="{{ id }}"
+        class="modal"
+        role="dialog"
+        aria-labelledby="{{ id }}-title"
+        {% if content %}aria-describedby="{{ id }}-content"{% endif %}
+        @keydown.escape="$refs.{{ id }}.close()">
+    <div class="modal-box {% if size == 'sm' %}max-w-md{% elif size == 'lg' %}max-w-4xl{% elif size == 'xl' %}max-w-6xl{% else %}max-w-2xl{% endif %}"
+         role="document">
+        <h3 id="{{ id }}-title" class="font-bold text-lg">{{ title }}</h3>
         {% if content %}
-            <div class="py-4">
+            <div id="{{ id }}-content" class="py-4">
                 {{ content|safe }}
             </div>
         {% endif %}
         <div class="modal-action">
-            <label for="{{ id }}" class="btn">Close</label>
+            <form method="dialog">
+                <button type="submit" class="btn" aria-label="Close {{ title }}">Close</button>
+            </form>
         </div>
     </div>
-</div>
+    <form method="dialog" class="modal-backdrop">
+        <button aria-label="Close {{ title }}">close</button>
+    </form>
+</dialog>

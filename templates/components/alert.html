@@ -1,31 +1,38 @@
-<div class="alert alert-{{ type }} {% if dismissible %}alert-dismissible{% endif %} shadow-lg" 
+{# Usage: {% include 'components/alert.html' with type='success' message='Operation successful!' dismissible=True %} #}
+
+<div class="alert alert-{{ type }} {% if dismissible %}alert-dismissible{% endif %} shadow-lg"
+     role="alert"
+     aria-live="{% if type == 'error' %}assertive{% else %}polite{% endif %}"
+     aria-atomic="true"
      {% if dismissible %}x-data="{ show: true }" x-show="show" x-transition{% endif %}>
     <div class="flex items-center">
         {% if icon %}
             {% load design_system %}
-            {% icon icon size="w-5 h-5" extra_classes="mr-2" %}
+            <span aria-hidden="true">{% icon icon size="w-5 h-5" extra_classes="mr-2" %}</span>
         {% else %}
             {% if type == 'success' %}
                 {% load design_system %}
-                {% icon "check" size="w-5 h-5" extra_classes="mr-2" %}
+                <span aria-hidden="true">{% icon "check" size="w-5 h-5" extra_classes="mr-2" %}</span>
             {% elif type == 'warning' %}
                 {% load design_system %}
-                {% icon "warning" size="w-5 h-5" extra_classes="mr-2" %}
+                <span aria-hidden="true">{% icon "warning" size="w-5 h-5" extra_classes="mr-2" %}</span>
             {% elif type == 'error' %}
                 {% load design_system %}
-                {% icon "x" size="w-5 h-5" extra_classes="mr-2" %}
+                <span aria-hidden="true">{% icon "x" size="w-5 h-5" extra_classes="mr-2" %}</span>
             {% else %}
                 {% load design_system %}
-                {% icon "info" size="w-5 h-5" extra_classes="mr-2" %}
+                <span aria-hidden="true">{% icon "info" size="w-5 h-5" extra_classes="mr-2" %}</span>
             {% endif %}
         {% endif %}
         <span>{{ message }}</span>
     </div>
     {% if dismissible %}
         <div class="flex-none">
-            <button class="btn btn-sm btn-ghost" @click="show = false">
+            <button class="btn btn-sm btn-ghost"
+                    @click="show = false"
+                    aria-label="Dismiss {% if type %}{{ type }}{% endif %} alert">
                 {% load design_system %}
-                {% icon "x" size="w-4 h-4" %}
+                <span aria-hidden="true">{% icon "x" size="w-4 h-4" %}</span>
             </button>
         </div>
     {% endif %}
