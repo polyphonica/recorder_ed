@@ -1999,7 +1999,7 @@ class CertificateViewView(LoginRequiredMixin, DetailView):
         context['course_title'] = certificate.enrollment.course.title
         context['certificate_number'] = certificate.certificate_number
         context['issue_date'] = certificate.issued_at.strftime('%B %d, %Y')
-        context['platform_name'] = 'Recordered Learning Platform'
+        context['platform_name'] = 'RECORDER-ED Learning Platform'
 
         return context
 
@@ -2032,7 +2032,7 @@ class CertificateDownloadView(LoginRequiredMixin, View):
             'course_title': certificate.enrollment.course.title,
             'certificate_number': certificate.certificate_number,
             'issue_date': certificate.issued_at.strftime('%B %d, %Y'),
-            'platform_name': 'Recordered Learning Platform',
+            'platform_name': 'RECORDER-ED Learning Platform',
         }
 
         # Render HTML template

@@ -493,6 +493,6 @@ class TermsAcceptanceAdmin(admin.ModelAdmin):
 
 
 # Customize admin site
-admin.site.site_header = "Recordered Workshop Admin"
+admin.site.site_header = "RECORDER-ED Workshop Admin"
 admin.site.site_title = "Workshop Admin"
 admin.site.index_title = "Workshop Management"

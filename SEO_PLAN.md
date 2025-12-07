@@ -27,7 +27,7 @@ Recorder-ed is a Django-based music education platform with **strong technical f
 
 **What Exists:**
 - Basic HTML5 structure with semantic elements
-- Title tags: `{% block title %}Recordered - Educational Platform{% endblock %}`
+- Title tags: `{% block title %}RECORDER-ED - Educational Platform{% endblock %}`
 - Mobile-responsive viewport meta tag
 - Clean URL structure using slugs (workshops, courses)
 
@@ -287,7 +287,7 @@ Sitemap: https://recorder-ed.com/sitemap.xml
 
 ### 2.1 Title Tag Optimization
 
-**Current:** Generic "Recordered - Educational Platform"
+**Current:** Generic "RECORDER-ED - Educational Platform"
 **Goal:** Unique, keyword-rich titles for every page
 
 **Formula:**

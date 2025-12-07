@@ -1,4 +1,4 @@
-# Recordered - Educational Platform
+# RECORDER-ED - Educational Platform
 
 A modern Django web application showcasing a comprehensive design system built with **Django-Tailwind**, **DaisyUI**, and **Alpine.js**.
 

@@ -1,8 +1,8 @@
-# Recordered Platform - MVP Requirements
+# RECORDER-ED Platform - MVP Requirements
 
 ## 🎯 Project Vision
 
-**Recordered** is a comprehensive educational platform that enables instructors to create, manage, and deliver online courses, workshops, and teaching materials with a focus on recording and multimedia content.
+**RECORDER-ED** is a comprehensive educational platform that enables instructors to create, manage, and deliver online courses, workshops, and teaching materials with a focus on recording and multimedia content.
 
 ## 📋 MVP Features Overview
 
