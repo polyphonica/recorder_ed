@@ -90,7 +90,8 @@
             </form>
         </div>
 
-        <!-- Workshop Stats -->
+        <!-- Workshop Stats - Hidden until rating system is built and user base grows -->
+        {% comment %}
         <div class="stats stats-vertical lg:stats-horizontal shadow mb-8 w-full">
             <div class="stat">
                 <div class="stat-figure text-primary">
@@ -102,7 +103,7 @@
                 <div class="stat-value text-primary">{{ total_workshops }}</div>
                 <div class="stat-desc">Available for registration</div>
             </div>
-            
+
             <div class="stat">
                 <div class="stat-figure text-secondary">
                     <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
@@ -113,7 +114,7 @@
                 <div class="stat-value text-secondary">{{ total_registrations }}</div>
                 <div class="stat-desc">Currently enrolled</div>
             </div>
-            
+
             <div class="stat">
                 <div class="stat-figure text-accent">
                     <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
@@ -125,6 +126,7 @@
                 <div class="stat-desc">From 500+ reviews</div>
             </div>
         </div>
+        {% endcomment %}
 
         <!-- Workshop Grid -->
         {% if workshops %}
