@@ -516,6 +516,30 @@ class WorkshopFilterForm(forms.Form):
         })
     )
 
+    difficulty = forms.ChoiceField(
+        choices=[('', 'All Difficulty Levels')] + Workshop.DIFFICULTY_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'select select-bordered w-full'
+        })
+    )
+
+    price = forms.ChoiceField(
+        choices=PRICE_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'select select-bordered w-full'
+        })
+    )
+
+    sort = forms.ChoiceField(
+        choices=SORT_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'select select-bordered w-full'
+        })
+    )
+
 
 class WorkshopInterestForm(forms.ModelForm):
     """Form for requesting interest in a workshop without available sessions"""

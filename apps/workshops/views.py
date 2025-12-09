@@ -127,6 +127,10 @@ class WorkshopListView(SearchableListViewMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        # Initialize filter form with GET parameters
+        filter_form = WorkshopFilterForm(data=self.request.GET or None)
+
         context.update({
             'categories': WorkshopCategory.objects.filter(is_active=True),
             'current_category': self.kwargs.get('category_slug'),
@@ -135,6 +139,7 @@ class WorkshopListView(SearchableListViewMixin, ListView):
             'current_price': self.request.GET.get('price', ''),
             'current_sort': self.request.GET.get('sort', 'featured'),
             'difficulty_choices': Workshop.DIFFICULTY_CHOICES,
+            'filter_form': filter_form,
         })
         return context
 
