@@ -44,6 +44,9 @@
         <!-- Filters -->
         <div class="bg-base-200 rounded-lg p-6 mb-8">
             <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-4" x-data="{ showFilters: false }">
+                {% if request.GET.browse %}
+                <input type="hidden" name="browse" value="{{ request.GET.browse }}">
+                {% endif %}
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text font-medium">Category</span>
