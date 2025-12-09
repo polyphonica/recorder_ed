@@ -118,7 +118,7 @@
 
                             <!-- Lessons Table -->
                             <div class="overflow-x-auto">
-                                <table class="table table-sm">
+                                <table class="table">
                                     <thead>
                                         <tr>
                                             <th>Lesson</th>
@@ -142,43 +142,43 @@
                                             </td>
                                             <td class="text-center">
                                                 {% if lesson_data.is_completed %}
-                                                    <div class="badge badge-success badge-sm">Completed</div>
+                                                    <div class="badge badge-success">Completed</div>
                                                 {% else %}
-                                                    <div class="badge badge-ghost badge-sm">Not Started</div>
+                                                    <div class="badge badge-ghost">Not Started</div>
                                                 {% endif %}
                                             </td>
                                             <td class="text-center">
                                                 {% if lesson_data.completed_at %}
-                                                    <span class="text-sm">{{ lesson_data.completed_at|date:"M d, Y" }}</span>
+                                                    <span>{{ lesson_data.completed_at|date:"M d, Y" }}</span>
                                                 {% else %}
-                                                    <span class="text-sm text-base-content/30">—</span>
+                                                    <span class="text-base-content/30">—</span>
                                                 {% endif %}
                                             </td>
                                             <td class="text-center">
                                                 {% if lesson_data.quiz_data %}
                                                     <div class="flex flex-col items-center gap-1">
                                                         {% if lesson_data.quiz_data.passed %}
-                                                            <div class="badge badge-success badge-sm">
+                                                            <div class="badge badge-success">
                                                                 <i class="fas fa-check mr-1"></i>{{ lesson_data.quiz_data.best_score }}%
                                                             </div>
                                                         {% elif lesson_data.quiz_data.attempts_count > 0 %}
-                                                            <div class="badge badge-error badge-sm">
+                                                            <div class="badge badge-error">
                                                                 <i class="fas fa-times mr-1"></i>{{ lesson_data.quiz_data.best_score }}%
                                                             </div>
                                                         {% else %}
-                                                            <div class="badge badge-ghost badge-sm">Not Attempted</div>
+                                                            <div class="badge badge-ghost">Not Attempted</div>
                                                         {% endif %}
-                                                        <div class="text-xs text-base-content/70">
+                                                        <div class="text-sm text-base-content/70">
                                                             {{ lesson_data.quiz_data.attempts_count }} attempt{{ lesson_data.quiz_data.attempts_count|pluralize }}
                                                         </div>
                                                         {% if lesson_data.quiz_data.latest_attempt %}
-                                                            <div class="text-xs text-base-content/50">
+                                                            <div class="text-sm text-base-content/50">
                                                                 Last: {{ lesson_data.quiz_data.latest_attempt.submitted_at|date:"M d" }}
                                                             </div>
                                                         {% endif %}
                                                     </div>
                                                 {% else %}
-                                                    <span class="text-sm text-base-content/30">No quiz</span>
+                                                    <span class="text-base-content/30">No quiz</span>
                                                 {% endif %}
                                             </td>
                                         </tr>
