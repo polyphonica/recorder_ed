@@ -24,10 +24,13 @@
                 <!-- Search Bar -->
                 <div class="form-control w-full max-w-lg mx-auto">
                     <form method="get" class="input-group">
-                        <input type="text" 
-                               name="search" 
+                        {% if request.GET.browse %}
+                        <input type="hidden" name="browse" value="{{ request.GET.browse }}">
+                        {% endif %}
+                        <input type="text"
+                               name="search"
                                value="{{ request.GET.search }}"
-                               placeholder="Search workshops..." 
+                               placeholder="Search workshops..."
                                class="input input-bordered flex-1" />
                         <button class="btn btn-primary" type="submit">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
