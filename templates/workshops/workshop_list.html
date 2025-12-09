@@ -85,10 +85,13 @@
                     {{ filter_form.sort }}
                 </div>
                 
-                <div class="form-control flex-col justify-end">
+                <div class="form-control flex-col justify-end gap-2">
                     <button type="submit" class="btn btn-primary">
                         Apply Filters
                     </button>
+                    <a href="{% url 'workshops:list' %}{% if request.GET.browse %}?browse={{ request.GET.browse }}{% endif %}" class="btn btn-outline">
+                        Clear Filters
+                    </a>
                 </div>
             </form>
         </div>
