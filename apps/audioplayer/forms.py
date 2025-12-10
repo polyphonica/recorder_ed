@@ -6,6 +6,29 @@ from .models import Piece, Stem, LessonPiece, Composer, Tag
 class PieceForm(forms.ModelForm):
     """Form for creating/editing playalong pieces"""
 
+    # Additional fields for creating a new composer inline
+    new_composer_name = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered w-full',
+            'placeholder': 'e.g., Johann Sebastian Bach'
+        }),
+        label='Composer Name',
+        help_text='Enter the full name of the composer'
+    )
+
+    new_composer_period = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered w-full',
+            'placeholder': 'e.g., Baroque, Classical, Traditional'
+        }),
+        label='Period (Optional)',
+        help_text='Musical period or era'
+    )
+
     class Meta:
         model = Piece
         fields = [
@@ -58,11 +81,39 @@ class PieceForm(forms.ModelForm):
         }
         help_texts = {
             'svg_image': 'Upload an image to display below the player for on-screen practice',
-            'composer': 'Optional - helps students find pieces by composer',
+            'composer': 'Select existing composer, or create a new one below',
             'grade_level': 'Associated exam grade (if applicable)',
             'is_public': 'If checked, piece will be visible to all students in the library',
             'tags': 'Additional categorization (e.g., Christmas, Duet, etc.)',
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        composer = cleaned_data.get('composer')
+        new_composer_name = cleaned_data.get('new_composer_name')
+
+        # If a new composer name is provided, create or get that composer
+        if new_composer_name:
+            new_composer_period = cleaned_data.get('new_composer_period', '')
+
+            # Check if composer already exists (case-insensitive)
+            existing_composer = Composer.objects.filter(
+                name__iexact=new_composer_name
+            ).first()
+
+            if existing_composer:
+                # Use existing composer
+                cleaned_data['composer'] = existing_composer
+            else:
+                # Create new composer
+                new_composer = Composer.objects.create(
+                    name=new_composer_name,
+                    period=new_composer_period,
+                    bio=''  # Can be added later via admin or piece edit
+                )
+                cleaned_data['composer'] = new_composer
+
+        return cleaned_data
 
 
 # Formset for adding multiple stems to a piece
