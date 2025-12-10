@@ -144,7 +144,7 @@
     <div class="calendar">
         <div class="calendar-header">
             <button onclick="changeMonth(-1)" class="btn btn-sm btn-outline">‹ Previous</button>
-            <h3 class="text-lg font-semibold" id="month-year">October 2025</h3>
+            <h3 class="text-lg font-semibold" id="month-year"></h3>
             <button onclick="changeMonth(1)" class="btn btn-sm btn-outline">Next ›</button>
         </div>
         <div class="calendar-grid" id="calendar-grid">
@@ -199,8 +199,9 @@
 </div>
 
 <script>
-let currentMonth = 9; // October (0-based)
-let currentYear = 2025;
+const today = new Date();
+let currentMonth = today.getMonth(); // Current month (0-based)
+let currentYear = today.getFullYear(); // Current year
 let calendarEvents = [];
 
 document.addEventListener('DOMContentLoaded', function() {
