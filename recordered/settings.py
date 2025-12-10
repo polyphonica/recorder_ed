@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     'django_filters',
     'tailwind',
     'theme',
-    'django_browser_reload',
 
     # Local apps
     'apps.core',
@@ -85,7 +84,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django_browser_reload.middleware.BrowserReloadMiddleware',
     'apps.accounts.middleware.ProfileCompletionMiddleware',
 ]
 
