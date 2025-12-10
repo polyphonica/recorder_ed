@@ -78,13 +78,22 @@
                     <h2 class="card-title text-lg">
                         <i class="fas fa-user-music mr-2"></i>Composer
                     </h2>
-                    <p class="font-semibold text-xl">{{ piece.composer.name }}</p>
+                    <p class="font-semibold text-xl">
+                        {{ piece.composer.name }}
+                        {% if piece.composer.bio and not is_teacher %}
+                        <button onclick="composer_modal_{{ piece.composer.id }}.showModal()"
+                                class="btn btn-sm btn-circle btn-ghost ml-2"
+                                title="View composer biography">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                        {% endif %}
+                    </p>
                     {% if piece.composer.period %}
                     <p class="text-sm text-base-content/70">
                         <i class="fas fa-clock mr-1"></i>{{ piece.composer.period }}
                     </p>
                     {% endif %}
-                    {% if piece.composer.bio %}
+                    {% if piece.composer.bio and is_teacher %}
                     <div class="divider my-2"></div>
                     <div class="prose prose-sm max-w-none">
                         {{ piece.composer.bio|safe }}
@@ -179,5 +188,30 @@
             Back to Library
         </a>
     </div>
+
+    <!-- Composer Biography Modal (for students) -->
+    {% if piece.composer and piece.composer.bio and not is_teacher %}
+    <dialog id="composer_modal_{{ piece.composer.id }}" class="modal">
+        <div class="modal-box max-w-2xl">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            </form>
+            <h3 class="font-bold text-2xl mb-4">
+                <i class="fas fa-user-music mr-2"></i>{{ piece.composer.name }}
+            </h3>
+            {% if piece.composer.period %}
+            <p class="text-sm text-base-content/70 mb-4">
+                <i class="fas fa-clock mr-1"></i>Period: <strong>{{ piece.composer.period }}</strong>
+            </p>
+            {% endif %}
+            <div class="prose max-w-none">
+                {{ piece.composer.bio|safe }}
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+    {% endif %}
 </div>
 {% endblock %}
