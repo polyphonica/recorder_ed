@@ -338,7 +338,7 @@
     </nav>
 
     <!-- Tier 2: Domain-Specific Navigation -->
-    {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace in 'private_teaching,lessons,expenses' %}
+    {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace in 'private_teaching,lessons,expenses,audioplayer' %}
         <div class="bg-base-300 shadow-sm">
             <div class="container mx-auto">
                 <div class="navbar justify-center py-2">
@@ -349,6 +349,7 @@
                             <li><a href="{% url 'private_teaching:incoming_requests' %}" class="{% if request.resolver_match.url_name == 'incoming_requests' %}bg-primary text-primary-content{% endif %}">Incoming Requests</a></li>
                             <li><a href="{% url 'private_teaching:teacher_schedule' %}" class="{% if request.resolver_match.url_name == 'teacher_schedule' %}bg-primary text-primary-content{% endif %}">My Schedule</a></li>
                             <li><a href="{% url 'private_teaching:calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}bg-primary text-primary-content{% endif %}">Calendar</a></li>
+                            <li><a href="{% url 'audioplayer:library' %}" class="{% if request.resolver_match.namespace == 'audioplayer' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-music mr-1"></i>Play-Along Library</a></li>
                         {% else %}
                             <!-- Student Navigation -->
                             <li><a href="{% url 'private_teaching:student_dashboard' %}" class="{% if request.resolver_match.url_name == 'student_dashboard' %}bg-primary text-primary-content{% endif %}">Dashboard</a></li>
@@ -356,6 +357,7 @@
                             <li><a href="{% url 'private_teaching:my_requests' %}" class="{% if request.resolver_match.url_name == 'my_requests' %}bg-primary text-primary-content{% endif %}">My Requests</a></li>
                             <li><a href="{% url 'private_teaching:my_lessons' %}" class="{% if request.resolver_match.url_name == 'my_lessons' %}bg-primary text-primary-content{% endif %}">My Lessons</a></li>
                             <li><a href="{% url 'private_teaching:calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}bg-primary text-primary-content{% endif %}">Calendar</a></li>
+                            <li><a href="{% url 'audioplayer:library' %}" class="{% if request.resolver_match.namespace == 'audioplayer' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-music mr-1"></i>Play-Along Library</a></li>
                         {% endif %}
                     </ul>
                 </div>
@@ -364,7 +366,7 @@
     {% endif %}
 
     <!-- Courses Domain-Specific Navigation -->
-    {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace in 'courses,audioplayer' %}
+    {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace == 'courses' %}
         <div class="bg-base-300 shadow-sm">
             <div class="container mx-auto">
                 <div class="navbar justify-center py-2">
@@ -374,7 +376,6 @@
                             <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.url_name == 'instructor_dashboard' %}bg-primary text-primary-content{% endif %}">Dashboard</a></li>
                             <li><a href="{% url 'courses:analytics' %}" class="{% if request.resolver_match.url_name == 'analytics' %}bg-primary text-primary-content{% endif %}">Analytics</a></li>
                             <li><a href="{% url 'messaging:inbox' %}" class="{% if request.resolver_match.url_name == 'inbox' and request.resolver_match.namespace == 'messaging' %}bg-primary text-primary-content{% endif %}">Messages</a></li>
-                            <li><a href="{% url 'audioplayer:piece_list' %}" class="{% if request.resolver_match.namespace == 'audioplayer' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-music mr-1"></i>Playalong Library</a></li>
                             <li><a href="{% url 'courses:teaching_tools' %}" class="{% if 'teaching_tools' in request.resolver_match.url_name or 'fingering_diagram' in request.resolver_match.url_name or 'time_signature' in request.resolver_match.url_name %}bg-primary text-primary-content{% endif %}"><i class="fas fa-tools mr-1"></i>Teaching Tools</a></li>
                         {% else %}
                             <!-- Student Navigation -->
