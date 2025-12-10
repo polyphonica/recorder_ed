@@ -514,26 +514,24 @@ def library_piece_json(request, piece_id):
     """
     piece = get_object_or_404(Piece, pk=piece_id)
 
-    # Build stems data
-    stems_data = []
-    for stem in piece.stems.all():
-        stems_data.append({
-            'id': stem.id,
-            'name': stem.name,
-            'audio_file': request.build_absolute_uri(stem.audio_file.url) if stem.audio_file else None
-        })
+    # Build stems data - match format used by lesson endpoints
+    stems_data = [
+        {
+            'audio_file': stem.audio_file.url if stem.audio_file else None,
+            'instrument_name': stem.instrument_name
+        }
+        for stem in piece.stems.all().order_by('order')
+    ]
 
-    # Build piece data
+    # Build piece data - match format used by lesson endpoints
     piece_data = {
-        'id': piece.id,
         'title': piece.title,
-        'composer': piece.composer.name if piece.composer else 'Unknown',
-        'sheet_music': request.build_absolute_uri(piece.sheet_music.url) if piece.sheet_music else None,
         'stems': stems_data,
-        'is_visible': True  # Always visible in library
+        'svg_image': piece.svg_image.url if piece.svg_image else None,
+        'order': 0,  # Single piece, so order is always 0
     }
 
-    return JsonResponse({'pieces': [piece_data]})
+    return JsonResponse({'pieces_data': [piece_data]})
 
 
 # ===== COMPOSER MANAGEMENT VIEWS =====
