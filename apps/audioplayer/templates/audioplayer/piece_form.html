@@ -60,6 +60,7 @@
 
                 {{ form.non_field_errors }}
 
+                <!-- Title -->
                 <div class="form-control">
                     <label class="label" for="{{ form.title.id_for_label }}">
                         <span class="label-text font-semibold">{{ form.title.label }}</span>
@@ -68,6 +69,67 @@
                     {{ form.title.errors }}
                 </div>
 
+                <!-- Composer -->
+                <div class="form-control">
+                    <label class="label" for="{{ form.composer.id_for_label }}">
+                        <span class="label-text font-semibold">{{ form.composer.label }}</span>
+                    </label>
+                    {{ form.composer }}
+                    {{ form.composer.errors }}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.composer.help_text }}</span>
+                    </label>
+                </div>
+
+                <!-- Metadata Row 1 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="form-control">
+                        <label class="label" for="{{ form.grade_level.id_for_label }}">
+                            <span class="label-text font-semibold">{{ form.grade_level.label }}</span>
+                        </label>
+                        {{ form.grade_level }}
+                        {{ form.grade_level.errors }}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" for="{{ form.genre.id_for_label }}">
+                            <span class="label-text font-semibold">{{ form.genre.label }}</span>
+                        </label>
+                        {{ form.genre }}
+                        {{ form.genre.errors }}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" for="{{ form.difficulty.id_for_label }}">
+                            <span class="label-text font-semibold">{{ form.difficulty.label }}</span>
+                        </label>
+                        {{ form.difficulty }}
+                        {{ form.difficulty.errors }}
+                    </div>
+                </div>
+
+                <!-- Tags -->
+                <div class="form-control">
+                    <label class="label" for="{{ form.tags.id_for_label }}">
+                        <span class="label-text font-semibold">{{ form.tags.label }}</span>
+                    </label>
+                    {{ form.tags }}
+                    {{ form.tags.errors }}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.tags.help_text }}</span>
+                    </label>
+                </div>
+
+                <!-- Description -->
+                <div class="form-control">
+                    <label class="label" for="{{ form.description.id_for_label }}">
+                        <span class="label-text font-semibold">{{ form.description.label }}</span>
+                    </label>
+                    {{ form.description }}
+                    {{ form.description.errors }}
+                </div>
+
+                <!-- Sheet Music Image -->
                 <div class="form-control">
                     <label class="label" for="{{ form.svg_image.id_for_label }}">
                         <span class="label-text font-semibold">{{ form.svg_image.label }}</span>
@@ -80,8 +142,20 @@
                     {% endif %}
                     {{ form.svg_image.errors }}
                     <label class="label">
-                        <span class="label-text-alt">Upload image to display below player for on-screen practice (optional)</span>
+                        <span class="label-text-alt">{{ form.svg_image.help_text }}</span>
                     </label>
+                </div>
+
+                <!-- Visibility -->
+                <div class="form-control">
+                    <label class="label cursor-pointer justify-start">
+                        {{ form.is_public }}
+                        <span class="label-text ml-3">
+                            <span class="font-semibold">{{ form.is_public.label }}</span>
+                            <span class="block text-sm text-base-content/70 mt-1">{{ form.is_public.help_text }}</span>
+                        </span>
+                    </label>
+                    {{ form.is_public.errors }}
                 </div>
             </div>
         </div>
