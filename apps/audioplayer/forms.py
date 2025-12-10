@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Piece, Stem, LessonPiece
+from .models import Piece, Stem, LessonPiece, Composer, Tag
 
 
 class PieceForm(forms.ModelForm):
@@ -8,19 +8,44 @@ class PieceForm(forms.ModelForm):
 
     class Meta:
         model = Piece
-        fields = ['title', 'svg_image']
+        fields = [
+            'title', 'composer', 'grade_level', 'genre', 'difficulty',
+            'tags', 'description', 'svg_image', 'is_public'
+        ]
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'e.g., Hot Cross Buns'
             }),
+            'composer': forms.Select(attrs={'class': 'form-control'}),
+            'grade_level': forms.Select(attrs={'class': 'form-control'}),
+            'genre': forms.Select(attrs={'class': 'form-control'}),
+            'difficulty': forms.Select(attrs={'class': 'form-control'}),
+            'tags': forms.SelectMultiple(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Performance notes, context, or tips...'
+            }),
+            'is_public': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         labels = {
             'title': 'Piece Title',
+            'composer': 'Composer/Artist',
+            'grade_level': 'Grade Level',
+            'genre': 'Genre',
+            'difficulty': 'Difficulty',
+            'tags': 'Tags',
+            'description': 'Description/Notes',
             'svg_image': 'Sheet Music Image (SVG/PNG/JPG)',
+            'is_public': 'Make publicly visible in library',
         }
         help_texts = {
             'svg_image': 'Upload an image to display below the player for on-screen practice',
+            'composer': 'Optional - helps students find pieces by composer',
+            'grade_level': 'Associated exam grade (if applicable)',
+            'is_public': 'If checked, piece will be visible to all students in the library',
+            'tags': 'Additional categorization (e.g., Christmas, Duet, etc.)',
         }
 
 

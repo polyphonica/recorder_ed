@@ -778,6 +778,15 @@ class ExamPiece(models.Model):
         help_text="Syllabus list (e.g., 'A', 'B', 'C', 'Own Choice')"
     )
 
+    playalong_piece = models.ForeignKey(
+        'audioplayer.Piece',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='exam_pieces',
+        help_text="Link to playalong piece for practice"
+    )
+
     teacher_notes = models.TextField(
         blank=True,
         help_text="Teacher notes about practice progress or readiness"

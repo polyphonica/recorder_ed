@@ -1,12 +1,89 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django_ckeditor_5.fields import CKEditor5Field
+
+
+class Composer(models.Model):
+    """
+    Normalized composer/artist entity to avoid duplication and enable filtering.
+    """
+    name = models.CharField(max_length=200, unique=True)
+    bio = CKEditor5Field(
+        'biography',
+        config_name='default',
+        blank=True,
+        help_text="Biographical information with formatting (paragraphs, lists, links, etc.)"
+    )
+    period = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="e.g., Baroque, Classical, Romantic, Traditional, Contemporary"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Composer'
+        verbose_name_plural = 'Composers'
+
+    def __str__(self):
+        return self.name
+
+
+class Tag(models.Model):
+    """
+    Flexible tagging system for categorizing pieces beyond standard fields.
+    Examples: 'Christmas', 'Halloween', 'Duet', 'Fast Tempo', 'Solo'
+    """
+    name = models.CharField(max_length=50, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Tag'
+        verbose_name_plural = 'Tags'
+
+    def __str__(self):
+        return self.name
 
 
 class Piece(models.Model):
     """
-    A playalong piece with title and optional sheet music image.
+    A playalong piece with title, optional sheet music, and metadata for library organization.
     Reusable across multiple lessons.
     """
+
+    GRADE_CHOICES = [
+        ('N/A', 'N/A'),
+        ('grade_1', 'Grade 1'),
+        ('grade_2', 'Grade 2'),
+        ('grade_3', 'Grade 3'),
+        ('grade_4', 'Grade 4'),
+        ('grade_5', 'Grade 5'),
+        ('grade_6', 'Grade 6'),
+        ('grade_7', 'Grade 7'),
+        ('grade_8', 'Grade 8'),
+    ]
+
+    GENRE_CHOICES = [
+        ('classical', 'Classical'),
+        ('folk', 'Folk/Traditional'),
+        ('pop', 'Popular'),
+        ('jazz', 'Jazz'),
+        ('baroque', 'Baroque'),
+        ('renaissance', 'Renaissance'),
+        ('contemporary', 'Contemporary'),
+        ('other', 'Other'),
+    ]
+
+    DIFFICULTY_CHOICES = [
+        ('beginner', 'Beginner'),
+        ('intermediate', 'Intermediate'),
+        ('advanced', 'Advanced'),
+    ]
+
+    # Basic fields
     title = models.CharField(max_length=200)
     svg_image = models.FileField(
         upload_to='audioplayer/svg_images/',
@@ -14,6 +91,56 @@ class Piece(models.Model):
         blank=True,
         help_text="Sheet music or notation image (SVG/PNG/JPG)"
     )
+
+    # Metadata fields (all optional to avoid errors with existing data)
+    composer = models.ForeignKey(
+        Composer,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pieces',
+        help_text="Composer or artist"
+    )
+
+    grade_level = models.CharField(
+        max_length=20,
+        choices=GRADE_CHOICES,
+        blank=True,
+        default='N/A',
+        help_text="Associated exam grade level (optional)"
+    )
+
+    genre = models.CharField(
+        max_length=50,
+        choices=GENRE_CHOICES,
+        blank=True,
+        help_text="Musical genre or style"
+    )
+
+    difficulty = models.CharField(
+        max_length=20,
+        choices=DIFFICULTY_CHOICES,
+        blank=True,
+        help_text="Difficulty level"
+    )
+
+    description = models.TextField(
+        blank=True,
+        help_text="Notes about the piece, performance tips, or context"
+    )
+
+    tags = models.ManyToManyField(
+        Tag,
+        blank=True,
+        related_name='pieces',
+        help_text="Additional categorization (e.g., Christmas, Duet, etc.)"
+    )
+
+    is_public = models.BooleanField(
+        default=True,
+        help_text="If checked, piece appears in library for all students to browse"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

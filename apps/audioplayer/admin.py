@@ -1,5 +1,28 @@
 from django.contrib import admin
-from .models import Piece, Stem, LessonPiece
+from .models import Piece, Stem, LessonPiece, Composer, Tag
+
+
+@admin.register(Composer)
+class ComposerAdmin(admin.ModelAdmin):
+    list_display = ['name', 'period', 'piece_count', 'created_at']
+    search_fields = ['name', 'period']
+    list_filter = ['period', 'created_at']
+    ordering = ['name']
+
+    def piece_count(self, obj):
+        return obj.pieces.count()
+    piece_count.short_description = 'Pieces'
+
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ['name', 'piece_count', 'created_at']
+    search_fields = ['name']
+    ordering = ['name']
+
+    def piece_count(self, obj):
+        return obj.pieces.count()
+    piece_count.short_description = 'Pieces'
 
 
 class StemInline(admin.TabularInline):
@@ -11,10 +34,26 @@ class StemInline(admin.TabularInline):
 
 @admin.register(Piece)
 class PieceAdmin(admin.ModelAdmin):
-    list_display = ['title', 'stem_count', 'lesson_count', 'created_at', 'updated_at']
-    search_fields = ['title']
-    list_filter = ['created_at']
+    list_display = ['title', 'composer', 'grade_level', 'genre', 'difficulty', 'is_public', 'stem_count', 'lesson_count', 'created_at']
+    search_fields = ['title', 'composer__name', 'description']
+    list_filter = ['grade_level', 'genre', 'difficulty', 'is_public', 'tags', 'composer', 'created_at']
+    filter_horizontal = ['tags']
     inlines = [StemInline]
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('title', 'composer', 'svg_image')
+        }),
+        ('Classification', {
+            'fields': ('grade_level', 'genre', 'difficulty', 'tags')
+        }),
+        ('Description', {
+            'fields': ('description',)
+        }),
+        ('Visibility', {
+            'fields': ('is_public',)
+        }),
+    )
 
     def stem_count(self, obj):
         return obj.stems.count()

@@ -156,7 +156,8 @@ class ExamBoardAdmin(admin.ModelAdmin):
 class ExamPieceInline(admin.TabularInline):
     model = ExamPiece
     extra = 0
-    fields = ['piece_number', 'title', 'composer', 'syllabus_list', 'teacher_notes']
+    fields = ['piece_number', 'title', 'composer', 'syllabus_list', 'playalong_piece', 'teacher_notes']
+    autocomplete_fields = ['playalong_piece']
 
 
 @admin.register(ExamRegistration)

@@ -4,6 +4,9 @@ from . import views
 app_name = 'audioplayer'
 
 urlpatterns = [
+    # Play-Along Library (Student & Teacher)
+    path('library/', views.PlayAlongLibraryView.as_view(), name='library'),
+
     # Teacher - Piece Library Management
     path('pieces/', views.piece_list, name='piece_list'),
     path('pieces/create/', views.piece_create, name='piece_create'),

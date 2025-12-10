@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Play-Along Library - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold">Play-Along Library</h1>
+            <p class="text-base-content/70 mt-2">Browse and practice with multi-track playalong pieces</p>
+        </div>
+        {% if is_teacher %}
+        <a href="{% url 'audioplayer:piece_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus mr-2"></i>
+            Create New Piece
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- View Mode Tabs -->
+    <div class="tabs tabs-boxed mb-6">
+        <a class="tab {% if view_mode == 'my_pieces' %}tab-active{% endif %}"
+           href="?mode=my_pieces">
+            <i class="fas fa-book-reader mr-2"></i>
+            My Assigned Pieces
+        </a>
+        <a class="tab {% if view_mode == 'browse_all' %}tab-active{% endif %}"
+           href="?mode=browse_all">
+            <i class="fas fa-globe mr-2"></i>
+            Browse All
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-base-200 shadow-md mb-6">
+        <div class="card-body">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Preserve mode -->
+                <input type="hidden" name="mode" value="{{ view_mode }}">
+
+                <!-- Search -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Search</span>
+                    </label>
+                    <input type="text"
+                           name="search"
+                           value="{{ search_query }}"
+                           placeholder="Title or composer..."
+                           class="input input-bordered">
+                </div>
+
+                <!-- Composer Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Composer</span>
+                    </label>
+                    <select name="composer" class="select select-bordered">
+                        <option value="">All Composers</option>
+                        {% for composer in composers %}
+                        <option value="{{ composer.id }}" {% if selected_composer == composer.id|stringformat:"s" %}selected{% endif %}>
+                            {{ composer.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Grade Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Grade Level</span>
+                    </label>
+                    <select name="grade" class="select select-bordered">
+                        <option value="">All Grades</option>
+                        {% for value, label in grade_choices %}
+                        <option value="{{ value }}" {% if selected_grade == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Genre Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Genre</span>
+                    </label>
+                    <select name="genre" class="select select-bordered">
+                        <option value="">All Genres</option>
+                        {% for value, label in genre_choices %}
+                        <option value="{{ value }}" {% if selected_genre == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Difficulty Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Difficulty</span>
+                    </label>
+                    <select name="difficulty" class="select select-bordered">
+                        <option value="">All Difficulties</option>
+                        {% for value, label in difficulty_choices %}
+                        <option value="{{ value }}" {% if selected_difficulty == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Tag Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Tag</span>
+                    </label>
+                    <select name="tag" class="select select-bordered">
+                        <option value="">All Tags</option>
+                        {% for tag in tags %}
+                        <option value="{{ tag.id }}" {% if selected_tag == tag.id|stringformat:"s" %}selected{% endif %}>
+                            {{ tag.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filter Actions -->
+                <div class="form-control flex flex-row gap-2 items-end">
+                    <button type="submit" class="btn btn-primary flex-1">
+                        <i class="fas fa-filter mr-2"></i>
+                        Apply Filters
+                    </button>
+                    <a href="?mode={{ view_mode }}" class="btn btn-ghost">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if pieces %}
+    <!-- Pieces Count -->
+    <div class="text-sm text-base-content/70 mb-4">
+        Found {{ pieces|length }} piece{{ pieces|length|pluralize }}
+    </div>
+
+    <!-- Pieces Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for piece in pieces %}
+        <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+            <div class="card-body">
+                <h2 class="card-title">{{ piece.title }}</h2>
+
+                <!-- Piece Metadata -->
+                <div class="text-sm text-base-content/70 space-y-1">
+                    {% if piece.composer %}
+                    <p>
+                        <i class="fas fa-user-music mr-2"></i>
+                        <strong>{{ piece.composer.name }}</strong>
+                        {% if piece.composer.bio %}
+                        <button onclick="composer_modal_{{ piece.composer.id }}.showModal()"
+                                class="btn btn-xs btn-circle btn-ghost ml-1"
+                                title="View composer biography">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                        {% endif %}
+                    </p>
+                    {% endif %}
+
+                    {% if piece.grade_level and piece.grade_level != 'N/A' %}
+                    <p>
+                        <i class="fas fa-graduation-cap mr-2"></i>
+                        {{ piece.get_grade_level_display }}
+                    </p>
+                    {% endif %}
+
+                    {% if piece.genre %}
+                    <p>
+                        <i class="fas fa-guitar mr-2"></i>
+                        {{ piece.get_genre_display }}
+                    </p>
+                    {% endif %}
+
+                    {% if piece.difficulty %}
+                    <p>
+                        <i class="fas fa-chart-line mr-2"></i>
+                        {{ piece.get_difficulty_display }}
+                    </p>
+                    {% endif %}
+
+                    <p>
+                        <i class="fas fa-music mr-2"></i>
+                        <strong>{{ piece.stems.count }}</strong> track{{ piece.stems.count|pluralize }}
+                    </p>
+                </div>
+
+                <!-- Tags -->
+                {% if piece.tags.all %}
+                <div class="mt-3">
+                    <div class="flex flex-wrap gap-2">
+                        {% for tag in piece.tags.all %}
+                        <span class="badge badge-sm badge-outline">{{ tag.name }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Description Preview -->
+                {% if piece.description %}
+                <div class="mt-3 text-sm text-base-content/60">
+                    {{ piece.description|truncatewords:15 }}
+                </div>
+                {% endif %}
+
+                <!-- Actions -->
+                <div class="card-actions justify-end mt-4 pt-4 border-t">
+                    <a href="{% url 'audioplayer:piece_detail' pk=piece.id %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-play mr-2"></i>
+                        View & Play
+                    </a>
+                    {% if is_teacher %}
+                    <a href="{% url 'audioplayer:piece_edit' pk=piece.id %}" class="btn btn-sm btn-ghost">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-16">
+        <div class="mb-6">
+            <i class="fas fa-music text-6xl text-base-content/20"></i>
+        </div>
+        <h2 class="text-2xl font-bold mb-4">
+            {% if view_mode == 'my_pieces' %}
+                No Assigned Pieces Yet
+            {% else %}
+                No Pieces Found
+            {% endif %}
+        </h2>
+        <p class="text-base-content/70 mb-8">
+            {% if view_mode == 'my_pieces' %}
+                Your teacher hasn't assigned any playalong pieces yet. Try browsing all available pieces!
+            {% else %}
+                {% if search_query or selected_composer or selected_grade or selected_genre or selected_difficulty or selected_tag %}
+                    No pieces match your current filters. Try adjusting your search criteria.
+                {% else %}
+                    No playalong pieces are currently available in the library.
+                {% endif %}
+            {% endif %}
+        </p>
+        {% if view_mode == 'my_pieces' %}
+        <a href="?mode=browse_all" class="btn btn-primary">
+            <i class="fas fa-globe mr-2"></i>
+            Browse All Pieces
+        </a>
+        {% else %}
+        <a href="?mode={{ view_mode }}" class="btn btn-ghost">
+            <i class="fas fa-times mr-2"></i>
+            Clear Filters
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Composer Biography Modals -->
+    {% if pieces %}
+        {% regroup pieces by composer as composer_list %}
+        {% for composer_group in composer_list %}
+            {% if composer_group.grouper and composer_group.grouper.bio %}
+            <dialog id="composer_modal_{{ composer_group.grouper.id }}" class="modal">
+                <div class="modal-box max-w-2xl">
+                    <form method="dialog">
+                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                    </form>
+                    <h3 class="font-bold text-2xl mb-4">
+                        <i class="fas fa-user-music mr-2"></i>{{ composer_group.grouper.name }}
+                    </h3>
+                    {% if composer_group.grouper.period %}
+                    <p class="text-sm text-base-content/70 mb-4">
+                        <i class="fas fa-clock mr-1"></i>Period: <strong>{{ composer_group.grouper.period }}</strong>
+                    </p>
+                    {% endif %}
+                    <div class="prose max-w-none">
+                        {{ composer_group.grouper.bio|safe }}
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop">
+                    <button>close</button>
+                </form>
+            </dialog>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}

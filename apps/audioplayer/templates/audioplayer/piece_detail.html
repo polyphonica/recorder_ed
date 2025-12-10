@@ -69,6 +69,68 @@
 
         <!-- Sidebar -->
         <div class="space-y-6">
+            <!-- Composer Info -->
+            {% if piece.composer %}
+            <div class="card bg-base-100 shadow-md">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">
+                        <i class="fas fa-user-music mr-2"></i>Composer
+                    </h2>
+                    <p class="font-semibold text-xl">{{ piece.composer.name }}</p>
+                    {% if piece.composer.period %}
+                    <p class="text-sm text-base-content/70">
+                        <i class="fas fa-clock mr-1"></i>{{ piece.composer.period }}
+                    </p>
+                    {% endif %}
+                    {% if piece.composer.bio %}
+                    <div class="divider my-2"></div>
+                    <div class="prose prose-sm max-w-none">
+                        {{ piece.composer.bio|safe }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Piece Metadata -->
+            {% if piece.grade_level or piece.genre or piece.difficulty or piece.tags.all %}
+            <div class="card bg-base-100 shadow-md">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">Details</h2>
+                    <div class="space-y-2 text-sm">
+                        {% if piece.grade_level and piece.grade_level != 'N/A' %}
+                        <p>
+                            <i class="fas fa-graduation-cap mr-2"></i>
+                            <strong>Grade:</strong> {{ piece.get_grade_level_display }}
+                        </p>
+                        {% endif %}
+                        {% if piece.genre %}
+                        <p>
+                            <i class="fas fa-guitar mr-2"></i>
+                            <strong>Genre:</strong> {{ piece.get_genre_display }}
+                        </p>
+                        {% endif %}
+                        {% if piece.difficulty %}
+                        <p>
+                            <i class="fas fa-chart-line mr-2"></i>
+                            <strong>Difficulty:</strong> {{ piece.get_difficulty_display }}
+                        </p>
+                        {% endif %}
+                        {% if piece.tags.all %}
+                        <div class="mt-3">
+                            <p class="font-semibold mb-2">Tags:</p>
+                            <div class="flex flex-wrap gap-2">
+                                {% for tag in piece.tags.all %}
+                                <span class="badge badge-sm">{{ tag.name }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Usage Info -->
             <div class="card bg-base-100 shadow-md">
                 <div class="card-body">

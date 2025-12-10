@@ -3,7 +3,9 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
-from .models import Piece, Stem, LessonPiece
+from django.db.models import Q
+from django.views.generic import TemplateView
+from .models import Piece, Stem, LessonPiece, Composer, Tag
 from .forms import PieceForm, StemFormSet
 from apps.courses.models import Lesson
 
@@ -331,3 +333,126 @@ def private_lesson_pieces_json(request, lesson_id):
         pieces_data.append(piece_data)
 
     return JsonResponse({'pieces_data': pieces_data})
+
+
+# ===== PLAY-ALONG LIBRARY VIEWS =====
+
+class PlayAlongLibraryView(TemplateView):
+    """
+    Play-along library for students and teachers.
+    Shows pieces from assigned lessons + all public pieces for browsing.
+    """
+    template_name = 'audioplayer/library.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get filter parameters
+        search_query = self.request.GET.get('search', '').strip()
+        composer_id = self.request.GET.get('composer', '').strip()
+        grade_level = self.request.GET.get('grade', '').strip()
+        genre = self.request.GET.get('genre', '').strip()
+        difficulty = self.request.GET.get('difficulty', '').strip()
+        tag_id = self.request.GET.get('tag', '').strip()
+        view_mode = self.request.GET.get('mode', 'my_pieces')  # 'my_pieces' or 'browse_all'
+
+        # Determine if user is teacher
+        is_teacher = (
+            self.request.user.is_authenticated and
+            hasattr(self.request.user, 'profile') and
+            self.request.user.profile.is_private_teacher
+        )
+
+        # Base queryset - will be filtered based on mode
+        pieces = Piece.objects.select_related('composer').prefetch_related('tags', 'stems')
+
+        if view_mode == 'my_pieces' and self.request.user.is_authenticated:
+            # Show pieces from user's lessons
+            if is_teacher:
+                # Teachers see pieces from all their lessons
+                from lessons.models import Lesson as PrivateLesson, PrivateLessonPiece
+                teacher_lesson_ids = PrivateLesson.objects.filter(
+                    teacher=self.request.user,
+                    is_deleted=False
+                ).values_list('id', flat=True)
+
+                piece_ids_from_lessons = PrivateLessonPiece.objects.filter(
+                    lesson_id__in=teacher_lesson_ids
+                ).values_list('piece_id', flat=True).distinct()
+
+                pieces = pieces.filter(id__in=piece_ids_from_lessons)
+            else:
+                # Students see pieces from their paid & assigned lessons
+                from lessons.models import Lesson as PrivateLesson, PrivateLessonPiece
+                student_lessons = PrivateLesson.objects.filter(
+                    student=self.request.user,
+                    approved_status='Accepted',
+                    payment_status='Paid',
+                    status='Assigned',
+                    is_deleted=False
+                ).values_list('id', flat=True)
+
+                piece_ids_from_lessons = PrivateLessonPiece.objects.filter(
+                    lesson_id__in=student_lessons
+                ).values_list('piece_id', flat=True).distinct()
+
+                pieces = pieces.filter(id__in=piece_ids_from_lessons)
+
+        elif view_mode == 'browse_all':
+            # Show all public pieces (teachers see all pieces)
+            if not is_teacher:
+                pieces = pieces.filter(is_public=True)
+        else:
+            # Default to empty if not authenticated
+            if not self.request.user.is_authenticated:
+                pieces = pieces.filter(is_public=True)
+
+        # Apply filters
+        if search_query:
+            pieces = pieces.filter(
+                Q(title__icontains=search_query) |
+                Q(composer__name__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+
+        if composer_id:
+            pieces = pieces.filter(composer_id=composer_id)
+
+        if grade_level:
+            pieces = pieces.filter(grade_level=grade_level)
+
+        if genre:
+            pieces = pieces.filter(genre=genre)
+
+        if difficulty:
+            pieces = pieces.filter(difficulty=difficulty)
+
+        if tag_id:
+            pieces = pieces.filter(tags__id=tag_id)
+
+        # Order by title
+        pieces = pieces.order_by('title')
+
+        # Get filter options for dropdowns
+        composers = Composer.objects.all().order_by('name')
+        tags = Tag.objects.all().order_by('name')
+
+        # Add to context
+        context['pieces'] = pieces
+        context['composers'] = composers
+        context['tags'] = tags
+        context['grade_choices'] = Piece.GRADE_CHOICES
+        context['genre_choices'] = Piece.GENRE_CHOICES
+        context['difficulty_choices'] = Piece.DIFFICULTY_CHOICES
+        context['view_mode'] = view_mode
+        context['is_teacher'] = is_teacher
+
+        # Preserve filter values
+        context['search_query'] = search_query
+        context['selected_composer'] = composer_id
+        context['selected_grade'] = grade_level
+        context['selected_genre'] = genre
+        context['selected_difficulty'] = difficulty
+        context['selected_tag'] = tag_id
+
+        return context
