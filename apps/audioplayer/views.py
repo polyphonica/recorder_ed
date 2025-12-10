@@ -491,6 +491,51 @@ class PlayAlongLibraryView(TemplateView):
         return context
 
 
+def library_piece_player(request, piece_id):
+    """
+    Audio player page for a single piece from the library.
+    Accessible by any authenticated user.
+    """
+    piece = get_object_or_404(Piece, pk=piece_id)
+
+    context = {
+        'piece': piece,
+        'piece_count': 1,
+        'title': f'Play: {piece.title}',
+        'is_library_player': True  # Flag to help template know this is library mode
+    }
+    return render(request, 'audioplayer/audio_player.html', context)
+
+
+def library_piece_json(request, piece_id):
+    """
+    Returns JSON data for a single piece from the library.
+    Used by the audio player JavaScript.
+    """
+    piece = get_object_or_404(Piece, pk=piece_id)
+
+    # Build stems data
+    stems_data = []
+    for stem in piece.stems.all():
+        stems_data.append({
+            'id': stem.id,
+            'name': stem.name,
+            'audio_file': request.build_absolute_uri(stem.audio_file.url) if stem.audio_file else None
+        })
+
+    # Build piece data
+    piece_data = {
+        'id': piece.id,
+        'title': piece.title,
+        'composer': piece.composer.name if piece.composer else 'Unknown',
+        'sheet_music': request.build_absolute_uri(piece.sheet_music.url) if piece.sheet_music else None,
+        'stems': stems_data,
+        'is_visible': True  # Always visible in library
+    }
+
+    return JsonResponse({'pieces': [piece_data]})
+
+
 # ===== COMPOSER MANAGEMENT VIEWS =====
 
 @teacher_required

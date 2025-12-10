@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{% if is_private_lesson %}Playalong: {{ lesson.subject.subject }}{% else %}Playalong: {{ lesson.lesson_title }}{% endif %} - {{ block.super }}{% endblock %}
+{% block title %}{% if is_library_player %}{{ title }}{% elif is_private_lesson %}Playalong: {{ lesson.subject.subject }}{% else %}Playalong: {{ lesson.lesson_title }}{% endif %} - {{ block.super }}{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'audioplayer/css/styles.css' %}">
@@ -11,7 +11,11 @@
 <div class="container mx-auto px-4 py-8">
     <!-- Breadcrumbs -->
     <nav class="breadcrumbs text-sm mb-6">
-        {% if is_private_lesson %}
+        {% if is_library_player %}
+            <a href="{% url 'audioplayer:library' %}" class="text-primary hover:underline">Play-Along Library</a>
+            <span class="mx-2">›</span>
+            <span class="text-base-content/70">{{ piece.title }}</span>
+        {% elif is_private_lesson %}
             <a href="{% url 'private_teaching:calendar' %}" class="text-primary hover:underline">My Calendar</a>
             <span class="mx-2">›</span>
             <a href="{% url 'lessons:lesson_detail' lesson.pk %}" class="text-primary hover:underline">
@@ -36,7 +40,12 @@
 
     <!-- Header Section -->
     <section class="section-class mb-6">
-        {% if is_private_lesson %}
+        {% if is_library_player %}
+            <h1 class="text-3xl font-bold mb-4">{{ piece.title }}</h1>
+            {% if piece.composer %}
+            <p class="text-lg text-base-content/70 mb-4">by {{ piece.composer.name }}</p>
+            {% endif %}
+        {% elif is_private_lesson %}
             <h1 class="text-3xl font-bold mb-4">Playalong: {{ lesson.subject.subject }}</h1>
         {% else %}
             <h1 class="text-3xl font-bold mb-4">Playalong: {{ lesson.lesson_title }}</h1>
@@ -70,9 +79,14 @@
         {% endif %}
     </section>
 
-    <!-- Hidden input for lesson ID (used by JavaScript) -->
+    <!-- Hidden inputs for JavaScript -->
+    {% if is_library_player %}
+    <input type="hidden" id="piece-id" value="{{ piece.id }}">
+    <input type="hidden" id="is-library-player" value="true">
+    {% else %}
     <input type="hidden" id="lesson-id" value="{{ lesson.id }}">
     <input type="hidden" id="is-private-lesson" value="{% if is_private_lesson %}true{% else %}false{% endif %}">
+    {% endif %}
 
     <!-- Players Container (populated by JavaScript) -->
     <div id="players-container">

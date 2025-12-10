@@ -350,18 +350,26 @@ function updateSolo(instance) {
 window.onload = async () => {
     const lessonId = document.getElementById('lesson-id')?.value;
     const isPrivateLesson = document.getElementById('is-private-lesson')?.value === 'true';
+    const pieceId = document.getElementById('piece-id')?.value;
+    const isLibraryPlayer = document.getElementById('is-library-player')?.value === 'true';
 
-    if (!lessonId) {
-        console.error('No lesson ID found');
+    // Determine which mode we're in and construct the appropriate URL
+    let url;
+    if (isLibraryPlayer && pieceId) {
+        console.log("Fetching piece from library:", pieceId);
+        url = `/audioplayer/library/piece/${pieceId}/pieces-json/`;
+    } else if (lessonId) {
+        console.log("Fetching pieces for lesson:", lessonId, "Private lesson:", isPrivateLesson);
+        // Use different URL pattern for private lessons vs course lessons
+        url = isPrivateLesson
+            ? `/audioplayer/private-lesson/${lessonId}/pieces-json/`
+            : `/audioplayer/lesson/${lessonId}/pieces-json/`;
+    } else {
+        console.error('No lesson ID or piece ID found');
         return;
     }
 
     try {
-        console.log("Fetching pieces for lesson:", lessonId, "Private lesson:", isPrivateLesson);
-        // Use different URL pattern for private lessons vs course lessons
-        const url = isPrivateLesson
-            ? `/audioplayer/private-lesson/${lessonId}/pieces-json/`
-            : `/audioplayer/lesson/${lessonId}/pieces-json/`;
         let response = await fetch(url);
         console.log("Response status:", response.status);
 
@@ -370,11 +378,14 @@ window.onload = async () => {
         let data = await response.json();
         console.log("Data:", data);
 
-        if (data.pieces_data && data.pieces_data.length > 0) {
-            initPlayers(data.pieces_data);
+        // Handle both lesson data format and library piece format
+        const piecesData = data.pieces_data || data.pieces;
+
+        if (piecesData && piecesData.length > 0) {
+            initPlayers(piecesData);
         } else {
             document.getElementById('players-container').innerHTML =
-                '<p style="text-align: center; color: #666; padding: 40px;">No playalong pieces available for this lesson.</p>';
+                '<p style="text-align: center; color: #666; padding: 40px;">No playalong pieces available.</p>';
         }
     } catch (error) {
         console.error("Fetch error:", error);

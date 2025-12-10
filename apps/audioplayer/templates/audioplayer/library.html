@@ -217,12 +217,15 @@
 
                 <!-- Actions -->
                 <div class="card-actions justify-end mt-4 pt-4 border-t">
-                    <a href="{% url 'audioplayer:piece_detail' pk=piece.id %}" class="btn btn-sm btn-primary">
+                    <a href="{% url 'audioplayer:library_piece_player' piece_id=piece.id %}" class="btn btn-sm btn-primary">
                         <i class="fas fa-play mr-2"></i>
                         View & Play
                     </a>
                     {% if is_teacher %}
-                    <a href="{% url 'audioplayer:piece_edit' pk=piece.id %}" class="btn btn-sm btn-ghost">
+                    <a href="{% url 'audioplayer:piece_detail' pk=piece.id %}" class="btn btn-sm btn-ghost" title="View Details">
+                        <i class="fas fa-info-circle"></i>
+                    </a>
+                    <a href="{% url 'audioplayer:piece_edit' pk=piece.id %}" class="btn btn-sm btn-ghost" title="Edit">
                         <i class="fas fa-edit"></i>
                     </a>
                     {% endif %}

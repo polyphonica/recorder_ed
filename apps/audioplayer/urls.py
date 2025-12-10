@@ -27,4 +27,8 @@ urlpatterns = [
     # Student - Playback Interface (Private Teaching Lessons)
     path('private-lesson/<uuid:lesson_id>/player/', views.private_lesson_player, name='private_lesson_player'),
     path('private-lesson/<uuid:lesson_id>/pieces-json/', views.private_lesson_pieces_json, name='private_lesson_pieces_json'),
+
+    # Student - Playback Interface (Library Pieces)
+    path('library/piece/<int:piece_id>/player/', views.library_piece_player, name='library_piece_player'),
+    path('library/piece/<int:piece_id>/pieces-json/', views.library_piece_json, name='library_piece_json'),
 ]
