@@ -194,6 +194,35 @@
                     </label>
                 </div>
 
+                <!-- PDF Score Title -->
+                <div class="form-control">
+                    <label class="label" for="{{ form.pdf_score_title.id_for_label }}">
+                        <span class="label-text font-semibold">{{ form.pdf_score_title.label }}</span>
+                    </label>
+                    {{ form.pdf_score_title }}
+                    {{ form.pdf_score_title.errors }}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.pdf_score_title.help_text }}</span>
+                    </label>
+                </div>
+
+                <!-- Printable PDF Score -->
+                <div class="form-control">
+                    <label class="label" for="{{ form.pdf_score.id_for_label }}">
+                        <span class="label-text font-semibold">{{ form.pdf_score.label }}</span>
+                    </label>
+                    {{ form.pdf_score }}
+                    {% if piece and piece.pdf_score %}
+                    <label class="label">
+                        <span class="label-text-alt">Current: <a href="{{ piece.pdf_score.url }}" target="_blank" class="link">View PDF</a></span>
+                    </label>
+                    {% endif %}
+                    {{ form.pdf_score.errors }}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.pdf_score.help_text }}</span>
+                    </label>
+                </div>
+
                 <!-- Visibility -->
                 <div class="form-control">
                     <label class="label cursor-pointer justify-start">

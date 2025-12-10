@@ -150,6 +150,33 @@ async function initPlayers(piecesData) {
             playerContainer.appendChild(svgImage);
         }
 
+        // Add PDF download button if available
+        if (piece.pdf_score) {
+            let pdfContainer = document.createElement('div');
+            pdfContainer.classList.add('pdf-download-container');
+            pdfContainer.style.textAlign = 'center';
+            pdfContainer.style.marginTop = '20px';
+
+            let pdfLink = document.createElement('a');
+            pdfLink.href = piece.pdf_score;
+            pdfLink.target = '_blank';
+            pdfLink.download = '';
+            pdfLink.classList.add('btn', 'btn-primary', 'btn-outline');
+
+            let pdfIcon = document.createElement('i');
+            pdfIcon.classList.add('fas', 'fa-file-pdf');
+            pdfIcon.style.marginRight = '8px';
+
+            let pdfText = document.createTextNode(
+                piece.pdf_score_title || 'Download Printable Score (PDF)'
+            );
+
+            pdfLink.appendChild(pdfIcon);
+            pdfLink.appendChild(pdfText);
+            pdfContainer.appendChild(pdfLink);
+            playerContainer.appendChild(pdfContainer);
+        }
+
         playersContainer.appendChild(playerContainer);
 
         // Initialize audio context and load audio files

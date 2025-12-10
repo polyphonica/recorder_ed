@@ -211,6 +211,8 @@ def pieces_json(request, lesson_id):
             'title': lp.piece.title,
             'stems': stems_data,
             'svg_image': lp.piece.svg_image.url if lp.piece.svg_image else None,
+            'pdf_score': lp.piece.pdf_score.url if lp.piece.pdf_score else None,
+            'pdf_score_title': lp.piece.pdf_score_title if lp.piece.pdf_score_title else None,
             'order': lp.order,
         }
 
@@ -354,6 +356,8 @@ def private_lesson_pieces_json(request, lesson_id):
             'title': lp.piece.title,
             'stems': stems_data,
             'svg_image': lp.piece.svg_image.url if lp.piece.svg_image else None,
+            'pdf_score': lp.piece.pdf_score.url if lp.piece.pdf_score else None,
+            'pdf_score_title': lp.piece.pdf_score_title if lp.piece.pdf_score_title else None,
             'order': lp.order,
         }
 
@@ -528,6 +532,8 @@ def library_piece_json(request, piece_id):
         'title': piece.title,
         'stems': stems_data,
         'svg_image': piece.svg_image.url if piece.svg_image else None,
+        'pdf_score': piece.pdf_score.url if piece.pdf_score else None,
+        'pdf_score_title': piece.pdf_score_title if piece.pdf_score_title else None,
         'order': 0,  # Single piece, so order is always 0
     }
 

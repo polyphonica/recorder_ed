@@ -42,7 +42,7 @@ class PieceAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Basic Information', {
-            'fields': ('title', 'composer', 'svg_image')
+            'fields': ('title', 'composer', 'svg_image', 'pdf_score_title', 'pdf_score')
         }),
         ('Classification', {
             'fields': ('grade_level', 'genre', 'difficulty', 'tags')

@@ -89,7 +89,20 @@ class Piece(models.Model):
         upload_to='audioplayer/svg_images/',
         null=True,
         blank=True,
-        help_text="Sheet music or notation image (SVG/PNG/JPG)"
+        help_text="Sheet music or notation image (SVG/PNG/JPG) for on-screen display"
+    )
+
+    pdf_score = models.FileField(
+        upload_to='audioplayer/pdf_scores/',
+        null=True,
+        blank=True,
+        help_text="Printable PDF version of the score"
+    )
+
+    pdf_score_title = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Descriptive title for the PDF score (e.g., 'Full Score with Piano Accompaniment')"
     )
 
     # Metadata fields (all optional to avoid errors with existing data)

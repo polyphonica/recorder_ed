@@ -33,7 +33,7 @@ class PieceForm(forms.ModelForm):
         model = Piece
         fields = [
             'title', 'composer', 'grade_level', 'genre', 'difficulty',
-            'tags', 'description', 'svg_image', 'is_public'
+            'tags', 'description', 'svg_image', 'pdf_score', 'pdf_score_title', 'is_public'
         ]
         widgets = {
             'title': forms.TextInput(attrs={
@@ -64,6 +64,14 @@ class PieceForm(forms.ModelForm):
             'svg_image': forms.FileInput(attrs={
                 'class': 'file-input file-input-bordered w-full'
             }),
+            'pdf_score': forms.FileInput(attrs={
+                'class': 'file-input file-input-bordered w-full',
+                'accept': '.pdf'
+            }),
+            'pdf_score_title': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'e.g., Full Score, Recorder Part, Piano Accompaniment'
+            }),
             'is_public': forms.CheckboxInput(attrs={
                 'class': 'checkbox'
             }),
@@ -77,10 +85,14 @@ class PieceForm(forms.ModelForm):
             'tags': 'Tags',
             'description': 'Description/Notes',
             'svg_image': 'Sheet Music Image (SVG/PNG/JPG)',
+            'pdf_score': 'Printable PDF Score',
+            'pdf_score_title': 'PDF Title (Optional)',
             'is_public': 'Make publicly visible in library',
         }
         help_texts = {
             'svg_image': 'Upload an image to display below the player for on-screen practice',
+            'pdf_score': 'Upload a PDF file for students to download and print',
+            'pdf_score_title': 'Descriptive title for the PDF (e.g., "Full Score with Piano Accompaniment")',
             'composer': 'Select existing composer, or create a new one below',
             'grade_level': 'Associated exam grade (if applicable)',
             'is_public': 'If checked, piece will be visible to all students in the library',
