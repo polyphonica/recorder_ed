@@ -11,6 +11,7 @@
             <h1 class="text-3xl font-bold">{{ piece.title }}</h1>
             <p class="text-base-content/70 mt-2">Created {{ piece.created_at|date:"F j, Y" }}</p>
         </div>
+        {% if is_teacher %}
         <div class="flex gap-2">
             <a href="{% url 'audioplayer:piece_edit' pk=piece.id %}" class="btn btn-primary">
                 <i class="fas fa-edit mr-2"></i>
@@ -21,6 +22,7 @@
                 Delete
             </a>
         </div>
+        {% endif %}
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

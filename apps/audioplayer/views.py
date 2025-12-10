@@ -5,21 +5,31 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q
 from django.views.generic import TemplateView
+from functools import wraps
 from .models import Piece, Stem, LessonPiece, Composer, Tag
 from .forms import PieceForm, StemFormSet
 from apps.courses.models import Lesson
 
 
+# ===== PERMISSION DECORATORS =====
+
+def teacher_required(view_func):
+    """Decorator to ensure only teachers can access a view"""
+    @wraps(view_func)
+    @login_required
+    def wrapper(request, *args, **kwargs):
+        if not hasattr(request.user, 'profile') or not request.user.profile.is_private_teacher:
+            messages.error(request, 'Only teachers can access this page.')
+            return redirect('private_teaching:home')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
 # ===== TEACHER VIEWS - Piece Library Management =====
 
-@login_required
+@teacher_required
 def piece_list(request):
     """List all pieces in the library"""
-    # TODO: Add permission check for teachers only
-    # if not request.user.profile.is_teacher:
-    #     messages.error(request, 'Only teachers can access the piece library.')
-    #     return redirect('courses:list')
-
     pieces = Piece.objects.prefetch_related('stems', 'lesson_assignments__lesson').all()
 
     context = {
@@ -29,12 +39,10 @@ def piece_list(request):
     return render(request, 'audioplayer/piece_list.html', context)
 
 
-@login_required
+@teacher_required
 @transaction.atomic
 def piece_create(request):
     """Create new piece with stems"""
-    # TODO: Add permission check for teachers only
-
     if request.method == 'POST':
         form = PieceForm(request.POST, request.FILES)
         formset = StemFormSet(request.POST, request.FILES)
@@ -67,12 +75,10 @@ def piece_create(request):
     return render(request, 'audioplayer/piece_form.html', context)
 
 
-@login_required
+@teacher_required
 @transaction.atomic
 def piece_edit(request, pk):
     """Edit existing piece and its stems"""
-    # TODO: Add permission check for teachers only
-
     piece = get_object_or_404(Piece, pk=pk)
 
     if request.method == 'POST':
@@ -111,11 +117,9 @@ def piece_edit(request, pk):
     return render(request, 'audioplayer/piece_form.html', context)
 
 
-@login_required
+@teacher_required
 def piece_delete(request, pk):
     """Delete piece (with safety check for usage in lessons)"""
-    # TODO: Add permission check for teachers only
-
     piece = get_object_or_404(Piece, pk=pk)
 
     # Check if used in any lessons
@@ -225,16 +229,23 @@ def pieces_json(request, lesson_id):
 
 @login_required
 def piece_detail(request, pk):
-    """View details of a piece (for teachers)"""
+    """View details of a piece (students can view, teachers can edit)"""
     piece = get_object_or_404(Piece, pk=pk)
     stems = piece.stems.all().order_by('order')
     lessons_using = piece.lesson_assignments.select_related('lesson__topic__course').all()
+
+    # Check if user is a teacher
+    is_teacher = (
+        hasattr(request.user, 'profile') and
+        request.user.profile.is_private_teacher
+    )
 
     context = {
         'piece': piece,
         'stems': stems,
         'lessons_using': lessons_using,
-        'title': piece.title
+        'title': piece.title,
+        'is_teacher': is_teacher
     }
     return render(request, 'audioplayer/piece_detail.html', context)
 
@@ -460,7 +471,7 @@ class PlayAlongLibraryView(TemplateView):
 
 # ===== COMPOSER MANAGEMENT VIEWS =====
 
-@login_required
+@teacher_required
 def composer_list(request):
     """List all composers for teacher management"""
     composers = Composer.objects.prefetch_related('pieces').order_by('name')
@@ -472,12 +483,12 @@ def composer_list(request):
     return render(request, 'audioplayer/composer_list.html', context)
 
 
-@login_required
+@teacher_required
 def composer_edit(request, pk):
     """Edit composer details including biography"""
     from django import forms
     from django_ckeditor_5.widgets import CKEditor5Widget
-    
+
     composer = get_object_or_404(Composer, pk=pk)
     
     class ComposerEditForm(forms.ModelForm):
@@ -530,7 +541,7 @@ def composer_edit(request, pk):
     return render(request, 'audioplayer/composer_edit.html', context)
 
 
-@login_required
+@teacher_required
 def composer_delete(request, pk):
     """Delete a composer (only if not used in any pieces)"""
     composer = get_object_or_404(Composer, pk=pk)
