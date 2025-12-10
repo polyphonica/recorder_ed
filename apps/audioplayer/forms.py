@@ -14,20 +14,36 @@ class PieceForm(forms.ModelForm):
         ]
         widgets = {
             'title': forms.TextInput(attrs={
-                'class': 'form-control',
+                'class': 'input input-bordered w-full',
                 'placeholder': 'e.g., Hot Cross Buns'
             }),
-            'composer': forms.Select(attrs={'class': 'form-control'}),
-            'grade_level': forms.Select(attrs={'class': 'form-control'}),
-            'genre': forms.Select(attrs={'class': 'form-control'}),
-            'difficulty': forms.Select(attrs={'class': 'form-control'}),
-            'tags': forms.SelectMultiple(attrs={'class': 'form-control'}),
+            'composer': forms.Select(attrs={
+                'class': 'select select-bordered w-full'
+            }),
+            'grade_level': forms.Select(attrs={
+                'class': 'select select-bordered w-full'
+            }),
+            'genre': forms.Select(attrs={
+                'class': 'select select-bordered w-full'
+            }),
+            'difficulty': forms.Select(attrs={
+                'class': 'select select-bordered w-full'
+            }),
+            'tags': forms.SelectMultiple(attrs={
+                'class': 'select select-bordered w-full',
+                'size': '5'
+            }),
             'description': forms.Textarea(attrs={
-                'class': 'form-control',
+                'class': 'textarea textarea-bordered w-full',
                 'rows': 3,
                 'placeholder': 'Performance notes, context, or tips...'
             }),
-            'is_public': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'svg_image': forms.FileInput(attrs={
+                'class': 'file-input file-input-bordered w-full'
+            }),
+            'is_public': forms.CheckboxInput(attrs={
+                'class': 'checkbox'
+            }),
         }
         labels = {
             'title': 'Piece Title',
@@ -60,11 +76,14 @@ StemFormSet = inlineformset_factory(
     validate_max=False,  # Don't enforce maximum
     widgets={
         'instrument_name': forms.TextInput(attrs={
-            'class': 'form-control',
+            'class': 'input input-bordered w-full',
             'placeholder': 'e.g., Piano, Metronome, Backing Track'
         }),
+        'audio_file': forms.FileInput(attrs={
+            'class': 'file-input file-input-bordered w-full'
+        }),
         'order': forms.NumberInput(attrs={
-            'class': 'form-control',
+            'class': 'input input-bordered w-full',
             'min': '0'
         }),
     },
