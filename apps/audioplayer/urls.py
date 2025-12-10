@@ -16,6 +16,7 @@ urlpatterns = [
 
     # Teacher - Composer Management
     path('composers/', views.composer_list, name='composer_list'),
+    path('composers/create/', views.composer_create, name='composer_create'),
     path('composers/<int:pk>/edit/', views.composer_edit, name='composer_edit'),
     path('composers/<int:pk>/delete/', views.composer_delete, name='composer_delete'),
 

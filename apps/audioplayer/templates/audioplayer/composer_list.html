@@ -11,10 +11,16 @@
             <h1 class="text-3xl font-bold">Manage Composers</h1>
             <p class="text-base-content/70 mt-2">Edit composer biographies and details</p>
         </div>
-        <a href="{% url 'audioplayer:piece_list' %}" class="btn btn-ghost">
-            <i class="fas fa-arrow-left mr-2"></i>
-            Back to Pieces
-        </a>
+        <div class="flex gap-2">
+            <a href="{% url 'audioplayer:composer_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus mr-2"></i>
+                Create New Composer
+            </a>
+            <a href="{% url 'audioplayer:piece_list' %}" class="btn btn-ghost">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Pieces
+            </a>
+        </div>
     </div>
 
     {% if messages %}
@@ -99,12 +105,18 @@
         </div>
         <h2 class="text-2xl font-bold mb-4">No Composers Yet</h2>
         <p class="text-base-content/70 mb-8">
-            Composers will appear here after you create pieces with composer information.
+            Create composers to add biographical information for your music library.
         </p>
-        <a href="{% url 'audioplayer:piece_create' %}" class="btn btn-primary">
-            <i class="fas fa-plus mr-2"></i>
-            Create Your First Piece
-        </a>
+        <div class="flex gap-4 justify-center">
+            <a href="{% url 'audioplayer:composer_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus mr-2"></i>
+                Create New Composer
+            </a>
+            <a href="{% url 'audioplayer:piece_create' %}" class="btn btn-ghost">
+                <i class="fas fa-music mr-2"></i>
+                Create Piece Instead
+            </a>
+        </div>
     </div>
     {% endif %}
 </div>

@@ -475,12 +475,64 @@ class PlayAlongLibraryView(TemplateView):
 def composer_list(request):
     """List all composers for teacher management"""
     composers = Composer.objects.prefetch_related('pieces').order_by('name')
-    
+
     context = {
         'composers': composers,
         'title': 'Manage Composers'
     }
     return render(request, 'audioplayer/composer_list.html', context)
+
+
+@teacher_required
+def composer_create(request):
+    """Create a new composer"""
+    from django import forms
+    from django_ckeditor_5.widgets import CKEditor5Widget
+
+    class ComposerCreateForm(forms.ModelForm):
+        class Meta:
+            model = Composer
+            fields = ['name', 'period', 'bio']
+            widgets = {
+                'name': forms.TextInput(attrs={
+                    'class': 'input input-bordered w-full',
+                    'placeholder': 'e.g., Johann Sebastian Bach'
+                }),
+                'period': forms.TextInput(attrs={
+                    'class': 'input input-bordered w-full',
+                    'placeholder': 'e.g., Baroque, Classical, Traditional'
+                }),
+                'bio': CKEditor5Widget(
+                    attrs={'class': 'django_ckeditor_5'},
+                    config_name='default'
+                )
+            }
+            labels = {
+                'name': 'Composer Name',
+                'period': 'Period/Era',
+                'bio': 'Biography'
+            }
+            help_texts = {
+                'name': 'Full name of the composer or artist',
+                'period': 'Musical period or era (optional)',
+                'bio': 'Biographical information with formatting (optional)'
+            }
+
+    if request.method == 'POST':
+        form = ComposerCreateForm(request.POST)
+        if form.is_valid():
+            composer = form.save()
+            messages.success(request, f'Composer "{composer.name}" created successfully!')
+            return redirect('audioplayer:composer_list')
+    else:
+        form = ComposerCreateForm()
+
+    context = {
+        'form': form,
+        'title': 'Create New Composer',
+        'is_create': True
+    }
+    return render(request, 'audioplayer/composer_edit.html', context)
 
 
 @teacher_required
