@@ -29,6 +29,17 @@ class PieceForm(forms.ModelForm):
         help_text='Musical period or era'
     )
 
+    # Additional field for creating new tags inline
+    new_tags = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered w-full',
+            'placeholder': 'e.g., Christmas, Duet, Folk Song'
+        }),
+        label='New Tags',
+        help_text='Enter tag names separated by commas to create and add them to this piece'
+    )
+
     class Meta:
         model = Piece
         fields = [
@@ -126,6 +137,30 @@ class PieceForm(forms.ModelForm):
                 cleaned_data['composer'] = new_composer
 
         return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+
+        # Handle new tags if provided
+        new_tags_str = self.cleaned_data.get('new_tags', '')
+        if new_tags_str:
+            # Parse comma-separated tags
+            tag_names = [name.strip() for name in new_tags_str.split(',') if name.strip()]
+
+            for tag_name in tag_names:
+                # Get or create tag (case-insensitive check)
+                tag, created = Tag.objects.get_or_create(
+                    name__iexact=tag_name,
+                    defaults={'name': tag_name}
+                )
+                # If tag exists but with different case, use the existing one
+                if not created:
+                    tag = Tag.objects.filter(name__iexact=tag_name).first()
+
+                # Add tag to piece
+                instance.tags.add(tag)
+
+        return instance
 
 
 # Formset for adding multiple stems to a piece
