@@ -98,9 +98,15 @@
         {% endif %}
     </div>
 
-    <!-- Back to Lesson Button -->
+    <!-- Back Button -->
     <div class="mt-8 mb-8 text-center">
-        {% if is_private_lesson %}
+        {% if is_library_player %}
+            <a href="{% url 'audioplayer:library' %}"
+               class="btn btn-primary">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Library
+            </a>
+        {% elif is_private_lesson %}
             <a href="{% url 'lessons:lesson_detail' lesson.pk %}"
                class="btn btn-primary">
                 <i class="fas fa-arrow-left mr-2"></i>
