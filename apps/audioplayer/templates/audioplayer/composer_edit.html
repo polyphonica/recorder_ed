@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} - {{ block.super }}{% endblock %}
+
+{% block extra_head %}
+{{ form.media }}
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold">{{ title }}</h1>
+        <p class="text-base-content/70 mt-2">Edit composer information and biography</p>
+    </div>
+
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} mb-2">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Pieces Using This Composer -->
+    {% if pieces %}
+    <div class="alert alert-info mb-6">
+        <i class="fas fa-info-circle"></i>
+        <div>
+            <p class="font-semibold">This composer is used in {{ pieces.count }} piece(s):</p>
+            <ul class="list-disc list-inside mt-2">
+                {% for piece in pieces|slice:":5" %}
+                <li>{{ piece.title }}</li>
+                {% endfor %}
+                {% if pieces.count > 5 %}
+                <li>...and {{ pieces.count|add:"-5" }} more</li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Form -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Composer Information -->
+        <div class="card bg-base-200 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Composer Information</h2>
+
+                {{ form.non_field_errors }}
+
+                <!-- Name -->
+                <div class="form-control">
+                    <label class="label" for="{{ form.name.id_for_label }}">
+                        <span class="label-text font-semibold">{{ form.name.label }}</span>
+                    </label>
+                    {{ form.name }}
+                    {{ form.name.errors }}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.name.help_text }}</span>
+                    </label>
+                </div>
+
+                <!-- Period -->
+                <div class="form-control">
+                    <label class="label" for="{{ form.period.id_for_label }}">
+                        <span class="label-text font-semibold">{{ form.period.label }}</span>
+                    </label>
+                    {{ form.period }}
+                    {{ form.period.errors }}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.period.help_text }}</span>
+                    </label>
+                </div>
+
+                <!-- Biography -->
+                <div class="form-control">
+                    <label class="label" for="{{ form.bio.id_for_label }}">
+                        <span class="label-text font-semibold">{{ form.bio.label }}</span>
+                    </label>
+                    {{ form.bio }}
+                    {{ form.bio.errors }}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.bio.help_text }}</span>
+                    </label>
+                    <label class="label">
+                        <span class="label-text-alt text-info">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Students will see this biography in the library and when viewing pieces by this composer
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-4">
+            <a href="{% url 'audioplayer:composer_list' %}" class="btn btn-ghost">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-2"></i>
+                Save Composer
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

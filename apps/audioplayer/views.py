@@ -456,3 +456,101 @@ class PlayAlongLibraryView(TemplateView):
         context['selected_tag'] = tag_id
 
         return context
+
+
+# ===== COMPOSER MANAGEMENT VIEWS =====
+
+@login_required
+def composer_list(request):
+    """List all composers for teacher management"""
+    composers = Composer.objects.prefetch_related('pieces').order_by('name')
+    
+    context = {
+        'composers': composers,
+        'title': 'Manage Composers'
+    }
+    return render(request, 'audioplayer/composer_list.html', context)
+
+
+@login_required
+def composer_edit(request, pk):
+    """Edit composer details including biography"""
+    from django import forms
+    from django_ckeditor_5.widgets import CKEditor5Widget
+    
+    composer = get_object_or_404(Composer, pk=pk)
+    
+    class ComposerEditForm(forms.ModelForm):
+        class Meta:
+            model = Composer
+            fields = ['name', 'period', 'bio']
+            widgets = {
+                'name': forms.TextInput(attrs={
+                    'class': 'input input-bordered w-full',
+                    'placeholder': 'e.g., Johann Sebastian Bach'
+                }),
+                'period': forms.TextInput(attrs={
+                    'class': 'input input-bordered w-full',
+                    'placeholder': 'e.g., Baroque, Classical, Traditional'
+                }),
+                'bio': CKEditor5Widget(
+                    attrs={'class': 'django_ckeditor_5'},
+                    config_name='default'
+                )
+            }
+            labels = {
+                'name': 'Composer Name',
+                'period': 'Period/Era',
+                'bio': 'Biography'
+            }
+            help_texts = {
+                'name': 'Full name of the composer or artist',
+                'period': 'Musical period or era (optional)',
+                'bio': 'Biographical information with formatting (optional)'
+            }
+    
+    if request.method == 'POST':
+        form = ComposerEditForm(request.POST, instance=composer)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Composer "{composer.name}" updated successfully!')
+            return redirect('audioplayer:composer_list')
+    else:
+        form = ComposerEditForm(instance=composer)
+    
+    # Get pieces by this composer
+    pieces = composer.pieces.all()
+    
+    context = {
+        'form': form,
+        'composer': composer,
+        'pieces': pieces,
+        'title': f'Edit Composer: {composer.name}'
+    }
+    return render(request, 'audioplayer/composer_edit.html', context)
+
+
+@login_required
+def composer_delete(request, pk):
+    """Delete a composer (only if not used in any pieces)"""
+    composer = get_object_or_404(Composer, pk=pk)
+    
+    if composer.pieces.exists():
+        messages.error(
+            request,
+            f'Cannot delete "{composer.name}" because it is used in {composer.pieces.count()} piece(s). '
+            f'Remove the composer from all pieces first.'
+        )
+        return redirect('audioplayer:composer_list')
+    
+    if request.method == 'POST':
+        name = composer.name
+        composer.delete()
+        messages.success(request, f'Composer "{name}" deleted successfully!')
+        return redirect('audioplayer:composer_list')
+    
+    context = {
+        'composer': composer,
+        'title': f'Delete Composer: {composer.name}'
+    }
+    return render(request, 'audioplayer/composer_confirm_delete.html', context)
