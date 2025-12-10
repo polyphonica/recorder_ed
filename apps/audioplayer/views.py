@@ -230,15 +230,37 @@ def pieces_json(request, lesson_id):
 @login_required
 def piece_detail(request, pk):
     """View details of a piece (students can view, teachers can edit)"""
+    from lessons.models import PrivateLessonPiece
+
     piece = get_object_or_404(Piece, pk=pk)
     stems = piece.stems.all().order_by('order')
-    lessons_using = piece.lesson_assignments.select_related('lesson__topic__course').all()
 
     # Check if user is a teacher
     is_teacher = (
         hasattr(request.user, 'profile') and
         request.user.profile.is_private_teacher
     )
+
+    # Get private teaching lessons using this piece (filtered by current user)
+    if is_teacher:
+        # Teachers see all their lessons using this piece
+        lessons_using = PrivateLessonPiece.objects.filter(
+            piece=piece,
+            lesson__teacher=request.user,
+            lesson__is_deleted=False
+        ).select_related(
+            'lesson__student',
+            'lesson__child_profile'
+        ).order_by('-lesson__lesson_date')
+    else:
+        # Students see only their own lessons using this piece
+        lessons_using = PrivateLessonPiece.objects.filter(
+            piece=piece,
+            lesson__student=request.user,
+            lesson__is_deleted=False
+        ).select_related(
+            'lesson__child_profile'
+        ).order_by('-lesson__lesson_date')
 
     context = {
         'piece': piece,

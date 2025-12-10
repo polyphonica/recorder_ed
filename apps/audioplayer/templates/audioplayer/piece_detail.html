@@ -163,12 +163,25 @@
             {% if lessons_using %}
             <div class="card bg-base-100 shadow-md">
                 <div class="card-body">
-                    <h2 class="card-title text-lg">Used in Lessons</h2>
+                    <h2 class="card-title text-lg">
+                        {% if is_teacher %}Your Lessons{% else %}My Lessons{% endif %}
+                    </h2>
                     <div class="space-y-2">
                         {% for lp in lessons_using %}
                         <div class="p-2 bg-base-200 rounded text-sm">
-                            <p class="font-semibold">{{ lp.lesson.lesson_title }}</p>
-                            <p class="text-xs text-base-content/70">{{ lp.lesson.topic.course.title }}</p>
+                            <p class="font-semibold">{{ lp.lesson.subject.subject }}</p>
+                            <p class="text-xs text-base-content/70">
+                                {{ lp.lesson.lesson_date|date:"M j, Y" }} at {{ lp.lesson.lesson_time|time:"g:i A" }}
+                            </p>
+                            {% if is_teacher %}
+                            <p class="text-xs text-base-content/70">
+                                {% if lp.lesson.child_profile %}
+                                    {{ lp.lesson.child_profile.full_name }}
+                                {% else %}
+                                    {{ lp.lesson.student.get_full_name|default:lp.lesson.student.username }}
+                                {% endif %}
+                            </p>
+                            {% endif %}
                             {% if lp.is_optional %}
                             <span class="badge badge-warning badge-xs mt-1">Optional</span>
                             {% endif %}
