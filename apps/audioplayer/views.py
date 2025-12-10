@@ -250,7 +250,7 @@ def piece_detail(request, pk):
             lesson__is_deleted=False
         ).select_related(
             'lesson__student',
-            'lesson__child_profile'
+            'lesson__lesson_request'
         ).order_by('-lesson__lesson_date')
     else:
         # Students see only their own lessons using this piece
@@ -259,7 +259,7 @@ def piece_detail(request, pk):
             lesson__student=request.user,
             lesson__is_deleted=False
         ).select_related(
-            'lesson__child_profile'
+            'lesson__lesson_request'
         ).order_by('-lesson__lesson_date')
 
     context = {

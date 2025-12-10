@@ -175,8 +175,8 @@
                             </p>
                             {% if is_teacher %}
                             <p class="text-xs text-base-content/70">
-                                {% if lp.lesson.child_profile %}
-                                    {{ lp.lesson.child_profile.full_name }}
+                                {% if lp.lesson.lesson_request.child_profile %}
+                                    {{ lp.lesson.lesson_request.child_profile.full_name }}
                                 {% else %}
                                     {{ lp.lesson.student.get_full_name|default:lp.lesson.student.username }}
                                 {% endif %}
