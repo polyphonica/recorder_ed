@@ -73,11 +73,18 @@
                 <div class="form-control">
                     <label class="label" for="{{ form.composer.id_for_label }}">
                         <span class="label-text font-semibold">{{ form.composer.label }}</span>
+                        <a href="/admin/audioplayer/composer/add/" target="_blank" class="label-text-alt link link-primary">
+                            <i class="fas fa-plus-circle mr-1"></i>Add New Composer
+                        </a>
                     </label>
                     {{ form.composer }}
                     {{ form.composer.errors }}
                     <label class="label">
                         <span class="label-text-alt">{{ form.composer.help_text }}</span>
+                        <span class="label-text-alt text-info">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Don't see your composer? Click "Add New Composer" above
+                        </span>
                     </label>
                 </div>
 
@@ -112,11 +119,18 @@
                 <div class="form-control">
                     <label class="label" for="{{ form.tags.id_for_label }}">
                         <span class="label-text font-semibold">{{ form.tags.label }}</span>
+                        <a href="/admin/audioplayer/tag/add/" target="_blank" class="label-text-alt link link-primary">
+                            <i class="fas fa-plus-circle mr-1"></i>Add New Tag
+                        </a>
                     </label>
                     {{ form.tags }}
                     {{ form.tags.errors }}
                     <label class="label">
                         <span class="label-text-alt">{{ form.tags.help_text }}</span>
+                        <span class="label-text-alt text-info">
+                            <i class="fas fa-lightbulb mr-1"></i>
+                            Hold Ctrl (Cmd on Mac) to select multiple tags
+                        </span>
                     </label>
                 </div>
 
