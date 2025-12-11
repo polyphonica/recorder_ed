@@ -15,7 +15,7 @@ LESSONS PURCHASED:
 {% for item in order_items %}- {{ item.lesson.subject.subject }} with {{ item.lesson.teacher.get_full_name|default:"TBA" }}
   Date: {{ item.lesson.lesson_date|date:"d F Y" }}
   Time: {{ item.lesson.lesson_time|time:"H:i" }}
-  Price: £{{ item.price_paid }}
+  Price: £{{ item.price_paid|floatformat:2 }}
 {% endfor %}
 
 View your lessons:

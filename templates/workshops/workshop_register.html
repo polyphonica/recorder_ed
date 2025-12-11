@@ -368,7 +368,7 @@
                                                 {% if session.workshop.is_free %}
                                                     Free
                                                 {% else %}
-                                                    £{{ session.workshop.price }}
+                                                    £{{ session.workshop.price|floatformat:2 }}
                                                 {% endif %}
                                             </div>
                                             <div class="text-sm text-base-content/70">per participant</div>

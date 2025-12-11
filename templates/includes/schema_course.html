@@ -15,7 +15,7 @@
   },{% endif %}
   {% if course.price %}"offers": {
     "@type": "Offer",
-    "price": "{{ course.price }}",
+    "price": "{{ course.price|floatformat:2 }}",
     "priceCurrency": "GBP",
     "availability": "https://schema.org/InStock"
   },{% endif %}

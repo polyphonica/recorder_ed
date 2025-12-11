@@ -31,7 +31,7 @@ Parameters: workshop, session (optional - for specific session)
   },{% endif %}
   {% if session and session.price %}"offers": {
     "@type": "Offer",
-    "price": "{{ session.price }}",
+    "price": "{{ session.price|floatformat:2 }}",
     "priceCurrency": "GBP",
     "availability": "{% if session.spots_left > 0 %}https://schema.org/InStock{% else %}https://schema.org/SoldOut{% endif %}",
     "url": "https://www.recorder-ed.com{% url 'workshops:register' workshop.slug session.id %}",

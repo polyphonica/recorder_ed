@@ -65,7 +65,7 @@
                     <div class="card-body">
                         <h2 class="card-title">
                             {{ course.title }}
-                            {% if course.price %}<div class="badge badge-secondary">£{{ course.price }}</div>{% endif %}
+                            {% if course.price %}<div class="badge badge-secondary">£{{ course.price|floatformat:2 }}</div>{% endif %}
                         </h2>
                         {% if course.description %}<p class="text-base-content/70">{{ course.description }}</p>{% endif %}
                         
