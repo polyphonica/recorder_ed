@@ -70,20 +70,20 @@
         <div class="stat bg-success text-success-content rounded-lg shadow-lg">
             <div class="stat-title text-white text-lg font-semibold">Quick Actions</div>
             <div class="stat-actions mt-4 flex flex-col gap-2">
-                <a href="{% url 'private_teaching:incoming_requests' %}" class="btn btn-sm bg-white text-success hover:bg-white/90 border-0">Review Requests</a>
-                <a href="{% url 'audioplayer:library' %}" class="btn btn-sm bg-white text-success hover:bg-white/90 border-0">
+                <a href="{% url 'private_teaching:incoming_requests' %}" class="btn btn-ghost btn-sm text-white">Review Requests</a>
+                <a href="{% url 'audioplayer:library' %}" class="btn btn-ghost btn-sm text-white">
                     <i class="fas fa-music mr-1"></i>Play-Along Library
                 </a>
-                <a href="{% url 'audioplayer:composer_list' %}" class="btn btn-sm bg-white text-success hover:bg-white/90 border-0">
+                <a href="{% url 'audioplayer:composer_list' %}" class="btn btn-ghost btn-sm text-white">
                     <i class="fas fa-user-music mr-1"></i>Manage Composers
                 </a>
-                <a href="{% url 'private_teaching:teacher_cancellation_requests' %}" class="btn btn-sm bg-white text-success hover:bg-white/90 border-0">
+                <a href="{% url 'private_teaching:teacher_cancellation_requests' %}" class="btn btn-ghost btn-sm text-white">
                     <i class="fas fa-times-circle mr-1"></i>Cancellations
                 </a>
-                <a href="{% url 'private_teaching:exam_list' %}" class="btn btn-sm bg-white text-success hover:bg-white/90 border-0">
+                <a href="{% url 'private_teaching:exam_list' %}" class="btn btn-ghost btn-sm text-white">
                     <i class="fas fa-graduation-cap mr-1"></i>Exam Registrations
                 </a>
-                <a href="{% url 'payments:finance_dashboard' %}" class="btn btn-sm bg-white text-success hover:bg-white/90 border-0">
+                <a href="{% url 'payments:finance_dashboard' %}" class="btn btn-ghost btn-sm text-white">
                     <i class="fas fa-chart-line mr-1"></i>Finance
                 </a>
             </div>
