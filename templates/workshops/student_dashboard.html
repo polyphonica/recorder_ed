@@ -4,6 +4,99 @@
 
 {% block title %}My Dashboard - Recorder-ed{% endblock %}
 
+{% block extra_head %}
+<style>
+@media print {
+    /* Hide everything on the page */
+    body > *:not(#printable-schedule) {
+        display: none !important;
+    }
+
+    /* Hide non-essential elements */
+    .no-print,
+    nav,
+    header,
+    footer,
+    .btn,
+    button,
+    .breadcrumbs,
+    .modal,
+    script {
+        display: none !important;
+    }
+
+    /* Show only the printable schedule */
+    #printable-schedule {
+        display: block !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: white;
+        color: black;
+    }
+
+    /* Print-specific styles */
+    #printable-schedule h1 {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        border-bottom: 2px solid black;
+        padding-bottom: 5px;
+    }
+
+    #printable-schedule h2 {
+        font-size: 18px;
+        font-weight: bold;
+        margin-top: 20px;
+        margin-bottom: 10px;
+    }
+
+    #printable-schedule .schedule-item {
+        margin-bottom: 15px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        page-break-inside: avoid;
+    }
+
+    #printable-schedule .workshop-title {
+        font-weight: bold;
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+
+    #printable-schedule .workshop-details {
+        font-size: 12px;
+        line-height: 1.5;
+        margin-left: 10px;
+    }
+
+    #printable-schedule .status-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border: 1px solid black;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: bold;
+        margin-left: 5px;
+    }
+
+    /* Remove backgrounds and colors for better printing */
+    * {
+        background: white !important;
+        color: black !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+}
+
+/* Hide printable schedule on screen */
+#printable-schedule {
+    display: none;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="min-h-screen bg-base-100">
     <!-- Page Header -->
@@ -364,6 +457,52 @@
                 {% endif %}
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Print-Only Schedule -->
+<div id="printable-schedule">
+    <h1>Workshop Schedule for {{ user.profile.display_name|default:user.username }}</h1>
+    <p style="margin-bottom: 20px; font-size: 12px;">Generated on {% now "F j, Y" %}</p>
+
+    {% if upcoming_registrations %}
+        <h2>Upcoming Sessions ({{ upcoming_registrations|length }})</h2>
+        {% for registration in upcoming_registrations %}
+            <div class="schedule-item">
+                <div class="workshop-title">
+                    {{ forloop.counter }}. {{ registration.session.workshop.title }}
+                    <span class="status-badge">{{ registration.get_status_display }}</span>
+                </div>
+                <div class="workshop-details">
+                    {% if registration.session.session_title %}
+                        <div><strong>Session:</strong> {{ registration.session.session_title }}</div>
+                    {% endif %}
+                    <div><strong>Date:</strong> {{ registration.session.start_datetime|date:"l, F j, Y" }}</div>
+                    <div><strong>Time:</strong> {{ registration.session.start_datetime|time:"g:i A" }} - {{ registration.session.end_datetime|time:"g:i A" }}</div>
+                    {% if registration.session.location %}
+                        <div><strong>Location:</strong> {{ registration.session.location }}</div>
+                    {% endif %}
+                    {% if registration.session.workshop.instructor %}
+                        <div><strong>Instructor:</strong> {{ registration.session.workshop.instructor.get_full_name }}</div>
+                    {% endif %}
+                    {% if registration.session.meeting_url and registration.status == 'registered' %}
+                        <div><strong>Meeting URL:</strong> {{ registration.session.meeting_url }}</div>
+                    {% endif %}
+                    {% if registration.expectations %}
+                        <div><strong>Your Instruments:</strong> {{ registration.expectations }}</div>
+                    {% endif %}
+                    {% if registration.special_requirements %}
+                        <div><strong>Special Requirements:</strong> {{ registration.special_requirements }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p style="margin-top: 20px;">No upcoming workshop sessions scheduled.</p>
+    {% endif %}
+
+    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc; font-size: 10px;">
+        <p>For questions or changes to your registrations, please visit {{ request.get_host }} or contact support.</p>
     </div>
 </div>
 
