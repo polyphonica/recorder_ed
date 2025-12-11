@@ -51,9 +51,12 @@ def private_teaching_nav_url(user):
     if not user or not user.is_authenticated:
         return 'private_teaching:home'
 
-    # Check if user is a teacher
-    if hasattr(user, 'is_instructor') and user.is_instructor:
-        return 'private_teaching:teacher_dashboard'
+    # Check if user is a teacher by checking profile
+    try:
+        if hasattr(user, 'profile') and user.profile.is_private_teacher:
+            return 'private_teaching:teacher_dashboard'
+    except:
+        pass
 
     # Check if user is accepted student
     if is_accepted_private_student(user):
