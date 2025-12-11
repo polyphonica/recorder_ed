@@ -1,4 +1,5 @@
 {% load static %}
+{% load private_teaching_tags %}
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -100,8 +101,9 @@
                         <li class="border-t mt-2 pt-2"><a href="{% url 'support:my_tickets' %}"><i class="fas fa-life-ring mr-1"></i>Support</a></li>
                     {% else %}
                         {# Student mobile navigation #}
+                        {% private_teaching_nav_url user as pt_url %}
                         <li><a href="{% url 'workshops:list' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold{% endif %}">Workshops</a></li>
-                        <li><a href="{% url 'private_teaching:home' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold{% endif %}">Private Lessons</a></li>
+                        <li><a href="{% url pt_url %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold{% endif %}">Private Lessons</a></li>
                         <li><a href="{% url 'courses:list' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold{% endif %}">Courses</a></li>
                         <li class="border-t mt-2 pt-2"><a href="{% url 'help_center:home' %}"><i class="fas fa-book-open mr-1"></i>Help Center</a></li>
                         <li><a href="{% url 'support:public_contact' %}"><i class="fas fa-life-ring mr-1"></i>Support</a></li>
@@ -128,8 +130,9 @@
                     <li><a href="{% url 'payments:finance_dashboard' %}" class="{% if request.resolver_match.namespace == 'payments' %}font-bold bg-primary text-primary-content{% endif %}"><i class="fas fa-chart-line mr-2"></i>Finance</a></li>
                 {% else %}
                     {# Student navigation - goes to public/student pages #}
+                    {% private_teaching_nav_url user as pt_url %}
                     <li><a href="{% url 'workshops:list' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold bg-primary text-primary-content{% endif %}">Workshops</a></li>
-                    <li><a href="{% url 'private_teaching:home' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold bg-primary text-primary-content{% endif %}">Private Lessons</a></li>
+                    <li><a href="{% url pt_url %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold bg-primary text-primary-content{% endif %}">Private Lessons</a></li>
                     <li><a href="{% url 'courses:list' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold bg-primary text-primary-content{% endif %}">Courses</a></li>
                 {% endif %}
             </ul>
