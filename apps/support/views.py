@@ -199,12 +199,26 @@ def staff_dashboard(request):
     total_open = Ticket.objects.filter(status='open').count()
     total_in_progress = Ticket.objects.filter(status='in_progress').count()
 
-    # Calculate overdue tickets more efficiently
+    # PERFORMANCE FIX: Calculate overdue at database level instead of Python
+    from django.utils import timezone
+    from django.db.models import F, ExpressionWrapper, DurationField, Case, When, Value
+    from datetime import timedelta
+
     try:
-        active_tickets = Ticket.objects.exclude(status__in=['resolved', 'closed'])
-        total_overdue = sum(1 for t in active_tickets if t.is_overdue)
+        # Define SLA thresholds based on priority
+        now = timezone.now()
+        total_overdue = Ticket.objects.exclude(status__in=['resolved', 'closed']).filter(
+            # Check if ticket age exceeds SLA based on priority
+            created_at__lt=Case(
+                When(priority='urgent', then=now - timedelta(hours=4)),
+                When(priority='high', then=now - timedelta(hours=24)),
+                When(priority='normal', then=now - timedelta(hours=48)),
+                When(priority='low', then=now - timedelta(hours=72)),
+                default=now - timedelta(hours=48)
+            )
+        ).count()
     except Exception as e:
-        # Fallback if there's an issue with is_overdue calculation
+        # Fallback if there's an issue with calculation
         total_overdue = 0
 
     my_assigned = Ticket.objects.filter(assigned_to=request.user).exclude(status__in=['resolved', 'closed']).count()

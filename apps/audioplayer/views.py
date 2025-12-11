@@ -470,6 +470,10 @@ class PlayAlongLibraryView(TemplateView):
         # Order by title
         pieces = pieces.order_by('title')
 
+        # PERFORMANCE FIX: Limit results to prevent loading thousands of pieces
+        # Apply reasonable limit to prevent performance issues
+        pieces = pieces[:200]  # Show up to 200 pieces (user can use filters to narrow down)
+
         # Get filter options for dropdowns
         composers = Composer.objects.all().order_by('name')
         tags = Tag.objects.all().order_by('name')

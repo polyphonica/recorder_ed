@@ -1629,19 +1629,20 @@ class TeacherApplicationsListView(UserFilterMixin, TeacherProfileCompletedMixin,
         context = super().get_context_data(**kwargs)
         from apps.private_teaching.models import TeacherStudentApplication
 
-        # Get counts for each status
-        context['pending_count'] = TeacherStudentApplication.objects.filter(
-            teacher=self.request.user, status='pending'
-        ).count()
-        context['accepted_count'] = TeacherStudentApplication.objects.filter(
-            teacher=self.request.user, status='accepted'
-        ).count()
-        context['waitlist_count'] = TeacherStudentApplication.objects.filter(
-            teacher=self.request.user, status='waitlist'
-        ).count()
-        context['declined_count'] = TeacherStudentApplication.objects.filter(
-            teacher=self.request.user, status='declined'
-        ).count()
+        # PERFORMANCE FIX: Consolidate 4 count queries into 1 aggregate
+        from django.db.models import Count, Q
+        status_counts = TeacherStudentApplication.objects.filter(
+            teacher=self.request.user
+        ).aggregate(
+            pending=Count('id', filter=Q(status='pending')),
+            accepted=Count('id', filter=Q(status='accepted')),
+            waitlist=Count('id', filter=Q(status='waitlist')),
+            declined=Count('id', filter=Q(status='declined'))
+        )
+        context['pending_count'] = status_counts['pending']
+        context['accepted_count'] = status_counts['accepted']
+        context['waitlist_count'] = status_counts['waitlist']
+        context['declined_count'] = status_counts['declined']
 
         context['status_filter'] = self.request.GET.get('status', 'pending')
         context['max_students'] = self.request.user.profile.max_private_students
@@ -2318,9 +2319,13 @@ class PracticeLogView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
             minutes=Sum('duration_minutes')
         )
 
-        # Count exam and performance prep entries
-        exam_prep_count = all_entries.filter(preparing_for_exam=True).count()
-        performance_prep_count = all_entries.filter(preparing_for_performance=True).count()
+        # PERFORMANCE FIX: Consolidate 2 count queries into 1 aggregate
+        prep_counts = all_entries.aggregate(
+            exam_prep=Count('id', filter=Q(preparing_for_exam=True)),
+            performance_prep=Count('id', filter=Q(preparing_for_performance=True))
+        )
+        exam_prep_count = prep_counts['exam_prep']
+        performance_prep_count = prep_counts['performance_prep']
 
         context.update({
             'total_sessions': stats['total_sessions'] or 0,
@@ -2460,9 +2465,13 @@ class TeacherStudentPracticeView(TeacherProfileCompletedMixin, ListView):
             minutes=Sum('duration_minutes')
         )
 
-        # Count exam and performance prep entries
-        exam_prep_count = all_entries.filter(preparing_for_exam=True).count()
-        performance_prep_count = all_entries.filter(preparing_for_performance=True).count()
+        # PERFORMANCE FIX: Consolidate 2 count queries into 1 aggregate
+        prep_counts = all_entries.aggregate(
+            exam_prep=Count('id', filter=Q(preparing_for_exam=True)),
+            performance_prep=Count('id', filter=Q(preparing_for_performance=True))
+        )
+        exam_prep_count = prep_counts['exam_prep']
+        performance_prep_count = prep_counts['performance_prep']
 
         # Mark entries as viewed by teacher
         PracticeEntry.objects.filter(

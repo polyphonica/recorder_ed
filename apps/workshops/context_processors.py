@@ -17,15 +17,19 @@ def unified_cart_context(request):
         }
 
     try:
-        cart = Cart.objects.get(user=request.user)
-        workshop_count = cart.workshop_items.count()
-        lesson_count = cart.items.count()
-        total_count = workshop_count + lesson_count
+        # PERFORMANCE FIX: Use annotate to get counts in single query
+        from django.db.models import Count
+        cart = Cart.objects.annotate(
+            workshop_count=Count('workshop_items'),
+            lesson_count=Count('items')
+        ).get(user=request.user)
+
+        total_count = cart.workshop_count + cart.lesson_count
 
         return {
             'total_cart_count': total_count,
-            'workshop_cart_count': workshop_count,
-            'lesson_cart_count': lesson_count,
+            'workshop_cart_count': cart.workshop_count,
+            'lesson_cart_count': cart.lesson_count,
         }
     except Cart.DoesNotExist:
         return {

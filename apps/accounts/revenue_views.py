@@ -161,8 +161,9 @@ class TeacherRevenueDashboardView(LoginRequiredMixin, TemplateView):
             created_at__gte=this_year_start
         ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
 
-        # Count lessons (not orders)
-        private_lessons_count = sum(order.items.count() for order in private_orders)
+        # PERFORMANCE FIX: Count lessons directly from OrderItem instead of iterating orders
+        from apps.private_teaching.models import OrderItem
+        private_lessons_count = OrderItem.objects.filter(order__in=private_orders).count()
 
         # =====================================================================
         # COMBINED TOTALS
