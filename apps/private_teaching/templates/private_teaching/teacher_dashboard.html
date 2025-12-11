@@ -141,20 +141,6 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Draft Lessons (Paid but Not Accessible) -->
-        {% if paid_unassigned_count > 0 %}
-        <div class="alert alert-warning lg:col-span-2">
-            <i class="fas fa-exclamation-circle"></i>
-            <div class="flex-1">
-                <h3 class="font-bold">{{ paid_unassigned_count }} Draft Lesson{{ paid_unassigned_count|pluralize }} Cannot Be Opened</h3>
-                <div class="text-sm">Students have paid but cannot access {{ paid_unassigned_count|pluralize:"this,these" }} lesson{{ paid_unassigned_count|pluralize }} until you publish {{ paid_unassigned_count|pluralize:"it,them" }}.</div>
-            </div>
-            <a href="{% url 'private_teaching:teacher_schedule' %}" class="btn btn-sm btn-warning">
-                <i class="fas fa-edit mr-1"></i>Publish Now
-            </a>
-        </div>
-        {% endif %}
-
         <!-- Pending Applications -->
         <div class="card card-section shadow-xl">
             <div class="card-body">
