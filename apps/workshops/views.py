@@ -1012,10 +1012,17 @@ class MyRegistrationsView(UserFilterMixin, LoginRequiredMixin, ListView):
         context['now'] = timezone.now()
 
         # Calculate registration counts by status
+        # PERFORMANCE FIX: Use single aggregate query instead of 3 separate counts
+        from django.db.models import Count, Q
         all_registrations = self.get_queryset()
-        context['confirmed_count'] = all_registrations.filter(status='registered').count()
-        context['waitlisted_count'] = all_registrations.filter(status='waitlisted').count()
-        context['attended_count'] = all_registrations.filter(attended=True).count()
+        counts = all_registrations.aggregate(
+            confirmed=Count('id', filter=Q(status='registered')),
+            waitlisted=Count('id', filter=Q(status='waitlisted')),
+            attended=Count('id', filter=Q(attended=True))
+        )
+        context['confirmed_count'] = counts['confirmed']
+        context['waitlisted_count'] = counts['waitlisted']
+        context['attended_count'] = counts['attended']
 
         # REFACTORING NOTE: This grouping logic could be moved to a model manager method
         # or a separate utility function for better testability and reusability.

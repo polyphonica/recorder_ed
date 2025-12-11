@@ -59,9 +59,16 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
         ).order_by('created_at')
 
         # Calculate stats
-        total_courses = courses.count()
-        published_courses = courses.filter(status='published').count()
-        draft_courses = courses.filter(status='draft').count()
+        # PERFORMANCE FIX: Consolidate course counts into single aggregate
+        course_stats = Course.objects.filter(instructor=self.request.user).aggregate(
+            total=Count('id'),
+            published=Count('id', filter=Q(status='published')),
+            draft=Count('id', filter=Q(status='draft'))
+        )
+        total_courses = course_stats['total']
+        published_courses = course_stats['published']
+        draft_courses = course_stats['draft']
+
         total_students = CourseEnrollment.objects.filter(
             course__instructor=self.request.user,
             is_active=True

@@ -164,14 +164,15 @@ class TeacherPublicProfileView(DetailView):
         teacher = self.object
 
         # Get teacher's courses (published only)
+        # PERFORMANCE FIX: Add select_related and prefetch_related to avoid N+1
         try:
             from apps.courses.models import Course
             courses = Course.objects.filter(
                 instructor=teacher,
                 status='published'
-            )[:6]  # Limit to 6 courses
+            ).select_related('instructor').prefetch_related('topics')[:6]
             context['courses'] = courses
-        except:
+        except Exception:
             context['courses'] = []
 
         # Get teacher's workshops (published only)
@@ -180,9 +181,9 @@ class TeacherPublicProfileView(DetailView):
             workshops = Workshop.objects.filter(
                 instructor=teacher,
                 status='published'
-            )[:6]  # Limit to 6 workshops
+            ).select_related('category').prefetch_related('sessions')[:6]
             context['workshops'] = workshops
-        except:
+        except Exception:
             context['workshops'] = []
 
         # Check if teacher offers private lessons

@@ -433,11 +433,21 @@ class IncomingRequestsView(TeacherProfileCompletedMixin, ListView):
 
     def get_queryset(self):
         # Get all lesson requests for this teacher with at least one lesson
+        # PERFORMANCE FIX: Optimize prefetch with Prefetch object to limit messages
         from lessons.models import Lesson
+        from django.db.models import Prefetch
+
         teacher_lesson_requests = LessonRequest.objects.filter(
             lessons__teacher=self.request.user,
             lessons__is_deleted=False
-        ).distinct().prefetch_related('lessons__subject', 'messages').select_related('child_profile', 'student').order_by('-created_at')
+        ).distinct().select_related('child_profile', 'student').prefetch_related(
+            Prefetch('lessons',
+                     queryset=Lesson.objects.filter(
+                         is_deleted=False, teacher=self.request.user
+                     ).select_related('subject')),
+            Prefetch('messages',
+                     queryset=LessonRequestMessage.objects.order_by('-created_at')[:20])
+        ).order_by('-created_at')
 
         return teacher_lesson_requests
 
