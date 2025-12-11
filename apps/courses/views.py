@@ -1583,6 +1583,15 @@ class StudentProgressDetailView(LoginRequiredMixin, InstructorRequiredMixin, Tem
             is_active=True
         )
 
+        # PERFORMANCE FIX: Prefetch all lesson progress to avoid N+1 queries
+        progress_dict = {}
+        if enrollment:
+            progress_queryset = LessonProgress.objects.filter(
+                enrollment=enrollment
+            ).select_related('lesson')
+            for progress in progress_queryset:
+                progress_dict[progress.lesson_id] = progress
+
         # Get all topics with lessons and progress
         topics_data = []
         for topic in course.topics.order_by('topic_number'):
@@ -1590,15 +1599,12 @@ class StudentProgressDetailView(LoginRequiredMixin, InstructorRequiredMixin, Tem
             published_lessons = topic.lessons.filter(status='published').order_by('lesson_number')
 
             for lesson in published_lessons:
-                # Get lesson progress
-                try:
-                    lesson_progress = LessonProgress.objects.get(
-                        enrollment=enrollment,
-                        lesson=lesson
-                    )
+                # Get lesson progress from prefetched dict (PERFORMANCE FIX)
+                lesson_progress = progress_dict.get(lesson.id)
+                if lesson_progress:
                     is_completed = lesson_progress.is_completed
                     completed_at = lesson_progress.completed_at
-                except LessonProgress.DoesNotExist:
+                else:
                     is_completed = False
                     completed_at = None
 
@@ -1675,6 +1681,15 @@ class StudentCourseProgressView(LoginRequiredMixin, TemplateView):
             is_active=True
         )
 
+        # PERFORMANCE FIX: Prefetch all lesson progress to avoid N+1 queries
+        progress_dict = {}
+        if enrollment:
+            progress_queryset = LessonProgress.objects.filter(
+                enrollment=enrollment
+            ).select_related('lesson')
+            for progress in progress_queryset:
+                progress_dict[progress.lesson_id] = progress
+
         # Get all topics with lessons and progress
         topics_data = []
         for topic in course.topics.order_by('topic_number'):
@@ -1682,15 +1697,12 @@ class StudentCourseProgressView(LoginRequiredMixin, TemplateView):
             published_lessons = topic.lessons.filter(status='published').order_by('lesson_number')
 
             for lesson in published_lessons:
-                # Get lesson progress
-                try:
-                    lesson_progress = LessonProgress.objects.get(
-                        enrollment=enrollment,
-                        lesson=lesson
-                    )
+                # Get lesson progress from prefetched dict (PERFORMANCE FIX)
+                lesson_progress = progress_dict.get(lesson.id)
+                if lesson_progress:
                     is_completed = lesson_progress.is_completed
                     completed_at = lesson_progress.completed_at
-                except LessonProgress.DoesNotExist:
+                else:
                     is_completed = False
                     completed_at = None
 
