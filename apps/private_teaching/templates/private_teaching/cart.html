@@ -54,7 +54,7 @@
 
                                     <div class="text-right ml-4">
                                         <div class="text-xl font-bold text-green-600">
-                                            £{{ item.price|floatformat:0 }}
+                                            £{{ item.price|floatformat:2 }}
                                         </div>
                                         <form method="post" action="{% url 'private_teaching:remove_from_cart' item.lesson.id %}" class="mt-2">
                                             {% csrf_token %}

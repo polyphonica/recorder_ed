@@ -49,7 +49,7 @@
                 {% else %}<span class="text-base-content/50">N/A</span>{% endif %}
             </div>
             <div class="stat-desc">
-                {% if exam.fee_amount > 0 %}£{{ exam.fee_amount }}{% endif %}
+                {% if exam.fee_amount > 0 %}£{{ exam.fee_amount|floatformat:2 }}{% endif %}
             </div>
         </div>
 
@@ -76,7 +76,7 @@
             <div class="flex justify-between items-center w-full">
                 <div>
                     <h3 class="font-bold">Payment Required</h3>
-                    <div class="text-sm">Registration fee of £{{ exam.fee_amount }} is due for this exam.</div>
+                    <div class="text-sm">Registration fee of £{{ exam.fee_amount|floatformat:2 }} is due for this exam.</div>
                 </div>
                 <form method="post" action="{% url 'private_teaching:exam_payment' exam.id %}">
                     {% csrf_token %}

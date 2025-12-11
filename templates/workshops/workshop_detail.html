@@ -367,7 +367,7 @@
                                     {% if workshop.require_full_series_registration %}
                                         {# Mandatory series - emphasize total price #}
                                         <div class="text-4xl font-bold mb-1">
-                                            <span class="text-primary">£{{ workshop.series_price }}</span>
+                                            <span class="text-primary">£{{ workshop.series_price|floatformat:2 }}</span>
                                         </div>
                                         <p class="text-base-content/70 mb-2">for all {{ workshop.series_session_count }} sessions</p>
 
@@ -378,12 +378,12 @@
                                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                                                     </svg>
                                                     <p class="text-lg text-success font-bold">
-                                                        💰 Save £{{ workshop.series_savings }}!
+                                                        💰 Save £{{ workshop.series_savings|floatformat:2 }}!
                                                     </p>
                                                 </div>
                                                 <p class="text-sm text-base-content/70">
                                                     That's £{{ workshop.price|floatformat:2 }} per session
-                                                    <span class="text-xs">(normally £{{ workshop.price }} each)</span>
+                                                    <span class="text-xs">(normally £{{ workshop.price|floatformat:2 }} each)</span>
                                                 </p>
                                             </div>
                                         {% else %}
@@ -399,7 +399,7 @@
                                             <!-- Per Session Option -->
                                             <div class="border-2 border-base-300 rounded-lg p-3">
                                                 <p class="text-xs text-base-content/60 mb-1">Individual Session</p>
-                                                <div class="text-2xl font-bold text-primary">£{{ workshop.price }}</div>
+                                                <div class="text-2xl font-bold text-primary">£{{ workshop.price|floatformat:2 }}</div>
                                                 <p class="text-xs text-base-content/60">per session</p>
                                             </div>
 
@@ -411,10 +411,10 @@
                                                     </div>
                                                     <div class="border-2 border-success rounded-lg p-3 bg-success/5">
                                                         <p class="text-xs text-base-content/60 mb-1">Full Series</p>
-                                                        <div class="text-3xl font-bold text-primary">£{{ workshop.series_price }}</div>
+                                                        <div class="text-3xl font-bold text-primary">£{{ workshop.series_price|floatformat:2 }}</div>
                                                         <p class="text-xs text-base-content/60 mb-2">for all {{ workshop.series_session_count }} sessions</p>
                                                         <div class="flex items-center justify-center gap-1 text-success font-semibold text-sm">
-                                                            💰 Save £{{ workshop.series_savings }}!
+                                                            💰 Save £{{ workshop.series_savings|floatformat:2 }}!
                                                         </div>
                                                     </div>
                                                 </div>
@@ -422,7 +422,7 @@
                                                 <!-- Series Option without Discount -->
                                                 <div class="border-2 border-base-300 rounded-lg p-3">
                                                     <p class="text-xs text-base-content/60 mb-1">Full Series</p>
-                                                    <div class="text-2xl font-bold text-primary">£{{ workshop.series_price|default:workshop.price }}</div>
+                                                    <div class="text-2xl font-bold text-primary">£{{ workshop.series_price|default:workshop.price|floatformat:2 }}</div>
                                                     <p class="text-xs text-base-content/60">for all {{ workshop.series_session_count }} sessions</p>
                                                 </div>
                                             {% endif %}
@@ -441,7 +441,7 @@
                                         {% if workshop.is_free %}
                                             <span class="text-success">Free</span>
                                         {% else %}
-                                            <span class="text-primary">£{{ workshop.price }}</span>
+                                            <span class="text-primary">£{{ workshop.price|floatformat:2 }}</span>
                                         {% endif %}
                                     </div>
                                     <p class="text-base-content/70">per participant</p>

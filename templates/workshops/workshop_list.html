@@ -230,25 +230,25 @@
                                     {% elif workshop.is_series %}
                                         {% if workshop.require_full_series_registration %}
                                             {# Mandatory series - show total with savings #}
-                                            <div class="text-lg font-bold text-primary">£{{ workshop.series_price }} for {{ workshop.series_session_count }} sessions</div>
+                                            <div class="text-lg font-bold text-primary">£{{ workshop.series_price|floatformat:2 }} for {{ workshop.series_session_count }} sessions</div>
                                             {% if workshop.has_series_discount %}
                                                 <div class="text-xs text-success font-semibold flex items-center gap-1 mt-1">
                                                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                         <path fill-rule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
                                                     </svg>
-                                                    Save £{{ workshop.series_savings }}!
+                                                    Save £{{ workshop.series_savings|floatformat:2 }}!
                                                 </div>
                                             {% endif %}
                                         {% else %}
                                             {# Optional series - show per-session with hint #}
-                                            <div class="text-lg font-bold text-primary">From £{{ workshop.price }}/session</div>
+                                            <div class="text-lg font-bold text-primary">From £{{ workshop.price|floatformat:2 }}/session</div>
                                             {% if workshop.has_series_discount %}
                                                 <div class="text-xs text-success font-semibold mt-1">Series discount available</div>
                                             {% endif %}
                                         {% endif %}
                                     {% else %}
                                         {# Regular workshop #}
-                                        <div class="text-lg font-bold text-primary">£{{ workshop.price }}</div>
+                                        <div class="text-lg font-bold text-primary">£{{ workshop.price|floatformat:2 }}</div>
                                     {% endif %}
                                 </div>
                                 
