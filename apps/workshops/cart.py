@@ -185,7 +185,9 @@ class WorkshopCartManager(BaseCartManager):
         if not cart:
             return Decimal('0.00')
 
-        workshop_total = sum(item.total_price for item in cart.workshop_items.all())
-        lesson_total = sum(item.total_price for item in cart.items.all())
+        # PERFORMANCE FIX: Use database aggregation instead of Python sum
+        from django.db.models import Sum
+        workshop_total = cart.workshop_items.aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
+        lesson_total = cart.items.aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
 
         return workshop_total + lesson_total

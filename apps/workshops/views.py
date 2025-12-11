@@ -1089,9 +1089,11 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
         
         # Workshop statistics with prefetched sessions
         # PERFORMANCE FIX: Use Prefetch object to preload upcoming sessions and counts
-        from django.db.models import Prefetch, Count
+        from django.db.models import Prefetch, Count, Q
         workshops = Workshop.objects.filter(instructor=user).annotate(
-            total_sessions_count=Count('sessions')
+            total_sessions_count=Count('sessions'),
+            registration_count=Count('sessions__registrations', distinct=True),
+            interest_count=Count('interest_requests', filter=Q(interest_requests__is_active=True), distinct=True)
         ).prefetch_related(
             Prefetch('sessions',
                      queryset=WorkshopSession.objects.filter(
@@ -1136,9 +1138,10 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
             'stats': {
                 'total_workshops': len(workshops),
                 'published_workshops': len([w for w in workshops if w.status == 'published']),
-                'total_sessions': WorkshopSession.objects.filter(workshop__instructor=user).count(),
-                'total_registrations': WorkshopRegistration.objects.filter(session__workshop__instructor=user).count(),
-                'total_interest_requests': WorkshopInterest.objects.filter(workshop__instructor=user, is_active=True).count(),
+                # PERFORMANCE FIX: These are already calculated efficiently via annotations above
+                'total_sessions': sum(w.total_sessions_count for w in workshops),
+                'total_registrations': sum(getattr(w, 'registration_count', 0) for w in workshops),
+                'total_interest_requests': sum(getattr(w, 'interest_count', 0) for w in workshops),
             }
         })
         return context
@@ -1361,15 +1364,22 @@ class ManageSessionsView(LoginRequiredMixin, TemplateView):
             instructor=self.request.user
         )
         
-        sessions = self.workshop.sessions.all().order_by('start_datetime')
-        
-        # Add registration statistics for each session
+        # PERFORMANCE FIX: Annotate sessions with registration counts to avoid N+1 queries
+        from django.db.models import Count, Q
+        sessions = self.workshop.sessions.annotate(
+            total_registrations=Count('registrations'),
+            registered_count=Count('registrations', filter=Q(registrations__status='registered')),
+            waitlisted_count=Count('registrations', filter=Q(registrations__status='waitlisted')),
+            attended_count=Count('registrations', filter=Q(registrations__status='attended'))
+        ).order_by('start_datetime')
+
+        # Add registration statistics for each session using annotated values
         for session in sessions:
             session.registration_stats = {
-                'total': session.registrations.count(),
-                'registered': session.registrations.filter(status='registered').count(),
-                'waitlisted': session.registrations.filter(status='waitlisted').count(),
-                'attended': session.registrations.filter(status='attended').count(),
+                'total': session.total_registrations,
+                'registered': session.registered_count,
+                'waitlisted': session.waitlisted_count,
+                'attended': session.attended_count,
             }
         
         # Use provided form with errors, or create a new one
@@ -1483,14 +1493,23 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         
         # Get registration statistics
-        all_registrations = WorkshopRegistration.objects.filter(session=self.session)
+        # PERFORMANCE FIX: Use single aggregate query instead of 6 separate counts
+        from django.db.models import Count, Q
+        stats_aggregate = WorkshopRegistration.objects.filter(session=self.session).aggregate(
+            total=Count('id'),
+            registered=Count('id', filter=Q(status='registered')),
+            waitlisted=Count('id', filter=Q(status='waitlisted')),
+            attended=Count('id', filter=Q(status='attended')),
+            no_show=Count('id', filter=Q(status='no_show')),
+            cancelled=Count('id', filter=Q(status='cancelled'))
+        )
         stats = {
-            'total': all_registrations.count(),
-            'registered': all_registrations.filter(status='registered').count(),
-            'waitlisted': all_registrations.filter(status='waitlisted').count(),
-            'attended': all_registrations.filter(status='attended').count(),
-            'no_show': all_registrations.filter(status='no_show').count(),
-            'cancelled': all_registrations.filter(status='cancelled').count(),
+            'total': stats_aggregate['total'] or 0,
+            'registered': stats_aggregate['registered'] or 0,
+            'waitlisted': stats_aggregate['waitlisted'] or 0,
+            'attended': stats_aggregate['attended'] or 0,
+            'no_show': stats_aggregate['no_show'] or 0,
+            'cancelled': stats_aggregate['cancelled'] or 0,
         }
         
         context.update({

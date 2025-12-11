@@ -2698,18 +2698,20 @@ class TeacherCancellationRequestsView(UserFilterMixin, TeacherProfileCompletedMi
         context = super().get_context_data(**kwargs)
 
         # Get counts for each status
-        context['pending_count'] = LessonCancellationRequest.objects.filter(
-            teacher=self.request.user, status=LessonCancellationRequest.PENDING
-        ).count()
-        context['approved_count'] = LessonCancellationRequest.objects.filter(
-            teacher=self.request.user, status=LessonCancellationRequest.APPROVED
-        ).count()
-        context['rejected_count'] = LessonCancellationRequest.objects.filter(
-            teacher=self.request.user, status=LessonCancellationRequest.REJECTED
-        ).count()
-        context['completed_count'] = LessonCancellationRequest.objects.filter(
-            teacher=self.request.user, status=LessonCancellationRequest.COMPLETED
-        ).count()
+        # PERFORMANCE FIX: Use single aggregate query instead of 4 separate counts
+        from django.db.models import Count, Q
+        counts = LessonCancellationRequest.objects.filter(
+            teacher=self.request.user
+        ).aggregate(
+            pending=Count('id', filter=Q(status=LessonCancellationRequest.PENDING)),
+            approved=Count('id', filter=Q(status=LessonCancellationRequest.APPROVED)),
+            rejected=Count('id', filter=Q(status=LessonCancellationRequest.REJECTED)),
+            completed=Count('id', filter=Q(status=LessonCancellationRequest.COMPLETED))
+        )
+        context['pending_count'] = counts['pending']
+        context['approved_count'] = counts['approved']
+        context['rejected_count'] = counts['rejected']
+        context['completed_count'] = counts['completed']
 
         context['status_filter'] = self.request.GET.get('status', 'pending')
 
