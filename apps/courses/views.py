@@ -709,17 +709,14 @@ class CourseDetailView(DetailView):
             'lessons'
         ).order_by('topic_number')
 
-        # Calculate course stats dynamically
-        total_lessons = sum(
-            topic.lessons.filter(status='published').count()
-            for topic in topics
+        # Calculate course stats dynamically using aggregate (PERFORMANCE FIX)
+        from django.db.models import Sum, Count, Q
+        stats = self.object.topics.aggregate(
+            total_lessons=Count('lessons', filter=Q(lessons__status='published')),
+            total_duration=Sum('lessons__duration_minutes', filter=Q(lessons__status='published'))
         )
-
-        total_duration = sum(
-            lesson.duration_minutes or 0
-            for topic in topics
-            for lesson in topic.lessons.filter(status='published')
-        )
+        total_lessons = stats['total_lessons'] or 0
+        total_duration = stats['total_duration'] or 0
 
         context.update({
             'is_enrolled': is_enrolled,

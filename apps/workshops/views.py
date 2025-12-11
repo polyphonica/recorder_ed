@@ -197,7 +197,7 @@ class WorkshopDetailView(DetailView):
                 workshop=workshop,
                 registrations__student=self.request.user,
                 registrations__status__in=['registered', 'attended']
-            ).prefetch_related('materials')
+            ).prefetch_related('materials', 'registrations')
             
             for session in user_sessions:
                 # Get materials accessible for this session based on timing
@@ -1022,44 +1022,50 @@ class MyRegistrationsView(UserFilterMixin, LoginRequiredMixin, ListView):
 
         # Group registrations: if they have a series_registration_id and belong to a mandatory series,
         # group them together. Otherwise, show individually.
-        from collections import OrderedDict
-        grouped_registrations = []
-        processed_series_ids = set()
+        # PERFORMANCE FIX: Use dictionary grouping to avoid O(n²) complexity
+        from collections import defaultdict
+
+        # First pass: group by series_registration_id using dictionary (O(n))
+        series_groups = defaultdict(list)
+        individual_registrations = []
 
         for registration in context['registrations']:
-            # Skip if already processed as part of a series
-            if registration.series_registration_id and registration.series_registration_id in processed_series_ids:
-                continue
-
-            # Check if this is part of a mandatory series
             if (registration.series_registration_id and
                 registration.session.workshop.is_series and
                 registration.session.workshop.require_full_series_registration):
-
-                # Get all registrations in this series
-                series_regs = [r for r in context['registrations']
-                              if r.series_registration_id == registration.series_registration_id]
-
-                # Create a series group object
-                series_group = {
-                    'is_series': True,
-                    'workshop': registration.session.workshop,
-                    'registrations': sorted(series_regs, key=lambda r: r.session.start_datetime),
-                    'status': registration.status,
-                    'payment_status': registration.payment_status,
-                    'series_registration_id': registration.series_registration_id,
-                    'child_profile': registration.child_profile,
-                    'earliest_session': min((r.session for r in series_regs), key=lambda s: s.start_datetime),
-                    'total_paid': sum(r.payment_amount for r in series_regs if r.payment_status in ['paid', 'completed']),
-                }
-                grouped_registrations.append(series_group)
-                processed_series_ids.add(registration.series_registration_id)
+                # Add to series group
+                series_groups[registration.series_registration_id].append(registration)
             else:
                 # Individual registration
-                grouped_registrations.append({
-                    'is_series': False,
-                    'registration': registration,
-                })
+                individual_registrations.append(registration)
+
+        # Second pass: create grouped structure (O(k) where k = number of series)
+        grouped_registrations = []
+
+        for series_id, series_regs in series_groups.items():
+            # Sort registrations by session start time
+            series_regs.sort(key=lambda r: r.session.start_datetime)
+            first_reg = series_regs[0]
+
+            series_group = {
+                'is_series': True,
+                'workshop': first_reg.session.workshop,
+                'registrations': series_regs,
+                'status': first_reg.status,
+                'payment_status': first_reg.payment_status,
+                'series_registration_id': series_id,
+                'child_profile': first_reg.child_profile,
+                'earliest_session': min((r.session for r in series_regs), key=lambda s: s.start_datetime),
+                'total_paid': sum(r.payment_amount for r in series_regs if r.payment_status in ['paid', 'completed']),
+            }
+            grouped_registrations.append(series_group)
+
+        # Add individual registrations
+        for registration in individual_registrations:
+            grouped_registrations.append({
+                'is_series': False,
+                'registration': registration,
+            })
 
         context['grouped_registrations'] = grouped_registrations
 
