@@ -19,6 +19,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.sitemaps.views import sitemap
+from django.contrib.auth import views as auth_views
 
 # Import views
 from views import DomainSelectorView, robots_txt
@@ -26,9 +27,17 @@ from views import DomainSelectorView, robots_txt
 # Import sitemaps
 from .sitemaps import sitemaps
 
+# Import custom forms
+from apps.accounts.forms import CustomPasswordResetForm
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('apps.accounts.urls')),  # Custom login view here
+    # Custom password reset view with HTML email support
+    path('accounts/password_reset/', auth_views.PasswordResetView.as_view(
+        form_class=CustomPasswordResetForm,
+        html_email_template_name='registration/password_reset_email.html'
+    ), name='password_reset'),
     path('accounts/', include('django.contrib.auth.urls')),  # Other auth views (logout, password reset, etc.)
     path('core/', include('apps.core.urls')),  # Core demo pages
     path('workshops/', include('apps.workshops.urls')),

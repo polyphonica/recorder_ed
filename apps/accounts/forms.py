@@ -1,8 +1,12 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, PasswordResetForm
 from django.contrib.auth.models import User
 from .models import UserProfile, ChildProfile
 from datetime import date
+from django.template.loader import render_to_string
+from django.core.mail import send_mail
+from django.conf import settings
+from django.contrib.sites.shortcuts import get_current_site
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={
@@ -329,3 +333,38 @@ class AccountTransferForm(forms.Form):
             raise forms.ValidationError("The two password fields didn't match.")
 
         return cleaned_data
+
+
+class CustomPasswordResetForm(PasswordResetForm):
+    """
+    Custom password reset form that sends HTML emails with RECORDER-ED branding.
+    Overrides the default Django password reset to send multipart emails.
+    """
+
+    def send_mail(self, subject_template_name, email_template_name,
+                  context, from_email, to_email, html_email_template_name=None):
+        """
+        Send a password reset email with both plain text and HTML versions.
+        """
+        # Render subject from template
+        subject = render_to_string(subject_template_name, context)
+        # Remove newlines from subject
+        subject = ''.join(subject.splitlines())
+
+        # Render plain text message
+        text_message = render_to_string(email_template_name, context)
+
+        # Render HTML message
+        html_message = None
+        if html_email_template_name:
+            html_message = render_to_string(html_email_template_name, context)
+
+        # Send multipart email (plain text + HTML)
+        send_mail(
+            subject=subject,
+            message=text_message,
+            from_email=from_email,
+            recipient_list=[to_email],
+            html_message=html_message,
+            fail_silently=False,
+        )
