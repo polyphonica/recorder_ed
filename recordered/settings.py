@@ -22,10 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-h_*q79$4frsf8qrcx*5s3&20gjkhdipge+7g3(^og_grfwk3&=')
+# SECURITY FIX: Removed insecure default - SECRET_KEY must be set in environment
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True  # Set to False in production
+# SECURITY FIX: Use environment variable instead of hardcoded value
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
@@ -574,9 +576,11 @@ CKEDITOR_5_CONFIGS = {
 
 # CKEditor 5 file upload settings
 CKEDITOR_5_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
-CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'jpg', 'png', 'gif', 'bmp', 'webp', 'svg']
+# SECURITY FIX: Removed 'svg' (XSS risk) and restricted to safe image formats
+CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'jpg', 'png', 'gif', 'bmp', 'webp']
 CKEDITOR_5_UPLOAD_FILE_VIEW_NAME = "ck_editor_5_upload_file"
-CKEDITOR_5_FILE_UPLOAD_PERMISSION = "any"  # Options: "staff", "authenticated", "any"
+# SECURITY FIX: Changed from "any" to "authenticated" to prevent anonymous uploads
+CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"  # Options: "staff", "authenticated", "any"
 # Upload to media/uploads/ (ensure this directory exists)
 import os
 CKEDITOR_5_UPLOADS_PATH = os.path.join(MEDIA_ROOT, "uploads/")

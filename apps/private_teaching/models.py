@@ -303,12 +303,13 @@ class Order(models.Model):
     
     def generate_order_number(self):
         """Generate unique order number"""
-        import random
-        import string
+        # SECURITY FIX: Use secrets module instead of random for cryptographically secure tokens
+        import secrets
         from django.utils import timezone
-        
+
         date_str = timezone.now().strftime('%Y%m%d')
-        random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        # Use secrets.token_hex for cryptographically secure random string
+        random_str = secrets.token_hex(3).upper()  # 6 characters hex
         return f"PT{date_str}{random_str}"
     
     def save(self, *args, **kwargs):

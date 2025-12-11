@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.core.validators import FileExtensionValidator
 
 
 class ExpenseCategory(models.Model):
@@ -61,7 +62,16 @@ class Expense(models.Model):
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default=CARD)
 
     # Optional fields
-    receipt_file = models.FileField(upload_to='expense_receipts/', blank=True, null=True, help_text="Upload receipt image or PDF")
+    # SECURITY FIX: Added validators for file type restrictions
+    receipt_file = models.FileField(
+        upload_to='expense_receipts/',
+        blank=True,
+        null=True,
+        validators=[
+            FileExtensionValidator(['pdf', 'jpg', 'jpeg', 'png']),
+        ],
+        help_text="Upload receipt image or PDF (max 5MB)"
+    )
     notes = models.TextField(blank=True, help_text="Additional notes")
 
     # Workshop linking (optional)

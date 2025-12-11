@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 import uuid
 
 from apps.core.models import PayableModel
@@ -782,7 +782,16 @@ class WorkshopMaterial(models.Model):
     material_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     
     # File or Link
-    file = models.FileField(upload_to='workshops/materials/', blank=True, null=True)
+    # SECURITY FIX: Added validators for file type and size restrictions
+    file = models.FileField(
+        upload_to='workshops/materials/',
+        blank=True,
+        null=True,
+        validators=[
+            FileExtensionValidator(['pdf', 'doc', 'docx', 'txt', 'png', 'jpg', 'jpeg']),
+        ],
+        help_text='Allowed formats: PDF, Word, Text, Images. Max size: 10MB'
+    )
     external_url = models.URLField(blank=True)
     
     # Access Control

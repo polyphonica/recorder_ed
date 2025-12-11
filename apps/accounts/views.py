@@ -275,8 +275,9 @@ def transfer_account_view(request, child_id):
     Transfer a child account to an adult account when they turn 18.
     Only accessible via a special link provided to guardians for 18+ children.
     """
-    # Get the child profile
-    child = get_object_or_404(ChildProfile, id=child_id)
+    # SECURITY FIX: Verify guardian ownership to prevent IDOR vulnerability
+    # Get the child profile and verify the logged-in user is the guardian
+    child = get_object_or_404(ChildProfile, id=child_id, guardian=request.user)
 
     # Verify the child is 18 or older
     if not child.is_adult:

@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.urls import reverse
+from django.core.validators import FileExtensionValidator
 
 
 class Ticket(models.Model):
@@ -208,7 +209,14 @@ class TicketAttachment(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='attachments')
-    file = models.FileField(upload_to='support/attachments/%Y/%m/%d/')
+    # SECURITY FIX: Added validators for file type restrictions
+    file = models.FileField(
+        upload_to='support/attachments/%Y/%m/%d/',
+        validators=[
+            FileExtensionValidator(['pdf', 'jpg', 'jpeg', 'png', 'txt', 'doc', 'docx']),
+        ],
+        help_text="Allowed formats: PDF, images, text, Word (max 10MB)"
+    )
     filename = models.CharField(max_length=255)
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
