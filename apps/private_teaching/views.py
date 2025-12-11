@@ -330,11 +330,15 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
         ).select_related('applicant', 'child_profile').order_by('created_at')
 
         # Get lesson requests for this teacher's subjects with pending lessons
-        teacher_subjects = Subject.objects.filter(teacher=self.request.user)
+        # PERFORMANCE FIX: Use direct join instead of subquery
+        from django.db.models import Prefetch
         pending_requests = LessonRequest.objects.filter(
-            lessons__subject__in=teacher_subjects,
+            lessons__subject__teacher=self.request.user,
             lessons__approved_status='Pending'
-        ).distinct().prefetch_related('lessons__subject')
+        ).distinct().select_related('student', 'child_profile').prefetch_related(
+            Prefetch('lessons',
+                     queryset=Lesson.objects.select_related('subject').filter(approved_status='Pending'))
+        )
 
         # Get today's lessons for this teacher
         today = date.today()

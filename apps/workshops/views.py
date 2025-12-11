@@ -1081,23 +1081,18 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
         user = self.request.user
         
         # Workshop statistics with prefetched sessions
-        workshops_queryset = Workshop.objects.filter(instructor=user).prefetch_related(
-            'sessions'
-        ).order_by('-created_at')
-        
-        # Convert to list and limit to avoid slice issues
-        workshops = list(workshops_queryset[:6])
-        
-        # Add upcoming sessions for each workshop to avoid template filtering issues
-        for workshop in workshops:
-            workshop.upcoming_sessions_list = list(WorkshopSession.objects.filter(
-                workshop=workshop,
-                start_datetime__gte=timezone.now(),
-                is_active=True
-            ).order_by('start_datetime')[:3])
-            
-            # Add session count to avoid list.count() error
-            workshop.total_sessions_count = WorkshopSession.objects.filter(workshop=workshop).count()
+        # PERFORMANCE FIX: Use Prefetch object to preload upcoming sessions and counts
+        from django.db.models import Prefetch, Count
+        workshops = Workshop.objects.filter(instructor=user).annotate(
+            total_sessions_count=Count('sessions')
+        ).prefetch_related(
+            Prefetch('sessions',
+                     queryset=WorkshopSession.objects.filter(
+                         start_datetime__gte=timezone.now(),
+                         is_active=True
+                     ).order_by('start_datetime')[:3],
+                     to_attr='upcoming_sessions_list')
+        ).order_by('-created_at')[:6]
         
         upcoming_sessions = WorkshopSession.objects.filter(
             workshop__instructor=user,
@@ -1157,20 +1152,20 @@ class InstructorWorkshopsView(UserFilterMixin, InstructorRequiredMixin, ListView
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Get ALL workshops for stats (not just current page)
-        all_workshops = Workshop.objects.filter(
-            instructor=self.request.user
-        ).prefetch_related('sessions')
-
         # Calculate total sessions and registrations across ALL workshops
-        total_sessions = sum(workshop.sessions.count() for workshop in all_workshops)
-        total_registrations = WorkshopRegistration.objects.filter(
-            session__workshop__instructor=self.request.user,
-            status__in=['registered', 'attended', 'waitlisted']
-        ).count()
+        # PERFORMANCE FIX: Use aggregate instead of sum() over queryset
+        from django.db.models import Count, Q
+        stats = Workshop.objects.filter(
+            instructor=self.request.user
+        ).aggregate(
+            total_sessions=Count('sessions'),
+            total_registrations=Count('sessions__registrations', filter=Q(
+                sessions__registrations__status__in=['registered', 'attended', 'waitlisted']
+            ))
+        )
 
-        context['total_sessions'] = total_sessions
-        context['total_registrations'] = total_registrations
+        context['total_sessions'] = stats['total_sessions'] or 0
+        context['total_registrations'] = stats['total_registrations'] or 0
 
         return context
 
