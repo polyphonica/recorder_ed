@@ -64,6 +64,15 @@
                                             <h3 class="card-title text-lg">
                                                 {{ lesson.subject.subject }}
                                                 <span class="badge badge-outline badge-sm">{{ lesson.get_location_display }}</span>
+                                                {% if lesson.status == 'Draft' %}
+                                                    <span class="badge badge-warning badge-sm">
+                                                        <i class="fas fa-pencil-alt mr-1"></i>Draft
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge badge-success badge-sm">
+                                                        <i class="fas fa-check mr-1"></i>Assigned
+                                                    </span>
+                                                {% endif %}
                                             </h3>
                                             <p class="text-base-content/70 mb-2">
                                                 <i class="fas fa-user mr-2"></i>
@@ -124,6 +133,7 @@
                             <th>Subject</th>
                             <th>Location</th>
                             <th>Duration</th>
+                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -157,6 +167,17 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ lesson.duration_in_minutes }} min</td>
+                                <td>
+                                    {% if lesson.status == 'Draft' %}
+                                        <span class="badge badge-warning badge-sm">
+                                            <i class="fas fa-pencil-alt mr-1"></i>Draft
+                                        </span>
+                                    {% else %}
+                                        <span class="badge badge-success badge-sm">
+                                            <i class="fas fa-check mr-1"></i>Assigned
+                                        </span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <div class="flex gap-1">
                                         <button class="btn btn-xs btn-primary" onclick="window.location.href='/lessons/{{ lesson.id }}/edit/'" title="Open Lesson">
