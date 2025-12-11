@@ -947,12 +947,15 @@ class StudentDashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         
-        # Upcoming workshops
+        # Upcoming workshops - include registered and promoted (awaiting payment)
         upcoming_registrations = WorkshopRegistration.objects.filter(
             student=user,
-            status='registered',
+            status__in=['registered', 'promoted'],
             session__start_datetime__gte=timezone.now()
-        ).select_related('session__workshop').order_by('session__start_datetime')[:5]
+        ).select_related(
+            'session__workshop',
+            'session__workshop__instructor'
+        ).order_by('session__start_datetime')[:5]
         
         # Recent activity
         recent_registrations = WorkshopRegistration.objects.filter(
