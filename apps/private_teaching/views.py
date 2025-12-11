@@ -356,6 +356,15 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             is_deleted=False
         ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('lesson_date', 'lesson_time')[:10]
 
+        # Get paid lessons waiting to be assigned (payment_status='Paid' and status='Draft')
+        # These are lessons that have been paid for but the teacher hasn't scheduled them yet
+        paid_unassigned_lessons = Lesson.objects.filter(
+            teacher=self.request.user,
+            payment_status='Paid',
+            status='Draft',
+            is_deleted=False
+        ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('created_at')
+
         context.update({
             'pending_applications': pending_applications,
             'pending_applications_count': pending_applications.count(),
@@ -365,6 +374,8 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             'pending_count': pending_requests.count(),
             'today_lessons': today_lessons,
             'upcoming_lessons': upcoming_lessons,
+            'paid_unassigned_lessons': paid_unassigned_lessons,
+            'paid_unassigned_count': paid_unassigned_lessons.count(),
             'today': today,
         })
         return context
