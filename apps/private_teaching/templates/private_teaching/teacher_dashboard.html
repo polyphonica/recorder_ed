@@ -4,22 +4,33 @@
 {% block title %}Teacher Dashboard - Private Teaching{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="mb-8">
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-4xl font-bold mb-2">Teacher Dashboard</h1>
-                <p class="text-base-content/70">Welcome back! Here's what's happening today.</p>
-            </div>
-            <a href="{% url 'private_teaching:teacher_settings' %}" class="btn btn-outline">
-                <i class="fas fa-cog mr-2"></i>Settings
-            </a>
+<div class="drawer lg:drawer-open">
+    <input id="sidebar-toggle" type="checkbox" class="drawer-toggle" />
+
+    <!-- Main content -->
+    <div class="drawer-content">
+        <!-- Mobile menu button -->
+        <div class="lg:hidden flex items-center justify-between p-4 border-b border-base-300">
+            <label for="sidebar-toggle" class="btn btn-square btn-ghost">
+                <i class="fas fa-bars text-xl"></i>
+            </label>
+            <h1 class="text-xl font-bold">Teacher Dashboard</h1>
+            <div class="w-10"></div>
         </div>
-    </div>
+
+        <div class="container mx-auto px-4 py-8">
+            <div class="mb-8 hidden lg:block">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-4xl font-bold mb-2">Teacher Dashboard</h1>
+                        <p class="text-base-content/70">Welcome back! Here's what's happening today.</p>
+                    </div>
+                </div>
+            </div>
 
     <!-- Quick Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="stat bg-accent text-accent-content rounded-lg shadow-lg">
+        <a href="{% url 'private_teaching:teacher_applications' %}" class="stat bg-accent text-accent-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
             <div class="stat-title text-white text-lg font-semibold">New Applications</div>
             <div class="stat-value text-white text-4xl">{{ pending_applications_count }}</div>
             <div class="stat-desc text-white text-base mt-2">
@@ -29,9 +40,9 @@
                     No new applications
                 {% endif %}
             </div>
-        </div>
+        </a>
 
-        <div class="stat rounded-lg shadow-lg" style="background-color: #f97316; color: white;">
+        <a href="{% url 'private_teaching:teacher_applications' %}?status=waitlist" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer" style="background-color: #f97316; color: white;">
             <div class="stat-title text-lg font-semibold" style="color: white;">Waiting List</div>
             <div class="stat-value text-4xl" style="color: white;">{{ waitlist_applications_count }}</div>
             <div class="stat-desc text-base mt-2" style="color: white;">
@@ -41,9 +52,9 @@
                     No one waiting
                 {% endif %}
             </div>
-        </div>
+        </a>
 
-        <div class="stat bg-primary text-primary-content rounded-lg shadow-lg">
+        <a href="{% url 'private_teaching:incoming_requests' %}" class="stat bg-primary text-primary-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
             <div class="stat-title text-white text-lg font-semibold">Pending Lesson Requests</div>
             <div class="stat-value text-white text-4xl">{{ pending_count }}</div>
             <div class="stat-desc text-white text-base mt-2">
@@ -53,9 +64,9 @@
                     All caught up!
                 {% endif %}
             </div>
-        </div>
-        
-        <div class="stat bg-info text-info-content rounded-lg shadow-lg">
+        </a>
+
+        <a href="{% url 'private_teaching:teacher_schedule' %}" class="stat bg-info text-info-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
             <div class="stat-title text-white text-lg font-semibold">Today's Lessons</div>
             <div class="stat-value text-white text-4xl">{{ today_lessons.count }}</div>
             <div class="stat-desc text-white text-base mt-2">
@@ -65,27 +76,47 @@
                     No lessons today
                 {% endif %}
             </div>
-        </div>
-        
+        </a>
+
         <div class="stat bg-success text-success-content rounded-lg shadow-lg">
-            <div class="stat-title text-white text-lg font-semibold">Quick Actions</div>
-            <div class="stat-actions mt-4 flex flex-col gap-2">
-                <a href="{% url 'private_teaching:incoming_requests' %}" class="btn btn-ghost text-white">Review Requests</a>
-                <a href="{% url 'audioplayer:library' %}" class="btn btn-ghost text-white">
-                    <i class="fas fa-music mr-1"></i>Play-Along Library
-                </a>
-                <a href="{% url 'audioplayer:composer_list' %}" class="btn btn-ghost text-white">
-                    <i class="fas fa-user-music mr-1"></i>Manage Composers
-                </a>
-                <a href="{% url 'private_teaching:teacher_cancellation_requests' %}" class="btn btn-ghost text-white">
-                    <i class="fas fa-times-circle mr-1"></i>Cancellations
-                </a>
-                <a href="{% url 'private_teaching:exam_list' %}" class="btn btn-ghost text-white">
-                    <i class="fas fa-graduation-cap mr-1"></i>Exam Registrations
-                </a>
-                <a href="{% url 'payments:finance_dashboard' %}" class="btn btn-ghost text-white">
-                    <i class="fas fa-chart-line mr-1"></i>Finance
-                </a>
+            <div class="stat-title text-white text-lg font-semibold">Priority Actions</div>
+            <div class="stat-desc text-white/80 text-sm mb-3">Items needing your attention</div>
+            <div class="stat-actions mt-2 flex flex-col gap-2">
+                {% if pending_applications_count > 0 %}
+                    <a href="{% url 'private_teaching:teacher_applications' %}" class="btn btn-ghost text-white justify-start">
+                        <i class="fas fa-clipboard-list mr-2"></i>
+                        <span>Review {{ pending_applications_count }} Application{{ pending_applications_count|pluralize }}</span>
+                    </a>
+                {% endif %}
+
+                {% if pending_count > 0 %}
+                    <a href="{% url 'private_teaching:incoming_requests' %}" class="btn btn-ghost text-white justify-start">
+                        <i class="fas fa-calendar-check mr-2"></i>
+                        <span>Review {{ pending_count }} Lesson Request{{ pending_count|pluralize }}</span>
+                    </a>
+                {% endif %}
+
+                {% if waitlist_applications_count > 0 %}
+                    <a href="{% url 'private_teaching:teacher_applications' %}?status=waitlist" class="btn btn-ghost text-white justify-start">
+                        <i class="fas fa-hourglass-half mr-2"></i>
+                        <span>Check Waiting List ({{ waitlist_applications_count }})</span>
+                    </a>
+                {% endif %}
+
+                {% if today_lessons.count > 0 %}
+                    <a href="{% url 'private_teaching:teacher_schedule' %}" class="btn btn-ghost text-white justify-start">
+                        <i class="fas fa-clock mr-2"></i>
+                        <span>Today's Schedule ({{ today_lessons.count }} lesson{{ today_lessons.count|pluralize }})</span>
+                    </a>
+                {% endif %}
+
+                {% if pending_applications_count == 0 and pending_count == 0 and waitlist_applications_count == 0 %}
+                    <div class="text-center py-4">
+                        <div class="text-5xl mb-2">✨</div>
+                        <p class="text-white font-semibold">All caught up!</p>
+                        <p class="text-white/70 text-sm mt-1">No urgent actions needed</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -297,44 +328,123 @@
         </div>
     </div>
 
-    <!-- Quick Links -->
-    <div class="mt-8">
-        <div class="card card-section shadow-xl">
-            <div class="card-body">
-                <h2 class="card-title text-2xl mb-4">
-                    <i class="fas fa-bolt mr-2"></i>Quick Links
-                </h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
-                    <a href="{% url 'private_teaching:teacher_applications' %}" class="btn btn-outline btn-lg">
-                        <i class="fas fa-clipboard-list mr-2"></i>Applications
-                    </a>
-                    <a href="{% url 'audioplayer:library' %}" class="btn btn-outline btn-lg">
-                        <i class="fas fa-music mr-2"></i>Play-Along Library
-                    </a>
-                    <a href="{% url 'audioplayer:piece_list' %}" class="btn btn-outline btn-lg">
-                        <i class="fas fa-guitar mr-2"></i>Manage Pieces
-                    </a>
-                    <a href="{% url 'audioplayer:composer_list' %}" class="btn btn-outline btn-lg">
-                        <i class="fas fa-user-music mr-2"></i>Manage Composers
-                    </a>
-                    <a href="{% url 'private_teaching:teacher_library' %}" class="btn btn-outline btn-lg">
-                        <i class="fas fa-book mr-2"></i>Document Library
-                    </a>
-                    <a href="{% url 'private_teaching:calendar' %}" class="btn btn-outline btn-lg">
-                        <i class="fas fa-calendar mr-2"></i>View Calendar
-                    </a>
-                    <a href="{% url 'private_teaching:teacher_schedule' %}" class="btn btn-outline btn-lg">
-                        <i class="fas fa-clock mr-2"></i>Schedule
-                    </a>
-                    <a href="{% url 'private_teaching:teacher_students' %}" class="btn btn-outline btn-lg">
-                        <i class="fas fa-users mr-2"></i>My Students
-                    </a>
-                    <a href="{% url 'private_teaching:teacher_settings' %}" class="btn btn-outline btn-lg">
-                        <i class="fas fa-cog mr-2"></i>Settings
-                    </a>
-                </div>
-            </div>
         </div>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <div class="drawer-side z-50">
+        <label for="sidebar-toggle" class="drawer-overlay"></label>
+        <aside class="bg-base-200 w-64 min-h-screen">
+            <div class="sticky top-0">
+                <!-- Sidebar Header -->
+                <div class="p-4 border-b border-base-300">
+                    <h2 class="text-xl font-bold">Navigation</h2>
+                </div>
+
+                <!-- Navigation Menu -->
+                <ul class="menu p-4 space-y-2">
+                    <!-- Dashboard -->
+                    <li>
+                        <a href="{% url 'private_teaching:teacher_dashboard' %}" class="active">
+                            <i class="fas fa-home"></i>
+                            Dashboard
+                        </a>
+                    </li>
+
+                    <!-- Divider -->
+                    <li class="menu-title">
+                        <span>Student Management</span>
+                    </li>
+                    <li>
+                        <a href="{% url 'private_teaching:teacher_applications' %}">
+                            <i class="fas fa-clipboard-list"></i>
+                            Applications
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'private_teaching:teacher_students' %}">
+                            <i class="fas fa-users"></i>
+                            My Students
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'private_teaching:teacher_cancellation_requests' %}">
+                            <i class="fas fa-times-circle"></i>
+                            Cancellations
+                        </a>
+                    </li>
+
+                    <!-- Divider -->
+                    <li class="menu-title">
+                        <span>Schedule & Planning</span>
+                    </li>
+                    <li>
+                        <a href="{% url 'private_teaching:calendar' %}">
+                            <i class="fas fa-calendar"></i>
+                            Calendar
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'private_teaching:teacher_schedule' %}">
+                            <i class="fas fa-clock"></i>
+                            Schedule
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'private_teaching:exam_list' %}">
+                            <i class="fas fa-graduation-cap"></i>
+                            Exam Registrations
+                        </a>
+                    </li>
+
+                    <!-- Divider -->
+                    <li class="menu-title">
+                        <span>Resources</span>
+                    </li>
+                    <li>
+                        <a href="{% url 'audioplayer:library' %}">
+                            <i class="fas fa-music"></i>
+                            Play-Along Library
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'audioplayer:composer_list' %}">
+                            <i class="fas fa-user-music"></i>
+                            Manage Composers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'audioplayer:piece_list' %}">
+                            <i class="fas fa-guitar"></i>
+                            Manage Pieces
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'private_teaching:teacher_library' %}">
+                            <i class="fas fa-book"></i>
+                            Document Library
+                        </a>
+                    </li>
+
+                    <!-- Divider -->
+                    <li class="menu-title">
+                        <span>Administration</span>
+                    </li>
+                    <li>
+                        <a href="{% url 'payments:finance_dashboard' %}">
+                            <i class="fas fa-chart-line"></i>
+                            Finance
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'private_teaching:teacher_settings' %}">
+                            <i class="fas fa-cog"></i>
+                            Settings
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </aside>
     </div>
 </div>
 {% endblock %}
