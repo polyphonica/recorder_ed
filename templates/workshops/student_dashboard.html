@@ -130,17 +130,34 @@
                                                 
                                                 <!-- Actions -->
                                                 <div class="flex flex-col gap-2 sm:w-32">
-                                                    <a href="{% url 'workshops:detail' slug=registration.session.workshop.slug %}" 
+                                                    <a href="{% url 'workshops:detail' slug=registration.session.workshop.slug %}"
                                                        class="btn btn-sm btn-primary">
                                                         <i class="fas fa-eye"></i>
                                                         View
                                                     </a>
+
+                                                    {% if registration.session.meeting_url and registration.status == 'registered' %}
+                                                        <a href="{{ registration.session.meeting_url }}" target="_blank"
+                                                           class="btn btn-sm btn-success">
+                                                            <i class="fas fa-video"></i>
+                                                            Join Meeting
+                                                        </a>
+                                                    {% endif %}
+
                                                     {% if registration.session.materials.exists %}
-                                                        <a href="{% url 'workshops:participant_materials' session_id=registration.session.id %}" 
+                                                        <a href="{% url 'workshops:participant_materials' session_id=registration.session.id %}"
                                                            class="btn btn-sm btn-outline">
                                                             <i class="fas fa-download"></i>
                                                             Materials
                                                         </a>
+                                                    {% endif %}
+
+                                                    {% if registration.status == 'registered' or registration.status == 'promoted' %}
+                                                        <button class="btn btn-sm btn-warning"
+                                                                onclick="confirmCancel('{{ registration.id }}', '{{ registration.session.workshop.title }}', '{{ registration.session.start_datetime|date:"c" }}', '{{ registration.payment_status }}')">
+                                                            <i class="fas fa-times"></i>
+                                                            Cancel
+                                                        </button>
                                                     {% endif %}
                                                 </div>
                                             </div>
@@ -316,11 +333,23 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <div class="flex gap-1">
-                                                <a href="{% url 'workshops:detail' slug=registration.session.workshop.slug %}" 
+                                            <div class="flex gap-1 flex-wrap">
+                                                <a href="{% url 'workshops:detail' slug=registration.session.workshop.slug %}"
                                                    class="btn btn-xs btn-primary">View</a>
-                                                <a href="{% url 'workshops:registration_confirm' registration_id=registration.id %}"
-                                                   class="btn btn-xs btn-outline">Details</a>
+                                                {% if registration.session.meeting_url and registration.status == 'registered' %}
+                                                    <a href="{{ registration.session.meeting_url }}" target="_blank"
+                                                       class="btn btn-xs btn-success">
+                                                        <i class="fas fa-video"></i>
+                                                        Join
+                                                    </a>
+                                                {% endif %}
+                                                {% if registration.status == 'registered' or registration.status == 'promoted' %}
+                                                    <button class="btn btn-xs btn-warning"
+                                                            onclick="confirmCancel('{{ registration.id }}', '{{ registration.session.workshop.title }}', '{{ registration.session.start_datetime|date:"c" }}', '{{ registration.payment_status }}')">
+                                                        <i class="fas fa-times"></i>
+                                                        Cancel
+                                                    </button>
+                                                {% endif %}
                                             </div>
                                         </td>
                                     </tr>
@@ -337,4 +366,64 @@
         </div>
     </div>
 </div>
+
+<!-- Cancel Registration Modal -->
+<input type="checkbox" id="cancelModal" class="modal-toggle" />
+<div class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Cancel Registration</h3>
+        <p class="py-4">Are you sure you want to cancel your registration for <span id="workshopTitle" class="font-semibold"></span>?</p>
+
+        <!-- Refund eligibility message -->
+        <div id="refundMessage" class="alert mb-4" style="display: none;">
+            <div>
+                <i class="fas fa-info-circle"></i>
+                <span id="refundMessageText"></span>
+            </div>
+        </div>
+
+        <div class="modal-action">
+            <label for="cancelModal" class="btn">Keep Registration</label>
+            <button class="btn btn-error" id="confirmCancelBtn">Yes, Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Cancel Registration Function
+function confirmCancel(registrationId, workshopTitle, sessionDateTime, paymentStatus) {
+    document.getElementById('workshopTitle').textContent = workshopTitle;
+
+    // Calculate days until workshop
+    const sessionDate = new Date(sessionDateTime);
+    const now = new Date();
+    const daysUntil = Math.floor((sessionDate - now) / (1000 * 60 * 60 * 24));
+
+    // Determine refund eligibility
+    const refundMessage = document.getElementById('refundMessage');
+    const refundMessageText = document.getElementById('refundMessageText');
+
+    if (daysUntil >= 7 && (paymentStatus === 'paid' || paymentStatus === 'completed')) {
+        // Eligible for refund
+        refundMessage.style.display = 'block';
+        refundMessage.className = 'alert alert-success mb-4';
+        refundMessageText.innerHTML = '<strong>Good news!</strong> You are cancelling with 7 or more days notice, so you will receive a full refund.';
+    } else if (daysUntil < 7 && (paymentStatus === 'paid' || paymentStatus === 'completed')) {
+        // Not eligible for refund
+        refundMessage.style.display = 'block';
+        refundMessage.className = 'alert alert-warning mb-4';
+        refundMessageText.innerHTML = '<strong>Please note:</strong> You are cancelling with less than 7 days notice. Unfortunately, no refund is possible.';
+    } else {
+        // No payment or other status
+        refundMessage.style.display = 'none';
+    }
+
+    document.getElementById('confirmCancelBtn').onclick = function() {
+        window.location.href = `/workshops/registration/${registrationId}/cancel/`;
+    };
+    // Open modal by checking the checkbox
+    document.getElementById('cancelModal').checked = true;
+}
+</script>
+
 {% endblock %}
