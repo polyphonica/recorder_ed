@@ -445,8 +445,7 @@ class IncomingRequestsView(TeacherProfileCompletedMixin, ListView):
                      queryset=Lesson.objects.filter(
                          is_deleted=False, teacher=self.request.user
                      ).select_related('subject')),
-            Prefetch('messages',
-                     queryset=LessonRequestMessage.objects.order_by('-created_at')[:20])
+            'messages'  # Prefetch all messages (pagination handles limiting display)
         ).order_by('-created_at')
 
         return teacher_lesson_requests
