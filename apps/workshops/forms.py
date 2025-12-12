@@ -112,6 +112,8 @@ class WorkshopForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Make price field not required since it's handled in clean() method
         self.fields['price'].required = False
+        # Sort categories alphabetically
+        self.fields['category'].queryset = WorkshopCategory.objects.filter(is_active=True).order_by('name')
 
     class Meta:
         model = Workshop
@@ -500,7 +502,7 @@ class WorkshopFilterForm(forms.Form):
     ]
     
     category = forms.ModelChoiceField(
-        queryset=WorkshopCategory.objects.filter(is_active=True),
+        queryset=WorkshopCategory.objects.filter(is_active=True).order_by('name'),
         empty_label='All Categories',
         required=False,
         widget=forms.Select(attrs={
