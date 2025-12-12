@@ -3,7 +3,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, T
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.conf import settings
-from django.db.models import Q, Count, Avg, F
+from django.db.models import Q, Count, Avg, F, Min
 from django.utils import timezone
 from django.urls import reverse_lazy, reverse
 from django.http import JsonResponse
@@ -91,8 +91,10 @@ class WorkshopListView(SearchableListViewMixin, ListView):
         'price': lambda qs, val: qs.filter(is_free=True) if val == 'free' else qs.filter(is_free=False) if val == 'paid' else qs,
     }
     sort_options = {
-        'featured': ('-is_featured', '-created_at'),
+        'featured': ('-is_featured', 'next_session_date', '-created_at'),
+        'next_session': ('next_session_date', '-created_at'),
         'newest': '-created_at',
+        'title': 'title',
         'price_low': 'price',
         'price_high': '-price',
         'rating': '-average_rating',
@@ -112,9 +114,20 @@ class WorkshopListView(SearchableListViewMixin, ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
+        # Annotate with next session date for sorting
+        # This finds the earliest upcoming session for each workshop
         queryset = Workshop.objects.filter(status='published').select_related(
             'instructor', 'category'
-        ).prefetch_related('sessions')
+        ).prefetch_related('sessions').annotate(
+            next_session_date=Min(
+                'sessions__start_datetime',
+                filter=Q(
+                    sessions__start_datetime__gte=timezone.now(),
+                    sessions__is_active=True,
+                    sessions__is_cancelled=False
+                )
+            )
+        )
 
         # Category filtering from URL kwargs
         category_slug = self.kwargs.get('category_slug')

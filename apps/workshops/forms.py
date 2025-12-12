@@ -495,6 +495,7 @@ class WorkshopFilterForm(forms.Form):
     
     SORT_CHOICES = [
         ('featured', 'Featured First'),
+        ('next_session', 'Next Session (Soonest First)'),
         ('newest', 'Newest First'),
         ('title', 'Title A-Z'),
         ('price_low', 'Price: Low to High'),
