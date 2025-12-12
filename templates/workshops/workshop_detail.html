@@ -55,6 +55,9 @@
                         <div class="badge badge-secondary">Featured</div>
                     {% endif %}
                     <div class="badge badge-ghost">{{ workshop.duration_display }}</div>
+                    {% for tag in workshop.get_tags_list %}
+                        <div class="badge badge-neutral">{{ tag }}</div>
+                    {% endfor %}
                 </div>
 
                 <h1 class="text-4xl font-bold mb-4">{{ workshop.title }}</h1>

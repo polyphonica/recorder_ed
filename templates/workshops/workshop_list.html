@@ -176,6 +176,9 @@
                                     {% elif workshop.delivery_method == 'hybrid' %}
                                         <div class="badge badge-accent badge-sm">Hybrid</div>
                                     {% endif %}
+                                    {% for tag in workshop.get_tags_list %}
+                                        <div class="badge badge-neutral badge-sm">{{ tag }}</div>
+                                    {% endfor %}
                                 </div>
                                 <div class="flex gap-1">
                                     {% if workshop.is_featured %}
