@@ -85,6 +85,7 @@ class WorkshopListView(SearchableListViewMixin, ListView):
     # Configure SearchableListViewMixin
     search_fields = ['title', 'description', 'tags']
     filter_mappings = {
+        'category': 'category_id',
         'difficulty': 'difficulty_level',
         'delivery_method': 'delivery_method',
         'price': lambda qs, val: qs.filter(is_free=True) if val == 'free' else qs.filter(is_free=False) if val == 'paid' else qs,
