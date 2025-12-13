@@ -1,0 +1,28 @@
+Congratulations, {{ application.name }}!
+
+Your teacher application for {{ site_name }} has been approved!
+
+We're excited to welcome you to our platform as an instructor. To get started, you'll need to create your teacher account.
+
+Create Your Account:
+{{ signup_link }}
+
+This link will expire in {{ token_expiry_days }} days.
+
+Once you've created your account, you'll be guided through our onboarding process to:
+- Complete your teacher profile
+- Add your qualifications and experience
+- Set up your availability
+- Configure payment information
+- Create your first workshop or private teaching listing
+
+If you have any questions or need assistance, please don't hesitate to contact us.
+
+Welcome to {{ site_name }}!
+
+Best regards,
+The {{ site_name }} Team
+
+---
+This is an automated message. Please do not reply to this email.
+If you did not apply to become a teacher on {{ site_name }}, please contact us immediately.

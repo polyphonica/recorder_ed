@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
 from apps.admin_portal.decorators import admin_required
 from .models import TeacherApplication, TeacherOnboarding
+from .notifications import send_approval_email
 
 
 @admin_required
@@ -88,14 +89,26 @@ def approve_application(request, application_id):
             user=application.user,
             defaults={'application': application}
         )
-
-    # TODO: Send approval email to applicant
-
-    messages.success(
-        request,
-        f'Application from {application.name} has been approved! '
-        f'{"Teacher status has been granted and onboarding created." if application.user else "They can now be contacted to create an account."}'
-    )
+        messages.success(
+            request,
+            f'Application from {application.name} has been approved! '
+            f'Teacher status has been granted and onboarding created.'
+        )
+    else:
+        # Send approval email with signup link for applicants without accounts
+        email_sent = send_approval_email(request, application)
+        if email_sent:
+            messages.success(
+                request,
+                f'Application from {application.name} has been approved! '
+                f'Approval email with signup instructions has been sent to {application.email}.'
+            )
+        else:
+            messages.warning(
+                request,
+                f'Application from {application.name} has been approved, but there was an error sending the email. '
+                f'Please contact them manually at {application.email}.'
+            )
 
     return redirect('admin_portal:applications_list')
 

@@ -10,6 +10,8 @@ from .forms import CustomUserCreationForm, UserProfileForm, ChildProfileForm, Ac
 from .models import UserProfile, ChildProfile
 from .email_verification import send_verification_email
 from django.db import transaction
+from apps.teacher_applications.models import TeacherApplication, TeacherOnboarding
+from apps.teacher_applications.notifications import teacher_signup_token
 
 
 class CustomLoginView(LoginView):
@@ -428,3 +430,95 @@ def resend_verification_view(request):
         return redirect('workshops:student_dashboard')
 
     return render(request, 'accounts/resend_verification.html')
+
+
+def teacher_signup_view(request, token):
+    """
+    Teacher signup view with token validation.
+    Validates signup token from approved application and creates account.
+    """
+    # Validate token
+    token_data = teacher_signup_token.check_token(token)
+
+    if not token_data:
+        messages.error(
+            request,
+            'This signup link is invalid or has expired. Please contact support for assistance.'
+        )
+        return redirect('accounts:signup')
+
+    # Get the application
+    try:
+        application = TeacherApplication.objects.get(
+            id=token_data['application_id'],
+            email=token_data['email'],
+            status='approved'
+        )
+    except TeacherApplication.DoesNotExist:
+        messages.error(
+            request,
+            'Application not found or not approved. Please contact support.'
+        )
+        return redirect('accounts:signup')
+
+    # Check if user already exists with this email
+    if User.objects.filter(email=application.email).exists():
+        messages.warning(
+            request,
+            'An account with this email already exists. Please log in instead.'
+        )
+        return redirect('accounts:login')
+
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            # Override email with the one from application
+            user = form.save(commit=False)
+            user.email = application.email
+            user.first_name = application.name.split()[0] if application.name else ''
+            user.last_name = ' '.join(application.name.split()[1:]) if len(application.name.split()) > 1 else ''
+
+            with transaction.atomic():
+                user.save()
+
+                # Link application to user
+                application.user = user
+                application.save(update_fields=['user'])
+
+                # Grant teacher status
+                if hasattr(user, 'profile'):
+                    user.profile.is_teacher = True
+                    user.profile.save()
+
+                # Create onboarding record
+                TeacherOnboarding.objects.get_or_create(
+                    user=user,
+                    defaults={'application': application}
+                )
+
+            # Log the user in
+            login(request, user)
+
+            messages.success(
+                request,
+                f'Welcome, {user.first_name}! Your teacher account has been created. '
+                f'Let\'s complete your onboarding.'
+            )
+
+            # Redirect to onboarding
+            return redirect('teacher_applications:onboarding_dashboard')
+    else:
+        # Pre-fill form with application data
+        initial_data = {
+            'username': application.email.split('@')[0],  # Suggest username from email
+            'email': application.email,
+        }
+        form = CustomUserCreationForm(initial=initial_data)
+
+    context = {
+        'form': form,
+        'application': application,
+        'email_locked': True,  # Signal to template that email shouldn't be editable
+    }
+
+    return render(request, 'accounts/teacher_signup.html', context)

@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Teacher Account - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100 flex items-center justify-center">
+    <div class="card w-full max-w-2xl bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title justify-center mb-2 text-2xl">Create Your Teacher Account</h2>
+            <p class="text-center text-base-content/70 mb-6">
+                Welcome, {{ application.name }}! Complete the form below to activate your approved teacher account.
+            </p>
+
+            <div class="alert alert-success mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <div>
+                    <div class="font-bold">Your application has been approved!</div>
+                    <div class="text-sm">Create your password to get started with onboarding.</div>
+                </div>
+            </div>
+
+            {% if form.errors %}
+                <div class="alert alert-error mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <div>
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <span>{{ error }}</span><br>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text font-semibold">Email Address</span>
+                    </label>
+                    <input type="email" value="{{ application.email }}" class="input input-bordered" disabled>
+                    <label class="label">
+                        <span class="label-text-alt">This email is linked to your approved application and cannot be changed.</span>
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Username</span>
+                        </label>
+                        {{ form.username }}
+                        {% if form.username.help_text %}
+                            <label class="label">
+                                <span class="label-text-alt text-xs">{{ form.username.help_text }}</span>
+                            </label>
+                        {% endif %}
+                        {% if form.username.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.username.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Email</span>
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.email.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="divider my-2"></div>
+
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text font-semibold">Password</span>
+                    </label>
+                    {{ form.password1 }}
+                    {% if form.password1.help_text %}
+                        <label class="label">
+                            <span class="label-text-alt text-xs">{{ form.password1.help_text }}</span>
+                        </label>
+                    {% endif %}
+                    {% if form.password1.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.password1.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold">Confirm Password</span>
+                    </label>
+                    {{ form.password2 }}
+                    {% if form.password2.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.password2.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="alert alert-info mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <div class="font-semibold">What happens next?</div>
+                        <div class="text-sm mt-1">After creating your account, you'll be guided through our onboarding process to complete your profile, add qualifications, set availability, and create your first listing.</div>
+                    </div>
+                </div>
+
+                <div class="form-control">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Create Account & Start Onboarding
+                    </button>
+                </div>
+            </form>
+
+            <div class="divider">OR</div>
+
+            <div class="text-center">
+                <p class="text-sm text-base-content/70 mb-2">
+                    Already have an account with this email?
+                </p>
+                <a href="{% url 'accounts:login' %}" class="btn btn-outline btn-sm">
+                    Sign In Instead
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    margin: 2rem auto;
+}
+</style>
+{% endblock %}

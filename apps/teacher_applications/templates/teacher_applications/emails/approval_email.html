@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Application Approved</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #4F46E5;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: #f9fafb;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #10B981;
+            color: white !important;
+            padding: 14px 28px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .button:hover {
+            background-color: #059669;
+        }
+        .steps {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .steps ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .steps li {
+            margin: 8px 0;
+        }
+        .footer {
+            text-align: center;
+            color: #6B7280;
+            font-size: 12px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #E5E7EB;
+        }
+        .warning {
+            background-color: #FEF3C7;
+            border-left: 4px solid #F59E0B;
+            padding: 12px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎉 Congratulations!</h1>
+    </div>
+
+    <div class="content">
+        <h2>Your Teacher Application Has Been Approved!</h2>
+
+        <p>Dear {{ application.name }},</p>
+
+        <p>We're thrilled to inform you that your application to become an instructor on {{ site_name }} has been approved!</p>
+
+        <p>To get started, please create your teacher account by clicking the button below:</p>
+
+        <div style="text-align: center;">
+            <a href="{{ signup_link }}" class="button">Create Your Teacher Account</a>
+        </div>
+
+        <div class="warning">
+            <strong>⏰ Important:</strong> This link will expire in {{ token_expiry_days }} days. Please complete your account setup before then.
+        </div>
+
+        <div class="steps">
+            <h3>Next Steps - Onboarding Process</h3>
+            <p>Once you've created your account, you'll be guided through the following steps:</p>
+            <ul>
+                <li>✅ Complete your teacher profile with bio and photo</li>
+                <li>✅ Add your qualifications and teaching experience</li>
+                <li>✅ Set up your teaching availability</li>
+                <li>✅ Configure your payment information</li>
+                <li>✅ Create your first workshop or private teaching listing</li>
+            </ul>
+        </div>
+
+        <p>If you have any questions or need assistance at any point, please don't hesitate to contact us.</p>
+
+        <p>We're excited to have you join our community of educators!</p>
+
+        <p>Best regards,<br>
+        The {{ site_name }} Team</p>
+    </div>
+
+    <div class="footer">
+        <p>This is an automated message. Please do not reply to this email.</p>
+        <p>If you did not apply to become a teacher on {{ site_name }}, please contact us immediately.</p>
+        <p>&copy; {{ site_name }}. All rights reserved.</p>
+    </div>
+</body>
+</html>

@@ -32,4 +32,7 @@ urlpatterns = [
     # Email verification
     path('verify-email/<uidb64>/<token>/', views.verify_email_view, name='verify_email'),
     path('resend-verification/', views.resend_verification_view, name='resend_verification'),
+
+    # Teacher signup with token
+    path('teacher-signup/<str:token>/', views.teacher_signup_view, name='teacher_signup'),
 ]
