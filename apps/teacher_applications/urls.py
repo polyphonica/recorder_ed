@@ -14,8 +14,4 @@ urlpatterns = [
     path('admin/<int:application_id>/reject/', views.reject_application, name='reject'),
     path('admin/<int:application_id>/on-hold/', views.set_application_on_hold, name='on_hold'),
     path('admin/<int:application_id>/notes/', views.update_application_notes, name='update_notes'),
-
-    # Teacher onboarding
-    path('onboarding/', views.onboarding_dashboard, name='onboarding_dashboard'),
-    path('onboarding/step/<int:step_number>/', views.onboarding_step, name='onboarding_step'),
 ]
