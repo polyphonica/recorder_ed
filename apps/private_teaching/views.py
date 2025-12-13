@@ -1571,7 +1571,7 @@ class BookWithTeacherView(StudentProfileCompletedMixin, StudentOnlyMixin, Templa
         context['teacher'] = self.teacher
         context['application'] = self.accepted_application
         context['form'] = LessonRequestForm(user=self.request.user)
-        context['formset'] = StudentLessonFormSet()
+        context['formset'] = StudentLessonFormSet(form_kwargs={'teacher': self.teacher})
         # IMPORTANT: Only show this teacher's subjects
         context['subjects'] = Subject.objects.filter(
             teacher=self.teacher,
@@ -1581,7 +1581,7 @@ class BookWithTeacherView(StudentProfileCompletedMixin, StudentOnlyMixin, Templa
 
     def post(self, request, *args, **kwargs):
         form = LessonRequestForm(request.POST, user=request.user)
-        formset = StudentLessonFormSet(request.POST)
+        formset = StudentLessonFormSet(request.POST, form_kwargs={'teacher': self.teacher})
 
         if form.is_valid() and formset.is_valid():
             # Create the lesson request container

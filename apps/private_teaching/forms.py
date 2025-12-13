@@ -178,7 +178,18 @@ class StudentLessonForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        # Extract teacher parameter if provided (for filtering subjects)
+        teacher = kwargs.pop('teacher', None)
         super().__init__(*args, **kwargs)
+
+        # Filter subjects by teacher if provided
+        if teacher:
+            from .models import Subject
+            self.fields['subject'].queryset = Subject.objects.filter(
+                teacher=teacher,
+                is_active=True
+            )
+
         self.fields['subject'].required = True
         self.fields['subject'].empty_label = "Select subject"
         self.fields['location'].required = True
