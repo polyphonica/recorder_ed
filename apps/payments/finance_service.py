@@ -107,19 +107,33 @@ class FinanceService:
         courses_revenue = courses_gross * (1 - Decimal(str(commission_rate)))
 
         # ===== PRIVATE TEACHING - LESSONS =====
+        # Query OrderItems directly to only sum items for this teacher
+        # (An order can contain lessons from multiple teachers)
+        from apps.private_teaching.models import OrderItem
+
+        order_items_query = OrderItem.objects.filter(
+            lesson__teacher=teacher,
+            order__payment_status='completed'
+        ).select_related('order')
+
+        if start_date:
+            order_items_query = order_items_query.filter(order__created_at__gte=start_date)
+        if end_date:
+            order_items_query = order_items_query.filter(order__created_at__lte=end_date)
+
+        private_lessons_gross = order_items_query.aggregate(
+            total=Sum('price_paid')
+        )['total'] or Decimal('0.00')
+
+        # Count unique orders (not items) for this teacher
         private_orders = Order.objects.filter(
             items__lesson__teacher=teacher,
             payment_status='completed'
         ).distinct()
-
         if start_date:
             private_orders = private_orders.filter(created_at__gte=start_date)
         if end_date:
             private_orders = private_orders.filter(created_at__lte=end_date)
-
-        private_lessons_gross = private_orders.aggregate(
-            total=Sum('total_amount')
-        )['total'] or Decimal('0.00')
         private_lessons_count = private_orders.count()
 
         # Calculate refunds from cancelled lessons
@@ -294,20 +308,31 @@ class FinanceService:
             transactions = query.select_related('course', 'student').order_by('-paid_at')
 
         elif domain == 'private_teaching':
-            from apps.private_teaching.models import Order, ExamRegistration
+            from apps.private_teaching.models import Order, OrderItem, ExamRegistration
 
-            # Lesson orders
+            # Query OrderItems directly to only sum items for this teacher
+            # (An order can contain lessons from multiple teachers)
+            order_items_query = OrderItem.objects.filter(
+                lesson__teacher=teacher,
+                order__payment_status='completed'
+            ).select_related('order')
+
+            if start_date:
+                order_items_query = order_items_query.filter(order__created_at__gte=start_date)
+            if end_date:
+                order_items_query = order_items_query.filter(order__created_at__lte=end_date)
+
+            lessons_gross = order_items_query.aggregate(total=Sum('price_paid'))['total'] or Decimal('0.00')
+
+            # Count unique orders (not items) for this teacher
             orders_query = Order.objects.filter(
                 items__lesson__teacher=teacher,
                 payment_status='completed'
             ).distinct()
-
             if start_date:
                 orders_query = orders_query.filter(created_at__gte=start_date)
             if end_date:
                 orders_query = orders_query.filter(created_at__lte=end_date)
-
-            lessons_gross = orders_query.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
             lessons_count = orders_query.count()
 
             # Exam registrations
