@@ -3,10 +3,10 @@ from .models import UserProfile
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'full_name', 'phone', 'is_student', 'is_teacher', 'profile_completed', 'created_at']
-    list_filter = ['profile_completed', 'is_student', 'is_teacher', 'country', 'created_at']
+    list_display = ['user', 'full_name', 'phone', 'is_student', 'is_teacher', 'email_verified', 'profile_completed', 'created_at']
+    list_filter = ['email_verified', 'profile_completed', 'is_student', 'is_teacher', 'country', 'created_at']
     search_fields = ['user__email', 'first_name', 'last_name', 'phone']
-    readonly_fields = ['id', 'created_at', 'updated_at']
+    readonly_fields = ['id', 'email_verified_at', 'created_at', 'updated_at']
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
@@ -42,6 +42,10 @@ class UserProfileAdmin(admin.ModelAdmin):
         }),
         ('Profile Status', {
             'fields': ('profile_completed',)
+        }),
+        ('Email Verification', {
+            'fields': ('email_verified', 'email_verified_at'),
+            'description': 'Email verification status. Users receive a verification email upon signup.'
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
