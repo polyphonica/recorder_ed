@@ -15,8 +15,11 @@ def application_list(request):
     applications = TeacherApplication.objects.select_related('user', 'reviewed_by').all()
 
     # Apply filters
-    status_filter = request.GET.get('status', 'pending')
-    if status_filter and status_filter != 'all':
+    status_filter = request.GET.get('status', 'needs_review')
+    if status_filter == 'needs_review':
+        # Show both pending and on_hold applications (those needing attention)
+        applications = applications.filter(status__in=['pending', 'on_hold'])
+    elif status_filter and status_filter != 'all':
         applications = applications.filter(status=status_filter)
 
     # Search

@@ -37,9 +37,10 @@
                         <span class="label-text font-semibold">Status</span>
                     </label>
                     <select name="status" class="select select-bordered select-sm" onchange="this.form.submit()">
-                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="needs_review" {% if status_filter == 'needs_review' %}selected{% endif %}>Needs Review (Pending + On Hold)</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Only</option>
+                        <option value="on_hold" {% if status_filter == 'on_hold' %}selected{% endif %}>On Hold Only</option>
                         <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
-                        <option value="on_hold" {% if status_filter == 'on_hold' %}selected{% endif %}>On Hold</option>
                         <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
                         <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
                     </select>
