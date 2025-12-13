@@ -102,7 +102,7 @@ class ProfileCompletionMixin(LoginRequiredMixin):
     - user_type: 'student' or 'teacher' (which profile type to check)
     - require_completed: True to require completed profile, False to require NOT completed
     - redirect_url: Where to redirect on failure
-    - profile_attr: Optional - attribute name to check (defaults to 'is_student' or 'is_private_teacher')
+    - profile_attr: Optional - attribute name to check (defaults to 'is_student' or 'is_teacher')
     - completion_message: Optional - custom message for completed check
     - incomplete_message: Optional - custom message for incomplete check
     - wrong_type_message: Optional - custom message for wrong user type
@@ -134,7 +134,7 @@ class ProfileCompletionMixin(LoginRequiredMixin):
 
         # Determine profile attribute to check
         if not self.profile_attr:
-            self.profile_attr = 'is_student' if self.user_type == 'student' else 'is_private_teacher'
+            self.profile_attr = 'is_student' if self.user_type == 'student' else 'is_teacher'
 
         # Check if user has profile
         if not hasattr(request.user, 'profile'):

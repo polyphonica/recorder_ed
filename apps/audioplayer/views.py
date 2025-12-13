@@ -18,7 +18,7 @@ def teacher_required(view_func):
     @wraps(view_func)
     @login_required
     def wrapper(request, *args, **kwargs):
-        if not hasattr(request.user, 'profile') or not request.user.profile.is_private_teacher:
+        if not hasattr(request.user, 'profile') or not request.user.profile.is_teacher:
             messages.error(request, 'Only teachers can access this page.')
             return redirect('private_teaching:home')
         return view_func(request, *args, **kwargs)
@@ -240,7 +240,7 @@ def piece_detail(request, pk):
     # Check if user is a teacher
     is_teacher = (
         hasattr(request.user, 'profile') and
-        request.user.profile.is_private_teacher
+        request.user.profile.is_teacher
     )
 
     # Get private teaching lessons using this piece (filtered by current user)
@@ -397,7 +397,7 @@ class PlayAlongLibraryView(TemplateView):
         is_teacher = (
             self.request.user.is_authenticated and
             hasattr(self.request.user, 'profile') and
-            self.request.user.profile.is_private_teacher
+            self.request.user.profile.is_teacher
         )
 
         # Base queryset - will be filtered based on mode

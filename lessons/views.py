@@ -39,7 +39,7 @@ class CalendarView(LoginRequiredMixin, TemplateView):
 
         # Filter lessons based on user permissions
         if hasattr(self.request.user, 'profile'):
-            if self.request.user.profile.is_private_teacher:
+            if self.request.user.profile.is_teacher:
                 # Teachers see their lessons
                 lessons = lessons.filter(teacher=self.request.user)
             elif self.request.user.profile.is_student:
@@ -77,7 +77,7 @@ class CalendarView(LoginRequiredMixin, TemplateView):
 
         # Add user role information for client-side routing
         context['is_teacher'] = (hasattr(self.request.user, 'profile') and
-                               self.request.user.profile.is_private_teacher)
+                               self.request.user.profile.is_teacher)
         context['is_student'] = (hasattr(self.request.user, 'profile') and
                                self.request.user.profile.is_student)
 
@@ -154,7 +154,7 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
         error_message = "You don't have permission to view this lesson."
 
         if hasattr(self.request.user, 'profile'):
-            if self.request.user.profile.is_private_teacher:
+            if self.request.user.profile.is_teacher:
                 # Teacher can view lessons for their subjects if approved
                 if lesson.teacher == self.request.user:
                     if lesson.approved_status == 'Accepted':
@@ -189,7 +189,7 @@ class LessonUpdateView(LoginRequiredMixin, LessonInline, UpdateView):
         user_can_edit = False
         
         if hasattr(self.request.user, 'profile'):
-            if self.request.user.profile.is_private_teacher:
+            if self.request.user.profile.is_teacher:
                 user_can_edit = lesson.subject.teacher == self.request.user
         
         if not user_can_edit:
@@ -242,7 +242,7 @@ class LessonListView(LoginRequiredMixin, ListView):
         if not hasattr(self.request.user, 'profile'):
             return Lesson.objects.none()
 
-        if self.request.user.profile.is_private_teacher:
+        if self.request.user.profile.is_teacher:
             # Teachers see their lessons
             return Lesson.objects.filter(
                 teacher=self.request.user,
@@ -272,7 +272,7 @@ def calendar_events_api(request):
 
     # Filter by user permissions
     if hasattr(request.user, 'profile'):
-        if request.user.profile.is_private_teacher:
+        if request.user.profile.is_teacher:
             lessons = lessons.filter(teacher=request.user)
         elif request.user.profile.is_student:
             lessons = lessons.filter(student=request.user)

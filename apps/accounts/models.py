@@ -29,7 +29,6 @@ class UserProfile(models.Model):
     # Role flags
     is_student = models.BooleanField(default=True, help_text="Students can enroll in courses, workshops, and request private lessons")
     is_teacher = models.BooleanField(default=False, help_text="Teachers can create courses, workshops, and offer private lessons")
-    is_private_teacher = models.BooleanField(default=False, help_text="Designates if this user can access private teaching teacher features")
     is_guardian = models.BooleanField(default=False, help_text="Guardian/parent managing child profiles (under 18)")
     
     # Teacher/Instructor Information (unified across all domains)

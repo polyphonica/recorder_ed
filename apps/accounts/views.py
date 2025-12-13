@@ -202,7 +202,7 @@ class TeacherPublicProfileView(DetailView):
             context['workshops'] = []
 
         # Check if teacher offers private lessons
-        context['offers_private_lessons'] = teacher.profile.is_private_teacher
+        context['offers_private_lessons'] = teacher.profile.is_teacher
 
         return context
 

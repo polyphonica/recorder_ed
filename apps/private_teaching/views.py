@@ -50,7 +50,7 @@ class PrivateTeachingHomeView(TemplateView):
             profile = request.user.profile
             
             # Check if teacher needs to complete profile
-            if profile.is_private_teacher and not profile.profile_completed:
+            if profile.is_teacher and not profile.profile_completed:
                 messages.info(request, 'Please complete your teacher profile to access teaching features.')
                 return redirect('private_teaching:teacher_profile_complete')
                 
@@ -68,7 +68,7 @@ class PrivateTeachingHomeView(TemplateView):
         # Get teachers offering private lessons
         from django.contrib.auth.models import User
         context['teachers'] = User.objects.filter(
-            profile__is_private_teacher=True,
+            profile__is_teacher=True,
             profile__profile_completed=True
         ).select_related('profile')[:6]  # Limit to 6 teachers
 
@@ -303,7 +303,7 @@ class TeacherOnlyMixin:
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect('private_teaching:login')
-        if not hasattr(request.user, 'profile') or not request.user.profile.is_private_teacher:
+        if not hasattr(request.user, 'profile') or not request.user.profile.is_teacher:
             messages.error(request, 'Access denied. Teacher privileges required.')
             return redirect('private_teaching:home')
         return super().dispatch(request, *args, **kwargs)
@@ -604,7 +604,7 @@ class CalendarView(PrivateTeachingLoginRequiredMixin, TemplateView):
 
         # Determine if user is a teacher
         try:
-            is_teacher = self.request.user.profile.is_private_teacher
+            is_teacher = self.request.user.profile.is_teacher
         except:
             is_teacher = False
 
@@ -1123,7 +1123,7 @@ class LessonDetailView(PrivateTeachingLoginRequiredMixin, View):
 
         try:
             # Get lesson based on user role
-            if hasattr(request.user, 'profile') and request.user.profile.is_private_teacher:
+            if hasattr(request.user, 'profile') and request.user.profile.is_teacher:
                 lesson = Lesson.objects.select_related(
                     'subject', 'student', 'teacher', 'lesson_request', 'lesson_request__child_profile'
                 ).get(
@@ -1448,7 +1448,7 @@ class ApplyToTeacherView(StudentProfileCompletedMixin, StudentOnlyMixin, Templat
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         teacher_id = self.kwargs.get('teacher_id')
-        teacher = get_object_or_404(User, id=teacher_id, profile__is_private_teacher=True)
+        teacher = get_object_or_404(User, id=teacher_id, profile__is_teacher=True)
 
         # Check if already applied
         from apps.private_teaching.models import TeacherStudentApplication
@@ -1486,7 +1486,7 @@ class ApplyToTeacherView(StudentProfileCompletedMixin, StudentOnlyMixin, Templat
         from apps.private_teaching.models import TeacherStudentApplication, ApplicationMessage
 
         teacher_id = kwargs.get('teacher_id')
-        teacher = get_object_or_404(User, id=teacher_id, profile__is_private_teacher=True)
+        teacher = get_object_or_404(User, id=teacher_id, profile__is_teacher=True)
 
         # Check if teacher is accepting applications
         if not teacher.profile.accepting_new_private_students:

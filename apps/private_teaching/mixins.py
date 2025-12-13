@@ -87,7 +87,7 @@ class TeacherOnlyMixin(PrivateTeachingLoginRequiredMixin):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
 
-        if not hasattr(request.user, 'profile') or not request.user.profile.is_private_teacher:
+        if not hasattr(request.user, 'profile') or not request.user.profile.is_teacher:
             messages.error(request, 'This section is only available to teachers.')
             return redirect('private_teaching:home')
 

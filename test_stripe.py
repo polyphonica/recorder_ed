@@ -10,7 +10,7 @@ from decimal import Decimal
 
 # Get a student and teacher
 student = User.objects.filter(profile__is_student=True).first()
-teacher = User.objects.filter(profile__is_private_teacher=True).first()
+teacher = User.objects.filter(profile__is_teacher=True).first()
 
 print(f"Student: {student}")
 print(f"Teacher: {teacher}")

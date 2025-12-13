@@ -53,7 +53,7 @@ def private_teaching_nav_url(user):
 
     # Check if user is a teacher by checking profile
     try:
-        if hasattr(user, 'profile') and user.profile.is_private_teacher:
+        if hasattr(user, 'profile') and user.profile.is_teacher:
             return 'private_teaching:teacher_dashboard'
     except:
         pass

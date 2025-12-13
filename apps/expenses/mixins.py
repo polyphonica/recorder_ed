@@ -6,7 +6,7 @@ from django.contrib import messages
 class TeacherOrAdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     """
     Mixin that requires the user to be either:
-    - A teacher (user.profile.is_private_teacher = True), OR
+    - A teacher (user.profile.is_teacher = True), OR
     - A staff/superuser (user.is_staff = True OR user.is_superuser = True)
 
     Used for expenses app views to restrict access to authorized users only.
@@ -21,7 +21,7 @@ class TeacherOrAdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
             return True
 
         # Allow private teachers with completed profiles
-        if hasattr(user, 'profile') and user.profile.is_private_teacher:
+        if hasattr(user, 'profile') and user.profile.is_teacher:
             return True
 
         return False

@@ -346,7 +346,7 @@
             <div class="container mx-auto">
                 <div class="navbar justify-center py-2">
                     <ul class="menu menu-horizontal px-1 text-sm">
-                        {% if user.profile.is_private_teacher %}
+                        {% if user.profile.is_teacher %}
                             <!-- Teacher Navigation -->
                             <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.url_name == 'teacher_dashboard' %}bg-primary text-primary-content{% endif %}">Dashboard</a></li>
                             <li><a href="{% url 'private_teaching:incoming_requests' %}" class="{% if request.resolver_match.url_name == 'incoming_requests' %}bg-primary text-primary-content{% endif %}">Incoming Requests</a></li>
