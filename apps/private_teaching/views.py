@@ -136,8 +136,20 @@ class TeacherProfileCompleteView(TeacherProfileNotCompletedMixin, TemplateView):
         return render(request, self.template_name, {'form': form})
 
 
+class RedirectToMyTeachersView(View):
+    """
+    Redirect old request_lesson URL to new my_teachers page.
+    Maintains backward compatibility for bookmarks and links.
+    """
+    def get(self, request, *args, **kwargs):
+        return redirect('private_teaching:my_teachers', permanent=True)
+
+
 class LessonRequestCreateView(AcceptedStudentRequiredMixin, StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
-    """View for students to create lesson requests with multiple lessons"""
+    """
+    DEPRECATED: Use BookWithTeacherView instead.
+    Kept for reference but no longer linked in navigation.
+    """
     template_name = 'private_teaching/request_lesson.html'
 
     def get_context_data(self, **kwargs):

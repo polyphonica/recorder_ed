@@ -13,7 +13,7 @@ urlpatterns = [
 
     # Student Views
     path('dashboard/', views.StudentDashboardView.as_view(), name='student_dashboard'),
-    path('request/', views.LessonRequestCreateView.as_view(), name='request_lesson'),
+    path('request/', views.RedirectToMyTeachersView.as_view(), name='request_lesson'),  # Redirect old URL to new system
     path('book/<int:teacher_id>/', views.BookWithTeacherView.as_view(), name='book_with_teacher'),
     path('my-requests/', views.MyLessonRequestsView.as_view(), name='my_requests'),
     path('my-requests/<int:request_id>/', views.StudentLessonRequestDetailView.as_view(), name='student_request_detail'),

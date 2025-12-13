@@ -356,7 +356,7 @@
                         {% else %}
                             <!-- Student Navigation -->
                             <li><a href="{% url 'private_teaching:student_dashboard' %}" class="{% if request.resolver_match.url_name == 'student_dashboard' %}bg-primary text-primary-content{% endif %}">Dashboard</a></li>
-                            <li><a href="{% url 'private_teaching:request_lesson' %}" class="{% if request.resolver_match.url_name == 'request_lesson' %}bg-primary text-primary-content{% endif %}">Request Lessons</a></li>
+                            <li><a href="{% url 'private_teaching:my_teachers' %}" class="{% if request.resolver_match.url_name == 'my_teachers' %}bg-primary text-primary-content{% endif %}">My Teachers</a></li>
                             <li><a href="{% url 'private_teaching:my_requests' %}" class="{% if request.resolver_match.url_name == 'my_requests' %}bg-primary text-primary-content{% endif %}">My Requests</a></li>
                             <li><a href="{% url 'private_teaching:my_lessons' %}" class="{% if request.resolver_match.url_name == 'my_lessons' %}bg-primary text-primary-content{% endif %}">My Lessons</a></li>
                             <li><a href="{% url 'private_teaching:calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}bg-primary text-primary-content{% endif %}">Calendar</a></li>
