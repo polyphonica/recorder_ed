@@ -31,6 +31,9 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
+# CSRF trusted origins for Django 4.0+ (required for HTTPS)
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())
+
 # Security settings for production
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
