@@ -475,8 +475,11 @@ def teacher_signup_view(request, token):
             # Override email with the one from application
             user = form.save(commit=False)
             user.email = application.email
-            user.first_name = application.name.split()[0] if application.name else ''
-            user.last_name = ' '.join(application.name.split()[1:]) if len(application.name.split()) > 1 else ''
+
+            # Parse name safely
+            name_parts = application.name.split() if application.name else []
+            user.first_name = name_parts[0] if len(name_parts) > 0 else ''
+            user.last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
 
             with transaction.atomic():
                 user.save()
