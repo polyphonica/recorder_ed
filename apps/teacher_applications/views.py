@@ -78,10 +78,7 @@ def approve_application(request, application_id):
 
     application = get_object_or_404(TeacherApplication, id=application_id)
 
-    if application.status != 'pending':
-        messages.warning(request, f'Application has already been {application.get_status_display().lower()}.')
-        return redirect('admin_portal:applications_detail', application_id=application_id)
-
+    # Allow approving from any status
     # Approve the application
     application.approve(reviewed_by_user=request.user)
 
@@ -112,10 +109,7 @@ def reject_application(request, application_id):
 
     application = get_object_or_404(TeacherApplication, id=application_id)
 
-    if application.status != 'pending':
-        messages.warning(request, f'Application has already been {application.get_status_display().lower()}.')
-        return redirect('admin_portal:applications_detail', application_id=application_id)
-
+    # Allow rejecting from any status
     # Get rejection reason from form
     rejection_reason = request.POST.get('rejection_reason', '').strip()
 

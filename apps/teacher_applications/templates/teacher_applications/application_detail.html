@@ -174,10 +174,25 @@
             </div>
 
             <!-- Actions Card -->
-            {% if application.status == 'pending' %}
             <div class="card bg-base-100 shadow-xl">
                 <div class="card-body">
                     <h3 class="font-bold mb-4">Actions</h3>
+
+                    <!-- Current Status -->
+                    <div class="alert mb-4">
+                        <div>
+                            <span class="font-semibold">Current Status:</span>
+                            {% if application.status == 'pending' %}
+                                <div class="badge badge-warning ml-2">Pending</div>
+                            {% elif application.status == 'approved' %}
+                                <div class="badge badge-success ml-2">Approved</div>
+                            {% elif application.status == 'rejected' %}
+                                <div class="badge badge-error ml-2">Rejected</div>
+                            {% else %}
+                                <div class="badge badge-info ml-2">On Hold</div>
+                            {% endif %}
+                        </div>
+                    </div>
 
                     <!-- Approve Button -->
                     <form method="post" action="{% url 'admin_portal:applications_approve' application.id %}"
@@ -206,7 +221,6 @@
                     </button>
                 </div>
             </div>
-            {% endif %}
         </div>
     </div>
 
