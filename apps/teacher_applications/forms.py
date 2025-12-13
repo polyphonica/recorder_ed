@@ -94,8 +94,7 @@ class TeacherApplicationForm(forms.ModelForm):
     class Meta:
         model = TeacherApplication
         fields = ['name', 'email', 'phone', 'teaching_biography', 'qualifications',
-                  'subjects', 'dbs_check', 'teaching_format', 'availability',
-                  'terms_agreed']
+                  'subjects', 'availability', 'terms_agreed']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'input input-bordered w-full',
