@@ -4,51 +4,13 @@ from django.urls import reverse
 from django.utils import timezone
 from django import forms
 from django.contrib.auth.models import User
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.db.models import Q
 from apps.core.admin import UserDisplayMixin, InstructorQuerysetMixin, PriceDisplayMixin
 from .models import (
     WorkshopCategory, Workshop, WorkshopSession,
-    WorkshopRegistration, WorkshopMaterial, WorkshopInterest, UserProfile,
+    WorkshopRegistration, WorkshopMaterial, WorkshopInterest,
     WorkshopCartItem, WorkshopTermsAndConditions, TermsAcceptance
 )
-
-
-@admin.register(UserProfile)
-class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'created_at']
-    list_filter = ['created_at']
-    search_fields = ['user__username', 'user__first_name', 'user__last_name', 'user__email']
-    fields = ['user', 'bio', 'website']
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('user')
-
-    def get_readonly_fields(self, request, obj=None):
-        # Make fields read-only with helpful message
-        if obj:  # Editing an existing object
-            return ['user']
-        return []
-
-
-# Extend the default User admin to show workshop-specific profile
-class UserProfileInline(admin.StackedInline):
-    model = UserProfile
-    can_delete = False
-    verbose_name_plural = 'Workshop Profile (Legacy - Bio/Website only)'
-    fields = ['bio', 'website']
-    classes = ['collapse']  # Collapsed by default
-
-
-class UserAdmin(BaseUserAdmin):
-    inlines = (UserProfileInline,)
-    # Teacher status is now managed via accounts.UserProfile.is_teacher
-    # No need to show instructor_status here anymore
-
-# Unregister the default User admin and register our custom one
-admin.site.unregister(User)
-admin.site.register(User, UserAdmin)
 
 
 @admin.register(WorkshopCategory)

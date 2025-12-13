@@ -44,26 +44,6 @@ User.add_to_class('full_name_or_username', user_full_name_or_username)
 User.add_to_class('is_instructor', user_is_instructor)
 
 
-class UserProfile(models.Model):
-    """Extended user profile for instructor status and other user attributes"""
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='instructor_profile')
-    is_instructor = models.BooleanField(
-        default=False, 
-        help_text="Designates whether this user can create and manage workshops. Does not grant admin backend access."
-    )
-    bio = models.TextField(blank=True, help_text="Instructor biography")
-    website = models.URLField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        verbose_name = "User Profile"
-        verbose_name_plural = "User Profiles"
-    
-    def __str__(self):
-        return f"{self.user.display_name()} ({'Instructor' if self.is_instructor else 'Student'})"
-
-
 class WorkshopCategory(models.Model):
     """Categories for organizing workshops"""
     name = models.CharField(max_length=100, unique=True)

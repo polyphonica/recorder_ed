@@ -2451,7 +2451,7 @@ class AdminCourseCancellationListView(LoginRequiredMixin, UserPassesTestMixin, L
 
     def test_func(self):
         """Staff or instructors can access"""
-        return self.request.user.is_staff or self.request.user.profile.is_instructor
+        return self.request.user.is_staff or self.request.user.profile.is_teacher
 
     def get_queryset(self):
         """Get cancellations - all for staff, own courses for instructors"""
@@ -2461,7 +2461,7 @@ class AdminCourseCancellationListView(LoginRequiredMixin, UserPassesTestMixin, L
         qs = CourseCancellationRequest.objects.filter(status=status_filter)
 
         # If instructor (not staff), only show their own courses
-        if not self.request.user.is_staff and self.request.user.profile.is_instructor:
+        if not self.request.user.is_staff and self.request.user.profile.is_teacher:
             qs = qs.filter(enrollment__course__instructor=self.request.user)
 
         return qs.select_related(
@@ -2486,7 +2486,7 @@ class AdminCourseCancellationDetailView(LoginRequiredMixin, UserPassesTestMixin,
         from .models import CourseCancellationRequest
         if self.request.user.is_staff:
             return True
-        if self.request.user.profile.is_instructor:
+        if self.request.user.profile.is_teacher:
             # Check if this cancellation is for their course
             request_id = self.kwargs.get('request_id')
             return CourseCancellationRequest.objects.filter(
@@ -2501,7 +2501,7 @@ class AdminCourseCancellationDetailView(LoginRequiredMixin, UserPassesTestMixin,
             'student', 'enrollment', 'enrollment__course', 'reviewed_by'
         )
         # If instructor (not staff), only show their own courses
-        if not self.request.user.is_staff and self.request.user.profile.is_instructor:
+        if not self.request.user.is_staff and self.request.user.profile.is_teacher:
             qs = qs.filter(enrollment__course__instructor=self.request.user)
         return qs
 
@@ -2514,7 +2514,7 @@ class AdminApproveCancellationView(LoginRequiredMixin, UserPassesTestMixin, View
         from .models import CourseCancellationRequest
         if self.request.user.is_staff:
             return True
-        if self.request.user.profile.is_instructor:
+        if self.request.user.profile.is_teacher:
             # Check if this cancellation is for their course
             request_id = self.kwargs.get('request_id')
             return CourseCancellationRequest.objects.filter(
