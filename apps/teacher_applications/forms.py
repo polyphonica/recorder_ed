@@ -49,7 +49,7 @@ class TeacherApplicationForm(forms.ModelForm):
         help_text='List the instruments or subjects you teach'
     )
 
-    dbs_check_status = forms.ChoiceField(
+    dbs_check = forms.ChoiceField(
         choices=TeacherApplication.DBS_STATUS_CHOICES,
         widget=forms.RadioSelect(attrs={
             'class': 'radio radio-primary'
@@ -58,7 +58,7 @@ class TeacherApplicationForm(forms.ModelForm):
         help_text='Required for teaching children in the UK'
     )
 
-    teaching_formats = forms.MultipleChoiceField(
+    teaching_format = forms.MultipleChoiceField(
         choices=TeacherApplication.TEACHING_FORMAT_CHOICES,
         widget=forms.CheckboxSelectMultiple(attrs={
             'class': 'checkbox checkbox-primary'
@@ -94,7 +94,7 @@ class TeacherApplicationForm(forms.ModelForm):
     class Meta:
         model = TeacherApplication
         fields = ['name', 'email', 'phone', 'teaching_biography', 'qualifications',
-                  'subjects', 'dbs_check_status', 'teaching_formats', 'availability',
+                  'subjects', 'dbs_check', 'teaching_format', 'availability',
                   'terms_agreed']
         widgets = {
             'name': forms.TextInput(attrs={
@@ -107,14 +107,18 @@ class TeacherApplicationForm(forms.ModelForm):
             }),
         }
 
-    def clean_teaching_formats(self):
+    def clean_teaching_format(self):
         """Convert list of teaching formats to comma-separated string."""
-        formats = self.cleaned_data.get('teaching_formats', [])
+        formats = self.cleaned_data.get('teaching_format', [])
         return ','.join(formats) if formats else ''
 
     def save(self, commit=True):
-        """Save the application with terms agreement timestamp."""
+        """Save the application with terms agreement timestamp and map field names."""
         application = super().save(commit=False)
+
+        # Map form field names to model field names
+        application.dbs_check_status = self.cleaned_data.get('dbs_check')
+        application.teaching_formats = self.cleaned_data.get('teaching_format')
 
         # Set terms agreement timestamp
         if application.terms_agreed:
