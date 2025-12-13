@@ -32,12 +32,6 @@ class CustomLoginView(LoginView):
         if self.request.user.is_staff:
             return reverse('admin_portal:dashboard')
 
-        # Check for incomplete teacher onboarding
-        if hasattr(self.request.user, 'teacher_onboarding'):
-            onboarding = self.request.user.teacher_onboarding
-            if not onboarding.is_completed:
-                return reverse('teacher_applications:onboarding_dashboard')
-
         if hasattr(self.request.user, 'profile') and self.request.user.profile.is_teacher:
             return reverse('workshops:instructor_dashboard')
         else:
@@ -47,12 +41,6 @@ class CustomLoginView(LoginView):
         # Check if user is staff
         if self.request.user.is_staff:
             return reverse('admin_portal:dashboard')
-
-        # Check for incomplete teacher onboarding
-        if hasattr(self.request.user, 'teacher_onboarding'):
-            onboarding = self.request.user.teacher_onboarding
-            if not onboarding.is_completed:
-                return reverse('teacher_applications:onboarding_dashboard')
 
         # Use the default LOGIN_REDIRECT_URL for other users
         return super().get_success_url()
@@ -119,12 +107,6 @@ def profile_setup_view(request):
             next_url = request.session.pop('signup_next', None)
             if next_url:
                 return redirect(next_url)
-
-            # Check if teacher has incomplete onboarding
-            if hasattr(request.user, 'teacher_onboarding'):
-                onboarding = request.user.teacher_onboarding
-                if not onboarding.is_completed:
-                    return redirect('teacher_applications:onboarding_dashboard')
 
             # Redirect based on user role
             if request.user.profile.is_teacher:
@@ -509,11 +491,6 @@ def teacher_signup_view(request, token):
                         user.profile.is_teacher = True
                         user.profile.save()
 
-                        # Create onboarding record
-                        TeacherOnboarding.objects.get_or_create(
-                            user=user,
-                            defaults={'application': application}
-                        )
                 except Exception as e:
                     messages.error(request, f'Error creating account: {str(e)}')
                     raise
@@ -537,11 +514,12 @@ def teacher_signup_view(request, token):
                 messages.success(
                     request,
                     f'Welcome, {user.first_name}! Your teacher account has been created. '
-                    f'Please check your email to verify your address, then complete your onboarding.'
+                    f'Please complete your profile to start creating workshops and courses. '
+                    f'A verification email has been sent to {user.email}.'
                 )
 
-                # Redirect to onboarding
-                return redirect('teacher_applications:onboarding_dashboard')
+                # Redirect to profile setup
+                return redirect('accounts:profile_setup')
 
             except Exception as e:
                 messages.error(request, f'An unexpected error occurred: {str(e)}')
