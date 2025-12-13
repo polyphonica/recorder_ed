@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Teachers - Recorder-ed{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold mb-2">My Teachers</h1>
+        <p class="text-base-content/70">Teachers who have accepted you as a student</p>
+    </div>
+
+    {% if has_accepted_teachers %}
+        <!-- Accepted Teachers -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {% for application in accepted_applications %}
+                <div class="card card-section shadow-xl hover:shadow-2xl transition-shadow">
+                    <div class="card-body">
+                        <!-- Teacher Header -->
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="avatar">
+                                {% if application.teacher.profile.profile_image %}
+                                    <div class="w-16 rounded-full">
+                                        <img src="{{ application.teacher.profile.profile_image.url }}" alt="{{ application.teacher.get_full_name }}" />
+                                    </div>
+                                {% else %}
+                                    <div class="placeholder">
+                                        <div class="bg-primary text-primary-content rounded-full w-16">
+                                            <span class="text-2xl font-bold">{{ application.teacher.first_name|first|upper|default:application.teacher.username|first|upper }}</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-bold text-lg">{{ application.teacher.get_full_name|default:application.teacher.username }}</h3>
+                                <div class="badge badge-success badge-sm">Accepted</div>
+                            </div>
+                        </div>
+
+                        <!-- Student Name (if child) -->
+                        {% if application.child_profile %}
+                            <div class="alert alert-info mb-3 py-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="text-sm">Student: {{ application.child_profile.full_name }}</span>
+                            </div>
+                        {% endif %}
+
+                        <!-- Subjects Taught -->
+                        {% if application.teacher.subjects.all %}
+                            <div class="mb-4">
+                                <p class="text-xs font-semibold text-base-content/60 mb-2">Teaches:</p>
+                                <div class="flex flex-wrap gap-2">
+                                    {% for subject in application.teacher.subjects.all %}
+                                        {% if subject.is_active %}
+                                            <div class="badge badge-outline">{{ subject.subject }}</div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% elif application.teacher.profile.instruments_taught %}
+                            <div class="mb-4">
+                                <p class="text-xs font-semibold text-base-content/60 mb-1">Teaches:</p>
+                                <p class="text-sm text-base-content/80 line-clamp-2">
+                                    <i class="fas fa-music text-primary mr-1"></i>{{ application.teacher.profile.instruments_taught }}
+                                </p>
+                            </div>
+                        {% endif %}
+
+                        <!-- Actions -->
+                        <div class="card-actions justify-between mt-auto">
+                            <a href="{% url 'accounts:teacher_profile' application.teacher.id %}" class="btn btn-ghost btn-sm">
+                                <i class="fas fa-info-circle mr-1"></i>View Profile
+                            </a>
+                            <a href="{% url 'private_teaching:book_with_teacher' application.teacher.id %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-calendar-plus mr-1"></i>Book Lessons
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- No Accepted Teachers -->
+        <div class="alert alert-warning shadow-xl mb-8">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+                <h3 class="font-bold">No Teachers Yet</h3>
+                <div class="text-sm">You need to be accepted by a teacher before you can book lessons.</div>
+            </div>
+        </div>
+
+        <div class="text-center mb-8">
+            <a href="{% url 'private_teaching:home' %}" class="btn btn-primary">
+                <i class="fas fa-search mr-2"></i>Browse Teachers
+            </a>
+        </div>
+    {% endif %}
+
+    <!-- Other Applications Status -->
+    {% if other_applications %}
+        <div class="divider mt-12 mb-8">Application Status</div>
+
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">
+                    <i class="fas fa-hourglass-half text-warning"></i>
+                    Pending & Other Applications
+                </h2>
+
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra">
+                        <thead>
+                            <tr>
+                                <th>Teacher</th>
+                                <th>Student</th>
+                                <th>Status</th>
+                                <th>Applied</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for app in other_applications %}
+                                <tr>
+                                    <td>
+                                        <div class="flex items-center gap-3">
+                                            <div class="avatar">
+                                                <div class="mask mask-squircle w-12 h-12">
+                                                    {% if app.teacher.profile.profile_image %}
+                                                        <img src="{{ app.teacher.profile.profile_image.url }}" alt="{{ app.teacher.get_full_name }}" />
+                                                    {% else %}
+                                                        <div class="bg-neutral text-neutral-content flex items-center justify-center w-12 h-12">
+                                                            <span class="text-xl">{{ app.teacher.first_name|first|upper }}</span>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold">{{ app.teacher.get_full_name }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ app.student_name }}</td>
+                                    <td>
+                                        {% if app.status == 'pending' %}
+                                            <span class="badge badge-warning">Pending</span>
+                                        {% elif app.status == 'declined' %}
+                                            <span class="badge badge-error">Declined</span>
+                                        {% elif app.status == 'waitlist' %}
+                                            <span class="badge badge-info">Waitlist</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ app.created_at|date:"M d, Y" }}</td>
+                                    <td>
+                                        <a href="{% url 'private_teaching:student_application_detail' app.id %}" class="btn btn-ghost btn-xs">
+                                            View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Browse More Teachers -->
+    <div class="text-center mt-12">
+        <p class="text-base-content/70 mb-4">Looking for more teachers?</p>
+        <a href="{% url 'private_teaching:home' %}" class="btn btn-outline">
+            <i class="fas fa-users mr-2"></i>Browse All Teachers
+        </a>
+    </div>
+</div>
+</div>
+{% endblock %}

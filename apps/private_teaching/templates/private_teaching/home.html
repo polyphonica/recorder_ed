@@ -15,9 +15,9 @@
         <div class="hero-content text-center">
             <div class="max-w-md">
                 <h1 class="text-5xl font-bold">Private Lessons</h1>
-                <p class="py-6">One-on-one music lessons tailored to your needs. Request lessons from experienced instructors.</p>
+                <p class="py-6">One-on-one music lessons tailored to your needs. Book lessons with your teachers.</p>
                 {% if user.is_authenticated and user.profile.is_student and user.profile.profile_completed %}
-                    <a href="{% url 'private_teaching:request_lesson' %}" class="btn btn-section-primary">Request a Lesson</a>
+                    <a href="{% url 'private_teaching:my_teachers' %}" class="btn btn-section-primary">My Teachers</a>
                 {% elif user.is_authenticated and not user.profile.profile_completed %}
                     <a href="{% url 'private_teaching:profile_complete' %}" class="btn btn-warning">Complete Profile</a>
                 {% elif user.is_authenticated and not user.profile.is_student %}

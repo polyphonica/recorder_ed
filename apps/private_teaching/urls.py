@@ -14,6 +14,7 @@ urlpatterns = [
     # Student Views
     path('dashboard/', views.StudentDashboardView.as_view(), name='student_dashboard'),
     path('request/', views.LessonRequestCreateView.as_view(), name='request_lesson'),
+    path('book/<int:teacher_id>/', views.BookWithTeacherView.as_view(), name='book_with_teacher'),
     path('my-requests/', views.MyLessonRequestsView.as_view(), name='my_requests'),
     path('my-requests/<int:request_id>/', views.StudentLessonRequestDetailView.as_view(), name='student_request_detail'),
     path('my-lessons/', views.MyLessonsView.as_view(), name='my_lessons'),
@@ -55,6 +56,7 @@ urlpatterns = [
     path('apply/<int:teacher_id>/', views.ApplyToTeacherView.as_view(), name='apply_to_teacher'),
     path('my-applications/', views.StudentApplicationsListView.as_view(), name='student_applications'),
     path('my-applications/<uuid:application_id>/', views.StudentApplicationDetailView.as_view(), name='student_application_detail'),
+    path('my-teachers/', views.MyTeachersView.as_view(), name='my_teachers'),
 
     # Teacher Application Management Views
     path('teacher/applications/', views.TeacherApplicationsListView.as_view(), name='teacher_applications'),

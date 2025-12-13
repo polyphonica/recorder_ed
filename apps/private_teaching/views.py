@@ -1574,6 +1574,177 @@ class StudentApplicationsListView(UserFilterMixin, StudentProfileCompletedMixin,
         return super().get_queryset().select_related('teacher', 'teacher__profile', 'child_profile').order_by('-created_at')
 
 
+class MyTeachersView(UserFilterMixin, StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
+    """
+    List teachers who have accepted the student.
+    Students can book lessons only with accepted teachers.
+    """
+    model = TeacherStudentApplication
+    template_name = 'private_teaching/my_teachers.html'
+    context_object_name = 'accepted_applications'
+    user_field_name = 'applicant'
+
+    def get_queryset(self):
+        # Get only accepted applications
+        return super().get_queryset().filter(
+            status='accepted'
+        ).select_related(
+            'teacher',
+            'teacher__profile',
+            'child_profile'
+        ).prefetch_related(
+            'teacher__subjects'  # Prefetch teacher's subjects to show what they teach
+        ).order_by('teacher__first_name', 'teacher__last_name')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Also get pending/declined applications for status display
+        all_applications = TeacherStudentApplication.objects.filter(
+            applicant=self.request.user
+        ).exclude(
+            status='accepted'
+        ).select_related('teacher', 'teacher__profile')
+
+        context['other_applications'] = all_applications
+        context['has_accepted_teachers'] = self.get_queryset().exists()
+
+        return context
+
+
+class BookWithTeacherView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
+    """
+    Teacher-specific lesson booking page.
+    Students can only book with teachers who have accepted them.
+    Filters subjects to only show that teacher's subjects.
+    """
+    template_name = 'private_teaching/book_with_teacher.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check if student has accepted application with this teacher"""
+        teacher_id = kwargs.get('teacher_id')
+        teacher = get_object_or_404(User, id=teacher_id, profile__is_teacher=True)
+
+        # Check for accepted application
+        accepted_application = TeacherStudentApplication.objects.filter(
+            applicant=request.user,
+            teacher=teacher,
+            status='accepted'
+        ).first()
+
+        if not accepted_application:
+            messages.error(
+                request,
+                f'You need to be accepted by {teacher.get_full_name()} before you can book lessons. '
+                f'Please apply first or wait for your application to be accepted.'
+            )
+            return redirect('private_teaching:my_teachers')
+
+        # Store teacher and application for use in get/post
+        self.teacher = teacher
+        self.accepted_application = accepted_application
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['teacher'] = self.teacher
+        context['application'] = self.accepted_application
+        context['form'] = LessonRequestForm(user=self.request.user)
+        context['formset'] = StudentLessonFormSet()
+        # IMPORTANT: Only show this teacher's subjects
+        context['subjects'] = Subject.objects.filter(
+            teacher=self.teacher,
+            is_active=True
+        )
+        return context
+
+    def post(self, request, *args, **kwargs):
+        form = LessonRequestForm(request.POST, user=request.user)
+        formset = StudentLessonFormSet(request.POST)
+
+        if form.is_valid() and formset.is_valid():
+            # Create the lesson request container
+            lesson_request = form.save(commit=False)
+            lesson_request.student = request.user
+
+            # Handle child profile if guardian
+            if request.user.profile.is_guardian:
+                child_id = form.cleaned_data.get('child_profile')
+                if child_id:
+                    from apps.accounts.models import ChildProfile
+                    try:
+                        child = ChildProfile.objects.get(id=child_id, guardian=request.user)
+                        lesson_request.child_profile = child
+                    except ChildProfile.DoesNotExist:
+                        messages.error(request, 'Invalid child selected.')
+                        return self.render_to_response(self.get_context_data(
+                            form=form,
+                            formset=formset
+                        ))
+
+            lesson_request.save()
+
+            # Save the lessons - all should be with this teacher
+            lessons = formset.save(commit=False)
+            for lesson in lessons:
+                lesson.lesson_request = lesson_request
+                lesson.student = request.user
+                # Verify subject belongs to this teacher
+                if lesson.subject and lesson.subject.teacher != self.teacher:
+                    messages.error(
+                        request,
+                        f'Subject "{lesson.subject}" does not belong to {self.teacher.get_full_name()}. '
+                        f'Please select only subjects taught by this teacher.'
+                    )
+                    lesson_request.delete()
+                    return self.render_to_response(self.get_context_data(
+                        form=form,
+                        formset=formset
+                    ))
+                # Teacher will be auto-populated from subject in Lesson.save()
+                lesson.save()
+
+            # Handle deleted lessons
+            for lesson in formset.deleted_objects:
+                lesson.delete()
+
+            # Create initial message if provided
+            initial_message = request.POST.get('initial_message', '').strip()
+            if initial_message:
+                LessonRequestMessage.objects.create(
+                    lesson_request=lesson_request,
+                    author=request.user,
+                    message=initial_message
+                )
+
+            # Send email notification to THIS teacher only
+            try:
+                TeacherNotificationService.send_new_lesson_request_notification(
+                    lesson_request=lesson_request,
+                    lessons=lessons,
+                    teacher=self.teacher
+                )
+            except Exception as e:
+                # Log error but don't fail the request
+                print(f"Error sending notification email to teacher: {e}")
+
+            lesson_count = len(lessons)
+            student_name = lesson_request.student_name
+            messages.success(
+                request,
+                f'Lesson request for {student_name} with {self.teacher.get_full_name()} submitted successfully '
+                f'with {lesson_count} lesson{"s" if lesson_count != 1 else ""}! The teacher will respond soon.'
+            )
+            return redirect('private_teaching:my_requests')
+
+        # If form invalid, re-render with errors
+        return self.render_to_response(self.get_context_data(
+            form=form,
+            formset=formset
+        ))
+
+
 class StudentApplicationDetailView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
     """View single application with messaging"""
     template_name = 'private_teaching/student_application_detail.html'
