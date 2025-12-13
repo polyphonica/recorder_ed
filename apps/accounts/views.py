@@ -518,6 +518,8 @@ def teacher_signup_view(request, token):
 
                 # Log the user in
                 try:
+                    # Set backend attribute for login (required when multiple backends exist)
+                    user.backend = 'django.contrib.auth.backends.ModelBackend'
                     login(request, user)
                 except Exception as e:
                     messages.error(request, f'Account created but login failed: {str(e)}')
