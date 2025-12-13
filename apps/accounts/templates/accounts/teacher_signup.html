@@ -36,6 +36,9 @@
             <form method="post">
                 {% csrf_token %}
 
+                <!-- Hidden email field (required by form) -->
+                <input type="hidden" name="email" value="{{ application.email }}">
+
                 <div class="form-control mb-4">
                     <label class="label">
                         <span class="label-text font-semibold">Email Address</span>
