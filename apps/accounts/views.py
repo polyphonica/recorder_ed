@@ -108,11 +108,8 @@ def profile_setup_view(request):
             if next_url:
                 return redirect(next_url)
 
-            # Redirect based on user role
-            if request.user.profile.is_teacher:
-                return redirect('workshops:instructor_dashboard')
-            else:
-                return redirect('workshops:student_dashboard')
+            # Redirect to domain selector to choose which domain to explore
+            return redirect('domain_selector')
     else:
         form = UserProfileForm(instance=profile)
 
