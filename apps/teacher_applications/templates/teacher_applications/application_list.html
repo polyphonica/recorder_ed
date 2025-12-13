@@ -30,13 +30,13 @@
 
     <!-- Filters --><div class="card bg-base-100 shadow-xl mb-6">
         <div class="card-body">
-            <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <form method="get" id="filterForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <!-- Status Filter -->
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text font-semibold">Status</span>
                     </label>
-                    <select name="status" class="select select-bordered select-sm" onchange="this.form.submit()">
+                    <select name="status" class="select select-bordered select-sm" onchange="document.getElementById('filterForm').submit()">
                         <option value="needs_review" {% if status_filter == 'needs_review' %}selected{% endif %}>Needs Review (Pending + On Hold)</option>
                         <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Only</option>
                         <option value="on_hold" {% if status_filter == 'on_hold' %}selected{% endif %}>On Hold Only</option>
@@ -51,7 +51,7 @@
                     <label class="label">
                         <span class="label-text font-semibold">Search</span>
                     </label>
-                    <input type="text" name="q" value="{{ search_query }}"
+                    <input type="text" name="q" value="{{ search_query|default:'' }}"
                            placeholder="Name, email, or subject..."
                            class="input input-bordered input-sm">
                 </div>
@@ -61,11 +61,19 @@
                     <label class="label">
                         <span class="label-text font-semibold">Sort By</span>
                     </label>
-                    <select name="sort" class="select select-bordered select-sm" onchange="this.form.submit()">
+                    <select name="sort" class="select select-bordered select-sm" onchange="document.getElementById('filterForm').submit()">
                         <option value="-created_at" {% if sort_by == '-created_at' %}selected{% endif %}>Newest First</option>
                         <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Oldest First</option>
                         <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name (A-Z)</option>
                     </select>
+                </div>
+
+                <!-- Filter Button -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">&nbsp;</span>
+                    </label>
+                    <button type="submit" class="btn btn-primary btn-sm">Apply Filters</button>
                 </div>
             </form>
         </div>
