@@ -120,8 +120,17 @@ def profile_setup_view(request):
             if next_url:
                 return redirect(next_url)
 
-            # Default fallback
-            return redirect('workshops:student_dashboard')
+            # Check if teacher has incomplete onboarding
+            if hasattr(request.user, 'teacher_onboarding'):
+                onboarding = request.user.teacher_onboarding
+                if not onboarding.is_completed:
+                    return redirect('teacher_applications:onboarding_dashboard')
+
+            # Redirect based on user role
+            if request.user.profile.is_teacher:
+                return redirect('workshops:instructor_dashboard')
+            else:
+                return redirect('workshops:student_dashboard')
     else:
         form = UserProfileForm(instance=profile)
 
