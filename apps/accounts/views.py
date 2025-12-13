@@ -510,7 +510,6 @@ def teacher_signup_view(request, token):
     else:
         # Pre-fill form with application data
         initial_data = {
-            'username': application.email.split('@')[0],  # Suggest username from email
             'email': application.email,
         }
         form = CustomUserCreationForm(initial=initial_data)

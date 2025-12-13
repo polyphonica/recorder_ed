@@ -46,34 +46,10 @@
                     </label>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text font-semibold">Username</span>
-                        </label>
-                        {{ form.username }}
-                        {% if form.username.help_text %}
-                            <label class="label">
-                                <span class="label-text-alt text-xs">{{ form.username.help_text }}</span>
-                            </label>
-                        {% endif %}
-                        {% if form.username.errors %}
-                            <label class="label">
-                                <span class="label-text-alt text-error">{{ form.username.errors.0 }}</span>
-                            </label>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text font-semibold">Email</span>
-                        </label>
-                        {{ form.email }}
-                        {% if form.email.errors %}
-                            <label class="label">
-                                <span class="label-text-alt text-error">{{ form.email.errors.0 }}</span>
-                            </label>
-                        {% endif %}
+                <div class="alert alert-info mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div class="text-sm">
+                        Your email address <strong>{{ application.email }}</strong> will be used as your username and login.
                     </div>
                 </div>
 
