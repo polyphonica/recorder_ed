@@ -496,13 +496,20 @@ def teacher_signup_view(request, token):
                     defaults={'application': application}
                 )
 
+            # Send verification email
+            try:
+                send_verification_email(request, user)
+            except Exception as e:
+                # Log error but don't block signup
+                print(f"Failed to send verification email: {e}")
+
             # Log the user in
             login(request, user)
 
             messages.success(
                 request,
                 f'Welcome, {user.first_name}! Your teacher account has been created. '
-                f'Let\'s complete your onboarding.'
+                f'Please check your email to verify your address, then complete your onboarding.'
             )
 
             # Redirect to onboarding
