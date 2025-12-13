@@ -485,10 +485,10 @@ def teacher_signup_view(request, token):
                 application.user = user
                 application.save(update_fields=['user'])
 
-                # Grant teacher status
-                if hasattr(user, 'profile'):
-                    user.profile.is_teacher = True
-                    user.profile.save()
+                # Grant teacher status (refresh user to get profile created by signal)
+                user.refresh_from_db()
+                user.profile.is_teacher = True
+                user.profile.save()
 
                 # Create onboarding record
                 TeacherOnboarding.objects.get_or_create(

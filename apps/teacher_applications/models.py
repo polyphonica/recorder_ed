@@ -146,9 +146,12 @@ class TeacherApplication(models.Model):
         self.save()
 
         # Grant teacher status to the user if they have an account
-        if self.user and hasattr(self.user, 'profile'):
-            self.user.profile.is_teacher = True
-            self.user.profile.save()
+        if self.user:
+            # Refresh to ensure profile relationship is loaded
+            self.user.refresh_from_db()
+            if hasattr(self.user, 'profile'):
+                self.user.profile.is_teacher = True
+                self.user.profile.save()
 
     def reject(self, reviewed_by_user, reason=''):
         """
