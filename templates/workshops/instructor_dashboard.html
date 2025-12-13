@@ -11,6 +11,32 @@
         <p class="text-lg text-gray-600">Welcome back, {{ user.display_name }}!</p>
     </div>
 
+    <!-- Teacher Onboarding Banner -->
+    {% if user.teacher_onboarding and not user.teacher_onboarding.is_completed %}
+    <div class="alert alert-warning shadow-lg mb-8">
+        <div class="flex items-center gap-4 flex-1">
+            <i class="fas fa-exclamation-circle text-3xl"></i>
+            <div class="flex-1">
+                <h3 class="font-bold text-lg">Complete Your Teacher Onboarding</h3>
+                <p class="text-sm mt-1">
+                    You're {{ user.teacher_onboarding.get_progress_percentage }}% done!
+                    ({{ user.teacher_onboarding.get_completed_steps_count }} of 5 steps completed)
+                </p>
+                <div class="w-full bg-warning-content/20 rounded-full h-2 mt-2">
+                    <div class="bg-warning-content h-2 rounded-full transition-all duration-300"
+                         style="width: {{ user.teacher_onboarding.get_progress_percentage }}%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="flex-none">
+            <a href="{% url 'teacher_applications:onboarding_dashboard' %}" class="btn btn-warning btn-sm">
+                <i class="fas fa-arrow-right mr-2"></i>
+                Continue Onboarding
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <div class="stat bg-base-100 shadow rounded-lg">

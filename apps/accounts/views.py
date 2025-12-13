@@ -29,7 +29,14 @@ class CustomLoginView(LoginView):
         """Determine where to redirect already-authenticated users"""
         if self.request.user.is_staff:
             return reverse('admin_portal:dashboard')
-        elif hasattr(self.request.user, 'profile') and self.request.user.profile.is_teacher:
+
+        # Check for incomplete teacher onboarding
+        if hasattr(self.request.user, 'teacher_onboarding'):
+            onboarding = self.request.user.teacher_onboarding
+            if not onboarding.is_completed:
+                return reverse('teacher_applications:onboarding_dashboard')
+
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.is_teacher:
             return reverse('workshops:instructor_dashboard')
         else:
             return reverse('workshops:list')
@@ -38,6 +45,12 @@ class CustomLoginView(LoginView):
         # Check if user is staff
         if self.request.user.is_staff:
             return reverse('admin_portal:dashboard')
+
+        # Check for incomplete teacher onboarding
+        if hasattr(self.request.user, 'teacher_onboarding'):
+            onboarding = self.request.user.teacher_onboarding
+            if not onboarding.is_completed:
+                return reverse('teacher_applications:onboarding_dashboard')
 
         # Use the default LOGIN_REDIRECT_URL for other users
         return super().get_success_url()
