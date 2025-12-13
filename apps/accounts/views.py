@@ -471,52 +471,71 @@ def teacher_signup_view(request, token):
 
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            # Override email with the one from application
-            user = form.save(commit=False)
-            user.email = application.email
 
-            # Parse name safely
-            name_parts = application.name.split() if application.name else []
-            user.first_name = name_parts[0] if len(name_parts) > 0 else ''
-            user.last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+        if not form.is_valid():
+            # Form validation failed - show errors
+            messages.error(request, 'Please correct the errors below.')
+        else:
+            try:
+                # Override email with the one from application
+                user = form.save(commit=False)
+                user.email = application.email
 
-            with transaction.atomic():
-                user.save()
+                # Parse name safely
+                name_parts = application.name.split() if application.name else []
+                user.first_name = name_parts[0] if len(name_parts) > 0 else ''
+                user.last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
 
-                # Link application to user
-                application.user = user
-                application.save(update_fields=['user'])
+                try:
+                    with transaction.atomic():
+                        # Save user
+                        user.save()
 
-                # Grant teacher status (refresh user to get profile created by signal)
-                user.refresh_from_db()
-                user.profile.is_teacher = True
-                user.profile.save()
+                        # Link application to user
+                        application.user = user
+                        application.save(update_fields=['user'])
 
-                # Create onboarding record
-                TeacherOnboarding.objects.get_or_create(
-                    user=user,
-                    defaults={'application': application}
+                        # Grant teacher status (refresh user to get profile created by signal)
+                        user.refresh_from_db()
+                        user.profile.is_teacher = True
+                        user.profile.save()
+
+                        # Create onboarding record
+                        TeacherOnboarding.objects.get_or_create(
+                            user=user,
+                            defaults={'application': application}
+                        )
+                except Exception as e:
+                    messages.error(request, f'Error creating account: {str(e)}')
+                    raise
+
+                # Send verification email
+                try:
+                    send_verification_email(request, user)
+                except Exception as e:
+                    # Log error but don't block signup
+                    print(f"Failed to send verification email: {e}")
+
+                # Log the user in
+                try:
+                    login(request, user)
+                except Exception as e:
+                    messages.error(request, f'Account created but login failed: {str(e)}')
+                    return redirect('accounts:login')
+
+                messages.success(
+                    request,
+                    f'Welcome, {user.first_name}! Your teacher account has been created. '
+                    f'Please check your email to verify your address, then complete your onboarding.'
                 )
 
-            # Send verification email
-            try:
-                send_verification_email(request, user)
+                # Redirect to onboarding
+                return redirect('teacher_applications:onboarding_dashboard')
+
             except Exception as e:
-                # Log error but don't block signup
-                print(f"Failed to send verification email: {e}")
-
-            # Log the user in
-            login(request, user)
-
-            messages.success(
-                request,
-                f'Welcome, {user.first_name}! Your teacher account has been created. '
-                f'Please check your email to verify your address, then complete your onboarding.'
-            )
-
-            # Redirect to onboarding
-            return redirect('teacher_applications:onboarding_dashboard')
+                messages.error(request, f'An unexpected error occurred: {str(e)}')
+                import traceback
+                print(f"Teacher signup error: {traceback.format_exc()}")
     else:
         # Pre-fill form with application data
         initial_data = {
