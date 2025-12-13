@@ -32,6 +32,7 @@ from apps.accounts.forms import CustomPasswordResetForm
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('admin-portal/', include('apps.admin_portal.urls')),  # Admin portal for staff
     path('accounts/', include('apps.accounts.urls')),  # Custom login view here
     # Custom password reset view with HTML email support
     path('accounts/password_reset/', auth_views.PasswordResetView.as_view(

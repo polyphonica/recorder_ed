@@ -1,0 +1,152 @@
+{% extends 'admin_portal/base.html' %}
+
+{% block title %}Teacher Applications{% endblock %}
+{% block page_title %}Teacher Applications{% endblock %}
+
+{% block content %}
+
+    <!-- Stats Cards --><div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Pending</div>
+            <div class="stat-value text-warning">{{ stats.total_pending }}</div>
+            <div class="stat-desc">Awaiting review</div>
+        </div>
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Approved</div>
+            <div class="stat-value text-success">{{ stats.total_approved }}</div>
+            <div class="stat-desc">Teachers activated</div>
+        </div>
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">On Hold</div>
+            <div class="stat-value text-info">{{ stats.total_on_hold }}</div>
+            <div class="stat-desc">Under review</div>
+        </div>
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-title">Rejected</div>
+            <div class="stat-value text-error">{{ stats.total_rejected }}</div>
+            <div class="stat-desc">Not approved</div>
+        </div>
+    </div>
+
+    <!-- Filters --><div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Status Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Status</span>
+                    </label>
+                    <select name="status" class="select select-bordered select-sm" onchange="this.form.submit()">
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="on_hold" {% if status_filter == 'on_hold' %}selected{% endif %}>On Hold</option>
+                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                    </select>
+                </div>
+
+                <!-- Search -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Search</span>
+                    </label>
+                    <input type="text" name="q" value="{{ search_query }}"
+                           placeholder="Name, email, or subject..."
+                           class="input input-bordered input-sm">
+                </div>
+
+                <!-- Sort -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Sort By</span>
+                    </label>
+                    <select name="sort" class="select select-bordered select-sm" onchange="this.form.submit()">
+                        <option value="-created_at" {% if sort_by == '-created_at' %}selected{% endif %}>Newest First</option>
+                        <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Oldest First</option>
+                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name (A-Z)</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Applications Table -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-0">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Applicant</th>
+                            <th>Subjects</th>
+                            <th>Teaching Format</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for application in applications %}
+                        <tr class="hover">
+                            <td>
+                                <div class="flex flex-col">
+                                    <a href="{% url 'admin_portal:applications:detail' application.id %}"
+                                       class="link link-primary font-medium">
+                                        {{ application.name }}
+                                    </a>
+                                    <span class="text-xs text-base-content/60">{{ application.email }}</span>
+                                    {% if application.user %}
+                                    <span class="badge badge-xs badge-info mt-1">Has Account</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="max-w-xs truncate text-sm">
+                                    {{ application.subjects }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-sm">
+                                    {% for format in application.get_teaching_formats_list %}
+                                        <div class="badge badge-sm badge-outline">{{ format }}</div>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if application.status == 'pending' %}
+                                    <div class="badge badge-warning">Pending</div>
+                                {% elif application.status == 'approved' %}
+                                    <div class="badge badge-success">Approved</div>
+                                {% elif application.status == 'rejected' %}
+                                    <div class="badge badge-error">Rejected</div>
+                                {% else %}
+                                    <div class="badge badge-info">On Hold</div>
+                                {% endif %}
+                            </td>
+                            <td class="text-sm">
+                                {{ application.created_at|timesince }} ago
+                            </td>
+                            <td>
+                                <a href="{% url 'admin_portal:applications:detail' application.id %}"
+                                   class="btn btn-sm btn-ghost">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-8 text-base-content/60">
+                                No applications found matching your filters.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mt-6">
+        <p class="text-sm text-base-content/60">Showing {{ applications|length }} application(s)</p>
+    </div>
+{% endblock %}

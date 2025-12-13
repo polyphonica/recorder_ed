@@ -1,14 +1,10 @@
-{% extends 'base.html' %}
+{% extends 'admin_portal/base.html' %}
 {% load static %}
 
-{% block title %}Support Dashboard - {{ block.super }}{% endblock %}
+{% block title %}Support Tickets{% endblock %}
+{% block page_title %}Support Tickets{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold mb-2">Support Tickets</h1>
-        <p class="text-base-content/70">Manage all support requests</p>
-    </div>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -132,7 +128,7 @@
                         {% for ticket in tickets %}
                         <tr class="hover">
                             <td>
-                                <a href="{% url 'support:ticket_detail' ticket.ticket_number %}" class="link link-primary font-mono">
+                                <a href="{% url 'admin_portal:support:detail' ticket.ticket_number %}" class="link link-primary font-mono">
                                     {{ ticket.ticket_number }}
                                 </a>
                             </td>
@@ -208,5 +204,4 @@
     <div class="text-center mt-6">
         <p class="text-sm text-base-content/60">Showing {{ tickets|length }} ticket(s)</p>
     </div>
-</div>
 {% endblock %}

@@ -1,0 +1,212 @@
+{% extends 'admin_portal/base.html' %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- New Users (7 days) -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-primary">
+                    <i class="fas fa-user-plus text-3xl"></i>
+                </div>
+                <div class="stat-title">New Users (7 days)</div>
+                <div class="stat-value text-primary">{{ new_users_7d }}</div>
+                <div class="stat-desc">Total: {{ total_users }}</div>
+            </div>
+        </div>
+
+        <!-- Open Tickets -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-warning">
+                    <i class="fas fa-ticket-alt text-3xl"></i>
+                </div>
+                <div class="stat-title">Open Tickets</div>
+                <div class="stat-value text-warning">{{ open_tickets }}</div>
+                <div class="stat-desc">
+                    <a href="{% url 'admin_portal:support:list' %}" class="link link-primary">View all</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Teacher Applications -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-info">
+                    <i class="fas fa-user-check text-3xl"></i>
+                </div>
+                <div class="stat-title">Pending Applications</div>
+                <div class="stat-value text-info">{{ pending_teacher_apps }}</div>
+                <div class="stat-desc">Teacher applications</div>
+            </div>
+        </div>
+
+        <!-- Ticket Status -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-secondary">
+                    <i class="fas fa-chart-pie text-3xl"></i>
+                </div>
+                <div class="stat-title">Ticket Status</div>
+                <div class="stat-value text-sm">
+                    {% for status in ticket_status_counts %}
+                        <div class="text-xs">{{ status.status|title }}: {{ status.count }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent Teacher Applications -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title">
+                        <i class="fas fa-user-check text-primary"></i>
+                        Recent Teacher Applications
+                    </h2>
+                    <a href="{% url 'admin_portal:applications:list' %}" class="btn btn-sm btn-ghost">
+                        View All
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+
+                {% if recent_applications %}
+                <div class="space-y-3">
+                    {% for application in recent_applications %}
+                    <div class="card bg-base-200">
+                        <div class="card-body p-4">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <a href="{% url 'admin_portal:applications:detail' application.id %}"
+                                       class="link link-primary font-medium">
+                                        {{ application.name }}
+                                    </a>
+                                    <div class="text-xs text-base-content/60">{{ application.email }}</div>
+                                    <div class="text-xs mt-1">
+                                        <span class="badge badge-xs badge-outline">{{ application.subjects|truncatewords:3 }}</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    {% if application.status == 'pending' %}
+                                        <div class="badge badge-warning badge-sm">Pending</div>
+                                    {% elif application.status == 'approved' %}
+                                        <div class="badge badge-success badge-sm">Approved</div>
+                                    {% else %}
+                                        <div class="badge badge-ghost badge-sm">{{ application.get_status_display }}</div>
+                                    {% endif %}
+                                    <div class="text-xs text-base-content/60 mt-1">
+                                        {{ application.created_at|timesince }} ago
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-base-content/60 py-8">
+                    <i class="fas fa-inbox text-4xl mb-4"></i>
+                    <p>No teacher applications yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Support Tickets -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title">
+                        <i class="fas fa-ticket-alt text-primary"></i>
+                        Recent Support Tickets
+                    </h2>
+                    <a href="{% url 'admin_portal:support:list' %}" class="btn btn-sm btn-ghost">
+                        View All
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+
+                {% if recent_tickets %}
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th>Ticket #</th>
+                                <th>Subject</th>
+                                <th>User</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ticket in recent_tickets %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'admin_portal:support:detail' ticket.ticket_number %}" class="link link-primary">
+                                        {{ ticket.ticket_number }}
+                                    </a>
+                                </td>
+                                <td>{{ ticket.subject|truncatewords:8 }}</td>
+                                <td>
+                                    {% if ticket.user %}
+                                        {{ ticket.user.get_full_name|default:ticket.user.username }}
+                                    {% else %}
+                                        {{ ticket.name }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge {% if ticket.status == 'open' %}badge-warning{% elif ticket.status == 'in_progress' %}badge-info{% elif ticket.status == 'resolved' %}badge-success{% else %}badge-ghost{% endif %}">
+                                        {{ ticket.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>{{ ticket.created_at|timesince }} ago</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-base-content/60 py-8">
+                    <i class="fas fa-inbox text-4xl mb-4"></i>
+                    <p>No recent tickets</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-bolt text-warning"></i>
+                Quick Actions
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <a href="{% url 'support:staff_dashboard' %}" class="btn btn-outline">
+                    <i class="fas fa-ticket-alt mr-2"></i>
+                    View All Tickets
+                </a>
+
+                <a href="{% url 'domain_selector' %}" class="btn btn-outline">
+                    <i class="fas fa-external-link-alt mr-2"></i>
+                    View Public Site
+                </a>
+
+                {% if user.is_superuser %}
+                <a href="/admin/" class="btn btn-outline">
+                    <i class="fas fa-database mr-2"></i>
+                    Django Admin
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

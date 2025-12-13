@@ -15,7 +15,7 @@ from django.db import transaction
 class CustomLoginView(LoginView):
     """
     Custom login view that redirects users based on their role:
-    - Staff members → Support Dashboard
+    - Staff members → Admin Portal Dashboard
     - Instructors → Workshops Dashboard (default)
     - Students → Workshops list (default)
     """
@@ -28,7 +28,7 @@ class CustomLoginView(LoginView):
     def get_redirect_url_for_authenticated_user(self):
         """Determine where to redirect already-authenticated users"""
         if self.request.user.is_staff:
-            return reverse('support:staff_dashboard')
+            return reverse('admin_portal:dashboard')
         elif hasattr(self.request.user, 'profile') and self.request.user.profile.is_teacher:
             return reverse('workshops:instructor_dashboard')
         else:
@@ -37,7 +37,7 @@ class CustomLoginView(LoginView):
     def get_success_url(self):
         # Check if user is staff
         if self.request.user.is_staff:
-            return reverse('support:staff_dashboard')
+            return reverse('admin_portal:dashboard')
 
         # Use the default LOGIN_REDIRECT_URL for other users
         return super().get_success_url()

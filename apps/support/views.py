@@ -8,11 +8,14 @@ from django.contrib.auth.models import User
 from .models import Ticket, TicketMessage, TicketAttachment
 from .forms import (
     PublicTicketForm, AuthenticatedTicketForm, TicketReplyForm,
-    StaffReplyForm, TicketUpdateForm, TicketAttachmentForm,
-    TeacherApplicationForm
+    StaffReplyForm, TicketUpdateForm, TicketAttachmentForm
 )
 from .decorators import staff_required
 from .notifications import TicketNotificationService
+
+# Import teacher application from new app
+from apps.teacher_applications.models import TeacherApplication
+from apps.teacher_applications.forms import TeacherApplicationForm
 
 
 def public_contact(request):
@@ -291,22 +294,21 @@ def apply_to_teach(request):
     if request.method == 'POST':
         form = TeacherApplicationForm(request.POST)
         if form.is_valid():
-            ticket = form.save(commit=False)
+            application = form.save(commit=False)
             # Link to user if authenticated
             if request.user.is_authenticated:
-                ticket.user = request.user
-            ticket.save()
+                application.user = request.user
+            application.save()
 
-            # Send notifications - will use admin email for teacher applications
-            TicketNotificationService.send_ticket_created_notification(ticket)
-            TicketNotificationService.send_new_ticket_alert_to_staff(ticket)
+            # TODO: Send email notifications to applicant and staff
+            # This will be implemented in the next task
 
             django_messages.success(
                 request,
-                f'Thank you for applying! Your application ({ticket.ticket_number}) has been submitted. '
-                f'We will review your information and contact you at {ticket.email} within 3-5 business days.'
+                f'Thank you for applying! Your application has been submitted. '
+                f'We will review your information and contact you at {application.email} within 3-5 business days.'
             )
-            return redirect('support:ticket_detail', ticket_number=ticket.ticket_number)
+            return redirect('domain_selector')
     else:
         # Pre-fill if user is authenticated
         initial_data = {}

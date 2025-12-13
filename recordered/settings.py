@@ -74,6 +74,8 @@ INSTALLED_APPS = [
     'apps.messaging',
     'apps.support',
     'apps.help_center',
+    'apps.admin_portal',
+    'apps.teacher_applications',
     'lessons',
 ]
 
@@ -106,6 +108,7 @@ TEMPLATES = [
                 'apps.workshops.context_processors.unified_cart_context',
                 'apps.messaging.context_processors.unread_messages',  # Unified messaging (includes course messages)
                 'apps.accounts.context_processors.email_verification_status',
+                'apps.admin_portal.context_processors.admin_metrics',  # Admin portal metrics
             ],
         },
     },
