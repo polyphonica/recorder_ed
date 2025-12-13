@@ -7,7 +7,7 @@
 
     <!-- Back Button -->
     <div class="mb-4">
-        <a href="{% url 'admin_portal:applications:list' %}" class="btn btn-sm btn-ghost">
+        <a href="{% url 'admin_portal:applications_list' %}" class="btn btn-sm btn-ghost">
             <i class="fas fa-arrow-left mr-2"></i>
             Back to Applications
         </a>
@@ -113,7 +113,7 @@
                         <span class="text-xs text-base-content/60">(Internal only)</span>
                     </h2>
 
-                    <form method="post" action="{% url 'admin_portal:applications:update_notes' application.id %}" class="mt-4">
+                    <form method="post" action="{% url 'admin_portal:applications_update_notes' application.id %}" class="mt-4">
                         {% csrf_token %}
                         <textarea name="admin_notes" class="textarea textarea-bordered w-full" rows="4"
                                   placeholder="Add internal notes about this application...">{{ application.admin_notes }}</textarea>
@@ -180,7 +180,7 @@
                     <h3 class="font-bold mb-4">Actions</h3>
 
                     <!-- Approve Button -->
-                    <form method="post" action="{% url 'admin_portal:applications:approve' application.id %}"
+                    <form method="post" action="{% url 'admin_portal:applications_approve' application.id %}"
                           onsubmit="return confirm('Are you sure you want to approve this application? {% if application.user %}Teacher status will be granted to their account.{% else %}The applicant will be notified to create an account.{% endif %}');">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-success btn-block mb-2">
@@ -190,7 +190,7 @@
                     </form>
 
                     <!-- Put on Hold Button -->
-                    <form method="post" action="{% url 'admin_portal:applications:on_hold' application.id %}"
+                    <form method="post" action="{% url 'admin_portal:applications_on_hold' application.id %}"
                           onsubmit="return confirm('Put this application on hold? You can review it later.');">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-info btn-block mb-2">
@@ -215,7 +215,7 @@
         <div class="modal-box">
             <h3 class="font-bold text-lg mb-4">Reject Application</h3>
 
-            <form method="post" action="{% url 'admin_portal:applications:reject' application.id %}">
+            <form method="post" action="{% url 'admin_portal:applications_reject' application.id %}">
                 {% csrf_token %}
 
                 <div class="form-control">

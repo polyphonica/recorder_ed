@@ -175,3 +175,135 @@ class TeacherApplication(models.Model):
         if not self.subjects:
             return []
         return [subj.strip() for subj in self.subjects.split(',')]
+
+
+class TeacherOnboarding(models.Model):
+    """
+    Model for tracking teacher onboarding progress.
+    Created automatically when a teacher application is approved.
+    """
+
+    # Core fields
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='teacher_onboarding',
+        help_text='Teacher user account'
+    )
+    application = models.OneToOneField(
+        TeacherApplication,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='onboarding',
+        help_text='Original teacher application (if applicable)'
+    )
+
+    # Onboarding steps completion
+    step_1_profile_complete = models.BooleanField(
+        default=False,
+        help_text='Step 1: Complete profile information'
+    )
+    step_1_completed_at = models.DateTimeField(null=True, blank=True)
+
+    step_2_qualifications_added = models.BooleanField(
+        default=False,
+        help_text='Step 2: Add teaching qualifications and experience'
+    )
+    step_2_completed_at = models.DateTimeField(null=True, blank=True)
+
+    step_3_availability_set = models.BooleanField(
+        default=False,
+        help_text='Step 3: Set teaching availability and preferences'
+    )
+    step_3_completed_at = models.DateTimeField(null=True, blank=True)
+
+    step_4_payment_setup = models.BooleanField(
+        default=False,
+        help_text='Step 4: Set up payment information for receiving fees'
+    )
+    step_4_completed_at = models.DateTimeField(null=True, blank=True)
+
+    step_5_first_listing_created = models.BooleanField(
+        default=False,
+        help_text='Step 5: Create first workshop or private teaching listing'
+    )
+    step_5_completed_at = models.DateTimeField(null=True, blank=True)
+
+    # Overall status
+    is_completed = models.BooleanField(
+        default=False,
+        help_text='All onboarding steps completed'
+    )
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='When onboarding was fully completed'
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Teacher Onboarding'
+        verbose_name_plural = 'Teacher Onboardings'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Onboarding for {self.user.get_full_name() or self.user.username}"
+
+    def get_progress_percentage(self):
+        """Calculate onboarding completion percentage."""
+        completed_steps = sum([
+            self.step_1_profile_complete,
+            self.step_2_qualifications_added,
+            self.step_3_availability_set,
+            self.step_4_payment_setup,
+            self.step_5_first_listing_created,
+        ])
+        return int((completed_steps / 5) * 100)
+
+    def get_next_incomplete_step(self):
+        """Get the number of the next incomplete step (1-5), or None if all complete."""
+        if not self.step_1_profile_complete:
+            return 1
+        if not self.step_2_qualifications_added:
+            return 2
+        if not self.step_3_availability_set:
+            return 3
+        if not self.step_4_payment_setup:
+            return 4
+        if not self.step_5_first_listing_created:
+            return 5
+        return None
+
+    def mark_step_complete(self, step_number):
+        """Mark a specific step as complete and update timestamps."""
+        step_field = f'step_{step_number}_profile_complete' if step_number == 1 else \
+                     f'step_{step_number}_qualifications_added' if step_number == 2 else \
+                     f'step_{step_number}_availability_set' if step_number == 3 else \
+                     f'step_{step_number}_payment_setup' if step_number == 4 else \
+                     f'step_{step_number}_first_listing_created'
+
+        timestamp_field = f'step_{step_number}_completed_at'
+
+        setattr(self, step_field, True)
+        setattr(self, timestamp_field, timezone.now())
+
+        # Check if all steps are complete
+        if self.get_next_incomplete_step() is None:
+            self.is_completed = True
+            self.completed_at = timezone.now()
+
+        self.save()
+
+    def get_completed_steps_count(self):
+        """Get the number of completed steps."""
+        return sum([
+            self.step_1_profile_complete,
+            self.step_2_qualifications_added,
+            self.step_3_availability_set,
+            self.step_4_payment_setup,
+            self.step_5_first_listing_created,
+        ])

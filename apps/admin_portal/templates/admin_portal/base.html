@@ -96,7 +96,7 @@
             </li>
 
             <li>
-                <a href="{% url 'admin_portal:applications:list' %}" class="{% if 'applications' in request.path %}active{% endif %}">
+                <a href="{% url 'admin_portal:applications_list' %}" class="{% if 'applications' in request.path %}active{% endif %}">
                     <i class="fas fa-user-check"></i>
                     Teacher Applications
                     {% if pending_teacher_apps > 0 %}

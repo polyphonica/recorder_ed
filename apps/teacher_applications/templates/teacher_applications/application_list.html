@@ -90,7 +90,7 @@
                         <tr class="hover">
                             <td>
                                 <div class="flex flex-col">
-                                    <a href="{% url 'admin_portal:applications:detail' application.id %}"
+                                    <a href="{% url 'admin_portal:applications_detail' application.id %}"
                                        class="link link-primary font-medium">
                                         {{ application.name }}
                                     </a>
@@ -127,7 +127,7 @@
                                 {{ application.created_at|timesince }} ago
                             </td>
                             <td>
-                                <a href="{% url 'admin_portal:applications:detail' application.id %}"
+                                <a href="{% url 'admin_portal:applications_detail' application.id %}"
                                    class="btn btn-sm btn-ghost">
                                     View
                                 </a>

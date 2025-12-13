@@ -70,7 +70,7 @@
                         <i class="fas fa-user-check text-primary"></i>
                         Recent Teacher Applications
                     </h2>
-                    <a href="{% url 'admin_portal:applications:list' %}" class="btn btn-sm btn-ghost">
+                    <a href="{% url 'admin_portal:applications_list' %}" class="btn btn-sm btn-ghost">
                         View All
                         <i class="fas fa-arrow-right ml-2"></i>
                     </a>
@@ -83,7 +83,7 @@
                         <div class="card-body p-4">
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
-                                    <a href="{% url 'admin_portal:applications:detail' application.id %}"
+                                    <a href="{% url 'admin_portal:applications_detail' application.id %}"
                                        class="link link-primary font-medium">
                                         {{ application.name }}
                                     </a>
