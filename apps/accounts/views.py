@@ -420,6 +420,51 @@ def resend_verification_view(request):
     return render(request, 'accounts/resend_verification.html')
 
 
+def resend_verification_public_view(request):
+    """
+    Public view to resend verification email (no login required).
+    User provides their email address.
+    """
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip()
+
+        if not email:
+            messages.error(request, 'Please provide your email address.')
+            return redirect('accounts:resend_verification_public')
+
+        try:
+            user = User.objects.get(email=email)
+
+            # Check if already verified
+            if user.profile.email_verified:
+                messages.info(request, 'Your email is already verified. You can log in now.')
+                return redirect('accounts:login')
+
+            # Send verification email
+            send_verification_email(request, user)
+            messages.success(
+                request,
+                f'Verification email sent to {email}! Please check your inbox and spam folder.'
+            )
+            return redirect('accounts:signup_complete')
+
+        except User.DoesNotExist:
+            # Don't reveal if email exists or not (security)
+            messages.success(
+                request,
+                f'If an account exists with {email}, a verification email has been sent.'
+            )
+            return redirect('accounts:signup_complete')
+        except Exception as e:
+            messages.error(
+                request,
+                'Failed to send verification email. Please try again later or contact support.'
+            )
+            return redirect('accounts:resend_verification_public')
+
+    return render(request, 'accounts/resend_verification_public.html')
+
+
 def teacher_signup_view(request, token):
     """
     Teacher signup view with token validation.
