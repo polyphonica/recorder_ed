@@ -67,6 +67,18 @@
                     <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
 
+                        <!-- Form-level errors -->
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-error mb-6">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <div>
+                                    {% for error in form.non_field_errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+
                         <!-- Contact Information -->
                         <div class="mb-8">
                             <h3 class="text-xl font-bold mb-4 flex items-center">
@@ -275,13 +287,13 @@
 
                             <div class="form-control mt-4">
                                 <label class="label cursor-pointer justify-start gap-3">
-                                    {{ form.terms_agreement }}
-                                    <span class="label-text font-semibold">{{ form.terms_agreement.label }}</span>
+                                    {{ form.terms_agreed }}
+                                    <span class="label-text font-semibold">{{ form.terms_agreed.label }}</span>
                                     <span class="label-text-alt text-error">*</span>
                                 </label>
-                                {% if form.terms_agreement.errors %}
+                                {% if form.terms_agreed.errors %}
                                     <label class="label">
-                                        <span class="label-text-alt text-error">{{ form.terms_agreement.errors.0 }}</span>
+                                        <span class="label-text-alt text-error">{{ form.terms_agreed.errors.0 }}</span>
                                     </label>
                                 {% endif %}
                             </div>
