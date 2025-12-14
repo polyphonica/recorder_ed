@@ -4,29 +4,15 @@
 {% block title %}Teacher Dashboard - Private Teaching{% endblock %}
 
 {% block content %}
-<div class="drawer">
-    <input id="sidebar-toggle" type="checkbox" class="drawer-toggle" />
-
-    <!-- Main content -->
-    <div class="drawer-content">
-        <!-- Menu button -->
-        <div class="flex items-center justify-between p-4 border-b border-base-300 bg-base-200">
-            <label for="sidebar-toggle" class="btn btn-square btn-ghost">
-                <i class="fas fa-bars text-xl"></i>
-            </label>
-            <h1 class="text-xl font-bold">Teacher Dashboard</h1>
-            <div class="w-10"></div>
-        </div>
-
-        <div class="container mx-auto px-4 py-8">
-            <div class="mb-8 hidden lg:block">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h1 class="text-4xl font-bold mb-2">Teacher Dashboard</h1>
-                        <p class="text-base-content/70">Welcome back! Here's what's happening today.</p>
-                    </div>
-                </div>
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Teacher Dashboard</h1>
+                <p class="text-base-content/70">Welcome back! Here's what's happening today.</p>
             </div>
+        </div>
+    </div>
 
     <!-- Quick Stats -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
@@ -357,125 +343,6 @@
                 {% endif %}
             </div>
         </div>
-    </div>
-
-        </div>
-    </div>
-
-    <!-- Sidebar Navigation -->
-    <div class="drawer-side z-50">
-        <label for="sidebar-toggle" class="drawer-overlay"></label>
-        <aside class="bg-base-200 w-64 min-h-screen">
-            <div class="sticky top-0">
-                <!-- Sidebar Header -->
-                <div class="p-4 border-b border-base-300">
-                    <h2 class="text-xl font-bold">Navigation</h2>
-                </div>
-
-                <!-- Navigation Menu -->
-                <ul class="menu p-4 space-y-2">
-                    <!-- Dashboard -->
-                    <li>
-                        <a href="{% url 'private_teaching:teacher_dashboard' %}" class="active">
-                            <i class="fas fa-home"></i>
-                            Dashboard
-                        </a>
-                    </li>
-
-                    <!-- Divider -->
-                    <li class="menu-title">
-                        <span>Student Management</span>
-                    </li>
-                    <li>
-                        <a href="{% url 'private_teaching:teacher_applications' %}">
-                            <i class="fas fa-clipboard-list"></i>
-                            Applications
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'private_teaching:teacher_students' %}">
-                            <i class="fas fa-users"></i>
-                            My Students
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'private_teaching:teacher_cancellation_requests' %}">
-                            <i class="fas fa-times-circle"></i>
-                            Cancellations
-                        </a>
-                    </li>
-
-                    <!-- Divider -->
-                    <li class="menu-title">
-                        <span>Schedule & Planning</span>
-                    </li>
-                    <li>
-                        <a href="{% url 'private_teaching:calendar' %}">
-                            <i class="fas fa-calendar"></i>
-                            Calendar
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'private_teaching:teacher_schedule' %}">
-                            <i class="fas fa-clock"></i>
-                            Schedule
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'private_teaching:exam_list' %}">
-                            <i class="fas fa-graduation-cap"></i>
-                            Exam Registrations
-                        </a>
-                    </li>
-
-                    <!-- Divider -->
-                    <li class="menu-title">
-                        <span>Resources</span>
-                    </li>
-                    <li>
-                        <a href="{% url 'audioplayer:library' %}">
-                            <i class="fas fa-music"></i>
-                            Play-Along Library
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'audioplayer:composer_list' %}">
-                            <i class="fas fa-user-music"></i>
-                            Manage Composers
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'audioplayer:piece_list' %}">
-                            <i class="fas fa-guitar"></i>
-                            Manage Pieces
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'private_teaching:teacher_library' %}">
-                            <i class="fas fa-book"></i>
-                            Document Library
-                        </a>
-                    </li>
-
-                    <!-- Divider -->
-                    <li class="menu-title">
-                        <span>Administration</span>
-                    </li>
-                    <li>
-                        <a href="{% url 'payments:finance_dashboard' %}">
-                            <i class="fas fa-chart-line"></i>
-                            Finance
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'private_teaching:teacher_settings' %}">
-                            <i class="fas fa-cog"></i>
-                            Settings
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </aside>
     </div>
 </div>
 {% endblock %}

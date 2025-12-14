@@ -352,7 +352,25 @@
                             <li><a href="{% url 'private_teaching:incoming_requests' %}" class="{% if request.resolver_match.url_name == 'incoming_requests' %}bg-primary text-primary-content{% endif %}">Incoming Requests</a></li>
                             <li><a href="{% url 'private_teaching:teacher_schedule' %}" class="{% if request.resolver_match.url_name == 'teacher_schedule' %}bg-primary text-primary-content{% endif %}">My Schedule</a></li>
                             <li><a href="{% url 'private_teaching:calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}bg-primary text-primary-content{% endif %}">Calendar</a></li>
-                            <li><a href="{% url 'audioplayer:library' %}" class="{% if request.resolver_match.namespace == 'audioplayer' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-music mr-1"></i>Play-Along Library</a></li>
+                            <li class="dropdown dropdown-hover dropdown-end">
+                                <label tabindex="0" class="cursor-pointer"><i class="fas fa-ellipsis-h mr-1"></i>More</label>
+                                <ul tabindex="0" class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-56">
+                                    <li class="menu-title"><span>Student Management</span></li>
+                                    <li><a href="{% url 'private_teaching:teacher_applications' %}"><i class="fas fa-clipboard-list mr-2"></i>Applications</a></li>
+                                    <li><a href="{% url 'private_teaching:teacher_students' %}"><i class="fas fa-users mr-2"></i>My Students</a></li>
+                                    <li><a href="{% url 'private_teaching:teacher_cancellation_requests' %}"><i class="fas fa-times-circle mr-2"></i>Cancellations</a></li>
+                                    <li class="menu-title"><span>Planning</span></li>
+                                    <li><a href="{% url 'private_teaching:exam_list' %}"><i class="fas fa-graduation-cap mr-2"></i>Exam Registrations</a></li>
+                                    <li class="menu-title"><span>Resources</span></li>
+                                    <li><a href="{% url 'audioplayer:library' %}"><i class="fas fa-music mr-2"></i>Play-Along Library</a></li>
+                                    <li><a href="{% url 'audioplayer:composer_list' %}"><i class="fas fa-user-music mr-2"></i>Manage Composers</a></li>
+                                    <li><a href="{% url 'audioplayer:piece_list' %}"><i class="fas fa-guitar mr-2"></i>Manage Pieces</a></li>
+                                    <li><a href="{% url 'private_teaching:teacher_library' %}"><i class="fas fa-book mr-2"></i>Document Library</a></li>
+                                    <li class="menu-title"><span>Administration</span></li>
+                                    <li><a href="{% url 'payments:finance_dashboard' %}"><i class="fas fa-chart-line mr-2"></i>Finance</a></li>
+                                    <li><a href="{% url 'private_teaching:teacher_settings' %}"><i class="fas fa-cog mr-2"></i>Settings</a></li>
+                                </ul>
+                            </li>
                         {% else %}
                             <!-- Student Navigation -->
                             <li><a href="{% url 'private_teaching:student_dashboard' %}" class="{% if request.resolver_match.url_name == 'student_dashboard' %}bg-primary text-primary-content{% endif %}">Dashboard</a></li>
