@@ -257,7 +257,7 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/workshops/'
+LOGIN_REDIRECT_URL = '/'  # Domain selector
 LOGOUT_REDIRECT_URL = '/'
 
 # CKEditor 5 Configuration

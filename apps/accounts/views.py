@@ -18,8 +18,8 @@ class CustomLoginView(LoginView):
     """
     Custom login view that redirects users based on their role:
     - Staff members → Admin Portal Dashboard
-    - Instructors → Workshops Dashboard (default)
-    - Students → Workshops list (default)
+    - Instructors → Domain Selector
+    - Students → Domain Selector
     """
     def dispatch(self, request, *args, **kwargs):
         # If user is already authenticated, redirect them away from login page
@@ -32,18 +32,16 @@ class CustomLoginView(LoginView):
         if self.request.user.is_staff:
             return reverse('admin_portal:dashboard')
 
-        if hasattr(self.request.user, 'profile') and self.request.user.profile.is_teacher:
-            return reverse('workshops:instructor_dashboard')
-        else:
-            return reverse('workshops:list')
+        # Redirect all non-staff users to domain selector
+        return reverse('domain_selector')
 
     def get_success_url(self):
         # Check if user is staff
         if self.request.user.is_staff:
             return reverse('admin_portal:dashboard')
 
-        # Use the default LOGIN_REDIRECT_URL for other users
-        return super().get_success_url()
+        # Redirect all non-staff users to domain selector
+        return reverse('domain_selector')
 
 
 class SignUpView(CreateView):
