@@ -47,3 +47,6 @@ htmlcov/
 *_backup.json
 *_profiles.json
 pre_refactor_backup.json
+
+# Development documentation (not needed in production)
+*.md
