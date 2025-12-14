@@ -4,13 +4,13 @@
 {% block title %}Teacher Dashboard - Private Teaching{% endblock %}
 
 {% block content %}
-<div class="drawer lg:drawer-open">
+<div class="drawer">
     <input id="sidebar-toggle" type="checkbox" class="drawer-toggle" />
 
     <!-- Main content -->
     <div class="drawer-content">
-        <!-- Mobile menu button -->
-        <div class="lg:hidden flex items-center justify-between p-4 border-b border-base-300">
+        <!-- Menu button -->
+        <div class="flex items-center justify-between p-4 border-b border-base-300 bg-base-200">
             <label for="sidebar-toggle" class="btn btn-square btn-ghost">
                 <i class="fas fa-bars text-xl"></i>
             </label>
@@ -29,7 +29,7 @@
             </div>
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
         <a href="{% url 'private_teaching:teacher_schedule' %}" class="stat bg-success text-success-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
             <div class="stat-title text-white text-lg font-semibold">Draft Lessons</div>
             <div class="stat-value text-white text-4xl">{{ paid_unassigned_count }}</div>
@@ -138,6 +138,18 @@
                 {% endif %}
             </div>
         </div>
+
+        <a href="{% url 'private_teaching:exam_list' %}" class="stat bg-secondary text-secondary-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+            <div class="stat-title text-white text-lg font-semibold">Active Exams</div>
+            <div class="stat-value text-white text-4xl">{{ active_exams_count }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                {% if active_exams_count > 0 %}
+                    Registered or submitted
+                {% else %}
+                    No active exams
+                {% endif %}
+            </div>
+        </a>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">

@@ -270,6 +270,12 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             is_deleted=False
         ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('created_at')
 
+        # Active exam registrations (REGISTERED or SUBMITTED, not yet RESULTS_RECEIVED)
+        active_exams = ExamRegistration.objects.filter(
+            teacher=self.request.user,
+            status__in=[ExamRegistration.REGISTERED, ExamRegistration.SUBMITTED]
+        ).count()
+
         context.update({
             'pending_applications': pending_applications,
             'pending_applications_count': pending_applications.count(),
@@ -281,6 +287,7 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             'upcoming_lessons': upcoming_lessons,
             'paid_unassigned_lessons': paid_unassigned_lessons,
             'paid_unassigned_count': paid_unassigned_lessons.count(),
+            'active_exams_count': active_exams,
             'today': today,
         })
         return context
