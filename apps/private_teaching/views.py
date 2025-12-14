@@ -199,21 +199,6 @@ class StudentLessonRequestDetailView(StudentProfileCompletedMixin, StudentOnlyMi
         return redirect('private_teaching:student_request_detail', request_id=lesson_request.id)
 
 
-# Function-based view for student registration
-def student_register(request):
-    """Registration view specifically for students with guardian support"""
-    if request.method == 'POST':
-        form = StudentSignupForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            messages.success(request, 'Registration successful! Please complete your profile.')
-            return redirect('private_teaching:profile_complete')
-    else:
-        form = StudentSignupForm()
-    
-    return render(request, 'private_teaching/register.html', {'form': form})
-
-
 # ==========================================
 # PHASE 2: TEACHER AND STUDENT DASHBOARDS
 # ==========================================
