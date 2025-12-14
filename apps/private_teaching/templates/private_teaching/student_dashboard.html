@@ -45,7 +45,7 @@
     {% endif %}
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div class="stat rounded-lg shadow-lg" style="background-color: #3b82f6;">
             <div class="stat-title text-lg font-semibold" style="color: white;">Recent Requests</div>
             <div class="stat-value text-4xl" style="color: white;">{{ recent_requests.count }}</div>
@@ -78,6 +78,18 @@
                     Next lesson coming up!
                 {% else %}
                     No lessons scheduled
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="stat rounded-lg shadow-lg" style="background-color: #8b5cf6;">
+            <div class="stat-title text-lg font-semibold" style="color: white;">Upcoming Exams</div>
+            <div class="stat-value text-4xl" style="color: white;">{{ upcoming_exams.count }}</div>
+            <div class="stat-desc text-base mt-2" style="color: white;">
+                {% if upcoming_exams.count > 0 %}
+                    {% if upcoming_exams.count == 1 %}1 exam registered{% else %}{{ upcoming_exams.count }} exams registered{% endif %}
+                {% else %}
+                    No exams scheduled
                 {% endif %}
             </div>
         </div>

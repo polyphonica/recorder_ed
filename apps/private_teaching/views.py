@@ -334,6 +334,15 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
             is_deleted=False
         ).select_related('subject', 'teacher').order_by('lesson_date', 'lesson_time')[:5]
 
+        # Get upcoming exams (REGISTERED or SUBMITTED, with upcoming or flexible dates)
+        from django.db.models import Q
+        upcoming_exams = ExamRegistration.objects.filter(
+            student=self.request.user,
+            status__in=[ExamRegistration.REGISTERED, ExamRegistration.SUBMITTED]
+        ).filter(
+            Q(exam_date__gte=today) | Q(exam_date__isnull=True)
+        ).select_related('subject', 'exam_board').order_by('exam_date')
+
         context.update({
             'my_applications': my_applications,
             'pending_applications': pending_applications,
@@ -343,6 +352,7 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
             'recent_requests': recent_requests,
             'upcoming_lessons': upcoming_lessons,
             'awaiting_payment': awaiting_payment,
+            'upcoming_exams': upcoming_exams,
             'today': today,
         })
         return context
