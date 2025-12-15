@@ -17,7 +17,8 @@ MESSAGE FROM INSTRUCTOR:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-If you have any questions, please contact {{ instructor_name }} directly or reply to this email.
+Questions about this workshop?
+Visit your workshop dashboard or message your instructor through the platform.
 
 Best regards,
 {{ instructor_name }}
