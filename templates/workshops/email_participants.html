@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Email Participants - {{ session.workshop.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="breadcrumbs text-sm">
+            <ul>
+                <li><a href="{% url 'workshops:list' %}">Workshops</a></li>
+                <li><a href="{% url 'workshops:detail' session.workshop.slug %}">{{ session.workshop.title }}</a></li>
+                <li><a href="{% url 'workshops:session_registrations' session_id=session.id %}">Participants</a></li>
+                <li>Email Participants</li>
+            </ul>
+        </div>
+
+        <h1 class="text-3xl font-bold mt-4">Email Participants</h1>
+        <p class="text-lg text-base-content/70 mt-2">{{ session.workshop.title }}</p>
+    </div>
+
+    <!-- Session Info Card -->
+    <div class="card bg-base-200 mb-6">
+        <div class="card-body">
+            <h3 class="font-semibold text-lg mb-2">Session Details</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>{{ session.start_datetime|date:"l, F j, Y" }}</span>
+                </div>
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recipient Info -->
+    <div class="alert alert-info mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div>
+            <div class="font-semibold">Email will be sent to {{ opted_in_count }} participant{{ opted_in_count|pluralize }}</div>
+            {% if opted_out_count > 0 %}
+            <div class="text-sm">{{ opted_out_count }} participant{{ opted_out_count|pluralize }} {{ opted_out_count|pluralize:"has,have" }} opted out and will not receive this email.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Email Form -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text font-semibold">Subject</span>
+                        <span class="label-text-alt text-error">*Required</span>
+                    </label>
+                    <input
+                        type="text"
+                        name="subject"
+                        class="input input-bordered w-full"
+                        placeholder="e.g., Reminder: Workshop Tomorrow"
+                        required
+                        maxlength="200"
+                    >
+                    <label class="label">
+                        <span class="label-text-alt">Keep it clear and concise</span>
+                    </label>
+                </div>
+
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold">Message</span>
+                        <span class="label-text-alt text-error">*Required</span>
+                    </label>
+                    <textarea
+                        name="message"
+                        class="textarea textarea-bordered h-64"
+                        placeholder="Write your message to participants here...
+
+Examples:
+- Remind students what to bring
+- Share prep materials or links
+- Announce changes to the session
+- Send follow-up resources"
+                        required
+                    ></textarea>
+                    <label class="label">
+                        <span class="label-text-alt">Your message will be sent with session details and an unsubscribe link automatically included.</span>
+                    </label>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="card-actions justify-between">
+                    <a href="{% url 'workshops:session_registrations' session_id=session.id %}" class="btn btn-ghost">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Send Email to {{ opted_in_count }} Participant{{ opted_in_count|pluralize }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recipient List Preview -->
+    {% if registrations %}
+    <div class="card bg-base-100 shadow-xl mt-6">
+        <div class="card-body">
+            <h3 class="font-semibold text-lg mb-4">Recipients ({{ opted_in_count }})</h3>
+            <div class="overflow-x-auto">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for registration in registrations %}
+                        <tr>
+                            <td>{{ registration.student_name }}</td>
+                            <td>{{ registration.email|default:registration.student.email }}</td>
+                            <td>
+                                <span class="badge badge-sm badge-success">{{ registration.get_status_display }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

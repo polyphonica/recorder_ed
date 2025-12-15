@@ -96,6 +96,10 @@ class UserProfile(models.Model):
         default=True,
         help_text="Send email notification when you receive a new message"
     )
+    workshop_email_notifications = models.BooleanField(
+        default=True,
+        help_text="Receive email notifications about workshops you're registered for"
+    )
 
     # Email verification
     email_verified = models.BooleanField(default=False, help_text="Whether the user has verified their email address")

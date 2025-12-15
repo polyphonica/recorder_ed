@@ -13,6 +13,11 @@ class WaitlistNotificationService(BaseNotificationService):
     def send_promotion_notification(registration, promotion):
         """Send initial promotion notification to student"""
         try:
+            # Check if student has opted out of workshop emails
+            if not registration.student.profile.workshop_email_notifications:
+                logger.info(f"Student {registration.student.username} has opted out of workshop emails - skipping promotion notification")
+                return False
+
             # Generate confirmation URL
             confirmation_url = WaitlistNotificationService._build_confirmation_url(registration)
 
@@ -60,6 +65,11 @@ class WaitlistNotificationService(BaseNotificationService):
     def send_promotion_reminder(registration, promotion):
         """Send reminder notification before deadline"""
         try:
+            # Check if student has opted out of workshop emails
+            if not registration.student.profile.workshop_email_notifications:
+                logger.info(f"Student {registration.student.username} has opted out of workshop emails - skipping promotion reminder")
+                return False
+
             now = timezone.now()
             hours_remaining = (promotion.expires_at - now).total_seconds() / 3600
 
@@ -90,6 +100,11 @@ class WaitlistNotificationService(BaseNotificationService):
     def send_promotion_expired_notification(registration):
         """Send notification when promotion expires"""
         try:
+            # Check if student has opted out of workshop emails
+            if not registration.student.profile.workshop_email_notifications:
+                logger.info(f"Student {registration.student.username} has opted out of workshop emails - skipping promotion expired notification")
+                return False
+
             workshop_url = WaitlistNotificationService._build_workshop_url(registration.session.workshop)
 
             context = {
@@ -279,6 +294,11 @@ class StudentNotificationService(BaseNotificationService):
     def send_registration_confirmation(registration):
         """Send registration confirmation email to student for a single workshop"""
         try:
+            # Check if student has opted out of workshop emails
+            if not registration.student.profile.workshop_email_notifications:
+                logger.info(f"Student {registration.student.username} has opted out of workshop emails - skipping registration confirmation")
+                return False
+
             # Get student email
             if not registration.student or not registration.student.email:
                 logger.warning(f"No student email found for registration {registration.id}")
@@ -317,6 +337,11 @@ class StudentNotificationService(BaseNotificationService):
     def send_cart_registration_confirmation(user, registrations, total_amount):
         """Send confirmation email for multiple workshop registrations from cart"""
         try:
+            # Check if user has opted out of workshop emails
+            if not user.profile.workshop_email_notifications:
+                logger.info(f"User {user.username} has opted out of workshop emails - skipping cart confirmation")
+                return False
+
             # Get user email
             if not user or not user.email:
                 logger.warning(f"No user email found for cart confirmation")
@@ -354,6 +379,11 @@ class StudentNotificationService(BaseNotificationService):
     def send_cancellation_with_refund_notification(registration, refund_amount):
         """Send notification when registration is cancelled with refund"""
         try:
+            # Check if student has opted out of workshop emails
+            if not registration.student.profile.workshop_email_notifications:
+                logger.info(f"Student {registration.student.username} has opted out of workshop emails - skipping cancellation notification")
+                return False
+
             if not registration.student or not registration.student.email:
                 logger.warning(f"No student email found for registration {registration.id}")
                 return False
@@ -391,6 +421,11 @@ class StudentNotificationService(BaseNotificationService):
     def send_cancellation_no_refund_notification(registration, reason='less_than_7_days'):
         """Send notification when registration is cancelled without refund"""
         try:
+            # Check if student has opted out of workshop emails
+            if not registration.student.profile.workshop_email_notifications:
+                logger.info(f"Student {registration.student.username} has opted out of workshop emails - skipping cancellation notification")
+                return False
+
             if not registration.student or not registration.student.email:
                 logger.warning(f"No student email found for registration {registration.id}")
                 return False
@@ -428,6 +463,11 @@ class StudentNotificationService(BaseNotificationService):
     def send_cancellation_notification(registration):
         """Send simple cancellation notification for free/unpaid registrations"""
         try:
+            # Check if student has opted out of workshop emails
+            if not registration.student.profile.workshop_email_notifications:
+                logger.info(f"Student {registration.student.username} has opted out of workshop emails - skipping cancellation notification")
+                return False
+
             if not registration.student or not registration.student.email:
                 logger.warning(f"No student email found for registration {registration.id}")
                 return False

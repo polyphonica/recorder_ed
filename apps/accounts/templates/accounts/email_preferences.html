@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Email Preferences - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold mb-2">Email Preferences</h1>
+        <p class="text-base-content/70">
+            Manage your email notification settings
+        </p>
+    </div>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="space-y-6">
+                    <!-- Messages Notifications -->
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            <input
+                                type="checkbox"
+                                name="email_on_new_message"
+                                class="checkbox checkbox-primary"
+                                {% if profile.email_on_new_message %}checked{% endif %}
+                            >
+                            <div>
+                                <span class="label-text font-semibold text-lg">Message Notifications</span>
+                                <p class="text-sm text-base-content/70 mt-1">
+                                    Receive email notifications when you get a new message
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Workshop Notifications -->
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            <input
+                                type="checkbox"
+                                name="workshop_email_notifications"
+                                class="checkbox checkbox-primary"
+                                {% if profile.workshop_email_notifications %}checked{% endif %}
+                            >
+                            <div>
+                                <span class="label-text font-semibold text-lg">Workshop Notifications</span>
+                                <p class="text-sm text-base-content/70 mt-1">
+                                    Receive email notifications about workshops you're registered for, including updates, reminders, and announcements from instructors
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="card-actions justify-end">
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Save Preferences
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="mt-6">
+        <a href="{% url 'accounts:profile_edit' %}" class="btn btn-ghost btn-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Profile Settings
+        </a>
+    </div>
+</div>
+{% endblock %}

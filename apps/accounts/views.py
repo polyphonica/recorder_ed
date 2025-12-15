@@ -12,6 +12,9 @@ from .email_verification import send_verification_email
 from django.db import transaction
 from apps.teacher_applications.models import TeacherApplication, TeacherOnboarding
 from apps.teacher_applications.notifications import teacher_signup_token
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes
 
 
 class CustomLoginView(LoginView):
@@ -579,3 +582,61 @@ def teacher_signup_view(request, token):
     }
 
     return render(request, 'accounts/teacher_signup.html', context)
+
+
+def unsubscribe_workshop_emails_view(request, uidb64, token):
+    """
+    Unsubscribe from workshop email notifications.
+    Accessible via link in emails without requiring login.
+    """
+    try:
+        # Decode user ID
+        uid = urlsafe_base64_decode(uidb64).decode()
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        # Toggle off workshop notifications
+        user.profile.workshop_email_notifications = False
+        user.profile.save()
+
+        messages.success(
+            request,
+            'You have been unsubscribed from workshop email notifications. '
+            'You can re-enable them anytime in your account settings.'
+        )
+    else:
+        messages.error(
+            request,
+            'Unsubscribe link is invalid or has expired. '
+            'Please log in to manage your email preferences in settings.'
+        )
+
+    # Redirect to home or login page
+    if request.user.is_authenticated:
+        return redirect('accounts:profile_edit')
+    else:
+        return redirect('core:home')
+
+
+@login_required
+def email_preferences_view(request):
+    """
+    Manage email notification preferences.
+    """
+    profile = request.user.profile
+
+    if request.method == 'POST':
+        # Update preferences
+        profile.email_on_new_message = request.POST.get('email_on_new_message') == 'on'
+        profile.workshop_email_notifications = request.POST.get('workshop_email_notifications') == 'on'
+        profile.save()
+
+        messages.success(request, 'Email preferences updated successfully!')
+        return redirect('accounts:email_preferences')
+
+    context = {
+        'profile': profile,
+    }
+    return render(request, 'accounts/email_preferences.html', context)

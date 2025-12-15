@@ -1,0 +1,29 @@
+Subject: {{ subject }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ student_name }},
+
+{{ instructor_name }} has sent you a message about your upcoming workshop:
+
+WORKSHOP: {{ workshop.title }}
+SESSION: {{ session.start_datetime|date:"l, d F Y" }} at {{ session.start_datetime|time:"H:i" }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MESSAGE FROM INSTRUCTOR:
+
+{{ message }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If you have any questions, please contact {{ instructor_name }} directly or reply to this email.
+
+Best regards,
+{{ instructor_name }}
+{{ site_name }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+To unsubscribe from workshop email notifications, visit:
+{{ unsubscribe_url }}

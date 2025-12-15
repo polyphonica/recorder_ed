@@ -36,4 +36,8 @@ urlpatterns = [
 
     # Teacher signup with token
     path('teacher-signup/<str:token>/', views.teacher_signup_view, name='teacher_signup'),
+
+    # Email preferences
+    path('email-preferences/', views.email_preferences_view, name='email_preferences'),
+    path('unsubscribe-workshops/<uidb64>/<token>/', views.unsubscribe_workshop_emails_view, name='unsubscribe_workshops'),
 ]

@@ -2432,3 +2432,139 @@ class WorkshopTermsView(TemplateView):
         context['terms'] = current_terms
 
         return context
+
+
+class EmailParticipantsView(LoginRequiredMixin, TemplateView):
+    """Allow instructors to email participants of a workshop session"""
+    template_name = 'workshops/email_participants.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get the session
+        session = get_object_or_404(
+            WorkshopSession,
+            id=self.kwargs['session_id'],
+            workshop__instructor=self.request.user
+        )
+
+        # Get all registrations for this session
+        registrations = WorkshopRegistration.objects.filter(
+            session=session,
+            status__in=['registered', 'waitlisted', 'promoted', 'attended']
+        ).select_related('student', 'student__profile').order_by('registration_date')
+
+        # Filter to only include students who haven't opted out
+        opted_in_registrations = [
+            reg for reg in registrations
+            if reg.student.profile.workshop_email_notifications
+        ]
+
+        context.update({
+            'session': session,
+            'workshop': session.workshop,
+            'registrations': opted_in_registrations,
+            'total_participants': len(registrations),
+            'opted_in_count': len(opted_in_registrations),
+            'opted_out_count': len(registrations) - len(opted_in_registrations),
+        })
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """Send email to selected participants"""
+        from apps.core.notifications import BaseNotificationService
+        from apps.accounts.email_utils import generate_unsubscribe_url
+
+        # Get the session
+        session = get_object_or_404(
+            WorkshopSession,
+            id=self.kwargs['session_id'],
+            workshop__instructor=self.request.user
+        )
+
+        # Get form data
+        subject = request.POST.get('subject', '').strip()
+        message_body = request.POST.get('message', '').strip()
+        recipient_type = request.POST.get('recipient_type', 'all')
+
+        if not subject or not message_body:
+            messages.error(request, 'Please provide both a subject and message.')
+            return redirect('workshops:email_participants', session_id=session.id)
+
+        # Get registrations to email
+        registrations = WorkshopRegistration.objects.filter(
+            session=session,
+            status__in=['registered', 'waitlisted', 'promoted', 'attended']
+        ).select_related('student', 'student__profile')
+
+        # Filter based on opt-in status
+        opted_in_registrations = [
+            reg for reg in registrations
+            if reg.student.profile.workshop_email_notifications
+        ]
+
+        if not opted_in_registrations:
+            messages.warning(request, 'No participants are opted in to receive emails.')
+            return redirect('workshops:email_participants', session_id=session.id)
+
+        # Send emails
+        sent_count = 0
+        failed_count = 0
+
+        for registration in opted_in_registrations:
+            try:
+                recipient_email = registration.email or registration.student.email
+
+                if not recipient_email:
+                    failed_count += 1
+                    continue
+
+                # Generate unsubscribe URL
+                unsubscribe_url = generate_unsubscribe_url(registration.student, request)
+
+                # Prepare context
+                context = {
+                    'subject': subject,
+                    'message': message_body,
+                    'student_name': registration.student_name,
+                    'workshop': session.workshop,
+                    'session': session,
+                    'instructor': request.user,
+                    'instructor_name': request.user.get_full_name() or request.user.username,
+                    'unsubscribe_url': unsubscribe_url,
+                }
+
+                # Send email
+                success = BaseNotificationService.send_templated_email(
+                    template_path='workshops/emails/instructor_message.txt',
+                    context=context,
+                    recipient_list=[recipient_email],
+                    default_subject=subject,
+                    fail_silently=False
+                )
+
+                if success:
+                    sent_count += 1
+                else:
+                    failed_count += 1
+
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to send email to {registration.student.username}: {e}")
+                failed_count += 1
+
+        # Show success message
+        if sent_count > 0:
+            messages.success(
+                request,
+                f'Email sent to {sent_count} participant{"s" if sent_count != 1 else ""}.'
+            )
+        if failed_count > 0:
+            messages.warning(
+                request,
+                f'Failed to send to {failed_count} participant{"s" if failed_count != 1 else ""}.'
+            )
+
+        return redirect('workshops:session_registrations', session_id=session.id)

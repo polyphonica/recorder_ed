@@ -23,6 +23,8 @@ urlpatterns = [
     path('instructor/session/<uuid:session_id>/edit/', views.EditSessionView.as_view(), name='edit_session'),
     path('instructor/session/<uuid:session_id>/registrations/',
          views.SessionRegistrationsView.as_view(), name='session_registrations'),
+    path('instructor/session/<uuid:session_id>/email-participants/',
+         views.EmailParticipantsView.as_view(), name='email_participants'),
     path('instructor/session/<uuid:session_id>/attendance-sheet/',
          views.AttendanceSheetView.as_view(), name='attendance_sheet'),
     path('instructor/session/<uuid:session_id>/materials/',
