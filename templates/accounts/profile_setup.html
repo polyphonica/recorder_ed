@@ -293,12 +293,22 @@
                             <i class="fas fa-bell"></i> Notification Preferences
                         </h3>
 
-                        <div class="form-control">
+                        <div class="form-control mb-4">
                             <label class="label cursor-pointer justify-start gap-4">
                                 {{ form.email_on_new_message }}
                                 <div>
                                     <span class="label-text font-semibold">Email notifications for new messages</span>
                                     <p class="label-text-alt text-gray-500">Receive an email when someone sends you a message</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label cursor-pointer justify-start gap-4">
+                                {{ form.workshop_email_notifications }}
+                                <div>
+                                    <span class="label-text font-semibold">Workshop email notifications</span>
+                                    <p class="label-text-alt text-gray-500">Receive emails about workshops you're registered for (confirmations, updates, instructor messages)</p>
                                 </div>
                             </label>
                         </div>

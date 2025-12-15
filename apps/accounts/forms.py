@@ -192,7 +192,8 @@ class UserProfileForm(forms.ModelForm):
             # Teaching Settings
             'default_zoom_link',
             # Notification Preferences
-            'email_on_new_message'
+            'email_on_new_message',
+            'workshop_email_notifications'
         ]
         widgets = {
             # Personal Information
@@ -262,6 +263,9 @@ class UserProfileForm(forms.ModelForm):
 
             # Notification Preferences
             'email_on_new_message': forms.CheckboxInput(attrs={
+                'class': 'checkbox checkbox-primary'
+            }),
+            'workshop_email_notifications': forms.CheckboxInput(attrs={
                 'class': 'checkbox checkbox-primary'
             }),
         }
