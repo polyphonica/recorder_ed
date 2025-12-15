@@ -58,9 +58,9 @@
                 <button onclick="exportParticipants()" class="btn btn-outline">
                     <i class="fas fa-download mr-2"></i>Export
                 </button>
-                <button onclick="sendBulkEmail()" class="btn btn-primary">
-                    <i class="fas fa-envelope mr-2"></i>Email All
-                </button>
+                <a href="{% url 'workshops:email_participants' session_id=session.id %}" class="btn btn-primary">
+                    <i class="fas fa-envelope mr-2"></i>Email Participants
+                </a>
             </div>
         </div>
     </div>
