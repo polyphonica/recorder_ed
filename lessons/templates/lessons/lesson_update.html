@@ -456,20 +456,32 @@ document.addEventListener('DOMContentLoaded', function() {
     let ckeditorInstance = null;
 
     // Get CKEditor instance (it's initialized by Django's CKEditor5Widget)
-    // We need to wait for CKEditor to be ready
     function getCKEditorInstance() {
-        // CKEditor5 instances are stored on the window object
-        // The ID is typically based on the field name
-        const editorElement = document.querySelector('[name="lesson_content"]');
-        if (editorElement && editorElement.nextElementSibling &&
-            editorElement.nextElementSibling.classList.contains('ck-editor')) {
-            // Get the editor instance from the DOM
-            const editorContainer = editorElement.nextElementSibling;
-            // CKEditor stores the instance on the DOM element
-            if (editorContainer.ckeditorInstance) {
-                return editorContainer.ckeditorInstance;
+        // Method 1: Try to find editor through the .ck-editor container
+        const editorContainers = document.querySelectorAll('.ck-editor');
+        for (let container of editorContainers) {
+            // Check if this container is for our lesson_content field
+            const prevElement = container.previousElementSibling;
+            if (prevElement && prevElement.name === 'lesson_content') {
+                // Get the editable element
+                const editableElement = container.querySelector('.ck-editor__editable');
+                if (editableElement && editableElement.ckeditorInstance) {
+                    console.log('Found CKEditor instance via editableElement.ckeditorInstance');
+                    return editableElement.ckeditorInstance;
+                }
             }
         }
+
+        // Method 2: Try global CKEDITOR object (if available)
+        if (window.CKEDITOR && window.CKEDITOR.instances) {
+            const instances = window.CKEDITOR.instances;
+            for (let key in instances) {
+                console.log('Found CKEditor instance via CKEDITOR.instances:', key);
+                return instances[key];
+            }
+        }
+
+        console.warn('Could not find CKEditor instance');
         return null;
     }
 
@@ -566,41 +578,59 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Insert homework into CKEditor at cursor position
     function insertHomeworkIntoEditor(homeworkText) {
+        console.log('Attempting to insert homework:', homeworkText.substring(0, 50) + '...');
+
         // Try to get CKEditor instance
         if (!ckeditorInstance) {
             ckeditorInstance = getCKEditorInstance();
         }
 
         if (ckeditorInstance) {
-            // Insert at cursor position using CKEditor5 API
-            ckeditorInstance.model.change(writer => {
-                const insertPosition = ckeditorInstance.model.document.selection.getFirstPosition();
-                writer.insertText(homeworkText, insertPosition);
-            });
+            try {
+                console.log('CKEditor instance found, attempting insertion');
+                // Insert at cursor position using CKEditor5 API
+                ckeditorInstance.model.change(writer => {
+                    const insertPosition = ckeditorInstance.model.document.selection.getFirstPosition();
+                    writer.insertText(homeworkText, insertPosition);
+                });
 
-            // Focus the editor
-            ckeditorInstance.editing.view.focus();
-        } else {
-            // Fallback: Try to get the textarea (if CKEditor hasn't initialized yet)
-            const textarea = document.querySelector('[name="lesson_content"]');
-            if (textarea) {
-                // Get current cursor position
-                const startPos = textarea.selectionStart;
-                const endPos = textarea.selectionEnd;
-                const currentValue = textarea.value;
-
-                // Insert text at cursor position
-                textarea.value = currentValue.substring(0, startPos) +
-                                homeworkText +
-                                currentValue.substring(endPos);
-
-                // Set cursor position after inserted text
-                const newPos = startPos + homeworkText.length;
-                textarea.setSelectionRange(newPos, newPos);
-                textarea.focus();
-            } else {
-                alert('Could not find the editor. Please try again.');
+                // Focus the editor
+                ckeditorInstance.editing.view.focus();
+                console.log('Homework inserted successfully');
+                return;
+            } catch (error) {
+                console.error('Error inserting into CKEditor:', error);
             }
+        }
+
+        // Fallback: Try to manipulate the editor via execCommand
+        console.log('Trying fallback method: execCommand');
+        const editableElement = document.querySelector('.ck-editor__editable');
+        if (editableElement) {
+            try {
+                editableElement.focus();
+                document.execCommand('insertText', false, homeworkText);
+                console.log('Homework inserted via execCommand');
+                return;
+            } catch (error) {
+                console.error('Error with execCommand:', error);
+            }
+        }
+
+        // Final fallback: Append to existing content
+        console.log('Using final fallback: appending to content');
+        if (ckeditorInstance) {
+            try {
+                const currentData = ckeditorInstance.getData();
+                ckeditorInstance.setData(currentData + '\n\n' + homeworkText);
+                console.log('Homework appended to content');
+                alert('Homework has been added to the end of the lesson content.');
+            } catch (error) {
+                console.error('Error appending to content:', error);
+                alert('Could not insert homework. Please copy it manually:\n\n' + homeworkText);
+            }
+        } else {
+            alert('Could not access the editor. Please copy this homework manually:\n\n' + homeworkText);
         }
     }
 
