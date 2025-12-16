@@ -500,8 +500,12 @@ document.addEventListener('DOMContentLoaded', function() {
         homeworkList.innerHTML = '<div class="p-4 text-center text-gray-500">Loading...</div>';
 
         // Get lesson ID from the URL
-        const pathParts = window.location.pathname.split('/');
-        const lessonId = pathParts[pathParts.length - 2]; // Gets the UUID before '/edit/'
+        // URL format: /lessons/<uuid>/edit/ or /lessons/<uuid>/edit
+        const pathParts = window.location.pathname.split('/').filter(p => p); // Remove empty strings
+        const lessonsIndex = pathParts.indexOf('lessons');
+        const lessonId = pathParts[lessonsIndex + 1]; // UUID comes right after 'lessons'
+
+        console.log('Extracted lesson ID:', lessonId, 'from path:', window.location.pathname);
 
         fetch(`/lessons/api/${lessonId}/previous-homework/`)
             .then(response => {
