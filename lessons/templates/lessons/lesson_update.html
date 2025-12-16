@@ -229,7 +229,22 @@
         <div class="form-section">
             <h3>Lesson Content</h3>
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Lesson Content</label>
+                <div class="flex justify-between items-center mb-2">
+                    <label class="block text-sm font-medium text-gray-700">Lesson Content</label>
+                    <div class="relative">
+                        <button type="button" id="insert-homework-btn" class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                            📋 Insert Previous Homework
+                        </button>
+                        <div id="homework-dropdown" class="hidden absolute right-0 mt-2 w-96 bg-white border border-gray-300 rounded-lg shadow-lg z-50">
+                            <div class="p-3 border-b border-gray-200 bg-gray-50">
+                                <h4 class="font-semibold text-gray-700">Select Previous Homework</h4>
+                            </div>
+                            <div id="homework-list" class="max-h-96 overflow-y-auto">
+                                <!-- Homework items will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 {{ form.lesson_content }}
             </div>
         </div>
@@ -433,6 +448,152 @@
 // Handle form errors and dynamic formsets
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Lesson edit form loaded');
+
+    // Previous Homework Insertion Feature
+    const insertHomeworkBtn = document.getElementById('insert-homework-btn');
+    const homeworkDropdown = document.getElementById('homework-dropdown');
+    const homeworkList = document.getElementById('homework-list');
+    let ckeditorInstance = null;
+
+    // Get CKEditor instance (it's initialized by Django's CKEditor5Widget)
+    // We need to wait for CKEditor to be ready
+    function getCKEditorInstance() {
+        // CKEditor5 instances are stored on the window object
+        // The ID is typically based on the field name
+        const editorElement = document.querySelector('[name="lesson_content"]');
+        if (editorElement && editorElement.nextElementSibling &&
+            editorElement.nextElementSibling.classList.contains('ck-editor')) {
+            // Get the editor instance from the DOM
+            const editorContainer = editorElement.nextElementSibling;
+            // CKEditor stores the instance on the DOM element
+            if (editorContainer.ckeditorInstance) {
+                return editorContainer.ckeditorInstance;
+            }
+        }
+        return null;
+    }
+
+    // Toggle dropdown visibility
+    insertHomeworkBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (homeworkDropdown.classList.contains('hidden')) {
+            // Show dropdown and fetch homework
+            homeworkDropdown.classList.remove('hidden');
+            fetchPreviousHomework();
+        } else {
+            // Hide dropdown
+            homeworkDropdown.classList.add('hidden');
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!homeworkDropdown.contains(e.target) && e.target !== insertHomeworkBtn) {
+            homeworkDropdown.classList.add('hidden');
+        }
+    });
+
+    // Fetch previous homework from the server
+    function fetchPreviousHomework() {
+        homeworkList.innerHTML = '<div class="p-4 text-center text-gray-500">Loading...</div>';
+
+        // Get lesson ID from the URL
+        const pathParts = window.location.pathname.split('/');
+        const lessonId = pathParts[pathParts.length - 2]; // Gets the UUID before '/edit/'
+
+        fetch(`/lessons/api/${lessonId}/previous-homework/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch homework');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.lessons && data.lessons.length > 0) {
+                    displayHomeworkList(data.lessons);
+                } else {
+                    homeworkList.innerHTML = '<div class="p-4 text-center text-gray-500">No previous homework found for this student.</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching homework:', error);
+                homeworkList.innerHTML = '<div class="p-4 text-center text-red-500">Error loading homework. Please try again.</div>';
+            });
+    }
+
+    // Display the list of previous homework
+    function displayHomeworkList(lessons) {
+        homeworkList.innerHTML = '';
+
+        lessons.forEach(lesson => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 transition-colors';
+            itemDiv.innerHTML = `
+                <div class="flex justify-between items-start mb-1">
+                    <span class="font-medium text-gray-700">${lesson.subject}</span>
+                    <span class="text-xs text-gray-500">${lesson.date}</span>
+                </div>
+                <div class="text-sm text-gray-600 truncate">${lesson.preview}</div>
+            `;
+
+            itemDiv.addEventListener('click', function() {
+                insertHomeworkIntoEditor(lesson.homework);
+                homeworkDropdown.classList.add('hidden');
+            });
+
+            homeworkList.appendChild(itemDiv);
+        });
+    }
+
+    // Insert homework into CKEditor at cursor position
+    function insertHomeworkIntoEditor(homeworkText) {
+        // Try to get CKEditor instance
+        if (!ckeditorInstance) {
+            ckeditorInstance = getCKEditorInstance();
+        }
+
+        if (ckeditorInstance) {
+            // Insert at cursor position using CKEditor5 API
+            ckeditorInstance.model.change(writer => {
+                const insertPosition = ckeditorInstance.model.document.selection.getFirstPosition();
+                writer.insertText(homeworkText, insertPosition);
+            });
+
+            // Focus the editor
+            ckeditorInstance.editing.view.focus();
+        } else {
+            // Fallback: Try to get the textarea (if CKEditor hasn't initialized yet)
+            const textarea = document.querySelector('[name="lesson_content"]');
+            if (textarea) {
+                // Get current cursor position
+                const startPos = textarea.selectionStart;
+                const endPos = textarea.selectionEnd;
+                const currentValue = textarea.value;
+
+                // Insert text at cursor position
+                textarea.value = currentValue.substring(0, startPos) +
+                                homeworkText +
+                                currentValue.substring(endPos);
+
+                // Set cursor position after inserted text
+                const newPos = startPos + homeworkText.length;
+                textarea.setSelectionRange(newPos, newPos);
+                textarea.focus();
+            } else {
+                alert('Could not find the editor. Please try again.');
+            }
+        }
+    }
+
+    // Wait for CKEditor to be ready
+    setTimeout(function() {
+        ckeditorInstance = getCKEditorInstance();
+        if (!ckeditorInstance) {
+            console.warn('CKEditor instance not found immediately, will try again when inserting');
+        }
+    }, 1000);
     
     // Add visual feedback for delete checkboxes
     document.querySelectorAll('input[name*="DELETE"]').forEach(function(checkbox) {

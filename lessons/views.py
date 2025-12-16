@@ -303,3 +303,40 @@ def calendar_events_api(request):
         events.append(event)
     
     return JsonResponse(events, safe=False)
+
+
+def get_previous_homework(request, lesson_id):
+    """AJAX endpoint to fetch previous lessons' homework for the same student"""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+
+    # Get the current lesson
+    lesson = get_object_or_404(Lesson, pk=lesson_id)
+
+    # Verify teacher permission
+    if not (hasattr(request.user, 'profile') and
+            request.user.profile.is_teacher and
+            lesson.teacher == request.user):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    # Get previous lessons for the same student with homework
+    previous_lessons = Lesson.objects.filter(
+        student=lesson.student,
+        lesson_date__lt=lesson.lesson_date,
+        is_deleted=False
+    ).exclude(
+        homework__isnull=True
+    ).exclude(
+        homework=''
+    ).select_related('subject').order_by('-lesson_date')[:5]
+
+    # Format the data
+    data = [{
+        'id': l.id,
+        'date': l.lesson_date.strftime('%b %d, %Y'),
+        'subject': l.subject.subject,
+        'homework': l.homework,
+        'preview': (l.homework[:60] + '...') if len(l.homework) > 60 else l.homework
+    } for l in previous_lessons]
+
+    return JsonResponse({'lessons': data})

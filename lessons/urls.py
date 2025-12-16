@@ -14,4 +14,5 @@ urlpatterns = [
 
     # API endpoints
     path('api/calendar-events/', views.calendar_events_api, name='calendar_events_api'),
+    path('api/<uuid:lesson_id>/previous-homework/', views.get_previous_homework, name='get_previous_homework'),
 ]
