@@ -506,20 +506,33 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(`/lessons/api/${lessonId}/previous-homework/`)
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Failed to fetch homework');
+                    // Try to get error details from response
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.error || 'Failed to fetch homework');
+                    }).catch(() => {
+                        throw new Error(`Server error: ${response.status}`);
+                    });
                 }
                 return response.json();
             })
             .then(data => {
+                console.log('Previous homework data:', data);
                 if (data.lessons && data.lessons.length > 0) {
                     displayHomeworkList(data.lessons);
                 } else {
-                    homeworkList.innerHTML = '<div class="p-4 text-center text-gray-500">No previous homework found for this student.</div>';
+                    homeworkList.innerHTML = '<div class="p-4 text-center text-gray-500">There is no previous lesson homework for this student.</div>';
                 }
             })
             .catch(error => {
                 console.error('Error fetching homework:', error);
-                homeworkList.innerHTML = '<div class="p-4 text-center text-red-500">Error loading homework. Please try again.</div>';
+                // Check if it's a permission error
+                if (error.message.includes('Permission denied') || error.message.includes('403')) {
+                    homeworkList.innerHTML = '<div class="p-4 text-center text-red-500">You do not have permission to view homework for this lesson.</div>';
+                } else if (error.message.includes('401')) {
+                    homeworkList.innerHTML = '<div class="p-4 text-center text-red-500">Please log in to view homework.</div>';
+                } else {
+                    homeworkList.innerHTML = '<div class="p-4 text-center text-gray-500">Unable to load previous homework. This may be the first lesson for this student.</div>';
+                }
             });
     }
 
