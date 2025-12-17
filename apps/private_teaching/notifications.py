@@ -12,9 +12,9 @@ class TeacherNotificationService(BaseNotificationService):
     def send_new_lesson_request_notification(lesson_request, lessons, teacher):
         """Send notification to teacher when they receive a new lesson request"""
         try:
-            # Get teacher email
-            if not teacher or not teacher.email:
-                logger.warning(f"No teacher email found for teacher {teacher.id if teacher else 'None'}")
+            # Validate teacher email
+            is_valid, email = TeacherNotificationService.validate_email(teacher, 'Teacher')
+            if not is_valid:
                 return False
 
             # Build URL for incoming requests page
@@ -38,7 +38,7 @@ class TeacherNotificationService(BaseNotificationService):
             return TeacherNotificationService.send_templated_email(
                 template_path='private_teaching/emails/teacher_new_lesson_request.txt',
                 context=context,
-                recipient_list=[teacher.email],
+                recipient_list=[email],
                 default_subject='New Lesson Request',
                 fail_silently=False,
                 log_description=f"New lesson request notification to teacher {teacher.username}"
@@ -52,9 +52,9 @@ class TeacherNotificationService(BaseNotificationService):
     def send_new_application_notification(application, teacher, initial_message=None):
         """Send notification to teacher when they receive a new student application"""
         try:
-            # Get teacher email
-            if not teacher or not teacher.email:
-                logger.warning(f"No teacher email found for teacher {teacher.id if teacher else 'None'}")
+            # Validate teacher email
+            is_valid, email = TeacherNotificationService.validate_email(teacher, 'Teacher')
+            if not is_valid:
                 return False
 
             # Build URL for applications page
@@ -75,7 +75,7 @@ class TeacherNotificationService(BaseNotificationService):
             return TeacherNotificationService.send_templated_email(
                 template_path='private_teaching/emails/teacher_new_application.txt',
                 context=context,
-                recipient_list=[teacher.email],
+                recipient_list=[email],
                 default_subject='New Student Application',
                 fail_silently=False,
                 log_description=f"New application notification to teacher {teacher.username}"
@@ -93,9 +93,12 @@ class StudentNotificationService(BaseNotificationService):
     def send_lesson_request_response_notification(lesson_request, teacher, accepted_lessons, rejected_lessons, message_text=None):
         """Send notification to student when teacher responds to their lesson request"""
         try:
-            # Get student email
-            if not lesson_request.student or not lesson_request.student.email:
-                logger.warning(f"No student email found for lesson request {lesson_request.id}")
+            # Validate student email
+            is_valid, email = StudentNotificationService.validate_email(
+                lesson_request.student,
+                'Student'
+            )
+            if not is_valid:
                 return False
 
             # Build URL for my requests page
@@ -107,7 +110,7 @@ class StudentNotificationService(BaseNotificationService):
                 'lesson_request': lesson_request,
                 'student': lesson_request.student,
                 'teacher': teacher,
-                'teacher_name': teacher.get_full_name() or teacher.username,
+                'teacher_name': StudentNotificationService.get_display_name(teacher),
                 'accepted_lessons': accepted_lessons,
                 'rejected_lessons': rejected_lessons,
                 'message_text': message_text,
@@ -117,7 +120,7 @@ class StudentNotificationService(BaseNotificationService):
             return StudentNotificationService.send_templated_email(
                 template_path='private_teaching/emails/student_lesson_request_response.txt',
                 context=context,
-                recipient_list=[lesson_request.student.email],
+                recipient_list=[email],
                 default_subject='Lesson Request Update',
                 fail_silently=False,
                 log_description=f"Lesson request response notification to student {lesson_request.student.username}"
@@ -131,9 +134,12 @@ class StudentNotificationService(BaseNotificationService):
     def send_application_status_notification(application, teacher, new_status, teacher_notes=None):
         """Send notification to student when their application status changes"""
         try:
-            # Get applicant email
-            if not application.applicant or not application.applicant.email:
-                logger.warning(f"No applicant email found for application {application.id}")
+            # Validate applicant email
+            is_valid, email = StudentNotificationService.validate_email(
+                application.applicant,
+                'Applicant'
+            )
+            if not is_valid:
                 return False
 
             # Build URLs based on status
@@ -150,7 +156,7 @@ class StudentNotificationService(BaseNotificationService):
                 'application': application,
                 'student_name': application.student_name,
                 'teacher': teacher,
-                'teacher_name': teacher.get_full_name() or teacher.username,
+                'teacher_name': StudentNotificationService.get_display_name(teacher),
                 'new_status': new_status,
                 'teacher_notes': teacher_notes,
                 'action_url': action_url,
@@ -159,7 +165,7 @@ class StudentNotificationService(BaseNotificationService):
             return StudentNotificationService.send_templated_email(
                 template_path='private_teaching/emails/student_application_status.txt',
                 context=context,
-                recipient_list=[application.applicant.email],
+                recipient_list=[email],
                 default_subject='Application Status Update',
                 fail_silently=False,
                 log_description=f"Application status notification to student {application.applicant.username}"
@@ -173,9 +179,9 @@ class StudentNotificationService(BaseNotificationService):
     def send_payment_confirmation(order):
         """Send payment confirmation email to student"""
         try:
-            # Get student email
-            if not order.student or not order.student.email:
-                logger.warning(f"No student email found for order {order.id}")
+            # Validate student email
+            is_valid, email = StudentNotificationService.validate_email(order.student, 'Student')
+            if not is_valid:
                 return False
 
             # Build URL for lessons page
@@ -199,7 +205,7 @@ class StudentNotificationService(BaseNotificationService):
             return StudentNotificationService.send_templated_email(
                 template_path='private_teaching/emails/student_payment_confirmation.txt',
                 context=context,
-                recipient_list=[order.student.email],
+                recipient_list=[email],
                 default_subject='Payment Confirmation',
                 fail_silently=False,
                 log_description=f"Payment confirmation to student {order.student.username} for order {order.id}"
@@ -213,13 +219,15 @@ class StudentNotificationService(BaseNotificationService):
     def send_exam_registration_notification(exam):
         """Send notification to student/parent when registered for an exam"""
         try:
-            # Get recipient email (student or guardian)
-            recipient_email = exam.student.email
-            recipient_name = exam.student.get_full_name()
-
-            if not recipient_email:
-                logger.warning(f"No email found for exam registration {exam.id}")
+            # Validate recipient email (student or guardian)
+            is_valid, recipient_email = StudentNotificationService.validate_email(
+                exam.student,
+                'Student'
+            )
+            if not is_valid:
                 return False
+
+            recipient_name = StudentNotificationService.get_display_name(exam.student)
 
             # Build URLs
             exam_detail_url = StudentNotificationService.build_action_url(
@@ -254,13 +262,15 @@ class StudentNotificationService(BaseNotificationService):
     def send_exam_results_notification(exam):
         """Send notification to student/parent when exam results are available"""
         try:
-            # Get recipient email (student or guardian)
-            recipient_email = exam.student.email
-            recipient_name = exam.student.get_full_name()
-
-            if not recipient_email:
-                logger.warning(f"No email found for exam results {exam.id}")
+            # Validate recipient email (student or guardian)
+            is_valid, recipient_email = StudentNotificationService.validate_email(
+                exam.student,
+                'Student'
+            )
+            if not is_valid:
                 return False
+
+            recipient_name = StudentNotificationService.get_display_name(exam.student)
 
             # Build URLs
             exam_detail_url = StudentNotificationService.build_action_url(
@@ -299,9 +309,9 @@ class TeacherPaymentNotificationService(BaseNotificationService):
     def send_lesson_payment_notification(order, teacher):
         """Send notification to teacher when lessons are paid for"""
         try:
-            # Get teacher email
-            if not teacher or not teacher.email:
-                logger.warning(f"No teacher email found for teacher {teacher.id if teacher else 'None'}")
+            # Validate teacher email
+            is_valid, email = TeacherPaymentNotificationService.validate_email(teacher, 'Teacher')
+            if not is_valid:
                 return False
 
             # Get order items for this teacher
@@ -329,7 +339,7 @@ class TeacherPaymentNotificationService(BaseNotificationService):
             return TeacherPaymentNotificationService.send_templated_email(
                 template_path='private_teaching/emails/teacher_payment_notification.txt',
                 context=context,
-                recipient_list=[teacher.email],
+                recipient_list=[email],
                 default_subject='Lesson Payment Received',
                 fail_silently=False,
                 log_description=f"Payment notification to teacher {teacher.username} for order {order.id}"

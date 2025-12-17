@@ -26,12 +26,13 @@ class MessageNotificationService(BaseNotificationService):
             recipient = conversation.get_other_participant(sender)
 
             # Check if recipient has email notifications enabled
-            if not hasattr(recipient, 'profile') or not recipient.profile.email_on_new_message:
+            if not MessageNotificationService.check_opt_out(recipient, 'email_on_new_message'):
                 logger.info(f"Skipping email notification - {recipient.username} has notifications disabled")
                 return False
 
-            if not recipient.email:
-                logger.warning(f"No email address for {recipient.username}")
+            # Validate recipient email
+            is_valid, email = MessageNotificationService.validate_email(recipient, 'Recipient')
+            if not is_valid:
                 return False
 
             # Build conversation URL
@@ -56,9 +57,9 @@ class MessageNotificationService(BaseNotificationService):
             # Build email context
             context = {
                 'recipient': recipient,
-                'recipient_name': recipient.get_full_name() or recipient.username,
+                'recipient_name': MessageNotificationService.get_display_name(recipient),
                 'sender': sender,
-                'sender_name': sender.get_full_name() or sender.username,
+                'sender_name': MessageNotificationService.get_display_name(sender),
                 'message': message,
                 'conversation': conversation,
                 'context_info': context_info,
@@ -70,7 +71,7 @@ class MessageNotificationService(BaseNotificationService):
             success = MessageNotificationService.send_templated_email(
                 template_path='messaging/emails/new_message_notification.txt',
                 context=context,
-                recipient_list=[recipient.email],
+                recipient_list=[email],
                 default_subject='New Message',
                 fail_silently=False,
                 log_description=f"New message notification to {recipient.username} from {sender.username}"

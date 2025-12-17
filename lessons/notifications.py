@@ -16,8 +16,8 @@ class LessonNotificationService(BaseNotificationService):
         """Send notification to student when lesson is assigned (Draft -> Assigned)"""
         try:
             # Validate student and email
-            if not lesson.student or not lesson.student.email:
-                logger.warning(f"No student email found for lesson {lesson.id}")
+            is_valid, email = LessonNotificationService.validate_email(lesson.student, 'Student')
+            if not is_valid:
                 return False
 
             # Build lesson URL
@@ -27,7 +27,7 @@ class LessonNotificationService(BaseNotificationService):
             )
 
             # Get student name
-            student_name = lesson.student.get_full_name() or lesson.student.username
+            student_name = LessonNotificationService.get_display_name(lesson.student)
 
             context = {
                 'lesson': lesson,
@@ -39,7 +39,7 @@ class LessonNotificationService(BaseNotificationService):
             return LessonNotificationService.send_templated_email(
                 template_path='lessons/emails/lesson_assigned.txt',
                 context=context,
-                recipient_list=[lesson.student.email],
+                recipient_list=[email],
                 default_subject='Your Lesson is Ready to View',
                 fail_silently=True,
                 log_description=f"Lesson assigned notification to {student_name} for lesson {lesson.id}"

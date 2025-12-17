@@ -66,7 +66,7 @@ class TicketNotificationService(BaseNotificationService):
                 use_https=True
             )
 
-            staff_name = message.author.get_full_name() or message.author.username if message.author else "Support Team"
+            staff_name = TicketNotificationService.get_display_name(message.author, "Support Team")
 
             # Build email context
             context = {

@@ -12,12 +12,13 @@ class StudentNotificationService(BaseNotificationService):
     def send_enrollment_confirmation(enrollment):
         """Send enrollment confirmation email to student"""
         try:
-            # Get student email
-            if not enrollment.student or not enrollment.student.email:
-                logger.warning(f"No student email found for enrollment {enrollment.id}")
+            # Validate student email
+            is_valid, guardian_email = StudentNotificationService.validate_email(
+                enrollment.student,
+                'Student'
+            )
+            if not is_valid:
                 return False
-
-            guardian_email = enrollment.student.email
 
             # Build URLs
             course_url = StudentNotificationService.build_detail_url(
@@ -62,10 +63,13 @@ class InstructorNotificationService(BaseNotificationService):
     def send_new_enrollment_notification(enrollment):
         """Send notification to instructor when someone enrolls in their course"""
         try:
-            # Get the instructor email
+            # Validate instructor email
             instructor = enrollment.course.instructor
-            if not instructor or not instructor.email:
-                logger.warning(f"No instructor email found for course {enrollment.course.id}")
+            is_valid, email = InstructorNotificationService.validate_email(
+                instructor,
+                'Instructor'
+            )
+            if not is_valid:
                 return False
 
             # Build URLs using centralized URL builder
@@ -82,7 +86,7 @@ class InstructorNotificationService(BaseNotificationService):
             student_name = enrollment.student_name
             guardian_info = None
             if enrollment.is_for_child:
-                guardian_info = f"{enrollment.student.get_full_name() or enrollment.student.username} (Guardian)"
+                guardian_info = f"{InstructorNotificationService.get_display_name(enrollment.student)} (Guardian)"
 
             context = {
                 'enrollment': enrollment,
@@ -96,7 +100,7 @@ class InstructorNotificationService(BaseNotificationService):
             return InstructorNotificationService.send_templated_email(
                 template_path='courses/emails/instructor_new_enrollment.txt',
                 context=context,
-                recipient_list=[instructor.email],
+                recipient_list=[email],
                 default_subject='New Course Enrollment',
                 fail_silently=False,
                 log_description=f"New enrollment notification to instructor {instructor.username} for course {enrollment.course.id}"

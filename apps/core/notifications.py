@@ -163,6 +163,114 @@ class BaseNotificationService:
         return context
 
     @staticmethod
+    def validate_email(user, log_prefix=''):
+        """
+        Validate that a user has a valid email address.
+
+        Args:
+            user: User instance to validate (can be None)
+            log_prefix: Optional prefix for log messages (e.g., "Student", "Instructor")
+
+        Returns:
+            tuple: (is_valid: bool, email: str|None)
+                - is_valid: True if user has valid email, False otherwise
+                - email: The email address if valid, None otherwise
+
+        Example:
+            is_valid, email = BaseNotificationService.validate_email(user, 'Student')
+            if not is_valid:
+                return False
+            # Use email for sending...
+        """
+        if not user:
+            logger.warning(f"{log_prefix} user is None - cannot send email")
+            return False, None
+
+        if not hasattr(user, 'email') or not user.email:
+            user_identifier = getattr(user, 'username', str(user))
+            logger.warning(f"No email address found for {log_prefix} {user_identifier}")
+            return False, None
+
+        return True, user.email
+
+    @staticmethod
+    def check_opt_out(user, opt_out_field='workshop_email_notifications'):
+        """
+        Check if user has opted out of email notifications.
+
+        Args:
+            user: User instance to check (can be None)
+            opt_out_field: Name of the profile field to check
+                Common values: 'workshop_email_notifications', 'email_on_new_message'
+
+        Returns:
+            bool: True if email should be sent (user opted IN or profile missing)
+                  False if user opted out (should NOT send email)
+
+        Example:
+            if not BaseNotificationService.check_opt_out(user, 'workshop_email_notifications'):
+                logger.info(f"User {user.username} has opted out")
+                return False
+        """
+        if not user:
+            return True  # Default to sending if no user (shouldn't happen, but safe default)
+
+        if not hasattr(user, 'profile'):
+            # No profile exists - default to sending emails
+            logger.debug(f"User {getattr(user, 'username', str(user))} has no profile - defaulting to send")
+            return True
+
+        try:
+            opt_out_value = getattr(user.profile, opt_out_field, None)
+            if opt_out_value is None:
+                # Field doesn't exist on profile - default to sending
+                logger.debug(f"Profile field {opt_out_field} not found - defaulting to send")
+                return True
+
+            # Field exists - use its value (True = send, False = opted out)
+            return bool(opt_out_value)
+
+        except Exception as e:
+            logger.warning(f"Error checking opt-out field {opt_out_field}: {e} - defaulting to send")
+            return True  # Default to sending on error (fail open)
+
+    @staticmethod
+    def get_display_name(user, fallback='User'):
+        """
+        Get display name for a user (full name, username, or fallback).
+
+        Args:
+            user: User instance to get name from (can be None)
+            fallback: Fallback string if user is None or has no name/username
+
+        Returns:
+            str: User's full name, username, or fallback (never returns None/empty)
+
+        Example:
+            user_name = BaseNotificationService.get_display_name(user)
+            # Returns "John Doe" or "jdoe" or "User"
+
+            teacher_name = BaseNotificationService.get_display_name(teacher, 'Instructor')
+            # Returns name or "Instructor" as fallback
+        """
+        if not user:
+            return fallback
+
+        # Try get_full_name() first
+        if hasattr(user, 'get_full_name'):
+            full_name = user.get_full_name()
+            if full_name:  # Check for non-empty string
+                return full_name
+
+        # Fall back to username
+        if hasattr(user, 'username') and user.username:
+            return user.username
+
+        # Last resort: use str(user) or fallback
+        user_str = str(user)
+        return user_str if user_str else fallback
+
+    @staticmethod
     def send_templated_email(
         template_path,
         context,
