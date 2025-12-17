@@ -69,9 +69,32 @@
                                 <span class="label-text font-semibold">Profile Photo</span>
                                 <span class="label-text-alt">Displayed to students</span>
                             </label>
+
+                            {% if user.profile.profile_image %}
+                                <div class="mb-4 p-4 border border-base-300 rounded-lg bg-base-200">
+                                    <div class="flex items-center gap-4">
+                                        <div class="avatar">
+                                            <div class="w-16 rounded-full">
+                                                <img src="{{ user.profile.profile_image.url }}" alt="Current profile photo">
+                                            </div>
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="font-semibold">Current Photo</p>
+                                            <p class="text-sm text-gray-600">{{ user.profile.profile_image.name|slice:"9:" }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+
                             {{ form.profile_image }}
                             <label class="label">
-                                <span class="label-text-alt text-gray-500">Upload a professional photo or leave blank for default avatar</span>
+                                <span class="label-text-alt text-gray-500">
+                                    {% if user.profile.profile_image %}
+                                        Upload a new photo to replace the current one
+                                    {% else %}
+                                        Upload a professional photo or leave blank for default avatar
+                                    {% endif %}
+                                </span>
                             </label>
                         </div>
                     </div>
