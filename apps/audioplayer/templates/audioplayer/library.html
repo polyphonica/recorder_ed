@@ -160,6 +160,9 @@
                     <p>
                         <i class="fas fa-user-music mr-2"></i>
                         <strong>{{ piece.composer.name }}</strong>
+                        {% if piece.composer.dates %}
+                        <span class="text-xs">({{ piece.composer.dates }})</span>
+                        {% endif %}
                         {% if piece.composer.bio %}
                         <button onclick="composer_modal_{{ piece.composer.id }}.showModal()"
                                 class="btn btn-xs btn-circle btn-ghost ml-1"
@@ -284,6 +287,9 @@
                     </form>
                     <h3 class="font-bold text-2xl mb-4">
                         <i class="fas fa-user-music mr-2"></i>{{ composer_group.grouper.name }}
+                        {% if composer_group.grouper.dates %}
+                        <span class="text-lg font-normal text-base-content/70">({{ composer_group.grouper.dates }})</span>
+                        {% endif %}
                     </h3>
                     {% if composer_group.grouper.period %}
                     <p class="text-sm text-base-content/70 mb-4">
