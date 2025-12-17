@@ -65,7 +65,7 @@
             <!-- Workshop Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for workshop in workshops %}
-                    <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                    <div class="card bg-slate-50 shadow-xl hover:shadow-2xl transition-shadow">
                         {% if workshop.featured_image %}
                             <figure class="h-48">
                                 <img src="{{ workshop.featured_image.url }}" alt="{{ workshop.title }}" class="w-full h-full object-cover" />

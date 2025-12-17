@@ -138,7 +138,7 @@
         {% if workshops %}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {% for workshop in workshops %}
-                    <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+                    <div class="card bg-slate-50 shadow-xl hover:shadow-2xl transition-shadow duration-300">
                         {% if workshop.featured_image %}
                             <figure>
                                 <img src="{{ workshop.featured_image.url }}" 
