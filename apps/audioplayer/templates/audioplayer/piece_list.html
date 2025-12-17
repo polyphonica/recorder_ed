@@ -67,8 +67,11 @@
 
                 <!-- Actions -->
                 <div class="card-actions justify-end mt-4 pt-4 border-t">
-                    <a href="{% url 'audioplayer:piece_detail' pk=piece.id %}" class="btn btn-sm btn-ghost">
+                    <a href="{% url 'audioplayer:library_piece_player' piece_id=piece.id %}" class="btn btn-sm btn-ghost" title="Test as student sees it">
                         <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'audioplayer:piece_detail' pk=piece.id %}" class="btn btn-sm btn-ghost" title="View details">
+                        <i class="fas fa-info-circle"></i>
                     </a>
                     <a href="{% url 'audioplayer:piece_edit' pk=piece.id %}" class="btn btn-sm btn-primary">
                         <i class="fas fa-edit"></i>
