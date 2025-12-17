@@ -121,7 +121,7 @@ def optimize_workshop_featured_image(sender, instance, **kwargs):
     - Image has already been optimized (contains '_optimized.jpg')
 
     Processing includes:
-    - Resizing to 800x400px (2:1 aspect ratio)
+    - Resizing to 1600x800px (2:1 aspect ratio)
     - Center cropping to maintain aspect ratio
     - JPEG optimization at 85% quality
     - Conversion to RGB (handles PNG transparency)
@@ -159,8 +159,8 @@ def optimize_workshop_featured_image(sender, instance, **kwargs):
         # Optimize the image
         optimized_image = optimize_workshop_image(
             instance.featured_image,
-            target_width=800,
-            target_height=400,
+            target_width=1600,
+            target_height=800,
             quality=85
         )
 

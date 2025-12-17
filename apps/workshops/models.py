@@ -127,7 +127,7 @@ class Workshop(models.Model):
         blank=True,
         null=True,
         validators=[validate_workshop_image_size],
-        help_text='Upload an image (will be automatically optimized to 800x400px). Max size: 5MB. Recommended: 2:1 aspect ratio.'
+        help_text='Upload an image (will be automatically optimized to 1600x800px). Max size: 5MB. Recommended: 2:1 aspect ratio.'
     )
     promo_video_url = models.URLField(blank=True, help_text="YouTube or Vimeo URL")
     

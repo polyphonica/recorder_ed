@@ -5,7 +5,7 @@ import sys
 import os
 
 
-def optimize_workshop_image(image_field, target_width=800, target_height=400, quality=85):
+def optimize_workshop_image(image_field, target_width=1600, target_height=800, quality=85):
     """
     Resize and optimize an uploaded workshop image.
 
@@ -17,8 +17,8 @@ def optimize_workshop_image(image_field, target_width=800, target_height=400, qu
 
     Args:
         image_field: Django ImageField instance
-        target_width: Desired width in pixels (default: 800)
-        target_height: Desired height in pixels (default: 400)
+        target_width: Desired width in pixels (default: 1600)
+        target_height: Desired height in pixels (default: 800)
         quality: JPEG quality 1-100 (default: 85 - good balance)
 
     Returns:
