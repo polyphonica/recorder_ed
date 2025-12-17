@@ -1,7 +1,12 @@
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
-from .models import WorkshopRegistration, WorkshopSession, WorkshopInterest
+from .models import WorkshopRegistration, WorkshopSession, WorkshopInterest, Workshop
+from .image_utils import optimize_workshop_image
+import logging
+import sys
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=WorkshopRegistration)
@@ -99,3 +104,79 @@ def notify_interested_users_on_new_session(sender, instance, created, **kwargs):
 
         if notification_count > 0:
             logger.info(f"Sent {notification_count} new session notifications for workshop '{instance.workshop.title}'")
+
+
+@receiver(pre_save, sender=Workshop)
+def optimize_workshop_featured_image(sender, instance, **kwargs):
+    """
+    Automatically optimize workshop featured images before saving.
+
+    This signal processes images when:
+    1. A new workshop is created with an image
+    2. An existing workshop's image is changed
+
+    The signal will NOT process if:
+    - No image is attached
+    - Image hasn't changed (same file)
+    - Image has already been optimized (contains '_optimized.jpg')
+
+    Processing includes:
+    - Resizing to 800x400px (2:1 aspect ratio)
+    - Center cropping to maintain aspect ratio
+    - JPEG optimization at 85% quality
+    - Conversion to RGB (handles PNG transparency)
+    """
+    # Skip if no image
+    if not instance.featured_image:
+        return
+
+    # Check if this is a new workshop or if the image has changed
+    try:
+        # Try to get the existing workshop from database
+        old_instance = Workshop.objects.get(pk=instance.pk)
+        old_image = old_instance.featured_image
+
+        # If image hasn't changed, skip processing
+        if old_image and old_image.name == instance.featured_image.name:
+            logger.debug(f"Image unchanged for workshop '{instance.title}' - skipping optimization")
+            return
+
+    except Workshop.DoesNotExist:
+        # New workshop - process the image
+        logger.info(f"New workshop '{instance.title}' - will optimize image")
+        pass
+
+    # Check if image has already been optimized (to avoid re-processing)
+    if '_optimized.jpg' in instance.featured_image.name:
+        logger.debug(f"Image already optimized for workshop '{instance.title}' - skipping")
+        return
+
+    try:
+        # Log the optimization attempt
+        original_size = instance.featured_image.size
+        logger.info(f"Optimizing image for workshop '{instance.title}' (original size: {original_size / 1024:.2f} KB)")
+
+        # Optimize the image
+        optimized_image = optimize_workshop_image(
+            instance.featured_image,
+            target_width=800,
+            target_height=400,
+            quality=85
+        )
+
+        if optimized_image:
+            # Replace the image field with optimized version
+            instance.featured_image = optimized_image
+            new_size = sys.getsizeof(optimized_image)
+            logger.info(
+                f"Successfully optimized image for '{instance.title}' "
+                f"(new size: {new_size / 1024:.2f} KB, "
+                f"reduction: {((original_size - new_size) / original_size * 100):.1f}%)"
+            )
+        else:
+            logger.warning(f"Image optimization returned None for '{instance.title}' - keeping original")
+
+    except Exception as e:
+        # Log error but don't prevent saving
+        logger.error(f"Failed to optimize image for '{instance.title}': {str(e)}")
+        # Image will be saved as-is if optimization fails

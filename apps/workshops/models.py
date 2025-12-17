@@ -3,9 +3,23 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
+from django.core.exceptions import ValidationError
 import uuid
 
 from apps.core.models import PayableModel
+
+
+def validate_workshop_image_size(image):
+    """
+    Validate uploaded workshop image file size.
+    Maximum size: 5MB (will be optimized automatically after upload)
+    """
+    max_size_mb = 5
+    if image.size > max_size_mb * 1024 * 1024:
+        raise ValidationError(
+            f'Image file size cannot exceed {max_size_mb}MB. '
+            f'Your file is {image.size / (1024 * 1024):.2f}MB.'
+        )
 
 
 # Extend User model with display methods
@@ -108,7 +122,13 @@ class Workshop(models.Model):
     duration_unit = models.CharField(max_length=10, choices=DURATION_UNIT_CHOICES, default='minutes')
     
     # Media
-    featured_image = models.ImageField(upload_to='workshops/images/', blank=True, null=True)
+    featured_image = models.ImageField(
+        upload_to='workshops/images/',
+        blank=True,
+        null=True,
+        validators=[validate_workshop_image_size],
+        help_text='Upload an image (will be automatically optimized to 800x400px). Max size: 5MB. Recommended: 2:1 aspect ratio.'
+    )
     promo_video_url = models.URLField(blank=True, help_text="YouTube or Vimeo URL")
     
     # Pricing
