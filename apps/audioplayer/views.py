@@ -567,11 +567,15 @@ def composer_create(request):
     class ComposerCreateForm(forms.ModelForm):
         class Meta:
             model = Composer
-            fields = ['name', 'period', 'bio']
+            fields = ['name', 'dates', 'period', 'bio']
             widgets = {
                 'name': forms.TextInput(attrs={
                     'class': 'input input-bordered w-full',
                     'placeholder': 'e.g., Johann Sebastian Bach'
+                }),
+                'dates': forms.TextInput(attrs={
+                    'class': 'input input-bordered w-full',
+                    'placeholder': 'e.g., 1685-1750 or c.1547 - c.1601'
                 }),
                 'period': forms.TextInput(attrs={
                     'class': 'input input-bordered w-full',
@@ -584,11 +588,13 @@ def composer_create(request):
             }
             labels = {
                 'name': 'Composer Name',
+                'dates': 'Dates',
                 'period': 'Period/Era',
                 'bio': 'Biography'
             }
             help_texts = {
                 'name': 'Full name of the composer or artist',
+                'dates': 'Birth and death dates (e.g., "1685-1750" or "c.1547 - c.1601")',
                 'period': 'Musical period or era (optional)',
                 'bio': 'Biographical information with formatting (optional)'
             }
@@ -621,11 +627,15 @@ def composer_edit(request, pk):
     class ComposerEditForm(forms.ModelForm):
         class Meta:
             model = Composer
-            fields = ['name', 'period', 'bio']
+            fields = ['name', 'dates', 'period', 'bio']
             widgets = {
                 'name': forms.TextInput(attrs={
                     'class': 'input input-bordered w-full',
                     'placeholder': 'e.g., Johann Sebastian Bach'
+                }),
+                'dates': forms.TextInput(attrs={
+                    'class': 'input input-bordered w-full',
+                    'placeholder': 'e.g., 1685-1750 or c.1547 - c.1601'
                 }),
                 'period': forms.TextInput(attrs={
                     'class': 'input input-bordered w-full',
@@ -638,11 +648,13 @@ def composer_edit(request, pk):
             }
             labels = {
                 'name': 'Composer Name',
+                'dates': 'Dates',
                 'period': 'Period/Era',
                 'bio': 'Biography'
             }
             help_texts = {
                 'name': 'Full name of the composer or artist',
+                'dates': 'Birth and death dates (e.g., "1685-1750" or "c.1547 - c.1601")',
                 'period': 'Musical period or era (optional)',
                 'bio': 'Biographical information with formatting (optional)'
             }

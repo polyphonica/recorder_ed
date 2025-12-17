@@ -66,6 +66,18 @@
                     </label>
                 </div>
 
+                <!-- Dates -->
+                <div class="form-control">
+                    <label class="label" for="{{ form.dates.id_for_label }}">
+                        <span class="label-text font-semibold">{{ form.dates.label }}</span>
+                    </label>
+                    {{ form.dates }}
+                    {{ form.dates.errors }}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.dates.help_text }}</span>
+                    </label>
+                </div>
+
                 <!-- Period -->
                 <div class="form-control">
                     <label class="label" for="{{ form.period.id_for_label }}">

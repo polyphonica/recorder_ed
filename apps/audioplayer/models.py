@@ -8,6 +8,11 @@ class Composer(models.Model):
     Normalized composer/artist entity to avoid duplication and enable filtering.
     """
     name = models.CharField(max_length=200, unique=True)
+    dates = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Birth and death dates (e.g., '1685-1750' or 'c.1547 - c.1601')"
+    )
     bio = CKEditor5Field(
         'biography',
         config_name='default',

@@ -18,6 +18,17 @@ class PieceForm(forms.ModelForm):
         help_text='Enter the full name of the composer'
     )
 
+    new_composer_dates = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered w-full',
+            'placeholder': 'e.g., 1685-1750 or c.1547 - c.1601'
+        }),
+        label='Dates (Optional)',
+        help_text='Birth and death dates (approximate dates OK)'
+    )
+
     new_composer_period = forms.CharField(
         max_length=50,
         required=False,
@@ -117,6 +128,7 @@ class PieceForm(forms.ModelForm):
 
         # If a new composer name is provided, create or get that composer
         if new_composer_name:
+            new_composer_dates = cleaned_data.get('new_composer_dates', '')
             new_composer_period = cleaned_data.get('new_composer_period', '')
 
             # Check if composer already exists (case-insensitive)
@@ -131,6 +143,7 @@ class PieceForm(forms.ModelForm):
                 # Create new composer
                 new_composer = Composer.objects.create(
                     name=new_composer_name,
+                    dates=new_composer_dates,
                     period=new_composer_period,
                     bio=''  # Can be added later via admin or piece edit
                 )
