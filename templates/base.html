@@ -233,9 +233,15 @@
             {% if user.is_authenticated %}
                 <div class="dropdown dropdown-end mr-4">
                     <button tabindex="0" class="btn btn-ghost btn-circle avatar" aria-label="User menu for {{ user.profile.full_name|default:user.username }}" aria-haspopup="true" aria-expanded="false">
-                        <div class="w-8 rounded-full bg-primary text-primary-content flex items-center justify-center" aria-hidden="true">
-                            {% if user.first_name %}{{ user.first_name|first|upper }}{% else %}{{ user.username|first|upper }}{% endif %}
-                        </div>
+                        {% if user.profile.profile_image %}
+                            <div class="w-8 rounded-full" aria-hidden="true">
+                                <img src="{{ user.profile.profile_image.url }}" alt="{{ user.profile.full_name|default:user.username }}" class="rounded-full">
+                            </div>
+                        {% else %}
+                            <div class="w-8 rounded-full bg-primary text-primary-content flex items-center justify-center" aria-hidden="true">
+                                {% if user.first_name %}{{ user.first_name|first|upper }}{% else %}{{ user.username|first|upper }}{% endif %}
+                            </div>
+                        {% endif %}
                     </button>
                     <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-64">
                         <li class="menu-title">
