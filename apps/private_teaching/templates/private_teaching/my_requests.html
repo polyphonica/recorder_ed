@@ -37,28 +37,22 @@
                         <!-- Lessons Summary -->
                         {% if request.lessons.all %}
                             <div class="mt-4">
-                                {% with accepted_unpaid=request.lessons.all|dictsort:"approved_status" %}
-                                    {% for lesson in accepted_unpaid %}
-                                        {% if lesson.approved_status == 'Accepted' and lesson.payment_status == 'Not Paid' and not lesson.is_deleted %}
-                                            {% if forloop.first %}
-                                                <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                                    <div class="flex items-center justify-between">
-                                                        <div class="text-green-800">
-                                                            <i class="fas fa-check-circle mr-2"></i>
-                                                            You have approved lessons ready for payment!
-                                                        </div>
-                                                        <form method="post" action="{% url 'private_teaching:add_all_to_cart' request.id %}">
-                                                            {% csrf_token %}
-                                                            <button type="submit" class="btn btn-sm btn-success">
-                                                                <i class="fas fa-shopping-cart mr-1"></i>Add All to Cart
-                                                            </button>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                            {% endif %}
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endwith %}
+                                {% if request.eligible_lessons_count > 0 %}
+                                    <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                        <div class="flex items-center justify-between">
+                                            <div class="text-green-800">
+                                                <i class="fas fa-check-circle mr-2"></i>
+                                                You have approved lessons ready for payment!
+                                            </div>
+                                            <form method="post" action="{% url 'private_teaching:add_all_to_cart' request.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-shopping-cart mr-1"></i>Add All to Cart
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                {% endif %}
 
                                 <div class="space-y-3">
                                     {% for lesson in request.lessons.all %}

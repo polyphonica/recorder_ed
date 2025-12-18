@@ -77,7 +77,9 @@ class CartManager(BaseCartManager):
         )
 
         if not eligible_lessons.exists():
-            return False, "No accepted, unpaid lessons found in this request"
+            # Return success with None to avoid displaying any message
+            # The button should already be disabled in the UI
+            return True, None
 
         cart, error_tuple = self._get_cart_or_error()
         if error_tuple:

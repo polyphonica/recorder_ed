@@ -86,7 +86,7 @@
             <div class="mt-4 flex justify-end">
                 <form method="post" action="{% url 'private_teaching:add_all_to_cart' lesson_request.id %}">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" {% if eligible_lessons_count == 0 %}disabled{% endif %}>
                         <i class="fas fa-cart-plus mr-2"></i>Add All Accepted Lessons to Cart
                     </button>
                 </form>

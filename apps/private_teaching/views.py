@@ -154,8 +154,19 @@ class MyLessonRequestsView(UserFilterMixin, StudentProfileCompletedMixin, Studen
     user_field_name = 'student'
 
     def get_queryset(self):
+        from django.db.models import Count, Q
         # UserFilterMixin automatically filters by student=self.request.user
-        return super().get_queryset().prefetch_related('messages', 'lessons__subject').order_by('-created_at')
+        # Add count of eligible lessons (accepted and unpaid) to each request
+        return super().get_queryset().prefetch_related('messages', 'lessons__subject').annotate(
+            eligible_lessons_count=Count(
+                'lessons',
+                filter=Q(
+                    lessons__approved_status='Accepted',
+                    lessons__payment_status='Not Paid',
+                    lessons__is_deleted=False
+                )
+            )
+        ).order_by('-created_at')
 
 
 class StudentLessonRequestDetailView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
@@ -173,11 +184,19 @@ class StudentLessonRequestDetailView(StudentProfileCompletedMixin, StudentOnlyMi
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         lesson_request = self.get_lesson_request()
+        lessons = lesson_request.lessons.filter(is_deleted=False).select_related('subject')
+
+        # Count eligible lessons (accepted and unpaid)
+        eligible_lessons_count = lessons.filter(
+            approved_status='Accepted',
+            payment_status='Not Paid'
+        ).count()
 
         context.update({
             'lesson_request': lesson_request,
-            'lessons': lesson_request.lessons.filter(is_deleted=False).select_related('subject'),
+            'lessons': lessons,
             'messages': lesson_request.messages.select_related('author').order_by('created_at'),
+            'eligible_lessons_count': eligible_lessons_count,
         })
         return context
 
@@ -822,23 +841,25 @@ class AddToCartView(StudentProfileCompletedMixin, View):
 
 class AddAllToCartView(StudentProfileCompletedMixin, View):
     """Add all approved lessons from a lesson request to cart"""
-    
+
     def post(self, request, *args, **kwargs):
         lesson_request_id = kwargs.get('lesson_request_id')
         lesson_request = get_object_or_404(
-            LessonRequest, 
-            id=lesson_request_id, 
+            LessonRequest,
+            id=lesson_request_id,
             student=request.user
         )
-        
+
         cart_manager = CartManager(request)
         success, message = cart_manager.add_all_lessons_from_request(lesson_request)
-        
-        if success:
-            messages.success(request, message)
-        else:
-            messages.error(request, message)
-            
+
+        # Only display message if one is provided
+        if message:
+            if success:
+                messages.success(request, message)
+            else:
+                messages.error(request, message)
+
         return redirect(request.META.get('HTTP_REFERER', 'private_teaching:my_requests'))
 
 
