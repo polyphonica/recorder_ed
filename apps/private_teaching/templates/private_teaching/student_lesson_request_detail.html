@@ -100,9 +100,9 @@
         <div class="card-body">
             <h2 class="card-title text-2xl mb-4">Conversation with Teacher</h2>
 
-            {% if messages %}
+            {% if conversation_messages %}
             <div class="space-y-4 mb-6">
-                {% for message in messages %}
+                {% for message in conversation_messages %}
                 <div class="{% if message.author == request.user %}bg-primary/10{% else %}bg-base-200{% endif %} p-4 rounded-lg">
                     <div class="flex justify-between items-start mb-2">
                         <span class="font-medium">

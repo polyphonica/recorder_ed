@@ -195,7 +195,7 @@ class StudentLessonRequestDetailView(StudentProfileCompletedMixin, StudentOnlyMi
         context.update({
             'lesson_request': lesson_request,
             'lessons': lessons,
-            'messages': lesson_request.messages.select_related('author').order_by('created_at'),
+            'conversation_messages': lesson_request.messages.select_related('author').order_by('created_at'),
             'eligible_lessons_count': eligible_lessons_count,
         })
         return context
