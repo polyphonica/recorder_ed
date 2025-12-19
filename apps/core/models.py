@@ -270,7 +270,11 @@ class BaseCancellationRequest(models.Model):
     )
 
     # Cancellation details
-    reason = models.TextField(help_text="Student's reason for cancellation")
+    reason = models.TextField(
+        blank=True,
+        default='',
+        help_text="Optional: Student's explanation for cancellation/reschedule"
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
 
     # Refund eligibility

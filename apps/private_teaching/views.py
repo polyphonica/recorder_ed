@@ -2754,7 +2754,6 @@ class RequestLessonCancellationView(StudentProfileCompletedMixin, StudentOnlyMix
         context['refund_amount'] = refund_amount
         context['platform_fee'] = platform_fee
         context['existing_request'] = existing_request
-        context['reason_choices'] = LessonCancellationRequest.REASON_CHOICES
 
         return context
 
@@ -2774,22 +2773,14 @@ class RequestLessonCancellationView(StudentProfileCompletedMixin, StudentOnlyMix
 
         # Get form data
         request_type = request.POST.get('request_type')
-        cancellation_reason = request.POST.get('cancellation_reason')
-        student_message = request.POST.get('student_message', '').strip()
+        cancellation_reason = request.POST.get('cancellation_reason', '').strip() or None  # Optional
+        student_message = request.POST.get('student_message', '').strip()  # Optional
         proposed_new_date = request.POST.get('proposed_new_date', '').strip() if request_type == 'reschedule' else None
         proposed_new_time = request.POST.get('proposed_new_time', '').strip() if request_type == 'reschedule' else None
 
-        # Validation
+        # Validation - only request_type is required
         if not request_type or request_type not in ['cancel_refund', 'reschedule']:
             messages.error(request, 'Please select a valid request type.')
-            return redirect('private_teaching:request_cancellation', lesson_id=lesson.id)
-
-        if not cancellation_reason:
-            messages.error(request, 'Please select a cancellation reason.')
-            return redirect('private_teaching:request_cancellation', lesson_id=lesson.id)
-
-        if not student_message:
-            messages.error(request, 'Please provide an explanation for your request.')
             return redirect('private_teaching:request_cancellation', lesson_id=lesson.id)
 
         # Create cancellation request

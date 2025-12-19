@@ -103,10 +103,6 @@
                                         <span class="font-semibold">Requested:</span> {{ request.requested_at|date:"F j, Y g:i A" }}
                                         ({{ request.hours_before_lesson|floatformat:1 }} hours before lesson)
                                     </p>
-                                    <p class="text-base-content/70">
-                                        <i class="fas fa-info-circle mr-2"></i>
-                                        <span class="font-semibold">Reason:</span> {{ request.get_cancellation_reason_display }}
-                                    </p>
 
                                     {% if request.is_within_policy %}
                                         <p class="text-success">

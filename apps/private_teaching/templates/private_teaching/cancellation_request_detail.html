@@ -92,17 +92,14 @@
                             </p>
                         </div>
 
+                        {% if cancellation_request.student_message %}
                         <div>
-                            <p class="text-sm text-base-content/70">Reason</p>
-                            <p class="font-semibold">{{ cancellation_request.get_cancellation_reason_display }}</p>
-                        </div>
-
-                        <div>
-                            <p class="text-sm text-base-content/70">Student's Message</p>
+                            <p class="text-sm text-base-content/70">Student's Note</p>
                             <div class="bg-base-200 p-4 rounded-lg">
                                 <p>{{ cancellation_request.student_message }}</p>
                             </div>
                         </div>
+                        {% endif %}
 
                         {% if cancellation_request.request_type == 'reschedule' %}
                         <div>

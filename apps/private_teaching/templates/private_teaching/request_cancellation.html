@@ -143,31 +143,23 @@
                         </p>
                     </div>
 
-                    <!-- Cancellation Reason -->
+                    <!-- Student Message (Optional) -->
                     <div class="form-control mb-6">
                         <label class="label">
-                            <span class="label-text font-semibold">Reason for Cancellation/Reschedule *</span>
-                        </label>
-                        <select name="cancellation_reason" class="select select-bordered" required>
-                            <option value="">Select a reason...</option>
-                            {% for value, label in reason_choices %}
-                                <option value="{{ value }}">{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Student Message -->
-                    <div class="form-control mb-6">
-                        <label class="label">
-                            <span class="label-text font-semibold">Explanation *</span>
-                            <span class="label-text-alt">Please explain your situation to your teacher</span>
+                            <span class="label-text font-semibold">Message to Teacher (Optional)</span>
+                            <span class="label-text-alt">Add a note if you'd like</span>
                         </label>
                         <textarea
                             name="student_message"
                             class="textarea textarea-bordered h-32"
-                            placeholder="Please provide details about why you need to cancel/reschedule this lesson..."
-                            required
+                            placeholder="Optional: Add any notes for your teacher (e.g., 'I have a conflict', 'Not feeling well')..."
                         ></textarea>
+                        <label class="label">
+                            <span class="label-text-alt">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                You don't need to provide a reason - just let us know if you want to cancel or reschedule
+                            </span>
+                        </label>
                     </div>
 
                     <!-- Important Notes -->

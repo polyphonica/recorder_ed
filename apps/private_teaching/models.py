@@ -892,7 +892,14 @@ class LessonCancellationRequest(BaseCancellationRequest):
 
     # Request Details (domain-specific)
     request_type = models.CharField(max_length=20, choices=REQUEST_TYPE_CHOICES, default=CANCEL_WITH_REFUND)
-    cancellation_reason = models.CharField(max_length=30, choices=REASON_CHOICES)
+    cancellation_reason = models.CharField(
+        max_length=30,
+        choices=REASON_CHOICES,
+        blank=True,
+        null=True,
+        default=None,
+        help_text="Optional: Student can provide a reason, but it's not required"
+    )
     # Note: 'reason' field inherited from BaseCancellationRequest serves as student_message
 
     # Timing Information (domain-specific)
