@@ -85,6 +85,57 @@ class TeacherNotificationService(BaseNotificationService):
             logger.error(f"Failed to send new application notification to teacher: {str(e)}")
             return False
 
+    @staticmethod
+    def send_cancellation_request_notification(cancellation_request, lesson, student):
+        """Send notification to teacher when student requests to cancel or reschedule a lesson"""
+        try:
+            from apps.private_teaching.models import LessonCancellationRequest
+
+            # Validate teacher email
+            is_valid, email = TeacherNotificationService.validate_email(
+                cancellation_request.teacher,
+                'Teacher'
+            )
+            if not is_valid:
+                return False
+
+            # Determine request type
+            is_reschedule = cancellation_request.request_type == LessonCancellationRequest.RESCHEDULE
+
+            # Build URL for cancellation request detail page
+            request_detail_url = TeacherNotificationService.build_absolute_url(
+                'private_teaching:cancellation_request_detail',
+                cancellation_request.id
+            )
+
+            context = {
+                'cancellation_request': cancellation_request,
+                'lesson': lesson,
+                'student': student,
+                'student_name': TeacherNotificationService.get_display_name(student),
+                'teacher': cancellation_request.teacher,
+                'is_reschedule': is_reschedule,
+                'is_cancellation': not is_reschedule,
+                'request_detail_url': request_detail_url,
+                'has_student_message': bool(cancellation_request.student_message),
+            }
+
+            # Different subject for reschedule vs cancellation
+            subject = 'Lesson Reschedule Request' if is_reschedule else 'Lesson Cancellation Request'
+
+            return TeacherNotificationService.send_templated_email(
+                template_path='private_teaching/emails/teacher_cancellation_request.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject=subject,
+                fail_silently=False,
+                log_description=f"Cancellation/reschedule request notification to teacher {cancellation_request.teacher.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send cancellation request notification to teacher: {str(e)}")
+            return False
+
 
 class StudentNotificationService(BaseNotificationService):
     """Service for sending private teaching email notifications to students"""
@@ -299,6 +350,121 @@ class StudentNotificationService(BaseNotificationService):
 
         except Exception as e:
             logger.error(f"Failed to send exam results notification: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_cancellation_approved_notification(cancellation_request, lesson):
+        """Send notification to student when teacher approves their cancellation/reschedule request"""
+        try:
+            from apps.private_teaching.models import LessonCancellationRequest
+
+            # Validate student email
+            is_valid, email = StudentNotificationService.validate_email(
+                cancellation_request.student,
+                'Student'
+            )
+            if not is_valid:
+                return False
+
+            # Determine request type
+            is_reschedule = cancellation_request.request_type == LessonCancellationRequest.RESCHEDULE
+
+            # Build URL for request detail page
+            request_detail_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:cancellation_request_detail',
+                cancellation_request.id
+            )
+
+            # Build URL for my lessons page
+            my_lessons_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:my_lessons'
+            )
+
+            context = {
+                'cancellation_request': cancellation_request,
+                'lesson': lesson,
+                'student': cancellation_request.student,
+                'teacher': cancellation_request.teacher,
+                'teacher_name': StudentNotificationService.get_display_name(cancellation_request.teacher),
+                'is_reschedule': is_reschedule,
+                'is_cancellation': not is_reschedule,
+                'request_detail_url': request_detail_url,
+                'my_lessons_url': my_lessons_url,
+                'has_teacher_response': bool(cancellation_request.teacher_response),
+                'has_refund': cancellation_request.refund_amount and cancellation_request.refund_amount > 0,
+            }
+
+            # Different subject for reschedule vs cancellation
+            subject = 'Reschedule Request Approved' if is_reschedule else 'Cancellation Request Approved'
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_cancellation_approved.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject=subject,
+                fail_silently=False,
+                log_description=f"Cancellation/reschedule approved notification to student {cancellation_request.student.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send cancellation approved notification to student: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_cancellation_rejected_notification(cancellation_request, lesson):
+        """Send notification to student when teacher rejects their cancellation/reschedule request"""
+        try:
+            from apps.private_teaching.models import LessonCancellationRequest
+
+            # Validate student email
+            is_valid, email = StudentNotificationService.validate_email(
+                cancellation_request.student,
+                'Student'
+            )
+            if not is_valid:
+                return False
+
+            # Determine request type
+            is_reschedule = cancellation_request.request_type == LessonCancellationRequest.RESCHEDULE
+
+            # Build URL for request detail page
+            request_detail_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:cancellation_request_detail',
+                cancellation_request.id
+            )
+
+            # Build URL for my lessons page
+            my_lessons_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:my_lessons'
+            )
+
+            context = {
+                'cancellation_request': cancellation_request,
+                'lesson': lesson,
+                'student': cancellation_request.student,
+                'teacher': cancellation_request.teacher,
+                'teacher_name': StudentNotificationService.get_display_name(cancellation_request.teacher),
+                'is_reschedule': is_reschedule,
+                'is_cancellation': not is_reschedule,
+                'request_detail_url': request_detail_url,
+                'my_lessons_url': my_lessons_url,
+                'has_teacher_response': bool(cancellation_request.teacher_response),
+            }
+
+            # Different subject for reschedule vs cancellation
+            subject = 'Reschedule Request Update' if is_reschedule else 'Cancellation Request Update'
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_cancellation_rejected.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject=subject,
+                fail_silently=False,
+                log_description=f"Cancellation/reschedule rejected notification to student {cancellation_request.student.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send cancellation rejected notification to student: {str(e)}")
             return False
 
 

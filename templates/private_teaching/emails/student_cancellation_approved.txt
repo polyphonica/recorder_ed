@@ -1,0 +1,38 @@
+Subject: {% if is_reschedule %}Reschedule Request Approved{% else %}Cancellation Request Approved{% endif %} - {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ student.get_full_name|default:student.username }},
+
+{% if is_reschedule %}Great news! {{ teacher_name }} has approved your reschedule request.{% else %}{{ teacher_name }} has approved your cancellation request.{% endif %}
+
+LESSON DETAILS:
+Subject: {{ lesson.subject.subject }}
+Teacher: {{ teacher_name }}
+{% if is_reschedule %}Original Date: {{ lesson.lesson_date|date:"d F Y" }} at {{ lesson.lesson_time|time:"H:i" }}
+
+NEW LESSON DATE AND TIME:
+{% if cancellation_request.proposed_new_date %}{{ cancellation_request.proposed_new_date|date:"d F Y" }}{% if cancellation_request.proposed_new_time %} at {{ cancellation_request.proposed_new_time|time:"H:i" }}{% endif %}{% endif %}
+
+Your lesson has been automatically rescheduled. No further action is needed.{% else %}Date: {{ lesson.lesson_date|date:"d F Y" }} at {{ lesson.lesson_time|time:"H:i" }}
+Status: Cancelled{% endif %}
+{% if has_refund %}
+REFUND INFORMATION:
+Refund Amount: £{{ cancellation_request.refund_amount|floatformat:2 }}
+Platform Fee (Non-refundable): £{{ cancellation_request.platform_fee_retained|floatformat:2 }}
+
+Your refund will be processed back to your original payment method within 5-10 business days.{% endif %}
+{% if has_teacher_response %}
+MESSAGE FROM {{ teacher_name|upper }}:
+{{ cancellation_request.teacher_response }}
+{% endif %}
+
+View request details:
+{{ request_detail_url }}
+
+{% if is_reschedule %}See your updated lessons:{% else %}View your lessons:{% endif %}
+{{ my_lessons_url }}
+
+Best regards,
+The {{ site_name }} Team

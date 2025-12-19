@@ -1,0 +1,40 @@
+Subject: {% if is_reschedule %}Lesson Reschedule Request{% else %}Lesson Cancellation Request{% endif %} - {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ teacher.get_full_name|default:teacher.username }},
+
+{% if is_reschedule %}{{ student_name }} has requested to reschedule a lesson with you.{% else %}{{ student_name }} has requested to cancel a lesson.{% endif %}
+
+LESSON DETAILS:
+Subject: {{ lesson.subject.subject }}
+Original Date: {{ lesson.lesson_date|date:"d F Y" }}
+Original Time: {{ lesson.lesson_time|time:"H:i" }}
+Duration: {{ lesson.duration_in_minutes }} minutes
+
+REQUEST DETAILS:
+Type: {{ cancellation_request.get_request_type_display }}
+Requested: {{ cancellation_request.created_at|date:"d F Y \a\t H:i" }}
+Hours Before Lesson: {{ cancellation_request.hours_before_lesson|floatformat:1 }}
+{% if cancellation_request.is_within_policy %}Within 48-hour policy: Yes (Eligible for refund){% else %}Within 48-hour policy: No{% endif %}
+{% if is_reschedule and cancellation_request.proposed_new_date %}
+Proposed New Date: {{ cancellation_request.proposed_new_date|date:"d F Y" }}{% if cancellation_request.proposed_new_time %} at {{ cancellation_request.proposed_new_time|time:"H:i" }}{% endif %}{% endif %}
+{% if has_student_message %}
+Student's Note:
+{{ cancellation_request.student_message }}
+{% endif %}
+
+{% if is_reschedule %}NEXT STEPS:
+You can review this request and adjust the proposed date/time if needed.
+The system will check for scheduling conflicts and automatically update
+the lesson when you approve.{% else %}NEXT STEPS:
+Please review and respond to this cancellation request. If approved and
+within the 48-hour policy, the student will receive a refund minus the
+platform fee.{% endif %}
+
+{% if is_reschedule %}Review and reschedule:{% else %}Review request:{% endif %}
+{{ request_detail_url }}
+
+Best regards,
+The {{ site_name }} Team

@@ -1,0 +1,34 @@
+Subject: {% if is_reschedule %}Reschedule Request Update{% else %}Cancellation Request Update{% endif %} - {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ student.get_full_name|default:student.username }},
+
+{% if is_reschedule %}{{ teacher_name }} has reviewed your reschedule request.{% else %}{{ teacher_name }} has reviewed your cancellation request.{% endif %}
+
+LESSON DETAILS:
+Subject: {{ lesson.subject.subject }}
+Teacher: {{ teacher_name }}
+Date: {{ lesson.lesson_date|date:"d F Y" }} at {{ lesson.lesson_time|time:"H:i" }}
+Status: {% if is_reschedule %}Scheduled (no change){% else %}Scheduled (not cancelled){% endif %}
+{% if has_teacher_response %}
+MESSAGE FROM {{ teacher_name|upper }}:
+{{ cancellation_request.teacher_response }}
+{% endif %}
+
+{% if is_reschedule %}WHAT'S NEXT:
+Your lesson remains scheduled at the original time. If you need to reschedule
+to a different date, please reach out to {{ teacher_name }} directly to find a
+time that works for both of you.{% else %}WHAT'S NEXT:
+Your lesson remains scheduled. If you have concerns, please contact
+{{ teacher_name }} directly to discuss.{% endif %}
+
+View request details:
+{{ request_detail_url }}
+
+View your lessons:
+{{ my_lessons_url }}
+
+Best regards,
+The {{ site_name }} Team
