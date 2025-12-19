@@ -1,0 +1,151 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}{% if is_reschedule %}linear-gradient(135deg, #3b82f6 0%, #2563eb 100%){% else %}linear-gradient(135deg, #ef4444 0%, #dc2626 100%){% endif %}{% endblock %}
+{% block header_subtitle %}PRIVATE LESSONS - {% if is_reschedule %}Reschedule{% else %}Cancellation{% endif %} Request{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ teacher.get_full_name|default:teacher.username }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    <strong>{{ student_name }}</strong> has requested to {% if is_reschedule %}<strong style="color: #3b82f6;">reschedule</strong>{% else %}<strong style="color: #ef4444;">cancel</strong>{% endif %} a lesson with you.
+</p>
+
+<!-- Lesson Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #f3f4f6; border-left: 4px solid #6b7280; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #374151;">
+                📚 Lesson Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 150px;">Subject:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 500;">{{ lesson.subject.subject }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 150px;">Original Date:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ lesson.lesson_date|date:"l, d F Y" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 150px;">Original Time:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ lesson.lesson_time|time:"H:i" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 150px;">Duration:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ lesson.duration_in_minutes }} minutes</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Request Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: {% if is_reschedule %}#eff6ff{% else %}#fef2f2{% endif %}; border-left: 4px solid {% if is_reschedule %}#3b82f6{% else %}#ef4444{% endif %}; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: {% if is_reschedule %}#2563eb{% else %}#dc2626{% endif %};">
+                {% if is_reschedule %}🔄 Reschedule Request{% else %}❌ Cancellation Request{% endif %}
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 150px;">Requested:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ cancellation_request.created_at|date:"d F Y \a\t H:i" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 150px;">Hours Before Lesson:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 500;">{{ cancellation_request.hours_before_lesson|floatformat:1 }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 150px;">48-Hour Policy:</span>
+                        {% if cancellation_request.is_within_policy %}
+                        <span style="font-size: 14px; color: #059669; font-weight: 600;">✓ Within Policy (Eligible for refund)</span>
+                        {% else %}
+                        <span style="font-size: 14px; color: #dc2626; font-weight: 600;">✗ Outside Policy</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if is_reschedule and cancellation_request.proposed_new_date %}
+                <tr>
+                    <td style="padding: 15px 0 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: block; margin-bottom: 5px;">Proposed New Date & Time:</span>
+                        <span style="font-size: 16px; color: #2563eb; font-weight: 600;">
+                            📅 {{ cancellation_request.proposed_new_date|date:"l, d F Y" }}{% if cancellation_request.proposed_new_time %} at {{ cancellation_request.proposed_new_time|time:"H:i" }}{% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endif %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+{% if has_student_message %}
+<!-- Student's Note Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #fefce8; border-left: 4px solid #eab308; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #ca8a04;">
+                💬 Student's Note
+            </h3>
+            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333333; font-style: italic;">
+                "{{ cancellation_request.student_message }}"
+            </p>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- Next Steps Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #059669;">
+                📋 Next Steps
+            </h3>
+            {% if is_reschedule %}
+            <ul style="margin: 0; padding: 0 0 0 20px; font-size: 14px; line-height: 1.8; color: #333333;">
+                <li>Review the proposed date and time</li>
+                <li>Adjust if needed (system checks for conflicts)</li>
+                <li>Approve to automatically update the lesson</li>
+            </ul>
+            {% else %}
+            <ul style="margin: 0; padding: 0 0 0 20px; font-size: 14px; line-height: 1.8; color: #333333;">
+                <li>Review the cancellation request</li>
+                <li>If approved and within policy, refund will be processed</li>
+                <li>Student will be notified of your decision</li>
+            </ul>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+
+<!-- Action Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ request_detail_url }}" style="display: inline-block; padding: 14px 28px; background-color: {% if is_reschedule %}#3b82f6{% else %}#6b7280{% endif %}; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
+                {% if is_reschedule %}Review & Reschedule{% else %}Review Request{% endif %}
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    Thank you for your prompt attention to this request.
+</p>
+{% endblock %}

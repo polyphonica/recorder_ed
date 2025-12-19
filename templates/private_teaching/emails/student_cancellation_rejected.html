@@ -1,0 +1,123 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #f59e0b 0%, #d97706 100%){% endblock %}
+{% block header_subtitle %}{% if is_reschedule %}RESCHEDULE REQUEST UPDATE{% else %}CANCELLATION REQUEST UPDATE{% endif %}{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ student.get_full_name|default:student.username }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    {{ teacher_name }} has reviewed your {% if is_reschedule %}reschedule{% else %}cancellation{% endif %} request.
+</p>
+
+<!-- Lesson Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #f3f4f6; border-left: 4px solid #6b7280; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #374151;">
+                📚 Lesson Details
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Subject:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 500;">{{ lesson.subject.subject }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Teacher:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ teacher_name }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Date & Time:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ lesson.lesson_date|date:"l, d F Y" }} at {{ lesson.lesson_time|time:"H:i" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0 5px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 120px;">Status:</span>
+                        <span style="font-size: 14px; color: #10b981; font-weight: 600;">✓ {% if is_reschedule %}Scheduled (no change){% else %}Scheduled (not cancelled){% endif %}</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+{% if has_teacher_response %}
+<!-- Teacher's Message Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #fefce8; border-left: 4px solid #eab308; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #ca8a04;">
+                💬 Message from {{ teacher_name }}
+            </h3>
+            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333333; font-style: italic;">
+                "{{ cancellation_request.teacher_response }}"
+            </p>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- What's Next Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #2563eb;">
+                📋 What's Next?
+            </h3>
+            {% if is_reschedule %}
+            <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.6; color: #333333;">
+                Your lesson remains scheduled at the original time. If you need to reschedule to a different date, please reach out to {{ teacher_name }} directly to find a time that works for both of you.
+            </p>
+            <ul style="margin: 0; padding: 0 0 0 20px; font-size: 14px; line-height: 1.8; color: #333333;">
+                <li>The lesson is still confirmed at the original time</li>
+                <li>You can contact your teacher to discuss alternatives</li>
+                <li>Consider submitting a new reschedule request if needed</li>
+            </ul>
+            {% else %}
+            <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.6; color: #333333;">
+                Your lesson remains scheduled. If you have concerns, please contact {{ teacher_name }} directly to discuss.
+            </p>
+            <ul style="margin: 0; padding: 0 0 0 20px; font-size: 14px; line-height: 1.8; color: #333333;">
+                <li>The lesson is still confirmed</li>
+                <li>Prepare for your upcoming lesson</li>
+                <li>Contact your teacher if you have questions</li>
+            </ul>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+
+<!-- Action Buttons -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                <tr>
+                    <td style="padding: 0 5px;">
+                        <a href="{{ request_detail_url }}" style="display: inline-block; padding: 12px 24px; background-color: #6b7280; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600;">
+                            View Request Details
+                        </a>
+                    </td>
+                    <td style="padding: 0 5px;">
+                        <a href="{{ my_lessons_url }}" style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">
+                            View My Lessons
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    We look forward to seeing you at your scheduled lesson.
+</p>
+{% endblock %}
