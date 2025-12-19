@@ -809,3 +809,34 @@ class PracticeEntryForm(forms.ModelForm):
         self.fields['struggles'].required = False
         self.fields['achievements'].required = False
         self.fields['enjoyment_rating'].required = False
+
+
+class RescheduleForm(forms.Form):
+    """Form for teachers to reschedule a lesson inline from cancellation request detail"""
+
+    lesson_date = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'class': 'input input-bordered w-full',
+            'type': 'date'
+        }),
+        label="New Lesson Date"
+    )
+
+    lesson_time = forms.TimeField(
+        widget=forms.TimeInput(attrs={
+            'class': 'input input-bordered w-full',
+            'type': 'time'
+        }),
+        label="New Lesson Time"
+    )
+
+    def __init__(self, *args, **kwargs):
+        proposed_date = kwargs.pop('proposed_date', None)
+        proposed_time = kwargs.pop('proposed_time', None)
+        super().__init__(*args, **kwargs)
+
+        # Pre-fill with student's proposed date/time if available
+        if proposed_date and not self.is_bound:
+            self.fields['lesson_date'].initial = proposed_date
+        if proposed_time and not self.is_bound:
+            self.fields['lesson_time'].initial = proposed_time

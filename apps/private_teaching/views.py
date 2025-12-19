@@ -16,7 +16,7 @@ from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, Use
 from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard, LessonCancellationRequest, PracticeEntry
 from .notifications import TeacherNotificationService, StudentNotificationService
 from lessons.models import Lesson, Document, LessonAttachedUrl
-from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, ExamRegistrationForm, ExamPieceFormSet, ExamResultsForm, PracticeEntryForm
+from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, ExamRegistrationForm, ExamPieceFormSet, ExamResultsForm, PracticeEntryForm, RescheduleForm
 from .cart import CartManager
 from .mixins import (
     StudentProfileCompletedMixin,
@@ -27,6 +27,51 @@ from .mixins import (
     PrivateTeachingLoginRequiredMixin,
     AcceptedStudentRequiredMixin
 )
+
+
+# Helper functions
+def check_teacher_availability(teacher, lesson_date, lesson_time, duration_minutes, exclude_lesson_id=None):
+    """
+    Check if a teacher has a scheduling conflict at the proposed date/time.
+
+    Args:
+        teacher: User object (teacher)
+        lesson_date: Date of the proposed lesson
+        lesson_time: Time of the proposed lesson
+        duration_minutes: Duration of the lesson in minutes
+        exclude_lesson_id: Optional lesson ID to exclude from conflict check (for rescheduling)
+
+    Returns:
+        tuple: (has_conflict: bool, conflicting_lessons: QuerySet)
+    """
+    from datetime import datetime, timedelta
+
+    # Calculate end time of proposed lesson
+    proposed_start = datetime.combine(lesson_date, lesson_time)
+    proposed_end = proposed_start + timedelta(minutes=int(duration_minutes))
+
+    # Get all non-deleted lessons for this teacher on the same date
+    lessons = Lesson.objects.filter(
+        teacher=teacher,
+        lesson_date=lesson_date,
+        is_deleted=False
+    )
+
+    # Exclude the current lesson if rescheduling
+    if exclude_lesson_id:
+        lessons = lessons.exclude(id=exclude_lesson_id)
+
+    conflicting_lessons = []
+    for lesson in lessons:
+        # Calculate existing lesson time range
+        existing_start = datetime.combine(lesson.lesson_date, lesson.lesson_time)
+        existing_end = existing_start + timedelta(minutes=int(lesson.duration_in_minutes))
+
+        # Check for overlap
+        if (proposed_start < existing_end) and (proposed_end > existing_start):
+            conflicting_lessons.append(lesson)
+
+    return len(conflicting_lessons) > 0, conflicting_lessons
 
 
 class PrivateTeachingLoginView(LoginView):
@@ -2788,13 +2833,12 @@ class RequestLessonCancellationView(StudentProfileCompletedMixin, StudentOnlyMix
         return redirect('private_teaching:cancellation_request_detail', request_id=cancellation_request.id)
 
 
-class CancellationRequestDetailView(PrivateTeachingLoginRequiredMixin, TemplateView):
+class CancellationRequestDetailView(PrivateTeachingLoginRequiredMixin, View):
     """View details of a cancellation request (for both student and teacher)"""
     template_name = 'private_teaching/cancellation_request_detail.html'
 
-    def get_cancellation_request(self):
+    def get_cancellation_request(self, request_id):
         """Get the cancellation request"""
-        request_id = self.kwargs.get('request_id')
         cancellation_request = get_object_or_404(LessonCancellationRequest, id=request_id)
 
         # Check permissions
@@ -2804,16 +2848,88 @@ class CancellationRequestDetailView(PrivateTeachingLoginRequiredMixin, TemplateV
 
         return cancellation_request
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        cancellation_request = self.get_cancellation_request()
+    def get(self, request, *args, **kwargs):
+        """Display cancellation request details with reschedule form if applicable"""
+        request_id = kwargs.get('request_id')
+        cancellation_request = self.get_cancellation_request(request_id)
 
-        context['cancellation_request'] = cancellation_request
-        context['lesson'] = cancellation_request.lesson
-        context['is_teacher'] = self.request.user == cancellation_request.teacher
-        context['is_student'] = self.request.user == cancellation_request.student
+        is_teacher = request.user == cancellation_request.teacher
+        is_reschedule = cancellation_request.request_type == LessonCancellationRequest.RESCHEDULE
+        is_pending = cancellation_request.status == LessonCancellationRequest.PENDING
 
-        return context
+        # Initialize reschedule form for teachers viewing pending reschedule requests
+        reschedule_form = None
+        if is_teacher and is_reschedule and is_pending:
+            reschedule_form = RescheduleForm(
+                proposed_date=cancellation_request.proposed_new_date,
+                proposed_time=cancellation_request.proposed_new_time
+            )
+
+        context = {
+            'cancellation_request': cancellation_request,
+            'lesson': cancellation_request.lesson,
+            'is_teacher': is_teacher,
+            'is_student': request.user == cancellation_request.student,
+            'reschedule_form': reschedule_form,
+        }
+
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        """Handle inline reschedule date/time updates"""
+        request_id = kwargs.get('request_id')
+        cancellation_request = self.get_cancellation_request(request_id)
+
+        # Only teachers can update reschedule dates
+        if request.user != cancellation_request.teacher:
+            messages.error(request, "You don't have permission to update this request.")
+            return redirect('private_teaching:cancellation_request_detail', request_id=request_id)
+
+        # Only for reschedule requests
+        if cancellation_request.request_type != LessonCancellationRequest.RESCHEDULE:
+            messages.error(request, "This is not a reschedule request.")
+            return redirect('private_teaching:cancellation_request_detail', request_id=request_id)
+
+        # Only for pending requests
+        if cancellation_request.status != LessonCancellationRequest.PENDING:
+            messages.error(request, "This request has already been processed.")
+            return redirect('private_teaching:cancellation_request_detail', request_id=request_id)
+
+        reschedule_form = RescheduleForm(request.POST)
+
+        if reschedule_form.is_valid():
+            new_date = reschedule_form.cleaned_data['lesson_date']
+            new_time = reschedule_form.cleaned_data['lesson_time']
+            lesson = cancellation_request.lesson
+
+            # Check for scheduling conflicts
+            has_conflict, conflicting_lessons = check_teacher_availability(
+                teacher=cancellation_request.teacher,
+                lesson_date=new_date,
+                lesson_time=new_time,
+                duration_minutes=lesson.duration_in_minutes,
+                exclude_lesson_id=lesson.id
+            )
+
+            if has_conflict:
+                conflict_times = ', '.join([
+                    f"{l.lesson_time.strftime('%I:%M %p')}" for l in conflicting_lessons
+                ])
+                messages.error(
+                    request,
+                    f"Scheduling conflict detected. You already have a lesson at {conflict_times} on {new_date.strftime('%B %d, %Y')}."
+                )
+            else:
+                # Update the proposed dates in the cancellation request
+                cancellation_request.proposed_new_date = new_date
+                cancellation_request.proposed_new_time = new_time
+                cancellation_request.save()
+
+                messages.success(request, "Reschedule date/time updated successfully. You can now approve the request.")
+        else:
+            messages.error(request, "Invalid date or time. Please check your input.")
+
+        return redirect('private_teaching:cancellation_request_detail', request_id=request_id)
 
 
 class TeacherCancellationRequestsView(UserFilterMixin, TeacherProfileCompletedMixin, ListView):
@@ -2879,6 +2995,20 @@ class TeacherRespondToCancellationView(TeacherProfileCompletedMixin, View):
             cancellation_request.teacher_response = teacher_response
             cancellation_request.teacher_responded_at = timezone.now()
             cancellation_request.save()
+
+            # If this is a reschedule request, update the lesson dates
+            if cancellation_request.request_type == LessonCancellationRequest.RESCHEDULE:
+                if cancellation_request.proposed_new_date and cancellation_request.proposed_new_time:
+                    lesson = cancellation_request.lesson
+                    lesson.lesson_date = cancellation_request.proposed_new_date
+                    lesson.lesson_time = cancellation_request.proposed_new_time
+                    lesson.save()
+                    messages.success(
+                        request,
+                        f'Reschedule approved! Lesson has been rescheduled to {lesson.lesson_date.strftime("%B %d, %Y")} at {lesson.lesson_time.strftime("%I:%M %p")}.'
+                    )
+                else:
+                    messages.warning(request, 'Reschedule approved but no new date/time was proposed.')
 
             # Process refund if eligible
             if cancellation_request.can_receive_refund and cancellation_request.refund_amount:

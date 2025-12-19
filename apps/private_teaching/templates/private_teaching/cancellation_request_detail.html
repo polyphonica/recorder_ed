@@ -104,15 +104,20 @@
                             </div>
                         </div>
 
-                        {% if cancellation_request.request_type == 'reschedule' and cancellation_request.proposed_new_date %}
+                        {% if cancellation_request.request_type == 'reschedule' %}
                         <div>
                             <p class="text-sm text-base-content/70">Proposed New Date & Time</p>
-                            <p class="font-semibold">
-                                {{ cancellation_request.proposed_new_date|date:"F j, Y" }}
-                                {% if cancellation_request.proposed_new_time %}
-                                    at {{ cancellation_request.proposed_new_time|time:"g:i A" }}
-                                {% endif %}
-                            </p>
+                            {% if cancellation_request.proposed_new_date %}
+                                <p class="font-semibold text-info">
+                                    <i class="fas fa-calendar-alt mr-2"></i>
+                                    {{ cancellation_request.proposed_new_date|date:"F j, Y" }}
+                                    {% if cancellation_request.proposed_new_time %}
+                                        at {{ cancellation_request.proposed_new_time|time:"g:i A" }}
+                                    {% endif %}
+                                </p>
+                            {% else %}
+                                <p class="text-base-content/70 italic">No date/time proposed</p>
+                            {% endif %}
                         </div>
                         {% endif %}
 
@@ -130,6 +135,60 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Inline Reschedule Form (Only for teachers on pending reschedule requests) -->
+            {% if reschedule_form %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <i class="fas fa-calendar-edit text-info mr-2"></i>
+                        Adjust Reschedule Date/Time
+                    </h2>
+                    <div class="alert alert-info shadow-sm mb-4">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            <p class="text-sm">
+                                You can adjust the proposed date/time below. The system will check for scheduling conflicts.
+                                Once you're satisfied, use the "Approve Request" button below to confirm the reschedule.
+                            </p>
+                        </div>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">{{ reschedule_form.lesson_date.label }}</span>
+                                </label>
+                                {{ reschedule_form.lesson_date }}
+                                {% if reschedule_form.lesson_date.errors %}
+                                    <label class="label">
+                                        <span class="label-text-alt text-error">{{ reschedule_form.lesson_date.errors.0 }}</span>
+                                    </label>
+                                {% endif %}
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">{{ reschedule_form.lesson_time.label }}</span>
+                                </label>
+                                {{ reschedule_form.lesson_time }}
+                                {% if reschedule_form.lesson_time.errors %}
+                                    <label class="label">
+                                        <span class="label-text-alt text-error">{{ reschedule_form.lesson_time.errors.0 }}</span>
+                                    </label>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-actions justify-end mt-4">
+                            <button type="submit" class="btn btn-info">
+                                <i class="fas fa-save mr-2"></i>
+                                Update Date/Time
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Teacher Response Form (Only for teachers on pending requests) -->
             {% if is_teacher and cancellation_request.status == 'pending' %}
@@ -157,7 +216,11 @@
                             </button>
                             <button type="submit" name="action" value="approve" class="btn btn-success">
                                 <i class="fas fa-check mr-2"></i>
-                                Approve Request
+                                {% if cancellation_request.request_type == 'reschedule' %}
+                                    Approve & Reschedule Lesson
+                                {% else %}
+                                    Approve Request
+                                {% endif %}
                             </button>
                         </div>
                     </form>
