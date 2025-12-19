@@ -153,23 +153,43 @@
                             </div>
 
                             <div class="flex flex-col gap-2">
-                                <a href="{% url 'private_teaching:cancellation_request_detail' request.id %}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-eye mr-2"></i>
-                                    View Details
-                                </a>
+                                {% if request.request_type == 'reschedule' %}
+                                    <a href="{% url 'private_teaching:cancellation_request_detail' request.id %}" class="btn btn-info btn-sm">
+                                        <i class="fas fa-calendar-edit mr-2"></i>
+                                        Reschedule Lesson
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'private_teaching:cancellation_request_detail' request.id %}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-eye mr-2"></i>
+                                        View Details
+                                    </a>
+                                {% endif %}
 
                                 {% if request.status == 'pending' %}
-                                    <form method="post" action="{% url 'private_teaching:teacher_respond_cancellation' request.id %}" class="space-y-2">
-                                        {% csrf_token %}
-                                        <button type="submit" name="action" value="approve" class="btn btn-success btn-sm w-full">
-                                            <i class="fas fa-check mr-2"></i>
-                                            Approve
-                                        </button>
-                                        <button type="submit" name="action" value="reject" class="btn btn-error btn-sm w-full">
-                                            <i class="fas fa-times mr-2"></i>
-                                            Reject
-                                        </button>
-                                    </form>
+                                    {% if request.request_type == 'reschedule' %}
+                                        <!-- For reschedule requests, only show reject button - must go to detail page to reschedule -->
+                                        <form method="post" action="{% url 'private_teaching:teacher_respond_cancellation' request.id %}" class="space-y-2">
+                                            {% csrf_token %}
+                                            <button type="submit" name="action" value="reject" class="btn btn-error btn-sm w-full">
+                                                <i class="fas fa-times mr-2"></i>
+                                                Reject
+                                            </button>
+                                        </form>
+                                        <p class="text-xs text-info text-center">Click "Reschedule Lesson" to adjust dates</p>
+                                    {% else %}
+                                        <!-- For cancellations, show both approve and reject -->
+                                        <form method="post" action="{% url 'private_teaching:teacher_respond_cancellation' request.id %}" class="space-y-2">
+                                            {% csrf_token %}
+                                            <button type="submit" name="action" value="approve" class="btn btn-success btn-sm w-full">
+                                                <i class="fas fa-check mr-2"></i>
+                                                Approve
+                                            </button>
+                                            <button type="submit" name="action" value="reject" class="btn btn-error btn-sm w-full">
+                                                <i class="fas fa-times mr-2"></i>
+                                                Reject
+                                            </button>
+                                        </form>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                         </div>
