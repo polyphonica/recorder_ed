@@ -64,6 +64,18 @@
             </div>
         </a>
 
+        <a href="{% url 'private_teaching:teacher_cancellation_requests' %}" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer" style="background-color: #dc2626; color: white;">
+            <div class="stat-title text-lg font-semibold" style="color: white;">Cancellation Requests</div>
+            <div class="stat-value text-4xl" style="color: white;">{{ pending_cancellations_count }}</div>
+            <div class="stat-desc text-base mt-2" style="color: white;">
+                {% if pending_cancellations_count > 0 %}
+                    {% if pending_cancellations_count == 1 %}1 request{% else %}{{ pending_cancellations_count }} requests{% endif %} to review
+                {% else %}
+                    No cancellations pending
+                {% endif %}
+            </div>
+        </a>
+
         <a href="{% url 'private_teaching:teacher_schedule' %}" class="stat bg-info text-info-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
             <div class="stat-title text-white text-lg font-semibold">Today's Lessons</div>
             <div class="stat-value text-white text-4xl">{{ today_lessons.count }}</div>
@@ -101,6 +113,13 @@
                     </a>
                 {% endif %}
 
+                {% if pending_cancellations_count > 0 %}
+                    <a href="{% url 'private_teaching:teacher_cancellation_requests' %}" class="btn btn-ghost text-white justify-start">
+                        <i class="fas fa-ban mr-2"></i>
+                        <span>Review {{ pending_cancellations_count }} Cancellation{{ pending_cancellations_count|pluralize }}</span>
+                    </a>
+                {% endif %}
+
                 {% if waitlist_applications_count > 0 %}
                     <a href="{% url 'private_teaching:teacher_applications' %}?status=waitlist" class="btn btn-ghost text-white justify-start">
                         <i class="fas fa-hourglass-half mr-2"></i>
@@ -115,7 +134,7 @@
                     </a>
                 {% endif %}
 
-                {% if paid_unassigned_count == 0 and pending_applications_count == 0 and pending_count == 0 and waitlist_applications_count == 0 %}
+                {% if paid_unassigned_count == 0 and pending_applications_count == 0 and pending_count == 0 and pending_cancellations_count == 0 and waitlist_applications_count == 0 %}
                     <div class="text-center py-4">
                         <div class="text-5xl mb-2">✨</div>
                         <p class="text-white font-semibold">All caught up!</p>

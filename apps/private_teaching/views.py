@@ -295,6 +295,12 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             status__in=[ExamRegistration.REGISTERED, ExamRegistration.SUBMITTED]
         ).count()
 
+        # Get pending cancellation requests from students
+        pending_cancellations = LessonCancellationRequest.objects.filter(
+            teacher=self.request.user,
+            status='pending'
+        ).select_related('student', 'lesson', 'lesson__subject').order_by('-created_at')
+
         context.update({
             'pending_applications': pending_applications,
             'pending_applications_count': pending_applications.count(),
@@ -307,6 +313,8 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             'paid_unassigned_lessons': paid_unassigned_lessons,
             'paid_unassigned_count': paid_unassigned_lessons.count(),
             'active_exams_count': active_exams,
+            'pending_cancellations': pending_cancellations,
+            'pending_cancellations_count': pending_cancellations.count(),
             'today': today,
         })
         return context
