@@ -7,19 +7,71 @@
 <div class="min-h-screen bg-base-100 flex items-center justify-center">
     <div class="card w-96 bg-base-100 shadow-xl">
         <div class="card-body">
-            <h2 class="card-title justify-center mb-6">Create Your Account</h2>
-            
-            {% if form.errors %}
-                <div class="alert alert-error mb-4">
-                    {% for field, errors in form.errors.items %}
-                        {% for error in errors %}
-                            <span>{{ error }}</span>
+            {% if messages %}
+                {% for message in messages %}
+                    {% if 'signup_success' in message.tags %}
+                        <!-- Success: Account Created - Check Email -->
+                        <div class="text-center mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-success mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <h2 class="card-title justify-center text-2xl mb-2">Check Your Email!</h2>
+                        </div>
+
+                        <div class="alert alert-{% if message.level_tag == 'success' %}success{% else %}warning{% endif %} mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="text-sm">
+                                {{ message }}
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="bg-base-200 rounded-lg p-4">
+                                <h3 class="font-semibold mb-2">What's Next?</h3>
+                                <ol class="list-decimal list-inside space-y-2 text-sm">
+                                    <li>Check your email inbox</li>
+                                    <li>Click the "Verify Email" link</li>
+                                    <li>You'll be automatically logged in</li>
+                                    <li>Complete your profile to get started</li>
+                                </ol>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div class="text-sm">
+                                    <p class="font-semibold">Didn't receive the email?</p>
+                                    <p class="mt-1">Check your spam folder, or <a href="{% url 'accounts:resend_verification_public' %}" class="link link-primary">resend verification email</a>.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="divider mt-6">OR</div>
+
+                        <div class="text-center">
+                            <p class="text-sm text-base-content/70 mb-2">Want to create a different account?</p>
+                            <a href="{% url 'accounts:signup' %}" class="btn btn-outline btn-sm">Sign Up Again</a>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <!-- Show Signup Form -->
+                <h2 class="card-title justify-center mb-6">Create Your Account</h2>
+
+                {% if form.errors %}
+                    <div class="alert alert-error mb-4">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
                         {% endfor %}
-                    {% endfor %}
-                </div>
-            {% endif %}
-            
-            <form method="post">
+                    </div>
+                {% endif %}
+
+                <form method="post">
                 {% csrf_token %}
                 {% if request.GET.next %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
@@ -133,14 +185,15 @@
             
             <div class="divider">OR</div>
             
-            <div class="text-center">
-                <p class="text-sm text-base-content/70 mb-2">
-                    Already have an account?
-                </p>
-                <a href="{% url 'login' %}{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}" class="btn btn-outline btn-sm">
-                    Sign In
-                </a>
-            </div>
+                <div class="text-center">
+                    <p class="text-sm text-base-content/70 mb-2">
+                        Already have an account?
+                    </p>
+                    <a href="{% url 'login' %}{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}" class="btn btn-outline btn-sm">
+                        Sign In
+                    </a>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

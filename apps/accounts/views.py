@@ -52,16 +52,18 @@ class SignUpView(CreateView):
     template_name = 'registration/signup.html'
 
     def get_success_url(self):
-        # Redirect to a page telling user to check their email
-        return reverse_lazy('accounts:signup_complete')
+        # Redirect back to signup page to show success message
+        return reverse_lazy('accounts:signup')
 
     def form_valid(self, form):
         response = super().form_valid(form)
         user = self.object
 
         # Send verification email
+        email_sent = False
         try:
             send_verification_email(self.request, user)
+            email_sent = True
         except Exception as e:
             # Log error but don't block registration
             print(f"Failed to send verification email: {e}")
@@ -80,8 +82,23 @@ class SignUpView(CreateView):
                 date_of_birth=form.cleaned_data['child_date_of_birth']
             )
 
+        # Show success message with email verification instructions
+        if email_sent:
+            messages.success(
+                self.request,
+                f'Account created successfully! We sent a verification email to {user.email}. '
+                f'Please check your inbox and click the verification link to complete your registration.',
+                extra_tags='signup_success'
+            )
+        else:
+            messages.warning(
+                self.request,
+                'Account created, but there was an issue sending the verification email. '
+                'Please contact support.',
+                extra_tags='signup_success'
+            )
+
         # Don't log the user in - they need to verify email first
-        # Success message will be shown on signup_complete page
         return response
 
 @login_required
