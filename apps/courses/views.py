@@ -111,6 +111,20 @@ class CourseCreateView(SuccessMessageMixin, SetUserFieldMixin, InstructorRequire
     success_message = 'Course "{title}" created successfully!'
     user_field_name = 'instructor'
 
+    def get_form(self, form_class=None):
+        """Customize form widgets with proper styling"""
+        form = super().get_form(form_class)
+        # Add CSS classes to content rating fields
+        form.fields['content_rating'].widget.attrs.update({
+            'class': 'select select-bordered w-full'
+        })
+        form.fields['content_warnings'].widget.attrs.update({
+            'class': 'textarea textarea-bordered w-full',
+            'rows': 3,
+            'placeholder': 'e.g., "Contains historical art depicting nudity from Renaissance period"'
+        })
+        return form
+
     def get_success_url(self):
         # Redirect to topic management for the new course
         return reverse('courses:manage_topics', kwargs={'slug': self.object.slug})
@@ -129,6 +143,20 @@ class CourseUpdateView(SuccessMessageMixin, InstructorRequiredMixin, CourseInstr
         'show_as_coming_soon', 'expected_launch_date'
     ]
     success_message = 'Course "{title}" updated successfully!'
+
+    def get_form(self, form_class=None):
+        """Customize form widgets with proper styling"""
+        form = super().get_form(form_class)
+        # Add CSS classes to content rating fields
+        form.fields['content_rating'].widget.attrs.update({
+            'class': 'select select-bordered w-full'
+        })
+        form.fields['content_warnings'].widget.attrs.update({
+            'class': 'textarea textarea-bordered w-full',
+            'rows': 3,
+            'placeholder': 'e.g., "Contains historical art depicting nudity from Renaissance period"'
+        })
+        return form
 
     def get_success_url(self):
         return reverse('courses:instructor_dashboard')
