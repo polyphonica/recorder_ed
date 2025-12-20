@@ -194,7 +194,17 @@ class LessonUpdateView(LoginRequiredMixin, LessonInline, UpdateView):
     login_url = 'private_teaching:login'
 
     def get_object(self):
-        lesson = get_object_or_404(Lesson, pk=self.kwargs['pk'])
+        lesson = get_object_or_404(
+            Lesson.objects.select_related(
+                'lesson_request',
+                'lesson_request__child_profile',
+                'lesson_request__student',
+                'subject',
+                'subject__teacher',
+                'student'
+            ),
+            pk=self.kwargs['pk']
+        )
         # Only teacher can edit lessons
         user_can_edit = False
         
