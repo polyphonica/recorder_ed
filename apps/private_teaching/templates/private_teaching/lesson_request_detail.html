@@ -10,7 +10,14 @@
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-4xl font-bold mb-2">Lesson Request Details</h1>
-                <p class="text-base-content/70">Review and respond to lesson request from {{ lesson_request.student.get_full_name|default:lesson_request.student.username }}</p>
+                <p class="text-base-content/70">
+                    Review and respond to lesson request from
+                    {% if lesson_request.child_profile %}
+                        {{ lesson_request.child_profile.full_name }} (Guardian: {{ lesson_request.student.get_full_name|default:lesson_request.student.username }})
+                    {% else %}
+                        {{ lesson_request.student.get_full_name|default:lesson_request.student.username }}
+                    {% endif %}
+                </p>
             </div>
             <div class="text-right">
                 <span class="text-sm text-base-content/70">Submitted {{ lesson_request.created_at|date:"M d, Y" }}</span>
@@ -30,7 +37,12 @@
                         <label class="label">
                             <span class="label-text font-medium">Student Name</span>
                         </label>
-                        <div class="text-lg">{{ lesson_request.student.get_full_name|default:lesson_request.student.username }}</div>
+                        {% if lesson_request.child_profile %}
+                            <div class="text-lg font-semibold">{{ lesson_request.child_profile.full_name }}</div>
+                            <div class="text-sm text-base-content/60">Guardian: {{ lesson_request.student.get_full_name|default:lesson_request.student.username }}</div>
+                        {% else %}
+                            <div class="text-lg">{{ lesson_request.student.get_full_name|default:lesson_request.student.username }}</div>
+                        {% endif %}
                     </div>
                     <div>
                         <label class="label">

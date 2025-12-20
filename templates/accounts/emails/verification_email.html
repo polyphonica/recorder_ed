@@ -57,9 +57,13 @@
         <h1>{{ site_name }}</h1>
     </div>
     <div class="content">
-        <h2>Welcome{{ user.first_name|default:"" }}!</h2>
+        <h2>Welcome{% if user.first_name %} {{ user.first_name }}{% endif %}!</h2>
 
         <p>Thank you for signing up at {{ site_name }}. We're excited to have you join our community!</p>
+
+        {% if is_guardian %}
+        <p><strong>Important:</strong> After verifying your email, you'll complete YOUR profile as the guardian/parent. Your child's information has already been saved during signup.</p>
+        {% endif %}
 
         <p>Please verify your email address to get full access to all features:</p>
 

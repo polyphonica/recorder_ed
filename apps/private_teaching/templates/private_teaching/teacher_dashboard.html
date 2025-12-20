@@ -335,13 +335,18 @@
                             <div class="flex items-center justify-between border border-base-300 rounded-lg p-4">
                                 <div>
                                     <h3 class="font-semibold">{{ lesson.subject }}</h3>
-                                    <p class="text-sm text-base-content/70">
-                                        {% if lesson.lesson_request.child_profile %}
+                                    {% if lesson.lesson_request.child_profile %}
+                                        <p class="text-base font-semibold text-base-content">
                                             {{ lesson.lesson_request.child_profile.full_name }}
-                                        {% else %}
+                                        </p>
+                                        <p class="text-xs text-base-content/60">
+                                            Guardian: {{ lesson.student.get_full_name|default:lesson.student.username }}
+                                        </p>
+                                    {% else %}
+                                        <p class="text-sm text-base-content/70">
                                             {{ lesson.student.get_full_name|default:lesson.student.username }}
-                                        {% endif %}
-                                    </p>
+                                        </p>
+                                    {% endif %}
                                     <p class="text-sm text-base-content/70">
                                         {{ lesson.location }}
                                     </p>

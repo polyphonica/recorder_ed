@@ -20,6 +20,17 @@
                     <div class="alert alert-info mb-6">
                         <span>Please complete your profile to continue using the platform.</span>
                     </div>
+                    {% if user.profile.is_guardian %}
+                    <div class="alert alert-warning mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div>
+                            <h3 class="font-bold">Guardian/Parent Profile</h3>
+                            <div class="text-sm">This is YOUR profile as the guardian/parent. Your child's information was saved during signup and can be managed from your Guardian Dashboard after completing this profile.</div>
+                        </div>
+                    </div>
+                    {% endif %}
                 {% endif %}
 
                 {% if form.errors %}

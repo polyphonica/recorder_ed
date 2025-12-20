@@ -48,10 +48,12 @@ def send_verification_email(request, user):
     verification_link = f"{request.scheme}://{current_site.domain}/accounts/verify-email/{uid}/{token}/"
 
     # Prepare email context
+    is_guardian = user.profile.is_guardian if hasattr(user, 'profile') else False
     context = {
         'user': user,
         'verification_link': verification_link,
         'site_name': settings.SITE_NAME,
+        'is_guardian': is_guardian,
     }
 
     # Render email
