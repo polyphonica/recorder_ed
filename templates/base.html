@@ -416,6 +416,29 @@
         </div>
     {% endif %}
 
+    <!-- Workshops Domain-Specific Navigation -->
+    {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace == 'workshops' %}
+        <div class="bg-base-300 shadow-sm">
+            <div class="container mx-auto">
+                <div class="navbar justify-center py-2">
+                    <ul class="menu menu-horizontal px-1 text-sm">
+                        {% if user.is_instructor %}
+                            <!-- Instructor Navigation -->
+                            <li><a href="{% url 'workshops:instructor_dashboard' %}" class="{% if request.resolver_match.url_name == 'instructor_dashboard' %}bg-primary text-primary-content{% endif %}">Dashboard</a></li>
+                            <li><a href="{% url 'workshops:instructor_workshops' %}" class="{% if request.resolver_match.url_name == 'instructor_workshops' %}bg-primary text-primary-content{% endif %}">My Workshops</a></li>
+                            <li><a href="{% url 'workshops:create_workshop' %}" class="{% if request.resolver_match.url_name == 'create_workshop' %}bg-primary text-primary-content{% endif %}">Create Workshop</a></li>
+                        {% else %}
+                            <!-- Student Navigation -->
+                            <li><a href="{% url 'workshops:student_dashboard' %}" class="{% if request.resolver_match.url_name == 'student_dashboard' %}bg-primary text-primary-content{% endif %}">My Workshops</a></li>
+                            <li><a href="{% url 'workshops:my_registrations' %}" class="{% if request.resolver_match.url_name == 'my_registrations' %}bg-primary text-primary-content{% endif %}">My Registrations</a></li>
+                            <li><a href="{% url 'workshops:list' %}" class="{% if request.resolver_match.url_name == 'list' %}bg-primary text-primary-content{% endif %}">Browse Workshops</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
     <!-- Main Content -->
     <main id="main-content" class="container mx-auto px-4 py-8" role="main">
         <!-- Django Messages -->
