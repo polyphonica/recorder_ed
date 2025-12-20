@@ -234,33 +234,50 @@
                             </a>
                         {% else %}
                             {% if user.is_authenticated %}
-                                <form method="post" action="{% url 'courses:enroll' course.slug %}" id="enrollForm">
-                                    {% csrf_token %}
-
-                                    <!-- T&Cs Acceptance -->
-                                    <div class="form-control mb-3">
-                                        <label class="label cursor-pointer justify-start gap-2">
-                                            <input type="checkbox" id="termsAccepted" name="terms_accepted" class="checkbox checkbox-primary checkbox-sm" required>
-                                            <span class="label-text text-xs">
-                                                I accept the <a href="{% url 'courses:view_terms' %}" target="_blank" class="link link-primary">Course Terms & Conditions</a>
-                                                <span class="text-info block text-xs mt-1">✓ 7-day trial period - Full refund if cancelled within 7 days</span>
-                                            </span>
-                                        </label>
+                                {% if is_guardian %}
+                                    <!-- Guardians: Redirect to child selection page -->
+                                    <div class="alert alert-info mb-3 text-sm">
+                                        <i class="fas fa-info-circle"></i>
+                                        <span>You'll select which child to enroll on the next page</span>
                                     </div>
-
-                                    <button type="submit" class="btn btn-primary btn-block mb-2">
-                                        <i class="fas fa-check-circle mr-2"></i>
+                                    <a href="{% url 'courses:enroll' course.slug %}" class="btn btn-primary btn-block mb-2">
+                                        <i class="fas fa-user-friends mr-2"></i>
                                         {% if course.cost > 0 %}
-                                            Enroll Now
+                                            Enroll a Child
                                         {% else %}
-                                            Enroll Now (FREE)
+                                            Enroll a Child (FREE)
                                         {% endif %}
-                                    </button>
-                                </form>
-                                {% if course.cost == 0 %}
-                                <div class="text-center text-xs text-base-content/70">
-                                    Start learning immediately
-                                </div>
+                                    </a>
+                                {% else %}
+                                    <!-- Non-guardians: Direct enrollment form -->
+                                    <form method="post" action="{% url 'courses:enroll' course.slug %}" id="enrollForm">
+                                        {% csrf_token %}
+
+                                        <!-- T&Cs Acceptance -->
+                                        <div class="form-control mb-3">
+                                            <label class="label cursor-pointer justify-start gap-2">
+                                                <input type="checkbox" id="termsAccepted" name="terms_accepted" class="checkbox checkbox-primary checkbox-sm" required>
+                                                <span class="label-text text-xs">
+                                                    I accept the <a href="{% url 'courses:view_terms' %}" target="_blank" class="link link-primary">Course Terms & Conditions</a>
+                                                    <span class="text-info block text-xs mt-1">✓ 7-day trial period - Full refund if cancelled within 7 days</span>
+                                                </span>
+                                            </label>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary btn-block mb-2">
+                                            <i class="fas fa-check-circle mr-2"></i>
+                                            {% if course.cost > 0 %}
+                                                Enroll Now
+                                            {% else %}
+                                                Enroll Now (FREE)
+                                            {% endif %}
+                                        </button>
+                                    </form>
+                                    {% if course.cost == 0 %}
+                                    <div class="text-center text-xs text-base-content/70">
+                                        Start learning immediately
+                                    </div>
+                                    {% endif %}
                                 {% endif %}
                             {% else %}
                                 <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary btn-block mb-2">

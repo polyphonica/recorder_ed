@@ -703,6 +703,7 @@ class CourseDetailView(DetailView):
         # Check if user is enrolled
         is_enrolled = False
         enrollment = None
+        is_guardian = False
         if self.request.user.is_authenticated:
             enrollment = CourseEnrollment.objects.filter(
                 course=self.object,
@@ -710,6 +711,7 @@ class CourseDetailView(DetailView):
                 is_active=True
             ).first()
             is_enrolled = enrollment is not None
+            is_guardian = self.request.user.profile.is_guardian
 
         # Get course curriculum (topics with lessons)
         topics = self.object.topics.prefetch_related(
@@ -732,6 +734,7 @@ class CourseDetailView(DetailView):
             'total_lessons': total_lessons,
             'total_duration': total_duration,
             'is_owner': self.request.user.is_authenticated and self.object.is_owned_by(self.request.user),
+            'is_guardian': is_guardian,
         })
 
         return context
@@ -771,10 +774,14 @@ class CourseEnrollView(LoginRequiredMixin, View):
         child_id = request.POST.get('child_id')
         terms_accepted = request.POST.get('terms_accepted')
 
-        # Check T&Cs acceptance (unless selecting child)
-        if not child_id and not terms_accepted:
+        # Check T&Cs acceptance
+        if not terms_accepted:
             messages.error(request, 'You must accept the Terms and Conditions to enroll.')
-            return redirect('courses:detail', slug=course.slug)
+            if child_id:
+                # Redirect back to child selection page
+                return redirect('courses:enroll', slug=course.slug)
+            else:
+                return redirect('courses:detail', slug=course.slug)
 
         # Determine if enrolling a child or self
         child = None

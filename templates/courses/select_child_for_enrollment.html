@@ -60,6 +60,17 @@
                         {% endfor %}
                     </div>
 
+                    <!-- Terms & Conditions Acceptance -->
+                    <div class="form-control mt-6">
+                        <label class="label cursor-pointer justify-start gap-2">
+                            <input type="checkbox" name="terms_accepted" class="checkbox checkbox-primary checkbox-sm" required>
+                            <span class="label-text text-sm">
+                                I accept the <a href="{% url 'courses:view_terms' %}" target="_blank" class="link link-primary">Course Terms & Conditions</a>
+                                <span class="text-info block text-xs mt-1">✓ 7-day trial period - Full refund if cancelled within 7 days</span>
+                            </span>
+                        </label>
+                    </div>
+
                     <div class="card-actions justify-end mt-6">
                         <a href="{% url 'courses:detail' course.slug %}" class="btn btn-outline">
                             Cancel
