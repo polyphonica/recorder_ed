@@ -90,6 +90,58 @@
                         {% endif %}
                     </div>
 
+                    <!-- Content Rating & Child Protection -->
+                    <div class="divider"></div>
+                    <h3 class="text-xl font-semibold mb-4">
+                        <i class="fas fa-shield-alt mr-2"></i>Content Rating & Child Protection
+                    </h3>
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle"></i>
+                        <div class="text-sm">
+                            <strong>Content ratings protect children from unsuitable material.</strong>
+                            <p class="mt-1">This is about content appropriateness (moral/safety), not difficulty level. Most courses should be rated "G" (General).</p>
+                        </div>
+                    </div>
+
+                    <div class="form-control w-full mb-4">
+                        <label class="label">
+                            <span class="label-text font-medium">Content Rating *</span>
+                        </label>
+                        {{ form.content_rating }}
+                        <label class="label">
+                            <span class="label-text-alt">
+                                <strong>Examples:</strong>
+                                G = Most courses |
+                                PG = May need parent explanation |
+                                13+ = War history, intense topics |
+                                16+ = Complex mature themes |
+                                18+ = Historical art with nudity
+                            </span>
+                        </label>
+                        {% if form.content_rating.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.content_rating.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control w-full mb-4">
+                        <label class="label">
+                            <span class="label-text font-medium">Content Warnings (Optional)</span>
+                        </label>
+                        {{ form.content_warnings }}
+                        <label class="label">
+                            <span class="label-text-alt">
+                                Specific warnings about content. E.g., "Contains historical art depicting nudity from Renaissance period" or "Discusses war and conflict"
+                            </span>
+                        </label>
+                        {% if form.content_warnings.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.content_warnings.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
                     <!-- Media -->
                     <div class="divider"></div>
                     <h3 class="text-xl font-semibold mb-4">Media</h3>
