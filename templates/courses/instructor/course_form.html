@@ -108,16 +108,14 @@
                             <span class="label-text font-medium">Content Rating *</span>
                         </label>
                         {{ form.content_rating }}
-                        <label class="label">
-                            <span class="label-text-alt">
-                                <strong>Examples:</strong>
-                                G = Most courses |
-                                PG = May need parent explanation |
-                                13+ = War history, intense topics |
-                                16+ = Complex mature themes |
-                                18+ = Historical art with nudity
-                            </span>
-                        </label>
+                        <div class="text-xs text-base-content/70 mt-2 space-y-1">
+                            <div><strong>Examples:</strong></div>
+                            <div><strong>G</strong> = Most courses (general, all ages)</div>
+                            <div><strong>PG</strong> = Parental guidance (may need explanation)</div>
+                            <div><strong>13+</strong> = War history, intense topics</div>
+                            <div><strong>16+</strong> = Complex mature themes</div>
+                            <div><strong>18+</strong> = Historical art with nudity</div>
+                        </div>
                         {% if form.content_rating.errors %}
                             <label class="label">
                                 <span class="label-text-alt text-error">{{ form.content_rating.errors.0 }}</span>
@@ -130,11 +128,14 @@
                             <span class="label-text font-medium">Content Warnings (Optional)</span>
                         </label>
                         {{ form.content_warnings }}
-                        <label class="label">
-                            <span class="label-text-alt">
-                                Specific warnings about content. E.g., "Contains historical art depicting nudity from Renaissance period" or "Discusses war and conflict"
-                            </span>
-                        </label>
+                        <div class="text-xs text-base-content/70 mt-2">
+                            Specific warnings about content. Examples:
+                            <ul class="list-disc list-inside mt-1 space-y-1">
+                                <li>"Contains historical art depicting nudity from Renaissance period"</li>
+                                <li>"Discusses war and conflict"</li>
+                                <li>"Mature mythological themes"</li>
+                            </ul>
+                        </div>
                         {% if form.content_warnings.errors %}
                             <label class="label">
                                 <span class="label-text-alt text-error">{{ form.content_warnings.errors.0 }}</span>
