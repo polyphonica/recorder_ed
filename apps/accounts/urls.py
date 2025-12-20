@@ -21,7 +21,6 @@ urlpatterns = [
     path('teacher/<int:teacher_id>/', views.TeacherPublicProfileView.as_view(), name='teacher_profile'),
 
     # Guardian dashboard for managing children
-    path('guardian/become/', views.become_guardian_view, name='become_guardian'),
     path('guardian/dashboard/', views.guardian_dashboard_view, name='guardian_dashboard'),
     path('guardian/child/add/', views.add_child_view, name='add_child'),
     path('guardian/child/<uuid:child_id>/edit/', views.edit_child_view, name='edit_child'),

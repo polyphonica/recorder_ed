@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, DetailView
 from django.contrib.auth.views import LoginView
-from .forms import CustomUserCreationForm, UserProfileForm, ChildProfileForm, AccountTransferForm, BecomeGuardianForm
+from .forms import CustomUserCreationForm, UserProfileForm, ChildProfileForm, AccountTransferForm
 from .models import UserProfile, ChildProfile
 from .email_verification import send_verification_email
 from django.db import transaction
@@ -226,44 +226,6 @@ def guardian_dashboard_view(request):
         'children': children,
     }
     return render(request, 'accounts/guardian_dashboard.html', context)
-
-
-@login_required
-def become_guardian_view(request):
-    """Convert existing user account to guardian status and add first child"""
-    # Redirect if already a guardian
-    if request.user.profile.is_guardian:
-        messages.info(request, 'Your account is already set up as a guardian account.')
-        return redirect('accounts:guardian_dashboard')
-
-    if request.method == 'POST':
-        form = BecomeGuardianForm(request.POST)
-        if form.is_valid():
-            # Convert user to guardian
-            profile = request.user.profile
-            profile.is_guardian = True
-            profile.save()
-
-            # Create first child profile
-            child = ChildProfile.objects.create(
-                guardian=request.user,
-                first_name=form.cleaned_data['child_first_name'],
-                last_name=form.cleaned_data['child_last_name'],
-                date_of_birth=form.cleaned_data['child_date_of_birth']
-            )
-
-            messages.success(
-                request,
-                f'Your account has been converted to a guardian account! '
-                f'Child profile created for {child.full_name}.'
-            )
-            return redirect('accounts:guardian_dashboard')
-    else:
-        form = BecomeGuardianForm()
-
-    return render(request, 'accounts/become_guardian.html', {
-        'form': form,
-    })
 
 
 @login_required

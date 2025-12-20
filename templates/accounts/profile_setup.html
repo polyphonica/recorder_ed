@@ -354,42 +354,6 @@
                         </button>
                     </div>
                 </form>
-
-                <!-- Guardian Account Conversion (only show if not already a guardian) -->
-                {% if not is_setup and not user.profile.is_guardian %}
-                    <div class="divider my-8"></div>
-
-                    <div class="card bg-base-200 shadow-sm">
-                        <div class="card-body">
-                            <h3 class="card-title text-lg">
-                                <i class="fas fa-users mr-2"></i>
-                                Manage Children's Accounts
-                            </h3>
-                            <p class="text-sm text-base-content/70 mb-4">
-                                Do you have a child under 18 who wants to take lessons, courses, or workshops?
-                                Convert your account to a guardian account to manage their learning activities.
-                            </p>
-
-                            <div class="bg-base-100 p-4 rounded-lg mb-4">
-                                <p class="text-sm font-semibold mb-2">As a guardian, you can:</p>
-                                <ul class="list-disc list-inside text-sm space-y-1 text-base-content/80">
-                                    <li>Add and manage multiple children (under 18)</li>
-                                    <li>Book lessons, courses, and workshops on their behalf</li>
-                                    <li>Track their progress and learning activities</li>
-                                    <li>Handle all payments centrally</li>
-                                    <li>Transfer accounts to them when they turn 18</li>
-                                </ul>
-                            </div>
-
-                            <div class="card-actions">
-                                <a href="{% url 'accounts:become_guardian' %}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-user-plus mr-2"></i>
-                                    Become a Guardian
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
             </div>
         </div>
     </div>

@@ -175,59 +175,6 @@ class ChildProfileForm(forms.ModelForm):
         return dob
 
 
-class BecomeGuardianForm(forms.Form):
-    """Form for existing users to convert to guardian status and add their first child"""
-
-    child_first_name = forms.CharField(
-        max_length=100,
-        required=True,
-        label="Child's First Name",
-        widget=forms.TextInput(attrs={
-            'class': 'input input-bordered',
-            'placeholder': "Child's first name"
-        })
-    )
-
-    child_last_name = forms.CharField(
-        max_length=100,
-        required=True,
-        label="Child's Last Name",
-        widget=forms.TextInput(attrs={
-            'class': 'input input-bordered',
-            'placeholder': "Child's last name"
-        }),
-        help_text='Required for external exam registration'
-    )
-
-    child_date_of_birth = forms.DateField(
-        required=True,
-        label="Child's Date of Birth",
-        widget=forms.DateInput(attrs={
-            'class': 'input input-bordered',
-            'type': 'date'
-        }),
-        help_text='Used to calculate age'
-    )
-
-    def clean_child_date_of_birth(self):
-        """Validate that child is under 18"""
-        dob = self.cleaned_data.get('child_date_of_birth')
-        if dob:
-            today = date.today()
-            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-
-            if age >= 18:
-                raise forms.ValidationError(
-                    "Child must be under 18 years old. For students 18 and over, "
-                    "they should create their own account."
-                )
-
-            if dob > today:
-                raise forms.ValidationError("Date of birth cannot be in the future.")
-
-        return dob
-
-
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile

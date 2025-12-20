@@ -129,7 +129,7 @@ class LessonRequestForm(forms.ModelForm):
         widget=forms.RadioSelect(attrs={
             'class': 'radio radio-primary'
         }),
-        help_text="Select who these lessons are for"
+        help_text="Select which child these lessons are for"
     )
 
     class Meta:
@@ -145,14 +145,12 @@ class LessonRequestForm(forms.ModelForm):
             from apps.accounts.models import ChildProfile
             children = self.user.children.all()
 
-            if children.exists():
-                # Add "Myself" option first, then children
-                choices = [('', 'Myself (Adult Student)')]
-                choices.extend([(str(child.id), f"{child.full_name} (Age: {child.age})") for child in children])
+            if children:
+                choices = [(str(child.id), f"{child.full_name} (Age: {child.age})") for child in children]
                 self.fields['child_profile'].choices = choices
                 self.fields['child_profile'].required = True
             else:
-                # If no children, remove the field (guardian booking for themselves only)
+                # Remove field if no children
                 del self.fields['child_profile']
         else:
             # Remove field for non-guardians
