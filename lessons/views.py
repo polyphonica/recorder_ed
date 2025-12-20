@@ -148,7 +148,17 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
     login_url = 'private_teaching:login'
 
     def get_object(self):
-        lesson = get_object_or_404(Lesson, pk=self.kwargs['pk'])
+        lesson = get_object_or_404(
+            Lesson.objects.select_related(
+                'lesson_request',
+                'lesson_request__child_profile',
+                'lesson_request__student',
+                'subject',
+                'subject__teacher',
+                'student'
+            ),
+            pk=self.kwargs['pk']
+        )
         # Check permissions - teacher or student can view
         user_can_view = False
         error_message = "You don't have permission to view this lesson."
