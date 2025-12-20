@@ -1139,8 +1139,10 @@ class LessonDetailView(PrivateTeachingLoginRequiredMixin, View):
             # Get student name - use child's name if lesson is for a child
             if lesson.lesson_request and lesson.lesson_request.child_profile:
                 student_name = lesson.lesson_request.child_profile.full_name
+                guardian_name = lesson.student.get_full_name() if lesson.student else 'Unknown'
             else:
                 student_name = lesson.student.get_full_name() if lesson.student else 'Unknown'
+                guardian_name = None
 
             lesson_data = {
                 'id': str(lesson.id),
@@ -1153,6 +1155,7 @@ class LessonDetailView(PrivateTeachingLoginRequiredMixin, View):
                 'approval_status': lesson.approved_status.lower(),
                 'price': str(lesson.fee) if lesson.fee else 'Not set',
                 'student': student_name,
+                'guardian': guardian_name,
                 'teacher': lesson.teacher.get_full_name() if lesson.teacher else 'Not assigned',
                 'lesson_request_id': lesson.lesson_request.id if lesson.lesson_request else None,
                 'student_id': lesson.student.id if lesson.student else None

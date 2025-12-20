@@ -353,6 +353,7 @@ function showLessonDetails(event) {
             <div>
                 <div class="text-sm text-gray-500">Student</div>
                 <div class="font-semibold">${props.student || 'Unknown'}</div>
+                ${props.guardian ? `<div class="text-xs text-gray-500 mt-1">Guardian: ${props.guardian}</div>` : ''}
             </div>
             {% else %}
             <div>
