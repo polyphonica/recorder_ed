@@ -43,6 +43,18 @@
                 <!-- Course Info Badges -->
                 <div class="flex flex-wrap gap-2 mb-4">
                     <div class="badge badge-primary">{{ course.get_grade_display }}</div>
+
+                    <!-- Content Rating Badge -->
+                    {% if course.content_rating == '18' %}
+                        <div class="badge badge-error badge-lg font-bold">18+ ADULTS ONLY</div>
+                    {% elif course.content_rating == '16' %}
+                        <div class="badge badge-warning badge-lg">16+</div>
+                    {% elif course.content_rating == '13' %}
+                        <div class="badge badge-info badge-lg">13+</div>
+                    {% elif course.content_rating == 'PG' %}
+                        <div class="badge badge-secondary">Parental Guidance</div>
+                    {% endif %}
+
                     {% if course.is_featured %}
                         <div class="badge badge-secondary">Featured</div>
                     {% endif %}
@@ -58,6 +70,17 @@
                         </div>
                     {% endif %}
                 </div>
+
+                <!-- Content Warnings (if any) -->
+                {% if course.content_warnings %}
+                <div class="alert alert-warning mb-4">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Content Warning:</strong>
+                        <p class="text-sm mt-1 whitespace-pre-line">{{ course.content_warnings }}</p>
+                    </div>
+                </div>
+                {% endif %}
                 {% if course.show_as_coming_soon and course.expected_launch_date %}
                 <div class="alert alert-warning mb-4">
                     <i class="fas fa-calendar-alt"></i>

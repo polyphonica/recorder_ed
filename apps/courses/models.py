@@ -45,6 +45,14 @@ class Course(models.Model):
         ('grade_8', 'Grade 8'),
     ]
 
+    CONTENT_RATING_CHOICES = [
+        ('G', 'General - Suitable for all ages'),
+        ('PG', 'Parental Guidance - Some content may need parent explanation'),
+        ('13', 'Ages 13+ - Content not suitable for younger children'),
+        ('16', 'Ages 16+ - Mature content themes'),
+        ('18', 'Adults Only (18+) - Not suitable for minors'),
+    ]
+
     STATUS_CHOICES = [
         ('draft', 'Draft'),
         ('published', 'Published'),
@@ -59,6 +67,18 @@ class Course(models.Model):
     title = models.CharField(max_length=200)
     grade = models.CharField(max_length=20, choices=GRADE_CHOICES, default='N/A')
     description = CKEditor5Field('description', config_name='default')
+
+    # Content appropriateness (for child protection)
+    content_rating = models.CharField(
+        max_length=3,
+        choices=CONTENT_RATING_CHOICES,
+        default='G',
+        help_text='Age-appropriateness rating based on content themes (moral/safety, not difficulty)'
+    )
+    content_warnings = models.TextField(
+        blank=True,
+        help_text='Optional: Specific content warnings (e.g., "Contains historical art with nudity", "Discusses war and conflict")'
+    )
 
     # Pricing
     cost = models.DecimalField(max_digits=10, decimal_places=2)
@@ -145,6 +165,40 @@ class Course(models.Model):
     def has_quiz(self):
         """Check if any lesson in the course has a quiz"""
         return Quiz.objects.filter(lesson__topic__course=self).exists()
+
+    def requires_age_acknowledgment(self, child_age):
+        """
+        Check if this course requires guardian acknowledgment for a child of given age.
+        Returns: (requires_acknowledgment, is_blocked, message)
+        """
+        if self.content_rating == 'G':
+            return False, False, None
+
+        if self.content_rating == 'PG':
+            # Just informational, no blocking or acknowledgment
+            return False, False, None
+
+        if self.content_rating == '18':
+            if child_age < 18:
+                return False, True, f"This course is rated 18+ and not available for students under 18."
+            return False, False, None
+
+        if self.content_rating == '16':
+            if child_age < 16:
+                return True, False, f"This course is rated 16+ and may contain mature content themes."
+            return False, False, None
+
+        if self.content_rating == '13':
+            if child_age < 13:
+                return True, False, f"This course is rated 13+ and may not be suitable for younger children."
+            return False, False, None
+
+        return False, False, None
+
+    @property
+    def has_content_warnings(self):
+        """Check if course has any content warnings"""
+        return bool(self.content_warnings)
 
     def update_counts(self):
         """Update denormalized count fields"""

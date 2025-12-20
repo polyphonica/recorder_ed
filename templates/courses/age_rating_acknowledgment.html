@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Content Rating Acknowledgment - {{ course.title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100 py-8">
+    <div class="max-w-3xl mx-auto px-4">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold mb-2">Content Rating Acknowledgment Required</h1>
+            <p class="text-base-content/70">Please review the content rating for this course</p>
+        </div>
+
+        <!-- Course Info -->
+        <div class="card bg-base-200 shadow-xl mb-8">
+            <div class="card-body">
+                <div class="flex items-start gap-4">
+                    {% if course.image %}
+                        <img src="{{ course.image.url }}" alt="{{ course.title }}" class="w-24 h-24 object-cover rounded-lg">
+                    {% endif %}
+                    <div class="flex-1">
+                        <h2 class="card-title">{{ course.title }}</h2>
+                        <p class="text-sm text-base-content/70">Instructor: {{ course.instructor.get_full_name }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Age Rating Warning -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <!-- Rating Badge -->
+                <div class="flex items-center gap-4 mb-6">
+                    {% if course.content_rating == '18' %}
+                        <div class="badge badge-error badge-lg p-4">18+ ADULTS ONLY</div>
+                    {% elif course.content_rating == '16' %}
+                        <div class="badge badge-warning badge-lg p-4">16+</div>
+                    {% elif course.content_rating == '13' %}
+                        <div class="badge badge-info badge-lg p-4">13+</div>
+                    {% elif course.content_rating == 'PG' %}
+                        <div class="badge badge-secondary badge-lg p-4">PG</div>
+                    {% endif %}
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-lg">{{ course.get_content_rating_display }}</h3>
+                    </div>
+                </div>
+
+                <!-- Student Info -->
+                <div class="alert alert-warning mb-6">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>{{ child.full_name }} (age {{ child.age }})</strong>
+                        <p class="text-sm">{{ rating_message }}</p>
+                    </div>
+                </div>
+
+                <!-- Content Warnings -->
+                {% if course.content_warnings %}
+                <div class="mb-6">
+                    <h4 class="font-semibold mb-2">Content Warnings:</h4>
+                    <div class="bg-base-200 p-4 rounded-lg">
+                        <p class="text-sm whitespace-pre-line">{{ course.content_warnings }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Acknowledgment Form -->
+                <form method="post">
+                    {% csrf_token %}
+
+                    <!-- Pass through the child_id -->
+                    <input type="hidden" name="child_id" value="{{ child.id }}">
+                    <input type="hidden" name="terms_accepted" value="on">
+
+                    <div class="form-control mb-6">
+                        <label class="label cursor-pointer justify-start gap-3 p-4 border-2 border-warning rounded-lg">
+                            <input type="checkbox" name="age_rating_acknowledged" value="yes" class="checkbox checkbox-warning checkbox-lg" required>
+                            <span class="label-text flex-1">
+                                <strong>I understand that this course is rated {{ course.get_content_rating_display }}</strong>
+                                <span class="block text-sm mt-2">
+                                    I have reviewed the content rating and any warnings. I confirm that {{ child.first_name }} is ready for this material and I take full responsibility as their guardian.
+                                </span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="card-actions justify-end">
+                        <a href="{% url 'courses:detail' course.slug %}" class="btn btn-outline">
+                            Cancel Enrollment
+                        </a>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            I Acknowledge & Continue
+                        </button>
+                    </div>
+                </form>
+
+                <div class="divider"></div>
+
+                <!-- Educational Context Note -->
+                <div class="text-center text-sm text-base-content/70">
+                    <p><i class="fas fa-info-circle mr-1"></i> All content is presented in an educational context</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

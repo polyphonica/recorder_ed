@@ -104,6 +104,7 @@ class CourseCreateView(SuccessMessageMixin, SetUserFieldMixin, InstructorRequire
     template_name = 'courses/instructor/course_form.html'
     fields = [
         'title', 'slug', 'grade', 'description', 'cost',
+        'content_rating', 'content_warnings',
         'image', 'preview_video_url', 'status', 'is_featured',
         'show_as_coming_soon', 'expected_launch_date'
     ]
@@ -123,6 +124,7 @@ class CourseUpdateView(SuccessMessageMixin, InstructorRequiredMixin, CourseInstr
     template_name = 'courses/instructor/course_form.html'
     fields = [
         'title', 'slug', 'grade', 'description', 'cost',
+        'content_rating', 'content_warnings',
         'image', 'preview_video_url', 'status', 'is_featured',
         'show_as_coming_soon', 'expected_launch_date'
     ]
@@ -804,6 +806,26 @@ class CourseEnrollView(LoginRequiredMixin, View):
             if existing_enrollment:
                 messages.info(request, f'{child.full_name} is already enrolled in {course.title}.')
                 return redirect('courses:detail', slug=course.slug)
+
+            # CHECK AGE RATING / CONTENT APPROPRIATENESS
+            requires_ack, is_blocked, rating_message = course.requires_age_acknowledgment(child.age)
+
+            if is_blocked:
+                # Hard block (18+ content for under 18)
+                messages.error(request, rating_message)
+                return redirect('courses:detail', slug=course.slug)
+
+            if requires_ack:
+                # Requires guardian acknowledgment (13+/16+ for under age)
+                age_acknowledged = request.POST.get('age_rating_acknowledged')
+                if not age_acknowledged:
+                    # Redirect to acknowledgment page
+                    context = {
+                        'course': course,
+                        'child': child,
+                        'rating_message': rating_message,
+                    }
+                    return render(request, 'courses/age_rating_acknowledgment.html', context)
 
         else:
             # Enrolling self (adult student)
