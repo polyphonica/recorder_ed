@@ -53,6 +53,8 @@
                         <div class="badge badge-info badge-lg">13+</div>
                     {% elif course.content_rating == 'PG' %}
                         <div class="badge badge-secondary">Parental Guidance</div>
+                    {% elif course.content_rating == 'G' %}
+                        <div class="badge badge-ghost badge-sm">All Ages</div>
                     {% endif %}
 
                     {% if course.is_featured %}
