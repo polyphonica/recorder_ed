@@ -17,6 +17,43 @@
         </div>
     </div>
 
+    <!-- Availability Calendar -->
+    <div class="card card-section shadow-xl mb-6 border-2 border-primary">
+        <div class="card-body">
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <h2 class="card-title text-2xl mb-2">
+                        <i class="fas fa-calendar-alt text-primary mr-2"></i>
+                        Availability Calendar
+                    </h2>
+                    <p class="text-base-content/70 mb-4">
+                        Set your weekly schedule and let students book lessons directly from your available time slots
+                    </p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <div class="badge badge-lg gap-2">
+                            <i class="fas fa-clock"></i>
+                            Weekly Schedule
+                        </div>
+                        <div class="badge badge-lg gap-2">
+                            <i class="fas fa-ban"></i>
+                            Block Times
+                        </div>
+                        <div class="badge badge-lg gap-2">
+                            <i class="fas fa-cog"></i>
+                            Booking Rules
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <a href="{% url 'private_teaching:teacher_availability' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-calendar-check mr-2"></i>
+                        Manage Availability
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Default Zoom Link -->
     <div class="card card-section shadow-xl mb-6">
         <div class="card-body">
