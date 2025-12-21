@@ -99,6 +99,12 @@ class ProductDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         product = self.object
 
+        # Check if user is the product owner (teacher)
+        if self.request.user.is_authenticated:
+            context['is_own_product'] = product.teacher == self.request.user
+        else:
+            context['is_own_product'] = False
+
         # Check if user already purchased
         if self.request.user.is_authenticated:
             context['already_purchased'] = ProductPurchase.objects.filter(
