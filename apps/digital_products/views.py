@@ -452,10 +452,10 @@ class TeacherDashboardView(InstructorRequiredMixin, ListView):
             product__teacher=self.request.user,
             payment_status='completed'
         )
-        total_revenue = sum(p.payment_amount for p in purchases)
-        commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
+        total_revenue = sum((p.payment_amount for p in purchases), Decimal('0.00'))
+        commission_rate = Decimal(str(settings.PLATFORM_COMMISSION_PERCENTAGE)) / Decimal('100')
         context['total_revenue'] = total_revenue
-        context['teacher_earnings'] = total_revenue * (1 - Decimal(str(commission_rate)))
+        context['teacher_earnings'] = total_revenue * (Decimal('1') - commission_rate)
 
         return context
 
