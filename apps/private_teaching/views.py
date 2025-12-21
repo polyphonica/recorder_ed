@@ -1671,6 +1671,13 @@ class BookWithTeacherView(StudentProfileCompletedMixin, StudentOnlyMixin, Templa
             teacher=self.teacher,
             is_active=True
         )
+
+        # Check if teacher has availability calendar enabled
+        context['calendar_enabled'] = (
+            hasattr(self.teacher, 'availability_settings') and
+            self.teacher.availability_settings.use_availability_calendar
+        )
+
         return context
 
     def post(self, request, *args, **kwargs):
