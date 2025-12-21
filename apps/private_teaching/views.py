@@ -878,6 +878,17 @@ class UpdateZoomLinkView(TeacherProfileCompletedMixin, View):
         return redirect('private_teaching:teacher_settings')
 
 
+class TeacherAvailabilityEditorView(TeacherProfileCompletedMixin, TemplateView):
+    """Teacher availability calendar editor"""
+    template_name = 'private_teaching/teacher_availability_editor.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # All data will be loaded via API, but we pass the user ID for API calls
+        context['teacher_id'] = self.request.user.id
+        return context
+
+
 # Cart Views
 class AddToCartView(StudentProfileCompletedMixin, View):
     """Add individual lesson to cart"""

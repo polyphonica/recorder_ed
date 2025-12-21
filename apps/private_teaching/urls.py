@@ -26,6 +26,7 @@ urlpatterns = [
     # Teacher Views
     path('teacher/dashboard/', views.TeacherDashboardView.as_view(), name='teacher_dashboard'),
     path('teacher/settings/', views.TeacherSettingsView.as_view(), name='teacher_settings'),
+    path('teacher/availability/', views.TeacherAvailabilityEditorView.as_view(), name='teacher_availability'),
     path('teacher/settings/zoom-link/', views.UpdateZoomLinkView.as_view(), name='update_zoom_link'),
     path('teacher/subjects/create/', views.SubjectCreateView.as_view(), name='subject_create'),
     path('teacher/subjects/<int:subject_id>/update/', views.SubjectUpdateView.as_view(), name='subject_update'),
