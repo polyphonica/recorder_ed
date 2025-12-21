@@ -285,12 +285,12 @@ def _is_slot_available(
         slot_datetime = timezone.make_aware(slot_datetime)
 
     # Check minimum booking notice
-    min_notice = timedelta(hours=settings.min_booking_notice_hours)
+    min_notice = timedelta(hours=int(settings.min_booking_notice_hours))
     if slot_datetime < now + min_notice:
         return False
 
     # Check maximum booking window
-    max_advance = timedelta(days=settings.max_booking_days_ahead)
+    max_advance = timedelta(days=int(settings.max_booking_days_ahead))
     if slot_datetime > now + max_advance:
         return False
 
@@ -315,10 +315,10 @@ def _is_slot_available(
         if timezone.is_naive(lesson_start):
             lesson_start = timezone.make_aware(lesson_start)
 
-        lesson_end = lesson_start + timedelta(minutes=lesson.duration_in_minutes)
+        lesson_end = lesson_start + timedelta(minutes=int(lesson.duration_in_minutes))
 
         # Add buffer time
-        lesson_end_with_buffer = lesson_end + timedelta(minutes=settings.buffer_minutes)
+        lesson_end_with_buffer = lesson_end + timedelta(minutes=int(settings.buffer_minutes))
 
         # Check for overlap
         if slot_datetime < lesson_end_with_buffer and slot_end > lesson_start:
@@ -359,11 +359,11 @@ def check_slot_availability(
 
     # Check advance booking rules
     now = timezone.now()
-    min_notice = timedelta(hours=settings.min_booking_notice_hours)
+    min_notice = timedelta(hours=int(settings.min_booking_notice_hours))
     if slot_datetime < now + min_notice:
         return (False, f"Bookings must be made at least {settings.min_booking_notice_hours} hours in advance")
 
-    max_advance = timedelta(days=settings.max_booking_days_ahead)
+    max_advance = timedelta(days=int(settings.max_booking_days_ahead))
     if slot_datetime > now + max_advance:
         return (False, f"Bookings can only be made up to {settings.max_booking_days_ahead} days in advance")
 
@@ -394,8 +394,8 @@ def check_slot_availability(
         if timezone.is_naive(lesson_start):
             lesson_start = timezone.make_aware(lesson_start)
 
-        lesson_end = lesson_start + timedelta(minutes=lesson.duration_in_minutes)
-        lesson_end_with_buffer = lesson_end + timedelta(minutes=settings.buffer_minutes)
+        lesson_end = lesson_start + timedelta(minutes=int(lesson.duration_in_minutes))
+        lesson_end_with_buffer = lesson_end + timedelta(minutes=int(settings.buffer_minutes))
 
         if slot_datetime < lesson_end_with_buffer and slot_end > lesson_start:
             return (False, "This time slot conflicts with an existing lesson")
