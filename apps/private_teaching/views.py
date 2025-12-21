@@ -93,17 +93,21 @@ class PrivateTeachingHomeView(TemplateView):
         # If user is authenticated and has a profile, check for appropriate redirects
         if request.user.is_authenticated and hasattr(request.user, 'profile'):
             profile = request.user.profile
-            
+
             # Check if teacher needs to complete profile
             if profile.is_teacher and not profile.profile_completed:
                 messages.info(request, 'Please complete your teacher profile to access teaching features.')
                 return redirect('private_teaching:teacher_profile_complete')
-                
-            # Check if student needs to complete profile  
+
+            # Redirect teachers with completed profiles to their dashboard
+            elif profile.is_teacher and profile.profile_completed:
+                return redirect('private_teaching:teacher_dashboard')
+
+            # Check if student needs to complete profile
             elif profile.is_student and not profile.profile_completed:
                 messages.info(request, 'Please complete your profile to request lessons.')
                 return redirect('private_teaching:profile_complete')
-        
+
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
