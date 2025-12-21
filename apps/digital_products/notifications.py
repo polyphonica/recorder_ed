@@ -22,7 +22,6 @@ def send_purchase_confirmation(purchase):
             'title': file.title,
             'url': download_url,
             'file_size': file.file_size,
-            'downloads_remaining': purchase.get_downloads_remaining(file)
         })
 
     context = {
@@ -30,7 +29,6 @@ def send_purchase_confirmation(purchase):
         'product': product,
         'purchase': purchase,
         'download_links': download_links,
-        'expiry_days': purchase.days_until_expiry,
         'site_name': getattr(settings, 'SITE_NAME', 'RecorderEd'),
         'site_url': settings.SITE_URL,
         'my_purchases_url': f"{settings.SITE_URL}{reverse('digital_products:my_purchases')}"
@@ -72,7 +70,6 @@ def send_cart_purchase_confirmation(student, purchases):
                 'title': file.title,
                 'url': download_url,
                 'file_size': file.file_size,
-                'downloads_remaining': purchase.get_downloads_remaining(file)
             })
 
         products_data.append({

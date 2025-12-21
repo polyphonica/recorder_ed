@@ -15,7 +15,6 @@ YOUR DOWNLOADS:
 {% for link in item.download_links %}
 {{ link.title }} ({{ link.file_size }})
 Download: {{ link.url }}
-Downloads remaining: {{ link.downloads_remaining }} of 5
 
 {% endfor %}
 ---
@@ -23,10 +22,10 @@ Downloads remaining: {{ link.downloads_remaining }} of 5
 {% endfor %}
 
 IMPORTANT INFORMATION:
-• Download links expire in 30 days
-• Each file can be downloaded up to 5 times
+• You have lifetime access to your purchases
+• Unlimited downloads - re-download anytime
+• Access your downloads from "My Purchases" in your account
 • Files are for personal use only
-• Save your files immediately after downloading
 
 You can always access your downloads from your account:
 {{ my_purchases_url }}
