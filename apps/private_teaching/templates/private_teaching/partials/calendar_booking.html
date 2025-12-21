@@ -214,8 +214,10 @@ function calendarBooking() {
         },
 
         goToToday() {
-            const today = new Date();
-            this.startDate = this.getWeekStart(today);
+            // Start from tomorrow to account for minimum booking notice
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            this.startDate = this.getWeekStart(tomorrow);
             this.endDate = this.getWeekEnd(this.startDate);
             this.generateWeekDays();
             if (this.selectedSubject) {
