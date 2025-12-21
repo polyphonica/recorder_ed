@@ -1031,6 +1031,11 @@ class ProfitLossView(LoginRequiredMixin, TeacherOnlyMixin, DateRangeMixin, Templ
                 'expenses': expense_breakdown['private_teaching'],
                 'net_profit': summary['by_domain']['private_teaching']['revenue'] - expense_breakdown['private_teaching'],
             },
+            'digital_products': {
+                'revenue': summary['by_domain']['digital_products']['revenue'],
+                'expenses': expense_breakdown['digital_products'],
+                'net_profit': summary['by_domain']['digital_products']['revenue'] - expense_breakdown['digital_products'],
+            },
             'general': {
                 'revenue': Decimal('0.00'),  # General doesn't have revenue
                 'expenses': expense_breakdown['general'],
@@ -1137,6 +1142,7 @@ class ProfitLossCSVExportView(LoginRequiredMixin, TeacherOnlyMixin, View):
             "workshops": Decimal("0.00"),
             "courses": Decimal("0.00"),
             "private_teaching": Decimal("0.00"),
+            "digital_products": Decimal("0.00"),
             "general": Decimal("0.00"),
         }
 
@@ -1159,6 +1165,11 @@ class ProfitLossCSVExportView(LoginRequiredMixin, TeacherOnlyMixin, View):
                 "revenue": summary["by_domain"]["private_teaching"]["revenue"],
                 "expenses": expense_breakdown["private_teaching"],
                 "net_profit": summary["by_domain"]["private_teaching"]["revenue"] - expense_breakdown["private_teaching"],
+            },
+            "digital_products": {
+                "revenue": summary["by_domain"]["digital_products"]["revenue"],
+                "expenses": expense_breakdown["digital_products"],
+                "net_profit": summary["by_domain"]["digital_products"]["revenue"] - expense_breakdown["digital_products"],
             },
             "general": {
                 "revenue": Decimal("0.00"),
@@ -1191,6 +1202,7 @@ class ProfitLossCSVExportView(LoginRequiredMixin, TeacherOnlyMixin, View):
             ("workshops", "Workshops"),
             ("courses", "Courses"),
             ("private_teaching", "Private Teaching"),
+            ("digital_products", "Digital Products"),
             ("general", "General/Shared"),
         ]:
             area_data = profit_by_area[area_key]
