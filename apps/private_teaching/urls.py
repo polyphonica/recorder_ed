@@ -1,9 +1,13 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 app_name = 'private_teaching'
 
 urlpatterns = [
+    # API endpoints (must come before other paths to avoid conflicts)
+    path('api/', include('apps.private_teaching.api.urls')),
+
+    # Web views
     path('', views.PrivateTeachingHomeView.as_view(), name='home'),
     path('terms-and-conditions/', views.PrivateLessonTermsView.as_view(), name='terms'),
     path('login/', views.PrivateTeachingLoginView.as_view(), name='login'),
