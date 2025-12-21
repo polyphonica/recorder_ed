@@ -560,3 +560,45 @@ class ProductSalesView(InstructorRequiredMixin, ListView):
         context['total_revenue'] = total_revenue
         context['teacher_earnings'] = total_revenue * (1 - Decimal(str(commission_rate)))
         return context
+
+
+@login_required
+def archive_product(request, product_id):
+    """Archive or unarchive a product (toggle)"""
+    product = get_object_or_404(DigitalProduct, id=product_id, teacher=request.user)
+    
+    if product.status == 'archived':
+        product.status = 'draft'
+        messages.success(request, f"Product '{product.title}' has been unarchived")
+    else:
+        product.status = 'archived'
+        messages.success(request, f"Product '{product.title}' has been archived")
+    
+    product.save()
+    return redirect('digital_products:teacher_dashboard')
+
+
+@login_required
+def delete_product(request, product_id):
+    """Delete a product (with confirmation via POST)"""
+    product = get_object_or_404(DigitalProduct, id=product_id, teacher=request.user)
+    
+    if request.method == 'POST':
+        # Check if product has sales
+        if product.total_sales > 0:
+            messages.error(
+                request,
+                f"Cannot delete '{product.title}' because it has {product.total_sales} sale(s). "
+                "You can archive it instead."
+            )
+            return redirect('digital_products:teacher_dashboard')
+        
+        product_title = product.title
+        product.delete()
+        messages.success(request, f"Product '{product_title}' has been deleted")
+        return redirect('digital_products:teacher_dashboard')
+    
+    # GET request - show confirmation page
+    return render(request, 'digital_products/teacher/confirm_delete.html', {
+        'product': product
+    })
