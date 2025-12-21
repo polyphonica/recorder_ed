@@ -11,7 +11,7 @@
                 <option value="">Select a subject...</option>
                 {% for subject in subjects %}
                     <option value="{{ subject.id }}" data-price="{{ subject.base_price_60min }}">
-                        {{ subject.subject }} - €{{ subject.base_price_60min }}/hour
+                        {{ subject.subject }} - £{{ subject.base_price_60min }}/hour
                     </option>
                 {% endfor %}
             </select>
@@ -136,7 +136,7 @@
                                 <div class="text-sm text-base-content/70" x-text="duration + ' minutes'"></div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="font-bold" x-text="'€' + calculatePrice()"></span>
+                                <span class="font-bold" x-text="'£' + calculatePrice()"></span>
                                 <button class="btn btn-ghost btn-sm btn-circle" @click="removeSlot(slot)">
                                     <i class="fas fa-times text-error"></i>
                                 </button>
@@ -162,7 +162,7 @@
                     <div>
                         <div class="text-sm text-base-content/70">Total Cost</div>
                         <div class="text-2xl font-bold">
-                            €<span x-text="calculateTotalCost()"></span>
+                            £<span x-text="calculateTotalCost()"></span>
                         </div>
                     </div>
                     <div class="flex gap-2">
