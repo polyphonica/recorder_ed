@@ -69,7 +69,7 @@
         <div class="overflow-x-auto">
             <div class="min-w-[800px]">
                 <!-- Days Header -->
-                <div class="grid grid-cols-8 gap-2 mb-2">
+                <div class="grid gap-2 mb-2" style="grid-template-columns: 80px repeat(7, 1fr);">
                     <div class="text-center font-bold text-sm">Time</div>
                     <template x-for="day in weekDays" :key="day.dateStr">
                         <div class="text-center">
@@ -82,7 +82,7 @@
                 <!-- Time Slots Grid -->
                 <div class="space-y-1">
                     <template x-for="hour in timeRange" :key="hour">
-                        <div class="grid grid-cols-8 gap-2">
+                        <div class="grid gap-2" style="grid-template-columns: 80px repeat(7, 1fr);">
                             <!-- Time Label -->
                             <div class="flex items-center justify-end pr-2 text-sm font-medium">
                                 <span x-text="formatTime(hour)"></span>
