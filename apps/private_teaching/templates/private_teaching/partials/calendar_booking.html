@@ -1,0 +1,433 @@
+<div x-data="calendarBooking()" class="space-y-6">
+    {% csrf_token %}
+    <!-- Booking Configuration -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Subject Selection -->
+        <div class="form-control">
+            <label class="label">
+                <span class="label-text font-medium">Subject</span>
+            </label>
+            <select class="select select-bordered" x-model="selectedSubject" @change="loadAvailableSlots()">
+                <option value="">Select a subject...</option>
+                {% for subject in subjects %}
+                    <option value="{{ subject.id }}" data-price="{{ subject.base_price_60min }}">
+                        {{ subject.subject }} - £{{ subject.base_price_60min }}/hour
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Duration Selection -->
+        <div class="form-control">
+            <label class="label">
+                <span class="label-text font-medium">Lesson Duration</span>
+            </label>
+            <select class="select select-bordered" x-model.number="duration" @change="loadAvailableSlots()">
+                <option value="30">30 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="60">60 minutes</option>
+                <option value="90">90 minutes</option>
+            </select>
+        </div>
+
+        <!-- Location Selection -->
+        <div class="form-control">
+            <label class="label">
+                <span class="label-text font-medium">Location</span>
+            </label>
+            <select class="select select-bordered" x-model="location">
+                <option value="Online">Online</option>
+                <option value="Onsite">Onsite</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Date Range Navigation -->
+    <div class="flex items-center justify-between gap-4">
+        <button class="btn btn-outline btn-sm" @click="previousWeek()" :disabled="loading">
+            <i class="fas fa-chevron-left"></i> Previous Week
+        </button>
+        <div class="text-center">
+            <div class="font-bold text-lg" x-text="formatDateRange()"></div>
+            <button class="btn btn-ghost btn-xs" @click="goToToday()">Today</button>
+        </div>
+        <button class="btn btn-outline btn-sm" @click="nextWeek()" :disabled="loading">
+            Next Week <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+
+    <!-- Loading State -->
+    <template x-if="loading">
+        <div class="flex justify-center items-center py-12">
+            <span class="loading loading-spinner loading-lg"></span>
+            <span class="ml-4">Loading available slots...</span>
+        </div>
+    </template>
+
+    <!-- Calendar Grid -->
+    <template x-if="!loading && selectedSubject">
+        <div class="overflow-x-auto">
+            <div class="min-w-[800px]">
+                <!-- Days Header -->
+                <div class="grid gap-2 mb-2" style="grid-template-columns: 80px repeat(7, 1fr);">
+                    <div class="text-center font-bold text-sm">Time</div>
+                    <template x-for="day in weekDays" :key="day.dateStr">
+                        <div class="text-center">
+                            <div class="font-bold text-sm" x-text="day.dayName"></div>
+                            <div class="text-xs text-base-content/70" x-text="day.dateDisplay"></div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Time Slots Grid -->
+                <div class="space-y-1">
+                    <template x-for="hour in timeRange" :key="hour">
+                        <div class="grid gap-2" style="grid-template-columns: 80px repeat(7, 1fr);">
+                            <!-- Time Label -->
+                            <div class="flex items-center justify-end pr-2 text-sm font-medium">
+                                <span x-text="formatTime(hour)"></span>
+                            </div>
+
+                            <!-- Day Cells -->
+                            <template x-for="day in weekDays" :key="day.dateStr">
+                                <div>
+                                    <template x-for="slot in getSlotsForDayAndHour(day.dateStr, hour)" :key="slot.datetime">
+                                        <button
+                                            class="w-full mb-1 px-2 py-3 rounded border-2 transition-all text-sm"
+                                            :class="isSlotSelected(slot) ? 'bg-primary border-primary text-primary-content font-bold' : 'bg-success/10 border-success/30 hover:border-success hover:bg-success/20'"
+                                            @click="toggleSlot(slot)">
+                                            <div x-text="extractTime(slot.datetime)"></div>
+                                        </button>
+                                    </template>
+                                    <template x-if="getSlotsForDayAndHour(day.dateStr, hour).length === 0">
+                                        <div class="w-full h-12"></div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- No Slots Message -->
+                <template x-if="availableSlots.length === 0">
+                    <div class="text-center py-12 text-base-content/50">
+                        <i class="fas fa-calendar-times text-4xl mb-2"></i>
+                        <p>No available slots for this week. Try another week or contact the teacher.</p>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </template>
+
+    <!-- Selected Slots Summary -->
+    <template x-if="selectedSlots.length > 0">
+        <div class="card bg-base-200">
+            <div class="card-body">
+                <h3 class="card-title text-lg mb-2">
+                    <i class="fas fa-shopping-cart mr-2"></i>
+                    Selected Lessons (<span x-text="selectedSlots.length"></span>)
+                </h3>
+
+                <div class="space-y-2 max-h-60 overflow-y-auto">
+                    <template x-for="(slot, index) in sortedSelectedSlots" :key="slot.datetime">
+                        <div class="flex items-center justify-between p-2 bg-base-100 rounded">
+                            <div class="flex-1">
+                                <div class="font-semibold" x-text="formatFullDateTime(slot.datetime)"></div>
+                                <div class="text-sm text-base-content/70" x-text="duration + ' minutes'"></div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold" x-text="'£' + calculatePrice()"></span>
+                                <button class="btn btn-ghost btn-sm btn-circle" @click="removeSlot(slot)">
+                                    <i class="fas fa-times text-error"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Message -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Message to Teacher (optional)</span>
+                    </label>
+                    <textarea class="textarea textarea-bordered" rows="2"
+                              x-model="message"
+                              placeholder="Any special requests or notes..."></textarea>
+                </div>
+
+                <!-- Total and Submit -->
+                <div class="flex items-center justify-between mt-4">
+                    <div>
+                        <div class="text-sm text-base-content/70">Total Cost</div>
+                        <div class="text-2xl font-bold">
+                            £<span x-text="calculateTotalCost()"></span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="btn btn-ghost" @click="clearSelection()">
+                            Clear All
+                        </button>
+                        <button class="btn btn-section-primary" @click="submitBooking()" :disabled="submitting">
+                            <template x-if="!submitting">
+                                <span><i class="fas fa-check mr-2"></i>Book Now</span>
+                            </template>
+                            <template x-if="submitting">
+                                <span class="loading loading-spinner"></span>
+                            </template>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Prompt to Select Subject -->
+    <template x-if="!selectedSubject && !loading">
+        <div class="text-center py-12 text-base-content/50">
+            <i class="fas fa-book text-4xl mb-2"></i>
+            <p>Please select a subject to view available time slots</p>
+        </div>
+    </template>
+</div>
+
+<script>
+function calendarBooking() {
+    return {
+        teacherId: {{ teacher.id }},
+        selectedSubject: '',
+        duration: 60,
+        location: 'Online',
+        startDate: null,
+        endDate: null,
+        availableSlots: [],
+        selectedSlots: [],
+        weekDays: [],
+        timeRange: [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+        loading: false,
+        submitting: false,
+        message: '',
+
+        init() {
+            this.goToToday();
+        },
+
+        goToToday() {
+            const today = new Date();
+            this.startDate = this.getWeekStart(today);
+            this.endDate = this.getWeekEnd(this.startDate);
+            this.generateWeekDays();
+            if (this.selectedSubject) {
+                this.loadAvailableSlots();
+            }
+        },
+
+        previousWeek() {
+            this.startDate.setDate(this.startDate.getDate() - 7);
+            this.endDate = this.getWeekEnd(this.startDate);
+            this.generateWeekDays();
+            this.loadAvailableSlots();
+        },
+
+        nextWeek() {
+            this.startDate.setDate(this.startDate.getDate() + 7);
+            this.endDate = this.getWeekEnd(this.startDate);
+            this.generateWeekDays();
+            this.loadAvailableSlots();
+        },
+
+        getWeekStart(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Monday start
+            return new Date(d.setDate(diff));
+        },
+
+        getWeekEnd(startDate) {
+            const end = new Date(startDate);
+            end.setDate(end.getDate() + 6);
+            return end;
+        },
+
+        generateWeekDays() {
+            this.weekDays = [];
+            const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(this.startDate);
+                date.setDate(date.getDate() + i);
+                this.weekDays.push({
+                    dateStr: this.formatDateStr(date),
+                    dayName: dayNames[i],
+                    dateDisplay: date.getDate() + '/' + (date.getMonth() + 1)
+                });
+            }
+        },
+
+        formatDateStr(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        },
+
+        formatDateRange() {
+            const start = this.startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const end = this.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            return `${start} - ${end}`;
+        },
+
+        async loadAvailableSlots() {
+            if (!this.selectedSubject || !this.startDate) return;
+
+            this.loading = true;
+            try {
+                const params = new URLSearchParams({
+                    teacher_id: this.teacherId,
+                    start_date: this.formatDateStr(this.startDate),
+                    end_date: this.formatDateStr(this.endDate),
+                    duration: this.duration
+                });
+
+                const response = await fetch(`/private-teaching/api/student/available-slots/?${params}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    this.availableSlots = data.slots || [];
+                } else {
+                    console.error('Error loading slots');
+                    this.availableSlots = [];
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                this.availableSlots = [];
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        getSlotsForDayAndHour(dateStr, hour) {
+            return this.availableSlots.filter(slot => {
+                const slotDate = slot.datetime.split('T')[0];
+                const slotHour = parseInt(slot.datetime.split('T')[1].substring(0, 2));
+                return slotDate === dateStr && slotHour === hour;
+            });
+        },
+
+        toggleSlot(slot) {
+            const index = this.selectedSlots.findIndex(s => s.datetime === slot.datetime);
+            if (index !== -1) {
+                this.selectedSlots.splice(index, 1);
+            } else {
+                this.selectedSlots.push(slot);
+            }
+        },
+
+        isSlotSelected(slot) {
+            return this.selectedSlots.some(s => s.datetime === slot.datetime);
+        },
+
+        removeSlot(slot) {
+            const index = this.selectedSlots.findIndex(s => s.datetime === slot.datetime);
+            if (index !== -1) {
+                this.selectedSlots.splice(index, 1);
+            }
+        },
+
+        clearSelection() {
+            this.selectedSlots = [];
+        },
+
+        get sortedSelectedSlots() {
+            return [...this.selectedSlots].sort((a, b) => a.datetime.localeCompare(b.datetime));
+        },
+
+        formatTime(hour) {
+            const period = hour >= 12 ? 'PM' : 'AM';
+            const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+            return `${displayHour}:00 ${period}`;
+        },
+
+        extractTime(datetime) {
+            const time = datetime.split('T')[1];
+            const [hours, minutes] = time.split(':');
+            const hour = parseInt(hours);
+            const period = hour >= 12 ? 'PM' : 'AM';
+            const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+            return `${displayHour}:${minutes} ${period}`;
+        },
+
+        formatFullDateTime(datetime) {
+            const date = new Date(datetime);
+            return date.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+        },
+
+        calculatePrice() {
+            if (!this.selectedSubject) return '0.00';
+            const select = document.querySelector(`select[x-model="selectedSubject"]`);
+            const option = select?.querySelector(`option[value="${this.selectedSubject}"]`);
+            const hourlyRate = parseFloat(option?.dataset.price || 0);
+            return (hourlyRate * (this.duration / 60)).toFixed(2);
+        },
+
+        calculateTotalCost() {
+            const pricePerLesson = parseFloat(this.calculatePrice());
+            return (pricePerLesson * this.selectedSlots.length).toFixed(2);
+        },
+
+        async submitBooking() {
+            if (this.selectedSlots.length === 0) {
+                alert('Please select at least one time slot');
+                return;
+            }
+
+            this.submitting = true;
+            try {
+                const payload = {
+                    teacher_id: this.teacherId,
+                    subject_id: parseInt(this.selectedSubject),
+                    location: this.location,
+                    message: this.message,
+                    lessons: this.selectedSlots.map(slot => ({
+                        datetime: slot.datetime,
+                        duration: this.duration
+                    }))
+                };
+
+                const response = await fetch('/private-teaching/api/student/submit-booking/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCsrfToken()
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Redirect to my requests page
+                    window.location.href = data.redirect_url;
+                } else {
+                    alert('Error: ' + (data.error || 'Unable to book lessons'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while booking. Please try again.');
+            } finally {
+                this.submitting = false;
+            }
+        },
+
+        getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                   document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+        }
+    }
+}
+</script>

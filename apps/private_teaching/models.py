@@ -1179,3 +1179,201 @@ class PracticeEntry(models.Model):
         if self.preparing_for_performance:
             types.append('Performance')
         return ', '.join(types) if types else None
+
+
+# ============================================================================
+# Teacher Availability Calendar System Models
+# ============================================================================
+
+
+class TeacherAvailability(models.Model):
+    """
+    Represents a teacher's recurring weekly availability pattern.
+    Example: "Every Monday from 9:00 AM to 12:00 PM I'm available"
+    """
+    DAY_OF_WEEK_CHOICES = [
+        (0, 'Monday'),
+        (1, 'Tuesday'),
+        (2, 'Wednesday'),
+        (3, 'Thursday'),
+        (4, 'Friday'),
+        (5, 'Saturday'),
+        (6, 'Sunday'),
+    ]
+
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='availability_slots',
+        help_text="Teacher who owns this availability slot"
+    )
+    day_of_week = models.IntegerField(
+        choices=DAY_OF_WEEK_CHOICES,
+        help_text="Day of week (0=Monday, 6=Sunday)"
+    )
+    start_time = models.TimeField(
+        help_text="Start time of availability (e.g., 09:00)"
+    )
+    end_time = models.TimeField(
+        help_text="End time of availability (e.g., 17:00)"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Set to False to temporarily disable this slot"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'private_teaching_teacher_availability'
+        ordering = ['day_of_week', 'start_time']
+        verbose_name = 'Teacher Availability Slot'
+        verbose_name_plural = 'Teacher Availability Slots'
+        indexes = [
+            models.Index(fields=['teacher', 'day_of_week']),
+        ]
+
+    def __str__(self):
+        teacher_name = self.teacher.get_full_name() or self.teacher.username
+        return f"{teacher_name} - {self.get_day_of_week_display()} {self.start_time.strftime('%H:%M')}-{self.end_time.strftime('%H:%M')}"
+
+    def clean(self):
+        """Validate that end_time is after start_time"""
+        if self.start_time >= self.end_time:
+            raise ValidationError("End time must be after start time")
+
+
+class AvailabilityException(models.Model):
+    """
+    Represents exceptions to the recurring availability pattern.
+    Used for: vacations, one-time blocks, special available hours
+    Example: "On Dec 25, I'm unavailable all day (Christmas)"
+    Example: "On Jan 15, I'm available 6 PM - 9 PM (normally closed)"
+    """
+    EXCEPTION_TYPE_CHOICES = [
+        ('block', 'Block Time (Unavailable)'),
+        ('available', 'Add Availability (Override)'),
+    ]
+
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='availability_exceptions',
+        help_text="Teacher who owns this exception"
+    )
+    exception_type = models.CharField(
+        max_length=20,
+        choices=EXCEPTION_TYPE_CHOICES,
+        default='block',
+        help_text="Type of exception: block unavailable time or add special availability"
+    )
+    date = models.DateField(
+        help_text="Specific date for this exception"
+    )
+    start_time = models.TimeField(
+        null=True,
+        blank=True,
+        help_text="Start time (leave blank to block entire day)"
+    )
+    end_time = models.TimeField(
+        null=True,
+        blank=True,
+        help_text="End time (leave blank to block entire day)"
+    )
+    reason = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Optional reason (e.g., 'Christmas Holiday', 'Conference')"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Set to False to cancel this exception"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'private_teaching_availability_exception'
+        ordering = ['date', 'start_time']
+        verbose_name = 'Availability Exception'
+        verbose_name_plural = 'Availability Exceptions'
+        indexes = [
+            models.Index(fields=['teacher', 'date']),
+        ]
+
+    def __str__(self):
+        teacher_name = self.teacher.get_full_name() or self.teacher.username
+        if self.start_time and self.end_time:
+            return f"{teacher_name} - {self.date} {self.start_time.strftime('%H:%M')}-{self.end_time.strftime('%H:%M')} ({self.get_exception_type_display()})"
+        return f"{teacher_name} - {self.date} All Day ({self.get_exception_type_display()})"
+
+    def clean(self):
+        """Validate exception data"""
+        # If one time is specified, both must be specified
+        if (self.start_time is None) != (self.end_time is None):
+            raise ValidationError(
+                "Both start_time and end_time must be specified, or both left blank for all-day exception"
+            )
+
+        # If times are specified, end must be after start
+        if self.start_time and self.end_time and self.start_time >= self.end_time:
+            raise ValidationError("End time must be after start time")
+
+
+class TeacherAvailabilitySettings(models.Model):
+    """
+    Global settings for teacher's availability and booking behavior
+    """
+    teacher = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='availability_settings',
+        help_text="Teacher who owns these settings"
+    )
+
+    # Buffer time between lessons
+    buffer_minutes = models.IntegerField(
+        default=0,
+        help_text="Minutes of break time required between lessons (0-60)"
+    )
+
+    # Advance booking settings
+    min_booking_notice_hours = models.IntegerField(
+        default=24,
+        help_text="Minimum hours in advance students must book (e.g., 24 = must book at least 1 day ahead)"
+    )
+    max_booking_days_ahead = models.IntegerField(
+        default=90,
+        help_text="Maximum days in advance students can book (e.g., 90 = can book up to 3 months ahead)"
+    )
+
+    # Availability system enable/disable
+    use_availability_calendar = models.BooleanField(
+        default=False,
+        help_text="Enable availability calendar (if False, uses old request system)"
+    )
+
+    # Auto-approval
+    auto_approve_bookings = models.BooleanField(
+        default=True,
+        help_text="Automatically approve bookings if slot is available (recommended)"
+    )
+
+    # Timezone
+    timezone = models.CharField(
+        max_length=50,
+        default='UTC',
+        help_text="Teacher's timezone (e.g., 'America/New_York', 'Europe/London')"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'private_teaching_availability_settings'
+        verbose_name = 'Teacher Availability Settings'
+        verbose_name_plural = 'Teacher Availability Settings'
+
+    def __str__(self):
+        teacher_name = self.teacher.get_full_name() or self.teacher.username
+        return f"Availability Settings - {teacher_name}"

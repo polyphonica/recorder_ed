@@ -42,9 +42,19 @@
 
     <div class="card card-section shadow-xl">
         <div class="card-body">
-            <h1 class="card-title text-3xl mb-6">Request Lessons</h1>
-            <p class="mb-6">Propose specific dates and times that work for you. {{ teacher.get_full_name }} will review your request and respond.</p>
-            
+            {% if calendar_enabled %}
+                <h1 class="card-title text-3xl mb-6">Book Lessons</h1>
+                <p class="mb-6">Select available time slots from {{ teacher.get_full_name }}'s calendar and book instantly.</p>
+            {% else %}
+                <h1 class="card-title text-3xl mb-6">Request Lessons</h1>
+                <p class="mb-6">Propose specific dates and times that work for you. {{ teacher.get_full_name }} will review your request and respond.</p>
+            {% endif %}
+
+            {% if calendar_enabled %}
+                <!-- Calendar-based booking interface -->
+                {% include 'private_teaching/partials/calendar_booking.html' %}
+            {% else %}
+                <!-- Traditional form-based booking -->
             <form method="post" class="space-y-6">
                 {% csrf_token %}
 
@@ -197,6 +207,7 @@
                     <button type="submit" class="btn btn-section-primary">Submit Request</button>
                 </div>
             </form>
+            {% endif %}
         </div>
     </div>
 </div>

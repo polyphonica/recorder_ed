@@ -1,9 +1,13 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 app_name = 'private_teaching'
 
 urlpatterns = [
+    # API endpoints (must come before other paths to avoid conflicts)
+    path('api/', include('apps.private_teaching.api.urls')),
+
+    # Web views
     path('', views.PrivateTeachingHomeView.as_view(), name='home'),
     path('terms-and-conditions/', views.PrivateLessonTermsView.as_view(), name='terms'),
     path('login/', views.PrivateTeachingLoginView.as_view(), name='login'),
@@ -22,6 +26,7 @@ urlpatterns = [
     # Teacher Views
     path('teacher/dashboard/', views.TeacherDashboardView.as_view(), name='teacher_dashboard'),
     path('teacher/settings/', views.TeacherSettingsView.as_view(), name='teacher_settings'),
+    path('teacher/availability/', views.TeacherAvailabilityEditorView.as_view(), name='teacher_availability'),
     path('teacher/settings/zoom-link/', views.UpdateZoomLinkView.as_view(), name='update_zoom_link'),
     path('teacher/subjects/create/', views.SubjectCreateView.as_view(), name='subject_create'),
     path('teacher/subjects/<int:subject_id>/update/', views.SubjectUpdateView.as_view(), name='subject_update'),

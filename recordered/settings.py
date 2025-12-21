@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
 
     # Third party apps
+    'rest_framework',
     'django_ckeditor_5',
     'django_filters',
     'tailwind',
