@@ -28,12 +28,14 @@ class Expense(models.Model):
     PRIVATE_TEACHING = 'private_teaching'
     WORKSHOPS = 'workshops'
     COURSES = 'courses'
+    DIGITAL_PRODUCTS = 'digital_products'
     GENERAL = 'general'
 
     BUSINESS_AREA_CHOICES = [
         (PRIVATE_TEACHING, 'Private Teaching'),
         (WORKSHOPS, 'Workshops'),
         (COURSES, 'Courses'),
+        (DIGITAL_PRODUCTS, 'Digital Products'),
         (GENERAL, 'General/Shared Expenses'),
     ]
 

@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     'apps.private_teaching',
     'apps.expenses',
     'apps.courses',
+    'apps.digital_products',
     'apps.audioplayer',
     'apps.messaging',
     'apps.support',

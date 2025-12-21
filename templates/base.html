@@ -97,6 +97,7 @@
                         <li><a href="{% url 'workshops:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold{% endif %}">Workshops</a></li>
                         <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold{% endif %}">Private Lessons</a></li>
                         <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold{% endif %}">Courses</a></li>
+                        <li><a href="{% url 'digital_products:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'digital_products' %}font-bold{% endif %}">Digital Products</a></li>
                         <li><a href="{% url 'payments:finance_dashboard' %}" class="{% if request.resolver_match.namespace == 'payments' %}font-bold{% endif %}"><i class="fas fa-chart-line mr-1"></i>Finance</a></li>
                         <li class="border-t mt-2 pt-2"><a href="{% url 'support:my_tickets' %}"><i class="fas fa-life-ring mr-1"></i>Support</a></li>
                     {% else %}
@@ -105,6 +106,7 @@
                         <li><a href="{% url 'workshops:list' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold{% endif %}">Workshops</a></li>
                         <li><a href="{% url pt_url %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold{% endif %}">Private Lessons</a></li>
                         <li><a href="{% url 'courses:list' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold{% endif %}">Courses</a></li>
+                        <li><a href="{% url 'digital_products:catalog' %}" class="{% if request.resolver_match.namespace == 'digital_products' %}font-bold{% endif %}">Digital Products</a></li>
                         <li class="border-t mt-2 pt-2"><a href="{% url 'help_center:home' %}"><i class="fas fa-book-open mr-1"></i>Help Center</a></li>
                         <li><a href="{% url 'support:public_contact' %}"><i class="fas fa-life-ring mr-1"></i>Support</a></li>
                     {% endif %}
@@ -127,6 +129,7 @@
                     <li><a href="{% url 'workshops:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold bg-primary text-primary-content{% endif %}">Workshops</a></li>
                     <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold bg-primary text-primary-content{% endif %}">Private Lessons</a></li>
                     <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold bg-primary text-primary-content{% endif %}">Courses</a></li>
+                    <li><a href="{% url 'digital_products:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'digital_products' %}font-bold bg-primary text-primary-content{% endif %}">Digital Products</a></li>
                     <li><a href="{% url 'payments:finance_dashboard' %}" class="{% if request.resolver_match.namespace == 'payments' %}font-bold bg-primary text-primary-content{% endif %}"><i class="fas fa-chart-line mr-2"></i>Finance</a></li>
                 {% else %}
                     {# Student navigation - goes to public/student pages #}
@@ -134,6 +137,7 @@
                     <li><a href="{% url 'workshops:list' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold bg-primary text-primary-content{% endif %}">Workshops</a></li>
                     <li><a href="{% url pt_url %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold bg-primary text-primary-content{% endif %}">Private Lessons</a></li>
                     <li><a href="{% url 'courses:list' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold bg-primary text-primary-content{% endif %}">Courses</a></li>
+                    <li><a href="{% url 'digital_products:catalog' %}" class="{% if request.resolver_match.namespace == 'digital_products' %}font-bold bg-primary text-primary-content{% endif %}">Digital Products</a></li>
                 {% endif %}
             </ul>
         </div>
@@ -190,6 +194,18 @@
                                 </svg>
                                 {% if lesson_cart_count > 0 %}
                                     <span class="badge badge-sm badge-primary indicator-item" aria-hidden="true">{{ lesson_cart_count }}</span>
+                                {% endif %}
+                            </div>
+                        </a>
+                    {% elif request.resolver_match.namespace == 'digital_products' %}
+                        {# In digital products section → link to digital products cart #}
+                        <a href="{% url 'digital_products:cart' %}" class="btn btn-ghost btn-circle" aria-label="Shopping cart{% if digital_product_cart_count > 0 %}, {{ digital_product_cart_count }} item{{ digital_product_cart_count|pluralize }}{% else %}, empty{% endif %}">
+                            <div class="indicator">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L8 21m0 0h8m-8 0v-2m8 2v-2"></path>
+                                </svg>
+                                {% if digital_product_cart_count > 0 %}
+                                    <span class="badge badge-sm badge-primary indicator-item" aria-hidden="true">{{ digital_product_cart_count }}</span>
                                 {% endif %}
                             </div>
                         </a>
@@ -289,6 +305,7 @@
                                 <li><a href="{% url 'workshops:instructor_dashboard' %}"><i class="fas fa-chalkboard-teacher mr-2"></i>Workshops Dashboard</a></li>
                                 <li><a href="{% url 'courses:instructor_dashboard' %}"><i class="fas fa-graduation-cap mr-2"></i>Courses Dashboard</a></li>
                                 <li><a href="{% url 'private_teaching:teacher_dashboard' %}"><i class="fas fa-user-tie mr-2"></i>Private Lessons Dashboard</a></li>
+                                <li><a href="{% url 'digital_products:teacher_dashboard' %}"><i class="fas fa-download mr-2"></i>Digital Products Dashboard</a></li>
                             {% endif %}
 
                             <div class="divider my-1"></div>
@@ -301,6 +318,7 @@
                             <li><a href="{% url 'courses:student_dashboard' %}"><i class="fas fa-graduation-cap mr-2"></i>My Courses</a></li>
                             <li><a href="{% url 'workshops:my_registrations' %}"><i class="fas fa-calendar-check mr-2"></i>My Workshops</a></li>
                             <li><a href="{% url 'private_teaching:my_lessons' %}"><i class="fas fa-music mr-2"></i>My Lessons</a></li>
+                            <li><a href="{% url 'digital_products:my_purchases' %}"><i class="fas fa-download mr-2"></i>My Purchases</a></li>
                             <li><a href="{% url 'courses:certificate_gallery' %}"><i class="fas fa-certificate mr-2"></i>My Certificates</a></li>
 
                             {# Guardian Menu - Only show if user is a guardian #}

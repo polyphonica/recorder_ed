@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Checkout Cancelled - Digital Products - {{ block.super %}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-16">
+    <div class="max-w-2xl mx-auto text-center">
+        <!-- Info Icon -->
+        <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </div>
+
+        <!-- Message -->
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">Checkout Cancelled</h1>
+        <p class="text-xl text-gray-600 mb-8">
+            Your payment was cancelled. No charges have been made.
+        </p>
+
+        <!-- Info Box -->
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8 text-left">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">What would you like to do?</h2>
+            <ul class="space-y-2 text-gray-700">
+                <li>• Return to your cart to review your items</li>
+                <li>• Continue browsing for more products</li>
+                <li>• Contact us if you experienced any issues</li>
+            </ul>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="{% url 'digital_products:cart' %}"
+               class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                Return to Cart
+            </a>
+            <a href="{% url 'digital_products:catalog' %}"
+               class="bg-gray-200 text-gray-800 px-8 py-3 rounded-lg hover:bg-gray-300 transition font-semibold">
+                Browse Products
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

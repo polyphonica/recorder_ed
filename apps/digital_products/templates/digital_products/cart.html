@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Shopping Cart - Digital Products - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
+
+    {% if digital_product_cart_items %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Cart Items -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-md">
+                {% for item in digital_product_cart_items %}
+                <div class="flex items-center gap-4 p-6 border-b last:border-b-0">
+                    <!-- Product Image -->
+                    <div class="flex-shrink-0">
+                        {% if item.product.featured_image %}
+                        <img src="{{ item.product.featured_image.url }}" alt="{{ item.product.title }}" class="w-24 h-24 object-cover rounded">
+                        {% else %}
+                        <div class="w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded flex items-center justify-center">
+                            <span class="text-white text-3xl">📄</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Product Info -->
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1">
+                            <a href="{% url 'digital_products:detail' item.product.slug %}" class="hover:text-blue-600">
+                                {{ item.product.title }}
+                            </a>
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-2">
+                            by {{ item.product.teacher.get_full_name|default:item.product.teacher.username }}
+                        </p>
+                        {% if item.product.category %}
+                        <span class="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
+                            {{ item.product.category.name }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Price and Remove -->
+                    <div class="text-right">
+                        <p class="text-xl font-bold text-blue-600 mb-2">£{{ item.price|floatformat:2 }}</p>
+                        <a href="{% url 'digital_products:remove_from_cart' item.product.id %}"
+                           class="text-sm text-red-600 hover:text-red-800">
+                            Remove
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-md p-6 sticky top-4">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Order Summary</h2>
+
+                <div class="space-y-3 mb-6">
+                    <div class="flex justify-between text-gray-600">
+                        <span>Items ({{ digital_product_cart_count }})</span>
+                        <span>£{{ digital_product_cart_total|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between text-gray-600">
+                        <span>Digital Delivery</span>
+                        <span class="text-green-600 font-semibold">FREE</span>
+                    </div>
+                    <div class="border-t pt-3 flex justify-between text-lg font-bold">
+                        <span>Total</span>
+                        <span class="text-blue-600">£{{ digital_product_cart_total|floatformat:2 }}</span>
+                    </div>
+                </div>
+
+                <form method="post" action="{% url 'digital_products:checkout' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="checkout_cart" value="true">
+                    <button type="submit"
+                            class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold mb-3">
+                        Proceed to Checkout
+                    </button>
+                </form>
+
+                <a href="{% url 'digital_products:catalog' %}"
+                   class="block text-center text-blue-600 hover:underline">
+                    Continue Shopping
+                </a>
+
+                <!-- Info Box -->
+                <div class="mt-6 pt-6 border-t">
+                    <h3 class="font-semibold mb-2">What Happens Next?</h3>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>✓ Secure payment via Stripe</li>
+                        <li>✓ Instant access after payment</li>
+                        <li>✓ Download links sent via email</li>
+                        <li>✓ 30-day download access</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Empty Cart -->
+    <div class="text-center py-16">
+        <div class="text-6xl mb-4">🛒</div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
+        <p class="text-gray-600 mb-6">Browse our digital products and add items to your cart</p>
+        <a href="{% url 'digital_products:catalog' %}"
+           class="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+            Browse Products
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

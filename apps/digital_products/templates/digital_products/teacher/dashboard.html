@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Products - Teacher Dashboard - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-8">
+        <h1 class="text-4xl font-bold text-gray-900">My Digital Products</h1>
+        <a href="{% url 'digital_products:create_product' %}"
+           class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+            + Create New Product
+        </a>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-gray-600 text-sm mb-1">Total Products</div>
+            <div class="text-3xl font-bold text-gray-900">{{ total_products }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-gray-600 text-sm mb-1">Published</div>
+            <div class="text-3xl font-bold text-green-600">{{ published_products }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-gray-600 text-sm mb-1">Total Sales</div>
+            <div class="text-3xl font-bold text-blue-600">{{ total_sales }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="text-gray-600 text-sm mb-1">Your Earnings</div>
+            <div class="text-3xl font-bold text-purple-600">£{{ teacher_earnings|floatformat:2 }}</div>
+            <div class="text-xs text-gray-500 mt-1">After 10% commission</div>
+        </div>
+    </div>
+
+    <!-- Products List -->
+    {% if products %}
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sales</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Files</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for product in products %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                {% if product.featured_image %}
+                                <img src="{{ product.featured_image.url }}" alt="{{ product.title }}" class="w-12 h-12 object-cover rounded">
+                                {% else %}
+                                <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded flex items-center justify-center text-white">
+                                    📄
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <div class="font-semibold text-gray-900">{{ product.title|truncatewords:5 }}</div>
+                                    <div class="text-sm text-gray-500">{{ product.get_product_type_display }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            {% if product.category %}
+                            {{ product.category.name }}
+                            {% else %}
+                            <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm font-semibold text-gray-900">
+                            £{{ product.price|floatformat:2 }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-sm font-semibold text-blue-600">{{ product.total_sales }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm">
+                            {% if product.review_count > 0 %}
+                            <div class="flex items-center gap-1">
+                                <span class="text-yellow-400">★</span>
+                                <span class="font-semibold">{{ product.average_rating|floatformat:1 }}</span>
+                                <span class="text-gray-500">({{ product.review_count }})</span>
+                            </div>
+                            {% else %}
+                            <span class="text-gray-400">No reviews</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if product.status == 'published' %}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Published</span>
+                            {% elif product.status == 'draft' %}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Draft</span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">{{ product.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            {{ product.files_count }} file{{ product.files_count|pluralize }}
+                        </td>
+                        <td class="px-6 py-4 text-right text-sm">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="{% url 'digital_products:detail' product.slug %}" target="_blank"
+                                   class="text-blue-600 hover:text-blue-800" title="View">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                </a>
+                                <a href="{% url 'digital_products:edit_product' product.id %}"
+                                   class="text-gray-600 hover:text-gray-800" title="Edit">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </a>
+                                {% if product.total_sales > 0 %}
+                                <a href="{% url 'digital_products:product_sales' product.id %}"
+                                   class="text-purple-600 hover:text-purple-800" title="View Sales">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                    </svg>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No Products -->
+    <div class="bg-white rounded-lg shadow-md p-16 text-center">
+        <div class="text-6xl mb-4">📦</div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">No products yet</h2>
+        <p class="text-gray-600 mb-6">Create your first digital product to start earning passive income</p>
+        <a href="{% url 'digital_products:create_product' %}"
+           class="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+            Create Your First Product
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

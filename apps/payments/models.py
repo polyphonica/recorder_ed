@@ -10,6 +10,7 @@ class StripePayment(models.Model):
         ('workshops', 'Workshops'),
         ('courses', 'Courses'),
         ('private_teaching', 'Private Teaching'),
+        ('digital_products', 'Digital Products'),
     ]
     
     STATUS_CHOICES = [

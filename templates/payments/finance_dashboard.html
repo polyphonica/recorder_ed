@@ -100,7 +100,7 @@
                     <i class="fas fa-chart-pie mr-2"></i>Revenue by Domain
                 </h2>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- Workshops -->
                     <div class="card bg-base-100 shadow">
                         <div class="card-body">
@@ -164,6 +164,23 @@
                             {% endif %}
                         </div>
                     </div>
+
+                    <!-- Digital Products -->
+                    <div class="card bg-base-100 shadow">
+                        <div class="card-body">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="font-bold text-lg">
+                                    <i class="fas fa-download mr-2 text-info"></i>Digital Products
+                                </h3>
+                                <a href="{% url 'digital_products:teacher_dashboard' %}"
+                                   class="btn btn-sm btn-ghost">
+                                    <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                            <div class="stat-value text-info">£{{ summary.by_domain.digital_products.revenue|floatformat:2 }}</div>
+                            <div class="stat-desc">{{ summary.by_domain.digital_products.count }} sale{{ summary.by_domain.digital_products.count|pluralize }}</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -180,7 +197,7 @@
                     </a>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     <!-- Workshops -->
                     <div class="card bg-base-100 shadow">
                         <div class="card-body">
@@ -214,11 +231,22 @@
                         </div>
                     </div>
 
+                    <!-- Digital Products -->
+                    <div class="card bg-base-100 shadow">
+                        <div class="card-body">
+                            <h3 class="font-bold text-lg">
+                                <i class="fas fa-download mr-2 text-info"></i>Digital Products
+                            </h3>
+                            <div class="stat-value text-error">£{{ expense_breakdown.digital_products|floatformat:2 }}</div>
+                            <div class="stat-desc">Expenses</div>
+                        </div>
+                    </div>
+
                     <!-- General -->
                     <div class="card bg-base-100 shadow">
                         <div class="card-body">
                             <h3 class="font-bold text-lg">
-                                <i class="fas fa-building mr-2 text-info"></i>General
+                                <i class="fas fa-building mr-2 text-warning"></i>General
                             </h3>
                             <div class="stat-value text-error">£{{ expense_breakdown.general|floatformat:2 }}</div>
                             <div class="stat-desc">Shared Expenses</div>

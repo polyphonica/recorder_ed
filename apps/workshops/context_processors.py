@@ -6,7 +6,7 @@ from apps.private_teaching.models import Cart
 
 def unified_cart_context(request):
     """
-    Add unified cart context (workshops + lessons) to all templates.
+    Add unified cart context (workshops + lessons + digital products) to all templates.
     This provides cart counts for the navbar regardless of which section user is in.
     """
     if not request.user.is_authenticated:
@@ -14,6 +14,7 @@ def unified_cart_context(request):
             'total_cart_count': 0,
             'workshop_cart_count': 0,
             'lesson_cart_count': 0,
+            'digital_product_cart_count': 0,
         }
 
     try:
@@ -21,19 +22,22 @@ def unified_cart_context(request):
         from django.db.models import Count
         cart = Cart.objects.annotate(
             workshop_count=Count('workshop_items'),
-            lesson_count=Count('items')
+            lesson_count=Count('items'),
+            digital_product_count=Count('digital_product_items')
         ).get(user=request.user)
 
-        total_count = cart.workshop_count + cart.lesson_count
+        total_count = cart.workshop_count + cart.lesson_count + cart.digital_product_count
 
         return {
             'total_cart_count': total_count,
             'workshop_cart_count': cart.workshop_count,
             'lesson_cart_count': cart.lesson_count,
+            'digital_product_cart_count': cart.digital_product_count,
         }
     except Cart.DoesNotExist:
         return {
             'total_cart_count': 0,
             'workshop_cart_count': 0,
             'lesson_cart_count': 0,
+            'digital_product_cart_count': 0,
         }

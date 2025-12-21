@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Review {{ product.title }} - Digital Products - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Back Link -->
+        <a href="{% url 'digital_products:detail' product.slug %}" class="text-blue-600 hover:underline mb-4 inline-block">
+            ← Back to Product
+        </a>
+
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Write a Review</h1>
+            <div class="flex items-center gap-4">
+                {% if product.featured_image %}
+                <img src="{{ product.featured_image.url }}" alt="{{ product.title }}" class="w-20 h-20 object-cover rounded">
+                {% endif %}
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-900">{{ product.title }}</h2>
+                    <p class="text-gray-600">by {{ product.teacher.get_full_name|default:product.teacher.username }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Review Form -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+
+                <!-- Rating -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Rating *</label>
+                    <div class="flex gap-2">
+                        {% for i in "12345" %}
+                        <label class="cursor-pointer">
+                            <input type="radio" name="rating" value="{{ forloop.counter }}" required class="sr-only peer">
+                            <div class="w-12 h-12 flex items-center justify-center border-2 border-gray-300 rounded-lg peer-checked:border-yellow-400 peer-checked:bg-yellow-50 hover:border-yellow-300 transition">
+                                <span class="text-2xl peer-checked:text-yellow-400">★</span>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <p class="text-sm text-gray-500 mt-1">Click on a star to rate</p>
+                </div>
+
+                <!-- Review Title -->
+                <div>
+                    <label for="id_title" class="block text-sm font-medium text-gray-700 mb-2">Review Title *</label>
+                    <input type="text" name="title" id="id_title" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="e.g., Excellent practice materials">
+                </div>
+
+                <!-- Review Comment -->
+                <div>
+                    <label for="id_comment" class="block text-sm font-medium text-gray-700 mb-2">Your Review *</label>
+                    <textarea name="comment" id="id_comment" rows="6" required
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Share your experience with this product..."></textarea>
+                    <p class="text-sm text-gray-500 mt-1">Help others by sharing your honest opinion</p>
+                </div>
+
+                <!-- Form Errors -->
+                {% if form.errors %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p class="text-red-800 font-semibold mb-2">Please correct the following errors:</p>
+                    <ul class="list-disc list-inside text-red-700">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Submit Buttons -->
+                <div class="flex gap-4">
+                    <button type="submit"
+                            class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        Submit Review
+                    </button>
+                    <a href="{% url 'digital_products:detail' product.slug %}"
+                       class="bg-gray-200 text-gray-800 px-8 py-3 rounded-lg hover:bg-gray-300 transition font-semibold">
+                        Cancel
+                    </a>
+                </div>
+
+                <!-- Guidelines -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+                    <h3 class="font-semibold text-blue-900 mb-2">Review Guidelines</h3>
+                    <ul class="text-sm text-blue-800 space-y-1">
+                        <li>✓ Be honest and helpful</li>
+                        <li>✓ Focus on the product content and quality</li>
+                        <li>✓ Mention what you liked and didn't like</li>
+                        <li>✗ Don't include personal information</li>
+                        <li>✗ Keep it respectful and constructive</li>
+                    </ul>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

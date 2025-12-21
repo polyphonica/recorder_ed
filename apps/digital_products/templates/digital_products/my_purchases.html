@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Purchases - Digital Products - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold text-gray-900 mb-8">My Digital Products</h1>
+
+    {% if purchases %}
+    <div class="space-y-6">
+        {% for purchase in purchases %}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="p-6">
+                <!-- Product Header -->
+                <div class="flex items-start gap-4 mb-4">
+                    <!-- Product Image -->
+                    <div class="flex-shrink-0">
+                        {% if purchase.product.featured_image %}
+                        <img src="{{ purchase.product.featured_image.url }}" alt="{{ purchase.product.title }}" class="w-32 h-32 object-cover rounded">
+                        {% else %}
+                        <div class="w-32 h-32 bg-gradient-to-br from-blue-400 to-blue-600 rounded flex items-center justify-center">
+                            <span class="text-white text-4xl">📄</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Product Info -->
+                    <div class="flex-1">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">
+                            <a href="{% url 'digital_products:detail' purchase.product.slug %}" class="hover:text-blue-600">
+                                {{ purchase.product.title }}
+                            </a>
+                        </h2>
+                        <p class="text-gray-600 mb-2">
+                            by {{ purchase.product.teacher.get_full_name|default:purchase.product.teacher.username }}
+                        </p>
+                        <div class="flex items-center gap-4 text-sm text-gray-600">
+                            <span>Purchased: {{ purchase.purchased_at|date:"M d, Y" }}</span>
+                            <span>•</span>
+                            <span>£{{ purchase.payment_amount|floatformat:2 }}</span>
+                        </div>
+
+                        <!-- Access Status -->
+                        <div class="mt-3">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 bg-green-50 border border-green-200 rounded-full text-sm text-green-800">
+                                <span>✓</span>
+                                <span>Lifetime Access</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download Files -->
+                <div class="border-t pt-4">
+                    <h3 class="font-semibold text-gray-900 mb-3">Downloads</h3>
+                    <div class="space-y-3">
+                        {% for file in purchase.product.main_files %}
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-900">{{ file.title }}</h4>
+                                <p class="text-sm text-gray-600">{{ file.file_size }} • {{ file.get_file_role_display }}</p>
+                            </div>
+
+                            <a href="{% url 'digital_products:download_file' purchase.id file.id %}"
+                               class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                                Download
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="border-t pt-4 mt-4">
+                    {% if not purchase.review %}
+                    <a href="{% url 'digital_products:submit_review' purchase.product.id %}"
+                       class="text-blue-600 hover:underline">
+                        Write a Review
+                    </a>
+                    {% else %}
+                    <span class="text-green-600">✓ Reviewed</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <!-- No Purchases -->
+    <div class="text-center py-16">
+        <div class="text-6xl mb-4">📦</div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">No purchases yet</h2>
+        <p class="text-gray-600 mb-6">Browse our digital products and start building your library</p>
+        <a href="{% url 'digital_products:catalog' %}"
+           class="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+            Browse Products
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

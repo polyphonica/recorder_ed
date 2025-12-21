@@ -184,11 +184,30 @@ class FinanceService:
         private_count = private_lessons_count + exams_count
         private_revenue = private_gross * (1 - Decimal(str(commission_rate)))
 
+        # ===== DIGITAL PRODUCTS =====
+        from apps.digital_products.models import ProductPurchase
+
+        digital_purchases = ProductPurchase.objects.filter(
+            product__teacher=teacher,
+            payment_status='completed'
+        )
+
+        if start_date:
+            digital_purchases = digital_purchases.filter(paid_at__gte=start_date)
+        if end_date:
+            digital_purchases = digital_purchases.filter(paid_at__lte=end_date)
+
+        digital_gross = digital_purchases.aggregate(
+            total=Sum('payment_amount')
+        )['total'] or Decimal('0.00')
+        digital_count = digital_purchases.count()
+        digital_revenue = digital_gross * (1 - Decimal(str(commission_rate)))
+
         # ===== TOTALS =====
-        total_gross = workshops_gross + courses_gross + private_gross
-        total_revenue = workshops_revenue + courses_revenue + private_revenue
+        total_gross = workshops_gross + courses_gross + private_gross + digital_gross
+        total_revenue = workshops_revenue + courses_revenue + private_revenue + digital_revenue
         total_commission = total_gross - total_revenue
-        total_count = workshops_count + courses_count + private_count
+        total_count = workshops_count + courses_count + private_count + digital_count
 
         return {
             'total_revenue': total_revenue,
@@ -217,6 +236,10 @@ class FinanceService:
                             'count': exams_count,
                         },
                     },
+                },
+                'digital_products': {
+                    'revenue': digital_revenue,
+                    'count': digital_count,
                 },
             }
         }
@@ -359,6 +382,25 @@ class FinanceService:
             # Note: This returns a list instead of queryset since we're combining two models
             transactions = list(orders_query.select_related('student').order_by('-created_at')) + \
                           list(exams_query.select_related('student', 'teacher', 'exam_board').order_by('-paid_at'))
+
+        elif domain == 'digital_products':
+            from apps.digital_products.models import ProductPurchase
+
+            query = ProductPurchase.objects.filter(
+                product__teacher=teacher,
+                payment_status='completed'
+            )
+
+            if start_date:
+                query = query.filter(paid_at__gte=start_date)
+            if end_date:
+                query = query.filter(paid_at__lte=end_date)
+
+            total_gross = query.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
+            payment_count = query.count()
+            total_revenue = total_gross * (1 - Decimal(str(commission_rate)))
+            total_commission = total_gross - total_revenue
+            transactions = query.select_related('product', 'student').order_by('-paid_at')
 
         else:
             return {
@@ -747,6 +789,60 @@ class FinanceService:
         return breakdown
 
     @staticmethod
+    def get_digital_products_revenue_breakdown(teacher, start_date=None, end_date=None):
+        """
+        Get revenue breakdown by individual digital products.
+
+        Returns:
+            list of dicts with product info, revenue, and sales count
+        """
+        from apps.digital_products.models import DigitalProduct, ProductPurchase
+        from django.conf import settings
+
+        commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
+
+        # Get all products for this teacher
+        products = DigitalProduct.objects.filter(teacher=teacher)
+
+        breakdown = []
+        for product in products:
+            # Get all purchases for this product
+            purchases = ProductPurchase.objects.filter(
+                product=product,
+                payment_status='completed'
+            )
+
+            if start_date:
+                purchases = purchases.filter(paid_at__gte=start_date)
+            if end_date:
+                purchases = purchases.filter(paid_at__lte=end_date)
+
+            # Calculate revenue
+            total_revenue = purchases.aggregate(
+                revenue=Sum('payment_amount')
+            )['revenue'] or Decimal('0.00')
+
+            sales_count = purchases.count()
+
+            # Calculate teacher share (after commission)
+            teacher_share = total_revenue * (1 - Decimal(str(commission_rate)))
+
+            # Include products that have sales
+            if total_revenue > 0:
+                breakdown.append({
+                    'product': product,
+                    'total_revenue': total_revenue,
+                    'teacher_share': teacher_share,
+                    'sales_count': sales_count,
+                    'transactions': purchases.select_related('student').order_by('-paid_at'),
+                })
+
+        # Sort by total revenue descending
+        breakdown.sort(key=lambda x: x['total_revenue'], reverse=True)
+
+        return breakdown
+
+    @staticmethod
     def get_recent_transactions(teacher, limit=10):
         """
         Get most recent completed transactions for a teacher across all domains.
@@ -908,6 +1004,29 @@ class FinanceService:
                 'student': exam.student,
                 'amount': amount,
                 'teacher_share': teacher_share,
+            })
+
+        # Get digital product purchases
+        from apps.digital_products.models import ProductPurchase
+
+        digital_purchases = ProductPurchase.objects.filter(
+            product__teacher=teacher,
+            payment_status='completed'
+        ).select_related('product', 'student').order_by('-paid_at')[:limit]
+
+        for purchase in digital_purchases:
+            amount = purchase.payment_amount
+            teacher_share = amount * (1 - Decimal(str(commission_rate)))
+
+            transactions.append({
+                'date': purchase.paid_at,
+                'domain': 'digital_products',
+                'domain_display': 'Digital Product',
+                'description': purchase.product.title,
+                'student': purchase.student,
+                'amount': amount,
+                'teacher_share': teacher_share,
+                'is_refunded': False,
             })
 
         # Sort all transactions by date (most recent first) and limit

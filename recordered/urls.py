@@ -47,6 +47,7 @@ urlpatterns = [
     path('lessons/', include('lessons.urls')),
     path('expenses/', include('apps.expenses.urls')),
     path('courses/', include('apps.courses.urls')),
+    path('products/', include('apps.digital_products.urls')),
     path('audioplayer/', include('apps.audioplayer.urls')),
     path('messages/', include('apps.messaging.urls')),
     path('support/', include('apps.support.urls')),

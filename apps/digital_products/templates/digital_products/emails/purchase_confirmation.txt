@@ -1,0 +1,38 @@
+Your Digital Product is Ready!
+
+Hi {{ student.get_full_name|default:student.username }},
+
+Thank you for your purchase! Your digital product is ready to download.
+
+---
+Product: {{ product.title }}
+By: {{ product.teacher.get_full_name|default:product.teacher.username }}
+Amount Paid: £{{ purchase.payment_amount|floatformat:2 }}
+---
+
+YOUR DOWNLOADS:
+
+{% for link in download_links %}
+{{ link.title }} ({{ link.file_size }})
+Download: {{ link.url }}
+Downloads remaining: {{ link.downloads_remaining }} of 5
+
+{% endfor %}
+
+IMPORTANT INFORMATION:
+• Download links expire in {{ expiry_days }} days
+• Each file can be downloaded up to 5 times
+• Files are for personal use only
+• Save your files immediately after downloading
+
+You can always access your downloads from your account:
+{{ my_purchases_url }}
+
+If you have any questions or issues with your download, please contact us.
+
+Best regards,
+{{ site_name }} Team
+
+---
+© 2025 {{ site_name }}. All rights reserved.
+You received this email because you made a purchase on {{ site_name }}.

@@ -106,6 +106,9 @@ class StripeWebhookView(View):
         elif domain == 'courses':
             logger.info(f"Routing to courses payment handler")
             self.handle_course_payment(metadata, stripe_payment)
+        elif domain == 'digital_products':
+            logger.info(f"Routing to digital products payment handler")
+            self.handle_digital_product_payment(metadata, stripe_payment)
         else:
             logger.warning(f"Unknown payment domain '{domain}' - no handler called")
     
@@ -557,6 +560,109 @@ class StripeWebhookView(View):
             except CourseEnrollment.DoesNotExist:
                 logger.warning(f"CourseEnrollment {enrollment_id} not found")
 
+    def handle_digital_product_payment(self, metadata, stripe_payment):
+        """Handle digital product purchase when payment succeeds"""
+        from apps.digital_products.models import DigitalProduct, ProductPurchase, DigitalProductCartItem
+        from apps.digital_products.notifications import send_purchase_confirmation, send_cart_purchase_confirmation
+        from django.utils import timezone
+
+        logger.info(f">>> handle_digital_product_payment called")
+        logger.info(f"    Metadata: {metadata}")
+
+        # Check if single product or cart purchase
+        product_id = metadata.get('product_id')
+        product_ids = metadata.get('product_ids')
+
+        if product_id:
+            # Single product purchase
+            try:
+                product = DigitalProduct.objects.get(id=product_id)
+                student = stripe_payment.student
+
+                # Create purchase record
+                purchase = ProductPurchase.objects.create(
+                    product=product,
+                    student=student,
+                    payment_status='completed',
+                    payment_amount=stripe_payment.total_amount,
+                    stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                    stripe_checkout_session_id=stripe_payment.stripe_checkout_session_id,
+                    paid_at=timezone.now()
+                )
+
+                # Update product sales count
+                product.total_sales += 1
+                product.save(update_fields=['total_sales'])
+
+                # Send download email
+                try:
+                    send_purchase_confirmation(purchase)
+                    logger.info(f"Sent purchase confirmation email to {student.email}")
+                except Exception as e:
+                    logger.error(f"Failed to send purchase confirmation email: {e}")
+
+                logger.info(f"Created ProductPurchase {purchase.id} for product {product.title}")
+
+            except DigitalProduct.DoesNotExist:
+                logger.error(f"Product {product_id} not found")
+
+        elif product_ids:
+            # Cart purchase (multiple products)
+            product_id_list = [pid.strip() for pid in product_ids.split(',')]
+            student = stripe_payment.student
+            created_purchases = []
+
+            for pid in product_id_list:
+                try:
+                    product = DigitalProduct.objects.get(id=pid)
+
+                    # Get price from cart item
+                    cart_item = DigitalProductCartItem.objects.filter(
+                        cart__user=student,
+                        product=product
+                    ).first()
+
+                    purchase_price = cart_item.price if cart_item else product.price
+
+                    # Create purchase record
+                    purchase = ProductPurchase.objects.create(
+                        product=product,
+                        student=student,
+                        payment_status='completed',
+                        payment_amount=purchase_price,
+                        stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                        stripe_checkout_session_id=stripe_payment.stripe_checkout_session_id,
+                        paid_at=timezone.now()
+                    )
+
+                    # Update product sales count
+                    product.total_sales += 1
+                    product.save(update_fields=['total_sales'])
+
+                    created_purchases.append(purchase)
+                    logger.info(f"Created ProductPurchase {purchase.id} for product {product.title}")
+
+                except DigitalProduct.DoesNotExist:
+                    logger.error(f"Product {pid} not found")
+
+            # Clear cart items
+            cart_id = metadata.get('cart_id')
+            if cart_id:
+                DigitalProductCartItem.objects.filter(cart_id=cart_id).delete()
+                logger.info(f"Cleared cart {cart_id}")
+
+            # Send consolidated email with all purchases
+            if created_purchases:
+                try:
+                    send_cart_purchase_confirmation(student, created_purchases)
+                    logger.info(f"Sent cart purchase confirmation email to {student.email}")
+                except Exception as e:
+                    logger.error(f"Failed to send cart purchase confirmation email: {e}")
+
+        # Mark payment as completed
+        stripe_payment.mark_completed()
+        logger.info(f"Marked StripePayment {stripe_payment.id} as completed")
+
 
 # ============================================================================
 # FINANCE DASHBOARD VIEWS
@@ -633,6 +739,7 @@ class FinanceDashboardView(LoginRequiredMixin, TeacherOnlyMixin, DateRangeMixin,
             'workshops': Decimal('0.00'),
             'courses': Decimal('0.00'),
             'private_teaching': Decimal('0.00'),
+            'digital_products': Decimal('0.00'),
             'general': Decimal('0.00'),
         }
 
@@ -900,6 +1007,7 @@ class ProfitLossView(LoginRequiredMixin, TeacherOnlyMixin, DateRangeMixin, Templ
             'workshops': Decimal('0.00'),
             'courses': Decimal('0.00'),
             'private_teaching': Decimal('0.00'),
+            'digital_products': Decimal('0.00'),
             'general': Decimal('0.00'),
         }
 
