@@ -203,6 +203,23 @@
                             </tr>
                             <tr>
                                 <td class="font-semibold">
+                                    <i class="fas fa-file-download mr-2 text-purple-500"></i>Digital Products
+                                </td>
+                                <td class="text-right text-primary font-semibold">£{{ profit_by_area.digital_products.revenue|floatformat:2 }}</td>
+                                <td class="text-right text-error">£{{ profit_by_area.digital_products.expenses|floatformat:2 }}</td>
+                                <td class="text-right font-bold {% if profit_by_area.digital_products.net_profit >= 0 %}text-success{% else %}text-error{% endif %}">
+                                    £{{ profit_by_area.digital_products.net_profit|floatformat:2 }}
+                                </td>
+                                <td class="text-right">
+                                    {% if profit_by_area.digital_products.revenue > 0 %}
+                                        {% widthratio profit_by_area.digital_products.net_profit profit_by_area.digital_products.revenue 100 %}%
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="font-semibold">
                                     <i class="fas fa-building mr-2 text-info"></i>General
                                 </td>
                                 <td class="text-right text-base-content/50">-</td>
