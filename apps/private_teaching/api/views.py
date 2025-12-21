@@ -210,14 +210,22 @@ class AvailableSlotsAPIView(APIView):
             )
 
         # Call availability calculation engine
-        available_slots = calculate_available_slots(
-            teacher=teacher,
-            start_date=start_date,
-            end_date=end_date,
-            duration=duration
-        )
-
-        return Response({'slots': available_slots})
+        try:
+            available_slots = calculate_available_slots(
+                teacher=teacher,
+                start_date=start_date,
+                end_date=end_date,
+                duration=duration
+            )
+            return Response({'slots': available_slots})
+        except Exception as e:
+            import traceback
+            print(f"[ERROR] Failed to calculate available slots: {str(e)}")
+            print(traceback.format_exc())
+            return Response({
+                'error': f'Failed to calculate availability: {str(e)}',
+                'slots': []
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SubmitBookingAPIView(APIView):
