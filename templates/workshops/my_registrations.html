@@ -373,20 +373,20 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    // Store all items on initial page load - these stay in memory even if removed from DOM
+    const allRegistrationItems = Array.from(document.querySelectorAll('.registration-item'));
+
+    if (allRegistrationItems.length === 0) {
+        console.warn('No registration items found on page load');
+        return;
+    }
+
     function filterAndSort() {
         const statusValue = statusFilter.value;
         const sortValue = sortOrder.value;
 
-        // Get all registration items each time (to handle dynamic updates)
-        const allItems = Array.from(document.querySelectorAll('.registration-item'));
-
-        if (allItems.length === 0) {
-            console.warn('No registration items found');
-            return;
-        }
-
-        // Filter items
-        let visibleItems = allItems.filter(item => {
+        // Filter items from our stored array
+        let visibleItems = allRegistrationItems.filter(item => {
             if (statusValue === 'all') return true;
             const itemStatus = item.getAttribute('data-status');
             return itemStatus === statusValue;
@@ -420,8 +420,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Clear and rebuild the list
+        // Clear the list
         registrationsList.innerHTML = '';
+
+        // Remove any existing no results message
+        const existingNoResults = document.getElementById('noResults');
+        if (existingNoResults) {
+            existingNoResults.remove();
+        }
 
         if (visibleItems.length === 0) {
             // Show "no results" message
