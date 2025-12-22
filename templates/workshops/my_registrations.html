@@ -367,46 +367,64 @@ document.addEventListener('DOMContentLoaded', function() {
     const statusFilter = document.getElementById('statusFilter');
     const sortOrder = document.getElementById('sortOrder');
     const registrationsList = document.getElementById('registrationsList');
-    const items = Array.from(document.querySelectorAll('.registration-item'));
+
+    if (!statusFilter || !sortOrder || !registrationsList) {
+        console.error('Filter elements not found');
+        return;
+    }
 
     function filterAndSort() {
         const statusValue = statusFilter.value;
         const sortValue = sortOrder.value;
 
+        // Get all registration items each time (to handle dynamic updates)
+        const allItems = Array.from(document.querySelectorAll('.registration-item'));
+
+        if (allItems.length === 0) {
+            console.warn('No registration items found');
+            return;
+        }
+
         // Filter items
-        let visibleItems = items.filter(item => {
+        let visibleItems = allItems.filter(item => {
             if (statusValue === 'all') return true;
-            return item.dataset.status === statusValue;
+            const itemStatus = item.getAttribute('data-status');
+            return itemStatus === statusValue;
         });
 
         // Sort items
         visibleItems.sort((a, b) => {
             switch (sortValue) {
-                case 'newest':
-                    return new Date(b.dataset.regDate) - new Date(a.dataset.regDate);
-                case 'oldest':
-                    return new Date(a.dataset.regDate) - new Date(b.dataset.regDate);
-                case 'workshop':
-                    return a.dataset.workshop.localeCompare(b.dataset.workshop);
-                case 'date':
-                    return new Date(a.dataset.sessionDate) - new Date(b.dataset.sessionDate);
+                case 'newest': {
+                    const dateA = new Date(a.getAttribute('data-reg-date'));
+                    const dateB = new Date(b.getAttribute('data-reg-date'));
+                    return dateB - dateA;
+                }
+                case 'oldest': {
+                    const dateA = new Date(a.getAttribute('data-reg-date'));
+                    const dateB = new Date(b.getAttribute('data-reg-date'));
+                    return dateA - dateB;
+                }
+                case 'workshop': {
+                    const workshopA = a.getAttribute('data-workshop') || '';
+                    const workshopB = b.getAttribute('data-workshop') || '';
+                    return workshopA.localeCompare(workshopB);
+                }
+                case 'date': {
+                    const dateA = new Date(a.getAttribute('data-session-date'));
+                    const dateB = new Date(b.getAttribute('data-session-date'));
+                    return dateA - dateB;
+                }
                 default:
                     return 0;
             }
         });
 
-        // Hide all items
-        items.forEach(item => item.style.display = 'none');
+        // Clear and rebuild the list
+        registrationsList.innerHTML = '';
 
-        // Show and reorder visible items
-        visibleItems.forEach((item, index) => {
-            item.style.display = 'block';
-            registrationsList.appendChild(item);
-        });
-
-        // Show "no results" message if needed
-        const noResults = document.getElementById('noResults');
-        if (visibleItems.length === 0 && !noResults) {
+        if (visibleItems.length === 0) {
+            // Show "no results" message
             const message = document.createElement('div');
             message.id = 'noResults';
             message.className = 'text-center py-8';
@@ -417,13 +435,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p class="text-lg">No registrations match your current filters.</p>
             `;
             registrationsList.appendChild(message);
-        } else if (visibleItems.length > 0 && noResults) {
-            noResults.remove();
+        } else {
+            // Append visible items in sorted order
+            visibleItems.forEach(item => {
+                registrationsList.appendChild(item);
+            });
         }
     }
 
+    // Attach event listeners
     statusFilter.addEventListener('change', filterAndSort);
     sortOrder.addEventListener('change', filterAndSort);
+
+    // Initial sort on page load
+    filterAndSort();
 });
 
 // Cancel Registration Function
