@@ -1049,11 +1049,29 @@ class ProfitLossView(LoginRequiredMixin, TeacherOnlyMixin, DateRangeMixin, Templ
         # Get monthly trend data (last 12 months)
         from django.db.models.functions import TruncMonth
         from dateutil.relativedelta import relativedelta
+        import json
 
         twelve_months_ago = timezone.now() - relativedelta(months=12)
 
-        # Monthly revenue trend
-        revenue_trend = FinanceService.get_revenue_trend(teacher, days=365)
+        # Monthly revenue trend - aggregate by month to match expense structure
+        monthly_revenue = StripePayment.objects.filter(
+            teacher=teacher,
+            status='completed',
+            completed_at__gte=twelve_months_ago
+        ).annotate(
+            month=TruncMonth('completed_at')
+        ).values('month').annotate(
+            total=Sum('teacher_share')
+        ).order_by('month')
+
+        # Convert monthly revenue to JSON-safe format for template
+        revenue_trend = json.dumps([
+            {
+                'date': item['month'].strftime('%Y-%m-%d'),
+                'amount': float(item['total'])
+            }
+            for item in monthly_revenue
+        ])
 
         # Monthly expense trend
         monthly_expenses = expense_queryset.filter(
