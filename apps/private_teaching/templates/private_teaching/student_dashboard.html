@@ -288,4 +288,187 @@
         </div>
     </div>
 </div>
+
+<!-- Student Dashboard Tour -->
+<script>
+function startStudentDashboardTour() {
+    const driver = window.driver.js.driver({
+        showProgress: true,
+        showButtons: ['next', 'previous', 'close'],
+        steps: [
+            {
+                element: 'h1',
+                popover: {
+                    title: 'Welcome to Your Student Dashboard!',
+                    description: 'This quick tour will show you all the features of your dashboard. Click "Next" to continue, or "Close" to skip the tour.',
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: 'a[href*="request_lesson"]',
+                popover: {
+                    title: 'Request New Lesson',
+                    description: 'Click this button to request a new lesson with your teacher. You can select dates, times, and subjects.',
+                    side: "left",
+                    align: 'start'
+                }
+            },
+            {% if my_applications %}
+            {
+                element: '.alert',
+                popover: {
+                    title: 'Teacher Applications',
+                    description: 'This shows the status of your applications to study with teachers. You can view pending, accepted, or waitlisted applications here.',
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {% endif %}
+            {
+                element: '.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4',
+                popover: {
+                    title: 'Quick Stats Overview',
+                    description: 'These cards give you a quick overview of your private teaching activity at a glance.',
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '.stat:nth-child(1)',
+                popover: {
+                    title: 'Recent Requests',
+                    description: 'Shows how many lesson requests you\'ve made recently. These are lessons you\'ve requested but may not be scheduled yet.',
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '.stat:nth-child(2)',
+                popover: {
+                    title: 'Awaiting Payment',
+                    description: 'Lessons that have been accepted by your teacher but still need payment. Click here to complete payment.',
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '.stat:nth-child(3)',
+                popover: {
+                    title: 'Upcoming Lessons',
+                    description: 'The number of paid, confirmed lessons you have coming up. These are ready to go!',
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '.stat:nth-child(4)',
+                popover: {
+                    title: 'Upcoming Exams',
+                    description: 'Shows exams you\'ve registered for with your teacher. Track your exam preparation here.',
+                    side: "bottom",
+                    align: 'start'
+                }
+            },
+            {
+                element: '.card:has(h2:contains("Recent Requests"))',
+                popover: {
+                    title: 'Recent Requests Details',
+                    description: 'This card shows detailed information about your recent lesson requests, including their approval and payment status.',
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: '.badge.badge-sm',
+                popover: {
+                    title: 'Status Badges',
+                    description: 'These colored badges show the status of each lesson: Accepted (green), Pending (yellow), or Rejected (red), plus payment status.',
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: '.card:has(h2:contains("Upcoming Lessons"))',
+                popover: {
+                    title: 'Upcoming Lessons Details',
+                    description: 'See your next 5 upcoming lessons with dates, times, teachers, and quick action buttons.',
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: 'a[href*="lesson_detail"]',
+                popover: {
+                    title: 'View Lesson Details',
+                    description: 'Click this button to see full details of a lesson, including materials and lesson content from your teacher.',
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: 'a[href*="start_private_teaching_conversation"]',
+                popover: {
+                    title: 'Message Your Teacher',
+                    description: 'Use this button to send a message to your teacher about the lesson or ask questions.',
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: '.card:has(h2:contains("Quick Actions"))',
+                popover: {
+                    title: 'Quick Actions',
+                    description: 'These buttons give you fast access to commonly used features like your practice log, exams, and document library.',
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: 'a[href*="practice_log"]',
+                popover: {
+                    title: 'Practice Log',
+                    description: 'Track your practice sessions here. Your teacher can see your practice entries and leave comments!',
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: 'a[href*="student_exams"]',
+                popover: {
+                    title: 'My Exams',
+                    description: 'View all your exam registrations, dates, and results in one place.',
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                element: 'a[href*="student_library"]',
+                popover: {
+                    title: 'Document Library',
+                    description: 'Access all the documents, sheet music, and materials your teacher has shared with you.',
+                    side: "top",
+                    align: 'start'
+                }
+            },
+            {
+                popover: {
+                    title: 'Tour Complete!',
+                    description: 'You now know your way around the student dashboard! If you need help again, just click the question mark button. Happy learning!',
+                }
+            }
+        ]
+    });
+
+    driver.drive();
+}
+</script>
+
+<!-- Tour Button - Floating Action Button -->
+<button onclick="startStudentDashboardTour()"
+        class="btn btn-primary btn-circle btn-lg shadow-xl"
+        style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; width: 64px; height: 64px;"
+        title="Need help? Take a quick tour!">
+    <i class="fas fa-question-circle" style="font-size: 1.5rem;"></i>
+</button>
 {% endblock %}
