@@ -1319,6 +1319,75 @@ class AvailabilityException(models.Model):
         if self.start_time and self.end_time and self.start_time >= self.end_time:
             raise ValidationError("End time must be after start time")
 
+        # Check for conflicting exceptions when blocking time
+        if self.exception_type == 'block':
+            # Build queryset for existing exceptions
+            existing_exceptions = AvailabilityException.objects.filter(
+                teacher=self.teacher,
+                date=self.date,
+                exception_type='block',
+                is_active=True
+            )
+
+            # Exclude self if updating
+            if self.pk:
+                existing_exceptions = existing_exceptions.exclude(pk=self.pk)
+
+            # Check for overlapping block exceptions
+            if self.start_time and self.end_time:
+                # Check for specific time blocks that overlap
+                overlapping = existing_exceptions.filter(
+                    start_time__isnull=False,
+                    end_time__isnull=False,
+                    start_time__lt=self.end_time,
+                    end_time__gt=self.start_time
+                )
+                if overlapping.exists():
+                    raise ValidationError(
+                        f"This time conflicts with an existing block on {self.date}. "
+                        f"You already have blocked time that overlaps with this period."
+                    )
+
+            # Check for all-day blocks
+            all_day_blocks = existing_exceptions.filter(
+                start_time__isnull=True,
+                end_time__isnull=True
+            )
+            if all_day_blocks.exists():
+                raise ValidationError(
+                    f"This day is already blocked all day on {self.date}. "
+                    f"Remove the existing all-day block before adding a specific time block."
+                )
+
+            # If creating an all-day block, check for any existing blocks
+            if not self.start_time and not self.end_time:
+                if existing_exceptions.exists():
+                    raise ValidationError(
+                        f"Cannot create an all-day block on {self.date} because there are already "
+                        f"specific time blocks on this day. Remove them first or use a specific time range."
+                    )
+
+            # Check if this time is already unavailable in the regular schedule
+            if self.start_time and self.end_time:
+                # Get the day of week for this date
+                day_of_week = self.date.weekday()
+
+                # Check if there's any regular availability for this day/time
+                available_slots = TeacherAvailability.objects.filter(
+                    teacher=self.teacher,
+                    day_of_week=day_of_week,
+                    is_active=True,
+                    start_time__lt=self.end_time,
+                    end_time__gt=self.start_time
+                )
+
+                if not available_slots.exists():
+                    raise ValidationError(
+                        f"This time is already unavailable in your regular weekly schedule. "
+                        f"No need to add a block exception - you don't have recurring availability during this time. "
+                        f"If you want to add special hours, use 'Special Hours' instead."
+                    )
+
 
 class TeacherAvailabilitySettings(models.Model):
     """

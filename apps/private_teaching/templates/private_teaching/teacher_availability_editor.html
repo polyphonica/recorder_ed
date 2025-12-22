@@ -475,7 +475,23 @@ function availabilityEditor() {
                     this.cancelException();
                     this.showNotification('Exception added successfully', 'success');
                 } else {
-                    this.showNotification('Error adding exception', 'error');
+                    // Extract error message from response
+                    const errorData = await response.json();
+                    let errorMessage = 'Error adding exception';
+
+                    if (errorData.non_field_errors) {
+                        errorMessage = errorData.non_field_errors[0];
+                    } else if (errorData.detail) {
+                        errorMessage = errorData.detail;
+                    } else {
+                        // Check for field-specific errors
+                        const fieldErrors = Object.values(errorData).filter(v => Array.isArray(v));
+                        if (fieldErrors.length > 0) {
+                            errorMessage = fieldErrors[0][0];
+                        }
+                    }
+
+                    this.showNotification(errorMessage, 'error');
                 }
             } catch (error) {
                 console.error('Error adding exception:', error);

@@ -53,6 +53,24 @@ class AvailabilityExceptionSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'teacher', 'created_at', 'updated_at']
 
+    def validate(self, attrs):
+        """Run model validation to check for conflicts"""
+        # Create a temporary instance to validate
+        instance = AvailabilityException(**attrs)
+
+        # If updating, set the pk so clean() can exclude self
+        if self.instance:
+            instance.pk = self.instance.pk
+
+        # Set the teacher from the request context
+        if 'teacher' not in attrs and self.context.get('request'):
+            instance.teacher = self.context['request'].user
+
+        # Run the model's clean method
+        instance.clean()
+
+        return attrs
+
 
 class TeacherAvailabilitySettingsSerializer(serializers.ModelSerializer):
     """Serializer for TeacherAvailabilitySettings model"""
