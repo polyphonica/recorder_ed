@@ -371,7 +371,7 @@ function startStudentDashboardTour() {
                 }
             },
             {
-                element: '.grid.grid-cols-1.lg\\:grid-cols-2 > div:first-child .card',
+                element: '.grid.grid-cols-1.lg\\:grid-cols-2 > div:nth-child(1)',
                 popover: {
                     title: 'Recent Requests Details',
                     description: 'This card shows detailed information about your recent lesson requests, including their approval and payment status.',
@@ -391,7 +391,7 @@ function startStudentDashboardTour() {
             },
             {% endif %}
             {
-                element: '.grid.grid-cols-1.lg\\:grid-cols-2 > div:nth-child(2) .card',
+                element: '.grid.grid-cols-1.lg\\:grid-cols-2 > div:nth-child(2)',
                 popover: {
                     title: 'Upcoming Lessons Details',
                     description: 'See your next 5 upcoming lessons with dates, times, teachers, and quick action buttons.',
