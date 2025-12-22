@@ -371,7 +371,7 @@ function startStudentDashboardTour() {
                 }
             },
             {
-                element: '.card:has(h2:contains("Recent Requests"))',
+                element: '.grid.grid-cols-1.lg\\:grid-cols-2 > div:first-child .card',
                 popover: {
                     title: 'Recent Requests Details',
                     description: 'This card shows detailed information about your recent lesson requests, including their approval and payment status.',
@@ -379,6 +379,7 @@ function startStudentDashboardTour() {
                     align: 'start'
                 }
             },
+            {% if recent_requests %}
             {
                 element: '.badge.badge-sm',
                 popover: {
@@ -388,8 +389,9 @@ function startStudentDashboardTour() {
                     align: 'start'
                 }
             },
+            {% endif %}
             {
-                element: '.card:has(h2:contains("Upcoming Lessons"))',
+                element: '.grid.grid-cols-1.lg\\:grid-cols-2 > div:nth-child(2) .card',
                 popover: {
                     title: 'Upcoming Lessons Details',
                     description: 'See your next 5 upcoming lessons with dates, times, teachers, and quick action buttons.',
@@ -397,6 +399,7 @@ function startStudentDashboardTour() {
                     align: 'start'
                 }
             },
+            {% if upcoming_lessons %}
             {
                 element: 'a[href*="lesson_detail"]',
                 popover: {
@@ -415,8 +418,9 @@ function startStudentDashboardTour() {
                     align: 'start'
                 }
             },
+            {% endif %}
             {
-                element: '.card:has(h2:contains("Quick Actions"))',
+                element: '.mt-8 .card',
                 popover: {
                     title: 'Quick Actions',
                     description: 'These buttons give you fast access to commonly used features like your practice log, exams, and document library.',
