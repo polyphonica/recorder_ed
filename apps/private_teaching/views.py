@@ -108,6 +108,15 @@ class PrivateTeachingHomeView(TemplateView):
                 messages.info(request, 'Please complete your profile to request lessons.')
                 return redirect('private_teaching:profile_complete')
 
+            # Redirect students with accepted teachers to their dashboard
+            elif profile.is_student and profile.profile_completed:
+                has_accepted_teacher = TeacherStudentApplication.objects.filter(
+                    applicant=request.user,
+                    status='accepted'
+                ).exists()
+                if has_accepted_teacher:
+                    return redirect('private_teaching:my_teachers')
+
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
