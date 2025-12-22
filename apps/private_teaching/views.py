@@ -115,7 +115,7 @@ class PrivateTeachingHomeView(TemplateView):
                     status='accepted'
                 ).exists()
                 if has_accepted_teacher:
-                    return redirect('private_teaching:my_teachers')
+                    return redirect('private_teaching:student_dashboard')
 
         return super().dispatch(request, *args, **kwargs)
     
