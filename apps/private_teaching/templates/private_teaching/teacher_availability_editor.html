@@ -197,12 +197,17 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div class="form-control">
                                 <label class="label">
-                                    <span class="label-text font-medium">Type</span>
+                                    <span class="label-text font-medium">Exception Type</span>
                                 </label>
                                 <select class="select select-bordered" x-model="newException.exception_type">
-                                    <option value="blocked">Block Time</option>
-                                    <option value="available">Special Hours</option>
+                                    <option value="block">Mark Unavailable (Block Bookings)</option>
+                                    <option value="available">Add Special Availability (Override Schedule)</option>
                                 </select>
+                                <label class="label">
+                                    <span class="label-text-alt text-gray-600">
+                                        Use "Mark Unavailable" for holidays/time off. Use "Add Special Availability" to be available outside your normal hours.
+                                    </span>
+                                </label>
                             </div>
 
                             <div class="form-control">
@@ -254,9 +259,9 @@
                             <div class="flex-1">
                                 <div class="flex items-center gap-2 mb-1">
                                     <span class="badge"
-                                          :class="exception.exception_type === 'blocked' ? 'badge-error' : 'badge-success'">
-                                        <i :class="exception.exception_type === 'blocked' ? 'fas fa-ban' : 'fas fa-clock'" class="mr-1"></i>
-                                        <span x-text="exception.exception_type === 'blocked' ? 'Blocked' : 'Available'"></span>
+                                          :class="exception.exception_type === 'block' ? 'badge-error' : 'badge-success'">
+                                        <i :class="exception.exception_type === 'block' ? 'fas fa-ban' : 'fas fa-clock'" class="mr-1"></i>
+                                        <span x-text="exception.exception_type === 'block' ? 'Unavailable' : 'Special Availability'"></span>
                                     </span>
                                     <span class="font-semibold" x-text="formatDate(exception.date)"></span>
                                 </div>
@@ -324,7 +329,7 @@ function availabilityEditor() {
         exceptions: [],
         showExceptionForm: false,
         newException: {
-            exception_type: 'blocked',
+            exception_type: 'block',
             date: '',
             start_time: '',
             end_time: '',
@@ -460,13 +465,20 @@ function availabilityEditor() {
 
             this.loading = true;
             try {
+                // Prepare data - convert empty strings to null for time fields
+                const exceptionData = {
+                    ...this.newException,
+                    start_time: this.newException.start_time || null,
+                    end_time: this.newException.end_time || null
+                };
+
                 const response = await fetch('/private-teaching/api/availability-exceptions/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': this.getCsrfToken()
                     },
-                    body: JSON.stringify(this.newException)
+                    body: JSON.stringify(exceptionData)
                 });
 
                 if (response.ok) {
@@ -530,7 +542,7 @@ function availabilityEditor() {
         cancelException() {
             this.showExceptionForm = false;
             this.newException = {
-                exception_type: 'blocked',
+                exception_type: 'block',
                 date: '',
                 start_time: '',
                 end_time: '',
