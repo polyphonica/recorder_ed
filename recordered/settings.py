@@ -604,8 +604,8 @@ CKEDITOR_5_UPLOADS_PATH = os.path.join(MEDIA_ROOT, "uploads/")
 # ============================================
 # Google reCAPTCHA v3 Configuration
 # ============================================
-RECAPTCHA_PUBLIC_KEY = os.getenv('RECAPTCHA_PUBLIC_KEY', '')
-RECAPTCHA_PRIVATE_KEY = os.getenv('RECAPTCHA_PRIVATE_KEY', '')
+RECAPTCHA_PUBLIC_KEY = config('RECAPTCHA_PUBLIC_KEY', default='')
+RECAPTCHA_PRIVATE_KEY = config('RECAPTCHA_PRIVATE_KEY', default='')
 # reCAPTCHA v3 specific settings
 RECAPTCHA_REQUIRED_SCORE = 0.5  # Score threshold (0.0 - 1.0, higher = stricter)
 RECAPTCHA_DOMAIN = 'www.google.com'  # Use 'www.recaptcha.net' in China
