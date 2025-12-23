@@ -432,7 +432,7 @@ function calendarBooking() {
 
                 // Include child profile ID if selected (for guardian bookings)
                 if (this.childProfileId) {
-                    payload.child_profile_id = parseInt(this.childProfileId);
+                    payload.child_profile_id = this.childProfileId;  // Keep as string (UUID)
                 }
 
                 const response = await fetch('/private-teaching/api/student/submit-booking/', {
