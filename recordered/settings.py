@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_ckeditor_5',
     'django_filters',
+    'captcha',  # django-recaptcha
     'tailwind',
     'theme',
 
@@ -599,3 +600,12 @@ CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"  # Options: "staff", "authen
 # Upload to media/uploads/ (ensure this directory exists)
 import os
 CKEDITOR_5_UPLOADS_PATH = os.path.join(MEDIA_ROOT, "uploads/")
+
+# ============================================
+# Google reCAPTCHA v3 Configuration
+# ============================================
+RECAPTCHA_PUBLIC_KEY = os.getenv('RECAPTCHA_PUBLIC_KEY', '')
+RECAPTCHA_PRIVATE_KEY = os.getenv('RECAPTCHA_PRIVATE_KEY', '')
+# reCAPTCHA v3 specific settings
+RECAPTCHA_REQUIRED_SCORE = 0.5  # Score threshold (0.0 - 1.0, higher = stricter)
+RECAPTCHA_DOMAIN = 'www.google.com'  # Use 'www.recaptcha.net' in China

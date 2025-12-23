@@ -1,9 +1,20 @@
 from django import forms
+from captcha.fields import ReCaptchaField
+from captcha.widgets import ReCaptchaV3
 from .models import Ticket, TicketMessage, TicketAttachment
 
 
 class PublicTicketForm(forms.ModelForm):
     """Form for anonymous/public users to create support tickets"""
+
+    captcha = ReCaptchaField(
+        widget=ReCaptchaV3(
+            attrs={
+                'required_score': 0.5,
+            }
+        ),
+        label=''  # No label for invisible reCAPTCHA v3
+    )
 
     class Meta:
         model = Ticket

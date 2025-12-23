@@ -103,6 +103,16 @@
                         {% endif %}
                     </div>
 
+                    <!-- reCAPTCHA v3 (invisible) -->
+                    <div class="form-control">
+                        {{ form.captcha }}
+                        {% if form.captcha.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.captcha.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
                     <!-- Submit Button -->
                     <div class="card-actions justify-end">
                         <button type="submit" class="btn btn-primary btn-wide">
@@ -112,6 +122,13 @@
                             Submit Ticket
                         </button>
                     </div>
+
+                    <!-- reCAPTCHA Privacy Notice -->
+                    <p class="text-xs text-base-content/60 text-center mt-4">
+                        This site is protected by reCAPTCHA and the Google
+                        <a href="https://policies.google.com/privacy" target="_blank" class="link">Privacy Policy</a> and
+                        <a href="https://policies.google.com/terms" target="_blank" class="link">Terms of Service</a> apply.
+                    </p>
                 </form>
             </div>
         </div>
