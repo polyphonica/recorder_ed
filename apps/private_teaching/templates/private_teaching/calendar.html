@@ -286,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function() {
             dayEvents.forEach(event => {
                 const eventEl = document.createElement('div');
                 eventEl.className = 'calendar-event';
-                if (event.extendedProps && event.extendedProps.paymentStatus === 'unpaid') {
+                if (event.extendedProps && event.extendedProps.paymentStatus !== 'Paid') {
                     eventEl.classList.add('unpaid');
                 }
                 eventEl.textContent = event.title;
@@ -381,8 +381,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div>
                     <div class="text-sm text-gray-500">Payment Status</div>
                     <div class="font-semibold">
-                        <span class="badge ${props.paymentStatus === 'paid' ? 'badge-success' : 'badge-warning'}">
-                            ${(props.paymentStatus || 'unpaid').charAt(0).toUpperCase() + (props.paymentStatus || 'unpaid').slice(1)}
+                        <span class="badge ${props.paymentStatus === 'Paid' ? 'badge-success' : 'badge-warning'}">
+                            ${props.paymentStatus || 'Not Paid'}
                         </span>
                     </div>
                 </div>
@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show/hide pay button for students with unpaid lessons
         {% if not is_teacher %}
         const payButton = document.getElementById('modalPayButton');
-        if (props.paymentStatus === 'unpaid') {
+        if (props.paymentStatus !== 'Paid') {
             payButton.style.display = 'inline-block';
             payButton.href = `/private-teaching/cart/add/${props.lessonId}/`;
         } else {
