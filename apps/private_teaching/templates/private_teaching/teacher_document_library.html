@@ -112,7 +112,14 @@
                                 <div class="font-medium">{{ document.title }}</div>
                                 <div class="text-xs text-base-content/70">{{ document.document.name|cut:"lesson_documents/" }}</div>
                             </td>
-                            <td>{{ document.lesson.student.profile.full_name|default:document.lesson.student.username }}</td>
+                            <td>
+                                {% if document.lesson.lesson_request.child_profile %}
+                                    {{ document.lesson.lesson_request.child_profile.full_name }}
+                                    <span class="text-xs text-base-content/60">(Guardian: {{ document.lesson.student.get_full_name|default:document.lesson.student.username }})</span>
+                                {% else %}
+                                    {{ document.lesson.student.profile.full_name|default:document.lesson.student.username }}
+                                {% endif %}
+                            </td>
                             <td>{{ document.lesson.subject.subject }}</td>
                             <td>{{ document.lesson.lesson_date|date:"M j, Y" }}</td>
                             <td>{{ document.uploaded_at|date:"M j, Y" }}</td>
@@ -161,7 +168,14 @@
                                 <div class="font-medium">{{ url.name }}</div>
                                 <div class="text-xs text-base-content/70 truncate max-w-md">{{ url.url }}</div>
                             </td>
-                            <td>{{ url.lesson.student.profile.full_name|default:url.lesson.student.username }}</td>
+                            <td>
+                                {% if url.lesson.lesson_request.child_profile %}
+                                    {{ url.lesson.lesson_request.child_profile.full_name }}
+                                    <span class="text-xs text-base-content/60">(Guardian: {{ url.lesson.student.get_full_name|default:url.lesson.student.username }})</span>
+                                {% else %}
+                                    {{ url.lesson.student.profile.full_name|default:url.lesson.student.username }}
+                                {% endif %}
+                            </td>
                             <td>{{ url.lesson.subject.subject }}</td>
                             <td>{{ url.lesson.lesson_date|date:"M j, Y" }}</td>
                             <td>{{ url.created_at|date:"M j, Y" }}</td>

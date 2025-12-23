@@ -243,6 +243,7 @@ class SubmitBookingAPIView(APIView):
             "subject_id": 456,
             "location": "Online",
             "message": "Looking forward to lessons",
+            "child_profile_id": 789,  // Optional - for guardian bookings
             "lessons": [
                 {"datetime": "2025-06-15T09:00:00", "duration": 60},
                 {"datetime": "2025-06-16T10:00:00", "duration": 60}
@@ -264,6 +265,24 @@ class SubmitBookingAPIView(APIView):
             lesson_request = LessonRequest.objects.create(
                 student=request.user
             )
+
+            # Handle child profile if provided (for guardian bookings)
+            child_profile_id = request.data.get('child_profile_id')
+            if child_profile_id:
+                from apps.accounts.models import ChildProfile
+                try:
+                    child_profile = ChildProfile.objects.get(
+                        id=child_profile_id,
+                        guardian=request.user
+                    )
+                    lesson_request.child_profile = child_profile
+                    lesson_request.save()
+                except ChildProfile.DoesNotExist:
+                    lesson_request.delete()
+                    return Response({
+                        'success': False,
+                        'error': 'Invalid child profile selected'
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
             # Create individual Lesson objects
             created_lessons = []
