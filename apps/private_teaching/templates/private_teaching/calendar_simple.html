@@ -279,9 +279,12 @@ function renderCalendar() {
         dayEvents.forEach(event => {
             const eventEl = document.createElement('div');
             eventEl.className = 'calendar-event';
-            if (event.extendedProps && event.extendedProps.paymentStatus === 'unpaid') {
-                eventEl.classList.add('unpaid');
+
+            // Use the backgroundColor set by the backend
+            if (event.backgroundColor) {
+                eventEl.style.backgroundColor = event.backgroundColor;
             }
+
             eventEl.textContent = event.title;
 
             // Click to show lesson details modal
