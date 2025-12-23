@@ -644,16 +644,14 @@ class CalendarView(PrivateTeachingLoginRequiredMixin, TemplateView):
             end_datetime = lesson_datetime + timedelta(minutes=duration_minutes)
 
             # Determine color based on status hierarchy
-            if lesson.status == 'Assigned':
-                color = '#1e40af'  # Dark blue for assigned
-            elif lesson.payment_status == 'Paid':
-                color = '#3b82f6'  # Blue for paid
+            if lesson.payment_status == 'Paid':
+                color = '#10b981'  # Green for paid lessons
             elif lesson.approved_status == 'Accepted':
-                color = '#10b981'  # Green for accepted but not paid
+                color = '#f59e0b'  # Yellow/amber for approved but not paid
             elif lesson.approved_status == 'Rejected':
                 color = '#ef4444'  # Red for rejected
             else:
-                color = '#f59e0b'  # Yellow/orange for pending
+                color = '#9ca3af'  # Gray for pending/draft
 
             text_color = 'white'
 
