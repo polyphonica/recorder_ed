@@ -608,8 +608,6 @@ class CalendarView(PrivateTeachingLoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         from datetime import datetime, timedelta
         import json
-        import logging
-        logger = logging.getLogger(__name__)
 
         # Determine if user is a teacher
         try:
@@ -646,21 +644,14 @@ class CalendarView(PrivateTeachingLoginRequiredMixin, TemplateView):
             end_datetime = lesson_datetime + timedelta(minutes=duration_minutes)
 
             # Determine color based on status hierarchy
-            # Debug logging
-            logger.warning(f"🔍 DEBUG Lesson {lesson.id}: payment_status='{lesson.payment_status}', approved_status='{lesson.approved_status}', status='{lesson.status}'")
-
             if lesson.payment_status == 'Paid':
                 color = '#10b981'  # Green for paid lessons
-                logger.warning(f"  ✅ Color: GREEN (Paid)")
             elif lesson.approved_status == 'Accepted':
                 color = '#f59e0b'  # Yellow/amber for approved but not paid
-                logger.warning(f"  ⚠️  Color: YELLOW (Approved but not paid)")
             elif lesson.approved_status == 'Rejected':
                 color = '#ef4444'  # Red for rejected
-                logger.warning(f"  ❌ Color: RED (Rejected)")
             else:
                 color = '#9ca3af'  # Gray for pending/draft
-                logger.warning(f"  ⏳ Color: GRAY (Pending/Draft)")
 
             text_color = 'white'
 
