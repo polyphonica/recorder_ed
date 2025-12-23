@@ -4,7 +4,12 @@ Security validators for file uploads and other input validation
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 from django.utils.deconstruct import deconstructible
-import magic
+
+try:
+    import magic
+    HAS_MAGIC = True
+except ImportError:
+    HAS_MAGIC = False
 
 
 @deconstructible
@@ -42,6 +47,11 @@ class FileContentTypeValidator:
         self.allowed_types = allowed_types
 
     def __call__(self, file):
+        if not HAS_MAGIC:
+            # python-magic not installed, skip content type validation
+            # Fall back to extension-only validation via FileExtensionValidator
+            return
+
         try:
             # Get actual MIME type from file content
             mime = magic.from_buffer(file.read(2048), mime=True)
@@ -88,4 +98,20 @@ RECEIPT_VALIDATORS = [
 MATERIAL_VALIDATORS = [
     FileExtensionValidator(['pdf', 'doc', 'docx', 'txt', 'png', 'jpg', 'jpeg']),
     FileSizeValidator(max_size_mb=10),
+]
+
+# Playalong audio player validators
+AUDIO_VALIDATORS = [
+    FileExtensionValidator(['mp3', 'wav']),
+    FileSizeValidator(max_size_mb=10),
+]
+
+SHEET_MUSIC_IMAGE_VALIDATORS = [
+    FileExtensionValidator(['svg', 'png', 'jpg', 'jpeg']),
+    FileSizeValidator(max_size_mb=5),
+]
+
+SHEET_MUSIC_PDF_VALIDATORS = [
+    FileExtensionValidator(['pdf']),
+    FileSizeValidator(max_size_mb=5),
 ]

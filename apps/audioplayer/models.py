@@ -1,6 +1,11 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django_ckeditor_5.fields import CKEditor5Field
+from apps.core.validators import (
+    AUDIO_VALIDATORS,
+    SHEET_MUSIC_IMAGE_VALIDATORS,
+    SHEET_MUSIC_PDF_VALIDATORS,
+)
 
 
 class Composer(models.Model):
@@ -94,14 +99,16 @@ class Piece(models.Model):
         upload_to='audioplayer/svg_images/',
         null=True,
         blank=True,
-        help_text="Sheet music or notation image (SVG/PNG/JPG) for on-screen display"
+        validators=SHEET_MUSIC_IMAGE_VALIDATORS,
+        help_text="Sheet music or notation image (SVG/PNG/JPG) for on-screen display (max 5MB)"
     )
 
     pdf_score = models.FileField(
         upload_to='audioplayer/pdf_scores/',
         null=True,
         blank=True,
-        help_text="Printable PDF version of the score"
+        validators=SHEET_MUSIC_PDF_VALIDATORS,
+        help_text="Printable PDF version of the score (max 5MB)"
     )
 
     pdf_score_title = models.CharField(
@@ -187,7 +194,8 @@ class Stem(models.Model):
     )
     audio_file = models.FileField(
         upload_to='audioplayer/stems/',
-        help_text="MP3 audio file"
+        validators=AUDIO_VALIDATORS,
+        help_text="MP3 or WAV audio file (max 10MB)"
     )
     order = models.PositiveIntegerField(
         default=0,
