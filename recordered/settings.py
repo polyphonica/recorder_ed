@@ -63,7 +63,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_ckeditor_5',
     'django_filters',
-    'captcha',  # django-recaptcha
+    'django_recaptcha',  # django-recaptcha v4+
     'tailwind',
     'theme',
 
