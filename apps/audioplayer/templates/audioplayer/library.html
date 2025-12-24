@@ -24,7 +24,7 @@
         <a class="tab {% if view_mode == 'my_pieces' %}tab-active{% endif %}"
            href="?mode=my_pieces">
             <i class="fas fa-book-reader mr-2"></i>
-            My Assigned Pieces
+            {% if is_teacher %}My Pieces{% else %}My Assigned Pieces{% endif %}
         </a>
         <a class="tab {% if view_mode == 'browse_all' %}tab-active{% endif %}"
            href="?mode=browse_all">
@@ -245,14 +245,22 @@
         </div>
         <h2 class="text-2xl font-bold mb-4">
             {% if view_mode == 'my_pieces' %}
-                No Assigned Pieces Yet
+                {% if is_teacher %}
+                    No Pieces Yet
+                {% else %}
+                    No Assigned Pieces Yet
+                {% endif %}
             {% else %}
                 No Pieces Found
             {% endif %}
         </h2>
         <p class="text-base-content/70 mb-8">
             {% if view_mode == 'my_pieces' %}
-                Your teacher hasn't assigned any playalong pieces yet. Try browsing all available pieces!
+                {% if is_teacher %}
+                    You haven't created any playalong pieces yet. Create your first piece or browse all public pieces!
+                {% else %}
+                    Your teacher hasn't assigned any playalong pieces yet. Try browsing all available pieces!
+                {% endif %}
             {% else %}
                 {% if search_query or selected_composer or selected_grade or selected_genre or selected_difficulty or selected_tag %}
                     No pieces match your current filters. Try adjusting your search criteria.
