@@ -34,9 +34,9 @@ class StemInline(admin.TabularInline):
 
 @admin.register(Piece)
 class PieceAdmin(admin.ModelAdmin):
-    list_display = ['title', 'composer', 'grade_level', 'genre', 'difficulty', 'is_public', 'stem_count', 'lesson_count', 'created_at']
-    search_fields = ['title', 'composer__name', 'description']
-    list_filter = ['grade_level', 'genre', 'difficulty', 'is_public', 'tags', 'composer', 'created_at']
+    list_display = ['title', 'composer', 'created_by', 'grade_level', 'genre', 'difficulty', 'is_public', 'stem_count', 'lesson_count', 'created_at']
+    search_fields = ['title', 'composer__name', 'description', 'created_by__username', 'created_by__email']
+    list_filter = ['created_by', 'grade_level', 'genre', 'difficulty', 'is_public', 'tags', 'composer', 'created_at']
     filter_horizontal = ['tags']
     inlines = [StemInline]
 
@@ -50,8 +50,8 @@ class PieceAdmin(admin.ModelAdmin):
         ('Description', {
             'fields': ('description',)
         }),
-        ('Visibility', {
-            'fields': ('is_public',)
+        ('Visibility & Owner', {
+            'fields': ('is_public', 'created_by')
         }),
     )
 
