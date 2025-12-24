@@ -102,14 +102,21 @@ class SignUpView(CreateView):
             profile.is_student = True
             profile.save()
 
+        # Store email in session for resend functionality
+        self.request.session['pending_verification_email'] = user.email
+
         # Send verification email
         email_sent = False
+        error_message = None
         try:
             send_verification_email(self.request, user)
             email_sent = True
         except Exception as e:
-            # Log error but don't block registration
+            # Log error and capture message
+            error_message = str(e)
             print(f"Failed to send verification email: {e}")
+            import traceback
+            print(traceback.format_exc())
 
         # Show success message with email verification instructions
         if email_sent:
@@ -122,8 +129,8 @@ class SignUpView(CreateView):
         else:
             messages.warning(
                 self.request,
-                'Account created, but there was an issue sending the verification email. '
-                'Please contact support.',
+                f'Account created, but there was an issue sending the verification email: {error_message}. '
+                f'You can try resending it below or contact support.',
                 extra_tags='signup_success'
             )
 
@@ -510,6 +517,55 @@ def resend_verification_public_view(request):
             return redirect('accounts:resend_verification_public')
 
     return render(request, 'accounts/resend_verification_public.html')
+
+
+def resend_verification_quick_view(request):
+    """
+    Quick resend view that uses email from session (after signup).
+    Redirects back to signup page with message.
+    """
+    # Get email from session (stored after signup)
+    email = request.session.get('pending_verification_email')
+
+    if not email:
+        messages.error(request, 'No pending verification found. Please enter your email to resend.')
+        return redirect('accounts:resend_verification_public')
+
+    try:
+        user = User.objects.get(email=email)
+
+        # Check if already verified
+        if user.profile.email_verified:
+            messages.info(request, 'Your email is already verified. You can log in now.')
+            # Clear session
+            request.session.pop('pending_verification_email', None)
+            return redirect('accounts:login')
+
+        # Send verification email
+        send_verification_email(request, user)
+        messages.success(
+            request,
+            f'Verification email resent to {email}! Please check your inbox and spam folder.',
+            extra_tags='signup_success'
+        )
+
+    except User.DoesNotExist:
+        messages.error(request, 'Account not found. Please sign up again.')
+        request.session.pop('pending_verification_email', None)
+        return redirect('accounts:signup')
+    except Exception as e:
+        error_message = str(e)
+        messages.error(
+            request,
+            f'Failed to send verification email: {error_message}. Please contact support if this persists.',
+            extra_tags='signup_success'
+        )
+        print(f"Resend verification email failed: {e}")
+        import traceback
+        print(traceback.format_exc())
+
+    # Redirect back to signup page
+    return redirect('accounts:signup')
 
 
 def teacher_signup_view(request, token):
