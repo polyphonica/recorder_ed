@@ -315,15 +315,15 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             status='waitlist'
         ).select_related('applicant', 'child_profile').order_by('created_at')
 
-        # Get lesson requests for this teacher's subjects with pending or draft lessons
+        # Get lesson requests for this teacher's subjects with pending lessons
         # PERFORMANCE FIX: Use direct join instead of subquery
         from django.db.models import Prefetch, Q
         pending_requests = LessonRequest.objects.filter(
             lessons__subject__teacher=self.request.user,
-            lessons__approved_status__in=['Pending', 'Draft']
+            lessons__approved_status='Pending'
         ).distinct().select_related('student', 'child_profile').prefetch_related(
             Prefetch('lessons',
-                     queryset=Lesson.objects.select_related('subject').filter(approved_status__in=['Pending', 'Draft']))
+                     queryset=Lesson.objects.select_related('subject').filter(approved_status='Pending'))
         )
 
         # Get today's lessons for this teacher
