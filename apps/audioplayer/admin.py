@@ -74,7 +74,7 @@ class StemAdmin(admin.ModelAdmin):
 
 @admin.register(LessonPiece)
 class LessonPieceAdmin(admin.ModelAdmin):
-    list_display = ['piece', 'lesson', 'order', 'is_visible', 'is_optional', 'created_at']
+    list_display = ['piece', 'lesson_display', 'order', 'is_visible', 'is_optional', 'created_at']
     list_filter = ['is_visible', 'is_optional', 'lesson__topic__course']
     search_fields = ['piece__title', 'lesson__lesson_title', 'lesson__topic__course__title']
     ordering = ['lesson', 'order']
@@ -92,3 +92,8 @@ class LessonPieceAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    def lesson_display(self, obj):
+        """Display lesson title properly"""
+        return str(obj.lesson)
+    lesson_display.short_description = 'Lesson'
