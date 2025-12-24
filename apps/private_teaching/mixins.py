@@ -47,7 +47,14 @@ class StudentOnlyMixin(PrivateTeachingLoginRequiredMixin):
             return self.handle_no_permission()
 
         # Allow both students and guardians to access
-        if not hasattr(request.user, 'profile') or not (request.user.profile.is_student or request.user.profile.is_guardian):
+        if not hasattr(request.user, 'profile'):
+            messages.error(request, 'This section is only available to students and guardians.')
+            return redirect('private_teaching:home')
+
+        is_student = getattr(request.user.profile, 'is_student', True)
+        is_guardian = getattr(request.user.profile, 'is_guardian', False)
+
+        if not (is_student or is_guardian):
             messages.error(request, 'This section is only available to students and guardians.')
             return redirect('private_teaching:home')
 
