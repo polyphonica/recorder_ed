@@ -16,15 +16,19 @@
             <div class="max-w-md">
                 <h1 class="text-5xl font-bold">Private Lessons</h1>
                 <p class="py-6">One-on-one music lessons tailored to your needs. Book lessons with your teachers.</p>
-                {% if user.is_authenticated and (user.profile.is_student or user.profile.is_guardian) and user.profile.profile_completed %}
-                    <a href="{% url 'private_teaching:my_teachers' %}" class="btn btn-section-primary">My Teachers</a>
-                {% elif user.is_authenticated and not user.profile.profile_completed %}
-                    <a href="{% url 'private_teaching:profile_complete' %}" class="btn btn-warning">Complete Profile</a>
-                {% elif user.is_authenticated and not (user.profile.is_student or user.profile.is_guardian) %}
-                    <div class="space-y-4">
-                        <p class="text-sm">You need to register as a student or guardian to access private teaching.</p>
-                        <a href="{% url 'accounts:signup' %}?next={% url 'private_teaching:home' %}" class="btn btn-section-primary">Register</a>
-                    </div>
+                {% if user.is_authenticated %}
+                    {% if user.profile.profile_completed %}
+                        {% if user.profile.is_student or user.profile.is_guardian %}
+                            <a href="{% url 'private_teaching:my_teachers' %}" class="btn btn-section-primary">My Teachers</a>
+                        {% else %}
+                            <div class="space-y-4">
+                                <p class="text-sm">You need to register as a student or guardian to access private teaching.</p>
+                                <a href="{% url 'accounts:signup' %}?next={% url 'private_teaching:home' %}" class="btn btn-section-primary">Register</a>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <a href="{% url 'private_teaching:profile_complete' %}" class="btn btn-warning">Complete Profile</a>
+                    {% endif %}
                 {% else %}
                     <div class="space-y-4">
                         <a href="{% url 'login' %}?next={% url 'private_teaching:home' %}" class="btn btn-section-primary">Login</a>
@@ -97,10 +101,14 @@
                             <a href="{% url 'accounts:teacher_profile' teacher.id %}" class="btn btn-ghost btn-sm tooltip tooltip-top" data-tip="View teacher's full profile and teaching information">
                                 <i class="fas fa-info-circle mr-1"></i>View Profile
                             </a>
-                            {% if user.is_authenticated and (user.profile.is_student or user.profile.is_guardian) and user.profile.profile_completed %}
-                                <a href="{% url 'private_teaching:apply_to_teacher' teacher.id %}" class="btn btn-primary btn-sm tooltip tooltip-top" data-tip="Request to become this teacher's student">
-                                    <i class="fas fa-user-plus mr-1"></i>Apply to Study
-                                </a>
+                            {% if user.is_authenticated %}
+                                {% if user.profile.profile_completed %}
+                                    {% if user.profile.is_student or user.profile.is_guardian %}
+                                        <a href="{% url 'private_teaching:apply_to_teacher' teacher.id %}" class="btn btn-primary btn-sm tooltip tooltip-top" data-tip="Request to become this teacher's student">
+                                            <i class="fas fa-user-plus mr-1"></i>Apply to Study
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
                             {% endif %}
                         </div>
                     </div>
@@ -134,7 +142,10 @@
     </div>
 
     <!-- Recent Requests (for authenticated students/guardians) -->
-    {% if user.is_authenticated and (user.profile.is_student or user.profile.is_guardian) and user.profile.profile_completed and recent_requests %}
+    {% if user.is_authenticated %}
+        {% if user.profile.profile_completed %}
+            {% if user.profile.is_student or user.profile.is_guardian %}
+                {% if recent_requests %}
         <div class="mb-8">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-3xl font-bold">Your Recent Requests</h2>
@@ -174,6 +185,9 @@
                 {% endfor %}
             </div>
         </div>
+                {% endif %}
+            {% endif %}
+        {% endif %}
     {% endif %}
 
     <!-- How It Works -->
