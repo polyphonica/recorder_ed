@@ -9,21 +9,123 @@ from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 
 class CustomUserCreationForm(UserCreationForm):
-    email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={
-        'class': 'input input-bordered',
-        'placeholder': 'Enter your email address'
-    }))
+    # Account type selection
+    ACCOUNT_TYPE_CHOICES = [
+        ('adult_student', 'I am an adult student (18+)'),
+        ('parent_guardian', 'I am a parent/guardian signing up for a student under 18'),
+    ]
 
-    # Guardian/Child fields
-    is_guardian = forms.BooleanField(
-        required=False,
-        label="I am signing up for a student under 18",
-        widget=forms.CheckboxInput(attrs={
-            'class': 'checkbox checkbox-primary',
-            'id': 'id_is_guardian'
+    account_type = forms.ChoiceField(
+        required=True,
+        choices=ACCOUNT_TYPE_CHOICES,
+        widget=forms.RadioSelect(attrs={
+            'class': 'radio radio-primary',
+        }),
+        label="Account Type",
+        initial='adult_student'
+    )
+
+    # Personal information (required for both account types)
+    first_name = forms.CharField(
+        required=True,
+        max_length=100,
+        label="First Name",
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered',
+            'placeholder': 'Your first name'
         })
     )
 
+    last_name = forms.CharField(
+        required=True,
+        max_length=100,
+        label="Last Name",
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered',
+            'placeholder': 'Your last name'
+        })
+    )
+
+    phone = forms.CharField(
+        required=True,
+        max_length=20,
+        label="Phone Number",
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered',
+            'placeholder': 'Your phone number'
+        })
+    )
+
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={
+            'class': 'input input-bordered',
+            'placeholder': 'Your email address'
+        })
+    )
+
+    # Address fields (required only for parents/guardians)
+    address_line_1 = forms.CharField(
+        required=False,
+        max_length=255,
+        label="Address Line 1",
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered',
+            'placeholder': 'Street address'
+        })
+    )
+
+    address_line_2 = forms.CharField(
+        required=False,
+        max_length=255,
+        label="Address Line 2",
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered',
+            'placeholder': 'Apartment, suite, etc. (optional)'
+        })
+    )
+
+    city = forms.CharField(
+        required=False,
+        max_length=100,
+        label="City",
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered',
+            'placeholder': 'City'
+        })
+    )
+
+    state_province = forms.CharField(
+        required=False,
+        max_length=100,
+        label="State/Province",
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered',
+            'placeholder': 'State or Province'
+        })
+    )
+
+    postal_code = forms.CharField(
+        required=False,
+        max_length=20,
+        label="Postal Code",
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered',
+            'placeholder': 'Postal/ZIP code'
+        })
+    )
+
+    country = forms.CharField(
+        required=False,
+        max_length=100,
+        label="Country",
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered',
+            'placeholder': 'Country'
+        })
+    )
+
+    # Child fields (required only for parents/guardians)
     child_first_name = forms.CharField(
         required=False,
         max_length=100,
@@ -87,31 +189,51 @@ class CustomUserCreationForm(UserCreationForm):
         return email
 
     def clean(self):
-        """Validate guardian and child fields together"""
+        """Validate fields based on account type"""
         cleaned_data = super().clean()
-        is_guardian = cleaned_data.get('is_guardian')
+        account_type = cleaned_data.get('account_type')
 
-        if is_guardian:
-            # If guardian checkbox is checked, child fields are required
+        if account_type == 'parent_guardian':
+            # For parents/guardians, address and child fields are required
+
+            # Validate address fields
+            address_line_1 = cleaned_data.get('address_line_1')
+            city = cleaned_data.get('city')
+            state_province = cleaned_data.get('state_province')
+            postal_code = cleaned_data.get('postal_code')
+            country = cleaned_data.get('country')
+
+            if not address_line_1:
+                self.add_error('address_line_1', "Address is required for parent/guardian accounts.")
+            if not city:
+                self.add_error('city', "City is required for parent/guardian accounts.")
+            if not state_province:
+                self.add_error('state_province', "State/Province is required for parent/guardian accounts.")
+            if not postal_code:
+                self.add_error('postal_code', "Postal code is required for parent/guardian accounts.")
+            if not country:
+                self.add_error('country', "Country is required for parent/guardian accounts.")
+
+            # Validate child fields
             child_first_name = cleaned_data.get('child_first_name')
             child_last_name = cleaned_data.get('child_last_name')
             child_date_of_birth = cleaned_data.get('child_date_of_birth')
 
             if not child_first_name:
-                self.add_error('child_first_name', "Child's first name is required when signing up for a student under 18.")
+                self.add_error('child_first_name', "Child's first name is required.")
 
             if not child_last_name:
-                self.add_error('child_last_name', "Child's last name is required when signing up for a student under 18.")
+                self.add_error('child_last_name', "Child's last name is required.")
 
             if not child_date_of_birth:
-                self.add_error('child_date_of_birth', "Child's date of birth is required when signing up for a student under 18.")
+                self.add_error('child_date_of_birth', "Child's date of birth is required.")
             else:
                 # Validate that child is actually under 18
                 today = date.today()
                 age = today.year - child_date_of_birth.year - ((today.month, today.day) < (child_date_of_birth.month, child_date_of_birth.day))
 
                 if age >= 18:
-                    self.add_error('child_date_of_birth', "Child must be under 18 years old. For students 18 and over, please uncheck the guardian option and create their own account.")
+                    self.add_error('child_date_of_birth', "Child must be under 18 years old. For students 18 and over, please select 'Adult student' account type.")
 
                 # Also check the DOB is not in the future
                 if child_date_of_birth > today:

@@ -4,8 +4,8 @@
 {% block title %}Sign Up - {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-base-100 flex items-center justify-center">
-    <div class="card w-96 bg-base-100 shadow-xl">
+<div class="min-h-screen bg-base-100 flex items-center justify-center py-8">
+    <div class="card w-full max-w-2xl mx-4 bg-base-100 shadow-xl">
         <div class="card-body">
             {% if messages %}
                 {% for message in messages %}
@@ -77,14 +77,75 @@
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
                 {% endif %}
 
+                <!-- Account Type Selection -->
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold">{{ form.account_type.label }}</span>
+                    </label>
+                    <div class="space-y-3">
+                        {% for value, label in form.account_type.field.choices %}
+                        <label class="label cursor-pointer justify-start gap-4 p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors">
+                            <input type="radio" name="account_type" value="{{ value }}" class="radio radio-primary" {% if form.account_type.value == value or value == 'adult_student' and not form.account_type.value %}checked{% endif %}>
+                            <span class="label-text">{{ label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% if form.account_type.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.account_type.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="divider my-6">Personal Information</div>
+
+                <!-- Personal Information (always shown) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">{{ form.first_name.label }}</span>
+                        </label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.first_name.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">{{ form.last_name.label }}</span>
+                        </label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.last_name.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <div class="form-control mb-4">
                     <label class="label">
-                        <span class="label-text">Email Address</span>
+                        <span class="label-text">{{ form.email.label }}</span>
                     </label>
                     {{ form.email }}
-                    {% if form.email.help_text %}
+                    {% if form.email.errors %}
                         <label class="label">
-                            <span class="label-text-alt">{{ form.email.help_text }}</span>
+                            <span class="label-text-alt text-error">{{ form.email.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text">{{ form.phone.label }}</span>
+                    </label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.phone.errors.0 }}</span>
                         </label>
                     {% endif %}
                 </div>
@@ -99,6 +160,11 @@
                             <span class="label-text-alt text-xs">{{ form.password1.help_text }}</span>
                         </label>
                     {% endif %}
+                    {% if form.password1.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.password1.errors.0 }}</span>
+                        </label>
+                    {% endif %}
                 </div>
 
                 <div class="form-control mb-4">
@@ -106,61 +172,133 @@
                         <span class="label-text">Confirm Password</span>
                     </label>
                     {{ form.password2 }}
-                    {% if form.password2.help_text %}
+                    {% if form.password2.errors %}
                         <label class="label">
-                            <span class="label-text-alt text-xs">{{ form.password2.help_text }}</span>
+                            <span class="label-text-alt text-error">{{ form.password2.errors.0 }}</span>
                         </label>
                     {% endif %}
                 </div>
 
-                <!-- Guardian/Child Section -->
-                <div class="divider my-6"></div>
+                <!-- Address Fields (shown only for parents/guardians) -->
+                <div id="address-section" class="hidden">
+                    <div class="divider my-6">Address Information</div>
 
-                <div class="form-control mb-4">
-                    <label class="label cursor-pointer justify-start gap-4">
-                        {{ form.is_guardian }}
-                        <span class="label-text font-medium">{{ form.is_guardian.label }}</span>
-                    </label>
-                    <label class="label">
-                        <span class="label-text-alt text-xs">For students under 18, a parent/guardian must create and manage the account.</span>
-                    </label>
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">{{ form.address_line_1.label }}</span>
+                        </label>
+                        {{ form.address_line_1 }}
+                        {% if form.address_line_1.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.address_line_1.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">{{ form.address_line_2.label }}</span>
+                        </label>
+                        {{ form.address_line_2 }}
+                        {% if form.address_line_2.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.address_line_2.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">{{ form.city.label }}</span>
+                            </label>
+                            {{ form.city }}
+                            {% if form.city.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.city.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">{{ form.state_province.label }}</span>
+                            </label>
+                            {{ form.state_province }}
+                            {% if form.state_province.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.state_province.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">{{ form.postal_code.label }}</span>
+                            </label>
+                            {{ form.postal_code }}
+                            {% if form.postal_code.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.postal_code.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">{{ form.country.label }}</span>
+                            </label>
+                            {{ form.country }}
+                            {% if form.country.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.country.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Child Details (Hidden by default) -->
-                <div id="child-details" class="hidden space-y-4 mb-4 p-4 bg-base-200 rounded-lg">
-                    <div class="alert alert-info text-sm">
+                <!-- Child Details (shown only for parents/guardians) -->
+                <div id="child-section" class="hidden">
+                    <div class="divider my-6">Child Information</div>
+
+                    <div class="alert alert-info text-sm mb-4">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         <span>You are creating an account for your child. All communications will go to you, and only you will have login access.</span>
                     </div>
 
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">{{ form.child_first_name.label }}</span>
-                        </label>
-                        {{ form.child_first_name }}
-                        {% if form.child_first_name.errors %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="form-control">
                             <label class="label">
-                                <span class="label-text-alt text-error">{{ form.child_first_name.errors.0 }}</span>
+                                <span class="label-text">{{ form.child_first_name.label }}</span>
                             </label>
-                        {% endif %}
+                            {{ form.child_first_name }}
+                            {% if form.child_first_name.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.child_first_name.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">{{ form.child_last_name.label }}</span>
+                            </label>
+                            {{ form.child_last_name }}
+                            {% if form.child_last_name.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.child_last_name.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                            <label class="label">
+                                <span class="label-text-alt text-xs">Required for external exam registration</span>
+                            </label>
+                        </div>
                     </div>
 
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">{{ form.child_last_name.label }}</span>
-                        </label>
-                        {{ form.child_last_name }}
-                        {% if form.child_last_name.errors %}
-                            <label class="label">
-                                <span class="label-text-alt text-error">{{ form.child_last_name.errors.0 }}</span>
-                            </label>
-                        {% endif %}
-                        <label class="label">
-                            <span class="label-text-alt text-xs">Required for external exam registration</span>
-                        </label>
-                    </div>
-
-                    <div class="form-control">
+                    <div class="form-control mb-4">
                         <label class="label">
                             <span class="label-text">{{ form.child_date_of_birth.label }}</span>
                         </label>
@@ -178,7 +316,7 @@
                     </div>
                 </div>
 
-                <div class="form-control">
+                <div class="form-control mt-6">
                     <button type="submit" class="btn btn-primary">Create Account</button>
                 </div>
             </form>
@@ -206,23 +344,32 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const guardianCheckbox = document.getElementById('id_is_guardian');
-    const childDetails = document.getElementById('child-details');
+    const accountTypeRadios = document.querySelectorAll('input[name="account_type"]');
+    const addressSection = document.getElementById('address-section');
+    const childSection = document.getElementById('child-section');
 
-    // Function to toggle child details visibility
-    function toggleChildDetails() {
-        if (guardianCheckbox.checked) {
-            childDetails.classList.remove('hidden');
+    // Function to toggle sections visibility based on account type
+    function toggleSections() {
+        const selectedType = document.querySelector('input[name="account_type"]:checked')?.value;
+
+        if (selectedType === 'parent_guardian') {
+            // Show both address and child sections for parents
+            addressSection.classList.remove('hidden');
+            childSection.classList.remove('hidden');
         } else {
-            childDetails.classList.add('hidden');
+            // Hide both sections for adult students
+            addressSection.classList.add('hidden');
+            childSection.classList.add('hidden');
         }
     }
 
     // Set initial state
-    toggleChildDetails();
+    toggleSections();
 
-    // Listen for checkbox changes
-    guardianCheckbox.addEventListener('change', toggleChildDetails);
+    // Listen for radio button changes
+    accountTypeRadios.forEach(radio => {
+        radio.addEventListener('change', toggleSections);
+    });
 });
 </script>
 {% endblock %}

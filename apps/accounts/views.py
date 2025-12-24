@@ -59,20 +59,35 @@ class SignUpView(CreateView):
         response = super().form_valid(form)
         user = self.object
 
-        # Send verification email
-        email_sent = False
-        try:
-            send_verification_email(self.request, user)
-            email_sent = True
-        except Exception as e:
-            # Log error but don't block registration
-            print(f"Failed to send verification email: {e}")
+        # Get account type
+        account_type = form.cleaned_data.get('account_type')
 
-        # Check if this is a guardian signup
-        if form.cleaned_data.get('is_guardian'):
-            # Mark user profile as guardian
-            user.profile.is_guardian = True
-            user.profile.save()
+        # Update user model with name
+        user.first_name = form.cleaned_data.get('first_name', '')
+        user.last_name = form.cleaned_data.get('last_name', '')
+        user.save()
+
+        # Update profile with personal information
+        profile = user.profile
+        profile.first_name = form.cleaned_data.get('first_name', '')
+        profile.last_name = form.cleaned_data.get('last_name', '')
+        profile.phone = form.cleaned_data.get('phone', '')
+
+        # Set role flags based on account type
+        if account_type == 'parent_guardian':
+            # Parent/guardian account
+            profile.is_guardian = True
+            profile.is_student = False
+
+            # Save address information
+            profile.address_line_1 = form.cleaned_data.get('address_line_1', '')
+            profile.address_line_2 = form.cleaned_data.get('address_line_2', '')
+            profile.city = form.cleaned_data.get('city', '')
+            profile.state_province = form.cleaned_data.get('state_province', '')
+            profile.postal_code = form.cleaned_data.get('postal_code', '')
+            profile.country = form.cleaned_data.get('country', '')
+
+            profile.save()
 
             # Create child profile
             ChildProfile.objects.create(
@@ -81,6 +96,20 @@ class SignUpView(CreateView):
                 last_name=form.cleaned_data['child_last_name'],
                 date_of_birth=form.cleaned_data['child_date_of_birth']
             )
+        else:
+            # Adult student account
+            profile.is_guardian = False
+            profile.is_student = True
+            profile.save()
+
+        # Send verification email
+        email_sent = False
+        try:
+            send_verification_email(self.request, user)
+            email_sent = True
+        except Exception as e:
+            # Log error but don't block registration
+            print(f"Failed to send verification email: {e}")
 
         # Show success message with email verification instructions
         if email_sent:
