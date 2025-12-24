@@ -29,12 +29,14 @@ def teacher_required(view_func):
 
 @teacher_required
 def piece_list(request):
-    """List all pieces in the library"""
-    pieces = Piece.objects.prefetch_related('stems', 'lesson_assignments__lesson').all()
+    """List all pieces created by the logged-in teacher"""
+    pieces = Piece.objects.filter(
+        created_by=request.user
+    ).prefetch_related('stems', 'lesson_assignments__lesson')
 
     context = {
         'pieces': pieces,
-        'title': 'Playalong Piece Library'
+        'title': 'My Playalong Pieces'
     }
     return render(request, 'audioplayer/piece_list.html', context)
 
@@ -48,7 +50,10 @@ def piece_create(request):
         formset = StemFormSet(request.POST, request.FILES)
 
         if form.is_valid() and formset.is_valid():
-            piece = form.save()
+            piece = form.save(commit=False)
+            piece.created_by = request.user
+            piece.save()
+            form.save_m2m()  # Save many-to-many relationships (tags)
             formset.instance = piece
             formset.save()
             messages.success(request, f'Piece "{piece.title}" created successfully!')
@@ -406,20 +411,12 @@ class PlayAlongLibraryView(TemplateView):
         pieces = Piece.objects.select_related('composer').prefetch_related('tags', 'stems')
 
         if view_mode == 'my_pieces' and self.request.user.is_authenticated:
-            # Show pieces from user's lessons
+            # Show pieces based on user role
             if is_teacher:
-                # Teachers see pieces from all their lessons
-                from lessons.models import Lesson as PrivateLesson, PrivateLessonPiece
-                teacher_lesson_ids = PrivateLesson.objects.filter(
-                    teacher=self.request.user,
-                    is_deleted=False
-                ).values_list('id', flat=True)
-
-                piece_ids_from_lessons = PrivateLessonPiece.objects.filter(
-                    lesson_id__in=teacher_lesson_ids
-                ).values_list('piece_id', flat=True).distinct()
-
-                pieces = pieces.filter(id__in=piece_ids_from_lessons)
+                # Teachers see pieces they created + public pieces from other teachers
+                pieces = pieces.filter(
+                    Q(created_by=self.request.user) | Q(is_public=True)
+                )
             else:
                 # Students see pieces from their paid & assigned lessons
                 from lessons.models import Lesson as PrivateLesson, PrivateLessonPiece
@@ -435,12 +432,14 @@ class PlayAlongLibraryView(TemplateView):
                     lesson_id__in=student_lessons
                 ).values_list('piece_id', flat=True).distinct()
 
-                pieces = pieces.filter(id__in=piece_ids_from_lessons)
+                # Students see assigned pieces + all public pieces
+                pieces = pieces.filter(
+                    Q(id__in=piece_ids_from_lessons) | Q(is_public=True)
+                )
 
         elif view_mode == 'browse_all':
-            # Show all public pieces (teachers see all pieces)
-            if not is_teacher:
-                pieces = pieces.filter(is_public=True)
+            # Show all public pieces (both teachers and students)
+            pieces = pieces.filter(is_public=True)
         else:
             # Default to empty if not authenticated
             if not self.request.user.is_authenticated:

@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django_ckeditor_5.fields import CKEditor5Field
 from apps.core.validators import (
@@ -164,6 +165,15 @@ class Piece(models.Model):
     is_public = models.BooleanField(
         default=True,
         help_text="If checked, piece appears in library for all students to browse"
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_pieces',
+        help_text="Teacher who created this piece"
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
