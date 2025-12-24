@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserProfile
+from .models import UserProfile, ChildProfile
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
@@ -55,3 +55,40 @@ class UserProfileAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
+
+
+@admin.register(ChildProfile)
+class ChildProfileAdmin(admin.ModelAdmin):
+    list_display = ['full_name', 'guardian_name', 'date_of_birth', 'age', 'created_at']
+    list_filter = ['created_at', 'date_of_birth']
+    search_fields = ['first_name', 'last_name', 'guardian__email', 'guardian__first_name', 'guardian__last_name']
+    readonly_fields = ['id', 'age', 'is_adult', 'created_at', 'updated_at']
+
+    fieldsets = (
+        ('Child Information', {
+            'fields': ('first_name', 'last_name', 'date_of_birth')
+        }),
+        ('Guardian', {
+            'fields': ('guardian',)
+        }),
+        ('Calculated Fields', {
+            'fields': ('age', 'is_adult'),
+            'description': 'Age is calculated from date of birth. Students 18+ are eligible for account transfer.'
+        }),
+        ('System Information', {
+            'fields': ('id', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def guardian_name(self, obj):
+        """Display guardian's name and email"""
+        if obj.guardian.get_full_name():
+            return f"{obj.guardian.get_full_name()} ({obj.guardian.email})"
+        return obj.guardian.email
+    guardian_name.short_description = 'Guardian'
+
+    def full_name(self, obj):
+        """Display child's full name"""
+        return obj.full_name
+    full_name.short_description = 'Child Name'
