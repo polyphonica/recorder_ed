@@ -146,7 +146,13 @@ class ProfileCompletionMixin(LoginRequiredMixin):
             return super().dispatch(request, *args, **kwargs)
 
         # Check user type
-        if not getattr(request.user.profile, self.profile_attr, False):
+        # For students, also allow guardians (who manage child accounts)
+        is_correct_type = getattr(request.user.profile, self.profile_attr, False)
+        if self.user_type == 'student':
+            is_guardian = getattr(request.user.profile, 'is_guardian', False)
+            is_correct_type = is_correct_type or is_guardian
+
+        if not is_correct_type:
             msg = self.wrong_type_message or f'This section is only available to {self.user_type}s.'
             messages.error(request, msg)
             return redirect(self.redirect_url)
