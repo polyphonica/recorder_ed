@@ -413,12 +413,10 @@ class PlayAlongLibraryView(TemplateView):
         if view_mode == 'my_pieces' and self.request.user.is_authenticated:
             # Show pieces based on user role
             if is_teacher:
-                # Teachers see pieces they created + public pieces from other teachers
-                pieces = pieces.filter(
-                    Q(created_by=self.request.user) | Q(is_public=True)
-                )
+                # Teachers see only pieces they created
+                pieces = pieces.filter(created_by=self.request.user)
             else:
-                # Students see pieces from their paid & assigned lessons
+                # Students see ONLY pieces assigned to them in lessons
                 from lessons.models import Lesson as PrivateLesson, PrivateLessonPiece
                 student_lessons = PrivateLesson.objects.filter(
                     student=self.request.user,
@@ -432,10 +430,8 @@ class PlayAlongLibraryView(TemplateView):
                     lesson_id__in=student_lessons
                 ).values_list('piece_id', flat=True).distinct()
 
-                # Students see assigned pieces + all public pieces
-                pieces = pieces.filter(
-                    Q(id__in=piece_ids_from_lessons) | Q(is_public=True)
-                )
+                # Students see only their assigned pieces
+                pieces = pieces.filter(id__in=piece_ids_from_lessons)
 
         elif view_mode == 'browse_all':
             # Show all public pieces (both teachers and students)
