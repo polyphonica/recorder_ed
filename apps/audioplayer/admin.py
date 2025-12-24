@@ -74,29 +74,9 @@ class StemAdmin(admin.ModelAdmin):
 
 @admin.register(LessonPiece)
 class LessonPieceAdmin(admin.ModelAdmin):
-    list_display = ['piece', 'lesson_display', 'order', 'is_visible', 'is_optional', 'created_at']
-    list_filter = ['is_visible', 'is_optional', 'lesson__topic__course']
-    search_fields = ['piece__title', 'lesson__lesson_title', 'lesson__topic__course__title']
-    ordering = ['lesson__topic__course__title', 'lesson__topic__topic_number', 'lesson__lesson_number', 'order']
-    readonly_fields = ['created_at']
+    list_display = ['id', 'piece', 'order']
 
-    fieldsets = (
-        ('Assignment', {
-            'fields': ('lesson', 'piece', 'order')
-        }),
-        ('Display Settings', {
-            'fields': ('is_visible', 'is_optional', 'instructions')
-        }),
-        ('Metadata', {
-            'fields': ('created_at',),
-            'classes': ('collapse',)
-        }),
-    )
-
-    def lesson_display(self, obj):
-        """Display lesson title properly"""
-        if obj.lesson:
-            return f"{obj.lesson.lesson_title} (Topic {obj.lesson.topic.topic_number})"
-        return "-"
-    lesson_display.short_description = 'Lesson'
-    lesson_display.admin_order_field = 'lesson__lesson_title'
+    def get_queryset(self, request):
+        """Override to select related lesson data"""
+        qs = super().get_queryset(request)
+        return qs.select_related('lesson__topic__course', 'piece')
