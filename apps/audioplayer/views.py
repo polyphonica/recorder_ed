@@ -124,25 +124,25 @@ def piece_edit(request, pk):
 
 @teacher_required
 def piece_delete(request, pk):
-    """Delete piece (with safety check for usage in lessons)"""
+    """Delete piece (will also remove from all lessons)"""
     piece = get_object_or_404(Piece, pk=pk)
 
-    # Check if used in any lessons
+    # Check if used in any lessons (for warning, not blocking)
     usage_count = piece.lesson_assignments.count()
     lessons_using = piece.lesson_assignments.select_related('lesson__topic__course').all()[:5]
 
     if request.method == 'POST':
-        if usage_count > 0:
-            messages.error(
-                request,
-                f'Cannot delete "{piece.title}". It is currently used in {usage_count} lesson(s). '
-                f'Please remove it from all lessons first.'
-            )
-            return redirect('audioplayer:piece_edit', pk=pk)
-
         piece_title = piece.title
-        piece.delete()
-        messages.success(request, f'Piece "{piece_title}" deleted successfully.')
+        piece.delete()  # CASCADE will automatically delete lesson assignments
+
+        if usage_count > 0:
+            messages.success(
+                request,
+                f'Piece "{piece_title}" deleted successfully and removed from {usage_count} lesson(s).'
+            )
+        else:
+            messages.success(request, f'Piece "{piece_title}" deleted successfully.')
+
         return redirect('audioplayer:piece_list')
 
     context = {
