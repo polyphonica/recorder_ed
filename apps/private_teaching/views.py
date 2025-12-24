@@ -103,13 +103,13 @@ class PrivateTeachingHomeView(TemplateView):
             elif profile.is_teacher and profile.profile_completed:
                 return redirect('private_teaching:teacher_dashboard')
 
-            # Check if student needs to complete profile
-            elif profile.is_student and not profile.profile_completed:
+            # Check if student/guardian needs to complete profile
+            elif (profile.is_student or profile.is_guardian) and not profile.profile_completed:
                 messages.info(request, 'Please complete your profile to request lessons.')
                 return redirect('private_teaching:profile_complete')
 
-            # Redirect students with accepted teachers to their dashboard
-            elif profile.is_student and profile.profile_completed:
+            # Redirect students/guardians with accepted teachers to their dashboard
+            elif (profile.is_student or profile.is_guardian) and profile.profile_completed:
                 has_accepted_teacher = TeacherStudentApplication.objects.filter(
                     applicant=request.user,
                     status='accepted'

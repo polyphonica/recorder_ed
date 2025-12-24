@@ -38,17 +38,19 @@ class StudentProfileCompletedMixin(ProfileCompletionMixin):
 
 class StudentOnlyMixin(PrivateTeachingLoginRequiredMixin):
     """
-    Mixin that allows access only to users marked as students.
+    Mixin that allows access only to users marked as students or guardians.
+    Guardians can request lessons on behalf of their children.
     """
-    
+
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        
-        if not hasattr(request.user, 'profile') or not request.user.profile.is_student:
-            messages.error(request, 'This section is only available to students.')
+
+        # Allow both students and guardians to access
+        if not hasattr(request.user, 'profile') or not (request.user.profile.is_student or request.user.profile.is_guardian):
+            messages.error(request, 'This section is only available to students and guardians.')
             return redirect('private_teaching:home')
-        
+
         return super().dispatch(request, *args, **kwargs)
 
 
