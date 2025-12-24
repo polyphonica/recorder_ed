@@ -20,9 +20,9 @@
     <!-- Student Count -->
     <div class="mb-6">
         <div class="stat bg-base-200 rounded-lg shadow">
-            <div class="stat-title">Total Students</div>
+            <div class="stat-title text-lg">Total Students</div>
             <div class="stat-value text-primary">{{ student_data|length }}</div>
-            <div class="stat-desc">Active students with accepted lessons</div>
+            <div class="stat-desc text-base">Active students with accepted lessons</div>
         </div>
     </div>
 
@@ -34,12 +34,12 @@
                     <table class="table table-zebra w-full">
                         <thead>
                             <tr>
-                                <th class="text-lg w-32">Surname</th>
-                                <th class="text-lg w-48">First Name</th>
-                                <th class="text-lg">Email</th>
-                                <th class="text-lg w-40">Subjects</th>
-                                <th class="text-lg w-20 text-center">Lessons</th>
-                                <th class="text-lg text-center">Actions</th>
+                                <th class="text-xl w-32">Surname</th>
+                                <th class="text-xl w-48">First Name</th>
+                                <th class="text-xl">Email</th>
+                                <th class="text-xl w-40">Subjects</th>
+                                <th class="text-xl w-20 text-center">Lessons</th>
+                                <th class="text-xl text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -49,36 +49,36 @@
                                         {# Guardian with child students - show each child as a separate row #}
                                         {% for child in data.child_profiles %}
                                             <tr class="hover">
-                                                <td class="font-semibold">
+                                                <td class="font-semibold text-base">
                                                     {{ child.last_name }}
                                                 </td>
-                                                <td>
+                                                <td class="text-base">
                                                     <div class="flex items-center gap-2">
                                                         {{ child.first_name }}
-                                                        <span class="badge badge-warning badge-sm">
+                                                        <span class="badge badge-warning">
                                                             <i class="fas fa-child mr-1"></i>
                                                             Child
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td>
-                                                    <div class="text-sm">
+                                                <td class="text-base">
+                                                    <div>
                                                         <div>Guardian: {{ student.get_full_name }}</div>
                                                         <div class="text-base-content/70">{{ student.email|default:"No email" }}</div>
                                                     </div>
                                                 </td>
-                                                <td>
+                                                <td class="text-base">
                                                     {% if data.subjects %}
                                                         <div class="flex flex-wrap gap-1">
                                                             {% for subject in data.subjects %}
-                                                                <span class="badge badge-primary badge-sm">{{ subject.subject }}</span>
+                                                                <span class="badge badge-primary">{{ subject.subject }}</span>
                                                             {% endfor %}
                                                         </div>
                                                     {% else %}
                                                         —
                                                     {% endif %}
                                                 </td>
-                                                <td>
+                                                <td class="text-base">
                                                     <span class="badge badge-info">{{ data.total_lessons }}</span>
                                                 </td>
                                                 <td class="text-center">
@@ -107,33 +107,33 @@
                                     {% else %}
                                         {# Adult student #}
                                         <tr class="hover">
-                                            <td class="font-semibold">
+                                            <td class="font-semibold text-base">
                                                 {% if student.profile.last_name %}
                                                     {{ student.profile.last_name }}
                                                 {% else %}
                                                     {{ student.last_name|default:"—" }}
                                                 {% endif %}
                                             </td>
-                                            <td>
+                                            <td class="text-base">
                                                 {% if student.profile.first_name %}
                                                     {{ student.profile.first_name }}
                                                 {% else %}
                                                     {{ student.first_name|default:"—" }}
                                                 {% endif %}
                                             </td>
-                                            <td>{{ student.email|default:"No email" }}</td>
-                                            <td>
+                                            <td class="text-base">{{ student.email|default:"No email" }}</td>
+                                            <td class="text-base">
                                                 {% if data.subjects %}
                                                     <div class="flex flex-wrap gap-1">
                                                         {% for subject in data.subjects %}
-                                                            <span class="badge badge-primary badge-sm">{{ subject.subject }}</span>
+                                                            <span class="badge badge-primary">{{ subject.subject }}</span>
                                                         {% endfor %}
                                                     </div>
                                                 {% else %}
                                                     —
                                                 {% endif %}
                                             </td>
-                                            <td>
+                                            <td class="text-base">
                                                 <span class="badge badge-info">{{ data.total_lessons }}</span>
                                             </td>
                                             <td class="text-center">
