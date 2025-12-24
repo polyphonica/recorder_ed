@@ -95,5 +95,8 @@ class LessonPieceAdmin(admin.ModelAdmin):
 
     def lesson_display(self, obj):
         """Display lesson title properly"""
-        return str(obj.lesson)
+        if obj.lesson:
+            return f"{obj.lesson.lesson_title} (Topic {obj.lesson.topic.topic_number})"
+        return "-"
     lesson_display.short_description = 'Lesson'
+    lesson_display.admin_order_field = 'lesson__lesson_title'
