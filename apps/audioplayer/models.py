@@ -261,4 +261,4 @@ class LessonPiece(models.Model):
         verbose_name_plural = 'Lesson Piece Assignments'
 
     def __str__(self):
-        return f'{self.piece.title} in {self.lesson.title}'
+        return f'{self.piece.title} in {self.lesson.lesson_title}'
