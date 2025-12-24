@@ -49,10 +49,10 @@
                                         {# Guardian with child students - show each child as a separate row #}
                                         {% for child in data.child_profiles %}
                                             <tr class="hover">
-                                                <td class="font-semibold text-base">
+                                                <td class="font-semibold text-base py-4 align-top">
                                                     {{ child.last_name }}
                                                 </td>
-                                                <td class="text-base">
+                                                <td class="text-base py-4 align-top">
                                                     <div class="flex items-center gap-2">
                                                         {{ child.first_name }}
                                                         <span class="badge badge-warning">
@@ -61,24 +61,24 @@
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td class="text-base">
+                                                <td class="text-base py-4 align-top">
                                                     <div>
                                                         <div>Guardian: {{ student.get_full_name }}</div>
                                                         <div class="text-base-content/70">{{ student.email|default:"No email" }}</div>
                                                     </div>
                                                 </td>
-                                                <td class="text-base">
+                                                <td class="text-base py-4 align-top">
                                                     {% if data.subjects %}
-                                                        <div class="flex flex-wrap gap-1">
+                                                        <div class="flex flex-wrap gap-2">
                                                             {% for subject in data.subjects %}
-                                                                <span class="badge badge-primary !whitespace-normal h-auto py-2 px-3 leading-tight break-words max-w-full inline-block">{{ subject.subject }}</span>
+                                                                <span class="badge badge-primary !whitespace-normal h-auto py-2 px-3 leading-tight break-words inline-block">{{ subject.subject }}</span>
                                                             {% endfor %}
                                                         </div>
                                                     {% else %}
                                                         —
                                                     {% endif %}
                                                 </td>
-                                                <td class="text-base">
+                                                <td class="text-base py-4 align-top">
                                                     <span class="badge badge-info">{{ data.total_lessons }}</span>
                                                 </td>
                                                 <td class="text-center">
@@ -107,33 +107,33 @@
                                     {% else %}
                                         {# Adult student #}
                                         <tr class="hover">
-                                            <td class="font-semibold text-base">
+                                            <td class="font-semibold text-base py-4 align-top">
                                                 {% if student.profile.last_name %}
                                                     {{ student.profile.last_name }}
                                                 {% else %}
                                                     {{ student.last_name|default:"—" }}
                                                 {% endif %}
                                             </td>
-                                            <td class="text-base">
+                                            <td class="text-base py-4 align-top">
                                                 {% if student.profile.first_name %}
                                                     {{ student.profile.first_name }}
                                                 {% else %}
                                                     {{ student.first_name|default:"—" }}
                                                 {% endif %}
                                             </td>
-                                            <td class="text-base">{{ student.email|default:"No email" }}</td>
-                                            <td class="text-base">
+                                            <td class="text-base py-4 align-top">{{ student.email|default:"No email" }}</td>
+                                            <td class="text-base py-4 align-top">
                                                 {% if data.subjects %}
-                                                    <div class="flex flex-wrap gap-1">
+                                                    <div class="flex flex-wrap gap-2">
                                                         {% for subject in data.subjects %}
-                                                            <span class="badge badge-primary !whitespace-normal h-auto py-2 px-3 leading-tight break-words max-w-full inline-block">{{ subject.subject }}</span>
+                                                            <span class="badge badge-primary !whitespace-normal h-auto py-2 px-3 leading-tight break-words inline-block">{{ subject.subject }}</span>
                                                         {% endfor %}
                                                     </div>
                                                 {% else %}
                                                     —
                                                 {% endif %}
                                             </td>
-                                            <td class="text-base">
+                                            <td class="text-base py-4 align-top">
                                                 <span class="badge badge-info">{{ data.total_lessons }}</span>
                                             </td>
                                             <td class="text-center">
