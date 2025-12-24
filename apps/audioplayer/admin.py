@@ -77,7 +77,7 @@ class LessonPieceAdmin(admin.ModelAdmin):
     list_display = ['piece', 'lesson_display', 'order', 'is_visible', 'is_optional', 'created_at']
     list_filter = ['is_visible', 'is_optional', 'lesson__topic__course']
     search_fields = ['piece__title', 'lesson__lesson_title', 'lesson__topic__course__title']
-    ordering = ['lesson', 'order']
+    ordering = ['lesson__topic__course__title', 'lesson__topic__topic_number', 'lesson__lesson_number', 'order']
     readonly_fields = ['created_at']
 
     fieldsets = (
