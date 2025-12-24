@@ -25,6 +25,20 @@
         {% endif %}
     </div>
 
+    <!-- Description/Notes -->
+    {% if piece.description %}
+    <div class="card bg-base-100 shadow-md mb-6">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-sticky-note mr-2"></i>Description/Notes
+            </h2>
+            <div class="prose max-w-none text-base-content/80">
+                {{ piece.description|linebreaks }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Main Info -->
         <div class="lg:col-span-2 space-y-6">

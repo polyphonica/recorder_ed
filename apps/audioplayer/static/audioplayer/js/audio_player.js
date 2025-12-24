@@ -48,6 +48,14 @@ async function initPlayers(piecesData) {
         }
         playerContainer.appendChild(pieceTitle);
 
+        // Piece description if provided
+        if (piece.description) {
+            let description = document.createElement('div');
+            description.classList.add('piece-description');
+            description.textContent = piece.description;
+            playerContainer.appendChild(description);
+        }
+
         // Custom instructions if provided
         if (piece.instructions) {
             let instructions = document.createElement('div');

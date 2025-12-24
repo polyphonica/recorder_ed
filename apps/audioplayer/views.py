@@ -214,6 +214,7 @@ def pieces_json(request, lesson_id):
             'pdf_score': lp.piece.pdf_score.url if lp.piece.pdf_score else None,
             'pdf_score_title': lp.piece.pdf_score_title if lp.piece.pdf_score_title else None,
             'order': lp.order,
+            'description': lp.piece.description if lp.piece.description else None,
         }
 
         # Add lesson-specific customizations
@@ -359,6 +360,7 @@ def private_lesson_pieces_json(request, lesson_id):
             'pdf_score': lp.piece.pdf_score.url if lp.piece.pdf_score else None,
             'pdf_score_title': lp.piece.pdf_score_title if lp.piece.pdf_score_title else None,
             'order': lp.order,
+            'description': lp.piece.description if lp.piece.description else None,
         }
 
         # Add lesson-specific customizations
@@ -539,6 +541,7 @@ def library_piece_json(request, piece_id):
         'pdf_score': piece.pdf_score.url if piece.pdf_score else None,
         'pdf_score_title': piece.pdf_score_title if piece.pdf_score_title else None,
         'order': 0,  # Single piece, so order is always 0
+        'description': piece.description if piece.description else None,
     }
 
     return JsonResponse({'pieces_data': [piece_data]})
