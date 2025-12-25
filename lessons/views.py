@@ -42,8 +42,8 @@ class CalendarView(LoginRequiredMixin, TemplateView):
             if self.request.user.profile.is_teacher:
                 # Teachers see their lessons
                 lessons = lessons.filter(teacher=self.request.user)
-            elif self.request.user.profile.is_student:
-                # Students see their lessons
+            elif self.request.user.profile.is_student or getattr(self.request.user.profile, 'is_guardian', False):
+                # Students and guardians see their lessons
                 lessons = lessons.filter(student=self.request.user)
             else:
                 lessons = lessons.none()
@@ -171,8 +171,8 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
                         user_can_view = True
                     else:
                         error_message = "This lesson has not been approved yet."
-            elif self.request.user.profile.is_student:
-                # Student can only view their own lessons if approved, paid, and assigned
+            elif self.request.user.profile.is_student or getattr(self.request.user.profile, 'is_guardian', False):
+                # Students and guardians can only view their own lessons if approved, paid, and assigned
                 if lesson.student == self.request.user:
                     if lesson.approved_status != 'Accepted':
                         error_message = "This lesson is still awaiting teacher approval."
@@ -268,8 +268,8 @@ class LessonListView(LoginRequiredMixin, ListView):
                 teacher=self.request.user,
                 is_deleted=False
             ).select_related('subject', 'student', 'lesson_request')
-        elif self.request.user.profile.is_student:
-            # Students see their lessons
+        elif self.request.user.profile.is_student or getattr(self.request.user.profile, 'is_guardian', False):
+            # Students and guardians see their lessons
             return Lesson.objects.filter(
                 student=self.request.user,
                 is_deleted=False
@@ -294,7 +294,7 @@ def calendar_events_api(request):
     if hasattr(request.user, 'profile'):
         if request.user.profile.is_teacher:
             lessons = lessons.filter(teacher=request.user)
-        elif request.user.profile.is_student:
+        elif request.user.profile.is_student or getattr(request.user.profile, 'is_guardian', False):
             lessons = lessons.filter(student=request.user)
         else:
             lessons = lessons.none()
