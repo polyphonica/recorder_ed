@@ -1130,16 +1130,10 @@ function startWorkshopBookingTour() {
             </div>
 
             <div class="space-y-2">
-                <!-- Option to register for yourself -->
-                <label class="flex items-center gap-3 p-3 border border-base-300 rounded-lg hover:bg-base-200 cursor-pointer">
-                    <input type="radio" name="attendee" value="" class="radio radio-primary" checked>
-                    <span class="label-text font-medium">Myself ({{ user.get_full_name|default:user.username }})</span>
-                </label>
-
                 <!-- Option for each child -->
                 {% for child in user.children.all %}
                 <label class="flex items-center gap-3 p-3 border border-base-300 rounded-lg hover:bg-base-200 cursor-pointer">
-                    <input type="radio" name="attendee" value="{{ child.id }}" class="radio radio-primary">
+                    <input type="radio" name="attendee" value="{{ child.id }}" class="radio radio-primary" {% if forloop.first %}checked{% endif %}>
                     <span class="label-text font-medium">{{ child.full_name }} (Age: {{ child.age }})</span>
                 </label>
                 {% endfor %}
