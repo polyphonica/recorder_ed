@@ -2,7 +2,7 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}{{ student.get_full_name }} - {{ course.title }}{% endblock %}
+{% block title %}{% if enrollment.child_profile %}{{ enrollment.child_profile.full_name }}{% else %}{{ student.get_full_name }}{% endif %} - {{ course.title }}{% endblock %}
 
 {% block content %}
 <div class="section-courses">
@@ -14,7 +14,7 @@
                     <li><a href="{% url 'courses:instructor_dashboard' %}">Dashboard</a></li>
                     <li><a href="{% url 'courses:analytics' %}">Analytics</a></li>
                     <li><a href="{% url 'courses:course_analytics' course.slug %}">{{ course.title }}</a></li>
-                    <li>{{ student.get_full_name|default:student.username }}</li>
+                    <li>{% if enrollment.child_profile %}{{ enrollment.child_profile.full_name }}{% else %}{{ student.get_full_name|default:student.username }}{% endif %}</li>
                 </ul>
             </div>
 
@@ -22,13 +22,30 @@
                 <div class="avatar placeholder">
                     <div class="bg-neutral text-neutral-content rounded-full w-16">
                         <span class="text-3xl">
-                            {{ student.first_name|first|default:student.username|first }}{{ student.last_name|first|default:"" }}
+                            {% if enrollment.child_profile %}
+                                {{ enrollment.child_profile.first_name|first }}{{ enrollment.child_profile.last_name|first }}
+                            {% else %}
+                                {{ student.first_name|first|default:student.username|first }}{{ student.last_name|first|default:"" }}
+                            {% endif %}
                         </span>
                     </div>
                 </div>
                 <div>
-                    <h1 class="text-3xl font-bold">{{ student.get_full_name|default:student.username }}</h1>
-                    <p class="text-lg text-base-content/70">{{ student.email }}</p>
+                    <h1 class="text-3xl font-bold">
+                        {% if enrollment.child_profile %}
+                            {{ enrollment.child_profile.full_name }}
+                            <span class="text-base text-base-content/70 font-normal">(Guardian: {{ student.get_full_name|default:student.username }})</span>
+                        {% else %}
+                            {{ student.get_full_name|default:student.username }}
+                        {% endif %}
+                    </h1>
+                    <p class="text-lg text-base-content/70">
+                        {% if enrollment.child_profile %}
+                            Age: {{ enrollment.child_profile.age }} • Guardian Email: {{ student.email }}
+                        {% else %}
+                            {{ student.email }}
+                        {% endif %}
+                    </p>
                 </div>
             </div>
 
