@@ -184,12 +184,18 @@
                         <div class="flex items-center space-x-3">
                             <div class="avatar">
                                 <div class="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center text-sm">
-                                    {{ registration.student.first_name|first|default:registration.student.username|first }}
+                                    {% if registration.child_profile %}
+                                        {{ registration.child_profile.first_name|first }}
+                                    {% else %}
+                                        {{ registration.student.first_name|first|default:registration.student.username|first }}
+                                    {% endif %}
                                 </div>
                             </div>
                             <div>
                                 <p class="font-medium text-sm">
-                                    {% if registration.student.first_name %}
+                                    {% if registration.child_profile %}
+                                        {{ registration.child_profile.full_name }}
+                                    {% elif registration.student.first_name %}
                                         {{ registration.student.first_name }} {{ registration.student.last_name }}
                                     {% else %}
                                         {{ registration.student.username }}
