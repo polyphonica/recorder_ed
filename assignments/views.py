@@ -81,6 +81,20 @@ def assign_to_student(request, pk):
             assignment_link = form.save(commit=False)
             assignment_link.assignment = assignment
             assignment_link.teacher = request.user
+
+            # Check if assignment is already assigned to this student
+            existing_assignment = PrivateLessonAssignment.objects.filter(
+                assignment=assignment,
+                student=assignment_link.student
+            ).first()
+
+            if existing_assignment:
+                messages.error(
+                    request,
+                    f'Assignment "{assignment.title}" is already assigned to {assignment_link.student.get_full_name() or assignment_link.student.username}.'
+                )
+                return redirect('assignments:teacher_library')
+
             assignment_link.save()
 
             # Create an empty submission for the student

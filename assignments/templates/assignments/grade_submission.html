@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function renderNotation(containerId, notationData) {
         const container = document.getElementById(containerId);
-        if (!container || !notationData || !notationData.notes || notationData.notes.length === 0) {
+        if (!container || !notationData) {
             return;
         }
 
@@ -251,8 +251,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add clef
         const clef = notationData.clef || 'treble';
+        const keySignature = notationData.keySignature || '';
+
         stave.addClef(clef);
+        if (keySignature) {
+            stave.addKeySignature(keySignature);
+        }
         stave.setContext(context).draw();
+
+        // If there are no notes, just show the empty stave
+        if (!notationData.notes || notationData.notes.length === 0) {
+            return;
+        }
 
         // Create notes
         const vfNotes = notationData.notes.map(noteData => {
@@ -285,6 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Create voice and format
         const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+        voice.setMode(VF.Voice.Mode.SOFT);  // Don't strictly enforce beat counting
         voice.addTickables(vfNotes);
 
         const formatter = new VF.Formatter();
