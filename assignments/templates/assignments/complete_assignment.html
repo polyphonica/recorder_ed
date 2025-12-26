@@ -527,17 +527,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('notation-output');
         container.innerHTML = '';
 
-        if (notes.length === 0) {
-            container.innerHTML = '<p class="text-center text-base-content/50 py-8">Your notation will appear here</p>';
-            return;
-        }
-
+        // Always render the stave, even with no notes
         renderNotation('notation-output', { clef: selectedClef, notes: notes });
     }
 
     function renderNotation(containerId, notationData) {
         const container = document.getElementById(containerId);
-        if (!container || !notationData || !notationData.notes || notationData.notes.length === 0) {
+        if (!container || !notationData) {
             return;
         }
 
@@ -551,6 +547,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const clef = notationData.clef || 'treble';
         stave.addClef(clef);
         stave.setContext(context).draw();
+
+        // If there are no notes, just show the empty stave
+        if (!notationData.notes || notationData.notes.length === 0) {
+            return;
+        }
 
         const vfNotes = notationData.notes.map(noteData => {
             if (noteData.type === 'barline') {
