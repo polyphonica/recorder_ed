@@ -25,8 +25,18 @@
         min-width: 60px;
     }
 
-    .duration-button, .accidental-button {
-        min-width: 50px;
+    .duration-button {
+        min-width: 70px;
+        font-size: 2.5rem;
+        line-height: 1;
+        padding: 0.5rem;
+    }
+
+    .accidental-button {
+        min-width: 60px;
+        font-size: 2.5rem;
+        line-height: 1;
+        padding: 0.5rem;
     }
 
     #chord-display {
@@ -116,17 +126,17 @@
                             </div>
 
                             <!-- Note Controls -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <!-- Duration Selection -->
                                 <div class="form-control">
                                     <label class="label">
                                         <span class="label-text font-semibold">Duration:</span>
                                     </label>
-                                    <div class="grid grid-cols-4 gap-1">
-                                        <button type="button" class="btn btn-sm duration-button btn-active" data-duration="w">𝅝</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="h">𝅗𝅥</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="q">♩</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="8">♪</button>
+                                    <div class="grid grid-cols-4 gap-2">
+                                        <button type="button" class="btn duration-button btn-active" data-duration="w">𝅝</button>
+                                        <button type="button" class="btn duration-button" data-duration="h">𝅗𝅥</button>
+                                        <button type="button" class="btn duration-button" data-duration="q">♩</button>
+                                        <button type="button" class="btn duration-button" data-duration="8">♪</button>
                                     </div>
                                 </div>
 
@@ -135,66 +145,45 @@
                                     <label class="label">
                                         <span class="label-text font-semibold">Accidental:</span>
                                     </label>
-                                    <div class="grid grid-cols-3 gap-1">
-                                        <button type="button" class="btn btn-sm accidental-button btn-active" data-accidental="none">♮</button>
-                                        <button type="button" class="btn btn-sm accidental-button" data-accidental="#">♯</button>
-                                        <button type="button" class="btn btn-sm accidental-button" data-accidental="b">♭</button>
-                                    </div>
-                                </div>
-
-                                <!-- Chord Mode -->
-                                <div class="form-control">
-                                    <label class="label">
-                                        <span class="label-text font-semibold">Mode:</span>
-                                    </label>
-                                    <div class="form-control">
-                                        <label class="label cursor-pointer justify-start gap-2">
-                                            <input type="checkbox" class="toggle toggle-primary" id="chord-mode-toggle">
-                                            <span class="label-text">Chord Mode</span>
-                                        </label>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <button type="button" class="btn accidental-button btn-active" data-accidental="none">♮</button>
+                                        <button type="button" class="btn accidental-button" data-accidental="#">♯</button>
+                                        <button type="button" class="btn accidental-button" data-accidental="b">♭</button>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Pitch Selection -->
+                            <!-- Pitch Selection (2 octaves: C4-B5) -->
                             <div class="form-control mb-4">
                                 <label class="label">
-                                    <span class="label-text font-semibold">Select Pitch:</span>
+                                    <span class="label-text font-semibold">Select Pitch (C4-B5):</span>
                                 </label>
-                                <div class="grid grid-cols-7 md:grid-cols-14 gap-1">
-                                    <!-- Octave 3 -->
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="c/3">C3</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="d/3">D3</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="e/3">E3</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="f/3">F3</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="g/3">G3</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="a/3">A3</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="b/3">B3</button>
+                                <div class="grid grid-cols-7 md:grid-cols-14 gap-2">
                                     <!-- Octave 4 -->
-                                    <button type="button" class="btn btn-xs pitch-button btn-active" data-pitch="c/4">C4</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="d/4">D4</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="e/4">E4</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="f/4">F4</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="g/4">G4</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="a/4">A4</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="b/4">B4</button>
+                                    <button type="button" class="btn btn-sm pitch-button btn-active" data-pitch="c/4">C4</button>
+                                    <button type="button" class="btn btn-sm pitch-button" data-pitch="d/4">D4</button>
+                                    <button type="button" class="btn btn-sm pitch-button" data-pitch="e/4">E4</button>
+                                    <button type="button" class="btn btn-sm pitch-button" data-pitch="f/4">F4</button>
+                                    <button type="button" class="btn btn-sm pitch-button" data-pitch="g/4">G4</button>
+                                    <button type="button" class="btn btn-sm pitch-button" data-pitch="a/4">A4</button>
+                                    <button type="button" class="btn btn-sm pitch-button" data-pitch="b/4">B4</button>
                                     <!-- Octave 5 -->
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="c/5">C5</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="d/5">D5</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="e/5">E5</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="f/5">F5</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="g/5">G5</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="a/5">A5</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="b/5">B5</button>
-                                    <!-- Octave 6 -->
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="c/6">C6</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="d/6">D6</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="e/6">E6</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="f/6">F6</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="g/6">G6</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="a/6">A6</button>
-                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="b/6">B6</button>
+                                    <button type="button" class="btn btn-sm pitch-button" data-pitch="c/5">C5</button>
+                                    <button type="button" class="btn btn-sm pitch-button" data-pitch="d/5">D5</button>
+                                    <button type="button" class="btn btn-sm pitch-button" data-pitch="e/5">E5</button>
+                                    <button type="button" class="btn btn-sm pitch-button" data-pitch="f/5">F5</button>
+                                    <button type="button" class="btn btn-sm pitch-button" data-pitch="g/5">G5</button>
+                                    <button type="button" class="btn btn-sm pitch-button" data-pitch="a/5">A5</button>
+                                    <button type="button" class="btn btn-sm pitch-button" data-pitch="b/5">B5</button>
                                 </div>
+                            </div>
+
+                            <!-- Chord Mode Toggle -->
+                            <div class="form-control mb-4">
+                                <label class="label cursor-pointer justify-start gap-3">
+                                    <input type="checkbox" class="toggle toggle-primary toggle-lg" id="chord-mode-toggle">
+                                    <span class="label-text font-semibold">Chord Mode (select multiple notes)</span>
+                                </label>
                             </div>
 
                             <!-- Chord Building Display -->
@@ -336,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // State
     let selectedClef = 'treble';
-    let selectedDuration = 'q';
+    let selectedDuration = 'w';  // Default to whole note (matches btn-active in HTML)
     let selectedAccidental = 'none';
     let selectedPitch = 'c/4';
     let chordMode = false;
@@ -588,6 +577,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+        voice.setMode(VF.Voice.Mode.SOFT);  // Don't strictly enforce beat counting
         voice.addTickables(vfNotes);
 
         const formatter = new VF.Formatter();
