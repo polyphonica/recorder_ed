@@ -95,22 +95,64 @@ class AssignToStudentForm(forms.ModelForm):
         if teacher:
             # Filter students to only those who are the teacher's students
             from lessons.models import Lesson
-            student_ids = Lesson.objects.filter(
+
+            # Get all accepted lessons for this teacher with child profile info
+            lessons = Lesson.objects.filter(
                 teacher=teacher,
                 approved_status='Accepted',
                 is_deleted=False
-            ).values_list('student_id', flat=True).distinct()
+            ).select_related('student', 'lesson_request', 'lesson_request__child_profile').distinct()
 
-            self.fields['student'].queryset = User.objects.filter(
-                id__in=student_ids
-            ).order_by('first_name', 'last_name', 'username')
+            # Build a dict of student choices with proper display names
+            student_choices = {}
+            for lesson in lessons:
+                student_id = lesson.student.id
+                if student_id not in student_choices:
+                    # Check if this is a child student
+                    if lesson.lesson_request and lesson.lesson_request.child_profile:
+                        child = lesson.lesson_request.child_profile
+                        guardian = lesson.student
+                        # Show child name with guardian in parentheses
+                        display_name = f"{child.full_name} (Guardian: {guardian.get_full_name() or guardian.username})"
+                    else:
+                        # Show regular student name
+                        display_name = lesson.student.get_full_name() or lesson.student.username
+
+                    student_choices[student_id] = display_name
+
+            # Sort by display name
+            sorted_choices = sorted(student_choices.items(), key=lambda x: x[1])
+
+            # Set queryset and override label_from_instance
+            student_ids = [student_id for student_id, _ in sorted_choices]
+            self.fields['student'].queryset = User.objects.filter(id__in=student_ids)
+
+            # Store display names for use in label_from_instance
+            self._student_display_names = student_choices
+
+            # Override the label display method
+            original_label = self.fields['student'].label_from_instance
+            def custom_label(obj):
+                return self._student_display_names.get(obj.id, obj.get_full_name() or obj.username)
+            self.fields['student'].label_from_instance = custom_label
 
             # Filter lessons to only this teacher's accepted lessons
             self.fields['lesson'].queryset = Lesson.objects.filter(
                 teacher=teacher,
                 approved_status='Accepted',
                 is_deleted=False
-            ).order_by('-lesson_date')
+            ).select_related('lesson_request', 'lesson_request__child_profile', 'student').order_by('-lesson_date')
+
+            # Override the lesson label display to show child name if applicable
+            def lesson_label(obj):
+                # Show child name if this is a child lesson
+                if obj.lesson_request and obj.lesson_request.child_profile:
+                    student_name = obj.lesson_request.child_profile.full_name
+                else:
+                    student_name = obj.student.get_full_name() or obj.student.username
+
+                return f"{student_name} - {obj.lesson_date.strftime('%b %d, %Y')} - {obj.subject.subject}"
+            self.fields['lesson'].label_from_instance = lesson_label
 
             # Make student required, lesson optional
             self.fields['lesson'].required = False
