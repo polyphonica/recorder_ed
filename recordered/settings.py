@@ -83,6 +83,7 @@ INSTALLED_APPS = [
     'apps.admin_portal',
     'apps.teacher_applications',
     'lessons',
+    'assignments',
 ]
 
 MIDDLEWARE = [

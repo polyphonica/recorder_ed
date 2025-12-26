@@ -1446,3 +1446,85 @@ class TeacherAvailabilitySettings(models.Model):
     def __str__(self):
         teacher_name = self.teacher.get_full_name() or self.teacher.username
         return f"Availability Settings - {teacher_name}"
+
+
+class PrivateLessonAssignment(models.Model):
+    """
+    Links assignments to private teaching context
+    Can be linked to a specific lesson or standalone
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    assignment = models.ForeignKey(
+        'assignments.Assignment',
+        on_delete=models.CASCADE,
+        related_name='private_lesson_assignments'
+    )
+    lesson = models.ForeignKey(
+        'lessons.Lesson',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='assignments',
+        help_text="Optional: Link to specific lesson"
+    )
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='private_lesson_assignments_received'
+    )
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='private_lesson_assignments_given'
+    )
+    due_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Optional due date for the assignment"
+    )
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-assigned_at']
+        indexes = [
+            models.Index(fields=['student', '-assigned_at']),
+            models.Index(fields=['teacher', '-assigned_at']),
+            models.Index(fields=['lesson']),
+        ]
+
+    def __str__(self):
+        student_name = self.student.get_full_name() or self.student.username
+        lesson_info = f" (Lesson: {self.lesson.lesson_date})" if self.lesson else " (Standalone)"
+        return f"{self.assignment.title} → {student_name}{lesson_info}"
+
+    @property
+    def submission(self):
+        """Get the submission for this assignment (if exists)"""
+        from assignments.models import AssignmentSubmission
+        try:
+            return AssignmentSubmission.objects.get(
+                student=self.student,
+                assignment=self.assignment
+            )
+        except AssignmentSubmission.DoesNotExist:
+            return None
+
+    @property
+    def is_submitted(self):
+        """Check if student has submitted"""
+        sub = self.submission
+        return sub and sub.status in ['submitted', 'graded']
+
+    @property
+    def is_graded(self):
+        """Check if submission is graded"""
+        sub = self.submission
+        return sub and sub.status == 'graded'
+
+    @property
+    def is_overdue(self):
+        """Check if assignment is overdue"""
+        from django.utils import timezone
+        if not self.due_date:
+            return False
+        return timezone.now() > self.due_date and not self.is_submitted
