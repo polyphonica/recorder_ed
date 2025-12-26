@@ -279,29 +279,29 @@
 </div>
 
 <script>
-// Tab switching functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const tabs = document.querySelectorAll('.tab');
-    const tabContents = document.querySelectorAll('.tab-content');
+// Tab switching functionality - TEMPORARILY DISABLED FOR DEBUG
+// document.addEventListener('DOMContentLoaded', function() {
+//     const tabs = document.querySelectorAll('.tab');
+//     const tabContents = document.querySelectorAll('.tab-content');
 
-    tabs.forEach(tab => {
-        tab.addEventListener('click', function(e) {
-            e.preventDefault();
-            const targetTab = this.getAttribute('data-tab');
+//     tabs.forEach(tab => {
+//         tab.addEventListener('click', function(e) {
+//             e.preventDefault();
+//             const targetTab = this.getAttribute('data-tab');
 
-            // Remove active class from all tabs
-            tabs.forEach(t => t.classList.remove('tab-active'));
+//             // Remove active class from all tabs
+//             tabs.forEach(t => t.classList.remove('tab-active'));
 
-            // Add active class to clicked tab
-            this.classList.add('tab-active');
+//             // Add active class to clicked tab
+//             this.classList.add('tab-active');
 
-            // Hide all tab contents
-            tabContents.forEach(content => content.classList.add('hidden'));
+//             // Hide all tab contents
+//             tabContents.forEach(content => content.classList.add('hidden'));
 
-            // Show target tab content
-            document.getElementById('tab-' + targetTab).classList.remove('hidden');
-        });
-    });
-});
+//             // Show target tab content
+//             document.getElementById('tab-' + targetTab).classList.remove('hidden');
+//         });
+//     });
+// });
 </script>
 {% endblock %}
