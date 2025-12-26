@@ -1303,7 +1303,7 @@ class TeacherDocumentLibraryView(TeacherProfileCompletedMixin, TemplateView):
             teacher=self.request.user,
             approved_status='Accepted',
             is_deleted=False
-        ).select_related('student__profile', 'lesson_request__child_profile').distinct('student')
+        ).select_related('student__profile', 'lesson_request__child_profile').order_by('student').distinct('student')
 
         students_list = []
         seen_students = set()
