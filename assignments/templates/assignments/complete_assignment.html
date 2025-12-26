@@ -26,11 +26,15 @@
     }
 
     .duration-button {
-        min-width: 80px;
+        min-width: 90px;
         font-size: 1.125rem;
         font-weight: 600;
-        padding: 1rem 0.5rem;
+        padding: 0.75rem 0.5rem;
         height: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
     }
 
     .accidental-button {
@@ -219,10 +223,22 @@
                                         <span class="label-text font-semibold">Duration:</span>
                                     </label>
                                     <div class="grid grid-cols-4 gap-2">
-                                        <button type="button" class="btn duration-button btn-active" data-duration="w">Whole/Semibreve</button>
-                                        <button type="button" class="btn duration-button" data-duration="h">Half/Minim</button>
-                                        <button type="button" class="btn duration-button" data-duration="q">Quarter/Crotchet</button>
-                                        <button type="button" class="btn duration-button" data-duration="8">Eighth/Quaver</button>
+                                        <button type="button" class="btn duration-button btn-active" data-duration="w">
+                                            <span style="font-size: 2rem; line-height: 1;">𝅝</span><br>
+                                            <span style="font-size: 0.7rem;">Whole<br>Semibreve</span>
+                                        </button>
+                                        <button type="button" class="btn duration-button" data-duration="h">
+                                            <span style="font-size: 2rem; line-height: 1;">𝅗𝅥</span><br>
+                                            <span style="font-size: 0.7rem;">Half<br>Minim</span>
+                                        </button>
+                                        <button type="button" class="btn duration-button" data-duration="q">
+                                            <span style="font-size: 2rem; line-height: 1;">♩</span><br>
+                                            <span style="font-size: 0.7rem;">Quarter<br>Crotchet</span>
+                                        </button>
+                                        <button type="button" class="btn duration-button" data-duration="8">
+                                            <span style="font-size: 2rem; line-height: 1;">♪</span><br>
+                                            <span style="font-size: 0.7rem;">Eighth<br>Quaver</span>
+                                        </button>
                                     </div>
                                 </div>
 
