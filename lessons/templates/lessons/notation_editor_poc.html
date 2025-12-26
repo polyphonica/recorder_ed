@@ -493,30 +493,13 @@ function renderNotes() {
     if (notes.length === 0) return;
 
     try {
-        // Split notes into measures (separated by barlines)
-        const measures = [];
-        let currentMeasure = [];
-
-        notes.forEach(item => {
-            if (item.type === 'barline') {
-                if (currentMeasure.length > 0) {
-                    measures.push(currentMeasure);
-                    currentMeasure = [];
-                }
+        // Convert all items to VexFlow notes, including barlines
+        const vfNotes = notes.map(noteData => {
+            if (noteData.type === 'barline') {
+                // Create a barline using BarNote
+                return new VF.BarNote();
             } else {
-                currentMeasure.push(item);
-            }
-        });
-
-        // Add remaining notes as last measure
-        if (currentMeasure.length > 0) {
-            measures.push(currentMeasure);
-        }
-
-        // For now, just render all notes in one voice (ignoring barlines visually)
-        const vfNotes = notes
-            .filter(item => item.type !== 'barline')
-            .map(noteData => {
+                // Create regular note or rest
                 const note = new VF.StaveNote({
                     keys: noteData.keys,
                     duration: noteData.duration
@@ -528,7 +511,8 @@ function renderNotes() {
                 }
 
                 return note;
-            });
+            }
+        });
 
         if (vfNotes.length === 0) return;
 
