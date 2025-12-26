@@ -127,6 +127,13 @@
                     </a>
                 {% endif %}
 
+                {% if pending_assignment_submissions_count > 0 %}
+                    <a href="{% url 'assignments:teacher_submissions' %}" class="btn btn-ghost text-white justify-start">
+                        <i class="fas fa-clipboard-check mr-2"></i>
+                        <span>Grade {{ pending_assignment_submissions_count }} Assignment{{ pending_assignment_submissions_count|pluralize }}</span>
+                    </a>
+                {% endif %}
+
                 {% if today_lessons.count > 0 %}
                     <a href="{% url 'private_teaching:teacher_schedule' %}" class="btn btn-ghost text-white justify-start">
                         <i class="fas fa-clock mr-2"></i>
@@ -134,7 +141,7 @@
                     </a>
                 {% endif %}
 
-                {% if paid_unassigned_count == 0 and pending_applications_count == 0 and pending_count == 0 and pending_cancellations_count == 0 and waitlist_applications_count == 0 %}
+                {% if paid_unassigned_count == 0 and pending_applications_count == 0 and pending_count == 0 and pending_cancellations_count == 0 and waitlist_applications_count == 0 and pending_assignment_submissions_count == 0 %}
                     <div class="text-center py-4">
                         <div class="text-5xl mb-2">✨</div>
                         <p class="text-white font-semibold">All caught up!</p>
@@ -152,6 +159,30 @@
                     Registered or submitted
                 {% else %}
                     No active exams
+                {% endif %}
+            </div>
+        </a>
+
+        <a href="{% url 'assignments:teacher_submissions' %}" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer" style="background-color: #8b5cf6; color: white;">
+            <div class="stat-title text-lg font-semibold" style="color: white;">Assignments to Grade</div>
+            <div class="stat-value text-4xl" style="color: white;">{{ pending_assignment_submissions_count }}</div>
+            <div class="stat-desc text-base mt-2" style="color: white;">
+                {% if pending_assignment_submissions_count > 0 %}
+                    {% if pending_assignment_submissions_count == 1 %}1 submission{% else %}{{ pending_assignment_submissions_count }} submissions{% endif %} awaiting grading
+                {% else %}
+                    All assignments graded
+                {% endif %}
+            </div>
+        </a>
+
+        <a href="{% url 'assignments:teacher_library' %}" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer" style="background-color: #14b8a6; color: white;">
+            <div class="stat-title text-lg font-semibold" style="color: white;">Assignment Library</div>
+            <div class="stat-value text-4xl" style="color: white;">{{ my_assignments_count }}</div>
+            <div class="stat-desc text-base mt-2" style="color: white;">
+                {% if my_assignments_count > 0 %}
+                    Music theory assignments
+                {% else %}
+                    Create your first assignment
                 {% endif %}
             </div>
         </a>

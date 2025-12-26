@@ -93,6 +93,18 @@
                 {% endif %}
             </div>
         </div>
+
+        <a href="{% url 'assignments:student_library' %}" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer" style="background-color: #14b8a6; color: white;">
+            <div class="stat-title text-lg font-semibold" style="color: white;">Pending Assignments</div>
+            <div class="stat-value text-4xl" style="color: white;">{{ pending_assignments_count }}</div>
+            <div class="stat-desc text-base mt-2" style="color: white;">
+                {% if pending_assignments_count > 0 %}
+                    {% if pending_assignments_count == 1 %}1 assignment{% else %}{{ pending_assignments_count }} assignments{% endif %} to complete
+                {% else %}
+                    All caught up!
+                {% endif %}
+            </div>
+        </a>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -265,6 +277,9 @@
                     <i class="fas fa-bolt mr-2"></i>Quick Actions
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <a href="{% url 'assignments:student_library' %}" class="btn btn-outline btn-lg">
+                        <i class="fas fa-tasks mr-2"></i>My Assignments
+                    </a>
                     <a href="{% url 'private_teaching:practice_log' %}" class="btn btn-outline btn-lg">
                         <i class="fas fa-clipboard-list mr-2"></i>Practice Log
                     </a>

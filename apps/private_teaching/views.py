@@ -365,6 +365,14 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             status='pending'
         ).select_related('student', 'lesson', 'lesson__subject').order_by('-created_at')
 
+        # Get assignment stats
+        from assignments.models import Assignment, AssignmentSubmission
+        my_assignments_count = Assignment.objects.filter(created_by=self.request.user, is_active=True).count()
+        pending_assignment_submissions_count = AssignmentSubmission.objects.filter(
+            assignment__created_by=self.request.user,
+            status='submitted'
+        ).count()
+
         context.update({
             'pending_applications': pending_applications,
             'pending_applications_count': pending_applications.count(),
@@ -379,6 +387,8 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             'active_exams_count': active_exams,
             'pending_cancellations': pending_cancellations,
             'pending_cancellations_count': pending_cancellations.count(),
+            'my_assignments_count': my_assignments_count,
+            'pending_assignment_submissions_count': pending_assignment_submissions_count,
             'today': today,
         })
         return context
@@ -434,6 +444,14 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
             Q(exam_date__gte=today) | Q(exam_date__isnull=True)
         ).select_related('subject', 'exam_board').order_by('exam_date')
 
+        # Get pending assignments (draft or not yet submitted)
+        from apps.private_teaching.models import PrivateLessonAssignment
+        pending_assignments_count = PrivateLessonAssignment.objects.filter(
+            student=self.request.user
+        ).exclude(
+            submission__status__in=['submitted', 'graded']
+        ).count()
+
         context.update({
             'my_applications': my_applications,
             'pending_applications': pending_applications,
@@ -444,6 +462,7 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
             'upcoming_lessons': upcoming_lessons,
             'awaiting_payment': awaiting_payment,
             'upcoming_exams': upcoming_exams,
+            'pending_assignments_count': pending_assignments_count,
             'today': today,
         })
         return context
