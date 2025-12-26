@@ -45,9 +45,12 @@
 
     <!-- Pending Assignments Tab -->
     <div id="tab-pending" class="tab-content">
+        <p class="text-error">DEBUG: In pending tab, pending_assignments exists: {{ pending_assignments|length }}</p>
         {% if pending_assignments %}
+            <p class="text-success">DEBUG: Inside if block, starting loop...</p>
             <div class="grid grid-cols-1 gap-6">
                 {% for link in pending_assignments %}
+                    <p class="text-info">DEBUG: Loop iteration for {{ link.assignment.title }}</p>
                     <div class="card card-section shadow-xl hover:shadow-2xl transition-shadow">
                         <div class="card-body">
                             <div class="flex justify-between items-start">
