@@ -16,17 +16,19 @@
 
     <!-- Pending Assignments Section -->
     <div class="mb-12">
-        <h2 class="text-2xl font-bold mb-4">
-            <i class="fas fa-clock mr-2"></i>Pending Assignments
-            {% if pending_count > 0 %}
-                <span class="badge badge-primary ml-2">{{ pending_count }}</span>
-            {% endif %}
-        </h2>
+        <div class="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 mb-6">
+            <h2 class="text-2xl font-bold">
+                <i class="fas fa-clock mr-2 text-primary"></i>Pending Assignments
+                {% if pending_count > 0 %}
+                    <span class="badge badge-primary ml-2">{{ pending_count }}</span>
+                {% endif %}
+            </h2>
+        </div>
 
         {% if pending_assignments %}
             <div class="grid grid-cols-1 gap-6">
                 {% for link in pending_assignments %}
-                    <div class="card card-section shadow-xl hover:shadow-2xl transition-shadow">
+                    <div class="card card-section shadow-xl hover:shadow-2xl transition-shadow border-l-4 border-primary">
                         <div class="card-body">
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
@@ -132,14 +134,16 @@
 
     <!-- Submitted Assignments Section -->
     <div class="mb-12">
-        <h2 class="text-2xl font-bold mb-4">
-            <i class="fas fa-check-circle mr-2"></i>Submitted Assignments
-        </h2>
+        <div class="bg-gradient-to-r from-warning/10 to-warning/5 rounded-lg p-4 mb-6">
+            <h2 class="text-2xl font-bold">
+                <i class="fas fa-check-circle mr-2 text-warning"></i>Submitted Assignments
+            </h2>
+        </div>
 
         {% if submitted_assignments %}
             <div class="grid grid-cols-1 gap-6">
                 {% for link in submitted_assignments %}
-                    <div class="card card-section shadow-xl">
+                    <div class="card card-section shadow-xl border-l-4 border-warning">
                         <div class="card-body">
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
@@ -188,14 +192,16 @@
 
     <!-- Graded Assignments Section -->
     <div class="mb-12">
-        <h2 class="text-2xl font-bold mb-4">
-            <i class="fas fa-star mr-2"></i>Graded Assignments
-        </h2>
+        <div class="bg-gradient-to-r from-success/10 to-success/5 rounded-lg p-4 mb-6">
+            <h2 class="text-2xl font-bold">
+                <i class="fas fa-star mr-2 text-success"></i>Graded Assignments
+            </h2>
+        </div>
 
         {% if graded_assignments %}
             <div class="grid grid-cols-1 gap-6">
                 {% for link in graded_assignments %}
-                    <div class="card card-section shadow-xl hover:shadow-2xl transition-shadow">
+                    <div class="card card-section shadow-xl hover:shadow-2xl transition-shadow border-l-4 border-success">
                         <div class="card-body">
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
