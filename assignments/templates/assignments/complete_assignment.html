@@ -26,17 +26,19 @@
     }
 
     .duration-button {
-        min-width: 70px;
-        font-size: 2.5rem;
-        line-height: 1;
-        padding: 0.5rem;
+        min-width: 80px;
+        font-size: 1.125rem;
+        font-weight: 600;
+        padding: 1rem 0.5rem;
+        height: auto;
     }
 
     .accidental-button {
-        min-width: 60px;
-        font-size: 2.5rem;
-        line-height: 1;
-        padding: 0.5rem;
+        min-width: 80px;
+        font-size: 2rem;
+        font-weight: 600;
+        padding: 1rem 0.5rem;
+        height: auto;
     }
 
     #chord-display {
@@ -133,10 +135,10 @@
                                         <span class="label-text font-semibold">Duration:</span>
                                     </label>
                                     <div class="grid grid-cols-4 gap-2">
-                                        <button type="button" class="btn duration-button btn-active" data-duration="w">𝅝</button>
-                                        <button type="button" class="btn duration-button" data-duration="h">𝅗𝅥</button>
-                                        <button type="button" class="btn duration-button" data-duration="q">♩</button>
-                                        <button type="button" class="btn duration-button" data-duration="8">♪</button>
+                                        <button type="button" class="btn duration-button btn-active" data-duration="w">Whole</button>
+                                        <button type="button" class="btn duration-button" data-duration="h">Half</button>
+                                        <button type="button" class="btn duration-button" data-duration="q">Quarter</button>
+                                        <button type="button" class="btn duration-button" data-duration="8">Eighth</button>
                                     </div>
                                 </div>
 
@@ -146,9 +148,9 @@
                                         <span class="label-text font-semibold">Accidental:</span>
                                     </label>
                                     <div class="grid grid-cols-3 gap-2">
-                                        <button type="button" class="btn accidental-button btn-active" data-accidental="none">♮</button>
-                                        <button type="button" class="btn accidental-button" data-accidental="#">♯</button>
-                                        <button type="button" class="btn accidental-button" data-accidental="b">♭</button>
+                                        <button type="button" class="btn accidental-button btn-active" data-accidental="none">Natural<br><span style="font-size: 2.5rem; line-height: 1;">♮</span></button>
+                                        <button type="button" class="btn accidental-button" data-accidental="#">Sharp<br><span style="font-size: 2.5rem; line-height: 1;">♯</span></button>
+                                        <button type="button" class="btn accidental-button" data-accidental="b">Flat<br><span style="font-size: 2.5rem; line-height: 1;">♭</span></button>
                                     </div>
                                 </div>
                             </div>
