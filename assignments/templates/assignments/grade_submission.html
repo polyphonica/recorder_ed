@@ -222,22 +222,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Render student's notation submission
     {% if submission.notation_data %}
-    try {
-        const studentNotationData = JSON.parse('{{ submission.notation_data|escapejs }}');
-        renderNotation('notation-display', studentNotationData);
-    } catch (e) {
-        console.error('Error parsing student notation data:', e);
-    }
+    const studentNotationData = {{ submission.notation_data|safe }};
+    renderNotation('notation-display', studentNotationData);
     {% endif %}
 
     // Render reference notation if available
     {% if submission.assignment.reference_notation %}
-    try {
-        const referenceNotationData = JSON.parse('{{ submission.assignment.reference_notation|escapejs }}');
-        renderNotation('reference-notation-display', referenceNotationData);
-    } catch (e) {
-        console.error('Error parsing reference notation data:', e);
-    }
+    const referenceNotationData = {{ submission.assignment.reference_notation|safe }};
+    renderNotation('reference-notation-display', referenceNotationData);
     {% endif %}
 
     function renderNotation(containerId, notationData) {
