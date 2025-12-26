@@ -5,7 +5,7 @@
 
 {% block extra_css %}
 <style>
-    #notation-display, #reference-notation-display {
+    #notation-display {
         background-color: white;
         border-radius: 8px;
         padding: 20px;
@@ -223,11 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Render student's notation submission
     {% if submission.notation_data %}
     const studentNotationData = {{ submission.notation_data|safe }};
-    console.log('Student notation data:', studentNotationData);
-    console.log('Notation display element:', document.getElementById('notation-display'));
     renderNotation('notation-display', studentNotationData);
-    {% else %}
-    console.log('No submission.notation_data found');
     {% endif %}
 
     // Render reference notation if available
