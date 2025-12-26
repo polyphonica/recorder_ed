@@ -21,7 +21,7 @@
         <div class="grid grid-cols-1 gap-6">
             {% for data in submissions_data %}
                 {% with link=data.link submission=data.submission %}
-                    <div class="card card-section shadow-xl">
+                    <div class="card card-section shadow-xl {% if submission.status == 'submitted' %}border-l-4 border-warning{% else %}border-l-4 border-success{% endif %} hover:shadow-2xl transition-shadow">
                         <div class="card-body">
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
@@ -67,8 +67,8 @@
                                         {% if submission.status == 'graded' %}
                                             <div>
                                                 <div class="text-base-content/70">Grade</div>
-                                                <div class="font-semibold text-xl">
-                                                    {{ submission.grade }}/100
+                                                <div class="font-semibold text-xl text-success">
+                                                    {{ submission.get_formatted_grade }}
                                                 </div>
                                             </div>
                                         {% endif %}
