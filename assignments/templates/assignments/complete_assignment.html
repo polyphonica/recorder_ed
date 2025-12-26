@@ -66,9 +66,64 @@
         <input type="hidden" name="notation_data" id="notation-data-input">
         <input type="hidden" name="save_draft" id="save-draft-input" value="false">
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Main Content (Left) - 2/3 width -->
-            <div class="lg:col-span-2 space-y-6">
+        <!-- Submission Panel (Top) -->
+        <div class="card card-section shadow-xl mb-6">
+            <div class="card-body">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <!-- Assignment Details -->
+                    <div class="flex flex-wrap gap-6">
+                        <div>
+                            <div class="text-sm text-base-content/70">Teacher</div>
+                            <div class="font-semibold">{{ assignment_link.teacher.get_full_name|default:assignment_link.teacher.username }}</div>
+                        </div>
+                        {% if assignment_link.due_date %}
+                            <div>
+                                <div class="text-sm text-base-content/70">Due Date</div>
+                                <div class="font-semibold {% if assignment_link.is_overdue %}text-error{% endif %}">
+                                    {{ assignment_link.due_date|date:"M j, Y - g:i A" }}
+                                    {% if assignment_link.is_overdue %}
+                                        <span class="badge badge-error badge-sm ml-1">Overdue</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if assignment_link.lesson %}
+                            <div>
+                                <div class="text-sm text-base-content/70">Linked Lesson</div>
+                                <div class="font-semibold">{{ assignment_link.lesson.lesson_date|date:"M j, Y" }}</div>
+                            </div>
+                        {% endif %}
+                        {% if submission.status == 'draft' and submission.draft_saved_at %}
+                            <div>
+                                <div class="text-sm text-base-content/70">Draft Saved</div>
+                                <div class="font-semibold text-info">{{ submission.draft_saved_at|date:"M j, Y - g:i A" }}</div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submit Actions -->
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" id="save-draft-btn" class="btn btn-outline">
+                            <i class="fas fa-save mr-2"></i>Save Draft
+                        </button>
+                        <button type="button" id="submit-btn" class="btn btn-primary">
+                            <i class="fas fa-paper-plane mr-2"></i>Submit Assignment
+                        </button>
+                        <a href="{% url 'assignments:student_library' %}" class="btn btn-ghost">
+                            Cancel
+                        </a>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning mt-4">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span class="text-sm">Once submitted, you cannot edit your work</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content (Full Width) -->
+        <div class="space-y-6">
                 <!-- Assignment Instructions Card -->
                 <div class="card card-section shadow-xl">
                     <div class="card-body">
@@ -256,73 +311,6 @@
                         </div>
                     </div>
                 {% endif %}
-            </div>
-
-            <!-- Submission Panel (Right) - 1/3 width -->
-            <div class="lg:col-span-1">
-                <div class="card card-section shadow-xl sticky top-4">
-                    <div class="card-body">
-                        <h2 class="card-title text-2xl mb-4">
-                            <i class="fas fa-paper-plane mr-2"></i>Submission
-                        </h2>
-
-                        <!-- Assignment Details -->
-                        <div class="mb-6">
-                            <div class="mb-2">
-                                <div class="text-sm text-base-content/70">Teacher</div>
-                                <div class="font-semibold">{{ assignment_link.teacher.get_full_name|default:assignment_link.teacher.username }}</div>
-                            </div>
-                            {% if assignment_link.due_date %}
-                                <div class="mb-2">
-                                    <div class="text-sm text-base-content/70">Due Date</div>
-                                    <div class="font-semibold {% if assignment_link.is_overdue %}text-error{% endif %}">
-                                        {{ assignment_link.due_date|date:"M j, Y - g:i A" }}
-                                        {% if assignment_link.is_overdue %}
-                                            <span class="badge badge-error badge-sm ml-1">Overdue</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            {% endif %}
-                            {% if assignment_link.lesson %}
-                                <div>
-                                    <div class="text-sm text-base-content/70">Linked Lesson</div>
-                                    <div class="font-semibold">{{ assignment_link.lesson.lesson_date|date:"M j, Y" }}</div>
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Draft Status -->
-                        {% if submission.status == 'draft' and submission.draft_saved_at %}
-                            <div class="alert alert-info mb-6">
-                                <i class="fas fa-save"></i>
-                                <div class="text-sm">
-                                    <div class="font-semibold">Draft Saved</div>
-                                    <div>{{ submission.draft_saved_at|date:"M j, Y - g:i A" }}</div>
-                                </div>
-                            </div>
-                        {% endif %}
-
-                        <!-- Submit Actions -->
-                        <div class="divider"></div>
-                        <div class="flex flex-col gap-2">
-                            <button type="button" id="save-draft-btn" class="btn btn-outline w-full">
-                                <i class="fas fa-save mr-2"></i>Save Draft
-                            </button>
-                            <button type="button" id="submit-btn" class="btn btn-primary w-full">
-                                <i class="fas fa-paper-plane mr-2"></i>Submit Assignment
-                            </button>
-                            <a href="{% url 'assignments:student_library' %}" class="btn btn-ghost w-full">
-                                Cancel
-                            </a>
-                        </div>
-
-                        <div class="alert alert-warning mt-4">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <span class="text-xs">Once submitted, you cannot edit your work</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </form>
 </div>
