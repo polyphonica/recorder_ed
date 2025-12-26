@@ -170,15 +170,44 @@
                                 <i class="fas fa-music mr-2"></i>Your Notation Work
                             </h2>
 
-                            <!-- Clef Selection -->
-                            <div class="form-control mb-4">
-                                <label class="label">
-                                    <span class="label-text font-semibold">Select Clef:</span>
-                                </label>
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-sm btn-active" data-clef="treble">Treble</button>
-                                    <button type="button" class="btn btn-sm" data-clef="bass">Bass</button>
-                                    <button type="button" class="btn btn-sm" data-clef="alto">Alto</button>
+                            <!-- Clef and Key Signature Selection -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <!-- Clef Selection -->
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Select Clef:</span>
+                                    </label>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-active" data-clef="treble">Treble</button>
+                                        <button type="button" class="btn btn-sm" data-clef="bass">Bass</button>
+                                        <button type="button" class="btn btn-sm" data-clef="alto">Alto</button>
+                                    </div>
+                                </div>
+
+                                <!-- Key Signature Selection -->
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Key Signature:</span>
+                                    </label>
+                                    <select class="select select-bordered select-sm" id="key-signature-select">
+                                        <option value="">C Major / A Minor (no sharps/flats)</option>
+                                        <optgroup label="Sharp Keys">
+                                            <option value="G">G Major / E Minor (1♯)</option>
+                                            <option value="D">D Major / B Minor (2♯)</option>
+                                            <option value="A">A Major / F♯ Minor (3♯)</option>
+                                            <option value="E">E Major / C♯ Minor (4♯)</option>
+                                            <option value="B">B Major / G♯ Minor (5♯)</option>
+                                            <option value="F#">F♯ Major / D♯ Minor (6♯)</option>
+                                        </optgroup>
+                                        <optgroup label="Flat Keys">
+                                            <option value="F">F Major / D Minor (1♭)</option>
+                                            <option value="Bb">B♭ Major / G Minor (2♭)</option>
+                                            <option value="Eb">E♭ Major / C Minor (3♭)</option>
+                                            <option value="Ab">A♭ Major / F Minor (4♭)</option>
+                                            <option value="Db">D♭ Major / B♭ Minor (5♭)</option>
+                                            <option value="Gb">G♭ Major / E♭ Minor (6♭)</option>
+                                        </optgroup>
+                                    </select>
                                 </div>
                             </div>
 
@@ -334,6 +363,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // State
     let selectedClef = 'treble';
+    let selectedKeySignature = '';  // Empty string = C major (no sharps/flats)
     let selectedDuration = 'w';  // Default to whole note (matches btn-active in HTML)
     let selectedAccidental = 'none';
     let selectedPitch = 'c/4';
@@ -347,10 +377,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (savedData && savedData.notes) {
         notes = savedData.notes;
         selectedClef = savedData.clef || 'treble';
+        selectedKeySignature = savedData.keySignature || '';
         // Update clef button
         document.querySelectorAll('[data-clef]').forEach(btn => {
             btn.classList.toggle('btn-active', btn.getAttribute('data-clef') === selectedClef);
         });
+        // Update key signature dropdown
+        document.getElementById('key-signature-select').value = selectedKeySignature;
     }
     {% endif %}
 
@@ -368,6 +401,12 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('btn-active');
             renderNotes();
         });
+    });
+
+    // Key signature selection
+    document.getElementById('key-signature-select').addEventListener('change', function() {
+        selectedKeySignature = this.value;
+        renderNotes();
     });
 
     // Duration selection
@@ -525,6 +564,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function saveNotationData() {
         const notationData = {
             clef: selectedClef,
+            keySignature: selectedKeySignature,
             notes: notes
         };
         document.getElementById('notation-data-input').value = JSON.stringify(notationData);
@@ -535,7 +575,11 @@ document.addEventListener('DOMContentLoaded', function() {
         container.innerHTML = '';
 
         // Always render the stave, even with no notes
-        renderNotation('notation-output', { clef: selectedClef, notes: notes });
+        renderNotation('notation-output', {
+            clef: selectedClef,
+            keySignature: selectedKeySignature,
+            notes: notes
+        });
     }
 
     function renderNotation(containerId, notationData) {
@@ -552,7 +596,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const stave = new VF.Stave(10, 40, 620);
         const clef = notationData.clef || 'treble';
+        const keySignature = notationData.keySignature || '';
+
         stave.addClef(clef);
+        if (keySignature) {
+            stave.addKeySignature(keySignature);
+        }
         stave.setContext(context).draw();
 
         // If there are no notes, just show the empty stave
