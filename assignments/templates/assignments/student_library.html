@@ -98,7 +98,7 @@
                                     </div>
 
                                     <!-- Draft Status -->
-                                    {% if link.submission.status == 'draft' %}
+                                    {% if link.submission and link.submission.status == 'draft' %}
                                         <div class="alert alert-info mt-4">
                                             <i class="fas fa-save"></i>
                                             <div>
@@ -113,7 +113,7 @@
                                 <div>
                                     <a href="{% url 'assignments:complete_assignment' link.id %}"
                                        class="btn btn-primary">
-                                        <i class="fas fa-pencil mr-2"></i>{% if link.submission.status == 'draft' %}Continue{% else %}Start{% endif %}
+                                        <i class="fas fa-pencil mr-2"></i>{% if link.submission and link.submission.status == 'draft' %}Continue{% else %}Start{% endif %}
                                     </a>
                                 </div>
                             </div>
