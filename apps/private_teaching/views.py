@@ -1298,14 +1298,41 @@ class TeacherDocumentLibraryView(TeacherProfileCompletedMixin, TemplateView):
             )
 
         # Get unique students and subjects for filter dropdowns
-        # Get distinct student IDs first, then get the User objects
-        student_ids = Lesson.objects.filter(
+        # Build list of students with proper display names (showing child names, not guardian names)
+        lessons_for_students = Lesson.objects.filter(
             teacher=self.request.user,
             approved_status='Accepted',
             is_deleted=False
-        ).values_list('student__id', flat=True).distinct()
+        ).select_related('student__profile', 'lesson_request__child_profile').distinct('student')
 
-        students = User.objects.filter(id__in=student_ids).select_related('profile').order_by('profile__first_name', 'profile__last_name', 'first_name', 'last_name')
+        students_list = []
+        seen_students = set()
+
+        for lesson in lessons_for_students:
+            student_id = lesson.student.id
+            if student_id not in seen_students:
+                seen_students.add(student_id)
+                # Check if this is a child profile lesson
+                if lesson.lesson_request and lesson.lesson_request.child_profile:
+                    # Show child's name
+                    display_name = lesson.lesson_request.child_profile.full_name
+                    # Add guardian info in parentheses
+                    guardian_name = f"{lesson.student.profile.first_name} {lesson.student.profile.last_name}" if hasattr(lesson.student, 'profile') else lesson.student.get_full_name()
+                    full_display = f"{display_name} ({guardian_name})"
+                else:
+                    # Show adult student's name
+                    display_name = f"{lesson.student.profile.first_name} {lesson.student.profile.last_name}" if hasattr(lesson.student, 'profile') else lesson.student.get_full_name()
+                    full_display = display_name
+
+                students_list.append({
+                    'id': student_id,
+                    'name': full_display,
+                    'sort_key': display_name.lower()
+                })
+
+        # Sort by the actual student/child name
+        students_list.sort(key=lambda x: x['sort_key'])
+        students = students_list
 
         subjects = Subject.objects.filter(teacher=self.request.user, is_active=True)
 

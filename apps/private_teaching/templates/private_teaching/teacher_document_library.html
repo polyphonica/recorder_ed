@@ -43,7 +43,7 @@
                             <option value="">All Students</option>
                             {% for student in students %}
                             <option value="{{ student.id }}" {% if student_filter == student.id|stringformat:"s" %}selected{% endif %}>
-                                {{ student.profile.first_name|default:student.first_name }} {{ student.profile.last_name|default:student.last_name }}
+                                {{ student.name }}
                             </option>
                             {% endfor %}
                         </select>
