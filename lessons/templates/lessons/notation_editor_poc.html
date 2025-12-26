@@ -6,7 +6,7 @@
 {% block extra_head %}
 <style>
     .notation-container {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
         padding: 20px;
     }
@@ -60,6 +60,11 @@
         font-size: 14px;
     }
 
+    .note-btn.small {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
     .note-btn:hover {
         background: #e9ecef;
         border-color: #adb5bd;
@@ -97,6 +102,24 @@
 
     .btn-export:hover {
         background: #218838;
+    }
+
+    .btn-warning {
+        background: #ffc107;
+        color: #212529;
+    }
+
+    .btn-warning:hover {
+        background: #e0a800;
+    }
+
+    .btn-info {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .btn-info:hover {
+        background: #138496;
     }
 
     #notation-output {
@@ -143,31 +166,58 @@
         overflow-y: auto;
         margin-top: 20px;
     }
+
+    .octave-section {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .pitch-row {
+        display: flex;
+        gap: 5px;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="notation-container">
     <div class="mb-6">
-        <h1 class="text-4xl font-bold mb-2">Music Notation Editor</h1>
-        <p class="text-base-content/70">Proof of Concept - VexFlow Interactive Editor</p>
+        <h1 class="text-4xl font-bold mb-2">Music Notation Editor - Enhanced</h1>
+        <p class="text-base-content/70">Proof of Concept - VexFlow Interactive Editor with Advanced Features</p>
     </div>
 
     <div class="instructions">
         <h3>How to Use:</h3>
         <ul>
-            <li><strong>Select Note Value:</strong> Click on a note duration button (whole, half, quarter, eighth)</li>
-            <li><strong>Select Pitch:</strong> Click on a pitch button (C, D, E, F, G, A, B)</li>
-            <li><strong>Add Note:</strong> Click "Add Note" to place it on the staff</li>
-            <li><strong>Add Rest:</strong> Select a duration and click "Add Rest"</li>
-            <li><strong>Clear:</strong> Remove all notes and start over</li>
-            <li><strong>Export JSON:</strong> See the underlying data structure</li>
+            <li><strong>Select Clef:</strong> Choose treble, bass, or alto clef</li>
+            <li><strong>Select Duration:</strong> Click on whole, half, quarter, or eighth note</li>
+            <li><strong>Select Pitch & Octave:</strong> Click pitch buttons organized by octave</li>
+            <li><strong>Add Accidentals:</strong> Click sharp (♯), flat (♭), or natural (♮) before adding note</li>
+            <li><strong>Add Note/Rest:</strong> Click respective buttons to place on staff</li>
+            <li><strong>Add Barline:</strong> Insert measure separators</li>
+            <li><strong>Remove Last:</strong> Delete the most recent note/rest/barline</li>
+            <li><strong>Clear All:</strong> Start over with empty staff</li>
         </ul>
     </div>
 
     <div class="editor-card">
-        <!-- Toolbar -->
+        <!-- Toolbar Row 1: Clef and Duration -->
         <div class="toolbar">
+            <!-- Clef Selection -->
+            <div class="toolbar-group">
+                <span class="toolbar-label">Clef:</span>
+                <button class="note-btn active" data-clef="treble" onclick="selectClef('treble', this)">
+                    <span style="font-size: 20px;">𝄞</span> Treble
+                </button>
+                <button class="note-btn" data-clef="bass" onclick="selectClef('bass', this)">
+                    <span style="font-size: 20px;">𝄢</span> Bass
+                </button>
+                <button class="note-btn" data-clef="alto" onclick="selectClef('alto', this)">
+                    <span style="font-size: 20px;">𝄡</span> Alto
+                </button>
+            </div>
+
             <!-- Note Duration -->
             <div class="toolbar-group">
                 <span class="toolbar-label">Duration:</span>
@@ -185,20 +235,76 @@
                 </button>
             </div>
 
-            <!-- Pitch Selection -->
+            <!-- Accidentals -->
             <div class="toolbar-group">
-                <span class="toolbar-label">Pitch:</span>
-                <button class="note-btn" data-pitch="c/5" onclick="selectPitch('c/5', this)">C5</button>
-                <button class="note-btn" data-pitch="b/4" onclick="selectPitch('b/4', this)">B4</button>
-                <button class="note-btn" data-pitch="a/4" onclick="selectPitch('a/4', this)">A4</button>
-                <button class="note-btn" data-pitch="g/4" onclick="selectPitch('g/4', this)">G4</button>
-                <button class="note-btn" data-pitch="f/4" onclick="selectPitch('f/4', this)">F4</button>
-                <button class="note-btn" data-pitch="e/4" onclick="selectPitch('e/4', this)">E4</button>
-                <button class="note-btn" data-pitch="d/4" onclick="selectPitch('d/4', this)">D4</button>
-                <button class="note-btn active" data-pitch="c/4" onclick="selectPitch('c/4', this)">C4</button>
+                <span class="toolbar-label">Accidental:</span>
+                <button class="note-btn" data-accidental="none" onclick="selectAccidental('none', this)">
+                    None
+                </button>
+                <button class="note-btn" data-accidental="#" onclick="selectAccidental('#', this)">
+                    <span style="font-size: 18px;">♯</span> Sharp
+                </button>
+                <button class="note-btn" data-accidental="b" onclick="selectAccidental('b', this)">
+                    <span style="font-size: 18px;">♭</span> Flat
+                </button>
+                <button class="note-btn" data-accidental="n" onclick="selectAccidental('n', this)">
+                    <span style="font-size: 18px;">♮</span> Natural
+                </button>
             </div>
+        </div>
 
-            <!-- Actions -->
+        <!-- Toolbar Row 2: Pitches by Octave -->
+        <div class="toolbar">
+            <div class="toolbar-group">
+                <span class="toolbar-label">Pitches:</span>
+                <div class="octave-section">
+                    <div class="pitch-row">
+                        <small style="width: 40px; text-align: right; margin-right: 8px; color: #6c757d;">Oct 6:</small>
+                        <button class="note-btn small" data-pitch="c/6" onclick="selectPitch('c/6', this)">C</button>
+                        <button class="note-btn small" data-pitch="d/6" onclick="selectPitch('d/6', this)">D</button>
+                        <button class="note-btn small" data-pitch="e/6" onclick="selectPitch('e/6', this)">E</button>
+                        <button class="note-btn small" data-pitch="f/6" onclick="selectPitch('f/6', this)">F</button>
+                        <button class="note-btn small" data-pitch="g/6" onclick="selectPitch('g/6', this)">G</button>
+                        <button class="note-btn small" data-pitch="a/6" onclick="selectPitch('a/6', this)">A</button>
+                        <button class="note-btn small" data-pitch="b/6" onclick="selectPitch('b/6', this)">B</button>
+                    </div>
+                    <div class="pitch-row">
+                        <small style="width: 40px; text-align: right; margin-right: 8px; color: #6c757d;">Oct 5:</small>
+                        <button class="note-btn small" data-pitch="c/5" onclick="selectPitch('c/5', this)">C</button>
+                        <button class="note-btn small" data-pitch="d/5" onclick="selectPitch('d/5', this)">D</button>
+                        <button class="note-btn small" data-pitch="e/5" onclick="selectPitch('e/5', this)">E</button>
+                        <button class="note-btn small" data-pitch="f/5" onclick="selectPitch('f/5', this)">F</button>
+                        <button class="note-btn small" data-pitch="g/5" onclick="selectPitch('g/5', this)">G</button>
+                        <button class="note-btn small" data-pitch="a/5" onclick="selectPitch('a/5', this)">A</button>
+                        <button class="note-btn small" data-pitch="b/5" onclick="selectPitch('b/5', this)">B</button>
+                    </div>
+                    <div class="pitch-row">
+                        <small style="width: 40px; text-align: right; margin-right: 8px; color: #6c757d;">Oct 4:</small>
+                        <button class="note-btn small" data-pitch="c/4" onclick="selectPitch('c/4', this)">C</button>
+                        <button class="note-btn small active" data-pitch="d/4" onclick="selectPitch('d/4', this)">D</button>
+                        <button class="note-btn small" data-pitch="e/4" onclick="selectPitch('e/4', this)">E</button>
+                        <button class="note-btn small" data-pitch="f/4" onclick="selectPitch('f/4', this)">F</button>
+                        <button class="note-btn small" data-pitch="g/4" onclick="selectPitch('g/4', this)">G</button>
+                        <button class="note-btn small" data-pitch="a/4" onclick="selectPitch('a/4', this)">A</button>
+                        <button class="note-btn small" data-pitch="b/4" onclick="selectPitch('b/4', this)">B</button>
+                    </div>
+                    <div class="pitch-row">
+                        <small style="width: 40px; text-align: right; margin-right: 8px; color: #6c757d;">Oct 3:</small>
+                        <button class="note-btn small" data-pitch="c/3" onclick="selectPitch('c/3', this)">C</button>
+                        <button class="note-btn small" data-pitch="d/3" onclick="selectPitch('d/3', this)">D</button>
+                        <button class="note-btn small" data-pitch="e/3" onclick="selectPitch('e/3', this)">E</button>
+                        <button class="note-btn small" data-pitch="f/3" onclick="selectPitch('f/3', this)">F</button>
+                        <button class="note-btn small" data-pitch="g/3" onclick="selectPitch('g/3', this)">G</button>
+                        <button class="note-btn small" data-pitch="a/3" onclick="selectPitch('a/3', this)">A</button>
+                        <button class="note-btn small" data-pitch="b/3" onclick="selectPitch('b/3', this)">B</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toolbar Row 3: Actions -->
+        <div class="toolbar">
+            <!-- Add Elements -->
             <div class="toolbar-group">
                 <button class="action-btn btn-export" onclick="addNote()">
                     <i class="fas fa-plus-circle"></i> Add Note
@@ -206,13 +312,23 @@
                 <button class="action-btn btn-export" onclick="addRest()">
                     <i class="fas fa-pause"></i> Add Rest
                 </button>
+                <button class="action-btn btn-info" onclick="addBarline()">
+                    <i class="fas fa-grip-lines-vertical"></i> Add Barline
+                </button>
             </div>
 
-            <!-- Clear and Export -->
+            <!-- Edit Actions -->
             <div class="toolbar-group">
-                <button class="action-btn btn-clear" onclick="clearNotation()">
-                    <i class="fas fa-trash"></i> Clear
+                <button class="action-btn btn-warning" onclick="removeLast()">
+                    <i class="fas fa-undo"></i> Remove Last
                 </button>
+                <button class="action-btn btn-clear" onclick="clearNotation()">
+                    <i class="fas fa-trash"></i> Clear All
+                </button>
+            </div>
+
+            <!-- Export -->
+            <div class="toolbar-group">
                 <button class="action-btn btn-export" onclick="exportJSON()">
                     <i class="fas fa-file-export"></i> Export JSON
                 </button>
@@ -245,8 +361,10 @@
 const VF = Vex.Flow;
 
 // Editor state
+let selectedClef = 'treble';
 let selectedDuration = 'w';
-let selectedPitch = 'c/4';
+let selectedPitch = 'd/4';
+let selectedAccidental = 'none';
 let notes = [];
 
 // VexFlow objects
@@ -255,30 +373,38 @@ let renderer, context, stave;
 // Initialize the notation display
 function initNotation() {
     const outputDiv = document.getElementById('notation-output');
-    outputDiv.innerHTML = ''; // Clear previous content
+    outputDiv.innerHTML = '';
 
-    // Create renderer
     renderer = new VF.Renderer(outputDiv, VF.Renderer.Backends.SVG);
-    renderer.resize(900, 200);
+    renderer.resize(1200, 200);
     context = renderer.getContext();
 
-    // Create stave
-    stave = new VF.Stave(10, 40, 850);
-    stave.addClef('treble');
+    stave = new VF.Stave(10, 40, 1150);
+    stave.addClef(selectedClef);
     stave.addTimeSignature('4/4');
     stave.setContext(context).draw();
 
-    // Render notes if any exist
     if (notes.length > 0) {
         renderNotes();
     }
+}
+
+// Select clef
+function selectClef(clef, button) {
+    selectedClef = clef;
+
+    document.querySelectorAll('[data-clef]').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    button.classList.add('active');
+
+    renderNotes();
 }
 
 // Select duration
 function selectDuration(duration, button) {
     selectedDuration = duration;
 
-    // Update button states
     document.querySelectorAll('[data-duration]').forEach(btn => {
         btn.classList.remove('active');
     });
@@ -289,8 +415,17 @@ function selectDuration(duration, button) {
 function selectPitch(pitch, button) {
     selectedPitch = pitch;
 
-    // Update button states
     document.querySelectorAll('[data-pitch]').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    button.classList.add('active');
+}
+
+// Select accidental
+function selectAccidental(accidental, button) {
+    selectedAccidental = accidental;
+
+    document.querySelectorAll('[data-accidental]').forEach(btn => {
         btn.classList.remove('active');
     });
     button.classList.add('active');
@@ -298,60 +433,116 @@ function selectPitch(pitch, button) {
 
 // Add a note
 function addNote() {
-    notes.push({
+    const noteData = {
+        type: 'note',
         keys: [selectedPitch],
         duration: selectedDuration
-    });
+    };
 
+    // Add accidental if selected
+    if (selectedAccidental !== 'none') {
+        noteData.accidental = selectedAccidental;
+    }
+
+    notes.push(noteData);
     renderNotes();
 }
 
 // Add a rest
 function addRest() {
     notes.push({
-        keys: ['b/4'], // Dummy key for rest
-        duration: selectedDuration + 'r' // 'r' suffix makes it a rest
+        type: 'rest',
+        keys: ['b/4'],
+        duration: selectedDuration + 'r'
     });
 
     renderNotes();
 }
 
+// Add a barline
+function addBarline() {
+    notes.push({
+        type: 'barline'
+    });
+
+    renderNotes();
+}
+
+// Remove last element
+function removeLast() {
+    if (notes.length > 0) {
+        notes.pop();
+        renderNotes();
+    }
+}
+
 // Render all notes
 function renderNotes() {
-    // Re-initialize the display
     const outputDiv = document.getElementById('notation-output');
     outputDiv.innerHTML = '';
 
     renderer = new VF.Renderer(outputDiv, VF.Renderer.Backends.SVG);
-    renderer.resize(900, 200);
+    renderer.resize(1200, 200);
     context = renderer.getContext();
 
-    stave = new VF.Stave(10, 40, 850);
-    stave.addClef('treble');
+    stave = new VF.Stave(10, 40, 1150);
+    stave.addClef(selectedClef);
     stave.addTimeSignature('4/4');
     stave.setContext(context).draw();
 
     if (notes.length === 0) return;
 
     try {
-        // Create VexFlow notes
-        const vfNotes = notes.map(noteData => {
-            return new VF.StaveNote(noteData);
+        // Split notes into measures (separated by barlines)
+        const measures = [];
+        let currentMeasure = [];
+
+        notes.forEach(item => {
+            if (item.type === 'barline') {
+                if (currentMeasure.length > 0) {
+                    measures.push(currentMeasure);
+                    currentMeasure = [];
+                }
+            } else {
+                currentMeasure.push(item);
+            }
         });
 
-        // Create a voice and add notes
+        // Add remaining notes as last measure
+        if (currentMeasure.length > 0) {
+            measures.push(currentMeasure);
+        }
+
+        // For now, just render all notes in one voice (ignoring barlines visually)
+        const vfNotes = notes
+            .filter(item => item.type !== 'barline')
+            .map(noteData => {
+                const note = new VF.StaveNote({
+                    keys: noteData.keys,
+                    duration: noteData.duration
+                });
+
+                // Add accidental if present
+                if (noteData.accidental) {
+                    note.addModifier(new VF.Accidental(noteData.accidental), 0);
+                }
+
+                return note;
+            });
+
+        if (vfNotes.length === 0) return;
+
         const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
-        voice.setMode(VF.Voice.Mode.SOFT); // Allow any number of beats
+        voice.setMode(VF.Voice.Mode.SOFT);
         voice.addTickables(vfNotes);
 
-        // Format and draw
         const formatter = new VF.Formatter();
-        formatter.joinVoices([voice]).format([voice], 800);
+        formatter.joinVoices([voice]).format([voice], 1100);
         voice.draw(context, stave);
 
     } catch (error) {
         console.error('Error rendering notes:', error);
-        alert('Error rendering notes. Check the console for details.');
+        alert('Error rendering notes: ' + error.message);
     }
 }
 
@@ -369,7 +560,12 @@ function exportJSON() {
     const dataOutput = document.getElementById('data-output');
     const jsonData = document.getElementById('json-data');
 
-    jsonData.textContent = JSON.stringify(notes, null, 2);
+    const exportData = {
+        clef: selectedClef,
+        notes: notes
+    };
+
+    jsonData.textContent = JSON.stringify(exportData, null, 2);
     dataOutput.style.display = 'block';
 }
 
