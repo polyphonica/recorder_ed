@@ -377,6 +377,14 @@ function filterLocation(filter) {
     });
 }
 
+// HTML escape function to prevent XSS
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Open lesson details modal
 function openLessonModal(lessonId) {
     const modal = document.getElementById('lessonModal');
@@ -405,11 +413,11 @@ function openLessonModal(lessonId) {
                 <div class="space-y-3">
                     <div>
                         <p class="text-sm text-base-content/70">Subject</p>
-                        <p class="font-semibold">${data.subject}</p>
+                        <p class="font-semibold">${escapeHtml(data.subject)}</p>
                     </div>
                     <div>
                         <p class="text-sm text-base-content/70">Teacher</p>
-                        <p class="font-semibold">${data.teacher || 'Not assigned'}</p>
+                        <p class="font-semibold">${escapeHtml(data.teacher) || 'Not assigned'}</p>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -418,13 +426,13 @@ function openLessonModal(lessonId) {
                         </div>
                         <div>
                             <p class="text-sm text-base-content/70">Time</p>
-                            <p class="font-semibold"><i class="fas fa-clock mr-2"></i>${data.time}</p>
+                            <p class="font-semibold"><i class="fas fa-clock mr-2"></i>${escapeHtml(data.time)}</p>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <p class="text-sm text-base-content/70">Duration</p>
-                            <p class="font-semibold">${data.duration} minutes</p>
+                            <p class="font-semibold">${escapeHtml(data.duration)} minutes</p>
                         </div>
                         <div>
                             <p class="text-sm text-base-content/70">Location</p>

@@ -301,6 +301,14 @@ function renderCalendar() {
     }
 }
 
+// HTML escape function to prevent XSS
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Function to show lesson details in modal
 function showLessonDetails(event) {
     const props = event.extendedProps || {};
@@ -316,7 +324,7 @@ function showLessonDetails(event) {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <div class="text-sm text-gray-500">Subject</div>
-                <div class="font-semibold">${props.subject || 'Unknown'}</div>
+                <div class="font-semibold">${escapeHtml(props.subject) || 'Unknown'}</div>
             </div>
 
             <div>
@@ -344,7 +352,7 @@ function showLessonDetails(event) {
 
             <div>
                 <div class="text-sm text-gray-500">Location</div>
-                <div class="font-semibold">${props.location || 'Not specified'}</div>
+                <div class="font-semibold">${escapeHtml(props.location) || 'Not specified'}</div>
             </div>
 
             <div>
@@ -355,13 +363,13 @@ function showLessonDetails(event) {
             {% if is_teacher %}
             <div>
                 <div class="text-sm text-gray-500">Student</div>
-                <div class="font-semibold">${props.student || 'Unknown'}</div>
-                ${props.guardian ? `<div class="text-xs text-gray-500 mt-1">Guardian: ${props.guardian}</div>` : ''}
+                <div class="font-semibold">${escapeHtml(props.student) || 'Unknown'}</div>
+                ${props.guardian ? `<div class="text-xs text-gray-500 mt-1">Guardian: ${escapeHtml(props.guardian)}</div>` : ''}
             </div>
             {% else %}
             <div>
                 <div class="text-sm text-gray-500">Teacher</div>
-                <div class="font-semibold">${props.teacher || 'Not assigned'}</div>
+                <div class="font-semibold">${escapeHtml(props.teacher) || 'Not assigned'}</div>
             </div>
             {% endif %}
 
@@ -369,7 +377,7 @@ function showLessonDetails(event) {
                 <div class="text-sm text-gray-500">Approval Status</div>
                 <div>
                     <span class="badge ${props.approvedStatus === 'Accepted' ? 'badge-success' : props.approvedStatus === 'Rejected' ? 'badge-error' : 'badge-warning'}">
-                        ${props.approvedStatus || 'Pending'}
+                        ${escapeHtml(props.approvedStatus) || 'Pending'}
                     </span>
                 </div>
             </div>
@@ -378,7 +386,7 @@ function showLessonDetails(event) {
                 <div class="text-sm text-gray-500">Payment Status</div>
                 <div>
                     <span class="badge ${props.paymentStatus === 'Paid' ? 'badge-success' : 'badge-warning'}">
-                        ${props.paymentStatus || 'Not Paid'}
+                        ${escapeHtml(props.paymentStatus) || 'Not Paid'}
                     </span>
                 </div>
             </div>

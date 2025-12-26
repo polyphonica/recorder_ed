@@ -491,6 +491,14 @@ function sendBulkEmail() {
     window.location.href = 'mailto:' + emails + '?subject=' + subject;
 }
 
+// HTML escape function to prevent XSS
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // View registration details
 function viewRegistrationDetails(registrationId) {
     const registrationData = JSON.parse(document.getElementById('registration-data').textContent);
@@ -508,16 +516,16 @@ function viewRegistrationDetails(registrationId) {
     html += '<div class="card-body">';
     html += '<h4 class="card-title text-base"><i class="fas fa-user mr-2 text-primary"></i>Participant</h4>';
     html += '<div class="space-y-2 text-sm">';
-    html += '<p><strong>Name:</strong> ' + data.name + '</p>';
+    html += '<p><strong>Name:</strong> ' + escapeHtml(data.name) + '</p>';
     if (data.child_profile) {
-        html += '<p><strong>Age:</strong> ' + data.child_profile.age + '</p>';
+        html += '<p><strong>Age:</strong> ' + escapeHtml(data.child_profile.age) + '</p>';
         html += '<p class="text-info"><i class="fas fa-child mr-1"></i>Child Registration (Under 18)</p>';
     }
     if (data.guardian) {
-        html += '<p><strong>Guardian:</strong> ' + data.guardian.name + '</p>';
+        html += '<p><strong>Guardian:</strong> ' + escapeHtml(data.guardian.name) + '</p>';
     }
-    html += '<p><strong>Status:</strong> <span class="badge badge-sm">' + data.status + '</span></p>';
-    html += '<p><strong>Registered:</strong> ' + data.registered_date + '</p>';
+    html += '<p><strong>Status:</strong> <span class="badge badge-sm">' + escapeHtml(data.status) + '</span></p>';
+    html += '<p><strong>Registered:</strong> ' + escapeHtml(data.registered_date) + '</p>';
     html += '</div></div></div>';
 
     // Contact Info
@@ -529,12 +537,12 @@ function viewRegistrationDetails(registrationId) {
         html += '<h4 class="card-title text-base"><i class="fas fa-address-book mr-2 text-primary"></i>Contact Information</h4>';
     }
     html += '<div class="space-y-2 text-sm">';
-    html += '<p><strong>Email:</strong> ' + data.email + '</p>';
+    html += '<p><strong>Email:</strong> ' + escapeHtml(data.email) + '</p>';
     if (data.phone) {
-        html += '<p><strong>Phone:</strong> ' + data.phone + '</p>';
+        html += '<p><strong>Phone:</strong> ' + escapeHtml(data.phone) + '</p>';
     }
     if (data.emergency_contact) {
-        html += '<p><strong>Emergency Contact:</strong> <span class="text-error">' + data.emergency_contact + '</span></p>';
+        html += '<p><strong>Emergency Contact:</strong> <span class="text-error">' + escapeHtml(data.emergency_contact) + '</span></p>';
     }
     html += '</div></div></div>';
 
@@ -545,11 +553,11 @@ function viewRegistrationDetails(registrationId) {
         html += '<h4 class="card-title text-base"><i class="fas fa-music mr-2 text-primary"></i>Workshop Information</h4>';
         html += '<div class="space-y-2 text-sm">';
         if (data.experience_level) {
-            html += '<p><strong>Experience Level:</strong> ' + data.experience_level + '</p>';
+            html += '<p><strong>Experience Level:</strong> ' + escapeHtml(data.experience_level) + '</p>';
         }
         if (data.instruments) {
             html += '<p><strong>Instruments:</strong></p>';
-            html += '<p class="pl-4 whitespace-pre-wrap">' + data.instruments + '</p>';
+            html += '<p class="pl-4 whitespace-pre-wrap">' + escapeHtml(data.instruments) + '</p>';
         }
         html += '</div></div></div>';
     }
@@ -560,7 +568,7 @@ function viewRegistrationDetails(registrationId) {
         html += '<div class="card-body">';
         html += '<h4 class="card-title text-base"><i class="fas fa-info-circle mr-2 text-primary"></i>Special Requirements</h4>';
         html += '<div class="text-sm">';
-        html += '<p class="whitespace-pre-wrap">' + data.special_requirements + '</p>';
+        html += '<p class="whitespace-pre-wrap">' + escapeHtml(data.special_requirements) + '</p>';
         html += '</div></div></div>';
     }
 
