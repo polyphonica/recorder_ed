@@ -177,6 +177,48 @@
         display: flex;
         gap: 5px;
     }
+
+    .chord-builder {
+        background: #fff3cd;
+        border: 2px solid #ffc107;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 15px;
+        display: none;
+    }
+
+    .chord-builder.active {
+        display: block;
+    }
+
+    .chord-notes-display {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+    }
+
+    .chord-note-badge {
+        background: #4a90e2;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .chord-note-badge .remove-note {
+        cursor: pointer;
+        font-weight: bold;
+        opacity: 0.8;
+    }
+
+    .chord-note-badge .remove-note:hover {
+        opacity: 1;
+    }
 </style>
 {% endblock %}
 
@@ -194,8 +236,9 @@
             <li><strong>Select Duration:</strong> Click on whole, half, quarter, or eighth note</li>
             <li><strong>Select Pitch & Octave:</strong> Click pitch buttons organized by octave</li>
             <li><strong>Add Accidentals:</strong> Click sharp (♯), flat (♭), or natural (♮) before adding note</li>
-            <li><strong>Add Note/Rest:</strong> Click respective buttons to place on staff</li>
-            <li><strong>Add Barline:</strong> Insert measure separators</li>
+            <li><strong>Single Notes:</strong> Click "Add Note" to add one note at a time</li>
+            <li><strong>Chords:</strong> Enable "Chord Mode", add multiple pitches, then click "Finish Chord"</li>
+            <li><strong>Add Rest/Barline:</strong> Insert rests or measure separators</li>
             <li><strong>Remove Last:</strong> Delete the most recent note/rest/barline</li>
             <li><strong>Clear All:</strong> Start over with empty staff</li>
         </ul>
@@ -304,10 +347,17 @@
 
         <!-- Toolbar Row 3: Actions -->
         <div class="toolbar">
+            <!-- Chord Mode Toggle -->
+            <div class="toolbar-group">
+                <button class="note-btn" id="chord-mode-btn" onclick="toggleChordMode()">
+                    <i class="fas fa-layer-group"></i> Chord Mode
+                </button>
+            </div>
+
             <!-- Add Elements -->
             <div class="toolbar-group">
                 <button class="action-btn btn-export" onclick="addNote()">
-                    <i class="fas fa-plus-circle"></i> Add Note
+                    <i class="fas fa-plus-circle"></i> <span id="add-note-text">Add Note</span>
                 </button>
                 <button class="action-btn btn-export" onclick="addRest()">
                     <i class="fas fa-pause"></i> Add Rest
@@ -333,6 +383,20 @@
                     <i class="fas fa-file-export"></i> Export JSON
                 </button>
             </div>
+        </div>
+
+        <!-- Chord Builder (appears when in chord mode) -->
+        <div id="chord-builder" class="chord-builder">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong><i class="fas fa-layer-group"></i> Building Chord:</strong>
+                    <span id="chord-count" style="margin-left: 8px; color: #856404;">0 notes</span>
+                </div>
+                <button class="action-btn btn-export" onclick="finishChord()">
+                    <i class="fas fa-check"></i> Finish Chord
+                </button>
+            </div>
+            <div id="chord-notes-display" class="chord-notes-display"></div>
         </div>
 
         <!-- Notation Display -->
@@ -366,6 +430,10 @@ let selectedDuration = 'w';
 let selectedPitch = 'd/4';
 let selectedAccidental = 'none';
 let notes = [];
+
+// Chord mode state
+let chordMode = false;
+let currentChord = [];
 
 // VexFlow objects
 let renderer, context, stave;
@@ -431,20 +499,116 @@ function selectAccidental(accidental, button) {
     button.classList.add('active');
 }
 
-// Add a note
-function addNote() {
-    const noteData = {
-        type: 'note',
-        keys: [selectedPitch],
-        duration: selectedDuration
-    };
+// Toggle chord mode
+function toggleChordMode() {
+    chordMode = !chordMode;
+    const chordModeBtn = document.getElementById('chord-mode-btn');
+    const chordBuilder = document.getElementById('chord-builder');
+    const addNoteText = document.getElementById('add-note-text');
 
-    // Add accidental if selected
-    if (selectedAccidental !== 'none') {
-        noteData.accidental = selectedAccidental;
+    if (chordMode) {
+        chordModeBtn.classList.add('active');
+        chordBuilder.classList.add('active');
+        addNoteText.textContent = 'Add to Chord';
+        currentChord = [];
+        updateChordDisplay();
+    } else {
+        chordModeBtn.classList.remove('active');
+        chordBuilder.classList.remove('active');
+        addNoteText.textContent = 'Add Note';
+        currentChord = [];
+    }
+}
+
+// Update chord display
+function updateChordDisplay() {
+    const display = document.getElementById('chord-notes-display');
+    const countSpan = document.getElementById('chord-count');
+
+    countSpan.textContent = `${currentChord.length} note${currentChord.length !== 1 ? 's' : ''}`;
+
+    display.innerHTML = '';
+    currentChord.forEach((chordNote, index) => {
+        const badge = document.createElement('div');
+        badge.className = 'chord-note-badge';
+
+        let noteText = chordNote.pitch.toUpperCase().replace('/', '');
+        if (chordNote.accidental && chordNote.accidental !== 'none') {
+            const accSymbol = chordNote.accidental === '#' ? '♯' :
+                            chordNote.accidental === 'b' ? '♭' : '♮';
+            noteText += accSymbol;
+        }
+
+        badge.innerHTML = `
+            <span>${noteText}</span>
+            <span class="remove-note" onclick="removeFromChord(${index})">×</span>
+        `;
+        display.appendChild(badge);
+    });
+}
+
+// Remove a note from current chord
+function removeFromChord(index) {
+    currentChord.splice(index, 1);
+    updateChordDisplay();
+}
+
+// Add a note (modified to handle chord mode)
+function addNote() {
+    if (chordMode) {
+        // Add to current chord
+        currentChord.push({
+            pitch: selectedPitch,
+            accidental: selectedAccidental
+        });
+        updateChordDisplay();
+    } else {
+        // Add single note directly
+        const noteData = {
+            type: 'note',
+            keys: [selectedPitch],
+            duration: selectedDuration
+        };
+
+        // Add accidental if selected
+        if (selectedAccidental !== 'none') {
+            noteData.accidental = selectedAccidental;
+        }
+
+        notes.push(noteData);
+        renderNotes();
+    }
+}
+
+// Finish chord and add to staff
+function finishChord() {
+    if (currentChord.length === 0) {
+        alert('Please add at least one note to the chord first.');
+        return;
     }
 
+    // Sort chord notes from lowest to highest pitch for proper display
+    const sortedChord = [...currentChord].sort((a, b) => {
+        const getPitchValue = (pitch) => {
+            const [note, octave] = pitch.split('/');
+            const noteValues = {c: 0, d: 1, e: 2, f: 3, g: 4, a: 5, b: 6};
+            return parseInt(octave) * 7 + noteValues[note];
+        };
+        return getPitchValue(a.pitch) - getPitchValue(b.pitch);
+    });
+
+    const noteData = {
+        type: 'note',
+        keys: sortedChord.map(n => n.pitch),
+        duration: selectedDuration,
+        accidentals: sortedChord.map(n => n.accidental !== 'none' ? n.accidental : null)
+    };
+
     notes.push(noteData);
+
+    // Reset chord mode
+    currentChord = [];
+    updateChordDisplay();
     renderNotes();
 }
 
@@ -499,15 +663,23 @@ function renderNotes() {
                 // Create a barline using BarNote
                 return new VF.BarNote();
             } else {
-                // Create regular note or rest
+                // Create regular note or rest (handles both single notes and chords)
                 const note = new VF.StaveNote({
                     keys: noteData.keys,
                     duration: noteData.duration
                 });
 
-                // Add accidental if present
+                // Add accidentals
                 if (noteData.accidental) {
+                    // Single note with one accidental
                     note.addModifier(new VF.Accidental(noteData.accidental), 0);
+                } else if (noteData.accidentals && Array.isArray(noteData.accidentals)) {
+                    // Chord with multiple accidentals
+                    noteData.accidentals.forEach((acc, index) => {
+                        if (acc) {
+                            note.addModifier(new VF.Accidental(acc), index);
+                        }
+                    });
                 }
 
                 return note;
