@@ -135,6 +135,14 @@ def grade_submission(request, pk):
         assignment__created_by=request.user
     )
 
+    # Parse written questions if they exist
+    written_questions = []
+    if submission.assignment.has_written_component and submission.assignment.written_questions:
+        try:
+            written_questions = json.loads(submission.assignment.written_questions)
+        except (json.JSONDecodeError, TypeError):
+            written_questions = []
+
     if request.method == 'POST':
         form = GradeSubmissionForm(request.POST, instance=submission)
         if form.is_valid():
@@ -152,6 +160,7 @@ def grade_submission(request, pk):
     return render(request, 'assignments/grade_submission.html', {
         'form': form,
         'submission': submission,
+        'written_questions': written_questions,
     })
 
 
@@ -160,23 +169,33 @@ def grade_submission(request, pk):
 @login_required
 def student_assignment_library(request):
     """Student's library of assigned assignments"""
-    # Get all assignments assigned to this student
+    # Get all assignments assigned to this student (or child if guardian)
     assignment_links = PrivateLessonAssignment.objects.filter(
         student=request.user
     ).select_related('assignment', 'teacher', 'lesson').order_by('-assigned_at')
 
     # Organize by status
-    assignments_data = []
+    pending_assignments = []
+    submitted_assignments = []
+    graded_assignments = []
+
     for link in assignment_links:
         submission = link.submission
-        assignments_data.append({
-            'link': link,
-            'submission': submission,
-            'status_display': _get_student_status(link, submission),
-        })
+        if not submission or submission.status == 'draft':
+            # Not submitted yet - show in pending
+            pending_assignments.append(link)
+        elif submission.status == 'submitted':
+            # Submitted but not graded yet
+            submitted_assignments.append(link)
+        elif submission.status == 'graded':
+            # Graded assignments
+            graded_assignments.append(link)
 
     return render(request, 'assignments/student_library.html', {
-        'assignments_data': assignments_data,
+        'pending_assignments': pending_assignments,
+        'submitted_assignments': submitted_assignments,
+        'graded_assignments': graded_assignments,
+        'pending_count': len(pending_assignments),
     })
 
 
@@ -276,8 +295,17 @@ def view_graded_assignment(request, pk):
         status='graded'
     )
 
+    # Parse written questions if they exist
+    written_questions = []
+    if submission.assignment.has_written_component and submission.assignment.written_questions:
+        try:
+            written_questions = json.loads(submission.assignment.written_questions)
+        except (json.JSONDecodeError, TypeError):
+            written_questions = []
+
     return render(request, 'assignments/view_graded.html', {
         'submission': submission,
+        'written_questions': written_questions,
     })
 
 
