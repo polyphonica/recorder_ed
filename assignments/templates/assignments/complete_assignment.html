@@ -481,9 +481,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const noteData = {
             type: 'note',
             keys: sortedChord.map(n => n.pitch),
-            duration: selectedDuration,
-            accidentals: sortedChord.map(n => n.accidental !== 'none' ? n.accidental : null)
+            duration: selectedDuration
         };
+
+        // Only include accidentals array if at least one note has an accidental
+        const accidentals = sortedChord.map(n => n.accidental !== 'none' ? n.accidental : '');
+        if (accidentals.some(acc => acc !== '')) {
+            noteData.accidentals = accidentals;
+        }
 
         notes.push(noteData);
         currentChord = [];
