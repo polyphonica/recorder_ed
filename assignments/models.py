@@ -9,6 +9,12 @@ class Assignment(models.Model):
     Base assignment model - reusable across private lessons and courses
     Supports hybrid notation + written question assignments
     """
+    GRADING_SCALE_CHOICES = [
+        ('100', '0-100 Points'),
+        ('10', '0-10 Points'),
+        ('pass_fail', 'Pass/Fail'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200)
     instructions = models.TextField(help_text="Assignment instructions for students")
@@ -17,6 +23,14 @@ class Assignment(models.Model):
         on_delete=models.CASCADE,
         related_name='created_assignments',
         help_text="Teacher who created this assignment"
+    )
+
+    # Grading configuration
+    grading_scale = models.CharField(
+        max_length=20,
+        choices=GRADING_SCALE_CHOICES,
+        default='100',
+        help_text="Grading scale for this assignment"
     )
 
     # Assignment components
@@ -69,6 +83,28 @@ class Assignment(models.Model):
 
     def __str__(self):
         return f"{self.title} (by {self.created_by.get_full_name() or self.created_by.username})"
+
+    def get_max_grade(self):
+        """Return the maximum grade value for this assignment's scale"""
+        if self.grading_scale == '100':
+            return 100
+        elif self.grading_scale == '10':
+            return 10
+        elif self.grading_scale == 'pass_fail':
+            return 1  # 1 = Pass, 0 = Fail
+        return 100
+
+    def format_grade(self, grade_value):
+        """Format a grade value according to this assignment's scale"""
+        if grade_value is None:
+            return "Not graded"
+
+        if self.grading_scale == 'pass_fail':
+            return "Pass" if grade_value >= 1 else "Fail"
+        elif self.grading_scale == '10':
+            return f"{grade_value}/10"
+        else:  # 100
+            return f"{grade_value}/100"
 
 
 class AssignmentSubmission(models.Model):
@@ -183,3 +219,7 @@ class AssignmentSubmission(models.Model):
         self.graded_at = timezone.now()
         self.status = 'graded'
         self.save()
+
+    def get_formatted_grade(self):
+        """Get the formatted grade according to the assignment's scale"""
+        return self.assignment.format_grade(self.grade)

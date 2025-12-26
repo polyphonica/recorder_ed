@@ -38,10 +38,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <h2 class="text-2xl font-bold mb-2">Your Grade</h2>
-                            <div class="flex items-baseline gap-2">
-                                <span class="text-6xl font-bold text-primary">{{ submission.grade }}</span>
-                                <span class="text-3xl text-base-content/70">/100</span>
-                            </div>
+                            <div class="text-6xl font-bold text-primary">{{ submission.get_formatted_grade }}</div>
                         </div>
                         <div class="text-right">
                             <div class="text-sm text-base-content/70">Graded by</div>
@@ -189,8 +186,7 @@
                     <!-- Grade Display -->
                     <div class="stat bg-base-200 rounded-lg mb-4">
                         <div class="stat-title">Final Grade</div>
-                        <div class="stat-value text-primary">{{ submission.grade }}</div>
-                        <div class="stat-desc">out of 100</div>
+                        <div class="stat-value text-primary">{{ submission.get_formatted_grade }}</div>
                     </div>
 
                     <!-- Status Badge -->

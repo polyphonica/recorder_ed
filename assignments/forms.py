@@ -12,6 +12,7 @@ class AssignmentForm(forms.ModelForm):
         fields = [
             'title',
             'instructions',
+            'grading_scale',
             'has_notation_component',
             'has_written_component',
             'written_questions',
@@ -26,6 +27,9 @@ class AssignmentForm(forms.ModelForm):
                 'class': 'textarea textarea-bordered w-full',
                 'rows': 5,
                 'placeholder': 'Detailed instructions for the student...'
+            }),
+            'grading_scale': forms.Select(attrs={
+                'class': 'select select-bordered w-full'
             }),
             'has_notation_component': forms.CheckboxInput(attrs={
                 'class': 'checkbox checkbox-primary'
@@ -47,12 +51,14 @@ class AssignmentForm(forms.ModelForm):
         labels = {
             'title': 'Assignment Title',
             'instructions': 'Instructions for Student',
+            'grading_scale': 'Grading Scale',
             'has_notation_component': 'Include Music Notation Component',
             'has_written_component': 'Include Written Questions',
             'written_questions': 'Written Questions (JSON format)',
             'reference_notation': 'Reference Notation Data (optional)',
         }
         help_texts = {
+            'grading_scale': 'Choose how this assignment will be graded',
             'has_notation_component': 'Student will use notation editor to complete',
             'has_written_component': 'Student will answer written questions',
             'written_questions': 'Leave blank if no written component',
@@ -165,13 +171,6 @@ class GradeSubmissionForm(forms.ModelForm):
         model = AssignmentSubmission
         fields = ['grade', 'feedback']
         widgets = {
-            'grade': forms.NumberInput(attrs={
-                'class': 'input input-bordered w-full',
-                'min': 0,
-                'max': 100,
-                'step': 0.5,
-                'placeholder': 'Enter grade (0-100)'
-            }),
             'feedback': forms.Textarea(attrs={
                 'class': 'textarea textarea-bordered w-full',
                 'rows': 6,
@@ -179,13 +178,55 @@ class GradeSubmissionForm(forms.ModelForm):
             }),
         }
         labels = {
-            'grade': 'Grade (out of 100)',
             'feedback': 'Feedback for Student',
         }
         help_texts = {
-            'grade': 'Enter a grade between 0 and 100',
             'feedback': 'Constructive feedback on their work',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Get the assignment to determine grading scale
+        if self.instance and self.instance.assignment:
+            assignment = self.instance.assignment
+            grading_scale = assignment.grading_scale
+
+            if grading_scale == 'pass_fail':
+                # For pass/fail, use a dropdown
+                self.fields['grade'] = forms.ChoiceField(
+                    choices=[
+                        ('', 'Select grade'),
+                        (1, 'Pass'),
+                        (0, 'Fail'),
+                    ],
+                    widget=forms.Select(attrs={
+                        'class': 'select select-bordered w-full'
+                    }),
+                    label='Grade',
+                    help_text='Select Pass or Fail'
+                )
+            elif grading_scale == '10':
+                # For 0-10 scale
+                self.fields['grade'].widget = forms.NumberInput(attrs={
+                    'class': 'input input-bordered w-full',
+                    'min': 0,
+                    'max': 10,
+                    'step': 0.5,
+                    'placeholder': 'Enter grade (0-10)'
+                })
+                self.fields['grade'].label = 'Grade (out of 10)'
+                self.fields['grade'].help_text = 'Enter a grade between 0 and 10'
+            else:  # 100 scale (default)
+                self.fields['grade'].widget = forms.NumberInput(attrs={
+                    'class': 'input input-bordered w-full',
+                    'min': 0,
+                    'max': 100,
+                    'step': 0.5,
+                    'placeholder': 'Enter grade (0-100)'
+                })
+                self.fields['grade'].label = 'Grade (out of 100)'
+                self.fields['grade'].help_text = 'Enter a grade between 0 and 100'
 
 
 class SubmissionForm(forms.ModelForm):
