@@ -371,3 +371,11 @@ def get_previous_homework(request, lesson_id):
         logger = logging.getLogger(__name__)
         logger.error(f"Error in get_previous_homework: {str(e)}", exc_info=True)
         return JsonResponse({'error': 'An unexpected error occurred', 'lessons': []}, status=500)
+
+
+def notation_editor_poc(request):
+    """
+    Proof of Concept for VexFlow-based music notation editor
+    Simple standalone page to test notation GUI
+    """
+    return render(request, 'lessons/notation_editor_poc.html')

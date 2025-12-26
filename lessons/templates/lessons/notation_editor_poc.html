@@ -1,0 +1,381 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Music Notation Editor - Proof of Concept{% endblock %}
+
+{% block extra_head %}
+<style>
+    .notation-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .editor-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        padding: 30px;
+        margin-bottom: 20px;
+    }
+
+    .toolbar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .toolbar-group {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        padding-right: 15px;
+        border-right: 2px solid #dee2e6;
+    }
+
+    .toolbar-group:last-child {
+        border-right: none;
+    }
+
+    .toolbar-label {
+        font-weight: 600;
+        margin-right: 8px;
+        color: #495057;
+        font-size: 14px;
+    }
+
+    .note-btn {
+        padding: 8px 16px;
+        border: 2px solid #dee2e6;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s;
+        font-size: 14px;
+    }
+
+    .note-btn:hover {
+        background: #e9ecef;
+        border-color: #adb5bd;
+    }
+
+    .note-btn.active {
+        background: #4a90e2;
+        color: white;
+        border-color: #4a90e2;
+    }
+
+    .action-btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s;
+        font-size: 14px;
+    }
+
+    .btn-clear {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-clear:hover {
+        background: #c82333;
+    }
+
+    .btn-export {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-export:hover {
+        background: #218838;
+    }
+
+    #notation-output {
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        background: #ffffff;
+        min-height: 200px;
+        overflow-x: auto;
+    }
+
+    .instructions {
+        background: #e7f3ff;
+        border-left: 4px solid #4a90e2;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .instructions h3 {
+        margin-top: 0;
+        color: #2c5aa0;
+        font-size: 18px;
+    }
+
+    .instructions ul {
+        margin-bottom: 0;
+        padding-left: 20px;
+    }
+
+    .instructions li {
+        margin-bottom: 8px;
+        line-height: 1.6;
+    }
+
+    .note-data-output {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 15px;
+        font-family: monospace;
+        font-size: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="notation-container">
+    <div class="mb-6">
+        <h1 class="text-4xl font-bold mb-2">Music Notation Editor</h1>
+        <p class="text-base-content/70">Proof of Concept - VexFlow Interactive Editor</p>
+    </div>
+
+    <div class="instructions">
+        <h3>How to Use:</h3>
+        <ul>
+            <li><strong>Select Note Value:</strong> Click on a note duration button (whole, half, quarter, eighth)</li>
+            <li><strong>Select Pitch:</strong> Click on a pitch button (C, D, E, F, G, A, B)</li>
+            <li><strong>Add Note:</strong> Click "Add Note" to place it on the staff</li>
+            <li><strong>Add Rest:</strong> Select a duration and click "Add Rest"</li>
+            <li><strong>Clear:</strong> Remove all notes and start over</li>
+            <li><strong>Export JSON:</strong> See the underlying data structure</li>
+        </ul>
+    </div>
+
+    <div class="editor-card">
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <!-- Note Duration -->
+            <div class="toolbar-group">
+                <span class="toolbar-label">Duration:</span>
+                <button class="note-btn active" data-duration="w" onclick="selectDuration('w', this)">
+                    <span style="font-size: 20px;">𝅝</span> Whole
+                </button>
+                <button class="note-btn" data-duration="h" onclick="selectDuration('h', this)">
+                    <span style="font-size: 20px;">𝅗𝅥</span> Half
+                </button>
+                <button class="note-btn" data-duration="q" onclick="selectDuration('q', this)">
+                    <span style="font-size: 20px;">𝅘𝅥</span> Quarter
+                </button>
+                <button class="note-btn" data-duration="8" onclick="selectDuration('8', this)">
+                    <span style="font-size: 20px;">𝅘𝅥𝅮</span> Eighth
+                </button>
+            </div>
+
+            <!-- Pitch Selection -->
+            <div class="toolbar-group">
+                <span class="toolbar-label">Pitch:</span>
+                <button class="note-btn" data-pitch="c/5" onclick="selectPitch('c/5', this)">C5</button>
+                <button class="note-btn" data-pitch="b/4" onclick="selectPitch('b/4', this)">B4</button>
+                <button class="note-btn" data-pitch="a/4" onclick="selectPitch('a/4', this)">A4</button>
+                <button class="note-btn" data-pitch="g/4" onclick="selectPitch('g/4', this)">G4</button>
+                <button class="note-btn" data-pitch="f/4" onclick="selectPitch('f/4', this)">F4</button>
+                <button class="note-btn" data-pitch="e/4" onclick="selectPitch('e/4', this)">E4</button>
+                <button class="note-btn" data-pitch="d/4" onclick="selectPitch('d/4', this)">D4</button>
+                <button class="note-btn active" data-pitch="c/4" onclick="selectPitch('c/4', this)">C4</button>
+            </div>
+
+            <!-- Actions -->
+            <div class="toolbar-group">
+                <button class="action-btn btn-export" onclick="addNote()">
+                    <i class="fas fa-plus-circle"></i> Add Note
+                </button>
+                <button class="action-btn btn-export" onclick="addRest()">
+                    <i class="fas fa-pause"></i> Add Rest
+                </button>
+            </div>
+
+            <!-- Clear and Export -->
+            <div class="toolbar-group">
+                <button class="action-btn btn-clear" onclick="clearNotation()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+                <button class="action-btn btn-export" onclick="exportJSON()">
+                    <i class="fas fa-file-export"></i> Export JSON
+                </button>
+            </div>
+        </div>
+
+        <!-- Notation Display -->
+        <div id="notation-output"></div>
+
+        <!-- Data Output (hidden by default) -->
+        <div id="data-output" class="note-data-output" style="display: none;">
+            <strong>JSON Data:</strong>
+            <pre id="json-data"></pre>
+        </div>
+    </div>
+
+    <div class="mt-6 text-center">
+        <a href="{% url 'private_teaching:teacher_dashboard' %}" class="btn btn-outline">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- VexFlow Library from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+
+<script>
+const VF = Vex.Flow;
+
+// Editor state
+let selectedDuration = 'w';
+let selectedPitch = 'c/4';
+let notes = [];
+
+// VexFlow objects
+let renderer, context, stave;
+
+// Initialize the notation display
+function initNotation() {
+    const outputDiv = document.getElementById('notation-output');
+    outputDiv.innerHTML = ''; // Clear previous content
+
+    // Create renderer
+    renderer = new VF.Renderer(outputDiv, VF.Renderer.Backends.SVG);
+    renderer.resize(900, 200);
+    context = renderer.getContext();
+
+    // Create stave
+    stave = new VF.Stave(10, 40, 850);
+    stave.addClef('treble');
+    stave.addTimeSignature('4/4');
+    stave.setContext(context).draw();
+
+    // Render notes if any exist
+    if (notes.length > 0) {
+        renderNotes();
+    }
+}
+
+// Select duration
+function selectDuration(duration, button) {
+    selectedDuration = duration;
+
+    // Update button states
+    document.querySelectorAll('[data-duration]').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    button.classList.add('active');
+}
+
+// Select pitch
+function selectPitch(pitch, button) {
+    selectedPitch = pitch;
+
+    // Update button states
+    document.querySelectorAll('[data-pitch]').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    button.classList.add('active');
+}
+
+// Add a note
+function addNote() {
+    notes.push({
+        keys: [selectedPitch],
+        duration: selectedDuration
+    });
+
+    renderNotes();
+}
+
+// Add a rest
+function addRest() {
+    notes.push({
+        keys: ['b/4'], // Dummy key for rest
+        duration: selectedDuration + 'r' // 'r' suffix makes it a rest
+    });
+
+    renderNotes();
+}
+
+// Render all notes
+function renderNotes() {
+    // Re-initialize the display
+    const outputDiv = document.getElementById('notation-output');
+    outputDiv.innerHTML = '';
+
+    renderer = new VF.Renderer(outputDiv, VF.Renderer.Backends.SVG);
+    renderer.resize(900, 200);
+    context = renderer.getContext();
+
+    stave = new VF.Stave(10, 40, 850);
+    stave.addClef('treble');
+    stave.addTimeSignature('4/4');
+    stave.setContext(context).draw();
+
+    if (notes.length === 0) return;
+
+    try {
+        // Create VexFlow notes
+        const vfNotes = notes.map(noteData => {
+            return new VF.StaveNote(noteData);
+        });
+
+        // Create a voice and add notes
+        const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+        voice.setMode(VF.Voice.Mode.SOFT); // Allow any number of beats
+        voice.addTickables(vfNotes);
+
+        // Format and draw
+        const formatter = new VF.Formatter();
+        formatter.joinVoices([voice]).format([voice], 800);
+        voice.draw(context, stave);
+
+    } catch (error) {
+        console.error('Error rendering notes:', error);
+        alert('Error rendering notes. Check the console for details.');
+    }
+}
+
+// Clear all notes
+function clearNotation() {
+    if (confirm('Are you sure you want to clear all notes?')) {
+        notes = [];
+        initNotation();
+        document.getElementById('data-output').style.display = 'none';
+    }
+}
+
+// Export notation as JSON
+function exportJSON() {
+    const dataOutput = document.getElementById('data-output');
+    const jsonData = document.getElementById('json-data');
+
+    jsonData.textContent = JSON.stringify(notes, null, 2);
+    dataOutput.style.display = 'block';
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initNotation();
+});
+</script>
+{% endblock %}
