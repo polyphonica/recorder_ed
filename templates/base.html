@@ -385,6 +385,10 @@
                                     <li><a href="{% url 'private_teaching:teacher_cancellation_requests' %}"><i class="fas fa-times-circle mr-2"></i>Cancellations</a></li>
                                     <li class="menu-title"><span>Planning</span></li>
                                     <li><a href="{% url 'private_teaching:exam_list' %}"><i class="fas fa-graduation-cap mr-2"></i>Exam Registrations</a></li>
+                                    <li class="menu-title"><span>Assignments</span></li>
+                                    <li><a href="{% url 'assignments:teacher_library' %}"><i class="fas fa-clipboard mr-2"></i>My Assignments</a></li>
+                                    <li><a href="{% url 'assignments:teacher_create' %}"><i class="fas fa-plus mr-2"></i>Create Assignment</a></li>
+                                    <li><a href="{% url 'assignments:teacher_submissions' %}"><i class="fas fa-inbox mr-2"></i>Grade Submissions</a></li>
                                     <li class="menu-title"><span>Resources</span></li>
                                     <li><a href="{% url 'audioplayer:library' %}"><i class="fas fa-music mr-2"></i>Play-Along Library</a></li>
                                     <li><a href="{% url 'audioplayer:composer_list' %}"><i class="fas fa-user-music mr-2"></i>Manage Composers</a></li>
@@ -401,6 +405,7 @@
                             <li><a href="{% url 'private_teaching:my_teachers' %}" class="{% if request.resolver_match.url_name == 'my_teachers' %}bg-primary text-primary-content{% endif %}">My Teachers</a></li>
                             <li><a href="{% url 'private_teaching:my_requests' %}" class="{% if request.resolver_match.url_name == 'my_requests' %}bg-primary text-primary-content{% endif %}">My Requests</a></li>
                             <li><a href="{% url 'private_teaching:my_lessons' %}" class="{% if request.resolver_match.url_name == 'my_lessons' %}bg-primary text-primary-content{% endif %}">My Lessons</a></li>
+                            <li><a href="{% url 'assignments:student_library' %}" class="{% if request.resolver_match.namespace == 'assignments' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-tasks mr-1"></i>Assignments</a></li>
                             <li><a href="{% url 'private_teaching:calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}bg-primary text-primary-content{% endif %}">Calendar</a></li>
                             <li><a href="{% url 'audioplayer:library' %}" class="{% if request.resolver_match.namespace == 'audioplayer' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-music mr-1"></i>Play-Along Library</a></li>
                         {% endif %}
