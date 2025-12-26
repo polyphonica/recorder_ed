@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Assignments{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">My Assignments</h1>
+                <p class="text-base-content/70">View and complete your music theory assignments</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tabs tabs-boxed mb-6 bg-base-200">
+        <a class="tab tab-active" data-tab="pending">
+            <i class="fas fa-clock mr-2"></i>Pending
+            {% if pending_count > 0 %}
+                <span class="badge badge-primary ml-2">{{ pending_count }}</span>
+            {% endif %}
+        </a>
+        <a class="tab" data-tab="completed">
+            <i class="fas fa-check-circle mr-2"></i>Submitted
+        </a>
+        <a class="tab" data-tab="graded">
+            <i class="fas fa-star mr-2"></i>Graded
+        </a>
+    </div>
+
+    <!-- Pending Assignments Tab -->
+    <div id="tab-pending" class="tab-content">
+        {% if pending_assignments %}
+            <div class="grid grid-cols-1 gap-6">
+                {% for link in pending_assignments %}
+                    <div class="card card-section shadow-xl hover:shadow-2xl transition-shadow">
+                        <div class="card-body">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <!-- Assignment Title -->
+                                    <h2 class="card-title text-2xl mb-2">
+                                        {{ link.assignment.title }}
+                                    </h2>
+
+                                    <!-- Teacher Info -->
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <i class="fas fa-user-tie text-primary"></i>
+                                        <span class="font-semibold">{{ link.teacher.get_full_name|default:link.teacher.username }}</span>
+                                    </div>
+
+                                    <!-- Assignment Preview -->
+                                    <p class="text-base-content/70 mb-4">
+                                        {{ link.assignment.instructions|truncatewords:30 }}
+                                    </p>
+
+                                    <!-- Assignment Type Badges -->
+                                    <div class="flex gap-2 mb-4">
+                                        {% if link.assignment.has_notation_component %}
+                                            <span class="badge badge-primary">
+                                                <i class="fas fa-music mr-1"></i>Notation
+                                            </span>
+                                        {% endif %}
+                                        {% if link.assignment.has_written_component %}
+                                            <span class="badge badge-secondary">
+                                                <i class="fas fa-pen mr-1"></i>Written
+                                            </span>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Assignment Details -->
+                                    <div class="flex gap-6 text-sm">
+                                        <div>
+                                            <i class="fas fa-calendar text-primary mr-1"></i>
+                                            <span class="text-base-content/70">Assigned</span>
+                                            <span class="font-semibold">{{ link.assigned_at|date:"M j, Y" }}</span>
+                                        </div>
+                                        {% if link.due_date %}
+                                            <div>
+                                                <i class="fas fa-clock text-{% if link.is_overdue %}error{% else %}warning{% endif %} mr-1"></i>
+                                                <span class="text-base-content/70">Due</span>
+                                                <span class="font-semibold {% if link.is_overdue %}text-error{% endif %}">
+                                                    {{ link.due_date|date:"M j, Y" }}
+                                                </span>
+                                                {% if link.is_overdue %}
+                                                    <span class="badge badge-error badge-sm ml-2">Overdue</span>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                        {% if link.lesson %}
+                                            <div>
+                                                <i class="fas fa-link text-primary mr-1"></i>
+                                                <span class="text-base-content/70">Linked to lesson</span>
+                                                <span class="font-semibold">{{ link.lesson.lesson_date|date:"M j, Y" }}</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Draft Status -->
+                                    {% if link.submission.status == 'draft' %}
+                                        <div class="alert alert-info mt-4">
+                                            <i class="fas fa-save"></i>
+                                            <div>
+                                                <div class="font-semibold">Draft Saved</div>
+                                                <div class="text-sm">Last saved: {{ link.submission.draft_saved_at|date:"M j, Y - g:i A" }}</div>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Action Button -->
+                                <div>
+                                    <a href="{% url 'assignments:complete_assignment' link.id %}"
+                                       class="btn btn-primary">
+                                        <i class="fas fa-pencil mr-2"></i>{% if link.submission.status == 'draft' %}Continue{% else %}Start{% endif %}
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- Empty State -->
+            <div class="card card-section shadow-xl">
+                <div class="card-body">
+                    <div class="text-center py-12">
+                        <i class="fas fa-inbox text-6xl text-base-content/30 mb-4"></i>
+                        <h3 class="text-2xl font-medium text-base-content/70 mb-2">
+                            No Pending Assignments
+                        </h3>
+                        <p class="text-base-content/50">
+                            You're all caught up! New assignments will appear here when assigned.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Submitted Assignments Tab -->
+    <div id="tab-completed" class="tab-content hidden">
+        {% if submitted_assignments %}
+            <div class="grid grid-cols-1 gap-6">
+                {% for link in submitted_assignments %}
+                    <div class="card card-section shadow-xl">
+                        <div class="card-body">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h2 class="card-title text-2xl mb-2">
+                                        {{ link.assignment.title }}
+                                    </h2>
+
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <i class="fas fa-user-tie text-primary"></i>
+                                        <span class="font-semibold">{{ link.teacher.get_full_name|default:link.teacher.username }}</span>
+                                    </div>
+
+                                    <div class="flex gap-6 text-sm mb-4">
+                                        <div>
+                                            <i class="fas fa-check text-success mr-1"></i>
+                                            <span class="text-base-content/70">Submitted</span>
+                                            <span class="font-semibold">{{ link.submission.submitted_at|date:"M j, Y" }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="badge badge-warning">
+                                        <i class="fas fa-clock mr-1"></i>Awaiting Grading
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card card-section shadow-xl">
+                <div class="card-body">
+                    <div class="text-center py-12">
+                        <i class="fas fa-clock text-6xl text-base-content/30 mb-4"></i>
+                        <h3 class="text-2xl font-medium text-base-content/70 mb-2">
+                            No Submitted Assignments
+                        </h3>
+                        <p class="text-base-content/50">
+                            Assignments you submit will appear here while awaiting grading.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Graded Assignments Tab -->
+    <div id="tab-graded" class="tab-content hidden">
+        {% if graded_assignments %}
+            <div class="grid grid-cols-1 gap-6">
+                {% for link in graded_assignments %}
+                    <div class="card card-section shadow-xl hover:shadow-2xl transition-shadow">
+                        <div class="card-body">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h2 class="card-title text-2xl mb-2">
+                                        {{ link.assignment.title }}
+                                    </h2>
+
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <i class="fas fa-user-tie text-primary"></i>
+                                        <span class="font-semibold">{{ link.teacher.get_full_name|default:link.teacher.username }}</span>
+                                    </div>
+
+                                    <div class="flex gap-6 text-sm mb-4">
+                                        <div>
+                                            <i class="fas fa-check text-success mr-1"></i>
+                                            <span class="text-base-content/70">Graded</span>
+                                            <span class="font-semibold">{{ link.submission.graded_at|date:"M j, Y" }}</span>
+                                        </div>
+                                        <div>
+                                            <i class="fas fa-star text-primary mr-1"></i>
+                                            <span class="text-base-content/70">Grade</span>
+                                            <span class="font-semibold text-xl">{{ link.submission.grade }}/100</span>
+                                        </div>
+                                    </div>
+
+                                    {% if link.submission.feedback %}
+                                        <div class="bg-base-200 rounded-lg p-3 mt-3">
+                                            <div class="text-sm font-semibold mb-1">Teacher's Feedback:</div>
+                                            <div class="text-sm text-base-content/70">
+                                                {{ link.submission.feedback|truncatewords:20 }}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Action Button -->
+                                <div>
+                                    <a href="{% url 'assignments:view_graded' link.submission.id %}"
+                                       class="btn btn-outline">
+                                        <i class="fas fa-eye mr-2"></i>View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card card-section shadow-xl">
+                <div class="card-body">
+                    <div class="text-center py-12">
+                        <i class="fas fa-star text-6xl text-base-content/30 mb-4"></i>
+                        <h3 class="text-2xl font-medium text-base-content/70 mb-2">
+                            No Graded Assignments Yet
+                        </h3>
+                        <p class="text-base-content/50">
+                            Your graded assignments will appear here once your teacher reviews them.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Tab switching functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetTab = this.getAttribute('data-tab');
+
+            // Remove active class from all tabs
+            tabs.forEach(t => t.classList.remove('tab-active'));
+
+            // Add active class to clicked tab
+            this.classList.add('tab-active');
+
+            // Hide all tab contents
+            tabContents.forEach(content => content.classList.add('hidden'));
+
+            // Show target tab content
+            document.getElementById('tab-' + targetTab).classList.remove('hidden');
+        });
+    });
+});
+</script>
+{% endblock %}

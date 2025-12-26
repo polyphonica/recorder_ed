@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Grade Submission - {{ submission.assignment.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    #notation-display {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        min-height: 150px;
+        border: 1px solid #e5e7eb;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Grade Submission</h1>
+                <p class="text-base-content/70">{{ submission.assignment.title }}</p>
+            </div>
+            <a href="{% url 'assignments:teacher_submissions' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Submissions
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Content (Left) - 2/3 width -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Assignment Details Card -->
+            <div class="card card-section shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-clipboard mr-2"></i>Assignment Details
+                    </h2>
+
+                    <!-- Student Info -->
+                    <div class="bg-base-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-sm text-base-content/70">Student</div>
+                                <div class="text-xl font-bold">
+                                    {{ submission.student.get_full_name|default:submission.student.username }}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-base-content/70">Submitted</div>
+                                <div class="font-semibold">
+                                    {{ submission.submitted_at|date:"M j, Y - g:i A" }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Assignment Title and Instructions -->
+                    <div class="mb-4">
+                        <h3 class="font-bold text-lg mb-2">{{ submission.assignment.title }}</h3>
+                        <p class="text-base-content/70 whitespace-pre-wrap">{{ submission.assignment.instructions }}</p>
+                    </div>
+
+                    <!-- Assignment Type Badges -->
+                    <div class="flex gap-2">
+                        {% if submission.assignment.has_notation_component %}
+                            <span class="badge badge-primary">
+                                <i class="fas fa-music mr-1"></i>Notation Component
+                            </span>
+                        {% endif %}
+                        {% if submission.assignment.has_written_component %}
+                            <span class="badge badge-secondary">
+                                <i class="fas fa-pen mr-1"></i>Written Component
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student's Notation Work -->
+            {% if submission.assignment.has_notation_component %}
+                <div class="card card-section shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4">
+                            <i class="fas fa-music mr-2"></i>Notation Submission
+                        </h2>
+
+                        {% if submission.notation_data %}
+                            <div id="notation-display"></div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Student did not submit any notation work</span>
+                            </div>
+                        {% endif %}
+
+                        <!-- Reference Notation (if provided) -->
+                        {% if submission.assignment.reference_notation %}
+                            <div class="divider">Reference Notation</div>
+                            <div id="reference-notation-display" class="bg-base-200 rounded-lg p-4"></div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Student's Written Answers -->
+            {% if submission.assignment.has_written_component and written_questions %}
+                <div class="card card-section shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4">
+                            <i class="fas fa-pen mr-2"></i>Written Answers
+                        </h2>
+
+                        {% for question in written_questions %}
+                            <div class="mb-6 pb-6 {% if not forloop.last %}border-b border-base-300{% endif %}">
+                                <div class="font-semibold text-lg mb-2">
+                                    Question {{ forloop.counter }}:
+                                </div>
+                                <div class="bg-base-200 rounded-lg p-3 mb-3">
+                                    {{ question.question }}
+                                </div>
+
+                                <div class="font-semibold mb-2">Student's Answer:</div>
+                                <div class="bg-white rounded-lg p-3 border border-base-300">
+                                    {% if submission.written_answers %}
+                                        {% for answer in submission.written_answers %}
+                                            {% if answer.question_index == forloop.parentloop.counter0 %}
+                                                <p class="whitespace-pre-wrap">{{ answer.answer|default:"<em class='text-base-content/50'>No answer provided</em>" }}</p>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <em class="text-base-content/50">No answer provided</em>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Grading Panel (Right) - 1/3 width -->
+        <div class="lg:col-span-1">
+            <div class="card card-section shadow-xl sticky top-4">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-check-circle mr-2"></i>{% if submission.status == 'graded' %}Update Grade{% else %}Assign Grade{% endif %}
+                    </h2>
+
+                    {% if submission.status == 'graded' %}
+                        <div class="alert alert-success mb-4">
+                            <i class="fas fa-info-circle"></i>
+                            <div>
+                                <div class="font-semibold">Currently Graded</div>
+                                <div class="text-sm">Grade: {{ submission.grade }}/100</div>
+                                <div class="text-sm">Graded on: {{ submission.graded_at|date:"M j, Y" }}</div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <!-- Grade Input -->
+                        <div class="form-control mb-6">
+                            <label class="label">
+                                <span class="label-text font-semibold text-lg">{{ form.grade.label }}</span>
+                                <span class="label-text-alt text-error">*Required</span>
+                            </label>
+                            {{ form.grade }}
+                            {% if form.grade.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.grade.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                            <label class="label">
+                                <span class="label-text-alt">Enter a grade between 0 and 100</span>
+                            </label>
+                        </div>
+
+                        <!-- Feedback Input -->
+                        <div class="form-control mb-6">
+                            <label class="label">
+                                <span class="label-text font-semibold text-lg">{{ form.feedback.label }}</span>
+                                <span class="label-text-alt">Optional</span>
+                            </label>
+                            {{ form.feedback }}
+                            {% if form.feedback.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.feedback.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                            <label class="label">
+                                <span class="label-text-alt">Provide constructive feedback to help the student improve</span>
+                            </label>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="divider"></div>
+                        <div class="flex flex-col gap-2">
+                            <button type="submit" class="btn btn-primary w-full">
+                                <i class="fas fa-save mr-2"></i>{% if submission.status == 'graded' %}Update Grade{% else %}Submit Grade{% endif %}
+                            </button>
+                            <a href="{% url 'assignments:teacher_submissions' %}" class="btn btn-outline w-full">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if submission.assignment.has_notation_component %}
+<script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const VF = Vex.Flow;
+
+    // Render student's notation submission
+    {% if submission.notation_data %}
+    const studentNotationData = {{ submission.notation_data|safe }};
+    renderNotation('notation-display', studentNotationData);
+    {% endif %}
+
+    // Render reference notation if available
+    {% if submission.assignment.reference_notation %}
+    const referenceNotationData = {{ submission.assignment.reference_notation|safe }};
+    renderNotation('reference-notation-display', referenceNotationData);
+    {% endif %}
+
+    function renderNotation(containerId, notationData) {
+        const container = document.getElementById(containerId);
+        if (!container || !notationData || !notationData.notes || notationData.notes.length === 0) {
+            return;
+        }
+
+        // Clear container
+        container.innerHTML = '';
+
+        // Create renderer
+        const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+        renderer.resize(700, 200);
+        const context = renderer.getContext();
+
+        // Create stave
+        const stave = new VF.Stave(10, 40, 680);
+
+        // Add clef
+        const clef = notationData.clef || 'treble';
+        stave.addClef(clef);
+        stave.setContext(context).draw();
+
+        // Create notes
+        const vfNotes = notationData.notes.map(noteData => {
+            if (noteData.type === 'barline') {
+                return new VF.BarNote();
+            } else {
+                const note = new VF.StaveNote({
+                    keys: noteData.keys,
+                    duration: noteData.duration,
+                    clef: clef
+                });
+
+                // Handle single note accidentals
+                if (noteData.accidental) {
+                    note.addModifier(new VF.Accidental(noteData.accidental), 0);
+                }
+
+                // Handle chord accidentals
+                if (noteData.accidentals && Array.isArray(noteData.accidentals)) {
+                    noteData.accidentals.forEach((acc, index) => {
+                        if (acc) {
+                            note.addModifier(new VF.Accidental(acc), index);
+                        }
+                    });
+                }
+
+                return note;
+            }
+        });
+
+        // Create voice and format
+        const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+        voice.addTickables(vfNotes);
+
+        const formatter = new VF.Formatter();
+        formatter.joinVoices([voice]).format([voice], 650);
+
+        // Draw voice
+        voice.draw(context, stave);
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Graded Assignment - {{ submission.assignment.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    #notation-display, #reference-notation-display {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        min-height: 150px;
+        border: 1px solid #e5e7eb;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Graded Assignment</h1>
+                <p class="text-base-content/70">{{ submission.assignment.title }}</p>
+            </div>
+            <a href="{% url 'assignments:student_library' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Assignments
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Content (Left) - 2/3 width -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Grade Summary Card -->
+            <div class="card card-section shadow-xl bg-gradient-to-r from-primary/10 to-secondary/10">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold mb-2">Your Grade</h2>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-6xl font-bold text-primary">{{ submission.grade }}</span>
+                                <span class="text-3xl text-base-content/70">/100</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-base-content/70">Graded by</div>
+                            <div class="font-semibold text-lg mb-2">
+                                {{ submission.graded_by.get_full_name|default:submission.graded_by.username }}
+                            </div>
+                            <div class="text-sm text-base-content/70">on {{ submission.graded_at|date:"M j, Y" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teacher Feedback -->
+            {% if submission.feedback %}
+                <div class="card card-section shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4">
+                            <i class="fas fa-comment-dots mr-2"></i>Teacher's Feedback
+                        </h2>
+                        <div class="bg-base-200 rounded-lg p-4 whitespace-pre-wrap text-lg">
+                            {{ submission.feedback }}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Assignment Details -->
+            <div class="card card-section shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-clipboard mr-2"></i>Assignment Details
+                    </h2>
+
+                    <!-- Assignment Title and Instructions -->
+                    <div class="mb-4">
+                        <h3 class="font-bold text-lg mb-2">{{ submission.assignment.title }}</h3>
+                        <p class="text-base-content/70 whitespace-pre-wrap">{{ submission.assignment.instructions }}</p>
+                    </div>
+
+                    <!-- Assignment Type Badges -->
+                    <div class="flex gap-2 mb-4">
+                        {% if submission.assignment.has_notation_component %}
+                            <span class="badge badge-primary">
+                                <i class="fas fa-music mr-1"></i>Notation Component
+                            </span>
+                        {% endif %}
+                        {% if submission.assignment.has_written_component %}
+                            <span class="badge badge-secondary">
+                                <i class="fas fa-pen mr-1"></i>Written Component
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submission Timeline -->
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <div class="text-base-content/70">Submitted</div>
+                            <div class="font-semibold">{{ submission.submitted_at|date:"M j, Y - g:i A" }}</div>
+                        </div>
+                        <div>
+                            <div class="text-base-content/70">Graded</div>
+                            <div class="font-semibold">{{ submission.graded_at|date:"M j, Y - g:i A" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reference Notation (if provided) -->
+            {% if submission.assignment.reference_notation %}
+                <div class="card card-section shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4">
+                            <i class="fas fa-eye mr-2"></i>Reference/Example
+                        </h2>
+                        <div id="reference-notation-display"></div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Your Notation Submission -->
+            {% if submission.assignment.has_notation_component %}
+                <div class="card card-section shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4">
+                            <i class="fas fa-music mr-2"></i>Your Notation Submission
+                        </h2>
+
+                        {% if submission.notation_data %}
+                            <div id="notation-display"></div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>You did not submit any notation work</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Your Written Answers -->
+            {% if submission.assignment.has_written_component and written_questions %}
+                <div class="card card-section shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4">
+                            <i class="fas fa-pen mr-2"></i>Your Written Answers
+                        </h2>
+
+                        {% for question in written_questions %}
+                            <div class="mb-6 pb-6 {% if not forloop.last %}border-b border-base-300{% endif %}">
+                                <div class="font-semibold text-lg mb-2">
+                                    Question {{ forloop.counter }}:
+                                </div>
+                                <div class="bg-base-200 rounded-lg p-3 mb-3">
+                                    {{ question.question }}
+                                </div>
+
+                                <div class="font-semibold mb-2">Your Answer:</div>
+                                <div class="bg-white rounded-lg p-3 border border-base-300">
+                                    {% if submission.written_answers %}
+                                        {% for answer in submission.written_answers %}
+                                            {% if answer.question_index == forloop.parentloop.counter0 %}
+                                                <p class="whitespace-pre-wrap">{{ answer.answer|default:"<em class='text-base-content/50'>No answer provided</em>" }}</p>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <em class="text-base-content/50">No answer provided</em>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar (Right) - 1/3 width -->
+        <div class="lg:col-span-1">
+            <!-- Quick Stats Card -->
+            <div class="card card-section shadow-xl sticky top-4">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-chart-bar mr-2"></i>Summary
+                    </h2>
+
+                    <!-- Grade Display -->
+                    <div class="stat bg-base-200 rounded-lg mb-4">
+                        <div class="stat-title">Final Grade</div>
+                        <div class="stat-value text-primary">{{ submission.grade }}</div>
+                        <div class="stat-desc">out of 100</div>
+                    </div>
+
+                    <!-- Status Badge -->
+                    <div class="mb-4">
+                        <span class="badge badge-success badge-lg w-full py-4">
+                            <i class="fas fa-check-circle mr-2"></i>Graded
+                        </span>
+                    </div>
+
+                    <!-- Assignment Info -->
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <div class="text-base-content/70">Teacher</div>
+                            <div class="font-semibold">{{ submission.graded_by.get_full_name|default:submission.graded_by.username }}</div>
+                        </div>
+                        <div>
+                            <div class="text-base-content/70">Submitted</div>
+                            <div class="font-semibold">{{ submission.submitted_at|date:"M j, Y" }}</div>
+                        </div>
+                        <div>
+                            <div class="text-base-content/70">Graded</div>
+                            <div class="font-semibold">{{ submission.graded_at|date:"M j, Y" }}</div>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Action Button -->
+                    <a href="{% url 'assignments:student_library' %}" class="btn btn-primary w-full">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Assignments
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if submission.assignment.has_notation_component %}
+<script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const VF = Vex.Flow;
+
+    // Render student's notation submission
+    {% if submission.notation_data %}
+    const studentNotationData = {{ submission.notation_data|safe }};
+    renderNotation('notation-display', studentNotationData);
+    {% endif %}
+
+    // Render reference notation if available
+    {% if submission.assignment.reference_notation %}
+    const referenceNotationData = {{ submission.assignment.reference_notation|safe }};
+    renderNotation('reference-notation-display', referenceNotationData);
+    {% endif %}
+
+    function renderNotation(containerId, notationData) {
+        const container = document.getElementById(containerId);
+        if (!container || !notationData || !notationData.notes || notationData.notes.length === 0) {
+            return;
+        }
+
+        // Clear container
+        container.innerHTML = '';
+
+        // Create renderer
+        const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+        renderer.resize(650, 200);
+        const context = renderer.getContext();
+
+        // Create stave
+        const stave = new VF.Stave(10, 40, 620);
+
+        // Add clef
+        const clef = notationData.clef || 'treble';
+        stave.addClef(clef);
+        stave.setContext(context).draw();
+
+        // Create notes
+        const vfNotes = notationData.notes.map(noteData => {
+            if (noteData.type === 'barline') {
+                return new VF.BarNote();
+            } else {
+                const note = new VF.StaveNote({
+                    keys: noteData.keys,
+                    duration: noteData.duration,
+                    clef: clef
+                });
+
+                // Handle single note accidentals
+                if (noteData.accidental) {
+                    note.addModifier(new VF.Accidental(noteData.accidental), 0);
+                }
+
+                // Handle chord accidentals
+                if (noteData.accidentals && Array.isArray(noteData.accidentals)) {
+                    noteData.accidentals.forEach((acc, index) => {
+                        if (acc) {
+                            note.addModifier(new VF.Accidental(acc), index);
+                        }
+                    });
+                }
+
+                return note;
+            }
+        });
+
+        // Create voice and format
+        const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+        voice.addTickables(vfNotes);
+
+        const formatter = new VF.Formatter();
+        formatter.joinVoices([voice]).format([voice], 580);
+
+        // Draw voice
+        voice.draw(context, stave);
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

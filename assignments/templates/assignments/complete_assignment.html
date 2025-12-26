@@ -1,0 +1,604 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Complete Assignment - {{ assignment.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    #notation-output {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        min-height: 200px;
+        border: 1px solid #e5e7eb;
+    }
+
+    #reference-notation-display {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        min-height: 150px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .pitch-button {
+        min-width: 60px;
+    }
+
+    .duration-button, .accidental-button {
+        min-width: 50px;
+    }
+
+    #chord-display {
+        min-height: 40px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">{{ assignment.title }}</h1>
+                <p class="text-base-content/70">Complete your assignment</p>
+            </div>
+            <a href="{% url 'assignments:student_library' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Assignments
+            </a>
+        </div>
+    </div>
+
+    <form method="post" id="assignment-form">
+        {% csrf_token %}
+        <input type="hidden" name="notation_data" id="notation-data-input">
+        <input type="hidden" name="save_draft" id="save-draft-input" value="false">
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Main Content (Left) - 2/3 width -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Assignment Instructions Card -->
+                <div class="card card-section shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4">
+                            <i class="fas fa-clipboard mr-2"></i>Instructions
+                        </h2>
+                        <div class="bg-base-200 rounded-lg p-4 whitespace-pre-wrap">
+                            {{ assignment.instructions }}
+                        </div>
+
+                        <!-- Assignment Type Badges -->
+                        <div class="flex gap-2 mt-4">
+                            {% if assignment.has_notation_component %}
+                                <span class="badge badge-primary">
+                                    <i class="fas fa-music mr-1"></i>Notation Component
+                                </span>
+                            {% endif %}
+                            {% if assignment.has_written_component %}
+                                <span class="badge badge-secondary">
+                                    <i class="fas fa-pen mr-1"></i>Written Component
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reference Notation (if provided) -->
+                {% if assignment.reference_notation %}
+                    <div class="card card-section shadow-xl">
+                        <div class="card-body">
+                            <h2 class="card-title text-2xl mb-4">
+                                <i class="fas fa-eye mr-2"></i>Reference/Example
+                            </h2>
+                            <div id="reference-notation-display"></div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Notation Component -->
+                {% if assignment.has_notation_component %}
+                    <div class="card card-section shadow-xl">
+                        <div class="card-body">
+                            <h2 class="card-title text-2xl mb-4">
+                                <i class="fas fa-music mr-2"></i>Your Notation Work
+                            </h2>
+
+                            <!-- Clef Selection -->
+                            <div class="form-control mb-4">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Select Clef:</span>
+                                </label>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-active" data-clef="treble">Treble</button>
+                                    <button type="button" class="btn btn-sm" data-clef="bass">Bass</button>
+                                    <button type="button" class="btn btn-sm" data-clef="alto">Alto</button>
+                                </div>
+                            </div>
+
+                            <!-- Note Controls -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                <!-- Duration Selection -->
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Duration:</span>
+                                    </label>
+                                    <div class="grid grid-cols-4 gap-1">
+                                        <button type="button" class="btn btn-sm duration-button btn-active" data-duration="w">𝅝</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="h">𝅗𝅥</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="q">♩</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="8">♪</button>
+                                    </div>
+                                </div>
+
+                                <!-- Accidental Selection -->
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Accidental:</span>
+                                    </label>
+                                    <div class="grid grid-cols-3 gap-1">
+                                        <button type="button" class="btn btn-sm accidental-button btn-active" data-accidental="none">♮</button>
+                                        <button type="button" class="btn btn-sm accidental-button" data-accidental="#">♯</button>
+                                        <button type="button" class="btn btn-sm accidental-button" data-accidental="b">♭</button>
+                                    </div>
+                                </div>
+
+                                <!-- Chord Mode -->
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Mode:</span>
+                                    </label>
+                                    <div class="form-control">
+                                        <label class="label cursor-pointer justify-start gap-2">
+                                            <input type="checkbox" class="toggle toggle-primary" id="chord-mode-toggle">
+                                            <span class="label-text">Chord Mode</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Pitch Selection -->
+                            <div class="form-control mb-4">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Select Pitch:</span>
+                                </label>
+                                <div class="grid grid-cols-7 md:grid-cols-14 gap-1">
+                                    <!-- Octave 3 -->
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="c/3">C3</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="d/3">D3</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="e/3">E3</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="f/3">F3</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="g/3">G3</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="a/3">A3</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="b/3">B3</button>
+                                    <!-- Octave 4 -->
+                                    <button type="button" class="btn btn-xs pitch-button btn-active" data-pitch="c/4">C4</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="d/4">D4</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="e/4">E4</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="f/4">F4</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="g/4">G4</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="a/4">A4</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="b/4">B4</button>
+                                    <!-- Octave 5 -->
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="c/5">C5</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="d/5">D5</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="e/5">E5</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="f/5">F5</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="g/5">G5</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="a/5">A5</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="b/5">B5</button>
+                                    <!-- Octave 6 -->
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="c/6">C6</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="d/6">D6</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="e/6">E6</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="f/6">F6</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="g/6">G6</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="a/6">A6</button>
+                                    <button type="button" class="btn btn-xs pitch-button" data-pitch="b/6">B6</button>
+                                </div>
+                            </div>
+
+                            <!-- Chord Building Display -->
+                            <div id="chord-display" class="bg-base-200 rounded-lg p-3 mb-4 hidden">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <span class="font-semibold">Building Chord:</span>
+                                        <span id="chord-notes" class="ml-2"></span>
+                                    </div>
+                                    <button type="button" id="finish-chord-btn" class="btn btn-sm btn-success">
+                                        <i class="fas fa-check mr-1"></i>Finish Chord
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                <button type="button" id="add-note-btn" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus mr-1"></i>Add Note
+                                </button>
+                                <button type="button" id="add-barline-btn" class="btn btn-sm">
+                                    <i class="fas fa-grip-lines-vertical mr-1"></i>Add Barline
+                                </button>
+                                <button type="button" id="remove-last-btn" class="btn btn-sm btn-error">
+                                    <i class="fas fa-undo mr-1"></i>Remove Last
+                                </button>
+                                <button type="button" id="clear-all-btn" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-trash mr-1"></i>Clear All
+                                </button>
+                            </div>
+
+                            <!-- Notation Display -->
+                            <div id="notation-output"></div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Written Questions Component -->
+                {% if assignment.has_written_component and written_questions %}
+                    <div class="card card-section shadow-xl">
+                        <div class="card-body">
+                            <h2 class="card-title text-2xl mb-4">
+                                <i class="fas fa-pen mr-2"></i>Written Questions
+                            </h2>
+
+                            {% for question in written_questions %}
+                                <div class="form-control mb-6">
+                                    <label class="label">
+                                        <span class="label-text font-semibold text-lg">Question {{ forloop.counter }}:</span>
+                                    </label>
+                                    <div class="bg-base-200 rounded-lg p-3 mb-2">
+                                        {{ question.question }}
+                                    </div>
+                                    <textarea
+                                        name="written_answer_{{ forloop.counter0 }}"
+                                        class="textarea textarea-bordered h-24"
+                                        placeholder="Type your answer here...">{% if submission.written_answers %}{% for answer in submission.written_answers %}{% if answer.question_index == forloop.parentloop.counter0 %}{{ answer.answer }}{% endif %}{% endfor %}{% endif %}</textarea>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Submission Panel (Right) - 1/3 width -->
+            <div class="lg:col-span-1">
+                <div class="card card-section shadow-xl sticky top-4">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4">
+                            <i class="fas fa-paper-plane mr-2"></i>Submission
+                        </h2>
+
+                        <!-- Assignment Details -->
+                        <div class="mb-6">
+                            <div class="mb-2">
+                                <div class="text-sm text-base-content/70">Teacher</div>
+                                <div class="font-semibold">{{ assignment_link.teacher.get_full_name|default:assignment_link.teacher.username }}</div>
+                            </div>
+                            {% if assignment_link.due_date %}
+                                <div class="mb-2">
+                                    <div class="text-sm text-base-content/70">Due Date</div>
+                                    <div class="font-semibold {% if assignment_link.is_overdue %}text-error{% endif %}">
+                                        {{ assignment_link.due_date|date:"M j, Y - g:i A" }}
+                                        {% if assignment_link.is_overdue %}
+                                            <span class="badge badge-error badge-sm ml-1">Overdue</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {% if assignment_link.lesson %}
+                                <div>
+                                    <div class="text-sm text-base-content/70">Linked Lesson</div>
+                                    <div class="font-semibold">{{ assignment_link.lesson.lesson_date|date:"M j, Y" }}</div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Draft Status -->
+                        {% if submission.status == 'draft' and submission.draft_saved_at %}
+                            <div class="alert alert-info mb-6">
+                                <i class="fas fa-save"></i>
+                                <div class="text-sm">
+                                    <div class="font-semibold">Draft Saved</div>
+                                    <div>{{ submission.draft_saved_at|date:"M j, Y - g:i A" }}</div>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Submit Actions -->
+                        <div class="divider"></div>
+                        <div class="flex flex-col gap-2">
+                            <button type="button" id="save-draft-btn" class="btn btn-outline w-full">
+                                <i class="fas fa-save mr-2"></i>Save Draft
+                            </button>
+                            <button type="button" id="submit-btn" class="btn btn-primary w-full">
+                                <i class="fas fa-paper-plane mr-2"></i>Submit Assignment
+                            </button>
+                            <a href="{% url 'assignments:student_library' %}" class="btn btn-ghost w-full">
+                                Cancel
+                            </a>
+                        </div>
+
+                        <div class="alert alert-warning mt-4">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span class="text-xs">Once submitted, you cannot edit your work</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% if assignment.has_notation_component %}
+<script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const VF = Vex.Flow;
+
+    // State
+    let selectedClef = 'treble';
+    let selectedDuration = 'q';
+    let selectedAccidental = 'none';
+    let selectedPitch = 'c/4';
+    let chordMode = false;
+    let currentChord = [];
+    let notes = [];
+
+    // Load existing notation data if available
+    {% if submission.notation_data %}
+    const savedData = {{ submission.notation_data|safe }};
+    if (savedData && savedData.notes) {
+        notes = savedData.notes;
+        selectedClef = savedData.clef || 'treble';
+        // Update clef button
+        document.querySelectorAll('[data-clef]').forEach(btn => {
+            btn.classList.toggle('btn-active', btn.getAttribute('data-clef') === selectedClef);
+        });
+    }
+    {% endif %}
+
+    // Render reference notation if available
+    {% if assignment.reference_notation %}
+    const referenceData = {{ assignment.reference_notation|safe }};
+    renderNotation('reference-notation-display', referenceData);
+    {% endif %}
+
+    // Clef selection
+    document.querySelectorAll('[data-clef]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            selectedClef = this.getAttribute('data-clef');
+            document.querySelectorAll('[data-clef]').forEach(b => b.classList.remove('btn-active'));
+            this.classList.add('btn-active');
+            renderNotes();
+        });
+    });
+
+    // Duration selection
+    document.querySelectorAll('.duration-button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            selectedDuration = this.getAttribute('data-duration');
+            document.querySelectorAll('.duration-button').forEach(b => b.classList.remove('btn-active'));
+            this.classList.add('btn-active');
+        });
+    });
+
+    // Accidental selection
+    document.querySelectorAll('.accidental-button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            selectedAccidental = this.getAttribute('data-accidental');
+            document.querySelectorAll('.accidental-button').forEach(b => b.classList.remove('btn-active'));
+            this.classList.add('btn-active');
+        });
+    });
+
+    // Pitch selection
+    document.querySelectorAll('.pitch-button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            selectedPitch = this.getAttribute('data-pitch');
+            document.querySelectorAll('.pitch-button').forEach(b => b.classList.remove('btn-active'));
+            this.classList.add('btn-active');
+        });
+    });
+
+    // Chord mode toggle
+    document.getElementById('chord-mode-toggle').addEventListener('change', function() {
+        chordMode = this.checked;
+        document.getElementById('chord-display').classList.toggle('hidden', !chordMode);
+        if (!chordMode && currentChord.length > 0) {
+            currentChord = [];
+            updateChordDisplay();
+        }
+    });
+
+    // Add note
+    document.getElementById('add-note-btn').addEventListener('click', function() {
+        if (chordMode) {
+            currentChord.push({
+                pitch: selectedPitch,
+                accidental: selectedAccidental
+            });
+            updateChordDisplay();
+        } else {
+            addSingleNote();
+        }
+    });
+
+    // Finish chord
+    document.getElementById('finish-chord-btn').addEventListener('click', function() {
+        if (currentChord.length === 0) {
+            alert('Add at least one note to the chord first');
+            return;
+        }
+
+        // Sort chord notes from low to high
+        const sortedChord = [...currentChord].sort((a, b) => {
+            const getPitchValue = (pitch) => {
+                const [note, octave] = pitch.split('/');
+                const noteValues = {c: 0, d: 1, e: 2, f: 3, g: 4, a: 5, b: 6};
+                return parseInt(octave) * 7 + noteValues[note];
+            };
+            return getPitchValue(a.pitch) - getPitchValue(b.pitch);
+        });
+
+        const noteData = {
+            type: 'note',
+            keys: sortedChord.map(n => n.pitch),
+            duration: selectedDuration,
+            accidentals: sortedChord.map(n => n.accidental !== 'none' ? n.accidental : null)
+        };
+
+        notes.push(noteData);
+        currentChord = [];
+        updateChordDisplay();
+        renderNotes();
+    });
+
+    // Add barline
+    document.getElementById('add-barline-btn').addEventListener('click', function() {
+        notes.push({ type: 'barline' });
+        renderNotes();
+    });
+
+    // Remove last
+    document.getElementById('remove-last-btn').addEventListener('click', function() {
+        if (chordMode && currentChord.length > 0) {
+            currentChord.pop();
+            updateChordDisplay();
+        } else if (notes.length > 0) {
+            notes.pop();
+            renderNotes();
+        }
+    });
+
+    // Clear all
+    document.getElementById('clear-all-btn').addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear all notation?')) {
+            notes = [];
+            currentChord = [];
+            updateChordDisplay();
+            renderNotes();
+        }
+    });
+
+    // Save draft
+    document.getElementById('save-draft-btn').addEventListener('click', function() {
+        document.getElementById('save-draft-input').value = 'true';
+        saveNotationData();
+        document.getElementById('assignment-form').submit();
+    });
+
+    // Submit
+    document.getElementById('submit-btn').addEventListener('click', function() {
+        if (!confirm('Are you sure you want to submit? You will not be able to edit your work after submission.')) {
+            return;
+        }
+        document.getElementById('save-draft-input').value = 'false';
+        saveNotationData();
+        document.getElementById('assignment-form').submit();
+    });
+
+    function addSingleNote() {
+        const noteData = {
+            type: 'note',
+            keys: [selectedPitch],
+            duration: selectedDuration
+        };
+
+        if (selectedAccidental !== 'none') {
+            noteData.accidental = selectedAccidental;
+        }
+
+        notes.push(noteData);
+        renderNotes();
+    }
+
+    function updateChordDisplay() {
+        const chordNotesEl = document.getElementById('chord-notes');
+        if (currentChord.length === 0) {
+            chordNotesEl.textContent = '(empty)';
+        } else {
+            chordNotesEl.textContent = currentChord.map(n => {
+                const pitch = n.pitch.toUpperCase().replace('/', '');
+                const acc = n.accidental === '#' ? '♯' : n.accidental === 'b' ? '♭' : '';
+                return pitch + acc;
+            }).join(', ');
+        }
+    }
+
+    function saveNotationData() {
+        const notationData = {
+            clef: selectedClef,
+            notes: notes
+        };
+        document.getElementById('notation-data-input').value = JSON.stringify(notationData);
+    }
+
+    function renderNotes() {
+        const container = document.getElementById('notation-output');
+        container.innerHTML = '';
+
+        if (notes.length === 0) {
+            container.innerHTML = '<p class="text-center text-base-content/50 py-8">Your notation will appear here</p>';
+            return;
+        }
+
+        renderNotation('notation-output', { clef: selectedClef, notes: notes });
+    }
+
+    function renderNotation(containerId, notationData) {
+        const container = document.getElementById(containerId);
+        if (!container || !notationData || !notationData.notes || notationData.notes.length === 0) {
+            return;
+        }
+
+        container.innerHTML = '';
+
+        const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+        renderer.resize(650, 200);
+        const context = renderer.getContext();
+
+        const stave = new VF.Stave(10, 40, 620);
+        const clef = notationData.clef || 'treble';
+        stave.addClef(clef);
+        stave.setContext(context).draw();
+
+        const vfNotes = notationData.notes.map(noteData => {
+            if (noteData.type === 'barline') {
+                return new VF.BarNote();
+            } else {
+                const note = new VF.StaveNote({
+                    keys: noteData.keys,
+                    duration: noteData.duration,
+                    clef: clef
+                });
+
+                if (noteData.accidental) {
+                    note.addModifier(new VF.Accidental(noteData.accidental), 0);
+                }
+
+                if (noteData.accidentals && Array.isArray(noteData.accidentals)) {
+                    noteData.accidentals.forEach((acc, index) => {
+                        if (acc) {
+                            note.addModifier(new VF.Accidental(acc), index);
+                        }
+                    });
+                }
+
+                return note;
+            }
+        });
+
+        const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+        voice.addTickables(vfNotes);
+
+        const formatter = new VF.Formatter();
+        formatter.joinVoices([voice]).format([voice], 580);
+
+        voice.draw(context, stave);
+    }
+
+    // Initial render
+    renderNotes();
+});
+</script>
+{% endif %}
+{% endblock %}

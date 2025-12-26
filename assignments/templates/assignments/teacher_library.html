@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Assignments{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">My Assignment Library</h1>
+                <p class="text-base-content/70">Manage your music theory assignments</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'assignments:teacher_submissions' %}" class="btn btn-outline">
+                    <i class="fas fa-inbox mr-2"></i>View Submissions
+                </a>
+                <a href="{% url 'assignments:teacher_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus mr-2"></i>Create Assignment
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if assignments %}
+        <div class="grid grid-cols-1 gap-6">
+            {% for assignment in assignments %}
+                <div class="card card-section shadow-xl hover:shadow-2xl transition-shadow">
+                    <div class="card-body">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h2 class="card-title text-2xl mb-2">
+                                    {{ assignment.title }}
+                                </h2>
+                                <p class="text-base-content/70 mb-4">
+                                    {{ assignment.instructions|truncatewords:30 }}
+                                </p>
+
+                                <!-- Assignment Type Badges -->
+                                <div class="flex gap-2 mb-4">
+                                    {% if assignment.has_notation_component %}
+                                        <span class="badge badge-primary">
+                                            <i class="fas fa-music mr-1"></i>Notation
+                                        </span>
+                                    {% endif %}
+                                    {% if assignment.has_written_component %}
+                                        <span class="badge badge-secondary">
+                                            <i class="fas fa-pen mr-1"></i>Written
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Stats -->
+                                <div class="flex gap-6 text-sm">
+                                    <div>
+                                        <i class="fas fa-users text-primary mr-1"></i>
+                                        <span class="font-semibold">{{ assignment.times_assigned }}</span>
+                                        <span class="text-base-content/70">assigned</span>
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-calendar text-primary mr-1"></i>
+                                        <span class="text-base-content/70">Created</span>
+                                        <span class="font-semibold">{{ assignment.created_at|date:"M j, Y" }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex flex-col gap-2">
+                                <a href="{% url 'assignments:assign_to_student' assignment.id %}"
+                                   class="btn btn-primary btn-sm">
+                                    <i class="fas fa-user-plus mr-2"></i>Assign to Student
+                                </a>
+                                <a href="{% url 'assignments:teacher_edit' assignment.id %}"
+                                   class="btn btn-outline btn-sm">
+                                    <i class="fas fa-edit mr-2"></i>Edit
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Instructions Preview (Expandable) -->
+                        <div class="collapse collapse-arrow bg-base-200 mt-4">
+                            <input type="checkbox" />
+                            <div class="collapse-title font-medium">
+                                View Full Instructions
+                            </div>
+                            <div class="collapse-content">
+                                <p class="whitespace-pre-wrap">{{ assignment.instructions }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Empty State -->
+        <div class="card card-section shadow-xl">
+            <div class="card-body">
+                <div class="text-center py-12">
+                    <i class="fas fa-clipboard-list text-6xl text-base-content/30 mb-4"></i>
+                    <h3 class="text-2xl font-medium text-base-content/70 mb-2">
+                        No Assignments Yet
+                    </h3>
+                    <p class="text-base-content/50 mb-6">
+                        Create your first music theory assignment to get started
+                    </p>
+                    <a href="{% url 'assignments:teacher_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus mr-2"></i>Create Your First Assignment
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

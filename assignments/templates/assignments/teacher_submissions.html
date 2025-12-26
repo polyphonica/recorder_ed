@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Submissions{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Student Submissions</h1>
+                <p class="text-base-content/70">Review and grade submitted assignments</p>
+            </div>
+            <a href="{% url 'assignments:teacher_library' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Library
+            </a>
+        </div>
+    </div>
+
+    {% if submissions_data %}
+        <div class="grid grid-cols-1 gap-6">
+            {% for data in submissions_data %}
+                {% with link=data.link submission=data.submission %}
+                    <div class="card card-section shadow-xl">
+                        <div class="card-body">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <!-- Assignment Title -->
+                                    <h2 class="card-title text-2xl mb-2">
+                                        {{ link.assignment.title }}
+                                    </h2>
+
+                                    <!-- Student Info -->
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <i class="fas fa-user text-primary"></i>
+                                        <span class="font-semibold">
+                                            {{ link.student.get_full_name|default:link.student.username }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Submission Details -->
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
+                                        <div>
+                                            <div class="text-base-content/70">Submitted</div>
+                                            <div class="font-semibold">
+                                                {{ submission.submitted_at|date:"M j, Y" }}
+                                            </div>
+                                        </div>
+                                        {% if link.lesson %}
+                                            <div>
+                                                <div class="text-base-content/70">Linked Lesson</div>
+                                                <div class="font-semibold">
+                                                    {{ link.lesson.lesson_date|date:"M j, Y" }}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        <div>
+                                            <div class="text-base-content/70">Status</div>
+                                            <div>
+                                                {% if submission.status == 'submitted' %}
+                                                    <span class="badge badge-warning">Needs Grading</span>
+                                                {% elif submission.status == 'graded' %}
+                                                    <span class="badge badge-success">Graded</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% if submission.status == 'graded' %}
+                                            <div>
+                                                <div class="text-base-content/70">Grade</div>
+                                                <div class="font-semibold text-xl">
+                                                    {{ submission.grade }}/100
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Graded Feedback Preview -->
+                                    {% if submission.status == 'graded' and submission.feedback %}
+                                        <div class="bg-base-200 rounded-lg p-3 mt-3">
+                                            <div class="text-sm font-semibold mb-1">Your Feedback:</div>
+                                            <div class="text-sm text-base-content/70">
+                                                {{ submission.feedback|truncatewords:20 }}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Action Button -->
+                                <div>
+                                    <a href="{% url 'assignments:grade_submission' submission.id %}"
+                                       class="btn {% if submission.status == 'graded' %}btn-outline{% else %}btn-primary{% endif %}">
+                                        <i class="fas {% if submission.status == 'graded' %}fa-eye{% else %}fa-check-circle{% endif %} mr-2"></i>
+                                        {% if submission.status == 'graded' %}View/Re-grade{% else %}Grade Now{% endif %}
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endwith %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Empty State -->
+        <div class="card card-section shadow-xl">
+            <div class="card-body">
+                <div class="text-center py-12">
+                    <i class="fas fa-inbox text-6xl text-base-content/30 mb-4"></i>
+                    <h3 class="text-2xl font-medium text-base-content/70 mb-2">
+                        No Submissions Yet
+                    </h3>
+                    <p class="text-base-content/50 mb-6">
+                        Student submissions will appear here once they submit their work
+                    </p>
+                    <a href="{% url 'assignments:teacher_library' %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Assignments
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
