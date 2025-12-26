@@ -326,6 +326,14 @@ function renderCalendar() {
     }
 }
 
+// HTML escape function to prevent XSS
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 function showLessonModal(event) {
     selectedLesson = event;
     const props = event.extendedProps || {};
@@ -335,16 +343,16 @@ function showLessonModal(event) {
 
     // Build modal content
     const content = `
-        <div><strong>Subject:</strong> ${props.subject || 'N/A'}</div>
-        <div><strong>${isTeacher ? 'Student' : 'Teacher'}:</strong> ${isTeacher ? props.student : props.teacher}</div>
-        <div><strong>Duration:</strong> ${props.duration || 'N/A'} minutes</div>
-        <div><strong>Location:</strong> ${props.location || 'N/A'}</div>
-        <div><strong>Fee:</strong> $${props.fee || 'Not set'}</div>
+        <div><strong>Subject:</strong> ${escapeHtml(props.subject) || 'N/A'}</div>
+        <div><strong>${isTeacher ? 'Student' : 'Teacher'}:</strong> ${escapeHtml(isTeacher ? props.student : props.teacher)}</div>
+        <div><strong>Duration:</strong> ${escapeHtml(props.duration) || 'N/A'} minutes</div>
+        <div><strong>Location:</strong> ${escapeHtml(props.location) || 'N/A'}</div>
+        <div><strong>Fee:</strong> $${escapeHtml(props.fee) || 'Not set'}</div>
         <div class="mt-2">
             <strong>Status:</strong><br/>
-            <span class="badge badge-sm ${props.approvedStatus === 'Accepted' ? 'badge-success' : props.approvedStatus === 'Rejected' ? 'badge-error' : 'badge-warning'}">${props.approvedStatus}</span>
-            <span class="badge badge-sm ${props.paymentStatus === 'Paid' ? 'badge-success' : 'badge-warning'}">${props.paymentStatus}</span>
-            <span class="badge badge-sm badge-info">${props.status}</span>
+            <span class="badge badge-sm ${props.approvedStatus === 'Accepted' ? 'badge-success' : props.approvedStatus === 'Rejected' ? 'badge-error' : 'badge-warning'}">${escapeHtml(props.approvedStatus)}</span>
+            <span class="badge badge-sm ${props.paymentStatus === 'Paid' ? 'badge-success' : 'badge-warning'}">${escapeHtml(props.paymentStatus)}</span>
+            <span class="badge badge-sm badge-info">${escapeHtml(props.status)}</span>
         </div>
     `;
 

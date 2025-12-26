@@ -560,6 +560,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    // HTML escape function to prevent XSS
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     // Display the list of previous homework
     function displayHomeworkList(lessons) {
         homeworkList.innerHTML = '';
@@ -569,10 +577,10 @@ document.addEventListener('DOMContentLoaded', function() {
             itemDiv.className = 'p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 transition-colors';
             itemDiv.innerHTML = `
                 <div class="flex justify-between items-start mb-1">
-                    <span class="font-medium text-gray-700">${lesson.subject}</span>
-                    <span class="text-xs text-gray-500">${lesson.date}</span>
+                    <span class="font-medium text-gray-700">${escapeHtml(lesson.subject)}</span>
+                    <span class="text-xs text-gray-500">${escapeHtml(lesson.date)}</span>
                 </div>
-                <div class="text-sm text-gray-600 truncate">${lesson.preview}</div>
+                <div class="text-sm text-gray-600 truncate">${escapeHtml(lesson.preview)}</div>
             `;
 
             itemDiv.addEventListener('click', function() {
