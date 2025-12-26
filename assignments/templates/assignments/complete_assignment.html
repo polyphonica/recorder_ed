@@ -26,15 +26,12 @@
     }
 
     .duration-button {
-        min-width: 90px;
-        font-size: 1.125rem;
+        min-width: 140px;
+        font-size: 0.875rem;
         font-weight: 600;
         padding: 0.75rem 0.5rem;
         height: auto;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.25rem;
+        white-space: nowrap;
     }
 
     .accidental-button {
@@ -223,10 +220,10 @@
                                         <span class="label-text font-semibold">Duration:</span>
                                     </label>
                                     <div class="grid grid-cols-4 gap-2">
-                                        <button type="button" class="btn duration-button btn-active" data-duration="w">Whole<br>Semibreve</button>
-                                        <button type="button" class="btn duration-button" data-duration="h">Half<br>Minim</button>
-                                        <button type="button" class="btn duration-button" data-duration="q">Quarter<br>Crotchet</button>
-                                        <button type="button" class="btn duration-button" data-duration="8">Eighth<br>Quaver</button>
+                                        <button type="button" class="btn duration-button btn-active" data-duration="w">Whole note / Semibreve</button>
+                                        <button type="button" class="btn duration-button" data-duration="h">Half note / Minim</button>
+                                        <button type="button" class="btn duration-button" data-duration="q">Quarter note / Crotchet</button>
+                                        <button type="button" class="btn duration-button" data-duration="8">Eighth note / Quaver</button>
                                     </div>
                                 </div>
 
