@@ -279,6 +279,14 @@ function filterLessons(filter) {
     });
 }
 
+// HTML escape function to prevent XSS
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Contact modal functions
 function openContactModal(studentId) {
     const modal = document.getElementById('contact-modal');
@@ -307,20 +315,20 @@ function openContactModal(studentId) {
             if (data.is_guardian) {
                 contactHTML += `<div>
                     <p class="text-sm text-base-content/70">Guardian</p>
-                    <p class="font-semibold text-lg">${data.full_name}</p>
+                    <p class="font-semibold text-lg">${escapeHtml(data.full_name)}</p>
                 </div>`;
 
                 // Children info
                 if (data.children && data.children.length > 0) {
                     contactHTML += `<div>
                         <p class="text-sm text-base-content/70">Children</p>
-                        <p class="font-semibold">${data.children.map(c => c.full_name).join(', ')}</p>
+                        <p class="font-semibold">${escapeHtml(data.children.map(c => c.full_name).join(', '))}</p>
                     </div>`;
                 }
             } else {
                 contactHTML += `<div>
                     <p class="text-sm text-base-content/70">Student</p>
-                    <p class="font-semibold text-lg">${data.full_name}</p>
+                    <p class="font-semibold text-lg">${escapeHtml(data.full_name)}</p>
                 </div>`;
             }
 
@@ -331,7 +339,7 @@ function openContactModal(studentId) {
                 <p class="text-sm text-base-content/70">Email</p>
                 <p class="font-semibold">
                     <i class="fas fa-envelope mr-2"></i>
-                    <a href="mailto:${data.email}" class="link link-primary">${data.email}</a>
+                    <a href="mailto:${escapeHtml(data.email)}" class="link link-primary">${escapeHtml(data.email)}</a>
                 </p>
             </div>`;
 
@@ -341,7 +349,7 @@ function openContactModal(studentId) {
                     <p class="text-sm text-base-content/70">Phone</p>
                     <p class="font-semibold">
                         <i class="fas fa-phone mr-2"></i>
-                        <a href="tel:${data.phone}" class="link link-primary">${data.phone}</a>
+                        <a href="tel:${escapeHtml(data.phone)}" class="link link-primary">${escapeHtml(data.phone)}</a>
                     </p>
                 </div>`;
             }
@@ -351,7 +359,7 @@ function openContactModal(studentId) {
                 contactHTML += `<div>
                     <p class="text-sm text-base-content/70">Address</p>
                     <p class="font-semibold">
-                        <i class="fas fa-map-marker-alt mr-2"></i>${data.address}
+                        <i class="fas fa-map-marker-alt mr-2"></i>${escapeHtml(data.address)}
                     </p>
                 </div>`;
             }

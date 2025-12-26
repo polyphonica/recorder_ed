@@ -229,6 +229,14 @@
 </dialog>
 
 <script>
+    // HTML escape function to prevent XSS
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     function viewContactDetails(studentId) {
         const modal = document.getElementById('contact_modal');
         const contentDiv = document.getElementById('contact_content');
@@ -253,7 +261,7 @@
                         <div class="bg-base-200 rounded-lg p-4">
                             <h4 class="font-semibold text-lg mb-3 flex items-center">
                                 <i class="fas fa-user mr-2 text-primary"></i>
-                                ${data.full_name}
+                                ${escapeHtml(data.full_name)}
                             </h4>
 
                             <div class="grid grid-cols-1 gap-3">
@@ -261,7 +269,7 @@
                                     <i class="fas fa-envelope w-6 text-primary mt-1"></i>
                                     <div>
                                         <div class="text-sm text-base-content/70">Email</div>
-                                        <div class="font-medium">${data.email || 'Not provided'}</div>
+                                        <div class="font-medium">${escapeHtml(data.email) || 'Not provided'}</div>
                                     </div>
                                 </div>
 
@@ -270,7 +278,7 @@
                                     <i class="fas fa-phone w-6 text-primary mt-1"></i>
                                     <div>
                                         <div class="text-sm text-base-content/70">Phone</div>
-                                        <div class="font-medium">${data.phone}</div>
+                                        <div class="font-medium">${escapeHtml(data.phone)}</div>
                                     </div>
                                 </div>
                                 ` : ''}
@@ -280,7 +288,7 @@
                                     <i class="fas fa-map-marker-alt w-6 text-primary mt-1"></i>
                                     <div>
                                         <div class="text-sm text-base-content/70">Address</div>
-                                        <div class="font-medium">${data.address}</div>
+                                        <div class="font-medium">${escapeHtml(data.address)}</div>
                                     </div>
                                 </div>
                                 ` : ''}
@@ -298,8 +306,8 @@
                                     <div class="flex items-center bg-base-100 rounded p-2">
                                         <i class="fas fa-user-circle mr-2"></i>
                                         <div>
-                                            <div class="font-medium">${child.full_name}</div>
-                                            ${child.date_of_birth ? `<div class="text-sm text-base-content/70">DOB: ${child.date_of_birth}</div>` : ''}
+                                            <div class="font-medium">${escapeHtml(child.full_name)}</div>
+                                            ${child.date_of_birth ? `<div class="text-sm text-base-content/70">DOB: ${escapeHtml(child.date_of_birth)}</div>` : ''}
                                         </div>
                                     </div>
                                 `).join('')}
