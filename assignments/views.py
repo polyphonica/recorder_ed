@@ -191,22 +191,11 @@ def student_assignment_library(request):
             # Graded assignments
             graded_assignments.append(link)
 
-    # Debug output
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.error(f"DEBUG: Total assignment links: {assignment_links.count()}")
-    logger.error(f"DEBUG: Pending count: {len(pending_assignments)}")
-    logger.error(f"DEBUG: Submitted count: {len(submitted_assignments)}")
-    logger.error(f"DEBUG: Graded count: {len(graded_assignments)}")
-    for link in assignment_links:
-        logger.error(f"DEBUG: Link ID={link.id}, Assignment={link.assignment.title}, Submission={link.submission}, Status={link.submission.status if link.submission else 'None'}")
-
     return render(request, 'assignments/student_library.html', {
         'pending_assignments': pending_assignments,
         'submitted_assignments': submitted_assignments,
         'graded_assignments': graded_assignments,
         'pending_count': len(pending_assignments),
-        'all_links': assignment_links,  # Add for debugging
     })
 
 

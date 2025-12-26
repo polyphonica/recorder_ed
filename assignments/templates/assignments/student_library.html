@@ -14,43 +14,18 @@
         </div>
     </div>
 
-    <!-- DEBUG INFO -->
-    <div class="alert alert-warning mb-4">
-        <div>
-            <p><strong>DEBUG:</strong></p>
-            <p>Pending count: {{ pending_count }}</p>
-            <p>Pending assignments: {{ pending_assignments|length }}</p>
-            <p>All links: {{ all_links|length }}</p>
-            {% for link in all_links %}
-                <p>- Link: {{ link.assignment.title }}, Submission: {{ link.submission }}, Status: {% if link.submission %}{{ link.submission.status }}{% else %}None{% endif %}</p>
-            {% endfor %}
-        </div>
-    </div>
-
-    <!-- Tab Navigation -->
-    <div class="tabs tabs-boxed mb-6 bg-base-200">
-        <a class="tab tab-active" data-tab="pending">
-            <i class="fas fa-clock mr-2"></i>Pending
+    <!-- Pending Assignments Section -->
+    <div class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">
+            <i class="fas fa-clock mr-2"></i>Pending Assignments
             {% if pending_count > 0 %}
                 <span class="badge badge-primary ml-2">{{ pending_count }}</span>
             {% endif %}
-        </a>
-        <a class="tab" data-tab="completed">
-            <i class="fas fa-check-circle mr-2"></i>Submitted
-        </a>
-        <a class="tab" data-tab="graded">
-            <i class="fas fa-star mr-2"></i>Graded
-        </a>
-    </div>
+        </h2>
 
-    <!-- Pending Assignments Tab -->
-    <div id="tab-pending" class="tab-content">
-        <p class="text-error">DEBUG: In pending tab, pending_assignments exists: {{ pending_assignments|length }}</p>
         {% if pending_assignments %}
-            <p class="text-success">DEBUG: Inside if block, starting loop...</p>
             <div class="grid grid-cols-1 gap-6">
                 {% for link in pending_assignments %}
-                    <p class="text-info">DEBUG: Loop iteration for {{ link.assignment.title }}</p>
                     <div class="card card-section shadow-xl hover:shadow-2xl transition-shadow">
                         <div class="card-body">
                             <div class="flex justify-between items-start">
@@ -155,8 +130,12 @@
         {% endif %}
     </div>
 
-    <!-- Submitted Assignments Tab -->
-    <div id="tab-completed" class="tab-content hidden">
+    <!-- Submitted Assignments Section -->
+    <div class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">
+            <i class="fas fa-check-circle mr-2"></i>Submitted Assignments
+        </h2>
+
         {% if submitted_assignments %}
             <div class="grid grid-cols-1 gap-6">
                 {% for link in submitted_assignments %}
@@ -207,8 +186,12 @@
         {% endif %}
     </div>
 
-    <!-- Graded Assignments Tab -->
-    <div id="tab-graded" class="tab-content hidden">
+    <!-- Graded Assignments Section -->
+    <div class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">
+            <i class="fas fa-star mr-2"></i>Graded Assignments
+        </h2>
+
         {% if graded_assignments %}
             <div class="grid grid-cols-1 gap-6">
                 {% for link in graded_assignments %}
@@ -277,31 +260,4 @@
         {% endif %}
     </div>
 </div>
-
-<script>
-// Tab switching functionality - TEMPORARILY DISABLED FOR DEBUG
-// document.addEventListener('DOMContentLoaded', function() {
-//     const tabs = document.querySelectorAll('.tab');
-//     const tabContents = document.querySelectorAll('.tab-content');
-
-//     tabs.forEach(tab => {
-//         tab.addEventListener('click', function(e) {
-//             e.preventDefault();
-//             const targetTab = this.getAttribute('data-tab');
-
-//             // Remove active class from all tabs
-//             tabs.forEach(t => t.classList.remove('tab-active'));
-
-//             // Add active class to clicked tab
-//             this.classList.add('tab-active');
-
-//             // Hide all tab contents
-//             tabContents.forEach(content => content.classList.add('hidden'));
-
-//             // Show target tab content
-//             document.getElementById('tab-' + targetTab).classList.remove('hidden');
-//         });
-//     });
-// });
-</script>
 {% endblock %}
