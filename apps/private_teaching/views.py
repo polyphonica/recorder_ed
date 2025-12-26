@@ -446,10 +446,19 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
 
         # Get pending assignments (draft or not yet submitted)
         from apps.private_teaching.models import PrivateLessonAssignment
+        from assignments.models import AssignmentSubmission
+
+        # Get assignment IDs that have been submitted or graded
+        completed_assignment_ids = AssignmentSubmission.objects.filter(
+            student=self.request.user,
+            status__in=['submitted', 'graded']
+        ).values_list('assignment_id', flat=True)
+
+        # Count assignments that haven't been submitted/graded yet
         pending_assignments_count = PrivateLessonAssignment.objects.filter(
             student=self.request.user
         ).exclude(
-            submission__status__in=['submitted', 'graded']
+            assignment_id__in=completed_assignment_ids
         ).count()
 
         context.update({
