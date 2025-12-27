@@ -92,26 +92,6 @@
                     </div>
                 </div>
 
-                <!-- Written Questions -->
-                <div class="form-control mb-6" id="written-questions-container" style="display: none;">
-                    <label class="label">
-                        <span class="label-text font-semibold">{{ form.written_questions.label }}</span>
-                    </label>
-                    {{ form.written_questions }}
-                    {% if form.written_questions.errors %}
-                        <label class="label">
-                            <span class="label-text-alt text-error">{{ form.written_questions.errors.0 }}</span>
-                        </label>
-                    {% endif %}
-                    <div class="alert alert-info mt-2">
-                        <i class="fas fa-info-circle"></i>
-                        <div>
-                            <p class="font-semibold">JSON Format Example:</p>
-                            <code class="text-xs">[{"question": "What is a perfect 5th?", "type": "short"}]</code>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Reference Notation -->
                 <div class="divider"></div>
                 <h3 class="text-2xl font-bold mb-4">Reference/Example (Optional)</h3>
@@ -143,22 +123,4 @@
     </div>
 </div>
 
-<script>
-// Show/hide written questions field based on checkbox
-document.addEventListener('DOMContentLoaded', function() {
-    const writtenCheckbox = document.getElementById('id_has_written_component');
-    const questionsContainer = document.getElementById('written-questions-container');
-
-    function toggleQuestions() {
-        if (writtenCheckbox.checked) {
-            questionsContainer.style.display = 'block';
-        } else {
-            questionsContainer.style.display = 'none';
-        }
-    }
-
-    writtenCheckbox.addEventListener('change', toggleQuestions);
-    toggleQuestions(); // Initialize on page load
-});
-</script>
 {% endblock %}
