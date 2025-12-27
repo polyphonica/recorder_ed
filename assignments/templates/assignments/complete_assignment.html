@@ -866,7 +866,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let maxBeatsInAnyMeasure = 0;
 
         vfNotes.forEach(note => {
-            if (note.noteType !== 'n') {
+            // Check if this is a barline (BarNote doesn't have a duration property)
+            if (!note.duration || note.constructor.name === 'BarNote') {
                 // Hit a barline - check current measure and reset
                 maxBeatsInAnyMeasure = Math.max(maxBeatsInAnyMeasure, currentMeasureBeats);
                 currentMeasureBeats = 0;
