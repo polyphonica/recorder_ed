@@ -665,9 +665,12 @@ document.addEventListener('DOMContentLoaded', function() {
         voice.draw(context, stave);
 
         // Render text labels
+        console.log('Rendering labels:', notationData.textLabels);
         if (notationData.textLabels && notationData.textLabels.length > 0) {
             const svgElement = container.querySelector('svg');
+            console.log('SVG element:', svgElement);
             notationData.textLabels.forEach((label, index) => {
+                console.log('Rendering label:', label);
                 const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 textElement.setAttribute('x', label.x);
                 textElement.setAttribute('y', label.y);
@@ -718,6 +721,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const text = prompt('Enter label text (e.g., "treble clef", "bar line", "time signature"):');
         if (text && text.trim()) {
             textLabels.push({ x, y, text: text.trim() });
+            console.log('Added label:', { x, y, text: text.trim() });
+            console.log('All labels:', textLabels);
             saveNotationData();
             renderNotes();
         }
