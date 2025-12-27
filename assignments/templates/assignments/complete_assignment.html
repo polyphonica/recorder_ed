@@ -3,6 +3,10 @@
 
 {% block title %}Complete Assignment - {{ assignment.title }}{% endblock %}
 
+{% block extra_head %}
+{{ form.media }}
+{% endblock %}
+
 {% block extra_css %}
 <style>
     #notation-output {
