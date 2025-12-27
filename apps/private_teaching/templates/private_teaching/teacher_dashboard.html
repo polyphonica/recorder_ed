@@ -16,7 +16,7 @@
 
     <!-- Quick Stats -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
-        <a href="{% url 'private_teaching:teacher_schedule' %}" class="stat bg-success text-success-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-52 flex flex-col">
+        <a href="{% url 'private_teaching:teacher_schedule' %}" class="stat bg-success text-success-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer !h-52 flex flex-col">
             <div class="stat-title text-white text-lg font-semibold">Draft Lessons</div>
             <div class="stat-value text-white text-4xl">{{ paid_unassigned_count }}</div>
             <div class="stat-desc text-white text-base mt-2">
@@ -28,7 +28,7 @@
             </div>
         </a>
 
-        <a href="{% url 'private_teaching:teacher_applications' %}" class="stat bg-accent text-accent-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-52 flex flex-col">
+        <a href="{% url 'private_teaching:teacher_applications' %}" class="stat bg-accent text-accent-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer !h-52 flex flex-col">
             <div class="stat-title text-white text-lg font-semibold">New Applications</div>
             <div class="stat-value text-white text-4xl">{{ pending_applications_count }}</div>
             <div class="stat-desc text-white text-base mt-2">
@@ -40,7 +40,7 @@
             </div>
         </a>
 
-        <a href="{% url 'private_teaching:teacher_applications' %}?status=waitlist" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-52 flex flex-col" style="background-color: #f97316; color: white;">
+        <a href="{% url 'private_teaching:teacher_applications' %}?status=waitlist" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer !h-52 flex flex-col" style="background-color: #f97316; color: white;">
             <div class="stat-title text-lg font-semibold" style="color: white;">Waiting List</div>
             <div class="stat-value text-4xl" style="color: white;">{{ waitlist_applications_count }}</div>
             <div class="stat-desc text-base mt-2" style="color: white;">
@@ -52,7 +52,7 @@
             </div>
         </a>
 
-        <a href="{% url 'private_teaching:incoming_requests' %}" class="stat bg-primary text-primary-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-52 flex flex-col">
+        <a href="{% url 'private_teaching:incoming_requests' %}" class="stat bg-primary text-primary-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer !h-52 flex flex-col">
             <div class="stat-title text-white text-lg font-semibold">Pending Lesson Requests</div>
             <div class="stat-value text-white text-4xl">{{ pending_count }}</div>
             <div class="stat-desc text-white text-base mt-2">
@@ -64,7 +64,7 @@
             </div>
         </a>
 
-        <a href="{% url 'private_teaching:teacher_cancellation_requests' %}" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-52 flex flex-col" style="background-color: #dc2626; color: white;">
+        <a href="{% url 'private_teaching:teacher_cancellation_requests' %}" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer !h-52 flex flex-col" style="background-color: #dc2626; color: white;">
             <div class="stat-title text-lg font-semibold" style="color: white;">Cancellation Requests</div>
             <div class="stat-value text-4xl" style="color: white;">{{ pending_cancellations_count }}</div>
             <div class="stat-desc text-base mt-2" style="color: white;">
@@ -76,7 +76,7 @@
             </div>
         </a>
 
-        <a href="{% url 'private_teaching:teacher_schedule' %}" class="stat bg-info text-info-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-52 flex flex-col">
+        <a href="{% url 'private_teaching:teacher_schedule' %}" class="stat bg-info text-info-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer !h-52 flex flex-col">
             <div class="stat-title text-white text-lg font-semibold">Today's Lessons</div>
             <div class="stat-value text-white text-4xl">{{ today_lessons.count }}</div>
             <div class="stat-desc text-white text-base mt-2">
@@ -88,7 +88,7 @@
             </div>
         </a>
 
-        <div class="stat bg-warning text-warning-content rounded-lg shadow-lg h-52 flex flex-col">
+        <div class="stat bg-warning text-warning-content rounded-lg shadow-lg !h-52 flex flex-col">
             <div class="stat-title text-white text-lg font-semibold">Priority Actions</div>
             <div class="stat-desc text-white/80 text-sm mb-3">Items needing your attention</div>
             <div class="stat-actions mt-2 flex flex-col gap-2 overflow-y-auto flex-1">
@@ -151,7 +151,7 @@
             </div>
         </div>
 
-        <a href="{% url 'private_teaching:exam_list' %}" class="stat bg-secondary text-secondary-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-52 flex flex-col">
+        <a href="{% url 'private_teaching:exam_list' %}" class="stat bg-secondary text-secondary-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer !h-52 flex flex-col">
             <div class="stat-title text-white text-lg font-semibold">Active Exams</div>
             <div class="stat-value text-white text-4xl">{{ active_exams_count }}</div>
             <div class="stat-desc text-white text-base mt-2">
@@ -163,7 +163,7 @@
             </div>
         </a>
 
-        <a href="{% url 'assignments:teacher_submissions' %}" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-52 flex flex-col" style="background-color: #8b5cf6; color: white;">
+        <a href="{% url 'assignments:teacher_submissions' %}" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer !h-52 flex flex-col" style="background-color: #8b5cf6; color: white;">
             <div class="stat-title text-lg font-semibold" style="color: white;">Assignments to Grade</div>
             <div class="stat-value text-4xl" style="color: white;">{{ pending_assignment_submissions_count }}</div>
             <div class="stat-desc text-base mt-2" style="color: white;">
@@ -175,7 +175,7 @@
             </div>
         </a>
 
-        <a href="{% url 'assignments:teacher_library' %}" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer h-52 flex flex-col" style="background-color: #14b8a6; color: white;">
+        <a href="{% url 'assignments:teacher_library' %}" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer !h-52 flex flex-col" style="background-color: #14b8a6; color: white;">
             <div class="stat-title text-lg font-semibold" style="color: white;">Assignment Library</div>
             <div class="stat-value text-4xl" style="color: white;">{{ my_assignments_count }}</div>
             <div class="stat-desc text-base mt-2" style="color: white;">
