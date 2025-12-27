@@ -853,7 +853,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Calculate beats per measure, reset at barlines
+        // Calculate beats per measure using ORIGINAL note data, not VexFlow objects
         const beatValues = {
             'w': 4,    // whole note
             'h': 2,    // half note
@@ -865,37 +865,36 @@ document.addEventListener('DOMContentLoaded', function() {
         let currentMeasureBeats = 0;
         let maxBeatsInAnyMeasure = 0;
 
-        vfNotes.forEach(note => {
-            // Check if this is a barline - multiple ways to detect
-            const isBarline = note.constructor.name === 'BarNote' ||
-                            note.category === 'barline' ||
-                            typeof note.duration !== 'string';
+        // Use original notation data, not VexFlow objects
+        if (notationData.notes) {
+            notationData.notes.forEach(noteData => {
+                // Check if this is a barline using the original type field
+                if (noteData.type === 'barline') {
+                    // Hit a barline - check current measure and reset
+                    maxBeatsInAnyMeasure = Math.max(maxBeatsInAnyMeasure, currentMeasureBeats);
+                    currentMeasureBeats = 0;
+                    return;
+                }
 
-            if (isBarline) {
-                // Hit a barline - check current measure and reset
-                maxBeatsInAnyMeasure = Math.max(maxBeatsInAnyMeasure, currentMeasureBeats);
-                currentMeasureBeats = 0;
-                return;
-            }
+                const duration = noteData.duration;
+                if (!duration) return; // Skip if no duration
 
-            const duration = note.duration;
-            if (!duration) return; // Skip if no duration
+                const baseDuration = duration.replace(/d+$/, ''); // Remove dots
+                const numDots = (duration.match(/d/g) || []).length;
 
-            const baseDuration = duration.replace(/d+$/, ''); // Remove dots
-            const numDots = (duration.match(/d/g) || []).length;
+                let beatValue = beatValues[baseDuration];
+                if (beatValue === undefined) {
+                    console.warn('Unknown duration:', baseDuration, 'in noteData:', noteData);
+                    return; // Skip unknown durations
+                }
 
-            let beatValue = beatValues[baseDuration];
-            if (beatValue === undefined) {
-                console.warn('Unknown duration:', baseDuration);
-                beatValue = 1; // Default fallback
-            }
-
-            // Each dot adds half the previous value
-            for (let i = 0; i < numDots; i++) {
-                beatValue += beatValue / Math.pow(2, i + 1);
-            }
-            currentMeasureBeats += beatValue;
-        });
+                // Each dot adds half the previous value
+                for (let i = 0; i < numDots; i++) {
+                    beatValue += beatValue / Math.pow(2, i + 1);
+                }
+                currentMeasureBeats += beatValue;
+            });
+        }
 
         // Check final measure (if no trailing barline)
         maxBeatsInAnyMeasure = Math.max(maxBeatsInAnyMeasure, currentMeasureBeats);
