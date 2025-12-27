@@ -221,7 +221,7 @@ class MyLessonRequestsView(UserFilterMixin, StudentProfileCompletedMixin, Studen
         from django.db.models import Count, Q
         # UserFilterMixin automatically filters by student=self.request.user
         # Add count of eligible lessons (accepted and unpaid) to each request
-        return super().get_queryset().prefetch_related('messages', 'lessons__subject').annotate(
+        queryset = super().get_queryset().prefetch_related('messages', 'lessons__subject').annotate(
             eligible_lessons_count=Count(
                 'lessons',
                 filter=Q(
@@ -229,8 +229,15 @@ class MyLessonRequestsView(UserFilterMixin, StudentProfileCompletedMixin, Studen
                     lessons__payment_status='Not Paid',
                     lessons__is_deleted=False
                 )
+            ),
+            total_active_lessons=Count(
+                'lessons',
+                filter=Q(lessons__is_deleted=False)
             )
         ).order_by('-created_at')
+
+        # Exclude requests with no active lessons
+        return queryset.exclude(total_active_lessons=0)
 
 
 class StudentLessonRequestDetailView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
@@ -304,6 +311,9 @@ def delete_lesson_from_request(request, lesson_id):
     if active_lessons_count == 1:
         # This is the last lesson - delete the entire request
         lesson_request_id = lesson_request.id
+        # First delete all lessons (both active and soft-deleted)
+        lesson_request.lessons.all().delete()
+        # Then delete the request
         lesson_request.delete()
         messages.success(request, 'Lesson request deleted successfully (it was the last lesson in the request).')
         return redirect('private_teaching:my_requests')
