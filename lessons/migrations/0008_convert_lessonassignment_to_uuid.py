@@ -25,10 +25,17 @@ class Migration(migrations.Migration):
         # First, delete all existing records
         migrations.RunPython(delete_existing_assignments, migrations.RunPython.noop),
 
-        # Then alter the ID field to UUID
-        migrations.AlterField(
+        # Remove the old integer id field
+        migrations.RemoveField(
+            model_name='lessonassignment',
+            name='id',
+        ),
+
+        # Add the new UUID id field as primary key
+        migrations.AddField(
             model_name='lessonassignment',
             name='id',
             field=models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False),
+            preserve_default=False,
         ),
     ]
