@@ -247,6 +247,64 @@
     </div>
     {% endif %}
 
+    <!-- Homework Assignments -->
+    {% if lesson.lesson_assignments.exists and request.user == lesson.student.user %}
+    <div class="content-section">
+        <h3>📝 Homework Assignments</h3>
+        <div class="space-y-4 mt-4">
+            {% for link in lesson.lesson_assignments.all %}
+                <div class="card bg-base-200 shadow-md">
+                    <div class="card-body p-4">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-lg">{{ link.assignment.title }}</h4>
+
+                                {% if link.instructions %}
+                                    <p class="text-sm text-base-content/70 mt-2">{{ link.instructions }}</p>
+                                {% endif %}
+
+                                <div class="flex gap-4 mt-3 text-sm">
+                                    {% if link.due_date %}
+                                        <div>
+                                            <i class="fas fa-clock mr-1"></i>
+                                            <span class="text-base-content/70">Due:</span>
+                                            <span class="font-medium {% if link.is_overdue %}text-error{% endif %}">
+                                                {{ link.due_date|date:"M j, Y" }}
+                                            </span>
+                                            {% if link.is_overdue %}
+                                                <span class="badge badge-error badge-sm ml-2">Overdue</span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+
+                                    <div class="flex gap-2">
+                                        {% if link.assignment.has_notation_component %}
+                                            <span class="badge badge-primary badge-sm">
+                                                <i class="fas fa-music mr-1"></i>Notation
+                                            </span>
+                                        {% endif %}
+                                        {% if link.assignment.has_written_component %}
+                                            <span class="badge badge-secondary badge-sm">
+                                                <i class="fas fa-pen mr-1"></i>Written
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <a href="{% url 'assignments:complete_assignment' link.id %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-pencil mr-1"></i>Start Assignment
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Private Notes (Teacher Only) -->
     {% if lesson.private_note and request.user == lesson.teacher.user %}
     <div class="content-section">
