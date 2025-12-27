@@ -170,6 +170,9 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
                 'subject',
                 'subject__teacher',
                 'student'
+            ).prefetch_related(
+                'lesson_assignments',
+                'lesson_assignments__assignment'
             ),
             pk=self.kwargs['pk']
         )
