@@ -719,11 +719,28 @@ document.addEventListener('DOMContentLoaded', function() {
             if (noteData.type === 'barline') {
                 return new VF.BarNote();
             } else {
+                // Handle dotted notes - VexFlow requires dots to be added via .addDot()
+                let duration = noteData.duration;
+                let numDots = 0;
+
+                if (duration.endsWith('dd')) {
+                    numDots = 2;
+                    duration = duration.slice(0, -2);
+                } else if (duration.endsWith('d')) {
+                    numDots = 1;
+                    duration = duration.slice(0, -1);
+                }
+
                 const note = new VF.StaveNote({
                     keys: noteData.keys,
-                    duration: noteData.duration,
+                    duration: duration,
                     clef: clef
                 });
+
+                // Add dots if needed
+                for (let i = 0; i < numDots; i++) {
+                    note.addDot(0);
+                }
 
                 if (noteData.accidental) {
                     note.addModifier(new VF.Accidental(noteData.accidental), 0);
