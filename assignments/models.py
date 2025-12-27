@@ -41,12 +41,7 @@ class Assignment(models.Model):
     )
     has_written_component = models.BooleanField(
         default=False,
-        help_text="Whether this assignment includes written questions"
-    )
-    written_questions = models.JSONField(
-        null=True,
-        blank=True,
-        help_text="Array of written questions: [{question: 'text', type: 'short'|'long'}]"
+        help_text="Whether this assignment includes a written response component"
     )
 
     # Optional reference notation (teacher's example/solution)
@@ -61,11 +56,6 @@ class Assignment(models.Model):
         null=True,
         blank=True,
         help_text="Expected notation answer for auto-grading (future feature)"
-    )
-    expected_written_answers = models.JSONField(
-        null=True,
-        blank=True,
-        help_text="Expected written answers for auto-grading (future feature)"
     )
 
     # Metadata

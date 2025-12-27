@@ -16,7 +16,6 @@ class AssignmentForm(forms.ModelForm):
             'grading_scale',
             'has_notation_component',
             'has_written_component',
-            'written_questions',
             'reference_notation',
         ]
         widgets = {
@@ -27,7 +26,7 @@ class AssignmentForm(forms.ModelForm):
             'instructions': forms.Textarea(attrs={
                 'class': 'textarea textarea-bordered w-full',
                 'rows': 5,
-                'placeholder': 'Detailed instructions for the student...'
+                'placeholder': 'Provide assignment instructions and question(s) here...'
             }),
             'grading_scale': forms.Select(attrs={
                 'class': 'select select-bordered w-full'
@@ -38,11 +37,6 @@ class AssignmentForm(forms.ModelForm):
             'has_written_component': forms.CheckboxInput(attrs={
                 'class': 'checkbox checkbox-primary'
             }),
-            'written_questions': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full',
-                'rows': 3,
-                'placeholder': 'Enter questions as JSON: [{"question": "What is a perfect 5th?", "type": "short"}]'
-            }),
             'reference_notation': forms.Textarea(attrs={
                 'class': 'textarea textarea-bordered w-full font-mono text-sm',
                 'rows': 4,
@@ -51,18 +45,17 @@ class AssignmentForm(forms.ModelForm):
         }
         labels = {
             'title': 'Assignment Title',
-            'instructions': 'Instructions for Student',
+            'instructions': 'Instructions and Question(s)',
             'grading_scale': 'Grading Scale',
             'has_notation_component': 'Include Music Notation Component',
-            'has_written_component': 'Include Written Questions',
-            'written_questions': 'Written Questions (JSON format)',
+            'has_written_component': 'Include Written Response Component',
             'reference_notation': 'Reference Notation Data (optional)',
         }
         help_texts = {
             'grading_scale': 'Choose how this assignment will be graded',
-            'has_notation_component': 'Student will use notation editor to complete',
-            'has_written_component': 'Student will answer written questions',
-            'written_questions': 'Leave blank if no written component',
+            'instructions': 'Provide instructions and any questions for the student',
+            'has_notation_component': 'Student will use the notation editor to complete this assignment',
+            'has_written_component': 'Student will provide a written response with text formatting',
             'reference_notation': 'JSON data from notation editor - leave blank to add later',
         }
 
