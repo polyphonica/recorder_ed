@@ -624,7 +624,36 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         stave.setContext(context).draw();
 
-        // If there are no notes, just show the empty stave
+        // Render text labels (must be before early return for empty staves)
+        console.log('Rendering labels:', notationData.textLabels);
+        if (notationData.textLabels && notationData.textLabels.length > 0) {
+            const svgElement = container.querySelector('svg');
+            console.log('SVG element:', svgElement);
+            notationData.textLabels.forEach((label, index) => {
+                console.log('Rendering label:', label);
+                const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                textElement.setAttribute('x', label.x);
+                textElement.setAttribute('y', label.y);
+                textElement.setAttribute('fill', '#0066cc');
+                textElement.setAttribute('font-size', '14');
+                textElement.setAttribute('font-weight', 'bold');
+                textElement.setAttribute('cursor', 'pointer');
+                textElement.textContent = label.text;
+                textElement.dataset.labelIndex = index;
+
+                // Add click handler for editing/deleting
+                if (containerId === 'notation-output') {
+                    textElement.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        editTextLabel(index);
+                    });
+                }
+
+                svgElement.appendChild(textElement);
+            });
+        }
+
+        // If there are no notes, just show the empty stave (with labels)
         if (!notationData.notes || notationData.notes.length === 0) {
             return;
         }
@@ -663,35 +692,6 @@ document.addEventListener('DOMContentLoaded', function() {
         formatter.joinVoices([voice]).format([voice], 580);
 
         voice.draw(context, stave);
-
-        // Render text labels
-        console.log('Rendering labels:', notationData.textLabels);
-        if (notationData.textLabels && notationData.textLabels.length > 0) {
-            const svgElement = container.querySelector('svg');
-            console.log('SVG element:', svgElement);
-            notationData.textLabels.forEach((label, index) => {
-                console.log('Rendering label:', label);
-                const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                textElement.setAttribute('x', label.x);
-                textElement.setAttribute('y', label.y);
-                textElement.setAttribute('fill', '#0066cc');
-                textElement.setAttribute('font-size', '14');
-                textElement.setAttribute('font-weight', 'bold');
-                textElement.setAttribute('cursor', 'pointer');
-                textElement.textContent = label.text;
-                textElement.dataset.labelIndex = index;
-
-                // Add click handler for editing/deleting
-                if (containerId === 'notation-output') {
-                    textElement.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        editTextLabel(index);
-                    });
-                }
-
-                svgElement.appendChild(textElement);
-            });
-        }
     }
 
     // Enable label mode
