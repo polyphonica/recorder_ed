@@ -309,6 +309,14 @@ class LessonAssignment(models.Model):
     def __str__(self):
         return f"{self.assignment.title} for {self.lesson}"
 
+    @property
+    def is_overdue(self):
+        """Check if the assignment is overdue"""
+        if not self.due_date:
+            return False
+        from django.utils import timezone
+        return timezone.now() > self.due_date
+
 
 class Document(models.Model):
     id = models.UUIDField(
