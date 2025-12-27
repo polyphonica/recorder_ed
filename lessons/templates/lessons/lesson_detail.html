@@ -293,9 +293,29 @@
                             </div>
 
                             <div>
-                                <a href="{% url 'assignments:complete_assignment' link.id %}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-pencil mr-1"></i>Start Assignment
-                                </a>
+                                {% comment %}Check submission status{% endcomment %}
+                                {% load assignment_tags %}
+                                {% get_submission request.user link.assignment as submission %}
+
+                                {% if submission %}
+                                    {% if submission.status == 'graded' %}
+                                        <a href="{% url 'assignments:view_graded' submission.id %}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-star mr-1"></i>View Grade
+                                        </a>
+                                    {% elif submission.status == 'submitted' %}
+                                        <button type="button" class="btn btn-warning btn-sm" disabled>
+                                            <i class="fas fa-clock mr-1"></i>Awaiting Grading
+                                        </button>
+                                    {% else %}
+                                        <a href="{% url 'assignments:complete_assignment' link.id %}" class="btn btn-info btn-sm">
+                                            <i class="fas fa-edit mr-1"></i>Continue Draft
+                                        </a>
+                                    {% endif %}
+                                {% else %}
+                                    <a href="{% url 'assignments:complete_assignment' link.id %}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-pencil mr-1"></i>Start Assignment
+                                    </a>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
