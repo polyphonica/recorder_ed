@@ -176,7 +176,7 @@
                             </h2>
 
                             <!-- Clef and Key Signature Selection -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                 <!-- Clef Selection -->
                                 <div class="form-control">
                                     <label class="label">
@@ -212,6 +212,25 @@
                                             <option value="Db">D♭ Major / B♭ Minor (5♭)</option>
                                             <option value="Gb">G♭ Major / E♭ Minor (6♭)</option>
                                         </optgroup>
+                                    </select>
+                                </div>
+
+                                <!-- Time Signature Selection -->
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Time Signature:</span>
+                                    </label>
+                                    <select class="select select-bordered select-sm" id="time-signature-select">
+                                        <option value="4/4">4/4 (Common Time)</option>
+                                        <option value="3/4">3/4 (Waltz Time)</option>
+                                        <option value="2/4">2/4 (March Time)</option>
+                                        <option value="6/8">6/8</option>
+                                        <option value="3/8">3/8</option>
+                                        <option value="9/8">9/8</option>
+                                        <option value="12/8">12/8</option>
+                                        <option value="2/2">2/2 (Cut Time)</option>
+                                        <option value="C">C (Common Time)</option>
+                                        <option value="C|">C| (Cut Time)</option>
                                     </select>
                                 </div>
                             </div>
@@ -373,6 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // State
     let selectedClef = 'treble';
     let selectedKeySignature = '';  // Empty string = C major (no sharps/flats)
+    let selectedTimeSignature = '4/4';  // Default to 4/4 time
     let selectedDuration = 'w';  // Default to whole note (matches btn-active in HTML)
     let selectedAccidental = 'none';
     let selectedPitch = 'c/4';
@@ -387,6 +407,7 @@ document.addEventListener('DOMContentLoaded', function() {
         notes = savedData.notes;
         selectedClef = savedData.clef || 'treble';
         selectedKeySignature = savedData.keySignature || '';
+        selectedTimeSignature = savedData.timeSignature || '4/4';
         textLabels = savedData.textLabels || [];
         // Update clef button
         document.querySelectorAll('[data-clef]').forEach(btn => {
@@ -394,6 +415,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         // Update key signature dropdown
         document.getElementById('key-signature-select').value = selectedKeySignature;
+        // Update time signature dropdown
+        document.getElementById('time-signature-select').value = selectedTimeSignature;
     }
     {% endif %}
 
@@ -416,6 +439,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Key signature selection
     document.getElementById('key-signature-select').addEventListener('change', function() {
         selectedKeySignature = this.value;
+        renderNotes();
+    });
+
+    // Time signature selection
+    document.getElementById('time-signature-select').addEventListener('change', function() {
+        selectedTimeSignature = this.value;
         renderNotes();
     });
 
@@ -601,6 +630,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const notationData = {
             clef: selectedClef,
             keySignature: selectedKeySignature,
+            timeSignature: selectedTimeSignature,
             notes: notes,
             textLabels: textLabels
         };
@@ -615,6 +645,7 @@ document.addEventListener('DOMContentLoaded', function() {
         renderNotation('notation-output', {
             clef: selectedClef,
             keySignature: selectedKeySignature,
+            timeSignature: selectedTimeSignature,
             notes: notes,
             textLabels: textLabels
         });
@@ -635,11 +666,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const stave = new VF.Stave(10, 40, 620);
         const clef = notationData.clef || 'treble';
         const keySignature = notationData.keySignature || '';
+        const timeSignature = notationData.timeSignature || '4/4';
 
         stave.addClef(clef);
         if (keySignature) {
             stave.addKeySignature(keySignature);
         }
+        stave.addTimeSignature(timeSignature);
         stave.setContext(context).draw();
 
         // Render text labels (must be before early return for empty staves)
