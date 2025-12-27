@@ -198,7 +198,7 @@ def student_assignment_library(request):
     # Get all assignments assigned to this student (or child if guardian)
     assignment_links = PrivateLessonAssignment.objects.filter(
         student=request.user
-    ).select_related('assignment', 'teacher', 'lesson').order_by('-assigned_at')
+    ).select_related('assignment', 'teacher', 'lesson', 'lesson__lesson_request', 'lesson__lesson_request__child_profile').order_by('-assigned_at')
 
     # Organize by status
     pending_assignments = []
