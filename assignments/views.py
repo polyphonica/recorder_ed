@@ -60,8 +60,9 @@ def teacher_assignment_library(request):
     ).order_by('-created_at')
 
     # Count how many times each assignment has been assigned
+    from lessons.models import LessonAssignment
     for assignment in assignments:
-        assignment.times_assigned = PrivateLessonAssignment.objects.filter(
+        assignment.times_assigned = LessonAssignment.objects.filter(
             assignment=assignment
         ).count()
 
@@ -120,20 +121,41 @@ def assign_to_student(request, pk):
 @login_required
 def teacher_submissions(request):
     """Teacher views all submissions from their students"""
-    # Get all assignment links where this user is the teacher
-    assignment_links = PrivateLessonAssignment.objects.filter(
-        teacher=request.user
-    ).select_related('assignment', 'student', 'lesson', 'lesson__lesson_request', 'lesson__lesson_request__child_profile').order_by('-assigned_at')
+    from lessons.models import LessonAssignment, Lesson
+
+    # Get all lessons where this user is the teacher
+    teacher_lessons = Lesson.objects.filter(
+        subject__teacher=request.user,
+        status='Assigned'
+    )
+
+    # Get all assignment links from these lessons
+    lesson_ids = teacher_lessons.values_list('id', flat=True)
+    assignment_links = LessonAssignment.objects.filter(
+        lesson_id__in=lesson_ids
+    ).select_related(
+        'assignment',
+        'lesson',
+        'lesson__student',
+        'lesson__lesson_request',
+        'lesson__lesson_request__child_profile'
+    ).order_by('-assigned_at')
 
     # Get submissions for these assignments
     submissions_data = []
     for link in assignment_links:
-        submission = link.submission
-        if submission and submission.status in ['submitted', 'graded']:
-            submissions_data.append({
-                'link': link,
-                'submission': submission,
-            })
+        try:
+            submission = AssignmentSubmission.objects.get(
+                student=link.lesson.student,
+                assignment=link.assignment
+            )
+            if submission.status in ['submitted', 'graded']:
+                submissions_data.append({
+                    'link': link,
+                    'submission': submission,
+                })
+        except AssignmentSubmission.DoesNotExist:
+            continue
 
     return render(request, 'assignments/teacher_submissions.html', {
         'submissions_data': submissions_data,
@@ -150,9 +172,10 @@ def grade_submission(request, pk):
     )
 
     # Get the assignment link to access lesson and child profile info
-    assignment_link = PrivateLessonAssignment.objects.filter(
+    from lessons.models import LessonAssignment
+    assignment_link = LessonAssignment.objects.filter(
         assignment=submission.assignment,
-        student=submission.student
+        lesson__student=submission.student
     ).select_related('lesson', 'lesson__lesson_request', 'lesson__lesson_request__child_profile').first()
 
     # Parse written questions if they exist
