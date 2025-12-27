@@ -15,7 +15,7 @@ from django.conf import settings
 from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, UserFilterMixin
 from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard, LessonCancellationRequest, PracticeEntry
 from .notifications import TeacherNotificationService, StudentNotificationService
-from lessons.models import Lesson, Document, LessonAttachedUrl
+from lessons.models import Lesson, Document, LessonAttachedUrl, LessonAssignment
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, ExamRegistrationForm, ExamPieceFormSet, ExamResultsForm, PracticeEntryForm, RescheduleForm
 from .cart import CartManager
 from .mixins import (
@@ -445,7 +445,6 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
         ).select_related('subject', 'exam_board').order_by('exam_date')
 
         # Get pending assignments (draft or not yet submitted)
-        from lessons.models import LessonAssignment, Lesson
         from assignments.models import AssignmentSubmission
 
         # Get all lessons for this student
