@@ -221,7 +221,8 @@
                                         <span class="label-text font-semibold">Time Signature:</span>
                                     </label>
                                     <select class="select select-bordered select-sm" id="time-signature-select">
-                                        <option value="4/4">4/4 (Common Time)</option>
+                                        <option value="">None</option>
+                                        <option value="4/4" selected>4/4 (Common Time)</option>
                                         <option value="3/4">3/4 (Waltz Time)</option>
                                         <option value="2/4">2/4 (March Time)</option>
                                         <option value="6/8">6/8</option>
@@ -672,7 +673,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (keySignature) {
             stave.addKeySignature(keySignature);
         }
-        stave.addTimeSignature(timeSignature);
+        if (timeSignature) {
+            stave.addTimeSignature(timeSignature);
+        }
         stave.setContext(context).draw();
 
         // Render text labels (must be before early return for empty staves)
