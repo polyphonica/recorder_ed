@@ -20,6 +20,7 @@ urlpatterns = [
     path('book/<int:teacher_id>/', views.BookWithTeacherView.as_view(), name='book_with_teacher'),
     path('my-requests/', views.MyLessonRequestsView.as_view(), name='my_requests'),
     path('my-requests/<int:request_id>/', views.StudentLessonRequestDetailView.as_view(), name='student_request_detail'),
+    path('lesson/<uuid:lesson_id>/delete/', views.delete_lesson_from_request, name='delete_lesson_from_request'),
     path('my-lessons/', views.MyLessonsView.as_view(), name='my_lessons'),
     path('library/', views.StudentDocumentLibraryView.as_view(), name='student_library'),
     

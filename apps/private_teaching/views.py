@@ -282,6 +282,35 @@ class StudentLessonRequestDetailView(StudentProfileCompletedMixin, StudentOnlyMi
         return redirect('private_teaching:student_request_detail', request_id=lesson_request.id)
 
 
+@login_required
+def delete_lesson_from_request(request, lesson_id):
+    """Student deletes a lesson from their request (if not paid)"""
+    lesson = get_object_or_404(
+        Lesson,
+        id=lesson_id,
+        student=request.user,
+        payment_status='Not Paid'  # Only allow deleting unpaid lessons
+    )
+
+    lesson_request = lesson.lesson_request
+
+    # Check if this is the last active lesson in the request
+    active_lessons_count = lesson_request.lessons.filter(is_deleted=False).count()
+
+    if active_lessons_count == 1:
+        # This is the last lesson - delete the entire request
+        lesson_request_id = lesson_request.id
+        lesson_request.delete()
+        messages.success(request, 'Lesson request deleted successfully (it was the last lesson in the request).')
+        return redirect('private_teaching:my_requests')
+    else:
+        # Soft delete the lesson
+        lesson.is_deleted = True
+        lesson.save()
+        messages.success(request, f'Lesson on {lesson.lesson_date} deleted successfully.')
+        return redirect('private_teaching:student_request_detail', request_id=lesson_request.id)
+
+
 # ==========================================
 # PHASE 2: TEACHER AND STUDENT DASHBOARDS
 # ==========================================
