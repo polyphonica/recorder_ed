@@ -737,9 +737,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     clef: clef
                 });
 
-                // Add dots if needed
+                // Add dots if needed (use addDotToAll for each dot)
                 for (let i = 0; i < numDots; i++) {
-                    note.addDot(0);
+                    note.addDotToAll();
                 }
 
                 if (noteData.accidental) {
