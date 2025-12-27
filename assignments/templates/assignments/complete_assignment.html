@@ -604,13 +604,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Save draft
-    document.getElementById('save-draft-btn').addEventListener('click', function() {
-        document.getElementById('save-draft-input').value = 'true';
-        saveNotationData();
-        document.getElementById('assignment-form').submit();
-    });
-
     // Validate beat count for submission
     function validateBeatCount() {
         if (notes.length === 0) return true; // Empty is okay
@@ -650,22 +643,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return totalBeats === expectedBeats;
     }
 
-    // Submit
-    document.getElementById('submit-btn').addEventListener('click', function() {
-        if (!confirm('Are you sure you want to submit? You will not be able to edit your work after submission.')) {
-            return;
-        }
-
-        // Warn about incomplete measures on submission
-        if (!validateBeatCount()) {
-            const proceed = confirm('⚠️ Warning: Your notation doesn\'t match the time signature exactly. This may affect your grade. Submit anyway?');
-            if (!proceed) return;
-        }
-
-        document.getElementById('save-draft-input').value = 'false';
-        saveNotationData();
-        document.getElementById('assignment-form').submit();
-    });
+    // Make saveNotationData and validateBeatCount globally accessible
+    window.saveNotationData = saveNotationData;
+    window.validateBeatCount = validateBeatCount;
 
     function addSingleNote() {
         const noteData = {
@@ -1096,3 +1076,38 @@ document.addEventListener('DOMContentLoaded', function() {
 {% endif %}
 
 {% endblock %}
+
+<script>
+// Button handlers for all assignments (notation and/or written)
+document.addEventListener('DOMContentLoaded', function() {
+    // Save draft
+    document.getElementById('save-draft-btn').addEventListener('click', function() {
+        document.getElementById('save-draft-input').value = 'true';
+        // Save notation data if it exists
+        if (typeof window.saveNotationData === 'function') {
+            window.saveNotationData();
+        }
+        document.getElementById('assignment-form').submit();
+    });
+
+    // Submit
+    document.getElementById('submit-btn').addEventListener('click', function() {
+        if (!confirm('Are you sure you want to submit? You will not be able to edit your work after submission.')) {
+            return;
+        }
+
+        // Warn about incomplete measures on submission if notation exists
+        if (typeof window.validateBeatCount === 'function' && !window.validateBeatCount()) {
+            const proceed = confirm('⚠️ Warning: Your notation doesn\'t match the time signature exactly. This may affect your grade. Submit anyway?');
+            if (!proceed) return;
+        }
+
+        document.getElementById('save-draft-input').value = 'false';
+        // Save notation data if it exists
+        if (typeof window.saveNotationData === 'function') {
+            window.saveNotationData();
+        }
+        document.getElementById('assignment-form').submit();
+    });
+});
+</script>
