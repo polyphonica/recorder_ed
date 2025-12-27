@@ -232,53 +232,9 @@ class GradeSubmissionForm(forms.ModelForm):
 class SubmissionForm(forms.ModelForm):
     """Form for students to submit their work"""
 
-    written_answer_0 = forms.CharField(
-        required=False,
-        widget=forms.Textarea(attrs={
-            'class': 'textarea textarea-bordered w-full',
-            'rows': 3
-        })
-    )
-    written_answer_1 = forms.CharField(
-        required=False,
-        widget=forms.Textarea(attrs={
-            'class': 'textarea textarea-bordered w-full',
-            'rows': 3
-        })
-    )
-    written_answer_2 = forms.CharField(
-        required=False,
-        widget=forms.Textarea(attrs={
-            'class': 'textarea textarea-bordered w-full',
-            'rows': 3
-        })
-    )
-    written_answer_3 = forms.CharField(
-        required=False,
-        widget=forms.Textarea(attrs={
-            'class': 'textarea textarea-bordered w-full',
-            'rows': 3
-        })
-    )
-    written_answer_4 = forms.CharField(
-        required=False,
-        widget=forms.Textarea(attrs={
-            'class': 'textarea textarea-bordered w-full',
-            'rows': 3
-        })
-    )
-
     class Meta:
         model = AssignmentSubmission
-        fields = ['notation_data']
+        fields = ['notation_data', 'written_response']
         widgets = {
             'notation_data': forms.HiddenInput(),
         }
-
-    def __init__(self, *args, num_questions=0, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # Only show the number of answer fields needed
-        for i in range(5):
-            if i >= num_questions:
-                del self.fields[f'written_answer_{i}']

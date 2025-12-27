@@ -178,14 +178,6 @@ def grade_submission(request, pk):
         lesson__student=submission.student
     ).select_related('lesson', 'lesson__lesson_request', 'lesson__lesson_request__child_profile').first()
 
-    # Parse written questions if they exist
-    written_questions = []
-    if submission.assignment.has_written_component and submission.assignment.written_questions:
-        try:
-            written_questions = json.loads(submission.assignment.written_questions)
-        except (json.JSONDecodeError, TypeError):
-            written_questions = []
-
     # Determine student display name
     student_display_name = submission.student.get_full_name() or submission.student.username
     if assignment_link and assignment_link.lesson and assignment_link.lesson.lesson_request and assignment_link.lesson.lesson_request.child_profile:
@@ -208,7 +200,6 @@ def grade_submission(request, pk):
     return render(request, 'assignments/grade_submission.html', {
         'form': form,
         'submission': submission,
-        'written_questions': written_questions,
         'assignment_link': assignment_link,
     })
 
@@ -294,50 +285,31 @@ def complete_assignment(request, assignment_link_id):
         assignment=assignment_link.assignment
     )
 
-    # Parse written questions if they exist
-    written_questions = []
-    if assignment_link.assignment.has_written_component and assignment_link.assignment.written_questions:
-        try:
-            written_questions = json.loads(assignment_link.assignment.written_questions)
-        except (json.JSONDecodeError, TypeError):
-            written_questions = []
-
     if request.method == 'POST':
-        # Check if it's a save draft request
-        is_draft = request.POST.get('save_draft') == 'true'
+        form = SubmissionForm(request.POST, instance=submission)
 
-        # Save notation data
-        notation_data = request.POST.get('notation_data')
-        if notation_data:
-            try:
-                submission.notation_data = json.loads(notation_data)
-            except json.JSONDecodeError:
-                submission.notation_data = notation_data
+        if form.is_valid():
+            # Check if it's a save draft request
+            is_draft = request.POST.get('save_draft') == 'true'
 
-        # Save written answers
-        written_answers = []
-        for i, question in enumerate(written_questions):
-            answer = request.POST.get(f'written_answer_{i}', '')
-            written_answers.append({
-                'question_index': i,
-                'answer': answer
-            })
-        submission.written_answers = written_answers
+            submission = form.save(commit=False)
 
-        if is_draft:
-            submission.save_draft()
-            messages.success(request, 'Draft saved successfully!')
-        else:
-            # Submit the assignment
-            submission.submit()
-            messages.success(request, 'Assignment submitted successfully!')
-            return redirect('assignments:student_library')
+            if is_draft:
+                submission.save_draft()
+                messages.success(request, 'Draft saved successfully!')
+            else:
+                # Submit the assignment
+                submission.submit()
+                messages.success(request, 'Assignment submitted successfully!')
+                return redirect('assignments:student_library')
+    else:
+        form = SubmissionForm(instance=submission)
 
     return render(request, 'assignments/complete_assignment.html', {
         'assignment_link': assignment_link,
         'assignment': assignment_link.assignment,
         'submission': submission,
-        'written_questions': written_questions,
+        'form': form,
     })
 
 
@@ -375,17 +347,8 @@ def view_graded_assignment(request, pk):
         status='graded'
     )
 
-    # Parse written questions if they exist
-    written_questions = []
-    if submission.assignment.has_written_component and submission.assignment.written_questions:
-        try:
-            written_questions = json.loads(submission.assignment.written_questions)
-        except (json.JSONDecodeError, TypeError):
-            written_questions = []
-
     return render(request, 'assignments/view_graded.html', {
         'submission': submission,
-        'written_questions': written_questions,
     })
 
 

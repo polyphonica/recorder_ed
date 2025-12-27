@@ -3,11 +3,6 @@
 
 {% block title %}Grade Submission - {{ submission.assignment.title }}{% endblock %}
 
-{% block extra_head %}
-<link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/44.1.0/ckeditor5.css" />
-<link rel="stylesheet" href="{% static 'css/ckeditor_custom.css' %}?v=3" type="text/css">
-{% endblock %}
-
 {% block extra_css %}
 <style>
     #notation-display {
@@ -119,41 +114,22 @@
                 </div>
             {% endif %}
 
-            <!-- Student's Written Answers -->
-            {% if submission.assignment.has_written_component and written_questions %}
+            <!-- Student's Written Response -->
+            {% if submission.assignment.has_written_component %}
                 <div class="card card-section shadow-xl">
                     <div class="card-body">
                         <h2 class="card-title text-2xl mb-4">
-                            <i class="fas fa-pen mr-2"></i>Written Answers
+                            <i class="fas fa-pen mr-2"></i>Written Response
                         </h2>
 
-                        {% for question in written_questions %}
-                            <div class="mb-6 pb-6 {% if not forloop.last %}border-b border-base-300{% endif %}">
-                                <div class="font-semibold text-lg mb-2">
-                                    Question {{ forloop.counter }}:
-                                </div>
-                                <div class="bg-base-200 rounded-lg p-3 mb-3">
-                                    {{ question.question }}
-                                </div>
-
-                                <div class="font-semibold mb-2">Student's Answer:</div>
-                                <div class="bg-white rounded-lg p-3 border border-base-300">
-                                    {% if submission.written_answers %}
-                                        {% for answer in submission.written_answers %}
-                                            {% if answer.question_index == forloop.parentloop.counter0 %}
-                                                {% if answer.answer %}
-                                                    <div class="ck-content">{{ answer.answer|safe }}</div>
-                                                {% else %}
-                                                    <em class='text-base-content/50'>No answer provided</em>
-                                                {% endif %}
-                                            {% endif %}
-                                        {% endfor %}
-                                    {% else %}
-                                        <em class="text-base-content/50">No answer provided</em>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        {% endfor %}
+                        <div class="font-semibold mb-2">Student's Response:</div>
+                        <div class="bg-white rounded-lg p-3 border border-base-300">
+                            {% if submission.written_response %}
+                                <div class="ck-content">{{ submission.written_response|safe }}</div>
+                            {% else %}
+                                <em class="text-base-content/50">No response provided</em>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             {% endif %}

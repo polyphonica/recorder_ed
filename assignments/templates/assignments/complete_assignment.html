@@ -3,11 +3,6 @@
 
 {% block title %}Complete Assignment - {{ assignment.title }}{% endblock %}
 
-{% block extra_head %}
-<link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/44.1.0/ckeditor5.css" />
-<link rel="stylesheet" href="{% static 'css/ckeditor_custom.css' %}?v=3" type="text/css">
-{% endblock %}
-
 {% block extra_css %}
 <style>
     #notation-output {
@@ -389,28 +384,20 @@
                     </div>
                 {% endif %}
 
-                <!-- Written Questions Component -->
-                {% if assignment.has_written_component and written_questions %}
+                <!-- Written Response Component -->
+                {% if assignment.has_written_component %}
                     <div class="card card-section shadow-xl">
                         <div class="card-body">
                             <h2 class="card-title text-2xl mb-4">
-                                <i class="fas fa-pen mr-2"></i>Written Questions
+                                <i class="fas fa-pen mr-2"></i>Written Response
                             </h2>
 
-                            {% for question in written_questions %}
-                                <div class="form-control mb-6">
-                                    <label class="label">
-                                        <span class="label-text font-semibold text-lg">Question {{ forloop.counter }}:</span>
-                                    </label>
-                                    <div class="bg-base-200 rounded-lg p-3 mb-2">
-                                        {{ question.question }}
-                                    </div>
-                                    <textarea
-                                        name="written_answer_{{ forloop.counter0 }}"
-                                        class="textarea textarea-bordered h-24"
-                                        placeholder="Type your answer here...">{% if submission.written_answers %}{% for answer in submission.written_answers %}{% if answer.question_index == forloop.parentloop.counter0 %}{{ answer.answer }}{% endif %}{% endfor %}{% endif %}</textarea>
-                                </div>
-                            {% endfor %}
+                            <div class="form-control mb-6">
+                                <label class="label">
+                                    <span class="label-text font-semibold text-lg">Your Response:</span>
+                                </label>
+                                {{ form.written_response }}
+                            </div>
                         </div>
                     </div>
                 {% endif %}
@@ -1100,144 +1087,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial render
     renderNotes();
-});
-</script>
-{% endif %}
-
-{% if assignment.has_written_component %}
-<script type="importmap">
-{
-    "imports": {
-        "ckeditor5": "https://cdn.ckeditor.com/ckeditor5/44.1.0/ckeditor5.js",
-        "ckeditor5/": "https://cdn.ckeditor.com/ckeditor5/44.1.0/"
-    }
-}
-</script>
-
-<script type="module">
-import {
-    ClassicEditor,
-    Essentials,
-    Paragraph,
-    Bold,
-    Italic,
-    Underline,
-    Strikethrough,
-    Font,
-    Heading,
-    Link,
-    List,
-    BlockQuote,
-    Table,
-    TableToolbar,
-    Image,
-    ImageToolbar,
-    ImageUpload,
-    ImageResize,
-    ImageCaption,
-    ImageStyle,
-    Base64UploadAdapter,
-    Alignment,
-    Indent,
-    IndentBlock,
-    RemoveFormat
-} from 'ckeditor5';
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Store editor instances
-    const editorInstances = {};
-
-    // Initialize CKEditor for each written answer textarea
-    const textareas = document.querySelectorAll('textarea[name^="written_answer_"]');
-
-    textareas.forEach((textarea, index) => {
-        const editorConfig = {
-            plugins: [
-                Essentials,
-                Paragraph,
-                Bold,
-                Italic,
-                Underline,
-                Strikethrough,
-                Font,
-                Heading,
-                Link,
-                List,
-                BlockQuote,
-                Table,
-                TableToolbar,
-                Image,
-                ImageToolbar,
-                ImageUpload,
-                ImageResize,
-                ImageCaption,
-                ImageStyle,
-                Base64UploadAdapter,
-                Alignment,
-                Indent,
-                IndentBlock,
-                RemoveFormat
-            ],
-            toolbar: [
-                'undo', 'redo', '|',
-                'heading', '|',
-                'bold', 'italic', 'underline', 'strikethrough', '|',
-                'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', '|',
-                'link', 'bulletedList', 'numberedList', '|',
-                'alignment', 'outdent', 'indent', '|',
-                'insertTable', 'blockQuote', '|',
-                'uploadImage', '|',
-                'removeFormat'
-            ],
-            heading: {
-                options: [
-                    { model: 'paragraph', title: 'Paragraph', class: 'ck-heading_paragraph' },
-                    { model: 'heading1', view: 'h1', title: 'Heading 1', class: 'ck-heading_heading1' },
-                    { model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2' },
-                    { model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3' }
-                ]
-            },
-            table: {
-                contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
-            },
-            image: {
-                toolbar: [
-                    'imageStyle:inline',
-                    'imageStyle:block',
-                    'imageStyle:side',
-                    '|',
-                    'toggleImageCaption',
-                    'imageTextAlternative',
-                    '|',
-                    'resizeImage'
-                ]
-            }
-        };
-
-        ClassicEditor
-            .create(textarea, editorConfig)
-            .then(editor => {
-                editorInstances[textarea.name] = editor;
-            })
-            .catch(error => {
-                console.error('CKEditor initialization error:', error);
-            });
-    });
-
-    // Update textareas with CKEditor content before form submission
-    const form = document.querySelector('form');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            // Update all textareas with editor content
-            Object.keys(editorInstances).forEach(name => {
-                const editor = editorInstances[name];
-                const textarea = document.querySelector(`textarea[name="${name}"]`);
-                if (textarea && editor) {
-                    textarea.value = editor.getData();
-                }
-            });
-        });
-    }
 });
 </script>
 {% endif %}
