@@ -758,14 +758,59 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
-        voice.setMode(VF.Voice.Mode.SOFT);  // Don't strictly enforce beat counting
-        voice.addTickables(vfNotes);
+        // Parse time signature for strict beat enforcement
+        let num_beats = 4;
+        let beat_value = 4;
 
-        const formatter = new VF.Formatter();
-        formatter.joinVoices([voice]).format([voice], 580);
+        if (timeSignature) {
+            if (timeSignature === 'C') {
+                // Common time = 4/4
+                num_beats = 4;
+                beat_value = 4;
+            } else if (timeSignature === 'C|') {
+                // Cut time = 2/2
+                num_beats = 2;
+                beat_value = 2;
+            } else if (timeSignature.includes('/')) {
+                // Parse fractional time signatures like "3/4", "6/8"
+                const parts = timeSignature.split('/');
+                num_beats = parseInt(parts[0]);
+                beat_value = parseInt(parts[1]);
+            }
+        }
 
-        voice.draw(context, stave);
+        const voice = new VF.Voice({ num_beats: num_beats, beat_value: beat_value });
+        voice.setMode(VF.Voice.Mode.STRICT);  // Enforce correct beat counting for music education
+
+        try {
+            voice.addTickables(vfNotes);
+
+            const formatter = new VF.Formatter();
+            formatter.joinVoices([voice]).format([voice], 580);
+
+            voice.draw(context, stave);
+        } catch (error) {
+            // Show helpful error message if notes don't match time signature
+            const svgElement = container.querySelector('svg');
+            if (svgElement) {
+                const errorText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                errorText.setAttribute('x', '50');
+                errorText.setAttribute('y', '120');
+                errorText.setAttribute('fill', '#dc2626');
+                errorText.setAttribute('font-size', '14');
+                errorText.setAttribute('font-weight', 'bold');
+                errorText.textContent = `⚠️ Beat count error: Your notes don't match the ${timeSignature || '4/4'} time signature`;
+                svgElement.appendChild(errorText);
+
+                const helpText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                helpText.setAttribute('x', '50');
+                helpText.setAttribute('y', '140');
+                helpText.setAttribute('fill', '#dc2626');
+                helpText.setAttribute('font-size', '12');
+                helpText.textContent = `Expected ${num_beats} beats (${beat_value} = 1 beat). Check your note durations.`;
+                svgElement.appendChild(helpText);
+            }
+        }
     }
 
     // Enable label mode
