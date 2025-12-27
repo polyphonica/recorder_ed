@@ -932,33 +932,70 @@ document.addEventListener('DOMContentLoaded', function() {
 
         voice.addTickables(vfNotes);
 
-        const formatter = new VF.Formatter();
-        formatter.joinVoices([voice]).format([voice], 830);
+        // Apply automatic beaming for eighth notes and shorter BEFORE drawing
+        // Find consecutive groups of beamable notes
+        const isBeamable = (note) => {
+            if (!note.duration || typeof note.duration !== 'string') return false;
+            const baseDuration = note.duration.replace(/[rd]+$/, '');
+            // Only beam eighth notes (8) and sixteenth notes (16), not rests
+            return (baseDuration === '8' || baseDuration === '16') && !note.duration.includes('r');
+        };
+
+        // Group consecutive beamable notes
+        const beamGroups = [];
+        let currentGroup = [];
+
+        vfNotes.forEach((note, index) => {
+            if (isBeamable(note)) {
+                currentGroup.push(note);
+            } else {
+                if (currentGroup.length >= 2) {
+                    beamGroups.push([...currentGroup]);
+                }
+                currentGroup = [];
+            }
+        });
+
+        // Don't forget the last group
+        if (currentGroup.length >= 2) {
+            beamGroups.push(currentGroup);
+        }
+
+        // Generate beams for each group and mark notes as beamed
+        let beams = [];
+        const beamedNotes = new Set();  // Track which notes are beamed
+
+        beamGroups.forEach(group => {
+            try {
+                const groupBeams = VF.Beam.generateBeams(group, {
+                    stem_direction: null,  // Let VexFlow decide
+                    maintain_stem_directions: true
+                });
+                beams.push(...groupBeams);
+
+                // Mark all notes in this group as beamed
+                group.forEach(note => beamedNotes.add(note));
+            } catch (e) {
+                console.log('Beam generation skipped for group:', e.message);
+            }
+        });
+
+        // Remove flags from beamed notes BEFORE drawing
+        beamedNotes.forEach(note => {
+            if (note.flag) {
+                note.flag = null;  // Remove the flag so it won't be drawn
+            }
+        });
+
+        // Format and draw - use formatToStave to properly handle beams
+        new VF.Formatter()
+            .joinVoices([voice])
+            .formatToStave([voice], stave, { align_rests: true });
 
         voice.draw(context, stave);
 
-        // Apply automatic beaming for eighth notes and shorter
-        // Filter out barlines and get only StaveNotes that can be beamed
-        const beamableNotes = vfNotes.filter(note => {
-            if (!note.duration || typeof note.duration !== 'string') return false;
-            // Only beam eighth notes (8) and sixteenth notes (16)
-            const baseDuration = note.duration.replace(/[rd]+$/, '');
-            return baseDuration === '8' || baseDuration === '16';
-        });
-
-        if (beamableNotes.length > 0) {
-            try {
-                // VexFlow's automatic beam generation
-                const beams = VF.Beam.generateBeams(beamableNotes, {
-                    groups: [new VF.Fraction(2, 8)],  // Beam in groups of 2 eighth notes
-                    maintain_stem_directions: true
-                });
-                beams.forEach(beam => beam.setContext(context).draw());
-            } catch (e) {
-                // Beam generation can fail for single notes, just skip
-                console.log('Beam generation skipped:', e.message);
-            }
-        }
+        // Draw beams after notes are drawn
+        beams.forEach(beam => beam.setContext(context).draw());
 
         // Show error only if beats are EXCEEDED (not if incomplete)
         if (hasExceededBeats && containerId === 'notation-output') {
