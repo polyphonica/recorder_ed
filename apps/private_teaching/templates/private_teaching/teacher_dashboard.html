@@ -16,78 +16,6 @@
 
     <!-- Quick Stats -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
-        <a href="{% url 'private_teaching:teacher_schedule' %}" class="stat bg-success text-success-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col" style="height: 13rem;">
-            <div class="stat-title text-white text-lg font-semibold">Draft Lessons</div>
-            <div class="stat-value text-white text-4xl">{{ paid_unassigned_count }}</div>
-            <div class="stat-desc text-white text-base mt-2">
-                {% if paid_unassigned_count > 0 %}
-                    Paid but not accessible to students
-                {% else %}
-                    All lessons published
-                {% endif %}
-            </div>
-        </a>
-
-        <a href="{% url 'private_teaching:teacher_applications' %}" class="stat bg-accent text-accent-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col" style="height: 13rem;">
-            <div class="stat-title text-white text-lg font-semibold">New Applications</div>
-            <div class="stat-value text-white text-4xl">{{ pending_applications_count }}</div>
-            <div class="stat-desc text-white text-base mt-2">
-                {% if pending_applications_count > 0 %}
-                    {% if pending_applications_count == 1 %}1 new application{% else %}{{ pending_applications_count }} new applications{% endif %}
-                {% else %}
-                    No new applications
-                {% endif %}
-            </div>
-        </a>
-
-        <a href="{% url 'private_teaching:teacher_applications' %}?status=waitlist" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col" style="background-color: #f97316; color: white; height: 13rem;">
-            <div class="stat-title text-lg font-semibold" style="color: white;">Waiting List</div>
-            <div class="stat-value text-4xl" style="color: white;">{{ waitlist_applications_count }}</div>
-            <div class="stat-desc text-base mt-2" style="color: white;">
-                {% if waitlist_applications_count > 0 %}
-                    {% if waitlist_applications_count == 1 %}1 student{% else %}{{ waitlist_applications_count }} students{% endif %} waiting
-                {% else %}
-                    No one waiting
-                {% endif %}
-            </div>
-        </a>
-
-        <a href="{% url 'private_teaching:incoming_requests' %}" class="stat bg-primary text-primary-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col" style="height: 13rem;">
-            <div class="stat-title text-white text-lg font-semibold">Pending Lesson Requests</div>
-            <div class="stat-value text-white text-4xl">{{ pending_count }}</div>
-            <div class="stat-desc text-white text-base mt-2">
-                {% if pending_count > 0 %}
-                    {% if pending_count == 1 %}1 request{% else %}{{ pending_count }} requests{% endif %} awaiting your response
-                {% else %}
-                    All caught up!
-                {% endif %}
-            </div>
-        </a>
-
-        <a href="{% url 'private_teaching:teacher_cancellation_requests' %}" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col" style="background-color: #dc2626; color: white; height: 13rem;">
-            <div class="stat-title text-lg font-semibold" style="color: white;">Cancellation Requests</div>
-            <div class="stat-value text-4xl" style="color: white;">{{ pending_cancellations_count }}</div>
-            <div class="stat-desc text-base mt-2" style="color: white;">
-                {% if pending_cancellations_count > 0 %}
-                    {% if pending_cancellations_count == 1 %}1 request{% else %}{{ pending_cancellations_count }} requests{% endif %} to review
-                {% else %}
-                    No cancellations pending
-                {% endif %}
-            </div>
-        </a>
-
-        <a href="{% url 'private_teaching:teacher_schedule' %}" class="stat bg-info text-info-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col" style="height: 13rem;">
-            <div class="stat-title text-white text-lg font-semibold">Today's Lessons</div>
-            <div class="stat-value text-white text-4xl">{{ today_lessons.count }}</div>
-            <div class="stat-desc text-white text-base mt-2">
-                {% if today_lessons.count > 0 %}
-                    Scheduled for {{ today|date:"F j, Y" }}
-                {% else %}
-                    No lessons today
-                {% endif %}
-            </div>
-        </a>
-
         <div class="stat bg-warning text-warning-content rounded-lg shadow-lg flex flex-col" style="height: 13rem;">
             <div class="stat-title text-white text-lg font-semibold">Priority Actions</div>
             <div class="stat-desc text-white/80 text-sm mb-3">Items needing your attention</div>
@@ -151,6 +79,78 @@
             </div>
         </div>
 
+        <a href="{% url 'private_teaching:teacher_schedule' %}" class="stat bg-info text-info-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col" style="height: 13rem;">
+            <div class="stat-title text-white text-lg font-semibold">Today's Lessons</div>
+            <div class="stat-value text-white text-4xl">{{ today_lessons.count }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                {% if today_lessons.count > 0 %}
+                    Scheduled for {{ today|date:"F j, Y" }}
+                {% else %}
+                    No lessons today
+                {% endif %}
+            </div>
+        </a>
+
+        <a href="{% url 'private_teaching:teacher_schedule' %}" class="stat bg-success text-success-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col" style="height: 13rem;">
+            <div class="stat-title text-white text-lg font-semibold">Draft Lessons</div>
+            <div class="stat-value text-white text-4xl">{{ paid_unassigned_count }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                {% if paid_unassigned_count > 0 %}
+                    Paid but not accessible to students
+                {% else %}
+                    All lessons published
+                {% endif %}
+            </div>
+        </a>
+
+        <a href="{% url 'private_teaching:teacher_applications' %}" class="stat bg-accent text-accent-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col" style="height: 13rem;">
+            <div class="stat-title text-white text-lg font-semibold">New Applications</div>
+            <div class="stat-value text-white text-4xl">{{ pending_applications_count }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                {% if pending_applications_count > 0 %}
+                    {% if pending_applications_count == 1 %}1 new application{% else %}{{ pending_applications_count }} new applications{% endif %}
+                {% else %}
+                    No new applications
+                {% endif %}
+            </div>
+        </a>
+
+        <a href="{% url 'private_teaching:teacher_applications' %}?status=waitlist" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col" style="background-color: #f97316; color: white; height: 13rem;">
+            <div class="stat-title text-lg font-semibold" style="color: white;">Waiting List</div>
+            <div class="stat-value text-4xl" style="color: white;">{{ waitlist_applications_count }}</div>
+            <div class="stat-desc text-base mt-2" style="color: white;">
+                {% if waitlist_applications_count > 0 %}
+                    {% if waitlist_applications_count == 1 %}1 student{% else %}{{ waitlist_applications_count }} students{% endif %} waiting
+                {% else %}
+                    No one waiting
+                {% endif %}
+            </div>
+        </a>
+
+        <a href="{% url 'private_teaching:incoming_requests' %}" class="stat bg-primary text-primary-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col" style="height: 13rem;">
+            <div class="stat-title text-white text-lg font-semibold">Pending Lesson Requests</div>
+            <div class="stat-value text-white text-4xl">{{ pending_count }}</div>
+            <div class="stat-desc text-white text-base mt-2">
+                {% if pending_count > 0 %}
+                    {% if pending_count == 1 %}1 request{% else %}{{ pending_count }} requests{% endif %} awaiting your response
+                {% else %}
+                    All caught up!
+                {% endif %}
+            </div>
+        </a>
+
+        <a href="{% url 'private_teaching:teacher_cancellation_requests' %}" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col" style="background-color: #dc2626; color: white; height: 13rem;">
+            <div class="stat-title text-lg font-semibold" style="color: white;">Cancellation Requests</div>
+            <div class="stat-value text-4xl" style="color: white;">{{ pending_cancellations_count }}</div>
+            <div class="stat-desc text-base mt-2" style="color: white;">
+                {% if pending_cancellations_count > 0 %}
+                    {% if pending_cancellations_count == 1 %}1 request{% else %}{{ pending_cancellations_count }} requests{% endif %} to review
+                {% else %}
+                    No cancellations pending
+                {% endif %}
+            </div>
+        </a>
+
         <a href="{% url 'private_teaching:exam_list' %}" class="stat bg-secondary text-secondary-content rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col" style="height: 13rem;">
             <div class="stat-title text-white text-lg font-semibold">Active Exams</div>
             <div class="stat-value text-white text-4xl">{{ active_exams_count }}</div>
@@ -186,218 +186,6 @@
                 {% endif %}
             </div>
         </a>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Pending Applications -->
-        <div class="card card-section shadow-xl">
-            <div class="card-body">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="card-title text-2xl">
-                        <i class="fas fa-user-plus mr-2"></i>New Applications
-                    </h2>
-                    {% if pending_applications_count > 3 %}
-                        <a href="{% url 'private_teaching:teacher_applications' %}" class="btn btn-sm btn-outline">View All</a>
-                    {% endif %}
-                </div>
-
-                {% if pending_applications %}
-                    <div class="space-y-4">
-                        {% for application in pending_applications|slice:":3" %}
-                            <div class="border border-base-300 rounded-lg p-4 bg-accent/5">
-                                <div class="flex justify-between items-start mb-2">
-                                    <h3 class="font-semibold">{{ application.student_name }}</h3>
-                                    <span class="badge badge-accent">New Application</span>
-                                </div>
-
-                                <div class="text-sm text-base-content/70 mb-3">
-                                    <p><strong>From:</strong> {{ application.applicant.get_full_name|default:application.applicant.username }}</p>
-                                    <p><strong>Applied:</strong> {{ application.created_at|date:"M j, Y" }} at {{ application.created_at|time:"g:i A" }}</p>
-                                    {% if application.is_child_application %}
-                                        <p class="text-info"><i class="fas fa-child mr-1"></i>Child student</p>
-                                    {% endif %}
-                                </div>
-
-                                <div class="flex gap-2">
-                                    <a href="{% url 'private_teaching:teacher_applications' %}" class="btn btn-sm btn-accent">Review Application</a>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-
-                    {% if pending_applications_count > 3 %}
-                        <div class="mt-4 text-center">
-                            <a href="{% url 'private_teaching:teacher_applications' %}" class="btn btn-outline btn-sm">
-                                View all {{ pending_applications_count }} applications
-                            </a>
-                        </div>
-                    {% endif %}
-                {% else %}
-                    <div class="text-center py-8">
-                        <div class="text-6xl mb-4">✅</div>
-                        <h3 class="text-xl font-semibold mb-2">No pending applications</h3>
-                        <p class="text-base-content/70">All applications have been reviewed.</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Waiting List -->
-        <div class="card card-section shadow-xl">
-            <div class="card-body">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="card-title text-2xl">
-                        <i class="fas fa-hourglass-half mr-2"></i>Waiting List
-                    </h2>
-                    {% if waitlist_applications_count > 3 %}
-                        <a href="{% url 'private_teaching:teacher_applications' %}?status=waitlist" class="btn btn-sm btn-outline">View All</a>
-                    {% endif %}
-                </div>
-
-                {% if waitlist_applications %}
-                    <div class="space-y-4">
-                        {% for application in waitlist_applications|slice:":3" %}
-                            <div class="border border-base-300 rounded-lg p-4 bg-warning/5">
-                                <div class="flex justify-between items-start mb-2">
-                                    <h3 class="font-semibold">{{ application.student_name }}</h3>
-                                    <span class="badge badge-warning">Waiting</span>
-                                </div>
-
-                                <div class="text-sm text-base-content/70 mb-3">
-                                    <p><strong>From:</strong> {{ application.applicant.get_full_name|default:application.applicant.username }}</p>
-                                    <p><strong>Waiting since:</strong> {{ application.status_changed_at|date:"M j, Y"|default:application.created_at|date:"M j, Y" }}</p>
-                                    {% if application.is_child_application %}
-                                        <p class="text-info"><i class="fas fa-child mr-1"></i>Child student</p>
-                                    {% endif %}
-                                </div>
-
-                                <div class="flex gap-2">
-                                    <a href="{% url 'private_teaching:teacher_application_detail' application_id=application.id %}" class="btn btn-sm btn-warning">Review</a>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-
-                    {% if waitlist_applications_count > 3 %}
-                        <div class="mt-4 text-center">
-                            <a href="{% url 'private_teaching:teacher_applications' %}?status=waitlist" class="btn btn-outline btn-sm">
-                                View all {{ waitlist_applications_count }} on waiting list
-                            </a>
-                        </div>
-                    {% endif %}
-                {% else %}
-                    <div class="text-center py-8">
-                        <div class="text-6xl mb-4">📋</div>
-                        <h3 class="text-xl font-semibold mb-2">No waiting list</h3>
-                        <p class="text-base-content/70">No students are currently waiting.</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Pending Lesson Requests -->
-        <div class="card card-section shadow-xl">
-            <div class="card-body">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="card-title text-2xl">
-                        <i class="fas fa-calendar-check mr-2"></i>Pending Lesson Requests
-                    </h2>
-                    {% if pending_count > 3 %}
-                        <a href="{% url 'private_teaching:incoming_requests' %}" class="btn btn-sm btn-outline">View All</a>
-                    {% endif %}
-                </div>
-                
-                {% if pending_requests %}
-                    <div class="space-y-4">
-                        {% for request in pending_requests|slice:":3" %}
-                            <div class="border border-base-300 rounded-lg p-4">
-                                <div class="flex justify-between items-start mb-2">
-                                    <h3 class="font-semibold">{{ request.student.get_full_name|default:request.student.username }}</h3>
-                                    <span class="badge badge-warning">{{ request.get_status_display }}</span>
-                                </div>
-                                
-                                <div class="text-sm text-base-content/70 mb-3">
-                                    <p><strong>Requested:</strong> {{ request.created_at|date:"M j, Y" }}</p>
-                                    <p><strong>Lessons:</strong> {{ request.proposed_slots.count }} slot{{ request.proposed_slots.count|pluralize }}</p>
-                                </div>
-                                
-                                <!-- Show proposed slots -->
-                                <div class="space-y-2 mb-3">
-                                    {% for slot in request.proposed_slots.all|slice:":2" %}
-                                        <div class="bg-base-200 rounded px-3 py-2 text-sm">
-                                            <span class="font-medium">{{ slot.subject }}</span> • 
-                                            {{ slot.get_location_preference_display }} • 
-                                            {{ slot.proposed_date|date:"M j" }} at {{ slot.proposed_time|time:"g:i A" }} 
-                                            ({{ slot.duration_minutes }}min)
-                                        </div>
-                                    {% endfor %}
-                                    {% if request.proposed_slots.count > 2 %}
-                                        <p class="text-xs text-base-content/50">+ {{ request.proposed_slots.count|add:"-2" }} more slot{{ request.proposed_slots.count|add:"-2"|pluralize }}</p>
-                                    {% endif %}
-                                </div>
-                                
-                                <div class="flex gap-2">
-                                    <a href="{% url 'private_teaching:incoming_requests' %}" class="btn btn-sm btn-section-primary">Review</a>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="text-center py-8">
-                        <div class="text-6xl mb-4">✨</div>
-                        <h3 class="text-xl font-semibold mb-2">No pending requests</h3>
-                        <p class="text-base-content/70">All lesson requests have been processed.</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Today's Schedule -->
-        <div class="card card-section shadow-xl">
-            <div class="card-body">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="card-title text-2xl">Today's Schedule</h2>
-                    <a href="{% url 'private_teaching:teacher_schedule' %}" class="btn btn-sm btn-outline">Full Schedule</a>
-                </div>
-                
-                {% if today_lessons %}
-                    <div class="space-y-3">
-                        {% for lesson in today_lessons %}
-                            <div class="flex items-center justify-between border border-base-300 rounded-lg p-4">
-                                <div>
-                                    <h3 class="font-semibold">{{ lesson.subject }}</h3>
-                                    {% if lesson.lesson_request.child_profile %}
-                                        <p class="text-base font-semibold text-base-content">
-                                            {{ lesson.lesson_request.child_profile.full_name }}
-                                        </p>
-                                        <p class="text-xs text-base-content/60">
-                                            Guardian: {{ lesson.student.get_full_name|default:lesson.student.username }}
-                                        </p>
-                                    {% else %}
-                                        <p class="text-sm text-base-content/70">
-                                            {{ lesson.student.get_full_name|default:lesson.student.username }}
-                                        </p>
-                                    {% endif %}
-                                    <p class="text-sm text-base-content/70">
-                                        {{ lesson.location }}
-                                    </p>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-lg font-bold">{{ lesson.lesson_time|time:"g:i A" }}</div>
-                                    <div class="text-sm text-base-content/70">{{ lesson.duration_in_minutes }}min</div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="text-center py-8">
-                        <div class="text-6xl mb-4">🎵</div>
-                        <h3 class="text-xl font-semibold mb-2">No lessons today</h3>
-                        <p class="text-base-content/70">Enjoy your day off!</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
     </div>
 </div>
 {% endblock %}
