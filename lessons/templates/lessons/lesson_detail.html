@@ -248,7 +248,7 @@
     {% endif %}
 
     <!-- Homework Assignments -->
-    {% if lesson.lesson_assignments.exists and request.user == lesson.student.user %}
+    {% if lesson.lesson_assignments.exists and request.user == lesson.student %}
     <div class="content-section">
         <h3>📝 Homework Assignments</h3>
         <div class="space-y-4 mt-4">
