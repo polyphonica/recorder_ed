@@ -273,6 +273,11 @@ class PrivateLessonPiece(models.Model):
 
 class LessonAssignment(models.Model):
     """Through model for associating homework assignments with lessons"""
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
     lesson = models.ForeignKey(
         Lesson,
         on_delete=models.CASCADE,
