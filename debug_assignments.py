@@ -12,6 +12,16 @@ User = get_user_model()
 
 print("\n=== DEBUGGING ASSIGNMENT VISIBILITY ===\n")
 
+# Check if any assignments exist in the assignment library
+from assignments.models import Assignment
+all_assignments = Assignment.objects.filter(is_active=True)
+print(f"Total active Assignments in library: {all_assignments.count()}")
+if all_assignments.exists():
+    print("Available assignments:")
+    for assignment in all_assignments[:10]:
+        print(f"  - {assignment.title} (created by: {assignment.created_by.username})")
+print()
+
 # First, check if ANY LessonAssignment records exist
 all_lesson_assignments = LessonAssignment.objects.all()
 print(f"Total LessonAssignment records in database: {all_lesson_assignments.count()}\n")
