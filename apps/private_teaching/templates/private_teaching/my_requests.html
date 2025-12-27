@@ -105,6 +105,16 @@
                                                             {% endif %}
                                                         {% endif %}
                                                     {% endif %}
+
+                                                    <!-- Delete Button (for all unpaid lessons) -->
+                                                    {% if lesson.payment_status != 'Paid' %}
+                                                        <form method="post" action="{% url 'private_teaching:delete_lesson_from_request' lesson.id %}" class="inline" onsubmit="return confirm('Are you sure you want to delete this lesson?');">
+                                                            {% csrf_token %}
+                                                            <button type="submit" class="btn btn-xs btn-error" title="Delete lesson">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    {% endif %}
                                                 </div>
                                             </div>
                                         </div>
