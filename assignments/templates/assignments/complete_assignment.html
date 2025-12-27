@@ -701,7 +701,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if (labelModeBtn) {
         labelModeBtn.addEventListener('click', () => {
             labelMode = !labelMode;
-            labelModeBtn.classList.toggle('btn-active', labelMode);
+
+            // Update button appearance
+            if (labelMode) {
+                labelModeBtn.classList.remove('btn-info');
+                labelModeBtn.classList.add('btn-success', 'btn-active');
+                labelModeBtn.innerHTML = '<i class="fas fa-check mr-1"></i>Label Mode ON - Click Score';
+            } else {
+                labelModeBtn.classList.remove('btn-success', 'btn-active');
+                labelModeBtn.classList.add('btn-info');
+                labelModeBtn.innerHTML = '<i class="fas fa-tag mr-1"></i>Add Label';
+            }
+
             document.getElementById('notation-output').style.cursor = labelMode ? 'crosshair' : 'default';
         });
     }
