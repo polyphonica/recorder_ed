@@ -937,6 +937,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
         voice.draw(context, stave);
 
+        // Apply automatic beaming for eighth notes and shorter
+        // Filter out barlines and get only StaveNotes that can be beamed
+        const beamableNotes = vfNotes.filter(note => {
+            if (!note.duration || typeof note.duration !== 'string') return false;
+            // Only beam eighth notes (8) and sixteenth notes (16)
+            const baseDuration = note.duration.replace(/[rd]+$/, '');
+            return baseDuration === '8' || baseDuration === '16';
+        });
+
+        if (beamableNotes.length > 0) {
+            try {
+                // VexFlow's automatic beam generation
+                const beams = VF.Beam.generateBeams(beamableNotes, {
+                    groups: [new VF.Fraction(2, 8)],  // Beam in groups of 2 eighth notes
+                    maintain_stem_directions: true
+                });
+                beams.forEach(beam => beam.setContext(context).draw());
+            } catch (e) {
+                // Beam generation can fail for single notes, just skip
+                console.log('Beam generation skipped:', e.message);
+            }
+        }
+
         // Show error only if beats are EXCEEDED (not if incomplete)
         if (hasExceededBeats && containerId === 'notation-output') {
             const svgElement = container.querySelector('svg');
