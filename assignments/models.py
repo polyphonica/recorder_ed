@@ -137,10 +137,17 @@ class AssignmentSubmission(models.Model):
         blank=True,
         help_text="VexFlow notation data created by student"
     )
+    written_response = CKEditor5Field(
+        config_name='default',
+        blank=True,
+        null=True,
+        help_text="Student's written response with rich text formatting"
+    )
+    # Deprecated - keeping for backwards compatibility during transition
     written_answers = models.JSONField(
         null=True,
         blank=True,
-        help_text="Student's written answers: [{question_index: 0, answer: 'text'}]"
+        help_text="DEPRECATED: Use written_response instead"
     )
 
     # Submission tracking
@@ -224,29 +231,3 @@ class AssignmentSubmission(models.Model):
     def get_formatted_grade(self):
         """Get the formatted grade according to the assignment's scale"""
         return self.assignment.format_grade(self.grade)
-
-
-class WrittenAnswer(models.Model):
-    """
-    Individual written answer for an assignment submission
-    Uses CKEditor5 for rich text formatting
-    """
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    submission = models.ForeignKey(
-        AssignmentSubmission,
-        on_delete=models.CASCADE,
-        related_name='written_answer_details'
-    )
-    question_index = models.IntegerField(help_text="Index of the question being answered")
-    answer = CKEditor5Field(
-        config_name='default',
-        blank=True,
-        help_text="Student's answer with rich text formatting"
-    )
-
-    class Meta:
-        ordering = ['question_index']
-        unique_together = [['submission', 'question_index']]
-
-    def __str__(self):
-        return f"{self.submission.assignment.title} - Q{self.question_index + 1} - {self.submission.student.get_full_name()}"
