@@ -34,7 +34,11 @@
                                     <div class="flex items-center gap-2 mb-3">
                                         <i class="fas fa-user text-primary"></i>
                                         <span class="font-semibold">
-                                            {{ link.student.get_full_name|default:link.student.username }}
+                                            {% if link.lesson.lesson_request.child_profile %}
+                                                {{ link.lesson.lesson_request.child_profile.full_name }}
+                                            {% else %}
+                                                {{ link.student.get_full_name|default:link.student.username }}
+                                            {% endif %}
                                         </span>
                                     </div>
 

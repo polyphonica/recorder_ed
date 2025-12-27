@@ -123,7 +123,7 @@ def teacher_submissions(request):
     # Get all assignment links where this user is the teacher
     assignment_links = PrivateLessonAssignment.objects.filter(
         teacher=request.user
-    ).select_related('assignment', 'student', 'lesson').order_by('-assigned_at')
+    ).select_related('assignment', 'student', 'lesson', 'lesson__lesson_request', 'lesson__lesson_request__child_profile').order_by('-assigned_at')
 
     # Get submissions for these assignments
     submissions_data = []
@@ -149,6 +149,12 @@ def grade_submission(request, pk):
         assignment__created_by=request.user
     )
 
+    # Get the assignment link to access lesson and child profile info
+    assignment_link = PrivateLessonAssignment.objects.filter(
+        assignment=submission.assignment,
+        student=submission.student
+    ).select_related('lesson', 'lesson__lesson_request', 'lesson__lesson_request__child_profile').first()
+
     # Parse written questions if they exist
     written_questions = []
     if submission.assignment.has_written_component and submission.assignment.written_questions:
@@ -156,6 +162,11 @@ def grade_submission(request, pk):
             written_questions = json.loads(submission.assignment.written_questions)
         except (json.JSONDecodeError, TypeError):
             written_questions = []
+
+    # Determine student display name
+    student_display_name = submission.student.get_full_name() or submission.student.username
+    if assignment_link and assignment_link.lesson and assignment_link.lesson.lesson_request and assignment_link.lesson.lesson_request.child_profile:
+        student_display_name = assignment_link.lesson.lesson_request.child_profile.full_name
 
     if request.method == 'POST':
         form = GradeSubmissionForm(request.POST, instance=submission)
@@ -166,7 +177,7 @@ def grade_submission(request, pk):
                 feedback=graded_submission.feedback,
                 graded_by=request.user
             )
-            messages.success(request, f'Graded submission for {submission.student.get_full_name() or submission.student.username}!')
+            messages.success(request, f'Graded submission for {student_display_name}!')
             return redirect('assignments:teacher_submissions')
     else:
         form = GradeSubmissionForm(instance=submission)
@@ -175,6 +186,7 @@ def grade_submission(request, pk):
         'form': form,
         'submission': submission,
         'written_questions': written_questions,
+        'assignment_link': assignment_link,
     })
 
 
