@@ -710,10 +710,10 @@ document.addEventListener('DOMContentLoaded', function() {
         container.innerHTML = '';
 
         const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
-        renderer.resize(650, 200);
+        renderer.resize(900, 250);
         const context = renderer.getContext();
 
-        const stave = new VF.Stave(10, 40, 620);
+        const stave = new VF.Stave(10, 40, 870);
         const clef = notationData.clef || 'treble';
         const keySignature = notationData.keySignature || '';
         const timeSignature = notationData.timeSignature !== undefined ? notationData.timeSignature : '4/4';
@@ -825,8 +825,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Calculate total beats to check for exceeding time signature
-        let totalBeats = 0;
+        // Calculate beats per measure, reset at barlines
         const beatValues = {
             'w': 4,    // whole note
             'h': 2,    // half note
@@ -835,8 +834,17 @@ document.addEventListener('DOMContentLoaded', function() {
             '16': 0.25 // sixteenth note
         };
 
+        let currentMeasureBeats = 0;
+        let maxBeatsInAnyMeasure = 0;
+
         vfNotes.forEach(note => {
-            if (note.noteType !== 'n') return; // Skip barlines
+            if (note.noteType !== 'n') {
+                // Hit a barline - check current measure and reset
+                maxBeatsInAnyMeasure = Math.max(maxBeatsInAnyMeasure, currentMeasureBeats);
+                currentMeasureBeats = 0;
+                return;
+            }
+
             const duration = note.duration;
             const baseDuration = duration.replace(/d+$/, ''); // Remove dots
             const numDots = (duration.match(/d/g) || []).length;
@@ -846,11 +854,14 @@ document.addEventListener('DOMContentLoaded', function() {
             for (let i = 0; i < numDots; i++) {
                 beatValue += beatValue / Math.pow(2, i + 1);
             }
-            totalBeats += beatValue;
+            currentMeasureBeats += beatValue;
         });
 
+        // Check final measure (if no trailing barline)
+        maxBeatsInAnyMeasure = Math.max(maxBeatsInAnyMeasure, currentMeasureBeats);
+
         const maxBeats = num_beats * (4 / beat_value); // Convert to quarter note beats
-        const hasExceededBeats = totalBeats > maxBeats;
+        const hasExceededBeats = maxBeatsInAnyMeasure > maxBeats;
 
         const voice = new VF.Voice({ num_beats: num_beats, beat_value: beat_value });
         voice.setMode(VF.Voice.Mode.SOFT);  // Allow incomplete measures while editing
@@ -858,7 +869,7 @@ document.addEventListener('DOMContentLoaded', function() {
         voice.addTickables(vfNotes);
 
         const formatter = new VF.Formatter();
-        formatter.joinVoices([voice]).format([voice], 580);
+        formatter.joinVoices([voice]).format([voice], 830);
 
         voice.draw(context, stave);
 
@@ -867,17 +878,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const svgElement = container.querySelector('svg');
             if (svgElement) {
                 const errorText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                errorText.setAttribute('x', '50');
-                errorText.setAttribute('y', '120');
+                errorText.setAttribute('x', '10');
+                errorText.setAttribute('y', '180');
                 errorText.setAttribute('fill', '#dc2626');
                 errorText.setAttribute('font-size', '14');
                 errorText.setAttribute('font-weight', 'bold');
-                errorText.textContent = `⚠️ Too many beats: You have ${totalBeats} beats but ${timeSignature || '4/4'} allows ${maxBeats}`;
+                errorText.textContent = `⚠️ Too many beats in one measure: A measure has ${maxBeatsInAnyMeasure} beats but ${timeSignature || '4/4'} allows ${maxBeats}`;
                 svgElement.appendChild(errorText);
 
                 const helpText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                helpText.setAttribute('x', '50');
-                helpText.setAttribute('y', '140');
+                helpText.setAttribute('x', '10');
+                helpText.setAttribute('y', '200');
                 helpText.setAttribute('fill', '#dc2626');
                 helpText.setAttribute('font-size', '12');
                 helpText.textContent = `Remove some notes or add a barline to start a new measure.`;
