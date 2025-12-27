@@ -408,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
         notes = savedData.notes;
         selectedClef = savedData.clef || 'treble';
         selectedKeySignature = savedData.keySignature || '';
-        selectedTimeSignature = savedData.timeSignature || '4/4';
+        selectedTimeSignature = savedData.timeSignature !== undefined ? savedData.timeSignature : '4/4';
         textLabels = savedData.textLabels || [];
         // Update clef button
         document.querySelectorAll('[data-clef]').forEach(btn => {
@@ -667,7 +667,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const stave = new VF.Stave(10, 40, 620);
         const clef = notationData.clef || 'treble';
         const keySignature = notationData.keySignature || '';
-        const timeSignature = notationData.timeSignature || '4/4';
+        const timeSignature = notationData.timeSignature !== undefined ? notationData.timeSignature : '4/4';
 
         stave.addClef(clef);
         if (keySignature) {
