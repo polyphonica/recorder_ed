@@ -866,8 +866,12 @@ document.addEventListener('DOMContentLoaded', function() {
         let maxBeatsInAnyMeasure = 0;
 
         vfNotes.forEach(note => {
-            // Check if this is a barline (BarNote doesn't have a duration property)
-            if (!note.duration || note.constructor.name === 'BarNote') {
+            // Check if this is a barline - multiple ways to detect
+            const isBarline = note.constructor.name === 'BarNote' ||
+                            note.category === 'barline' ||
+                            typeof note.duration !== 'string';
+
+            if (isBarline) {
                 // Hit a barline - check current measure and reset
                 maxBeatsInAnyMeasure = Math.max(maxBeatsInAnyMeasure, currentMeasureBeats);
                 currentMeasureBeats = 0;
@@ -875,10 +879,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const duration = note.duration;
+            if (!duration) return; // Skip if no duration
+
             const baseDuration = duration.replace(/d+$/, ''); // Remove dots
             const numDots = (duration.match(/d/g) || []).length;
 
-            let beatValue = beatValues[baseDuration] || 1;
+            let beatValue = beatValues[baseDuration];
+            if (beatValue === undefined) {
+                console.warn('Unknown duration:', baseDuration);
+                beatValue = 1; // Default fallback
+            }
+
             // Each dot adds half the previous value
             for (let i = 0; i < numDots; i++) {
                 beatValue += beatValue / Math.pow(2, i + 1);
