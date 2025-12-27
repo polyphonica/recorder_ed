@@ -288,9 +288,13 @@ def delete_lesson_from_request(request, lesson_id):
     lesson = get_object_or_404(
         Lesson,
         id=lesson_id,
-        student=request.user,
-        payment_status='Not Paid'  # Only allow deleting unpaid lessons
+        student=request.user
     )
+
+    # Only allow deleting lessons that haven't been paid
+    if lesson.payment_status == 'Paid':
+        messages.error(request, 'Cannot delete a lesson that has already been paid for.')
+        return redirect('private_teaching:student_request_detail', request_id=lesson.lesson_request.id)
 
     lesson_request = lesson.lesson_request
 
