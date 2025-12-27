@@ -138,7 +138,7 @@ class AssignmentSubmission(models.Model):
         help_text="VexFlow notation data created by student"
     )
     written_response = CKEditor5Field(
-        config_name='default',
+        config_name='extends',
         blank=True,
         null=True,
         help_text="Student's written response with rich text formatting"

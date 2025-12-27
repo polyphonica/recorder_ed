@@ -238,5 +238,5 @@ class SubmissionForm(forms.ModelForm):
         fields = ['notation_data', 'written_response']
         widgets = {
             'notation_data': forms.HiddenInput(),
-            'written_response': CKEditor5Widget(config_name='default'),
+            'written_response': CKEditor5Widget(config_name='extends'),
         }
