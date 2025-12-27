@@ -3,6 +3,11 @@
 
 {% block title %}Complete Assignment - {{ assignment.title }}{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/44.1.0/ckeditor5.css" />
+<link rel="stylesheet" href="{% static 'css/ckeditor_custom.css' %}?v=3" type="text/css">
+{% endblock %}
+
 {% block extra_css %}
 <style>
     #notation-output {
@@ -44,6 +49,11 @@
 
     #chord-display {
         min-height: 40px;
+    }
+
+    /* CKEditor styling for written answers */
+    .ck-editor__editable {
+        min-height: 200px;
     }
 </style>
 {% endblock %}
@@ -1093,4 +1103,143 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endif %}
+
+{% if assignment.has_written_component %}
+<script type="importmap">
+{
+    "imports": {
+        "ckeditor5": "https://cdn.ckeditor.com/ckeditor5/44.1.0/ckeditor5.js",
+        "ckeditor5/": "https://cdn.ckeditor.com/ckeditor5/44.1.0/"
+    }
+}
+</script>
+
+<script type="module">
+import {
+    ClassicEditor,
+    Essentials,
+    Paragraph,
+    Bold,
+    Italic,
+    Underline,
+    Strikethrough,
+    Font,
+    Heading,
+    Link,
+    List,
+    BlockQuote,
+    Table,
+    TableToolbar,
+    Image,
+    ImageToolbar,
+    ImageUpload,
+    ImageResize,
+    ImageCaption,
+    ImageStyle,
+    Base64UploadAdapter,
+    Alignment,
+    Indent,
+    IndentBlock,
+    RemoveFormat
+} from 'ckeditor5';
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Store editor instances
+    const editorInstances = {};
+
+    // Initialize CKEditor for each written answer textarea
+    const textareas = document.querySelectorAll('textarea[name^="written_answer_"]');
+
+    textareas.forEach((textarea, index) => {
+        const editorConfig = {
+            plugins: [
+                Essentials,
+                Paragraph,
+                Bold,
+                Italic,
+                Underline,
+                Strikethrough,
+                Font,
+                Heading,
+                Link,
+                List,
+                BlockQuote,
+                Table,
+                TableToolbar,
+                Image,
+                ImageToolbar,
+                ImageUpload,
+                ImageResize,
+                ImageCaption,
+                ImageStyle,
+                Base64UploadAdapter,
+                Alignment,
+                Indent,
+                IndentBlock,
+                RemoveFormat
+            ],
+            toolbar: [
+                'undo', 'redo', '|',
+                'heading', '|',
+                'bold', 'italic', 'underline', 'strikethrough', '|',
+                'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', '|',
+                'link', 'bulletedList', 'numberedList', '|',
+                'alignment', 'outdent', 'indent', '|',
+                'insertTable', 'blockQuote', '|',
+                'uploadImage', '|',
+                'removeFormat'
+            ],
+            heading: {
+                options: [
+                    { model: 'paragraph', title: 'Paragraph', class: 'ck-heading_paragraph' },
+                    { model: 'heading1', view: 'h1', title: 'Heading 1', class: 'ck-heading_heading1' },
+                    { model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2' },
+                    { model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3' }
+                ]
+            },
+            table: {
+                contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
+            },
+            image: {
+                toolbar: [
+                    'imageStyle:inline',
+                    'imageStyle:block',
+                    'imageStyle:side',
+                    '|',
+                    'toggleImageCaption',
+                    'imageTextAlternative',
+                    '|',
+                    'resizeImage'
+                ]
+            }
+        };
+
+        ClassicEditor
+            .create(textarea, editorConfig)
+            .then(editor => {
+                editorInstances[textarea.name] = editor;
+            })
+            .catch(error => {
+                console.error('CKEditor initialization error:', error);
+            });
+    });
+
+    // Update textareas with CKEditor content before form submission
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Update all textareas with editor content
+            Object.keys(editorInstances).forEach(name => {
+                const editor = editorInstances[name];
+                const textarea = document.querySelector(`textarea[name="${name}"]`);
+                if (textarea && editor) {
+                    textarea.value = editor.getData();
+                }
+            });
+        });
+    }
+});
+</script>
+{% endif %}
+
 {% endblock %}
