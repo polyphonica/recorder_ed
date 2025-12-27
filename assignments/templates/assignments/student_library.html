@@ -39,7 +39,7 @@
 
                                     <!-- Student/Child and Teacher Info -->
                                     <div class="flex items-center gap-4 mb-3">
-                                        {% if link.lesson.lesson_request.child_profile %}
+                                        {% if link.lesson and link.lesson.lesson_request and link.lesson.lesson_request.child_profile %}
                                             <div class="flex items-center gap-2">
                                                 <i class="fas fa-user text-info"></i>
                                                 <span class="font-semibold text-info">For: {{ link.lesson.lesson_request.child_profile.full_name }}</span>
@@ -161,7 +161,7 @@
 
                                     <!-- Student/Child and Teacher Info -->
                                     <div class="flex items-center gap-4 mb-3">
-                                        {% if link.lesson.lesson_request.child_profile %}
+                                        {% if link.lesson and link.lesson.lesson_request and link.lesson.lesson_request.child_profile %}
                                             <div class="flex items-center gap-2">
                                                 <i class="fas fa-user text-info"></i>
                                                 <span class="font-semibold text-info">For: {{ link.lesson.lesson_request.child_profile.full_name }}</span>
@@ -228,7 +228,7 @@
 
                                     <!-- Student/Child and Teacher Info -->
                                     <div class="flex items-center gap-4 mb-3">
-                                        {% if link.lesson.lesson_request.child_profile %}
+                                        {% if link.lesson and link.lesson.lesson_request and link.lesson.lesson_request.child_profile %}
                                             <div class="flex items-center gap-2">
                                                 <i class="fas fa-user text-info"></i>
                                                 <span class="font-semibold text-info">For: {{ link.lesson.lesson_request.child_profile.full_name }}</span>

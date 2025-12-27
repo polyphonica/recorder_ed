@@ -229,7 +229,9 @@ def student_assignment_library(request):
 def complete_assignment(request, assignment_link_id):
     """Student completes an assignment"""
     assignment_link = get_object_or_404(
-        PrivateLessonAssignment,
+        PrivateLessonAssignment.objects.select_related(
+            'assignment', 'teacher', 'lesson', 'lesson__lesson_request', 'lesson__lesson_request__child_profile'
+        ),
         pk=assignment_link_id,
         student=request.user
     )

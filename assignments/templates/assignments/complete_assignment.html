@@ -73,6 +73,12 @@
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <!-- Assignment Details -->
                     <div class="flex flex-wrap gap-6">
+                        {% if assignment_link.lesson and assignment_link.lesson.lesson_request and assignment_link.lesson.lesson_request.child_profile %}
+                            <div>
+                                <div class="text-sm text-base-content/70">Student</div>
+                                <div class="font-semibold text-info">{{ assignment_link.lesson.lesson_request.child_profile.full_name }}</div>
+                            </div>
+                        {% endif %}
                         <div>
                             <div class="text-sm text-base-content/70">Teacher</div>
                             <div class="font-semibold">{{ assignment_link.teacher.get_full_name|default:assignment_link.teacher.username }}</div>
