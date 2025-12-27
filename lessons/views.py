@@ -19,7 +19,7 @@ from django.core.exceptions import PermissionDenied
 from apps.private_teaching.models import LessonRequest
 
 from .models import Lesson, LessonOrder
-from .forms import LessonForm, DocumentFormSet, LessonUrlsFormSet, PrivateLessonPieceFormSet
+from .forms import LessonForm, DocumentFormSet, LessonUrlsFormSet, PrivateLessonPieceFormSet, LessonAssignmentFormSet
 
 
 class CalendarView(LoginRequiredMixin, TemplateView):
@@ -221,6 +221,14 @@ class LessonUpdateView(LoginRequiredMixin, LessonInline, UpdateView):
         ctx = super().get_context_data(**kwargs)
         ctx['named_formsets'] = self.get_named_formsets()
         ctx['pieces'] = Piece.objects.all().order_by('title')  # For piece dropdown in JavaScript
+
+        # Add available assignments for dropdown
+        from assignments.models import Assignment
+        ctx['available_assignments'] = Assignment.objects.filter(
+            created_by=self.request.user,
+            is_active=True
+        ).order_by('title')
+
         return ctx
 
     def get_named_formsets(self):
@@ -241,6 +249,11 @@ class LessonUpdateView(LoginRequiredMixin, LessonInline, UpdateView):
                 self.request.POST or None,
                 instance=self.object,
                 prefix='pieces'
+            ),
+            'assignments': LessonAssignmentFormSet(
+                self.request.POST or None,
+                instance=self.object,
+                prefix='assignments'
             ),
         }
 

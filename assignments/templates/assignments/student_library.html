@@ -47,7 +47,7 @@
                                         {% endif %}
                                         <div class="flex items-center gap-2">
                                             <i class="fas fa-user-tie text-primary"></i>
-                                            <span class="font-semibold">{{ link.teacher.get_full_name|default:link.teacher.username }}</span>
+                                            <span class="font-semibold">{{ link.lesson.subject.teacher.get_full_name|default:link.lesson.subject.teacher.username }}</span>
                                         </div>
                                     </div>
 
@@ -89,13 +89,11 @@
                                                 {% endif %}
                                             </div>
                                         {% endif %}
-                                        {% if link.lesson %}
-                                            <div>
-                                                <i class="fas fa-link text-primary mr-1"></i>
-                                                <span class="text-base-content/70">Linked to lesson</span>
-                                                <span class="font-semibold">{{ link.lesson.lesson_date|date:"M j, Y" }}</span>
-                                            </div>
-                                        {% endif %}
+                                        <div>
+                                            <i class="fas fa-book text-primary mr-1"></i>
+                                            <span class="text-base-content/70">From lesson</span>
+                                            <span class="font-semibold">{{ link.lesson.lesson_date|date:"M j, Y" }}</span>
+                                        </div>
                                     </div>
 
                                     <!-- Draft Status -->
@@ -169,7 +167,7 @@
                                         {% endif %}
                                         <div class="flex items-center gap-2">
                                             <i class="fas fa-user-tie text-primary"></i>
-                                            <span class="font-semibold">{{ link.teacher.get_full_name|default:link.teacher.username }}</span>
+                                            <span class="font-semibold">{{ link.lesson.subject.teacher.get_full_name|default:link.lesson.subject.teacher.username }}</span>
                                         </div>
                                     </div>
 
@@ -236,7 +234,7 @@
                                         {% endif %}
                                         <div class="flex items-center gap-2">
                                             <i class="fas fa-user-tie text-primary"></i>
-                                            <span class="font-semibold">{{ link.teacher.get_full_name|default:link.teacher.username }}</span>
+                                            <span class="font-semibold">{{ link.lesson.subject.teacher.get_full_name|default:link.lesson.subject.teacher.username }}</span>
                                         </div>
                                     </div>
 

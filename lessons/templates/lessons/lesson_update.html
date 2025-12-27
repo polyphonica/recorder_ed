@@ -444,6 +444,60 @@
             </div>
         </div>
 
+        <!-- Homework Assignments Section -->
+        <div class="form-section">
+            <h3>📝 Homework Assignments</h3>
+            <p class="text-sm text-gray-600 mb-4">Assign homework for this lesson. Students will see these assignments in their student portal.</p>
+            {{ named_formsets.assignments.management_form }}
+            <div id="assignment-forms">
+                {% for form in named_formsets.assignments %}
+                    <div class="inline-form {% if form.instance.pk %}{% else %}empty{% endif %}">
+                        {% if form.instance.pk %}
+                            <h4 class="text-sm font-semibold text-gray-700 mb-2">Assignment {{ forloop.counter }}</h4>
+                        {% else %}
+                            <h4 class="text-sm font-semibold text-gray-700 mb-2">New Assignment</h4>
+                        {% endif %}
+
+                        <div class="grid grid-cols-2 gap-4 mb-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Assignment</label>
+                                {{ form.assignment }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
+                                {{ form.due_date }}
+                                <small class="text-gray-500">Optional - defaults to next lesson</small>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
+                            {{ form.order }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Lesson-Specific Instructions</label>
+                            {{ form.instructions }}
+                            <small class="text-gray-500">Optional: Add specific guidance for this assignment</small>
+                        </div>
+
+                        {% if form.instance.pk %}
+                            <div class="mt-3 flex items-center gap-2">
+                                {{ form.DELETE }}
+                                <label for="{{ form.DELETE.id_for_label }}" class="text-sm text-red-600 delete-checkbox">Delete this assignment</label>
+                            </div>
+                        {% endif %}
+
+                        {% for hidden in form.hidden_fields %}
+                            {{ hidden }}
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="flex items-center gap-2 mt-3">
+                <button type="button" id="add-assignment" class="btn-add-form">+ Add Assignment</button>
+                <a href="{% url 'assignments:teacher_library' %}" target="_blank" class="btn btn-outline">Manage Assignment Library</a>
+            </div>
+        </div>
+
         <!-- Form Actions -->
         <div class="flex gap-4 pt-6 border-t border-gray-200">
             <button type="submit" class="btn btn-primary">Save Lesson</button>
@@ -771,6 +825,49 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
                 <input type="hidden" name="pieces-${formIdx}-id" id="id_pieces-${formIdx}-id">
+            </div>
+        `;
+
+        container.insertAdjacentHTML('beforeend', newFormHtml);
+        totalForms.value = formIdx + 1;
+    });
+
+    // Function to add new assignment form
+    document.getElementById('add-assignment').addEventListener('click', function() {
+        const container = document.getElementById('assignment-forms');
+        const totalForms = document.querySelector('#id_assignments-TOTAL_FORMS');
+        const formIdx = parseInt(totalForms.value);
+
+        // Create new form HTML
+        const newFormHtml = `
+            <div class="inline-form">
+                <h4 class="text-sm font-semibold text-gray-700 mb-2">New Assignment</h4>
+                <div class="grid grid-cols-2 gap-4 mb-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Assignment</label>
+                        <select name="assignments-${formIdx}-assignment" id="id_assignments-${formIdx}-assignment" class="form-control">
+                            <option value="">---------</option>
+                            {% for assignment in available_assignments %}
+                            <option value="{{ assignment.id }}">{{ assignment.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
+                        <input type="datetime-local" name="assignments-${formIdx}-due_date" id="id_assignments-${formIdx}-due_date" class="form-control">
+                        <small class="text-gray-500">Optional - defaults to next lesson</small>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
+                    <input type="number" name="assignments-${formIdx}-order" id="id_assignments-${formIdx}-order" value="0" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Lesson-Specific Instructions</label>
+                    <textarea name="assignments-${formIdx}-instructions" id="id_assignments-${formIdx}-instructions" rows="3" class="form-control"></textarea>
+                    <small class="text-gray-500">Optional: Add specific guidance for this assignment</small>
+                </div>
+                <input type="hidden" name="assignments-${formIdx}-id" id="id_assignments-${formIdx}-id">
             </div>
         `;
 

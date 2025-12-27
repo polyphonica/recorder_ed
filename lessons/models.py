@@ -127,6 +127,15 @@ class Lesson(models.Model):
         help_text='Interactive playalong pieces for this lesson'
     )
 
+    # Homework assignments
+    assignments = models.ManyToManyField(
+        'assignments.Assignment',
+        through='LessonAssignment',
+        related_name='lessons',
+        blank=True,
+        help_text='Homework assignments for this lesson'
+    )
+
     # Exam preparation link
     exam_registration = models.ForeignKey(
         'private_teaching.ExamRegistration',
@@ -259,7 +268,46 @@ class PrivateLessonPiece(models.Model):
         unique_together = ['lesson', 'piece']
 
     def __str__(self):
-        return f"{self.piece.title} for {self.lesson}"
+        return f"{self.lesson} - {self.piece.title}"
+
+
+class LessonAssignment(models.Model):
+    """Through model for associating homework assignments with lessons"""
+    lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name='lesson_assignments',
+        help_text="The lesson this assignment is homework for"
+    )
+    assignment = models.ForeignKey(
+        'assignments.Assignment',
+        on_delete=models.CASCADE,
+        related_name='lesson_assignments',
+        help_text="The homework assignment"
+    )
+    due_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When this assignment is due (defaults to next lesson)"
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Display order within homework list"
+    )
+    instructions = models.TextField(
+        blank=True,
+        help_text="Lesson-specific instructions for this assignment"
+    )
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'assigned_at']
+        verbose_name = 'Lesson Assignment'
+        verbose_name_plural = 'Lesson Assignments'
+        unique_together = ['lesson', 'assignment']
+
+    def __str__(self):
+        return f"{self.assignment.title} for {self.lesson}"
 
 
 class Document(models.Model):

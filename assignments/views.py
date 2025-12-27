@@ -194,11 +194,27 @@ def grade_submission(request, pk):
 
 @login_required
 def student_assignment_library(request):
-    """Student's library of assigned assignments"""
-    # Get all assignments assigned to this student (or child if guardian)
-    assignment_links = PrivateLessonAssignment.objects.filter(
-        student=request.user
-    ).select_related('assignment', 'teacher', 'lesson', 'lesson__lesson_request', 'lesson__lesson_request__child_profile').order_by('-assigned_at')
+    """Student's library of assigned assignments from their lessons"""
+    from lessons.models import LessonAssignment, Lesson
+
+    # Get all lessons for this student
+    student_lessons = Lesson.objects.filter(
+        student=request.user,
+        status='Assigned'  # Only show assignments from assigned (published) lessons
+    ).select_related('lesson_request', 'lesson_request__child_profile', 'subject', 'subject__teacher')
+
+    # Get all assignment links from these lessons
+    lesson_ids = student_lessons.values_list('id', flat=True)
+    assignment_links = LessonAssignment.objects.filter(
+        lesson_id__in=lesson_ids
+    ).select_related(
+        'assignment',
+        'lesson',
+        'lesson__lesson_request',
+        'lesson__lesson_request__child_profile',
+        'lesson__subject',
+        'lesson__subject__teacher'
+    ).order_by('-assigned_at')
 
     # Organize by status
     pending_assignments = []
@@ -206,7 +222,18 @@ def student_assignment_library(request):
     graded_assignments = []
 
     for link in assignment_links:
-        submission = link.submission
+        # Check if there's a submission for this assignment
+        try:
+            submission = AssignmentSubmission.objects.get(
+                student=request.user,
+                assignment=link.assignment
+            )
+        except AssignmentSubmission.DoesNotExist:
+            submission = None
+
+        # Add link with submission info
+        link.submission = submission
+
         if not submission or submission.status == 'draft':
             # Not submitted yet - show in pending
             pending_assignments.append(link)
@@ -228,12 +255,14 @@ def student_assignment_library(request):
 @login_required
 def complete_assignment(request, assignment_link_id):
     """Student completes an assignment"""
+    from lessons.models import LessonAssignment
+
     assignment_link = get_object_or_404(
-        PrivateLessonAssignment.objects.select_related(
-            'assignment', 'teacher', 'lesson', 'lesson__lesson_request', 'lesson__lesson_request__child_profile'
+        LessonAssignment.objects.select_related(
+            'assignment', 'lesson', 'lesson__lesson_request', 'lesson__lesson_request__child_profile', 'lesson__subject', 'lesson__subject__teacher'
         ),
         pk=assignment_link_id,
-        student=request.user
+        lesson__student=request.user  # Ensure this assignment's lesson belongs to this student
     )
 
     # Get or create submission

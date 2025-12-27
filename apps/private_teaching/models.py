@@ -1464,13 +1464,21 @@ class PrivateLessonAssignment(models.Model):
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        related_name='assignments',
-        help_text="Optional: Link to specific lesson"
+        related_name='old_assignment_links',  # Deprecated - use lesson.assignments instead
+        help_text="Optional: Link to specific lesson (DEPRECATED)"
     )
     student = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='private_lesson_assignments_received'
+    )
+    child_profile = models.ForeignKey(
+        'accounts.ChildProfile',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='assignments_received',
+        help_text="Optional: Specific child this assignment is for"
     )
     teacher = models.ForeignKey(
         User,
