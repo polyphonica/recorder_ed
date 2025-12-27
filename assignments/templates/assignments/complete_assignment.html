@@ -1105,44 +1105,8 @@ document.addEventListener('DOMContentLoaded', function() {
 {% endif %}
 
 {% if assignment.has_written_component %}
-<script type="importmap">
-{
-    "imports": {
-        "ckeditor5": "https://cdn.ckeditor.com/ckeditor5/44.1.0/ckeditor5.js",
-        "ckeditor5/": "https://cdn.ckeditor.com/ckeditor5/44.1.0/"
-    }
-}
-</script>
-
-<script type="module">
-import {
-    ClassicEditor,
-    Essentials,
-    Paragraph,
-    Bold,
-    Italic,
-    Underline,
-    Strikethrough,
-    Font,
-    Heading,
-    Link,
-    List,
-    BlockQuote,
-    Table,
-    TableToolbar,
-    Image,
-    ImageToolbar,
-    ImageUpload,
-    ImageResize,
-    ImageCaption,
-    ImageStyle,
-    Base64UploadAdapter,
-    Alignment,
-    Indent,
-    IndentBlock,
-    RemoveFormat
-} from 'ckeditor5';
-
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+<script>
 document.addEventListener('DOMContentLoaded', function() {
     // Store editor instances
     const editorInstances = {};
@@ -1152,43 +1116,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     textareas.forEach((textarea, index) => {
         const editorConfig = {
-            plugins: [
-                Essentials,
-                Paragraph,
-                Bold,
-                Italic,
-                Underline,
-                Strikethrough,
-                Font,
-                Heading,
-                Link,
-                List,
-                BlockQuote,
-                Table,
-                TableToolbar,
-                Image,
-                ImageToolbar,
-                ImageUpload,
-                ImageResize,
-                ImageCaption,
-                ImageStyle,
-                Base64UploadAdapter,
-                Alignment,
-                Indent,
-                IndentBlock,
-                RemoveFormat
-            ],
-            toolbar: [
-                'undo', 'redo', '|',
-                'heading', '|',
-                'bold', 'italic', 'underline', 'strikethrough', '|',
-                'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', '|',
-                'link', 'bulletedList', 'numberedList', '|',
-                'alignment', 'outdent', 'indent', '|',
-                'insertTable', 'blockQuote', '|',
-                'uploadImage', '|',
-                'removeFormat'
-            ],
+            toolbar: {
+                items: [
+                    'undo', 'redo', '|',
+                    'heading', '|',
+                    'bold', 'italic', 'underline', '|',
+                    'link', 'bulletedList', 'numberedList', '|',
+                    'indent', 'outdent', '|',
+                    'insertTable', 'blockQuote', '|',
+                    'imageUpload'
+                ]
+            },
             heading: {
                 options: [
                     { model: 'paragraph', title: 'Paragraph', class: 'ck-heading_paragraph' },
@@ -1197,20 +1135,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     { model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3' }
                 ]
             },
-            table: {
-                contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
-            },
             image: {
                 toolbar: [
+                    'imageTextAlternative', '|',
                     'imageStyle:inline',
                     'imageStyle:block',
-                    'imageStyle:side',
-                    '|',
-                    'toggleImageCaption',
-                    'imageTextAlternative',
-                    '|',
-                    'resizeImage'
+                    'imageStyle:side'
                 ]
+            },
+            table: {
+                contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
             }
         };
 
@@ -1218,6 +1152,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .create(textarea, editorConfig)
             .then(editor => {
                 editorInstances[textarea.name] = editor;
+                console.log('CKEditor initialized for:', textarea.name);
             })
             .catch(error => {
                 console.error('CKEditor initialization error:', error);
