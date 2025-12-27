@@ -241,9 +241,9 @@
                                 <!-- Duration Selection -->
                                 <div class="form-control">
                                     <label class="label">
-                                        <span class="label-text font-semibold">Duration:</span>
+                                        <span class="label-text font-semibold">Notes:</span>
                                     </label>
-                                    <div class="grid grid-cols-4 gap-2">
+                                    <div class="grid grid-cols-4 gap-2 mb-2">
                                         <button type="button" class="btn btn-sm duration-button btn-active" data-duration="w">Whole / Semibreve</button>
                                         <button type="button" class="btn btn-sm duration-button" data-duration="h">Half / Minim</button>
                                         <button type="button" class="btn btn-sm duration-button" data-duration="q">Quarter / Crotchet</button>
@@ -252,6 +252,19 @@
                                         <button type="button" class="btn btn-sm duration-button" data-duration="hd">Dotted Half / Dotted Minim</button>
                                         <button type="button" class="btn btn-sm duration-button" data-duration="qd">Dotted Quarter / Dotted Crotchet</button>
                                         <button type="button" class="btn btn-sm duration-button" data-duration="8d">Dotted Eighth / Dotted Quaver</button>
+                                    </div>
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Rests:</span>
+                                    </label>
+                                    <div class="grid grid-cols-4 gap-2">
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="wr">Whole Rest</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="hr">Half Rest</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="qr">Quarter Rest</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="8r">Eighth Rest</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="16r">16th Rest</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="hdr">Dotted Half Rest</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="qdr">Dotted Quarter Rest</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="8dr">Dotted Eighth Rest</button>
                                     </div>
                                 </div>
 
@@ -783,8 +796,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     clef: clef
                 });
 
-                // Apply automatic stem direction based on standard notation rules
-                const middleLines = {
+                // Apply automatic stem direction based on standard notation rules (skip for rests)
+                const isRest = duration.includes('r');
+                if (!isRest) {
+                    const middleLines = {
                     'treble': { note: 'b', octave: 4 },  // B4 is middle line in treble
                     'bass': { note: 'd', octave: 3 },    // D3 is middle line in bass
                     'alto': { note: 'c', octave: 4 }     // C4 is middle line in alto
@@ -809,6 +824,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     note.setStemDirection(VF.Stem.DOWN);
                 } else {
                     note.setStemDirection(VF.Stem.UP);
+                }
                 }
 
                 // Add dots using Dot.buildAndAttach
@@ -879,7 +895,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const duration = noteData.duration;
                 if (!duration) return; // Skip if no duration
 
-                const baseDuration = duration.replace(/d+$/, ''); // Remove dots
+                // Remove 'r' (rest) and 'd' (dot) suffixes to get base duration
+                const baseDuration = duration.replace(/r$/, '').replace(/d+$/, '');
                 const numDots = (duration.match(/d/g) || []).length;
 
                 let beatValue = beatValues[baseDuration];
