@@ -444,6 +444,24 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.pitch-button').forEach(b => b.classList.remove('btn-active'));
             this.classList.add('btn-active');
         });
+
+        // Double-click to add note immediately
+        btn.addEventListener('dblclick', function() {
+            selectedPitch = this.getAttribute('data-pitch');
+            document.querySelectorAll('.pitch-button').forEach(b => b.classList.remove('btn-active'));
+            this.classList.add('btn-active');
+
+            // Add note based on current mode
+            if (chordMode) {
+                currentChord.push({
+                    pitch: selectedPitch,
+                    accidental: selectedAccidental
+                });
+                updateChordDisplay();
+            } else {
+                addSingleNote();
+            }
+        });
     });
 
     // Chord mode toggle
