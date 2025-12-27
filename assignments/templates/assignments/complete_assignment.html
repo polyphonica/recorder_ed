@@ -318,6 +318,9 @@
                                 <button type="button" id="add-barline-btn" class="btn btn-sm">
                                     <i class="fas fa-grip-lines-vertical mr-1"></i>Add Barline
                                 </button>
+                                <button type="button" id="label-mode-btn" class="btn btn-sm btn-info">
+                                    <i class="fas fa-tag mr-1"></i>Add Label
+                                </button>
                                 <button type="button" id="remove-last-btn" class="btn btn-sm btn-error">
                                     <i class="fas fa-undo mr-1"></i>Remove Last
                                 </button>
@@ -384,6 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
         notes = savedData.notes;
         selectedClef = savedData.clef || 'treble';
         selectedKeySignature = savedData.keySignature || '';
+        textLabels = savedData.textLabels || [];
         // Update clef button
         document.querySelectorAll('[data-clef]').forEach(btn => {
             btn.classList.toggle('btn-active', btn.getAttribute('data-clef') === selectedClef);
@@ -572,11 +576,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Array to store text labels
+    let textLabels = [];
+
     function saveNotationData() {
         const notationData = {
             clef: selectedClef,
             keySignature: selectedKeySignature,
-            notes: notes
+            notes: notes,
+            textLabels: textLabels
         };
         document.getElementById('notation-data-input').value = JSON.stringify(notationData);
     }
@@ -654,6 +662,86 @@ document.addEventListener('DOMContentLoaded', function() {
         formatter.joinVoices([voice]).format([voice], 580);
 
         voice.draw(context, stave);
+
+        // Render text labels
+        if (notationData.textLabels && notationData.textLabels.length > 0) {
+            const svgElement = container.querySelector('svg');
+            notationData.textLabels.forEach((label, index) => {
+                const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                textElement.setAttribute('x', label.x);
+                textElement.setAttribute('y', label.y);
+                textElement.setAttribute('fill', '#0066cc');
+                textElement.setAttribute('font-size', '14');
+                textElement.setAttribute('font-weight', 'bold');
+                textElement.setAttribute('cursor', 'pointer');
+                textElement.textContent = label.text;
+                textElement.dataset.labelIndex = index;
+
+                // Add click handler for editing/deleting
+                if (containerId === 'notation-output') {
+                    textElement.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        editTextLabel(index);
+                    });
+                }
+
+                svgElement.appendChild(textElement);
+            });
+        }
+    }
+
+    // Enable label mode
+    let labelMode = false;
+    const labelModeBtn = document.getElementById('label-mode-btn');
+
+    if (labelModeBtn) {
+        labelModeBtn.addEventListener('click', () => {
+            labelMode = !labelMode;
+            labelModeBtn.classList.toggle('btn-active', labelMode);
+            document.getElementById('notation-output').style.cursor = labelMode ? 'crosshair' : 'default';
+        });
+    }
+
+    // Add click handler to notation canvas for adding labels
+    document.getElementById('notation-output').addEventListener('click', (e) => {
+        if (!labelMode) return;
+
+        const container = document.getElementById('notation-output');
+        const svg = container.querySelector('svg');
+        if (!svg) return;
+
+        const rect = svg.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const text = prompt('Enter label text (e.g., "treble clef", "bar line", "time signature"):');
+        if (text && text.trim()) {
+            textLabels.push({ x, y, text: text.trim() });
+            saveNotationData();
+            renderNotes();
+        }
+    });
+
+    function editTextLabel(index) {
+        const label = textLabels[index];
+        const action = confirm(`Edit label "${label.text}"?\n\nOK = Edit text\nCancel = Delete label`);
+
+        if (action === true) {
+            // Edit
+            const newText = prompt('Edit label text:', label.text);
+            if (newText && newText.trim()) {
+                textLabels[index].text = newText.trim();
+                saveNotationData();
+                renderNotes();
+            }
+        } else if (action === false) {
+            // Delete
+            if (confirm(`Delete label "${label.text}"?`)) {
+                textLabels.splice(index, 1);
+                saveNotationData();
+                renderNotes();
+            }
+        }
     }
 
     // Initial render
