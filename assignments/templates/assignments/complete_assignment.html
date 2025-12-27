@@ -237,41 +237,49 @@
                             </div>
 
                             <!-- Note Controls -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <!-- Duration Selection -->
-                                <div class="form-control">
-                                    <label class="label">
-                                        <span class="label-text font-semibold">Notes:</span>
-                                    </label>
-                                    <div class="grid grid-cols-4 gap-2 mb-2">
-                                        <button type="button" class="btn btn-sm duration-button btn-active" data-duration="w">Whole / Semibreve</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="h">Half / Minim</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="q">Quarter / Crotchet</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="8">Eighth / Quaver</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="16">16th / Semiquaver</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="hd">Dotted Half / Dotted Minim</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="qd">Dotted Quarter / Dotted Crotchet</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="8d">Dotted Eighth / Dotted Quaver</button>
-                                    </div>
-                                    <label class="label">
-                                        <span class="label-text font-semibold">Rests:</span>
-                                    </label>
-                                    <div class="grid grid-cols-4 gap-2">
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="wr">Whole Rest</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="hr">Half Rest</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="qr">Quarter Rest</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="8r">Eighth Rest</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="16r">16th Rest</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="hdr">Dotted Half Rest</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="qdr">Dotted Quarter Rest</button>
-                                        <button type="button" class="btn btn-sm duration-button" data-duration="8dr">Dotted Eighth Rest</button>
+                            <div class="mb-4">
+                                <!-- Notes and Rests Side by Side -->
+                                <div class="form-control mb-4">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <!-- Notes Column -->
+                                        <div>
+                                            <label class="label">
+                                                <span class="label-text font-semibold">Notes:</span>
+                                            </label>
+                                            <div class="grid grid-cols-1 gap-2">
+                                                <button type="button" class="btn btn-sm duration-button btn-active" data-duration="w">Whole / Semibreve</button>
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="h">Half / Minim</button>
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="q">Quarter / Crotchet</button>
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="8">Eighth / Quaver</button>
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="16">16th / Semiquaver</button>
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="hd">Dotted Half / Dotted Minim</button>
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="qd">Dotted Quarter / Dotted Crotchet</button>
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="8d">Dotted Eighth / Dotted Quaver</button>
+                                            </div>
+                                        </div>
+                                        <!-- Rests Column -->
+                                        <div>
+                                            <label class="label">
+                                                <span class="label-text font-semibold">Rests:</span>
+                                            </label>
+                                            <div class="grid grid-cols-1 gap-2">
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="wr">Whole Rest</button>
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="hr">Half Rest</button>
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="qr">Quarter Rest</button>
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="8r">Eighth Rest</button>
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="16r">16th Rest</button>
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="hdr">Dotted Half Rest</button>
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="qdr">Dotted Quarter Rest</button>
+                                                <button type="button" class="btn btn-sm duration-button" data-duration="8dr">Dotted Eighth Rest</button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <!-- Accidental Selection -->
+                                <!-- Accidental Selection Below -->
                                 <div class="form-control">
                                     <label class="label">
-                                        <span class="label-text font-semibold">Accidental:</span>
+                                        <span class="label-text font-semibold">Accidentals:</span>
                                     </label>
                                     <div class="grid grid-cols-3 gap-2">
                                         <button type="button" class="btn accidental-button btn-active" data-accidental="none">Natural<br><span style="font-size: 2.5rem; line-height: 1;">♮</span></button>
