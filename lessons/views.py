@@ -93,6 +93,12 @@ class LessonInline:
         named_formsets = self.get_named_formsets()
 
         if not all((x.is_valid() for x in named_formsets.values())):
+            # Debug: Log which formsets are invalid
+            for name, formset in named_formsets.items():
+                if not formset.is_valid():
+                    print(f"Formset '{name}' is invalid:")
+                    print(f"  Errors: {formset.errors}")
+                    print(f"  Non-form errors: {formset.non_form_errors()}")
             return self.render_to_response(self.get_context_data(form=form))
 
         # Store the old status before saving
@@ -108,7 +114,11 @@ class LessonInline:
             if formset_save_func is not None:
                 formset_save_func(formset)
             else:
-                formset.save()
+                saved_instances = formset.save()
+                # Debug: Log what was saved
+                print(f"Formset '{name}' saved {len(saved_instances)} instances")
+                for instance in saved_instances:
+                    print(f"  - Saved: {instance}")
 
         # Send email if lesson was just published (Draft -> Assigned)
         new_status = self.object.status
