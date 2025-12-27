@@ -1,4 +1,5 @@
 from django import forms
+from django_ckeditor_5.widgets import CKEditor5Widget
 from .models import Assignment, AssignmentSubmission
 from apps.private_teaching.models import PrivateLessonAssignment
 from django.contrib.auth.models import User
@@ -237,4 +238,5 @@ class SubmissionForm(forms.ModelForm):
         fields = ['notation_data', 'written_response']
         widgets = {
             'notation_data': forms.HiddenInput(),
+            'written_response': CKEditor5Widget(config_name='default'),
         }
