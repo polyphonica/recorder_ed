@@ -445,21 +445,33 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
         ).select_related('subject', 'exam_board').order_by('exam_date')
 
         # Get pending assignments (draft or not yet submitted)
-        from apps.private_teaching.models import PrivateLessonAssignment
+        from lessons.models import LessonAssignment, Lesson
         from assignments.models import AssignmentSubmission
 
-        # Get assignment IDs that have been submitted or graded
-        completed_assignment_ids = AssignmentSubmission.objects.filter(
+        # Get all lessons for this student
+        student_lessons = Lesson.objects.filter(
             student=self.request.user,
-            status__in=['submitted', 'graded']
-        ).values_list('assignment_id', flat=True)
+            status='Assigned'
+        )
 
-        # Count assignments that haven't been submitted/graded yet
-        pending_assignments_count = PrivateLessonAssignment.objects.filter(
-            student=self.request.user
-        ).exclude(
-            assignment_id__in=completed_assignment_ids
-        ).count()
+        # Get all assignment links from these lessons
+        lesson_ids = student_lessons.values_list('id', flat=True)
+        assignment_links = LessonAssignment.objects.filter(
+            lesson_id__in=lesson_ids
+        )
+
+        # Count pending assignments (not submitted or in draft status)
+        pending_assignments_count = 0
+        for link in assignment_links:
+            try:
+                submission = AssignmentSubmission.objects.get(
+                    student=self.request.user,
+                    assignment=link.assignment
+                )
+                if not submission or submission.status == 'draft':
+                    pending_assignments_count += 1
+            except AssignmentSubmission.DoesNotExist:
+                pending_assignments_count += 1
 
         context.update({
             'my_applications': my_applications,
