@@ -1435,6 +1435,12 @@ class TeacherAvailabilitySettings(models.Model):
         help_text="Teacher's timezone (e.g., 'America/New_York', 'Europe/London')"
     )
 
+    # Recurring lessons settings
+    max_recurring_lessons = models.IntegerField(
+        default=8,
+        help_text="Maximum number of lessons students can book in a recurring sequence (e.g., 8 = up to 8 weekly lessons)"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

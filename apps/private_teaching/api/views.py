@@ -26,11 +26,14 @@ from .serializers import (
     TeacherAvailabilitySerializer,
     AvailabilityExceptionSerializer,
     TeacherAvailabilitySettingsSerializer,
-    BulkAvailabilityUpdateSerializer
+    BulkAvailabilityUpdateSerializer,
+    RecurringPreviewRequestSerializer,
+    RecurringSlotSerializer
 )
 from apps.private_teaching.availability_engine import (
     calculate_available_slots,
-    check_slot_availability
+    check_slot_availability,
+    generate_recurring_slots
 )
 
 User = get_user_model()
@@ -395,3 +398,98 @@ class SubmitBookingAPIView(APIView):
                 'success': False,
                 'error': f'An error occurred: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PreviewRecurringSlotsAPIView(APIView):
+    """
+    API endpoint to preview recurring lesson slots before booking
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """
+        Preview recurring slots
+
+        Expected payload:
+        {
+            "teacher_id": 123,
+            "base_datetime": "2025-01-06T18:00:00",
+            "duration": 60,
+            "num_weeks": 4,
+            "subject_id": 456
+        }
+
+        Returns:
+        {
+            "slots": [
+                {
+                    "datetime": "2025-01-06T18:00:00",
+                    "duration": 60,
+                    "available": true,
+                    "conflict_reason": null,
+                    "subject_id": 456
+                },
+                ...
+            ],
+            "available_count": 3,
+            "conflict_count": 1,
+            "teacher_max_allowed": 8
+        }
+        """
+        # Validate request data
+        serializer = RecurringPreviewRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+
+        # Get teacher
+        try:
+            teacher = User.objects.get(id=data['teacher_id'], profile__role='teacher')
+        except User.DoesNotExist:
+            return Response({
+                'error': 'Teacher not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Get subject and validate it belongs to teacher
+        try:
+            subject = Subject.objects.get(id=data['subject_id'], teacher=teacher)
+        except Subject.DoesNotExist:
+            return Response({
+                'error': 'Subject not found or does not belong to this teacher'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Generate recurring slots
+        try:
+            recurring_slots = generate_recurring_slots(
+                teacher=teacher,
+                base_datetime=data['base_datetime'],
+                duration=data['duration'],
+                num_weeks=data['num_weeks'],
+                subject_id=data['subject_id']
+            )
+        except ValueError as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                'error': f'Error generating recurring slots: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Serialize slots
+        slots_serializer = RecurringSlotSerializer(recurring_slots, many=True)
+
+        # Calculate counts
+        available_count = sum(1 for slot in recurring_slots if slot['available'])
+        conflict_count = sum(1 for slot in recurring_slots if not slot['available'])
+
+        # Get teacher's max allowed
+        teacher_max_allowed = teacher.availability_settings.max_recurring_lessons if hasattr(teacher, 'availability_settings') else 8
+
+        return Response({
+            'slots': slots_serializer.data,
+            'available_count': available_count,
+            'conflict_count': conflict_count,
+            'teacher_max_allowed': teacher_max_allowed
+        }, status=status.HTTP_200_OK)

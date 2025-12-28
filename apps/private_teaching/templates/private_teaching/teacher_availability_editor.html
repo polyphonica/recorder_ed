@@ -86,6 +86,20 @@
                             <span class="label-text font-medium">Auto-approve bookings (students can book instantly within your availability)</span>
                         </label>
                     </div>
+
+                    <!-- Max Recurring Lessons -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Max Recurring Lessons</span>
+                        </label>
+                        <input type="number" class="input input-bordered"
+                               x-model.number="settings.max_recurring_lessons"
+                               @input="saveSettings()"
+                               min="2" max="52">
+                        <label class="label">
+                            <span class="label-text-alt">Maximum number of lessons students can book in a recurring sequence (e.g., 8 = up to 8 weekly lessons)</span>
+                        </label>
+                    </div>
                 </div>
             </template>
 
@@ -315,7 +329,8 @@ function availabilityEditor() {
             buffer_minutes: 0,
             min_booking_notice_hours: 24,
             max_booking_days_ahead: 90,
-            auto_approve_bookings: true
+            auto_approve_bookings: true,
+            max_recurring_lessons: 8
         },
         weeklySlots: {
             0: [], // Monday
@@ -358,7 +373,8 @@ function availabilityEditor() {
                         buffer_minutes: data.buffer_minutes,
                         min_booking_notice_hours: data.min_booking_notice_hours,
                         max_booking_days_ahead: data.max_booking_days_ahead,
-                        auto_approve_bookings: data.auto_approve_bookings
+                        auto_approve_bookings: data.auto_approve_bookings,
+                        max_recurring_lessons: data.max_recurring_lessons || 8
                     };
                 }
             } catch (error) {

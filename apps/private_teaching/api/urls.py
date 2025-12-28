@@ -9,7 +9,8 @@ from .views import (
     AvailabilityExceptionViewSet,
     TeacherAvailabilitySettingsViewSet,
     AvailableSlotsAPIView,
-    SubmitBookingAPIView
+    SubmitBookingAPIView,
+    PreviewRecurringSlotsAPIView
 )
 
 # Create router for viewsets
@@ -27,4 +28,5 @@ urlpatterns = [
     # Custom API endpoints
     path('student/available-slots/', AvailableSlotsAPIView.as_view(), name='available-slots'),
     path('student/submit-booking/', SubmitBookingAPIView.as_view(), name='submit-booking'),
+    path('student/preview-recurring/', PreviewRecurringSlotsAPIView.as_view(), name='preview-recurring-slots'),
 ]

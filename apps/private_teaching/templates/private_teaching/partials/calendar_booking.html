@@ -70,6 +70,49 @@
         </div>
     </div>
 
+    <!-- Recurring Booking Option -->
+    <div class="card bg-base-200">
+        <div class="card-body py-4">
+            <label class="cursor-pointer flex items-center gap-3">
+                <input type="checkbox" class="checkbox checkbox-primary"
+                       x-model="enableRecurring" @change="onRecurringToggle()">
+                <div>
+                    <div class="font-semibold">Book Recurring Weekly Lessons</div>
+                    <div class="text-sm text-base-content/70">
+                        Book the same time slot every week (e.g., "Every Monday at 6pm")
+                    </div>
+                </div>
+            </label>
+
+            <template x-if="enableRecurring">
+                <div class="mt-4 space-y-4">
+                    <!-- Base Time Selection Info -->
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Select ONE time slot from the calendar below. We'll show you availability for that time every week.</span>
+                    </div>
+
+                    <!-- Number of Weeks -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Number of Weeks</span>
+                            <span class="label-text-alt" x-text="'Max: ' + teacherMaxRecurring"></span>
+                        </label>
+                        <input type="range" class="range range-primary"
+                               x-model.number="numWeeks"
+                               @input="onNumWeeksChange()"
+                               min="2" :max="teacherMaxRecurring" step="1">
+                        <div class="flex justify-between text-xs px-2 mt-1">
+                            <span>2 weeks</span>
+                            <span class="font-bold text-primary" x-text="numWeeks + ' weeks'"></span>
+                            <span x-text="teacherMaxRecurring + ' weeks'"></span>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
     <!-- Date Range Navigation -->
     <div class="flex items-center justify-between gap-4">
         <button class="btn btn-outline btn-sm" @click="previousWeek()" :disabled="loading">
@@ -141,6 +184,76 @@
                     <div class="text-center py-12 text-base-content/50">
                         <i class="fas fa-calendar-times text-4xl mb-2"></i>
                         <p>No available slots for this week. Try another week or contact the teacher.</p>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </template>
+
+    <!-- Recurring Preview -->
+    <template x-if="enableRecurring && recurringBaseSlot">
+        <div class="card bg-info/10 border-2 border-info">
+            <div class="card-body">
+                <h3 class="card-title text-info">
+                    <i class="fas fa-repeat mr-2"></i>
+                    Recurring Lesson Preview
+                </h3>
+
+                <div class="text-sm mb-2">
+                    <span class="font-semibold">Base Time:</span>
+                    <span x-text="formatFullDateTime(recurringBaseSlot.datetime)"></span>
+                </div>
+
+                <!-- Loading State -->
+                <template x-if="recurringPreviewLoading">
+                    <div class="flex justify-center items-center py-6">
+                        <span class="loading loading-spinner loading-md"></span>
+                        <span class="ml-2">Checking availability...</span>
+                    </div>
+                </template>
+
+                <!-- Preview Slots List -->
+                <template x-if="!recurringPreviewLoading && recurringPreviewSlots.length > 0">
+                    <div>
+                        <div class="space-y-1 max-h-60 overflow-y-auto mb-3">
+                            <template x-for="(slot, index) in recurringPreviewSlots" :key="slot.datetime">
+                                <label class="flex items-center gap-3 p-2 rounded hover:bg-base-100 cursor-pointer">
+                                    <input type="checkbox"
+                                           class="checkbox checkbox-sm"
+                                           :checked="isSlotInSelectedList(slot)"
+                                           @change="toggleRecurringSlot(slot)"
+                                           :disabled="!slot.available">
+
+                                    <div class="flex-1 flex items-center gap-2">
+                                        <i class="fas"
+                                           :class="slot.available ? 'fa-check-circle text-success' : 'fa-times-circle text-error'"></i>
+                                        <span x-text="'Week ' + (index + 1) + ': ' + formatFullDateTime(slot.datetime)"></span>
+                                    </div>
+
+                                    <template x-if="!slot.available">
+                                        <span class="badge badge-error badge-sm" x-text="slot.conflict_reason"></span>
+                                    </template>
+                                </label>
+                            </template>
+                        </div>
+
+                        <div class="alert alert-warning" x-show="recurringPreviewSlots.some(s => !s.available)">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Some weeks have conflicts. Deselect conflicting slots or choose a different base time.</span>
+                        </div>
+
+                        <div class="stats stats-horizontal shadow mt-2">
+                            <div class="stat py-2">
+                                <div class="stat-title text-xs">Available</div>
+                                <div class="stat-value text-success text-xl"
+                                     x-text="recurringPreviewSlots.filter(s => s.available).length"></div>
+                            </div>
+                            <div class="stat py-2">
+                                <div class="stat-title text-xs">Conflicts</div>
+                                <div class="stat-value text-error text-xl"
+                                     x-text="recurringPreviewSlots.filter(s => !s.available).length"></div>
+                            </div>
+                        </div>
                     </div>
                 </template>
             </div>
@@ -241,6 +354,14 @@ function calendarBooking() {
         loading: false,
         submitting: false,
         message: '',
+
+        // Recurring booking properties
+        enableRecurring: false,
+        numWeeks: 4,
+        teacherMaxRecurring: 8,
+        recurringBaseSlot: null,
+        recurringPreviewSlots: [],
+        recurringPreviewLoading: false,
 
         init() {
             this.goToToday();
@@ -349,6 +470,26 @@ function calendarBooking() {
         },
 
         toggleSlot(slot) {
+            // Handle recurring mode differently
+            if (this.enableRecurring) {
+                // In recurring mode, only allow one base slot
+                if (this.recurringBaseSlot && this.recurringBaseSlot.datetime === slot.datetime) {
+                    // Deselect the base slot
+                    this.recurringBaseSlot = null;
+                    this.recurringPreviewSlots = [];
+                    this.selectedSlots = [];
+                } else if (!this.recurringBaseSlot) {
+                    // Set as base slot and preview recurring slots
+                    this.recurringBaseSlot = slot;
+                    this.previewRecurringSlots();
+                } else {
+                    // Already have a base slot, show message
+                    alert('You can only select ONE time slot in recurring mode. Please deselect the current slot first.');
+                }
+                return;
+            }
+
+            // Normal mode (existing logic)
             // Check if this datetime is already in cart (regardless of subject)
             const existingIndex = this.selectedSlots.findIndex(s => s.datetime === slot.datetime);
 
@@ -374,6 +515,11 @@ function calendarBooking() {
         },
 
         isSlotSelected(slot) {
+            // In recurring mode, show base slot as selected
+            if (this.enableRecurring && this.recurringBaseSlot && this.recurringBaseSlot.datetime === slot.datetime) {
+                return true;
+            }
+
             // Only show as selected if the slot is in cart AND matches current subject
             return this.selectedSlots.some(s =>
                 s.datetime === slot.datetime &&
@@ -440,6 +586,110 @@ function calendarBooking() {
         calculateTotalCost() {
             const pricePerLesson = parseFloat(this.calculatePrice());
             return (pricePerLesson * this.selectedSlots.length).toFixed(2);
+        },
+
+        // Recurring booking methods
+        onRecurringToggle() {
+            // Clear selection when toggling recurring mode
+            this.selectedSlots = [];
+            this.recurringBaseSlot = null;
+            this.recurringPreviewSlots = [];
+        },
+
+        onNumWeeksChange() {
+            // Re-preview if base slot is set
+            if (this.recurringBaseSlot) {
+                this.previewRecurringSlots();
+            }
+        },
+
+        async previewRecurringSlots() {
+            if (!this.recurringBaseSlot || !this.selectedSubject) {
+                return;
+            }
+
+            this.recurringPreviewLoading = true;
+
+            try {
+                const response = await fetch('/private-teaching/api/student/preview-recurring/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        teacher_id: this.teacherId,
+                        base_datetime: this.recurringBaseSlot.datetime,
+                        duration: this.duration,
+                        num_weeks: this.numWeeks,
+                        subject_id: this.selectedSubject
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    this.recurringPreviewSlots = data.slots;
+                    this.teacherMaxRecurring = data.teacher_max_allowed;
+
+                    // Auto-select only available slots
+                    this.selectedSlots = data.slots
+                        .filter(s => s.available)
+                        .map(s => ({
+                            datetime: s.datetime,
+                            duration: s.duration,
+                            subjectId: this.selectedSubject,
+                            subjectName: this.getSelectedSubjectName()
+                        }));
+                } else {
+                    alert(data.error || 'Error loading recurring preview');
+                    this.recurringBaseSlot = null;
+                    this.recurringPreviewSlots = [];
+                }
+            } catch (error) {
+                console.error('Error previewing recurring slots:', error);
+                alert('Error loading recurring preview. Please try again.');
+                this.recurringBaseSlot = null;
+                this.recurringPreviewSlots = [];
+            } finally {
+                this.recurringPreviewLoading = false;
+            }
+        },
+
+        toggleRecurringSlot(slot) {
+            // Toggle individual slot in recurring preview
+            const index = this.selectedSlots.findIndex(s => s.datetime === slot.datetime);
+            if (index !== -1) {
+                this.selectedSlots.splice(index, 1);
+            } else if (slot.available) {
+                this.selectedSlots.push({
+                    datetime: slot.datetime,
+                    duration: slot.duration,
+                    subjectId: this.selectedSubject,
+                    subjectName: this.getSelectedSubjectName()
+                });
+            }
+        },
+
+        isSlotInSelectedList(slot) {
+            return this.selectedSlots.some(s => s.datetime === slot.datetime);
+        },
+
+        formatFullDateTime(datetime) {
+            const date = new Date(datetime);
+            const options = {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            };
+            return date.toLocaleString('en-US', options);
+        },
+
+        getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]').value;
         },
 
         async submitBooking() {

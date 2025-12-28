@@ -401,3 +401,78 @@ def check_slot_availability(
             return (False, "This time slot conflicts with an existing lesson")
 
     return (True, "")
+
+
+def generate_recurring_slots(
+    teacher,
+    base_datetime: datetime,
+    duration: int,
+    num_weeks: int,
+    subject_id: int
+) -> List[Dict]:
+    """
+    Generate weekly recurring lesson slots.
+
+    Args:
+        teacher: User object (teacher)
+        base_datetime: Starting lesson datetime (e.g., "2025-01-06 18:00")
+        duration: Lesson duration in minutes
+        num_weeks: Number of weeks to generate
+        subject_id: Subject for all recurring lessons
+
+    Returns:
+        List of slot dictionaries:
+        [
+            {
+                'datetime': datetime(2025, 1, 6, 18, 0),
+                'duration': 60,
+                'available': True,
+                'conflict_reason': None,
+                'subject_id': 456
+            },
+            ...
+        ]
+    """
+    # Validate teacher has availability settings
+    if not hasattr(teacher, 'availability_settings'):
+        raise ValueError("Teacher does not have availability settings configured")
+
+    settings = teacher.availability_settings
+
+    # Validate num_weeks against teacher's maximum
+    if num_weeks > settings.max_recurring_lessons:
+        raise ValueError(f"Requested {num_weeks} weeks exceeds teacher's maximum of {settings.max_recurring_lessons} weeks")
+
+    if num_weeks < 2:
+        raise ValueError("Recurring bookings must be at least 2 weeks")
+
+    # Make timezone-aware if naive
+    if timezone.is_naive(base_datetime):
+        base_datetime = timezone.make_aware(base_datetime)
+
+    # Generate slots for each week
+    recurring_slots = []
+
+    for week_num in range(num_weeks):
+        # Calculate slot datetime for this week
+        slot_datetime = base_datetime + timedelta(weeks=week_num)
+
+        # Check availability for this slot
+        is_available, conflict_reason = check_slot_availability(
+            teacher=teacher,
+            slot_datetime=slot_datetime,
+            duration=duration
+        )
+
+        # Build result dictionary
+        slot_dict = {
+            'datetime': slot_datetime,
+            'duration': duration,
+            'available': is_available,
+            'conflict_reason': conflict_reason if not is_available else None,
+            'subject_id': subject_id
+        }
+
+        recurring_slots.append(slot_dict)
+
+    return recurring_slots

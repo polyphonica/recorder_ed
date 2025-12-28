@@ -86,6 +86,7 @@ class TeacherAvailabilitySettingsSerializer(serializers.ModelSerializer):
             'use_availability_calendar',
             'auto_approve_bookings',
             'timezone',
+            'max_recurring_lessons',
             'created_at',
             'updated_at'
         ]
@@ -137,3 +138,25 @@ class BulkAvailabilityUpdateSerializer(serializers.Serializer):
         required=False,
         allow_empty=True
     )
+
+
+class RecurringPreviewRequestSerializer(serializers.Serializer):
+    """
+    Serializer for recurring slot preview requests
+    """
+    teacher_id = serializers.IntegerField(required=True)
+    base_datetime = serializers.DateTimeField(required=True)
+    duration = serializers.IntegerField(required=True, min_value=15, max_value=180)
+    num_weeks = serializers.IntegerField(required=True, min_value=2, max_value=52)
+    subject_id = serializers.IntegerField(required=True)
+
+
+class RecurringSlotSerializer(serializers.Serializer):
+    """
+    Serializer for individual recurring slot in preview
+    """
+    datetime = serializers.DateTimeField()
+    duration = serializers.IntegerField()
+    available = serializers.BooleanField()
+    conflict_reason = serializers.CharField(allow_null=True, required=False)
+    subject_id = serializers.IntegerField()
