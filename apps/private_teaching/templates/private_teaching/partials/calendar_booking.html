@@ -349,11 +349,21 @@ function calendarBooking() {
         },
 
         toggleSlot(slot) {
-            const index = this.selectedSlots.findIndex(s => s.datetime === slot.datetime);
-            if (index !== -1) {
-                this.selectedSlots.splice(index, 1);
+            // Check if this datetime is already in cart (regardless of subject)
+            const existingIndex = this.selectedSlots.findIndex(s => s.datetime === slot.datetime);
+
+            if (existingIndex !== -1) {
+                const existingSlot = this.selectedSlots[existingIndex];
+
+                // If it's the same subject, remove it (toggle off)
+                if (existingSlot.subjectId === this.selectedSubject) {
+                    this.selectedSlots.splice(existingIndex, 1);
+                } else {
+                    // Different subject - show alert
+                    alert(`This time slot is already booked for ${existingSlot.subjectName}. Please remove it from your cart first if you want to book a different subject at this time.`);
+                }
             } else {
-                // Store the subject info with the slot
+                // Add new slot with subject info
                 const slotWithSubject = {
                     ...slot,
                     subjectId: this.selectedSubject,
@@ -364,7 +374,11 @@ function calendarBooking() {
         },
 
         isSlotSelected(slot) {
-            return this.selectedSlots.some(s => s.datetime === slot.datetime);
+            // Only show as selected if the slot is in cart AND matches current subject
+            return this.selectedSlots.some(s =>
+                s.datetime === slot.datetime &&
+                s.subjectId === this.selectedSubject
+            );
         },
 
         removeSlot(slot) {
