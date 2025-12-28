@@ -97,7 +97,7 @@
                     {% endif %}
                 </div>
 
-                <div class="divider my-6">Personal Information</div>
+                <div id="personal-info-divider" class="divider my-6">Personal Information</div>
 
                 <!-- Personal Information (always shown) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -347,6 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const accountTypeRadios = document.querySelectorAll('input[name="account_type"]');
     const addressSection = document.getElementById('address-section');
     const childSection = document.getElementById('child-section');
+    const personalInfoDivider = document.getElementById('personal-info-divider');
 
     // Function to toggle sections visibility based on account type
     function toggleSections() {
@@ -356,10 +357,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show both address and child sections for parents
             addressSection.classList.remove('hidden');
             childSection.classList.remove('hidden');
+            // Update heading to clarify it's for guardian/parent
+            personalInfoDivider.textContent = 'Guardian/Parent Information';
         } else {
             // Hide both sections for adult students
             addressSection.classList.add('hidden');
             childSection.classList.add('hidden');
+            // Reset heading to default
+            personalInfoDivider.textContent = 'Personal Information';
         }
     }
 
