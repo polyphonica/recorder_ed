@@ -173,6 +173,27 @@ class DigitalProduct(models.Model):
 
         super().save(*args, **kwargs)
 
+    def delete(self, *args, **kwargs):
+        """
+        Prevent deletion of products with purchases to protect customer access.
+        Use 'archived' status instead.
+        """
+        from django.core.exceptions import PermissionDenied
+
+        # Check if there are any purchases
+        if self.purchases.exists():
+            purchase_count = self.purchases.count()
+            raise PermissionDenied(
+                f"Cannot delete product '{self.title}' because {purchase_count} "
+                f"customer{'s have' if purchase_count > 1 else ' has'} purchased it. "
+                f"Deleting would remove their access to content (especially videos). "
+                f"Please set status to 'Archived' instead to hide from catalog while "
+                f"preserving customer access."
+            )
+
+        # If no purchases, safe to delete
+        super().delete(*args, **kwargs)
+
     def get_absolute_url(self):
         return reverse('digital_products:detail', kwargs={'slug': self.slug})
 
