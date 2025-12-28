@@ -10,12 +10,13 @@ By: {{ product.teacher.get_full_name|default:product.teacher.username }}
 Amount Paid: £{{ purchase.payment_amount|floatformat:2 }}
 ---
 
-YOUR DOWNLOADS:
+YOUR CONTENT:
 
 {% for link in download_links %}
-{{ link.title }} ({{ link.file_size }})
-Download: {{ link.url }}
-
+{{ link.title }}
+{% if link.is_file %}File ({{ link.file_size }}): {{ link.file_url }}
+{% endif %}{% if link.is_url %}{% if link.is_video %}Video{% else %}Content{% endif %}: {{ link.content_url }}
+{% endif %}
 {% endfor %}
 
 IMPORTANT INFORMATION:

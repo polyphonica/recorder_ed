@@ -10,12 +10,13 @@ Thank you for your purchase! All {{ total_products }} of your digital products a
 PRODUCT: {{ item.product.title }}
 By: {{ item.product.teacher.get_full_name|default:item.product.teacher.username }}
 
-YOUR DOWNLOADS:
+YOUR CONTENT:
 
 {% for link in item.download_links %}
-{{ link.title }} ({{ link.file_size }})
-Download: {{ link.url }}
-
+{{ link.title }}
+{% if link.is_file %}File ({{ link.file_size }}): {{ link.file_url }}
+{% endif %}{% if link.is_url %}{% if link.is_video %}Video{% else %}Content{% endif %}: {{ link.content_url }}
+{% endif %}
 {% endfor %}
 ---
 

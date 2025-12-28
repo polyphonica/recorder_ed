@@ -14,15 +14,26 @@ def send_purchase_confirmation(purchase):
     product = purchase.product
     student = purchase.student
 
-    # Build download links
+    # Build download links (files and URLs)
     download_links = []
     for file in product.main_files:
-        download_url = f"{settings.SITE_URL}{reverse('digital_products:download_file', kwargs={'purchase_id': purchase.id, 'file_id': file.id})}"
-        download_links.append({
+        link_data = {
             'title': file.title,
-            'url': download_url,
-            'file_size': file.file_size,
-        })
+            'is_file': file.is_file,
+            'is_url': file.is_url,
+        }
+
+        # Add file download link if it's a file
+        if file.is_file:
+            link_data['file_url'] = f"{settings.SITE_URL}{reverse('digital_products:download_file', kwargs={'purchase_id': purchase.id, 'file_id': file.id})}"
+            link_data['file_size'] = file.file_size
+
+        # Add URL access link if it's a URL
+        if file.is_url:
+            link_data['content_url'] = f"{settings.SITE_URL}{reverse('digital_products:access_url', kwargs={'purchase_id': purchase.id, 'file_id': file.id})}"
+            link_data['is_video'] = file.is_video_url
+
+        download_links.append(link_data)
 
     context = {
         'student': student,
@@ -65,12 +76,23 @@ def send_cart_purchase_confirmation(student, purchases):
         download_links = []
 
         for file in product.main_files:
-            download_url = f"{settings.SITE_URL}{reverse('digital_products:download_file', kwargs={'purchase_id': purchase.id, 'file_id': file.id})}"
-            download_links.append({
+            link_data = {
                 'title': file.title,
-                'url': download_url,
-                'file_size': file.file_size,
-            })
+                'is_file': file.is_file,
+                'is_url': file.is_url,
+            }
+
+            # Add file download link if it's a file
+            if file.is_file:
+                link_data['file_url'] = f"{settings.SITE_URL}{reverse('digital_products:download_file', kwargs={'purchase_id': purchase.id, 'file_id': file.id})}"
+                link_data['file_size'] = file.file_size
+
+            # Add URL access link if it's a URL
+            if file.is_url:
+                link_data['content_url'] = f"{settings.SITE_URL}{reverse('digital_products:access_url', kwargs={'purchase_id': purchase.id, 'file_id': file.id})}"
+                link_data['is_video'] = file.is_video_url
+
+            download_links.append(link_data)
 
         products_data.append({
             'product': product,

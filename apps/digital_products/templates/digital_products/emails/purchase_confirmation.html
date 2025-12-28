@@ -33,13 +33,25 @@
                 <p style="font-size: 18px; font-weight: bold; color: #3B82F6;">£{{ purchase.payment_amount|floatformat:2 }}</p>
             </div>
 
-            <h3>Your Downloads</h3>
+            <h3>Your Content</h3>
 
             {% for link in download_links %}
             <div class="file-item">
                 <h4 style="margin: 0 0 5px 0;">{{ link.title }}</h4>
-                <p style="color: #6b7280; margin: 5px 0; font-size: 14px;">{{ link.file_size }}</p>
-                <a href="{{ link.url }}" class="download-link">Download File</a>
+
+                {% if link.is_file %}
+                    <p style="color: #6b7280; margin: 5px 0; font-size: 14px;">{{ link.file_size }}</p>
+                    <a href="{{ link.file_url }}" class="download-link">📥 Download File</a>
+                {% endif %}
+
+                {% if link.is_url %}
+                    <p style="color: #6b7280; margin: 5px 0; font-size: 14px;">
+                        {% if link.is_video %}🎥 Video Content{% else %}🔗 Online Content{% endif %}
+                    </p>
+                    <a href="{{ link.content_url }}" class="download-link">
+                        {% if link.is_video %}▶️ Watch Video{% else %}🔗 Access Content{% endif %}
+                    </a>
+                {% endif %}
             </div>
             {% endfor %}
 
