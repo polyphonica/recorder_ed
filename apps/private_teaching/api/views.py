@@ -445,7 +445,7 @@ class PreviewRecurringSlotsAPIView(APIView):
 
         # Get teacher
         try:
-            teacher = User.objects.get(id=data['teacher_id'], profile__role='teacher')
+            teacher = User.objects.get(id=data['teacher_id'])
         except User.DoesNotExist:
             return Response({
                 'error': 'Teacher not found'
