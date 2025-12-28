@@ -21,7 +21,8 @@ class ProductCategoryAdmin(admin.ModelAdmin):
 class ProductFileInline(admin.TabularInline):
     model = ProductFile
     extra = 1
-    fields = ['title', 'file', 'file_role', 'order', 'download_limit', 'access_duration_days']
+    fields = ['title', 'file', 'content_url', 'content_type', 'file_role', 'order']
+    readonly_fields = ['content_type']
     ordering = ['order']
 
 
