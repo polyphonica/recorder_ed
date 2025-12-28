@@ -354,13 +354,14 @@ class ProductFile(BaseAttachment):
 
         url = self.content_url
 
-        # YouTube
+        # YouTube - use youtube-nocookie.com for privacy-enhanced mode
+        # This works better with unlisted videos and is GDPR-friendly
         if 'youtube.com/watch?v=' in url:
             video_id = url.split('watch?v=')[1].split('&')[0]
-            return f'https://www.youtube.com/embed/{video_id}'
+            return f'https://www.youtube-nocookie.com/embed/{video_id}'
         elif 'youtu.be/' in url:
             video_id = url.split('youtu.be/')[1].split('?')[0]
-            return f'https://www.youtube.com/embed/{video_id}'
+            return f'https://www.youtube-nocookie.com/embed/{video_id}'
 
         # Vimeo
         elif 'vimeo.com/' in url:
