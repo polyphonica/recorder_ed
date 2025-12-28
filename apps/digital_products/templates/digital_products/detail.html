@@ -95,15 +95,15 @@
                     {% if file.is_url %}
                         <!-- URL-based preview -->
                         {% if file.is_video_url %}
-                            <!-- Video embed with lazy loading -->
+                            <!-- Video embed -->
                             <div class="aspect-video bg-gray-100 rounded-lg overflow-hidden">
                                 <iframe
                                     src="{{ file.get_embed_url }}"
-                                    loading="lazy"
                                     class="w-full h-full"
                                     frameborder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowfullscreen>
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowfullscreen
+                                    referrerpolicy="strict-origin-when-cross-origin">
                                 </iframe>
                             </div>
                         {% else %}

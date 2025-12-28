@@ -356,12 +356,13 @@ class ProductFile(BaseAttachment):
 
         # YouTube - use youtube-nocookie.com for privacy-enhanced mode
         # This works better with unlisted videos and is GDPR-friendly
+        # Add parameters to help with unlisted video embedding
         if 'youtube.com/watch?v=' in url:
             video_id = url.split('watch?v=')[1].split('&')[0]
-            return f'https://www.youtube-nocookie.com/embed/{video_id}'
+            return f'https://www.youtube-nocookie.com/embed/{video_id}?rel=0&modestbranding=1&enablejsapi=1'
         elif 'youtu.be/' in url:
             video_id = url.split('youtu.be/')[1].split('?')[0]
-            return f'https://www.youtube-nocookie.com/embed/{video_id}'
+            return f'https://www.youtube-nocookie.com/embed/{video_id}?rel=0&modestbranding=1&enablejsapi=1'
 
         # Vimeo
         elif 'vimeo.com/' in url:
