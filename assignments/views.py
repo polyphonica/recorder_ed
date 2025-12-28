@@ -53,11 +53,62 @@ def assignment_edit(request, pk):
 
 @login_required
 def teacher_assignment_library(request):
-    """Teacher's library of created assignments"""
+    """Teacher's library of created assignments with search and filters"""
+    from django.db.models import Q
+
+    # Get filter parameters
+    search_query = request.GET.get('search', '').strip()
+    difficulty = request.GET.get('difficulty', '').strip()
+    grading_scale = request.GET.get('grading_scale', '').strip()
+    tag_id = request.GET.get('tag', '').strip()
+    assignment_type = request.GET.get('type', '').strip()  # notation, written, or both
+    view_mode = request.GET.get('mode', 'my_assignments')  # 'my_assignments' or 'browse_all'
+
+    # Base queryset
     assignments = Assignment.objects.filter(
-        created_by=request.user,
         is_active=True
-    ).order_by('-created_at')
+    ).prefetch_related('tags')
+
+    # Filter by view mode
+    if view_mode == 'my_assignments':
+        # Show only assignments created by the logged-in teacher
+        assignments = assignments.filter(created_by=request.user)
+    elif view_mode == 'browse_all':
+        # Show all public assignments
+        assignments = assignments.filter(is_public=True)
+
+    # Apply search filter
+    if search_query:
+        assignments = assignments.filter(
+            Q(title__icontains=search_query) |
+            Q(instructions__icontains=search_query)
+        )
+
+    # Apply difficulty filter
+    if difficulty:
+        assignments = assignments.filter(difficulty=difficulty)
+
+    # Apply grading scale filter
+    if grading_scale:
+        assignments = assignments.filter(grading_scale=grading_scale)
+
+    # Apply tag filter
+    if tag_id:
+        assignments = assignments.filter(tags__id=tag_id)
+
+    # Apply assignment type filter
+    if assignment_type == 'notation':
+        assignments = assignments.filter(has_notation_component=True, has_written_component=False)
+    elif assignment_type == 'written':
+        assignments = assignments.filter(has_notation_component=False, has_written_component=True)
+    elif assignment_type == 'both':
+        assignments = assignments.filter(has_notation_component=True, has_written_component=True)
+
+    # Order by creation date (newest first)
+    assignments = assignments.order_by('-created_at')
+
+    # Limit results for performance
+    assignments = assignments[:200]
 
     # Count how many times each assignment has been assigned
     from lessons.models import LessonAssignment
@@ -66,8 +117,25 @@ def teacher_assignment_library(request):
             assignment=assignment
         ).count()
 
+    # Get filter options for dropdowns
+    from .models import Tag
+    tags = Tag.objects.all().order_by('name')
+
+    # Check if filters are active
+    filters_active = any([search_query, difficulty, grading_scale, tag_id, assignment_type])
+
     return render(request, 'assignments/teacher_library.html', {
         'assignments': assignments,
+        'tags': tags,
+        'difficulty_choices': Assignment.DIFFICULTY_CHOICES,
+        'grading_scale_choices': Assignment.GRADING_SCALE_CHOICES,
+        'search_query': search_query,
+        'selected_difficulty': difficulty,
+        'selected_grading_scale': grading_scale,
+        'selected_tag': tag_id,
+        'selected_type': assignment_type,
+        'view_mode': view_mode,
+        'filters_active': filters_active,
     })
 
 
@@ -114,6 +182,16 @@ def assign_to_student(request, pk):
 
     return render(request, 'assignments/assign_to_student.html', {
         'form': form,
+        'assignment': assignment,
+    })
+
+
+@login_required
+def teacher_preview(request, pk):
+    """Teacher previews assignment as students see it"""
+    assignment = get_object_or_404(Assignment, pk=pk, created_by=request.user)
+
+    return render(request, 'assignments/teacher_preview.html', {
         'assignment': assignment,
     })
 

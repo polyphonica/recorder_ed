@@ -1,6 +1,6 @@
 from django import forms
 from django_ckeditor_5.widgets import CKEditor5Widget
-from .models import Assignment, AssignmentSubmission
+from .models import Assignment, AssignmentSubmission, Tag
 from apps.private_teaching.models import PrivateLessonAssignment
 from django.contrib.auth.models import User
 
@@ -8,12 +8,26 @@ from django.contrib.auth.models import User
 class AssignmentForm(forms.ModelForm):
     """Form for creating/editing assignments"""
 
+    # Additional field for creating new tags inline
+    new_tags = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered w-full',
+            'placeholder': 'e.g., Scales, Rhythm, Theory'
+        }),
+        label='New Tags',
+        help_text='Enter tag names separated by commas to create and add them to this assignment'
+    )
+
     class Meta:
         model = Assignment
         fields = [
             'title',
             'instructions',
             'grading_scale',
+            'difficulty',
+            'tags',
+            'is_public',
             'has_notation_component',
             'has_written_component',
             'reference_notation',
@@ -31,6 +45,16 @@ class AssignmentForm(forms.ModelForm):
             'grading_scale': forms.Select(attrs={
                 'class': 'select select-bordered w-full'
             }),
+            'difficulty': forms.Select(attrs={
+                'class': 'select select-bordered w-full'
+            }),
+            'tags': forms.SelectMultiple(attrs={
+                'class': 'select select-bordered w-full',
+                'size': '5'
+            }),
+            'is_public': forms.CheckboxInput(attrs={
+                'class': 'checkbox checkbox-primary'
+            }),
             'has_notation_component': forms.CheckboxInput(attrs={
                 'class': 'checkbox checkbox-primary'
             }),
@@ -47,6 +71,9 @@ class AssignmentForm(forms.ModelForm):
             'title': 'Assignment Title',
             'instructions': 'Instructions and Question(s)',
             'grading_scale': 'Grading Scale',
+            'difficulty': 'Difficulty Level',
+            'tags': 'Existing Tags',
+            'is_public': 'Make Public',
             'has_notation_component': 'Include Music Notation Component',
             'has_written_component': 'Include Written Response Component',
             'reference_notation': 'Reference Notation Data (optional)',
@@ -54,10 +81,37 @@ class AssignmentForm(forms.ModelForm):
         help_texts = {
             'grading_scale': 'Choose how this assignment will be graded',
             'instructions': 'Provide instructions and any questions for the student',
+            'difficulty': 'Select the difficulty level for this assignment',
+            'tags': 'Select existing tags (Ctrl+Click to select multiple)',
+            'is_public': 'Allow other teachers to browse and use this assignment',
             'has_notation_component': 'Student will use the notation editor to complete this assignment',
             'has_written_component': 'Student will provide a written response with text formatting',
             'reference_notation': 'JSON data from notation editor - leave blank to add later',
         }
+
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+
+        # Handle new tags if provided
+        new_tags_str = self.cleaned_data.get('new_tags', '')
+        if new_tags_str:
+            # Parse comma-separated tags
+            tag_names = [name.strip() for name in new_tags_str.split(',') if name.strip()]
+
+            for tag_name in tag_names:
+                # Get or create tag (case-insensitive check)
+                tag, created = Tag.objects.get_or_create(
+                    name__iexact=tag_name,
+                    defaults={'name': tag_name}
+                )
+                # If tag exists but with different case, use the existing one
+                if not created:
+                    tag = Tag.objects.filter(name__iexact=tag_name).first()
+
+                # Add tag to assignment
+                instance.tags.add(tag)
+
+        return instance
 
 
 class AssignToStudentForm(forms.ModelForm):

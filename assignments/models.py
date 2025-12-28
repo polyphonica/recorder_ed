@@ -5,6 +5,23 @@ from django_ckeditor_5.fields import CKEditor5Field
 import uuid
 
 
+class Tag(models.Model):
+    """
+    Flexible tagging system for categorizing assignments.
+    Examples: 'Scales', 'Rhythm', 'Theory', 'Sight-reading', 'Intervals'
+    """
+    name = models.CharField(max_length=50, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Assignment Tag'
+        verbose_name_plural = 'Assignment Tags'
+
+    def __str__(self):
+        return self.name
+
+
 class Assignment(models.Model):
     """
     Base assignment model - reusable across private lessons and courses
@@ -14,6 +31,12 @@ class Assignment(models.Model):
         ('100', '0-100 Points'),
         ('10', '0-10 Points'),
         ('pass_fail', 'Pass/Fail'),
+    ]
+
+    DIFFICULTY_CHOICES = [
+        ('beginner', 'Beginner'),
+        ('intermediate', 'Intermediate'),
+        ('advanced', 'Advanced'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -42,6 +65,26 @@ class Assignment(models.Model):
     has_written_component = models.BooleanField(
         default=False,
         help_text="Whether this assignment includes a written response component"
+    )
+
+    # Categorization and difficulty
+    difficulty = models.CharField(
+        max_length=20,
+        choices=DIFFICULTY_CHOICES,
+        blank=True,
+        help_text="Difficulty level"
+    )
+
+    tags = models.ManyToManyField(
+        Tag,
+        blank=True,
+        related_name='assignments',
+        help_text="Tags for categorization (e.g., Scales, Rhythm, Theory)"
+    )
+
+    is_public = models.BooleanField(
+        default=False,
+        help_text="If checked, assignment appears in library for browsing by other teachers"
     )
 
     # Optional reference notation (teacher's example/solution)

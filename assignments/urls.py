@@ -9,6 +9,7 @@ urlpatterns = [
     path('teacher/library/', views.teacher_assignment_library, name='teacher_library'),
     path('teacher/assignment/<uuid:pk>/edit/', views.assignment_edit, name='teacher_edit'),
     path('teacher/assignment/<uuid:pk>/assign/', views.assign_to_student, name='assign_to_student'),
+    path('teacher/assignment/<uuid:pk>/preview/', views.teacher_preview, name='teacher_preview'),
     path('teacher/submissions/', views.teacher_submissions, name='teacher_submissions'),
     path('teacher/submission/<uuid:pk>/grade/', views.grade_submission, name='grade_submission'),
 

@@ -1,91 +1,221 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}My Assignments{% endblock %}
+{% block title %}Assignment Library{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
-    <div class="mb-8">
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-4xl font-bold mb-2">My Assignment Library</h1>
-                <p class="text-base-content/70">Manage your music theory assignments</p>
-            </div>
-            <div class="flex gap-2">
-                <a href="{% url 'assignments:teacher_submissions' %}" class="btn btn-outline">
-                    <i class="fas fa-inbox mr-2"></i>View Submissions
-                </a>
-                <a href="{% url 'assignments:teacher_create' %}" class="btn btn-primary">
-                    <i class="fas fa-plus mr-2"></i>Create Assignment
-                </a>
-            </div>
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold">Assignment Library</h1>
+            <p class="text-base-content/70 mt-2">Browse and manage music theory assignments</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'assignments:teacher_submissions' %}" class="btn btn-outline">
+                <i class="fas fa-inbox mr-2"></i>View Submissions
+            </a>
+            <a href="{% url 'assignments:teacher_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus mr-2"></i>Create Assignment
+            </a>
+        </div>
+    </div>
+
+    <!-- View Mode Tabs -->
+    <div class="tabs tabs-boxed mb-6">
+        <a class="tab {% if view_mode == 'my_assignments' %}tab-active{% endif %}"
+           href="?mode=my_assignments">
+            <i class="fas fa-clipboard mr-2"></i>
+            My Assignments
+        </a>
+        <a class="tab {% if view_mode == 'browse_all' %}tab-active{% endif %}"
+           href="?mode=browse_all">
+            <i class="fas fa-globe mr-2"></i>
+            Browse All
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-base-200 shadow-md mb-6">
+        <div class="card-body">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Preserve mode -->
+                <input type="hidden" name="mode" value="{{ view_mode }}">
+
+                <!-- Search -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Search</span>
+                    </label>
+                    <input type="text"
+                           name="search"
+                           value="{{ search_query }}"
+                           placeholder="Title or instructions..."
+                           class="input input-bordered">
+                </div>
+
+                <!-- Difficulty Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Difficulty</span>
+                    </label>
+                    <select name="difficulty" class="select select-bordered">
+                        <option value="">All Difficulties</option>
+                        {% for value, label in difficulty_choices %}
+                        <option value="{{ value }}" {% if selected_difficulty == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Grading Scale Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Grading Scale</span>
+                    </label>
+                    <select name="grading_scale" class="select select-bordered">
+                        <option value="">All Scales</option>
+                        {% for value, label in grading_scale_choices %}
+                        <option value="{{ value }}" {% if selected_grading_scale == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Tag Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Tag</span>
+                    </label>
+                    <select name="tag" class="select select-bordered">
+                        <option value="">All Tags</option>
+                        {% for tag in tags %}
+                        <option value="{{ tag.id }}" {% if selected_tag == tag.id|stringformat:"s" %}selected{% endif %}>
+                            {{ tag.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Assignment Type Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Assignment Type</span>
+                    </label>
+                    <select name="type" class="select select-bordered">
+                        <option value="">All Types</option>
+                        <option value="notation" {% if selected_type == 'notation' %}selected{% endif %}>Notation Only</option>
+                        <option value="written" {% if selected_type == 'written' %}selected{% endif %}>Written Only</option>
+                        <option value="both" {% if selected_type == 'both' %}selected{% endif %}>Both</option>
+                    </select>
+                </div>
+
+                <!-- Filter Actions -->
+                <div class="form-control flex flex-row gap-2 items-end">
+                    <button type="submit" class="btn btn-primary flex-1">
+                        <i class="fas fa-filter mr-2"></i>
+                        Apply Filters
+                    </button>
+                    {% if filters_active %}
+                    <a href="?mode={{ view_mode }}" class="btn btn-ghost" title="Clear filters">
+                        <i class="fas fa-times"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
         </div>
     </div>
 
     {% if assignments %}
-        <div class="grid grid-cols-1 gap-6">
+        <!-- Assignments Count -->
+        <div class="text-sm text-base-content/70 mb-4">
+            Found {{ assignments|length }} assignment{{ assignments|length|pluralize }}
+            {% if filters_active %}<span class="text-primary">(filtered)</span>{% endif %}
+        </div>
+
+        <!-- Assignments Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for assignment in assignments %}
-                <div class="card card-section shadow-xl hover:shadow-2xl transition-shadow">
+                <div class="card card-section shadow-lg hover:shadow-xl transition-shadow">
                     <div class="card-body">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <h2 class="card-title text-2xl mb-2">
-                                    {{ assignment.title }}
-                                </h2>
-                                <p class="text-base-content/70 mb-4">
-                                    {{ assignment.instructions|truncatewords:30 }}
-                                </p>
+                        <!-- Title -->
+                        <h2 class="card-title text-xl mb-2">
+                            {{ assignment.title }}
+                        </h2>
 
-                                <!-- Assignment Type Badges -->
-                                <div class="flex gap-2 mb-4">
-                                    {% if assignment.has_notation_component %}
-                                        <span class="badge badge-primary">
-                                            <i class="fas fa-music mr-1"></i>Notation
-                                        </span>
-                                    {% endif %}
-                                    {% if assignment.has_written_component %}
-                                        <span class="badge badge-secondary">
-                                            <i class="fas fa-pen mr-1"></i>Written
-                                        </span>
-                                    {% endif %}
-                                </div>
+                        <!-- Instructions Preview -->
+                        <p class="text-sm text-base-content/70 mb-3">
+                            {{ assignment.instructions|truncatewords:20 }}
+                        </p>
 
-                                <!-- Stats -->
-                                <div class="flex gap-6 text-sm">
-                                    <div>
-                                        <i class="fas fa-users text-primary mr-1"></i>
-                                        <span class="font-semibold">{{ assignment.times_assigned }}</span>
-                                        <span class="text-base-content/70">assigned</span>
-                                    </div>
-                                    <div>
-                                        <i class="fas fa-calendar text-primary mr-1"></i>
-                                        <span class="text-base-content/70">Created</span>
-                                        <span class="font-semibold">{{ assignment.created_at|date:"M j, Y" }}</span>
-                                    </div>
-                                </div>
+                        <!-- Tags -->
+                        {% if assignment.tags.all %}
+                        <div class="flex flex-wrap gap-1 mb-3">
+                            {% for tag in assignment.tags.all %}
+                            <span class="badge badge-sm badge-outline">{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Assignment Type Badges -->
+                        <div class="flex gap-2 mb-3">
+                            {% if assignment.has_notation_component %}
+                                <span class="badge badge-primary badge-sm">
+                                    <i class="fas fa-music mr-1"></i>Notation
+                                </span>
+                            {% endif %}
+                            {% if assignment.has_written_component %}
+                                <span class="badge badge-secondary badge-sm">
+                                    <i class="fas fa-pen mr-1"></i>Written
+                                </span>
+                            {% endif %}
+                            {% if assignment.difficulty %}
+                                <span class="badge badge-accent badge-sm">
+                                    {{ assignment.get_difficulty_display }}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Stats -->
+                        <div class="flex gap-4 text-xs mb-4">
+                            <div>
+                                <i class="fas fa-users text-primary mr-1"></i>
+                                <span class="font-semibold">{{ assignment.times_assigned }}</span>
+                                <span class="text-base-content/70">assigned</span>
                             </div>
-
-                            <!-- Action Buttons -->
-                            <div class="flex flex-col gap-2">
-                                <a href="{% url 'assignments:assign_to_student' assignment.id %}"
-                                   class="btn btn-primary btn-sm">
-                                    <i class="fas fa-user-plus mr-2"></i>Assign to Student
-                                </a>
-                                <a href="{% url 'assignments:teacher_edit' assignment.id %}"
-                                   class="btn btn-outline btn-sm">
-                                    <i class="fas fa-edit mr-2"></i>Edit
-                                </a>
+                            <div>
+                                <i class="fas fa-calendar text-primary mr-1"></i>
+                                <span class="text-base-content/70">{{ assignment.created_at|date:"M j" }}</span>
                             </div>
                         </div>
 
-                        <!-- Instructions Preview (Expandable) -->
-                        <div class="collapse collapse-arrow bg-base-200 mt-4">
+                        <!-- Action Buttons -->
+                        <div class="card-actions justify-end">
+                            <a href="{% url 'assignments:teacher_preview' assignment.id %}"
+                               class="btn btn-sm btn-ghost"
+                               title="Preview as Student">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'assignments:teacher_edit' assignment.id %}"
+                               class="btn btn-sm btn-ghost">
+                                <i class="fas fa-edit mr-1"></i>Edit
+                            </a>
+                            <a href="{% url 'assignments:assign_to_student' assignment.id %}"
+                               class="btn btn-sm btn-primary">
+                                <i class="fas fa-user-plus mr-1"></i>Assign
+                            </a>
+                        </div>
+
+                        <!-- Full Instructions (Expandable) -->
+                        <div class="collapse collapse-arrow bg-base-200 mt-2">
                             <input type="checkbox" />
-                            <div class="collapse-title font-medium">
+                            <div class="collapse-title text-sm font-medium">
                                 View Full Instructions
                             </div>
                             <div class="collapse-content">
-                                <p class="whitespace-pre-wrap">{{ assignment.instructions }}</p>
+                                <p class="text-sm whitespace-pre-wrap">{{ assignment.instructions }}</p>
                             </div>
                         </div>
                     </div>
@@ -99,14 +229,28 @@
                 <div class="text-center py-12">
                     <i class="fas fa-clipboard-list text-6xl text-base-content/30 mb-4"></i>
                     <h3 class="text-2xl font-medium text-base-content/70 mb-2">
-                        No Assignments Yet
+                        {% if filters_active %}
+                            No Assignments Found
+                        {% else %}
+                            No Assignments Yet
+                        {% endif %}
                     </h3>
                     <p class="text-base-content/50 mb-6">
-                        Create your first music theory assignment to get started
+                        {% if filters_active %}
+                            Try adjusting your filters or <a href="?mode={{ view_mode }}" class="link link-primary">clear all filters</a>
+                        {% else %}
+                            {% if view_mode == 'my_assignments' %}
+                                Create your first music theory assignment to get started
+                            {% else %}
+                                No public assignments available yet
+                            {% endif %}
+                        {% endif %}
                     </p>
+                    {% if not filters_active and view_mode == 'my_assignments' %}
                     <a href="{% url 'assignments:teacher_create' %}" class="btn btn-primary">
                         <i class="fas fa-plus mr-2"></i>Create Your First Assignment
                     </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

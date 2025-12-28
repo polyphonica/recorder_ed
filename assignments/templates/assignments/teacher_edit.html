@@ -64,6 +64,85 @@
                     </label>
                 </div>
 
+                <!-- Categorization -->
+                <div class="divider"></div>
+                <h3 class="text-2xl font-bold mb-4">Categorization & Visibility</h3>
+
+                <!-- Difficulty -->
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold">{{ form.difficulty.label }}</span>
+                    </label>
+                    {{ form.difficulty }}
+                    {% if form.difficulty.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.difficulty.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.difficulty.help_text }}</span>
+                    </label>
+                </div>
+
+                <!-- Existing Tags -->
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold">{{ form.tags.label }}</span>
+                    </label>
+                    {{ form.tags }}
+                    {% if form.tags.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.tags.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.tags.help_text }}</span>
+                    </label>
+                </div>
+
+                <!-- Create New Tags -->
+                <div class="collapse collapse-arrow bg-base-200 border border-base-300 mb-6">
+                    <input type="checkbox" id="new-tags-toggle" />
+                    <div class="collapse-title font-medium">
+                        <i class="fas fa-plus-circle mr-2"></i>
+                        Or Create New Tags
+                    </div>
+                    <div class="collapse-content">
+                        <div class="space-y-4 pt-2">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <span class="text-sm">Create new tags by entering them below, separated by commas. They will be automatically added to this assignment and saved for future use.</span>
+                            </div>
+
+                            <div class="form-control">
+                                <label class="label" for="{{ form.new_tags.id_for_label }}">
+                                    <span class="label-text font-semibold">{{ form.new_tags.label }}</span>
+                                </label>
+                                {{ form.new_tags }}
+                                <label class="label">
+                                    <span class="label-text-alt">{{ form.new_tags.help_text }}</span>
+                                </label>
+                            </div>
+
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i>
+                                <span class="text-sm">Example: "Scales, Rhythm, Theory" will create three tags and add them all to this assignment.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Make Public -->
+                <div class="form-control p-4 border border-base-300 rounded-lg bg-base-100 mb-6">
+                    <label class="label cursor-pointer justify-start gap-4">
+                        {{ form.is_public }}
+                        <div class="flex-1">
+                            <div class="font-semibold text-base">{{ form.is_public.label }}</div>
+                            <div class="text-sm text-base-content/70 mt-1">{{ form.is_public.help_text }}</div>
+                        </div>
+                    </label>
+                </div>
+
                 <!-- Assignment Components -->
                 <div class="divider"></div>
                 <h3 class="text-2xl font-bold mb-4">Assignment Components</h3>

@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Preview: {{ assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Preview Banner -->
+    <div class="alert alert-info mb-6">
+        <i class="fas fa-eye text-2xl"></i>
+        <div>
+            <h3 class="font-bold">Preview Mode</h3>
+            <div class="text-sm">This is how students will see this assignment (read-only)</div>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'assignments:teacher_edit' assignment.id %}" class="btn btn-sm btn-outline">
+                <i class="fas fa-edit mr-2"></i>Edit Assignment
+            </a>
+            <a href="{% url 'assignments:teacher_library' %}" class="btn btn-sm btn-ghost">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Library
+            </a>
+        </div>
+    </div>
+
+    <!-- Assignment Card -->
+    <div class="card card-section shadow-xl">
+        <div class="card-body">
+            <!-- Assignment Header -->
+            <div class="mb-6">
+                <h1 class="text-4xl font-bold mb-3">{{ assignment.title }}</h1>
+
+                <!-- Assignment Type Badges -->
+                <div class="flex gap-2 mb-4">
+                    {% if assignment.has_notation_component %}
+                        <span class="badge badge-primary">
+                            <i class="fas fa-music mr-1"></i>Notation Component
+                        </span>
+                    {% endif %}
+                    {% if assignment.has_written_component %}
+                        <span class="badge badge-secondary">
+                            <i class="fas fa-pen mr-1"></i>Written Component
+                        </span>
+                    {% endif %}
+                    {% if assignment.difficulty %}
+                        <span class="badge badge-accent">
+                            {{ assignment.get_difficulty_display }}
+                        </span>
+                    {% endif %}
+                    <span class="badge badge-outline">
+                        {{ assignment.get_grading_scale_display }}
+                    </span>
+                </div>
+
+                <!-- Tags -->
+                {% if assignment.tags.all %}
+                <div class="flex flex-wrap gap-2 mb-4">
+                    {% for tag in assignment.tags.all %}
+                    <span class="badge badge-lg badge-ghost">
+                        <i class="fas fa-tag mr-1"></i>{{ tag.name }}
+                    </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Instructions -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold mb-3">
+                    <i class="fas fa-info-circle mr-2 text-primary"></i>Instructions
+                </h2>
+                <div class="prose max-w-none">
+                    <p class="whitespace-pre-wrap text-lg">{{ assignment.instructions }}</p>
+                </div>
+            </div>
+
+            <!-- Reference Notation (if provided) -->
+            {% if assignment.reference_notation %}
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold mb-3">
+                    <i class="fas fa-music mr-2 text-primary"></i>Reference Notation
+                </h2>
+                <div class="bg-base-200 p-6 rounded-lg">
+                    <div class="alert alert-warning mb-4">
+                        <i class="fas fa-info-circle"></i>
+                        <span>This is reference notation visible to students. To preview the interactive notation editor, students would see this in the assignment completion page.</span>
+                    </div>
+                    <pre class="text-sm font-mono bg-base-300 p-4 rounded overflow-x-auto">{{ assignment.reference_notation }}</pre>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Student Work Areas (Preview) -->
+            <div class="divider my-8"></div>
+
+            <h2 class="text-2xl font-bold mb-4">
+                <i class="fas fa-pencil-alt mr-2 text-primary"></i>Student Work Areas
+            </h2>
+
+            {% if assignment.has_notation_component %}
+            <div class="mb-8">
+                <h3 class="text-xl font-bold mb-3">Notation Editor</h3>
+                <div class="bg-base-200 p-8 rounded-lg text-center">
+                    <i class="fas fa-music text-6xl text-base-content/30 mb-4"></i>
+                    <p class="text-base-content/70">Students will use the interactive VexFlow notation editor here</p>
+                    <p class="text-sm text-base-content/50 mt-2">They can compose music notation as their response</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if assignment.has_written_component %}
+            <div class="mb-8">
+                <h3 class="text-xl font-bold mb-3">Written Response</h3>
+                <div class="bg-base-200 p-8 rounded-lg text-center">
+                    <i class="fas fa-pen-fancy text-6xl text-base-content/30 mb-4"></i>
+                    <p class="text-base-content/70">Students will use the rich text editor here</p>
+                    <p class="text-sm text-base-content/50 mt-2">They can write formatted text responses with bold, italic, lists, etc.</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Action Buttons (Preview Only) -->
+            <div class="divider my-8"></div>
+
+            <div class="flex justify-between items-center">
+                <div class="text-sm text-base-content/70">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    In the actual assignment, students would see "Save Draft" and "Submit Assignment" buttons here
+                </div>
+                <div class="flex gap-2">
+                    <button class="btn btn-outline btn-disabled">
+                        <i class="fas fa-save mr-2"></i>Save Draft
+                    </button>
+                    <button class="btn btn-primary btn-disabled">
+                        <i class="fas fa-paper-plane mr-2"></i>Submit Assignment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Info -->
+    <div class="card bg-base-200 mt-6">
+        <div class="card-body">
+            <h3 class="card-title">
+                <i class="fas fa-lightbulb mr-2"></i>Preview Information
+            </h3>
+            <ul class="list-disc list-inside space-y-2 text-sm">
+                <li>This preview shows the assignment content and structure as students will see it</li>
+                <li>The actual notation editor and rich text editor are interactive in the real assignment</li>
+                <li>Students can save drafts and come back to continue their work</li>
+                <li>Once submitted, you'll be able to grade the assignment and provide feedback</li>
+                {% if assignment.grading_scale == 'pass_fail' %}
+                <li>This assignment uses <strong>Pass/Fail</strong> grading</li>
+                {% elif assignment.grading_scale == '10' %}
+                <li>This assignment will be graded on a <strong>0-10 point scale</strong></li>
+                {% else %}
+                <li>This assignment will be graded on a <strong>0-100 point scale</strong></li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
