@@ -83,14 +83,16 @@
 
                     {% if file.is_file %}
                         <!-- File-based preview -->
-                        <div class="flex items-center justify-between">
+                        <div class="flex items-center justify-between mb-2">
                             <p class="text-sm text-gray-600">{{ file.file_size }}</p>
                             <a href="{{ file.file.url }}" target="_blank"
                                class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">
-                                View Preview
+                                View File Preview
                             </a>
                         </div>
-                    {% elif file.is_url %}
+                    {% endif %}
+
+                    {% if file.is_url %}
                         <!-- URL-based preview -->
                         {% if file.is_video_url %}
                             <!-- Video embed with lazy loading -->

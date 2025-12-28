@@ -60,7 +60,9 @@
                             <div class="mb-2">
                                 <h4 class="font-semibold text-gray-900">{{ file.title }}</h4>
                                 <p class="text-sm text-gray-600">
-                                    {% if file.is_file %}
+                                    {% if file.is_file and file.is_url %}
+                                        {{ file.file_size }} + URL • {{ file.get_file_role_display }}
+                                    {% elif file.is_file %}
                                         {{ file.file_size }} • {{ file.get_file_role_display }}
                                     {% else %}
                                         URL Content • {{ file.get_file_role_display }}
@@ -71,10 +73,12 @@
                             {% if file.is_file %}
                                 <!-- File download button -->
                                 <a href="{% url 'digital_products:download_file' purchase.id file.id %}"
-                                   class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
-                                    Download
+                                   class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition mb-2">
+                                    Download File
                                 </a>
-                            {% elif file.is_url %}
+                            {% endif %}
+
+                            {% if file.is_url %}
                                 {% if file.is_video_url %}
                                     <!-- Video embed with lazy loading -->
                                     <div class="aspect-video bg-gray-100 rounded-lg overflow-hidden mt-2">
@@ -92,8 +96,8 @@
                                     <a href="{% url 'digital_products:access_url' purchase.id file.id %}"
                                        target="_blank"
                                        rel="noopener noreferrer"
-                                       class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
-                                        Access Content →
+                                       class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition mt-2">
+                                        Access URL Content →
                                     </a>
                                 {% endif %}
                             {% endif %}

@@ -90,19 +90,14 @@ class ProductFileForm(forms.ModelForm):
         }
 
     def clean(self):
-        """Validate that either file OR URL is provided"""
+        """Validate that at least file or URL is provided (can have both)"""
         cleaned_data = super().clean()
         file = cleaned_data.get('file')
         content_url = cleaned_data.get('content_url')
 
         if not file and not content_url:
             raise forms.ValidationError(
-                'Please provide either a file upload OR a URL.'
-            )
-
-        if file and content_url:
-            raise forms.ValidationError(
-                'Please provide either a file OR a URL, not both.'
+                'Please provide at least a file upload or a URL (or both).'
             )
 
         return cleaned_data

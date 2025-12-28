@@ -289,7 +289,7 @@ class ProductFile(BaseAttachment):
         ordering = ['order', 'file_role', 'title']
 
     def clean(self):
-        """Validate that either file OR URL is provided, but not both or neither"""
+        """Validate that at least file or URL is provided (can have both)"""
         from django.core.exceptions import ValidationError
         super().clean()
 
@@ -298,20 +298,21 @@ class ProductFile(BaseAttachment):
 
         if not has_file and not has_url:
             raise ValidationError({
-                '__all__': 'Please provide either a file upload OR a URL.'
-            })
-
-        if has_file and has_url:
-            raise ValidationError({
-                '__all__': 'Please provide either a file OR a URL, not both.'
+                '__all__': 'Please provide at least a file upload or a URL (or both).'
             })
 
     def save(self, *args, **kwargs):
         # Auto-set content_type based on what's provided
-        if self.file:
+        if self.file and self.content_url:
+            # Both file and URL provided
+            self.content_type = 'file'  # Primary type is file
+            self.file_size_bytes = self.file.size
+        elif self.file:
+            # Only file provided
             self.content_type = 'file'
             self.file_size_bytes = self.file.size
         elif self.content_url:
+            # Only URL provided
             self.content_type = 'url'
             self.file_size_bytes = 0  # No file size for URLs
 
@@ -329,13 +330,13 @@ class ProductFile(BaseAttachment):
 
     @property
     def is_file(self):
-        """Check if this is a file upload"""
-        return self.content_type == 'file'
+        """Check if this has a file upload"""
+        return bool(self.file)
 
     @property
     def is_url(self):
-        """Check if this is a URL"""
-        return self.content_type == 'url'
+        """Check if this has a URL"""
+        return bool(self.content_url)
 
     @property
     def is_video_url(self):
