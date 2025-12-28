@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Log Practice Session{% endblock %}
+{% block title %}{% if entry %}Edit Practice Entry{% else %}Log Practice Session{% endif %}{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-base-100">
@@ -11,14 +11,14 @@
             <li><a href="{% url 'private_teaching:home' %}">Private Teaching</a></li>
             <li><a href="{% url 'private_teaching:student_dashboard' %}">Dashboard</a></li>
             <li><a href="{% url 'private_teaching:practice_log' %}">Practice Log</a></li>
-            <li>Log Session</li>
+            <li>{% if entry %}Edit Entry{% else %}Log Session{% endif %}</li>
         </ul>
     </div>
 
     <div class="container mx-auto px-4 py-8 max-w-4xl">
         <div class="mb-6">
-            <h1 class="text-4xl font-bold">Log Practice Session</h1>
-            <p class="text-base-content/70 mt-2">Record your practice session to track progress and share with your teacher</p>
+            <h1 class="text-4xl font-bold">{% if entry %}Edit Practice Entry{% else %}Log Practice Session{% endif %}</h1>
+            <p class="text-base-content/70 mt-2">{% if entry %}Update your practice session details{% else %}Record your practice session to track progress and share with your teacher{% endif %}</p>
         </div>
 
         <!-- Exam/Performance Preparation Alert -->
@@ -30,7 +30,7 @@
             </div>
         </div>
 
-        <form method="post" class="space-y-6">
+        <form method="post" {% if entry %}action="{% url 'private_teaching:edit_practice' entry.id %}"{% endif %} class="space-y-6">
             {% csrf_token %}
 
             <!-- Teacher Selection -->
@@ -41,7 +41,7 @@
                 <select name="teacher" class="select select-bordered w-full" required>
                     <option value="">Select your teacher</option>
                     {% for teacher in teachers %}
-                        <option value="{{ teacher.id }}">{{ teacher.get_full_name }}</option>
+                        <option value="{{ teacher.id }}" {% if entry and entry.teacher.id == teacher.id %}selected{% endif %}>{{ teacher.get_full_name }}</option>
                     {% endfor %}
                 </select>
                 <label class="label">
@@ -214,7 +214,7 @@
                 <a href="{% url 'private_teaching:practice_log' %}" class="btn btn-ghost">Cancel</a>
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save mr-2"></i>
-                    Log Practice Session
+                    {% if entry %}Update Entry{% else %}Log Practice Session{% endif %}
                 </button>
             </div>
         </form>

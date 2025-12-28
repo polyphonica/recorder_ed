@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import TemplateView, CreateView, ListView, View
+from django.views.generic import TemplateView, CreateView, ListView, View, UpdateView, DeleteView
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -2847,6 +2847,74 @@ class AddPracticeCommentView(TeacherProfileCompletedMixin, View):
             messages.error(request, 'Comment cannot be empty.')
 
         return redirect('private_teaching:teacher_student_practice', student_id=practice_entry.student.id)
+
+
+class EditPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, UpdateView):
+    """Student edits their own practice entry"""
+    model = PracticeEntry
+    template_name = 'private_teaching/practice/log_practice.html'
+    form_class = PracticeEntryForm
+
+    def get_queryset(self):
+        # Security: Students can only edit their own entries
+        return PracticeEntry.objects.filter(student=self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['entry'] = self.object
+        context['form'] = self.get_form()
+
+        # Get teacher options (same as create)
+        teacher_ids = Lesson.objects.filter(
+            student=self.request.user,
+            approved_status='Accepted',
+            is_deleted=False
+        ).values_list('teacher__id', flat=True).distinct()
+
+        context['teachers'] = User.objects.filter(id__in=teacher_ids).select_related('profile')
+        return context
+
+    def form_valid(self, form):
+        # Validate teacher relationship
+        teacher = form.cleaned_data.get('teacher')
+        if teacher:
+            has_lessons = Lesson.objects.filter(
+                student=self.request.user,
+                teacher=teacher,
+                approved_status='Accepted',
+                is_deleted=False
+            ).exists()
+
+            if not has_lessons:
+                form.add_error('teacher', 'You can only log practice for teachers you have accepted lessons with.')
+                return self.form_invalid(form)
+
+        messages.success(self.request, 'Practice entry updated successfully!')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('private_teaching:practice_log')
+
+
+class DeletePracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, DeleteView):
+    """Student deletes their own practice entry"""
+    model = PracticeEntry
+
+    def get_queryset(self):
+        # Security: Students can only delete their own entries
+        return PracticeEntry.objects.filter(student=self.request.user)
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Practice entry deleted successfully.')
+        return super().delete(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse('private_teaching:practice_log')
 
 
 # ============================================================================
