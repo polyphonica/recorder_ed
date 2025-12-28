@@ -210,7 +210,7 @@ class DigitalProduct(models.Model):
 class ProductFile(BaseAttachment):
     """
     Product files using BaseAttachment pattern.
-    Supports main files, preview files, and bundles.
+    Supports both file uploads and external URLs (e.g., YouTube videos).
     """
 
     FILE_ROLE_CHOICES = [
@@ -219,21 +219,44 @@ class ProductFile(BaseAttachment):
         ('bonus', 'Bonus Content'),
     ]
 
+    CONTENT_TYPE_CHOICES = [
+        ('file', 'Uploaded File'),
+        ('url', 'External URL'),
+    ]
+
     product = models.ForeignKey(
         DigitalProduct,
         on_delete=models.CASCADE,
         related_name='files'
     )
 
-    # Override file field with specific upload path and validators
+    # Override file field with specific upload path and validators - now optional
     file = models.FileField(
         upload_to='digital_products/files/%Y/%m/',
+        blank=True,
+        null=True,
         validators=[
             FileExtensionValidator([
                 'pdf', 'zip', 'mp3', 'mp4', 'wav', 'flac', 'avi', 'mov'
             ])
         ],
-        help_text="Main product file (max 50MB)"
+        help_text="Upload a file (max 50MB) OR provide a URL below"
+    )
+
+    # URL field for external content
+    content_url = models.URLField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="URL to external content (e.g., private YouTube video, Vimeo, etc.)"
+    )
+
+    # Track content type
+    content_type = models.CharField(
+        max_length=10,
+        choices=CONTENT_TYPE_CHOICES,
+        default='file',
+        help_text="Automatically set based on whether file or URL is provided"
     )
 
     # Additional fields
@@ -265,9 +288,33 @@ class ProductFile(BaseAttachment):
     class Meta:
         ordering = ['order', 'file_role', 'title']
 
+    def clean(self):
+        """Validate that either file OR URL is provided, but not both or neither"""
+        from django.core.exceptions import ValidationError
+        super().clean()
+
+        has_file = bool(self.file)
+        has_url = bool(self.content_url)
+
+        if not has_file and not has_url:
+            raise ValidationError({
+                '__all__': 'Please provide either a file upload OR a URL.'
+            })
+
+        if has_file and has_url:
+            raise ValidationError({
+                '__all__': 'Please provide either a file OR a URL, not both.'
+            })
+
     def save(self, *args, **kwargs):
+        # Auto-set content_type based on what's provided
         if self.file:
+            self.content_type = 'file'
             self.file_size_bytes = self.file.size
+        elif self.content_url:
+            self.content_type = 'url'
+            self.file_size_bytes = 0  # No file size for URLs
+
         super().save(*args, **kwargs)
 
     @property
@@ -279,6 +326,48 @@ class ProductFile(BaseAttachment):
     def is_downloadable_after_purchase(self):
         """Check if this file requires purchase to download"""
         return self.file_role in ['main', 'bonus']
+
+    @property
+    def is_file(self):
+        """Check if this is a file upload"""
+        return self.content_type == 'file'
+
+    @property
+    def is_url(self):
+        """Check if this is a URL"""
+        return self.content_type == 'url'
+
+    @property
+    def is_video_url(self):
+        """Check if URL is from a known video platform"""
+        if not self.content_url:
+            return False
+
+        video_domains = ['youtube.com', 'youtu.be', 'vimeo.com']
+        return any(domain in self.content_url.lower() for domain in video_domains)
+
+    def get_embed_url(self):
+        """Convert regular URL to embed URL for iframes"""
+        if not self.is_url:
+            return None
+
+        url = self.content_url
+
+        # YouTube
+        if 'youtube.com/watch?v=' in url:
+            video_id = url.split('watch?v=')[1].split('&')[0]
+            return f'https://www.youtube.com/embed/{video_id}'
+        elif 'youtu.be/' in url:
+            video_id = url.split('youtu.be/')[1].split('?')[0]
+            return f'https://www.youtube.com/embed/{video_id}'
+
+        # Vimeo
+        elif 'vimeo.com/' in url:
+            video_id = url.split('vimeo.com/')[1].split('?')[0]
+            return f'https://player.vimeo.com/video/{video_id}'
+
+        # Other URLs - return as-is
+        return url
 
 
 class ProductPurchase(PayableModel):

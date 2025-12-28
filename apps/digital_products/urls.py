@@ -22,6 +22,7 @@ urlpatterns = [
     # Student Dashboard
     path('my-purchases/', views.MyPurchasesView.as_view(), name='my_purchases'),
     path('my-purchases/<uuid:purchase_id>/download/<uuid:file_id>/', views.download_product_file, name='download_file'),
+    path('my-purchases/<uuid:purchase_id>/access/<uuid:file_id>/', views.access_url_content, name='access_url'),
 
     # Reviews
     path('product/<uuid:product_id>/review/', views.SubmitReviewView.as_view(), name='submit_review'),

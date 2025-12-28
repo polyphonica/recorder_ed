@@ -53,19 +53,50 @@
 
                 <!-- Download Files -->
                 <div class="border-t pt-4">
-                    <h3 class="font-semibold text-gray-900 mb-3">Downloads</h3>
+                    <h3 class="font-semibold text-gray-900 mb-3">Your Content</h3>
                     <div class="space-y-3">
                         {% for file in purchase.product.main_files %}
-                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                            <div class="flex-1">
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <div class="mb-2">
                                 <h4 class="font-semibold text-gray-900">{{ file.title }}</h4>
-                                <p class="text-sm text-gray-600">{{ file.file_size }} • {{ file.get_file_role_display }}</p>
+                                <p class="text-sm text-gray-600">
+                                    {% if file.is_file %}
+                                        {{ file.file_size }} • {{ file.get_file_role_display }}
+                                    {% else %}
+                                        URL Content • {{ file.get_file_role_display }}
+                                    {% endif %}
+                                </p>
                             </div>
 
-                            <a href="{% url 'digital_products:download_file' purchase.id file.id %}"
-                               class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
-                                Download
-                            </a>
+                            {% if file.is_file %}
+                                <!-- File download button -->
+                                <a href="{% url 'digital_products:download_file' purchase.id file.id %}"
+                                   class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                                    Download
+                                </a>
+                            {% elif file.is_url %}
+                                {% if file.is_video_url %}
+                                    <!-- Video embed with lazy loading -->
+                                    <div class="aspect-video bg-gray-100 rounded-lg overflow-hidden mt-2">
+                                        <iframe
+                                            src="{{ file.get_embed_url }}"
+                                            loading="lazy"
+                                            class="w-full h-full"
+                                            frameborder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowfullscreen>
+                                        </iframe>
+                                    </div>
+                                {% else %}
+                                    <!-- Non-video URL -->
+                                    <a href="{% url 'digital_products:access_url' purchase.id file.id %}"
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                                        Access Content →
+                                    </a>
+                                {% endif %}
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>

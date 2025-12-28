@@ -64,19 +64,23 @@ class ProductForm(forms.ModelForm):
 
 
 class ProductFileForm(forms.ModelForm):
-    """Form for uploading product files"""
+    """Form for uploading product files or providing URLs"""
 
     class Meta:
         model = ProductFile
-        fields = ['title', 'file', 'file_role', 'order']
+        fields = ['title', 'file', 'content_url', 'file_role', 'order']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-input',
-                'placeholder': 'e.g., Main PDF, Audio Examples'
+                'placeholder': 'e.g., Main PDF, Video Tutorial'
             }),
             'file': forms.FileInput(attrs={
                 'class': 'form-file',
                 'accept': '.pdf,.zip,.mp3,.mp4,.wav,.flac,.avi,.mov'
+            }),
+            'content_url': forms.URLInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'https://youtube.com/watch?v=... or https://vimeo.com/...'
             }),
             'file_role': forms.Select(attrs={'class': 'form-select'}),
             'order': forms.NumberInput(attrs={
@@ -84,6 +88,24 @@ class ProductFileForm(forms.ModelForm):
                 'min': '0'
             }),
         }
+
+    def clean(self):
+        """Validate that either file OR URL is provided"""
+        cleaned_data = super().clean()
+        file = cleaned_data.get('file')
+        content_url = cleaned_data.get('content_url')
+
+        if not file and not content_url:
+            raise forms.ValidationError(
+                'Please provide either a file upload OR a URL.'
+            )
+
+        if file and content_url:
+            raise forms.ValidationError(
+                'Please provide either a file OR a URL, not both.'
+            )
+
+        return cleaned_data
 
     def clean_file(self):
         file = self.cleaned_data.get('file')

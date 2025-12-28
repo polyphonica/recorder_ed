@@ -367,6 +367,52 @@ def download_product_file(request, purchase_id, file_id):
         return redirect('digital_products:my_purchases')
 
 
+@login_required
+def access_url_content(request, purchase_id, file_id):
+    """
+    Secure URL access view with ownership verification.
+    Redirects to external URL after verifying purchase.
+    """
+    # Verify purchase ownership
+    purchase = get_object_or_404(
+        ProductPurchase,
+        id=purchase_id,
+        student=request.user,
+        payment_status='completed'
+    )
+
+    # Get file
+    file_obj = get_object_or_404(
+        ProductFile,
+        id=file_id,
+        product=purchase.product
+    )
+
+    # Verify it's a URL-based file
+    if not file_obj.is_url:
+        messages.error(request, "This is not a URL-based product.")
+        return redirect('digital_products:my_purchases')
+
+    # Check if file is purchasable (not preview)
+    if not file_obj.is_downloadable_after_purchase:
+        return HttpResponseForbidden("This content is not available for access")
+
+    # Check access eligibility
+    can_download, error_msg = purchase.can_download_file(file_obj)
+    if not can_download:
+        messages.error(request, error_msg)
+        return redirect('digital_products:my_purchases')
+
+    # Log access for analytics
+    logger.info(
+        f"URL access: user={request.user.id}, product={purchase.product.id}, "
+        f"file={file_obj.id}, url={file_obj.content_url}"
+    )
+
+    # Redirect to external URL
+    return redirect(file_obj.content_url)
+
+
 # ============================================================
 # REVIEW VIEWS
 # ============================================================

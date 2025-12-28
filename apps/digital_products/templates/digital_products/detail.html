@@ -79,16 +79,39 @@
                 <h2 class="text-2xl font-bold mb-4">Preview</h2>
                 {% for file in preview_files %}
                 <div class="bg-white border rounded-lg p-4 mb-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="font-semibold">{{ file.title }}</h3>
+                    <h3 class="font-semibold mb-2">{{ file.title }}</h3>
+
+                    {% if file.is_file %}
+                        <!-- File-based preview -->
+                        <div class="flex items-center justify-between">
                             <p class="text-sm text-gray-600">{{ file.file_size }}</p>
+                            <a href="{{ file.file.url }}" target="_blank"
+                               class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">
+                                View Preview
+                            </a>
                         </div>
-                        <a href="{{ file.file.url }}" target="_blank"
-                           class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">
-                            View Preview
-                        </a>
-                    </div>
+                    {% elif file.is_url %}
+                        <!-- URL-based preview -->
+                        {% if file.is_video_url %}
+                            <!-- Video embed with lazy loading -->
+                            <div class="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                                <iframe
+                                    src="{{ file.get_embed_url }}"
+                                    loading="lazy"
+                                    class="w-full h-full"
+                                    frameborder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowfullscreen>
+                                </iframe>
+                            </div>
+                        {% else %}
+                            <!-- Non-video URL - show as link -->
+                            <a href="{{ file.content_url }}" target="_blank" rel="noopener noreferrer"
+                               class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                                Open Preview Link →
+                            </a>
+                        {% endif %}
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
