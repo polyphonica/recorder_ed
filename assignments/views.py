@@ -342,8 +342,14 @@ def student_assignment_library(request):
 
         # For PrivateLessonAssignment, submission is a @property (read-only)
         # For LessonAssignment, we can set it as an attribute
-        # Only set if it's not a property to avoid AttributeError
-        if not isinstance(type(link).submission, property):
+        # Check if submission is a property to avoid AttributeError
+        try:
+            # Try to check if it's a property
+            is_property = isinstance(getattr(type(link), 'submission', None), property)
+            if not is_property:
+                link.submission = submission
+        except AttributeError:
+            # If checking fails, just set it
             link.submission = submission
         # Note: PrivateLessonAssignment already has a submission property that queries the DB
 
