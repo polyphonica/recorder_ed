@@ -289,15 +289,14 @@ def student_assignment_library(request):
     """Student's library of assigned assignments from their lessons"""
     from lessons.models import LessonAssignment, Lesson
 
-    # Get all lessons for this student
+    # Get all course lesson assignments
     student_lessons = Lesson.objects.filter(
         student=request.user,
         status='Assigned'  # Only show assignments from assigned (published) lessons
     ).select_related('lesson_request', 'lesson_request__child_profile', 'subject', 'subject__teacher')
 
-    # Get all assignment links from these lessons
     lesson_ids = student_lessons.values_list('id', flat=True)
-    assignment_links = LessonAssignment.objects.filter(
+    course_assignment_links = LessonAssignment.objects.filter(
         lesson_id__in=lesson_ids
     ).select_related(
         'assignment',
@@ -307,6 +306,24 @@ def student_assignment_library(request):
         'lesson__subject',
         'lesson__subject__teacher'
     ).order_by('-assigned_at')
+
+    # Get all private lesson assignments
+    private_assignment_links = PrivateLessonAssignment.objects.filter(
+        student=request.user
+    ).select_related(
+        'assignment',
+        'lesson',
+        'lesson__lesson_request',
+        'lesson__lesson_request__child_profile',
+        'lesson__subject',
+        'lesson__subject__teacher'
+    ).order_by('-assigned_at')
+
+    # Combine both types of assignment links
+    assignment_links = list(course_assignment_links) + list(private_assignment_links)
+
+    # Sort combined list by assigned_at
+    assignment_links.sort(key=lambda x: x.assigned_at, reverse=True)
 
     # Organize by status
     pending_assignments = []
@@ -348,14 +365,25 @@ def student_assignment_library(request):
 def complete_assignment(request, assignment_link_id):
     """Student completes an assignment"""
     from lessons.models import LessonAssignment
+    from django.core.exceptions import ObjectDoesNotExist
 
-    assignment_link = get_object_or_404(
-        LessonAssignment.objects.select_related(
+    # Try to get PrivateLessonAssignment first
+    try:
+        assignment_link = PrivateLessonAssignment.objects.select_related(
             'assignment', 'lesson', 'lesson__lesson_request', 'lesson__lesson_request__child_profile', 'lesson__subject', 'lesson__subject__teacher'
-        ),
-        pk=assignment_link_id,
-        lesson__student=request.user  # Ensure this assignment's lesson belongs to this student
-    )
+        ).get(
+            pk=assignment_link_id,
+            student=request.user  # Ensure this assignment belongs to this student
+        )
+    except ObjectDoesNotExist:
+        # If not found, try LessonAssignment (course lessons)
+        assignment_link = get_object_or_404(
+            LessonAssignment.objects.select_related(
+                'assignment', 'lesson', 'lesson__lesson_request', 'lesson__lesson_request__child_profile', 'lesson__subject', 'lesson__subject__teacher'
+            ),
+            pk=assignment_link_id,
+            lesson__student=request.user  # Ensure this assignment's lesson belongs to this student
+        )
 
     # Get or create submission
     submission, created = AssignmentSubmission.objects.get_or_create(
