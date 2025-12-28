@@ -340,8 +340,12 @@ def student_assignment_library(request):
         except AssignmentSubmission.DoesNotExist:
             submission = None
 
-        # Add link with submission info
-        link.submission = submission
+        # For PrivateLessonAssignment, submission is a @property (read-only)
+        # For LessonAssignment, we can set it as an attribute
+        # Only set if it's not a property to avoid AttributeError
+        if not isinstance(type(link).submission, property):
+            link.submission = submission
+        # Note: PrivateLessonAssignment already has a submission property that queries the DB
 
         if not submission or submission.status == 'draft':
             # Not submitted yet - show in pending
