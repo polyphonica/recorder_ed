@@ -240,26 +240,17 @@ class SubmitBookingAPIView(APIView):
         Expected payload:
         {
             "teacher_id": 123,
-            "subject_id": 456,
             "location": "Online",
             "message": "Looking forward to lessons",
             "child_profile_id": 789,  // Optional - for guardian bookings
             "lessons": [
-                {"datetime": "2025-06-15T09:00:00", "duration": 60},
-                {"datetime": "2025-06-16T10:00:00", "duration": 60}
+                {"datetime": "2025-06-15T09:00:00", "duration": 60, "subject_id": 456},
+                {"datetime": "2025-06-16T10:00:00", "duration": 60, "subject_id": 457}
             ]
         }
         """
         try:
             teacher = User.objects.get(id=request.data['teacher_id'])
-            subject = Subject.objects.get(id=request.data['subject_id'])
-
-            # Verify teacher offers this subject
-            if subject.teacher != teacher:
-                return Response({
-                    'success': False,
-                    'error': 'This teacher does not offer the selected subject'
-                }, status=status.HTTP_400_BAD_REQUEST)
 
             # Create LessonRequest
             lesson_request = LessonRequest.objects.create(
@@ -287,6 +278,32 @@ class SubmitBookingAPIView(APIView):
             # Create individual Lesson objects
             created_lessons = []
             for lesson_data in request.data['lessons']:
+                # Get subject for this lesson
+                subject_id = lesson_data.get('subject_id')
+                if not subject_id:
+                    lesson_request.delete()
+                    return Response({
+                        'success': False,
+                        'error': 'subject_id is required for each lesson'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                try:
+                    subject = Subject.objects.get(id=subject_id)
+                except Subject.DoesNotExist:
+                    lesson_request.delete()
+                    return Response({
+                        'success': False,
+                        'error': f'Subject with id {subject_id} not found'
+                    }, status=status.HTTP_404_NOT_FOUND)
+
+                # Verify teacher offers this subject
+                if subject.teacher != teacher:
+                    lesson_request.delete()
+                    return Response({
+                        'success': False,
+                        'error': f'This teacher does not offer {subject.subject}'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
                 # Parse datetime
                 slot_datetime_str = lesson_data['datetime']
                 # Handle ISO format with Z or timezone
@@ -354,11 +371,6 @@ class SubmitBookingAPIView(APIView):
             return Response({
                 'success': False,
                 'error': 'Teacher not found'
-            }, status=status.HTTP_404_NOT_FOUND)
-        except Subject.DoesNotExist:
-            return Response({
-                'success': False,
-                'error': 'Subject not found'
             }, status=status.HTTP_404_NOT_FOUND)
         except KeyError as e:
             return Response({

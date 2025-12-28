@@ -162,7 +162,7 @@
                             <div class="flex-1">
                                 <div class="font-semibold" x-text="formatFullDateTime(slot.datetime)"></div>
                                 <div class="text-sm text-base-content/70">
-                                    <span x-text="getSelectedSubjectName()"></span>
+                                    <span x-text="slot.subjectName"></span>
                                     <span class="mx-1">•</span>
                                     <span x-text="duration + ' minutes'"></span>
                                 </div>
@@ -353,7 +353,13 @@ function calendarBooking() {
             if (index !== -1) {
                 this.selectedSlots.splice(index, 1);
             } else {
-                this.selectedSlots.push(slot);
+                // Store the subject info with the slot
+                const slotWithSubject = {
+                    ...slot,
+                    subjectId: this.selectedSubject,
+                    subjectName: this.getSelectedSubjectName()
+                };
+                this.selectedSlots.push(slotWithSubject);
             }
         },
 
@@ -432,12 +438,12 @@ function calendarBooking() {
             try {
                 const payload = {
                     teacher_id: this.teacherId,
-                    subject_id: parseInt(this.selectedSubject),
                     location: this.location,
                     message: this.message,
                     lessons: this.selectedSlots.map(slot => ({
                         datetime: slot.datetime,
-                        duration: this.duration
+                        duration: this.duration,
+                        subject_id: parseInt(slot.subjectId)
                     }))
                 };
 
