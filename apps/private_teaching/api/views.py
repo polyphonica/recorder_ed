@@ -275,8 +275,8 @@ class SubmitBookingAPIView(APIView):
                         'error': 'Invalid child profile selected'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Create individual Lesson objects
-            created_lessons = []
+            # First pass: Validate all lessons and check availability
+            validated_lessons = []
             for lesson_data in request.data['lessons']:
                 # Get subject for this lesson
                 subject_id = lesson_data.get('subject_id')
@@ -320,29 +320,38 @@ class SubmitBookingAPIView(APIView):
                 )
 
                 if not is_available:
-                    # Rollback - delete lesson request and any created lessons
+                    # Rollback - delete lesson request
                     lesson_request.delete()
                     return Response({
                         'success': False,
                         'error': f'Time slot {slot_datetime} is no longer available: {reason}'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
-                # Determine approval status
-                auto_approve = (
-                    hasattr(teacher, 'availability_settings') and
-                    teacher.availability_settings.auto_approve_bookings
-                )
-                approved_status = 'Accepted' if auto_approve else 'Pending'
+                # Store validated data for creation
+                validated_lessons.append({
+                    'subject': subject,
+                    'datetime': slot_datetime,
+                    'duration': lesson_data['duration']
+                })
 
-                # Create lesson
+            # Determine approval status
+            auto_approve = (
+                hasattr(teacher, 'availability_settings') and
+                teacher.availability_settings.auto_approve_bookings
+            )
+            approved_status = 'Accepted' if auto_approve else 'Pending'
+
+            # Second pass: Create all lessons (only after all validations pass)
+            created_lessons = []
+            for validated_lesson in validated_lessons:
                 lesson = Lesson.objects.create(
                     lesson_request=lesson_request,
                     student=request.user,
                     teacher=teacher,
-                    subject=subject,
-                    lesson_date=slot_datetime.date(),
-                    lesson_time=slot_datetime.time(),
-                    duration_in_minutes=lesson_data['duration'],
+                    subject=validated_lesson['subject'],
+                    lesson_date=validated_lesson['datetime'].date(),
+                    lesson_time=validated_lesson['datetime'].time(),
+                    duration_in_minutes=validated_lesson['duration'],
                     location=request.data.get('location', 'Online'),
                     approved_status=approved_status,
                     payment_status='Not Paid',
