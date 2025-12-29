@@ -532,18 +532,20 @@ function seekTo(instance, slider) {
 
 /**
  * Update the seek slider and time displays
+ * @param {number} instance - The player instance
+ * @param {number} time - Optional time to display (uses currentOffsets if not provided)
  */
-function updateSeekUI(instance) {
-    const currentTime = currentOffsets[instance];
+function updateSeekUI(instance, time = null) {
+    const displayTime = time !== null ? time : currentOffsets[instance];
     const seekSlider = document.getElementById(`seekSlider${instance}`);
     const currentTimeDisplay = document.getElementById(`currentTime${instance}`);
 
     if (seekSlider && durations[instance] > 0) {
-        seekSlider.value = (currentTime / durations[instance]) * 100;
+        seekSlider.value = (displayTime / durations[instance]) * 100;
     }
 
     if (currentTimeDisplay) {
-        currentTimeDisplay.textContent = formatTime(currentTime);
+        currentTimeDisplay.textContent = formatTime(displayTime);
     }
 }
 
@@ -565,11 +567,8 @@ function updateProgressBar(instance) {
         return;
     }
 
-    // Update temporary offset for display
-    const tempOffset = currentOffsets[instance];
-    currentOffsets[instance] = currentTime;
-    updateSeekUI(instance);
-    currentOffsets[instance] = tempOffset;
+    // Update UI with current playback position
+    updateSeekUI(instance, currentTime);
 
     // Continue updating
     animationFrameIds[instance] = requestAnimationFrame(() => updateProgressBar(instance));
