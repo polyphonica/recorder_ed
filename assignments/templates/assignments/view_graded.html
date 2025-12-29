@@ -106,14 +106,20 @@
                 </div>
             </div>
 
-            <!-- Reference Notation (if provided) -->
-            {% if submission.assignment.reference_notation %}
+            <!-- Reference Notation/Image (if provided) -->
+            {% if submission.assignment.reference_notation or submission.assignment.reference_image %}
                 <div class="card card-section shadow-xl">
                     <div class="card-body">
                         <h2 class="card-title text-2xl mb-4">
                             <i class="fas fa-eye mr-2"></i>Reference/Example
                         </h2>
-                        <div id="reference-notation-display"></div>
+                        {% if submission.assignment.reference_image %}
+                            <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                                <img src="{{ submission.assignment.reference_image.url }}" alt="Reference notation" class="max-w-full h-auto mx-auto">
+                            </div>
+                        {% elif submission.assignment.reference_notation %}
+                            <div id="reference-notation-display"></div>
+                        {% endif %}
                     </div>
                 </div>
             {% endif %}

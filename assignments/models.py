@@ -94,6 +94,14 @@ class Assignment(models.Model):
         help_text="VexFlow notation data for teacher's reference/example"
     )
 
+    # Optional reference image (alternative to VexFlow notation)
+    reference_image = models.ImageField(
+        upload_to='assignment_references/',
+        null=True,
+        blank=True,
+        help_text="Upload notation image from Sibelius, Finale, MuseScore, etc. (JPG, PNG, SVG)"
+    )
+
     # For future auto-grading
     expected_notation = models.JSONField(
         null=True,
