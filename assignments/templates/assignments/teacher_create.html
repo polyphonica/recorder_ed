@@ -3,6 +3,35 @@
 
 {% block title %}Create Assignment{% endblock %}
 
+{% block extra_css %}
+<style>
+    .pitch-button {
+        min-width: 60px;
+    }
+
+    .duration-button {
+        min-width: 140px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 0.75rem 0.5rem;
+        height: auto;
+        white-space: nowrap;
+    }
+
+    .accidental-button {
+        min-width: 80px;
+        font-size: 2rem;
+        font-weight: 600;
+        padding: 1rem 0.5rem;
+        height: auto;
+    }
+
+    #chord-display {
+        min-height: 40px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-5xl mx-auto">
@@ -284,38 +313,208 @@
                     <div class="flex-1 border-t-2 border-gray-300"></div>
                 </div>
 
-                <!-- Simple Notation Editor Toggle -->
-                <div class="border-2 border-gray-200 rounded-xl overflow-hidden mb-6">
-                    <button type="button" id="notation-editor-toggle" class="w-full flex items-center justify-between p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
-                        <span class="font-semibold text-gray-900 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-                            </svg>
-                            Use Simple Notation Editor
-                        </span>
-                        <svg id="notation-toggle-icon" class="w-5 h-5 text-gray-600 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                        </svg>
-                    </button>
-                    <div id="notation-editor-content" class="hidden p-6 bg-white border-t-2 border-gray-200">
-                        <!-- Simple Notation Editor -->
-                        <div class="space-y-4">
-                            <!-- Controls -->
-                            <div class="flex flex-wrap gap-2">
-                                <button type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="addNoteToRef('c/4')">Add C</button>
-                                <button type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="addNoteToRef('d/4')">Add D</button>
-                                <button type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="addNoteToRef('e/4')">Add E</button>
-                                <button type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="addNoteToRef('f/4')">Add F</button>
-                                <button type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="addNoteToRef('g/4')">Add G</button>
-                                <button type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="addNoteToRef('a/4')">Add A</button>
-                                <button type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="addNoteToRef('b/4')">Add B</button>
-                                <button type="button" class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700" onclick="removeLastRefNote()">Remove Last</button>
-                                <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700" onclick="clearRefNotation()">Clear All</button>
+                <!-- Full VexFlow Notation Editor -->
+                <div class="space-y-6">
+                    <!-- Clef and Key Signature Selection -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Clef Selection -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Select Clef:</span>
+                            </label>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-active" data-clef="treble">Treble</button>
+                                <button type="button" class="btn btn-sm" data-clef="bass">Bass</button>
+                                <button type="button" class="btn btn-sm" data-clef="alto">Alto</button>
                             </div>
-                            <!-- Notation Display -->
-                            <div id="ref-notation-display" class="border-2 border-gray-200 rounded-lg p-4 bg-white min-h-[150px]"></div>
+                        </div>
+
+                        <!-- Key Signature Selection -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Key Signature:</span>
+                            </label>
+                            <select class="select select-bordered select-sm" id="key-signature-select">
+                                <option value="">C Major / A Minor (no sharps/flats)</option>
+                                <optgroup label="Sharp Keys">
+                                    <option value="G">G Major / E Minor (1♯)</option>
+                                    <option value="D">D Major / B Minor (2♯)</option>
+                                    <option value="A">A Major / F♯ Minor (3♯)</option>
+                                    <option value="E">E Major / C♯ Minor (4♯)</option>
+                                    <option value="B">B Major / G♯ Minor (5♯)</option>
+                                    <option value="F#">F♯ Major / D♯ Minor (6♯)</option>
+                                </optgroup>
+                                <optgroup label="Flat Keys">
+                                    <option value="F">F Major / D Minor (1♭)</option>
+                                    <option value="Bb">B♭ Major / G Minor (2♭)</option>
+                                    <option value="Eb">E♭ Major / C Minor (3♭)</option>
+                                    <option value="Ab">A♭ Major / F Minor (4♭)</option>
+                                    <option value="Db">D♭ Major / B♭ Minor (5♭)</option>
+                                    <option value="Gb">G♭ Major / E♭ Minor (6♭)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <!-- Time Signature Selection -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Time Signature:</span>
+                            </label>
+                            <select class="select select-bordered select-sm" id="time-signature-select">
+                                <option value="">None</option>
+                                <option value="4/4" selected>4/4 (Common Time)</option>
+                                <option value="3/4">3/4 (Waltz Time)</option>
+                                <option value="2/4">2/4 (March Time)</option>
+                                <option value="6/8">6/8</option>
+                                <option value="3/8">3/8</option>
+                                <option value="9/8">9/8</option>
+                                <option value="12/8">12/8</option>
+                                <option value="2/2">2/2 (Cut Time)</option>
+                                <option value="C">C (Common Time)</option>
+                                <option value="C|">C| (Cut Time)</option>
+                            </select>
                         </div>
                     </div>
+
+                    <!-- Note Controls -->
+                    <div class="mb-4">
+                        <!-- Notes and Rests Side by Side -->
+                        <div class="form-control mb-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <!-- Notes Column -->
+                                <div>
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Notes:</span>
+                                    </label>
+                                    <div class="grid grid-cols-1 gap-2">
+                                        <button type="button" class="btn btn-sm duration-button btn-active" data-duration="w">Whole / Semibreve</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="h">Half / Minim</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="q">Quarter / Crotchet</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="8">Eighth / Quaver</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="16">16th / Semiquaver</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="hd">Dotted Half / Dotted Minim</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="qd">Dotted Quarter / Dotted Crotchet</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="8d">Dotted Eighth / Dotted Quaver</button>
+                                    </div>
+                                </div>
+                                <!-- Rests Column -->
+                                <div>
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Rests:</span>
+                                    </label>
+                                    <div class="grid grid-cols-1 gap-2">
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="wr">Whole Rest / Semibreve Rest</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="hr">Half Rest / Minim Rest</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="qr">Quarter Rest / Crotchet Rest</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="8r">Eighth Rest / Quaver Rest</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="16r">16th Rest / Semiquaver Rest</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="hdr">Dotted Half Rest / Dotted Minim Rest</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="qdr">Dotted Quarter Rest / Dotted Crotchet Rest</button>
+                                        <button type="button" class="btn btn-sm duration-button" data-duration="8dr">Dotted Eighth Rest / Dotted Quaver Rest</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Accidental Selection Below -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Accidentals:</span>
+                            </label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button type="button" class="btn accidental-button btn-active" data-accidental="none">Natural<br><span style="font-size: 2.5rem; line-height: 1;">♮</span></button>
+                                <button type="button" class="btn accidental-button" data-accidental="#">Sharp<br><span style="font-size: 2.5rem; line-height: 1;">♯</span></button>
+                                <button type="button" class="btn accidental-button" data-accidental="b">Flat<br><span style="font-size: 2.5rem; line-height: 1;">♭</span></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pitch Selection -->
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text font-semibold">Select Pitch:</span>
+                        </label>
+                        <!-- Octave 4 -->
+                        <div class="mb-2">
+                            <div class="text-xs text-base-content/70 mb-1">Octave 4:</div>
+                            <div class="flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-sm pitch-button btn-active" data-pitch="c/4">C4</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="d/4">D4</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="e/4">E4</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="f/4">F4</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="g/4">G4</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="a/4">A4</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="b/4">B4</button>
+                            </div>
+                        </div>
+                        <!-- Octave 5 -->
+                        <div class="mb-2">
+                            <div class="text-xs text-base-content/70 mb-1">Octave 5:</div>
+                            <div class="flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="c/5">C5</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="d/5">D5</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="e/5">E5</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="f/5">F5</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="g/5">G5</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="a/5">A5</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="b/5">B5</button>
+                            </div>
+                        </div>
+                        <!-- Octave 6 -->
+                        <div>
+                            <div class="text-xs text-base-content/70 mb-1">Octave 6:</div>
+                            <div class="flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="c/6">C6</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="d/6">D6</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="e/6">E6</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="f/6">F6</button>
+                                <button type="button" class="btn btn-sm pitch-button" data-pitch="g/6">G6</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chord Mode Toggle -->
+                    <div class="form-control mb-4">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="checkbox" class="toggle toggle-primary toggle-lg" id="chord-mode-toggle">
+                            <span class="label-text font-semibold">Chord Mode (select multiple notes)</span>
+                        </label>
+                    </div>
+
+                    <!-- Chord Building Display -->
+                    <div id="chord-display" class="bg-base-200 rounded-lg p-3 mb-4 hidden">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="font-semibold">Building Chord:</span>
+                                <span id="chord-notes" class="ml-2"></span>
+                            </div>
+                            <button type="button" id="finish-chord-btn" class="btn btn-sm btn-success">
+                                <i class="fas fa-check mr-1"></i>Finish Chord
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button type="button" id="add-note-btn" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus mr-1"></i>Add Note
+                        </button>
+                        <button type="button" id="add-barline-btn" class="btn btn-sm">
+                            <i class="fas fa-grip-lines-vertical mr-1"></i>Add Barline
+                        </button>
+                        <button type="button" id="label-mode-btn" class="btn btn-sm btn-info">
+                            <i class="fas fa-tag mr-1"></i>Add Label
+                        </button>
+                        <button type="button" id="remove-last-btn" class="btn btn-sm btn-error">
+                            <i class="fas fa-undo mr-1"></i>Remove Last
+                        </button>
+                        <button type="button" id="clear-all-btn" class="btn btn-sm btn-warning">
+                            <i class="fas fa-trash mr-1"></i>Clear All
+                        </button>
+                    </div>
+
+                    <!-- Notation Display -->
+                    <div id="ref-notation-display" style="background-color: white; border-radius: 8px; padding: 20px; min-height: 200px; border: 1px solid #e5e7eb;"></div>
                 </div>
 
                 <!-- Hidden input for notation data (populated by JS if editor used) -->
@@ -342,115 +541,599 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vexflow/4.2.2/vexflow-min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const VF = Vex.Flow;
-    let refNotes = [];
 
-    // Add note to reference notation
-    window.addNoteToRef = function(pitch) {
-        refNotes.push({
-            keys: [pitch],
-            duration: 'q'
+    // State
+    let selectedClef = 'treble';
+    let selectedKeySignature = '';  // Empty string = C major (no sharps/flats)
+    let selectedTimeSignature = '4/4';  // Default to 4/4 time
+    let selectedDuration = 'w';  // Default to whole note (matches btn-active in HTML)
+    let selectedAccidental = 'none';
+    let selectedPitch = 'c/4';
+    let chordMode = false;
+    let currentChord = [];
+    let notes = [];
+    let textLabels = [];
+
+    // Clef selection
+    document.querySelectorAll('[data-clef]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            selectedClef = this.getAttribute('data-clef');
+            document.querySelectorAll('[data-clef]').forEach(b => b.classList.remove('btn-active'));
+            this.classList.add('btn-active');
+            renderNotes();
         });
-        renderRefNotation();
-        saveRefNotation();
-    };
+    });
 
-    // Remove last note
-    window.removeLastRefNote = function() {
-        if (refNotes.length > 0) {
-            refNotes.pop();
-            renderRefNotation();
-            saveRefNotation();
+    // Key signature selection
+    document.getElementById('key-signature-select').addEventListener('change', function() {
+        selectedKeySignature = this.value;
+        renderNotes();
+    });
+
+    // Time signature selection
+    document.getElementById('time-signature-select').addEventListener('change', function() {
+        selectedTimeSignature = this.value;
+        renderNotes();
+    });
+
+    // Duration selection
+    document.querySelectorAll('.duration-button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            selectedDuration = this.getAttribute('data-duration');
+            document.querySelectorAll('.duration-button').forEach(b => b.classList.remove('btn-active'));
+            this.classList.add('btn-active');
+        });
+    });
+
+    // Accidental selection
+    document.querySelectorAll('.accidental-button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            selectedAccidental = this.getAttribute('data-accidental');
+            document.querySelectorAll('.accidental-button').forEach(b => b.classList.remove('btn-active'));
+            this.classList.add('btn-active');
+        });
+    });
+
+    // Pitch selection
+    document.querySelectorAll('.pitch-button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            selectedPitch = this.getAttribute('data-pitch');
+            document.querySelectorAll('.pitch-button').forEach(b => b.classList.remove('btn-active'));
+            this.classList.add('btn-active');
+        });
+
+        // Double-click to add note immediately
+        btn.addEventListener('dblclick', function() {
+            selectedPitch = this.getAttribute('data-pitch');
+            document.querySelectorAll('.pitch-button').forEach(b => b.classList.remove('btn-active'));
+            this.classList.add('btn-active');
+
+            // Add note based on current mode
+            if (chordMode) {
+                currentChord.push({
+                    pitch: selectedPitch,
+                    accidental: selectedAccidental
+                });
+                updateChordDisplay();
+            } else {
+                addSingleNote();
+            }
+        });
+    });
+
+    // Chord mode toggle
+    document.getElementById('chord-mode-toggle').addEventListener('change', function() {
+        chordMode = this.checked;
+        document.getElementById('chord-display').classList.toggle('hidden', !chordMode);
+        if (!chordMode && currentChord.length > 0) {
+            currentChord = [];
+            updateChordDisplay();
         }
-    };
+    });
 
-    // Clear all notes
-    window.clearRefNotation = function() {
-        refNotes = [];
-        renderRefNotation();
-        saveRefNotation();
-    };
+    // Add note
+    document.getElementById('add-note-btn').addEventListener('click', function() {
+        if (chordMode) {
+            currentChord.push({
+                pitch: selectedPitch,
+                accidental: selectedAccidental
+            });
+            updateChordDisplay();
+        } else {
+            addSingleNote();
+        }
+    });
 
-    // Render the notation
-    function renderRefNotation() {
-        const container = document.getElementById('ref-notation-display');
-        if (!container) return;
-
-        // Clear container
-        container.innerHTML = '';
-
-        // Create renderer
-        const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
-        renderer.resize(650, 200);
-        const context = renderer.getContext();
-
-        // Create stave
-        const stave = new VF.Stave(10, 40, 620);
-        stave.addClef('treble');
-        stave.setContext(context).draw();
-
-        // If no notes, just show empty stave
-        if (refNotes.length === 0) {
+    // Finish chord
+    document.getElementById('finish-chord-btn').addEventListener('click', function() {
+        if (currentChord.length === 0) {
+            alert('Add at least one note to the chord first');
             return;
         }
 
-        // Create VexFlow notes
-        const vfNotes = refNotes.map(noteData => {
-            return new VF.StaveNote({
-                keys: noteData.keys,
-                duration: noteData.duration,
-                clef: 'treble'
-            });
+        // Sort chord notes from low to high
+        const sortedChord = [...currentChord].sort((a, b) => {
+            const getPitchValue = (pitch) => {
+                const [note, octave] = pitch.split('/');
+                const noteValues = {c: 0, d: 1, e: 2, f: 3, g: 4, a: 5, b: 6};
+                return parseInt(octave) * 7 + noteValues[note];
+            };
+            return getPitchValue(a.pitch) - getPitchValue(b.pitch);
         });
 
-        // Create voice and format
-        const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
-        voice.setMode(VF.Voice.Mode.SOFT);
-        voice.addTickables(vfNotes);
+        const noteData = {
+            type: 'note',
+            keys: sortedChord.map(n => n.pitch),
+            duration: selectedDuration
+        };
 
-        const formatter = new VF.Formatter();
-        formatter.joinVoices([voice]).format([voice], 580);
+        // Only include accidentals array if at least one note has an accidental
+        const accidentals = sortedChord.map(n => n.accidental !== 'none' ? n.accidental : '');
+        if (accidentals.some(acc => acc !== '')) {
+            noteData.accidentals = accidentals;
+        }
 
-        // Draw
-        voice.draw(context, stave);
+        notes.push(noteData);
+        currentChord = [];
+        updateChordDisplay();
+        renderNotes();
+    });
+
+    // Add barline
+    document.getElementById('add-barline-btn').addEventListener('click', function() {
+        notes.push({ type: 'barline' });
+        renderNotes();
+    });
+
+    // Remove last
+    document.getElementById('remove-last-btn').addEventListener('click', function() {
+        if (chordMode && currentChord.length > 0) {
+            currentChord.pop();
+            updateChordDisplay();
+        } else if (notes.length > 0) {
+            notes.pop();
+            renderNotes();
+        }
+    });
+
+    // Clear all
+    document.getElementById('clear-all-btn').addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear all notation?')) {
+            notes = [];
+            currentChord = [];
+            updateChordDisplay();
+            renderNotes();
+        }
+    });
+
+    function addSingleNote() {
+        const noteData = {
+            type: 'note',
+            keys: [selectedPitch],
+            duration: selectedDuration
+        };
+
+        if (selectedAccidental !== 'none') {
+            noteData.accidental = selectedAccidental;
+        }
+
+        notes.push(noteData);
+        renderNotes();
     }
 
-    // Save notation data to hidden input
-    function saveRefNotation() {
-        const hiddenInput = document.getElementById('id_reference_notation');
-        if (hiddenInput) {
-            const notationData = {
-                clef: 'treble',
-                keySignature: '',
-                notes: refNotes
-            };
-            hiddenInput.value = JSON.stringify(notationData);
+    function updateChordDisplay() {
+        const chordNotesEl = document.getElementById('chord-notes');
+        if (currentChord.length === 0) {
+            chordNotesEl.textContent = '(empty)';
+        } else {
+            chordNotesEl.textContent = currentChord.map(n => {
+                const pitch = n.pitch.toUpperCase().replace('/', '');
+                const acc = n.accidental === '#' ? '♯' : n.accidental === 'b' ? '♭' : '';
+                return pitch + acc;
+            }).join(', ');
         }
     }
 
-    // Initialize empty stave on page load
-    renderRefNotation();
+    function saveNotationData() {
+        const notationData = {
+            clef: selectedClef,
+            keySignature: selectedKeySignature,
+            timeSignature: selectedTimeSignature,
+            notes: notes,
+            textLabels: textLabels
+        };
+        document.getElementById('id_reference_notation').value = JSON.stringify(notationData);
+    }
 
-    // Handle toggle button
-    const toggleBtn = document.getElementById('notation-editor-toggle');
-    const content = document.getElementById('notation-editor-content');
-    const icon = document.getElementById('notation-toggle-icon');
+    function renderNotes() {
+        const container = document.getElementById('ref-notation-display');
+        container.innerHTML = '';
 
-    if (toggleBtn && content && icon) {
-        toggleBtn.addEventListener('click', function() {
-            const isHidden = content.classList.contains('hidden');
-            if (isHidden) {
-                content.classList.remove('hidden');
-                icon.style.transform = 'rotate(180deg)';
+        // Always render the stave, even with no notes
+        renderNotation('ref-notation-display', {
+            clef: selectedClef,
+            keySignature: selectedKeySignature,
+            timeSignature: selectedTimeSignature,
+            notes: notes,
+            textLabels: textLabels
+        });
+
+        // Save to hidden input
+        saveNotationData();
+    }
+
+    function renderNotation(containerId, notationData) {
+        const container = document.getElementById(containerId);
+        if (!container || !notationData) {
+            return;
+        }
+
+        container.innerHTML = '';
+
+        const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+        renderer.resize(900, 250);
+        const context = renderer.getContext();
+
+        const stave = new VF.Stave(10, 40, 870);
+        const clef = notationData.clef || 'treble';
+        const keySignature = notationData.keySignature || '';
+        const timeSignature = notationData.timeSignature !== undefined ? notationData.timeSignature : '4/4';
+
+        stave.addClef(clef);
+        if (keySignature) {
+            stave.addKeySignature(keySignature);
+        }
+        if (timeSignature) {
+            stave.addTimeSignature(timeSignature);
+        }
+        stave.setContext(context).draw();
+
+        // Render text labels (must be before early return for empty staves)
+        if (notationData.textLabels && notationData.textLabels.length > 0) {
+            const svgElement = container.querySelector('svg');
+            notationData.textLabels.forEach((label, index) => {
+                const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                textElement.setAttribute('x', label.x);
+                textElement.setAttribute('y', label.y);
+                textElement.setAttribute('fill', '#0066cc');
+                textElement.setAttribute('font-size', '14');
+                textElement.setAttribute('font-weight', 'bold');
+                textElement.setAttribute('cursor', 'pointer');
+                textElement.textContent = label.text;
+                textElement.dataset.labelIndex = index;
+
+                // Add click handler for editing/deleting
+                if (containerId === 'ref-notation-display') {
+                    textElement.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        editTextLabel(index);
+                    });
+                }
+
+                svgElement.appendChild(textElement);
+            });
+        }
+
+        // If there are no notes, just show the empty stave (with labels)
+        if (!notationData.notes || notationData.notes.length === 0) {
+            return;
+        }
+
+        const vfNotes = notationData.notes.map(noteData => {
+            if (noteData.type === 'barline') {
+                return new VF.BarNote();
             } else {
-                content.classList.add('hidden');
-                icon.style.transform = 'rotate(0deg)';
+                // Handle dotted notes - strip 'd' suffix and add dots with Dot.buildAndAttach
+                let duration = noteData.duration;
+                let numDots = 0;
+
+                if (duration.endsWith('dd')) {
+                    numDots = 2;
+                    duration = duration.slice(0, -2);
+                } else if (duration.endsWith('d')) {
+                    numDots = 1;
+                    duration = duration.slice(0, -1);
+                }
+
+                const note = new VF.StaveNote({
+                    keys: noteData.keys,
+                    duration: duration,
+                    clef: clef
+                });
+
+                // Apply automatic stem direction based on standard notation rules (skip for rests)
+                const isRest = duration.includes('r');
+                if (!isRest) {
+                    const middleLines = {
+                    'treble': { note: 'b', octave: 4 },  // B4 is middle line in treble
+                    'bass': { note: 'd', octave: 3 },    // D3 is middle line in bass
+                    'alto': { note: 'c', octave: 4 }     // C4 is middle line in alto
+                };
+
+                const getNotePitchValue = (key) => {
+                    const [noteName, octave] = key.split('/');
+                    const noteValues = { 'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'b': 6 };
+                    return parseInt(octave) * 7 + noteValues[noteName.toLowerCase()];
+                };
+
+                const middleLine = middleLines[clef] || middleLines['treble'];
+                const middleLinePitch = middleLine.octave * 7 +
+                    { 'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'b': 6 }[middleLine.note];
+
+                // For chords, use the average position or furthest from middle
+                const pitchValues = noteData.keys.map(getNotePitchValue);
+                const avgPitch = pitchValues.reduce((a, b) => a + b, 0) / pitchValues.length;
+
+                // Standard rule: notes on or above middle line get stems down
+                if (avgPitch >= middleLinePitch) {
+                    note.setStemDirection(VF.Stem.DOWN);
+                } else {
+                    note.setStemDirection(VF.Stem.UP);
+                }
+                }
+
+                // Add dots using Dot.buildAndAttach
+                for (let i = 0; i < numDots; i++) {
+                    VF.Dot.buildAndAttach([note], { all: true });
+                }
+
+                if (noteData.accidental) {
+                    note.addModifier(new VF.Accidental(noteData.accidental), 0);
+                }
+
+                if (noteData.accidentals && Array.isArray(noteData.accidentals)) {
+                    noteData.accidentals.forEach((acc, index) => {
+                        if (acc) {
+                            note.addModifier(new VF.Accidental(acc), index);
+                        }
+                    });
+                }
+
+                return note;
             }
         });
+
+        // Parse time signature for strict beat enforcement
+        let num_beats = 4;
+        let beat_value = 4;
+
+        if (timeSignature) {
+            if (timeSignature === 'C') {
+                // Common time = 4/4
+                num_beats = 4;
+                beat_value = 4;
+            } else if (timeSignature === 'C|') {
+                // Cut time = 2/2
+                num_beats = 2;
+                beat_value = 2;
+            } else if (timeSignature.includes('/')) {
+                // Parse fractional time signatures like "3/4", "6/8"
+                const parts = timeSignature.split('/');
+                num_beats = parseInt(parts[0]);
+                beat_value = parseInt(parts[1]);
+            }
+        }
+
+        // Calculate beats per measure using ORIGINAL note data, not VexFlow objects
+        const beatValues = {
+            'w': 4,    // whole note
+            'h': 2,    // half note
+            'q': 1,    // quarter note
+            '8': 0.5,  // eighth note
+            '16': 0.25 // sixteenth note
+        };
+
+        let currentMeasureBeats = 0;
+        let maxBeatsInAnyMeasure = 0;
+
+        // Use original notation data, not VexFlow objects
+        if (notationData.notes) {
+            notationData.notes.forEach(noteData => {
+                // Check if this is a barline using the original type field
+                if (noteData.type === 'barline') {
+                    // Hit a barline - check current measure and reset
+                    maxBeatsInAnyMeasure = Math.max(maxBeatsInAnyMeasure, currentMeasureBeats);
+                    currentMeasureBeats = 0;
+                    return;
+                }
+
+                const duration = noteData.duration;
+                if (!duration) return; // Skip if no duration
+
+                // Remove 'r' (rest) and 'd' (dot) suffixes to get base duration
+                const baseDuration = duration.replace(/r$/, '').replace(/d+$/, '');
+                const numDots = (duration.match(/d/g) || []).length;
+
+                let beatValue = beatValues[baseDuration];
+                if (beatValue === undefined) {
+                    console.warn('Unknown duration:', baseDuration, 'in noteData:', noteData);
+                    return; // Skip unknown durations
+                }
+
+                // Each dot adds half the previous value
+                for (let i = 0; i < numDots; i++) {
+                    beatValue += beatValue / Math.pow(2, i + 1);
+                }
+                currentMeasureBeats += beatValue;
+            });
+        }
+
+        // Check final measure (if no trailing barline)
+        maxBeatsInAnyMeasure = Math.max(maxBeatsInAnyMeasure, currentMeasureBeats);
+
+        const maxBeats = num_beats * (4 / beat_value); // Convert to quarter note beats
+        const hasExceededBeats = maxBeatsInAnyMeasure > maxBeats;
+
+        const voice = new VF.Voice({ num_beats: num_beats, beat_value: beat_value });
+        voice.setMode(VF.Voice.Mode.SOFT);  // Allow incomplete measures while editing
+
+        voice.addTickables(vfNotes);
+
+        // Apply automatic beaming for eighth notes and shorter BEFORE drawing
+        // Find consecutive groups of beamable notes
+        const isBeamable = (note) => {
+            if (!note.duration || typeof note.duration !== 'string') return false;
+            const baseDuration = note.duration.replace(/[rd]+$/, '');
+            // Only beam eighth notes (8) and sixteenth notes (16), not rests
+            return (baseDuration === '8' || baseDuration === '16') && !note.duration.includes('r');
+        };
+
+        // Group consecutive beamable notes
+        const beamGroups = [];
+        let currentGroup = [];
+
+        vfNotes.forEach((note, index) => {
+            if (isBeamable(note)) {
+                currentGroup.push(note);
+            } else {
+                if (currentGroup.length >= 2) {
+                    beamGroups.push([...currentGroup]);
+                }
+                currentGroup = [];
+            }
+        });
+
+        // Don't forget the last group
+        if (currentGroup.length >= 2) {
+            beamGroups.push(currentGroup);
+        }
+
+        // Generate beams for each group and mark notes as beamed
+        let beams = [];
+        const beamedNotes = new Set();  // Track which notes are beamed
+
+        beamGroups.forEach(group => {
+            try {
+                const groupBeams = VF.Beam.generateBeams(group, {
+                    stem_direction: null,  // Let VexFlow decide
+                    maintain_stem_directions: true
+                });
+                beams.push(...groupBeams);
+
+                // Mark all notes in this group as beamed
+                group.forEach(note => beamedNotes.add(note));
+            } catch (e) {
+                console.log('Beam generation skipped for group:', e.message);
+            }
+        });
+
+        // Remove flags from beamed notes BEFORE drawing
+        beamedNotes.forEach(note => {
+            if (note.flag) {
+                note.flag = null;  // Remove the flag so it won't be drawn
+            }
+        });
+
+        // Format and draw - use formatToStave to properly handle beams
+        new VF.Formatter()
+            .joinVoices([voice])
+            .formatToStave([voice], stave, { align_rests: true });
+
+        voice.draw(context, stave);
+
+        // Draw beams after notes are drawn
+        beams.forEach(beam => beam.setContext(context).draw());
+
+        // Show error only if beats are EXCEEDED (not if incomplete)
+        if (hasExceededBeats && containerId === 'ref-notation-display') {
+            const svgElement = container.querySelector('svg');
+            if (svgElement) {
+                const errorText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                errorText.setAttribute('x', '10');
+                errorText.setAttribute('y', '180');
+                errorText.setAttribute('fill', '#dc2626');
+                errorText.setAttribute('font-size', '14');
+                errorText.setAttribute('font-weight', 'bold');
+                errorText.textContent = `⚠️ Too many beats in one measure: A measure has ${maxBeatsInAnyMeasure} beats but ${timeSignature || '4/4'} allows ${maxBeats}`;
+                svgElement.appendChild(errorText);
+
+                const helpText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                helpText.setAttribute('x', '10');
+                helpText.setAttribute('y', '200');
+                helpText.setAttribute('fill', '#dc2626');
+                helpText.setAttribute('font-size', '12');
+                helpText.textContent = `Remove some notes or add a barline to start a new measure.`;
+                svgElement.appendChild(helpText);
+            }
+        }
     }
+
+    // Enable label mode
+    let labelMode = false;
+    const labelModeBtn = document.getElementById('label-mode-btn');
+
+    if (labelModeBtn) {
+        labelModeBtn.addEventListener('click', () => {
+            labelMode = !labelMode;
+
+            // Update button appearance
+            if (labelMode) {
+                labelModeBtn.classList.remove('btn-info');
+                labelModeBtn.classList.add('btn-success', 'btn-active');
+                labelModeBtn.innerHTML = '<i class="fas fa-check mr-1"></i>Label Mode ON - Click Score';
+            } else {
+                labelModeBtn.classList.remove('btn-success', 'btn-active');
+                labelModeBtn.classList.add('btn-info');
+                labelModeBtn.innerHTML = '<i class="fas fa-tag mr-1"></i>Add Label';
+            }
+
+            document.getElementById('ref-notation-display').style.cursor = labelMode ? 'crosshair' : 'default';
+        });
+    }
+
+    // Add click handler to notation canvas for adding labels
+    document.getElementById('ref-notation-display').addEventListener('click', (e) => {
+        if (!labelMode) return;
+
+        const container = document.getElementById('ref-notation-display');
+        const svg = container.querySelector('svg');
+        if (!svg) return;
+
+        const rect = svg.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const text = prompt('Enter label text (e.g., "treble clef", "bar line", "time signature"):');
+        if (text && text.trim()) {
+            textLabels.push({ x, y, text: text.trim() });
+            saveNotationData();
+            renderNotes();
+        }
+    });
+
+    function editTextLabel(index) {
+        const label = textLabels[index];
+        const action = confirm(`Edit label "${label.text}"?\n\nOK = Edit text\nCancel = Delete label`);
+
+        if (action === true) {
+            // Edit
+            const newText = prompt('Edit label text:', label.text);
+            if (newText && newText.trim()) {
+                textLabels[index].text = newText.trim();
+                saveNotationData();
+                renderNotes();
+            }
+        } else if (action === false) {
+            // Delete
+            if (confirm(`Delete label "${label.text}"?`)) {
+                textLabels.splice(index, 1);
+                saveNotationData();
+                renderNotes();
+            }
+        }
+    }
+
+    // Initial render
+    renderNotes();
+
+    // Save notation before form submission
+    document.getElementById('assignment-form').addEventListener('submit', function() {
+        saveNotationData();
+    });
 });
 </script>
 {% endblock %}
