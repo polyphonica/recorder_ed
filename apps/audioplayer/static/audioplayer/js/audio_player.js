@@ -239,18 +239,11 @@ async function initPlayers(piecesData) {
 async function initPlaylist(instance, stems) {
     const container = document.getElementById(`playlist${instance}`);
 
-    // Debug: Check if WaveformPlaylist is available
-    console.log('typeof WaveformPlaylist:', typeof WaveformPlaylist);
-    console.log('window.WaveformPlaylist:', window.WaveformPlaylist);
-    console.log('Available globals:', Object.keys(window).filter(k => k.toLowerCase().includes('wave')));
-
-    if (typeof WaveformPlaylist === 'undefined') {
-        console.error('WaveformPlaylist is not defined!');
-        throw new Error('WaveformPlaylist library not loaded');
-    }
+    // WaveformPlaylist is exported as an ES module, so we need to access .default
+    const PlaylistConstructor = WaveformPlaylist.default || WaveformPlaylist;
 
     // Create playlist instance with minimal UI (we're using our own controls)
-    playlists[instance] = WaveformPlaylist({
+    playlists[instance] = PlaylistConstructor({
         container: container,
         samplesPerPixel: 4096,
         mono: true,
