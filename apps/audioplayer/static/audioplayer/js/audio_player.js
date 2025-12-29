@@ -4,6 +4,7 @@
 // Store playlist instances for each piece
 let playlists = [];
 let eventEmitters = [];
+let durations = []; // Store duration for each piece
 
 /**
  * Initialize all audio players for pieces in a lesson
@@ -282,14 +283,43 @@ async function initPlaylist(instance, stems) {
         await playlists[instance].load(tracks);
         console.log(`Playlist ${instance} loaded successfully`);
 
+        // Get duration from the playlist
+        // The playlist stores duration in seconds - we need to access it from the internal state
+        // Let's try to get it from the playlist object
+        if (playlists[instance].duration) {
+            durations[instance] = playlists[instance].duration;
+        } else {
+            // Fallback: wait for first timeupdate to capture duration
+            durations[instance] = 0;
+        }
+
+        console.log(`Instance ${instance} duration:`, durations[instance]);
+
+        // Listen for audio sources loaded event to get duration
+        eventEmitters[instance].on('audiosourcesloaded', () => {
+            console.log('Audio sources loaded for instance', instance);
+            // Try to get duration from the playlist tracks
+            const ee = eventEmitters[instance];
+            if (playlists[instance] && playlists[instance].tracks && playlists[instance].tracks.length > 0) {
+                const track = playlists[instance].tracks[0];
+                if (track && track.duration) {
+                    durations[instance] = track.duration;
+                    console.log(`Got duration from track: ${durations[instance]}`);
+                    const totalTimeEl = document.getElementById(`totalTime${instance}`);
+                    if (totalTimeEl) {
+                        totalTimeEl.textContent = formatTime(durations[instance]);
+                    }
+                }
+            }
+        });
+
         // Setup event listeners for time updates
         setupTimeUpdateListener(instance);
 
-        // Update total duration display
-        const duration = getDuration(instance);
+        // Update total duration display - will be updated on first timeupdate if not available now
         const totalTimeEl = document.getElementById(`totalTime${instance}`);
-        if (totalTimeEl && duration) {
-            totalTimeEl.textContent = formatTime(duration);
+        if (totalTimeEl && durations[instance]) {
+            totalTimeEl.textContent = formatTime(durations[instance]);
         }
     } catch (error) {
         console.error(`Error loading playlist ${instance}:`, error);
@@ -314,12 +344,24 @@ function setupTimeUpdateListener(instance) {
     eventEmitters[instance].on('timeupdate', (position) => {
         const currentTimeEl = document.getElementById(`currentTime${instance}`);
         const seekSlider = document.getElementById(`seekSlider${instance}`);
-        const duration = getDuration(instance);
 
-        // Debug once every second
-        if (Math.floor(position) % 1 === 0 && position % 1 < 0.02) {
-            console.log(`Instance ${instance} - Position: ${position}, Duration: ${duration}, Slider exists: ${!!seekSlider}`);
+        // If duration not yet set, try to get it from the playlist
+        if (!durations[instance] || durations[instance] === 0) {
+            // Try to access playlist internal state to get duration
+            if (playlists[instance] && playlists[instance].tracks && playlists[instance].tracks[0]) {
+                const track = playlists[instance].tracks[0];
+                if (track.buffer && track.buffer.duration) {
+                    durations[instance] = track.buffer.duration;
+                    const totalTimeEl = document.getElementById(`totalTime${instance}`);
+                    if (totalTimeEl) {
+                        totalTimeEl.textContent = formatTime(durations[instance]);
+                    }
+                    console.log(`Captured duration from track buffer: ${durations[instance]}`);
+                }
+            }
         }
+
+        const duration = getDuration(instance);
 
         if (currentTimeEl) {
             currentTimeEl.textContent = formatTime(position);
@@ -328,9 +370,6 @@ function setupTimeUpdateListener(instance) {
         if (seekSlider && duration > 0) {
             const newValue = (position / duration) * 1000;
             seekSlider.value = newValue;
-            console.log(`Setting slider value to: ${newValue}`);
-        } else {
-            console.warn(`Cannot update slider - seekSlider: ${!!seekSlider}, duration: ${duration}`);
         }
     });
 
@@ -369,9 +408,7 @@ function setupTimeUpdateListener(instance) {
  * Get duration of playlist
  */
 function getDuration(instance) {
-    if (!playlists[instance]) return 0;
-    const playlist = playlists[instance].getInfo();
-    return playlist && playlist.duration ? playlist.duration : 0;
+    return durations[instance] || 0;
 }
 
 /**
