@@ -456,10 +456,14 @@ function resumeAll(instance) {
         // Check if user seeked while paused
         if (Math.abs(currentOffsets[instance] - pausedOffsets[instance]) > 0.1) {
             // Position changed during pause - need to restart from new position
-            audioContexts[instance].resume().then(() => {
-                audioContexts[instance].suspend();
-                playAll(instance, currentOffsets[instance]);
-            });
+            // Save the seek position before stopAll resets it
+            const seekPosition = currentOffsets[instance];
+            // Resume the context so we can properly stop sources
+            audioContexts[instance].resume();
+            // Stop current sources (this will reset currentOffsets to 0)
+            stopAll(instance);
+            // Restart from the saved seek position
+            playAll(instance, seekPosition);
         } else {
             // No seek during pause - just resume
             startTimes[instance] = audioContexts[instance].currentTime;
