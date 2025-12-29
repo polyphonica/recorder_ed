@@ -115,24 +115,7 @@
                         {% endif %}
                     </div>
 
-                    <!-- Submit Actions -->
-                    <div class="flex flex-wrap gap-2">
-                        <button type="button" id="save-draft-btn" class="btn btn-outline">
-                            <i class="fas fa-save mr-2"></i>Save Draft
-                        </button>
-                        <button type="button" id="submit-btn" class="btn btn-primary">
-                            <i class="fas fa-paper-plane mr-2"></i>Submit Assignment
-                        </button>
-                        <a href="{% url 'assignments:student_library' %}" class="btn btn-ghost">
-                            Cancel
-                        </a>
-                    </div>
-                </div>
-
-                <div class="alert alert-warning mt-4">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span class="text-sm">Once submitted, you cannot edit your work</span>
-                </div>
+                    <!-- Submission info moved to bottom -->
             </div>
         </div>
 
@@ -411,6 +394,28 @@
                         </div>
                     </div>
                 {% endif %}
+
+                <!-- Submit Actions -->
+                <div class="card card-section shadow-xl mt-6">
+                    <div class="card-body">
+                        <div class="alert alert-warning mb-4">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span class="text-sm">Once submitted, you cannot edit your work</span>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2 justify-end">
+                            <a href="{% url 'assignments:student_library' %}" class="btn btn-ghost">
+                                Cancel
+                            </a>
+                            <button type="button" id="save-draft-btn" class="btn btn-outline">
+                                <i class="fas fa-save mr-2"></i>Save Draft
+                            </button>
+                            <button type="button" id="submit-btn" class="btn btn-primary">
+                                <i class="fas fa-paper-plane mr-2"></i>Submit Assignment
+                            </button>
+                        </div>
+                    </div>
+                </div>
         </div>
     </form>
 </div>
