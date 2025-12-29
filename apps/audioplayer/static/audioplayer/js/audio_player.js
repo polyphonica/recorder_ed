@@ -1,25 +1,9 @@
 // Audio Player for Multi-Track Playalong Pieces
-// Uses Web Audio API for synchronized playback with individual track controls
+// Uses Waveform Playlist v4 for synchronized multi-track playback
 
-let audioContexts = [];
-let gainNodes = [];
-let masterGainNodes = [];
-let audioBuffers = [];
-let sources = [];
-let soloStates = [];
-let muteStates = [];
-let volumeStates = [];
-let masterVolumeStates = [];
-let activeAudioBufferSources = [];
-
-// Playback state for seek control
-let playbackStartTime = [];    // audioContext.currentTime when playback started
-let playbackOffset = [];        // offset in seconds where playback started from
-let duration = [];              // total duration of audio
-let isPaused = [];              // whether playback is currently paused
-let pausedPosition = [];        // position where pause occurred (to detect seeks)
-let animationFrameId = [];      // requestAnimationFrame ID for progress updates
-let isDragging = [];            // whether user is currently dragging the seek slider
+// Store playlist instances for each piece
+let playlists = [];
+let eventEmitters = [];
 
 /**
  * Initialize all audio players for pieces in a lesson
@@ -33,7 +17,9 @@ async function initPlayers(piecesData) {
     let playersContainer = document.getElementById('players-container');
     playersContainer.innerHTML = '';
 
-    piecesData.forEach((piece, pieceIndex) => {
+    for (let pieceIndex = 0; pieceIndex < piecesData.length; pieceIndex++) {
+        const piece = piecesData[pieceIndex];
+
         // Add horizontal divider between pieces
         if (pieceIndex > 0) {
             let hr = document.createElement('hr');
@@ -81,18 +67,19 @@ async function initPlayers(piecesData) {
         // Play/Stop button
         let playButton = document.createElement('button');
         playButton.id = `playButton${pieceIndex + 1}`;
-        playButton.classList.add('button', 'off');
+        playButton.classList.add('button');
         playButton.textContent = 'Play';
         playButton.onclick = () => togglePlay(pieceIndex + 1, playButton);
 
         // Pause/Resume button
         let pauseButton = document.createElement('button');
         pauseButton.id = `pauseButton${pieceIndex + 1}`;
-        pauseButton.classList.add('button', 'off');
+        pauseButton.classList.add('button');
         pauseButton.textContent = 'Pause';
+        pauseButton.disabled = true;
         pauseButton.onclick = () => togglePause(pieceIndex + 1, pauseButton);
 
-        // Seek control
+        // Seek control with time displays
         let seekContainer = document.createElement('div');
         seekContainer.classList.add('seek-container');
         seekContainer.style.cssText = 'display: flex; align-items: center; gap: 10px; margin: 10px 0; padding: 10px; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px;';
@@ -106,15 +93,18 @@ async function initPlayers(piecesData) {
         seekSlider.type = 'range';
         seekSlider.id = `seekSlider${pieceIndex + 1}`;
         seekSlider.min = '0';
-        seekSlider.max = '1000';  // Use 1000 steps for smooth seeking
+        seekSlider.max = '1000';
         seekSlider.value = '0';
         seekSlider.classList.add('seek-slider');
         seekSlider.style.cssText = 'flex: 1;';
-        seekSlider.disabled = false; // Start enabled (not playing yet)
 
-        // Only allow seeking when paused or stopped
-        seekSlider.onchange = () => {
-            handleSeek(pieceIndex + 1, seekSlider.value);
+        // Seek on input
+        seekSlider.oninput = (e) => {
+            const instance = pieceIndex + 1;
+            const position = (e.target.value / 1000); // 0 to 1
+            if (eventEmitters[instance]) {
+                eventEmitters[instance].emit('select', position * getDuration(instance), position * getDuration(instance));
+            }
         };
 
         let totalTimeDisplay = document.createElement('span');
@@ -145,7 +135,12 @@ async function initPlayers(piecesData) {
         controls.appendChild(masterVolumeLabel);
         controls.appendChild(masterVolumeSlider);
 
-        // Tracks container
+        // Waveform container (hidden - we don't show waveforms but playlist needs a container)
+        let playlistContainer = document.createElement('div');
+        playlistContainer.id = `playlist${pieceIndex + 1}`;
+        playlistContainer.style.display = 'none'; // Hide the waveform display
+
+        // Tracks container for our custom UI
         let tracksContainer = document.createElement('div');
         tracksContainer.id = `tracks${pieceIndex + 1}`;
 
@@ -159,13 +154,14 @@ async function initPlayers(piecesData) {
             trackTitle.textContent = stem.instrument_name;
 
             let muteButton = document.createElement('button');
-            muteButton.classList.add('button', 'off');
+            muteButton.id = `muteButton${pieceIndex + 1}-${trackIndex}`;
+            muteButton.classList.add('button');
             muteButton.textContent = 'Mute';
             muteButton.onclick = () => toggleMute(pieceIndex + 1, muteButton, trackIndex);
 
             let soloButton = document.createElement('button');
             soloButton.id = `soloButton${pieceIndex + 1}-${trackIndex}`;
-            soloButton.classList.add('button', 'off');
+            soloButton.classList.add('button');
             soloButton.textContent = 'Solo';
             soloButton.onclick = () => toggleSolo(pieceIndex + 1, soloButton, trackIndex);
 
@@ -191,6 +187,7 @@ async function initPlayers(piecesData) {
         });
 
         playerContainer.appendChild(controls);
+        playerContainer.appendChild(playlistContainer);
         playerContainer.appendChild(tracksContainer);
 
         // Add sheet music image if available
@@ -231,23 +228,134 @@ async function initPlayers(piecesData) {
 
         playersContainer.appendChild(playerContainer);
 
-        // Initialize audio context and load audio files
-        init(pieceIndex + 1, piece.stems.map(stem => stem.audio_file));
+        // Initialize waveform-playlist for this piece
+        await initPlaylist(pieceIndex + 1, piece.stems);
+    }
+}
+
+/**
+ * Initialize waveform-playlist instance for a piece
+ */
+async function initPlaylist(instance, stems) {
+    const container = document.getElementById(`playlist${instance}`);
+
+    // Create playlist instance with minimal UI (we're using our own controls)
+    playlists[instance] = WaveformPlaylist({
+        container: container,
+        samplesPerPixel: 4096,
+        mono: true,
+        waveHeight: 0, // Hide waveform
+        controls: {
+            show: false // Hide built-in controls
+        },
+        colors: {
+            waveOutlineColor: 'transparent'
+        },
+        zoomLevels: [512, 1024, 2048, 4096]
     });
+
+    // Get event emitter for control
+    eventEmitters[instance] = playlists[instance].getEventEmitter();
+
+    // Load tracks
+    const tracks = stems.map(stem => ({
+        src: stem.audio_file,
+        name: stem.instrument_name,
+        gain: 1.0
+    }));
+
+    try {
+        await playlists[instance].load(tracks);
+        console.log(`Playlist ${instance} loaded successfully`);
+
+        // Setup event listeners for time updates
+        setupTimeUpdateListener(instance);
+
+        // Update total duration display
+        const duration = getDuration(instance);
+        const totalTimeEl = document.getElementById(`totalTime${instance}`);
+        if (totalTimeEl && duration) {
+            totalTimeEl.textContent = formatTime(duration);
+        }
+    } catch (error) {
+        console.error(`Error loading playlist ${instance}:`, error);
+    }
+}
+
+/**
+ * Setup time update listener for progress display
+ */
+function setupTimeUpdateListener(instance) {
+    if (!eventEmitters[instance]) return;
+
+    eventEmitters[instance].on('timeupdate', (position) => {
+        const currentTimeEl = document.getElementById(`currentTime${instance}`);
+        const seekSlider = document.getElementById(`seekSlider${instance}`);
+        const duration = getDuration(instance);
+
+        if (currentTimeEl) {
+            currentTimeEl.textContent = formatTime(position);
+        }
+
+        if (seekSlider && duration > 0) {
+            seekSlider.value = (position / duration) * 1000;
+        }
+    });
+
+    // Listen for play state changes
+    eventEmitters[instance].on('play', () => {
+        const pauseBtn = document.getElementById(`pauseButton${instance}`);
+        if (pauseBtn) {
+            pauseBtn.disabled = false;
+            pauseBtn.textContent = 'Pause';
+        }
+    });
+
+    eventEmitters[instance].on('pause', () => {
+        const pauseBtn = document.getElementById(`pauseButton${instance}`);
+        if (pauseBtn) {
+            pauseBtn.textContent = 'Resume';
+        }
+    });
+
+    eventEmitters[instance].on('stop', () => {
+        const playBtn = document.getElementById(`playButton${instance}`);
+        const pauseBtn = document.getElementById(`pauseButton${instance}`);
+
+        if (playBtn) {
+            playBtn.textContent = 'Play';
+            playBtn.classList.remove('playing');
+        }
+        if (pauseBtn) {
+            pauseBtn.disabled = true;
+            pauseBtn.textContent = 'Pause';
+        }
+    });
+}
+
+/**
+ * Get duration of playlist
+ */
+function getDuration(instance) {
+    if (!playlists[instance]) return 0;
+    const playlist = playlists[instance].getInfo();
+    return playlist && playlist.duration ? playlist.duration : 0;
 }
 
 /**
  * Toggle play/stop
  */
 function togglePlay(instance, button) {
+    if (!eventEmitters[instance]) return;
+
     if (button.textContent === 'Play') {
         button.textContent = 'Stop';
         button.classList.add('playing');
-        playAll(instance);
+        eventEmitters[instance].emit('play');
     } else {
         button.textContent = 'Play';
         button.classList.remove('playing');
-        stopAll(instance);
+        eventEmitters[instance].emit('stop');
     }
 }
 
@@ -255,12 +363,12 @@ function togglePlay(instance, button) {
  * Toggle pause/resume
  */
 function togglePause(instance, button) {
+    if (!eventEmitters[instance]) return;
+
     if (button.textContent === 'Pause') {
-        button.textContent = 'Resume';
-        pauseAll(instance);
+        eventEmitters[instance].emit('pause');
     } else {
-        button.textContent = 'Pause';
-        resumeAll(instance);
+        eventEmitters[instance].emit('play');
     }
 }
 
@@ -268,351 +376,44 @@ function togglePause(instance, button) {
  * Toggle mute for a track
  */
 function toggleMute(instance, button, trackIndex) {
-    let isMuted = muteStates[instance][trackIndex];
-    muteStates[instance][trackIndex] = !isMuted;
+    if (!eventEmitters[instance]) return;
+
+    const isMuted = button.textContent === 'Unmute';
     button.textContent = isMuted ? 'Mute' : 'Unmute';
-    updateGain(instance, trackIndex);
+
+    eventEmitters[instance].emit('mute', trackIndex);
 }
 
 /**
  * Toggle solo for a track
  */
 function toggleSolo(instance, button, trackIndex) {
-    let isSoloed = soloStates[instance][trackIndex];
-    soloStates[instance][trackIndex] = !isSoloed;
+    if (!eventEmitters[instance]) return;
+
+    const isSoloed = button.textContent === 'Unsolo';
     button.textContent = isSoloed ? 'Solo' : 'Unsolo';
-    updateSolo(instance);
+
+    eventEmitters[instance].emit('solo', trackIndex);
 }
 
 /**
  * Update volume for a track
  */
 function updateVolume(instance, trackIndex, slider) {
-    volumeStates[instance][trackIndex] = slider.value / 100;
-    updateGain(instance, trackIndex);
+    if (!eventEmitters[instance]) return;
+
+    const volume = slider.value; // 0-100
+    eventEmitters[instance].emit('volumechange', volume, trackIndex);
 }
 
 /**
  * Update master volume
  */
 function updateMasterVolume(instance, slider) {
-    masterVolumeStates[instance] = slider.value / 100;
-    masterGainNodes[instance].gain.value = masterVolumeStates[instance];
-}
+    if (!eventEmitters[instance]) return;
 
-/**
- * Initialize audio context and load audio files
- */
-async function init(instance, trackUrls) {
-    audioContexts[instance] = new (window.AudioContext || window.webkitAudioContext)();
-    gainNodes[instance] = [];
-    masterGainNodes[instance] = audioContexts[instance].createGain();
-    masterGainNodes[instance].connect(audioContexts[instance].destination);
-    masterVolumeStates[instance] = 1.0;
-
-    audioBuffers[instance] = [];
-    sources[instance] = [];
-    soloStates[instance] = [];
-    muteStates[instance] = [];
-    volumeStates[instance] = [];
-    activeAudioBufferSources[instance] = [];
-
-    // Initialize playback state
-    playbackStartTime[instance] = 0;
-    playbackOffset[instance] = 0;
-    duration[instance] = 0;
-    isPaused[instance] = false;
-    pausedPosition[instance] = 0;
-    animationFrameId[instance] = null;
-    isDragging[instance] = false;
-
-    for (let i = 0; i < trackUrls.length; i++) {
-        soloStates[instance][i] = false;
-        muteStates[instance][i] = false;
-        volumeStates[instance][i] = 1.0;
-
-        try {
-            let response = await fetch(trackUrls[i]);
-            let arrayBuffer = await response.arrayBuffer();
-            let audioBuffer = await audioContexts[instance].decodeAudioData(arrayBuffer);
-
-            audioBuffers[instance][i] = audioBuffer;
-            gainNodes[instance][i] = audioContexts[instance].createGain();
-            gainNodes[instance][i].connect(masterGainNodes[instance]);
-            gainNodes[instance][i].gain.value = volumeStates[instance][i];
-
-            // Set duration from first track (all tracks should be same length)
-            if (i === 0) {
-                duration[instance] = audioBuffer.duration;
-                const totalTimeEl = document.getElementById(`totalTime${instance}`);
-                if (totalTimeEl) {
-                    totalTimeEl.textContent = formatTime(audioBuffer.duration);
-                }
-            }
-        } catch (error) {
-            console.error(`Error loading audio file ${trackUrls[i]}:`, error);
-        }
-    }
-
-    masterGainNodes[instance].gain.value = masterVolumeStates[instance];
-}
-
-/**
- * Play all tracks synchronized from a specific offset
- */
-function playAll(instance, offset = 0) {
-    // Stop any existing playback
-    stopAllSources(instance);
-
-    // Set playback state
-    playbackOffset[instance] = offset;
-    playbackStartTime[instance] = audioContexts[instance].currentTime;
-    isPaused[instance] = false;
-
-    // Disable seek slider while playing
-    setSeekSliderEnabled(instance, false);
-
-    // Create and start buffer sources from the offset
-    activeAudioBufferSources[instance] = audioBuffers[instance].map((buffer, index) => {
-        let source = audioContexts[instance].createBufferSource();
-        source.buffer = buffer;
-        source.connect(gainNodes[instance][index]);
-        source.onended = () => {
-            // When playback ends naturally
-            if (index === 0) {  // Only handle once (first track)
-                playbackOffset[instance] = 0;
-                isPaused[instance] = false;
-                updateProgressUI(instance);
-                setSeekSliderEnabled(instance, true); // Re-enable when stopped
-                const playBtn = document.getElementById(`playButton${instance}`);
-                if (playBtn) {
-                    playBtn.textContent = 'Play';
-                    playBtn.classList.remove('playing');
-                }
-            }
-        };
-        source.start(0, offset);
-        return source;
-    });
-
-    // Start updating progress display
-    updateProgress(instance);
-}
-
-/**
- * Stop playback and reset to beginning
- */
-function stopAll(instance) {
-    // Resume context first if suspended (to allow clean stop)
-    if (audioContexts[instance].state === 'suspended') {
-        audioContexts[instance].resume();
-    }
-
-    stopAllSources(instance);
-    playbackOffset[instance] = 0;
-    pausedPosition[instance] = 0;
-    isPaused[instance] = false;
-    setSeekSliderEnabled(instance, true); // Enable seek slider when stopped
-    updateProgressUI(instance);
-}
-
-/**
- * Stop all audio buffer sources without changing state
- */
-function stopAllSources(instance) {
-    // Cancel progress updates
-    if (animationFrameId[instance]) {
-        cancelAnimationFrame(animationFrameId[instance]);
-        animationFrameId[instance] = null;
-    }
-
-    // Stop all sources
-    if (activeAudioBufferSources[instance]) {
-        activeAudioBufferSources[instance].forEach(source => {
-            try {
-                source.stop();
-            } catch (e) {
-                // Already stopped
-            }
-        });
-    }
-    activeAudioBufferSources[instance] = [];
-}
-
-/**
- * Pause playback
- */
-function pauseAll(instance) {
-    if (audioContexts[instance].state === 'running' && !isPaused[instance]) {
-        // Calculate current position before pausing
-        const elapsed = audioContexts[instance].currentTime - playbackStartTime[instance];
-        playbackOffset[instance] = playbackOffset[instance] + elapsed;
-        pausedPosition[instance] = playbackOffset[instance]; // Remember where we paused
-
-        // Suspend audio context
-        audioContexts[instance].suspend();
-        isPaused[instance] = true;
-
-        // Enable seek slider when paused
-        setSeekSliderEnabled(instance, true);
-
-        // Stop progress updates
-        if (animationFrameId[instance]) {
-            cancelAnimationFrame(animationFrameId[instance]);
-            animationFrameId[instance] = null;
-        }
-
-        // Update UI to show paused position
-        updateProgressUI(instance);
-    }
-}
-
-/**
- * Resume playback
- */
-function resumeAll(instance) {
-    if (audioContexts[instance].state === 'suspended' && isPaused[instance]) {
-        // Check if user seeked while paused
-        if (Math.abs(playbackOffset[instance] - pausedPosition[instance]) > 0.1) {
-            // Position changed - need to restart playback from new position
-            // Wait for context to resume before starting playback
-            audioContexts[instance].resume().then(() => {
-                isPaused[instance] = false;
-                playAll(instance, playbackOffset[instance]); // Restart from new position
-
-                // Ensure Play button shows correct state
-                const playBtn = document.getElementById(`playButton${instance}`);
-                if (playBtn) {
-                    playBtn.textContent = 'Stop';
-                    playBtn.classList.add('playing');
-                }
-            });
-        } else {
-            // No seek - just resume normally
-            audioContexts[instance].resume().then(() => {
-                playbackStartTime[instance] = audioContexts[instance].currentTime;
-                isPaused[instance] = false;
-
-                // Disable seek slider when playing
-                setSeekSliderEnabled(instance, false);
-
-                // Restart progress updates
-                updateProgress(instance);
-            });
-        }
-    }
-}
-
-/**
- * Update gain for a specific track
- */
-function updateGain(instance, trackIndex) {
-    let gainValue = muteStates[instance][trackIndex] ? 0 : volumeStates[instance][trackIndex];
-
-    // Check if any track is soloed
-    let isAnySoloed = soloStates[instance].some(solo => solo);
-    if (isAnySoloed && !soloStates[instance][trackIndex]) {
-        gainValue = 0;
-    }
-
-    gainNodes[instance][trackIndex].gain.value = gainValue;
-}
-
-/**
- * Update solo states for all tracks
- */
-function updateSolo(instance) {
-    let isAnySoloed = soloStates[instance].some(solo => solo);
-
-    gainNodes[instance].forEach((gainNode, index) => {
-        let gainValue = (isAnySoloed && !soloStates[instance][index]) ? 0 :
-                        (muteStates[instance][index] ? 0 : volumeStates[instance][index]);
-        gainNode.gain.value = gainValue;
-    });
-}
-
-/**
- * Get current playback position in seconds
- */
-function getCurrentPosition(instance) {
-    if (isPaused[instance]) {
-        return playbackOffset[instance];
-    }
-    const elapsed = audioContexts[instance].currentTime - playbackStartTime[instance];
-    return playbackOffset[instance] + elapsed;
-}
-
-/**
- * Handle seek slider input (only when paused or stopped)
- */
-function handleSeek(instance, sliderValue) {
-    const seekPosition = (sliderValue / 1000) * duration[instance];
-
-    // Update the offset (but NOT pausedPosition - that remembers where we paused)
-    playbackOffset[instance] = seekPosition;
-    updateProgressUI(instance);
-}
-
-/**
- * Enable or disable seek slider based on playback state
- */
-function setSeekSliderEnabled(instance, enabled) {
-    const seekSlider = document.getElementById(`seekSlider${instance}`);
-    if (seekSlider) {
-        seekSlider.disabled = !enabled;
-        // Visual feedback: make it look disabled
-        if (enabled) {
-            seekSlider.style.opacity = '1';
-            seekSlider.style.cursor = 'pointer';
-        } else {
-            seekSlider.style.opacity = '0.5';
-            seekSlider.style.cursor = 'not-allowed';
-        }
-    }
-}
-
-/**
- * Update progress bar and time display
- */
-function updateProgress(instance) {
-    if (isPaused[instance]) return;
-
-    const currentPos = getCurrentPosition(instance);
-
-    // Check if we've reached the end
-    if (currentPos >= duration[instance]) {
-        stopAll(instance);
-        const playBtn = document.getElementById(`playButton${instance}`);
-        if (playBtn) {
-            playBtn.textContent = 'Play';
-            playBtn.classList.remove('playing');
-        }
-        return;
-    }
-
-    // Update UI (will skip if isDragging is true)
-    updateProgressUI(instance, currentPos);
-
-    // Schedule next update
-    animationFrameId[instance] = requestAnimationFrame(() => updateProgress(instance));
-}
-
-/**
- * Update the progress UI elements
- */
-function updateProgressUI(instance, position = null) {
-    const pos = position !== null ? position : getCurrentPosition(instance);
-
-    const seekSlider = document.getElementById(`seekSlider${instance}`);
-    const currentTimeDisplay = document.getElementById(`currentTime${instance}`);
-
-    if (seekSlider && duration[instance] > 0) {
-        seekSlider.value = (pos / duration[instance]) * 1000;
-    }
-
-    if (currentTimeDisplay) {
-        currentTimeDisplay.textContent = formatTime(pos);
-    }
+    const volume = slider.value; // 0-100
+    eventEmitters[instance].emit('mastervolumechange', volume);
 }
 
 /**
@@ -663,7 +464,7 @@ window.onload = async () => {
         const piecesData = data.pieces_data || data.pieces;
 
         if (piecesData && piecesData.length > 0) {
-            initPlayers(piecesData);
+            await initPlayers(piecesData);
         } else {
             document.getElementById('players-container').innerHTML =
                 '<p style="text-align: center; color: #666; padding: 40px;">No playalong pieces available.</p>';
