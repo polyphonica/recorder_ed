@@ -434,6 +434,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize empty stave on page load
     renderRefNotation();
+
+    // Ensure toggle works
+    const toggle = document.getElementById('notation-editor-toggle');
+    if (toggle) {
+        toggle.addEventListener('change', function() {
+            console.log('Notation editor toggle:', this.checked);
+        });
+    }
 });
 </script>
 {% endblock %}
