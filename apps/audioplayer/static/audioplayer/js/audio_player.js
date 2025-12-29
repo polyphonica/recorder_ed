@@ -302,7 +302,17 @@ async function initPlaylist(instance, stems) {
 function setupTimeUpdateListener(instance) {
     if (!eventEmitters[instance]) return;
 
+    // Debug: Log all events to see what's being emitted
+    const originalEmit = eventEmitters[instance].emit;
+    eventEmitters[instance].emit = function(...args) {
+        if (args[0] !== 'timeupdate') { // Don't log timeupdate to avoid spam
+            console.log(`Event emitted on instance ${instance}:`, args[0], args.slice(1));
+        }
+        return originalEmit.apply(this, args);
+    };
+
     eventEmitters[instance].on('timeupdate', (position) => {
+        console.log(`Timeupdate on instance ${instance}:`, position);
         const currentTimeEl = document.getElementById(`currentTime${instance}`);
         const seekSlider = document.getElementById(`seekSlider${instance}`);
         const duration = getDuration(instance);
