@@ -460,24 +460,27 @@ function resumeAll(instance) {
         // Check if user seeked while paused
         if (Math.abs(playbackOffset[instance] - pausedPosition[instance]) > 0.1) {
             // Position changed - need to restart playback from new position
-            audioContexts[instance].resume(); // Resume context first
-            isPaused[instance] = false;
-            playAll(instance, playbackOffset[instance]); // Restart from new position
+            // Wait for context to resume before starting playback
+            audioContexts[instance].resume().then(() => {
+                isPaused[instance] = false;
+                playAll(instance, playbackOffset[instance]); // Restart from new position
 
-            // Ensure Play button shows correct state
-            const playBtn = document.getElementById(`playButton${instance}`);
-            if (playBtn) {
-                playBtn.textContent = 'Stop';
-                playBtn.classList.add('playing');
-            }
+                // Ensure Play button shows correct state
+                const playBtn = document.getElementById(`playButton${instance}`);
+                if (playBtn) {
+                    playBtn.textContent = 'Stop';
+                    playBtn.classList.add('playing');
+                }
+            });
         } else {
             // No seek - just resume normally
-            audioContexts[instance].resume();
-            playbackStartTime[instance] = audioContexts[instance].currentTime;
-            isPaused[instance] = false;
+            audioContexts[instance].resume().then(() => {
+                playbackStartTime[instance] = audioContexts[instance].currentTime;
+                isPaused[instance] = false;
 
-            // Restart progress updates
-            updateProgress(instance);
+                // Restart progress updates
+                updateProgress(instance);
+            });
         }
     }
 }
