@@ -286,19 +286,18 @@
 
                 <!-- Simple Notation Editor Toggle -->
                 <div class="border-2 border-gray-200 rounded-xl overflow-hidden mb-6">
-                    <input type="checkbox" id="notation-editor-toggle" class="peer sr-only" />
-                    <label for="notation-editor-toggle" class="flex items-center justify-between p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
+                    <button type="button" id="notation-editor-toggle" class="w-full flex items-center justify-between p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
                         <span class="font-semibold text-gray-900 flex items-center gap-2">
                             <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                             </svg>
                             Use Simple Notation Editor
                         </span>
-                        <svg class="w-5 h-5 text-gray-600 transition-transform peer-checked:rotate-180" fill="currentColor" viewBox="0 0 20 20">
+                        <svg id="notation-toggle-icon" class="w-5 h-5 text-gray-600 transition-transform" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
                         </svg>
-                    </label>
-                    <div class="hidden peer-checked:block p-6 bg-white border-t-2 border-gray-200">
+                    </button>
+                    <div id="notation-editor-content" class="hidden p-6 bg-white border-t-2 border-gray-200">
                         <!-- Simple Notation Editor -->
                         <div class="space-y-4">
                             <!-- Controls -->
@@ -435,11 +434,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize empty stave on page load
     renderRefNotation();
 
-    // Ensure toggle works
-    const toggle = document.getElementById('notation-editor-toggle');
-    if (toggle) {
-        toggle.addEventListener('change', function() {
-            console.log('Notation editor toggle:', this.checked);
+    // Handle toggle button
+    const toggleBtn = document.getElementById('notation-editor-toggle');
+    const content = document.getElementById('notation-editor-content');
+    const icon = document.getElementById('notation-toggle-icon');
+
+    if (toggleBtn && content && icon) {
+        toggleBtn.addEventListener('click', function() {
+            const isHidden = content.classList.contains('hidden');
+            if (isHidden) {
+                content.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                content.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
         });
     }
 });
