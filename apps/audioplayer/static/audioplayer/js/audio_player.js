@@ -109,7 +109,8 @@ async function initPlayers(piecesData) {
         seekSlider.value = '0';
         seekSlider.classList.add('seek-slider');
         seekSlider.style.cssText = 'flex: 1;';
-        seekSlider.oninput = () => handleSeek(pieceIndex + 1, seekSlider.value);
+        // Use onchange instead of oninput - only seek when user releases slider
+        seekSlider.onchange = () => handleSeek(pieceIndex + 1, seekSlider.value);
 
         let totalTimeDisplay = document.createElement('span');
         totalTimeDisplay.id = `totalTime${pieceIndex + 1}`;
