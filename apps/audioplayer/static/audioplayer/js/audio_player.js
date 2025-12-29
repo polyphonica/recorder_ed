@@ -548,9 +548,8 @@ function getCurrentPosition(instance) {
 function handleSeek(instance, sliderValue) {
     const seekPosition = (sliderValue / 1000) * duration[instance];
 
-    // Update the offset
+    // Update the offset (but NOT pausedPosition - that remembers where we paused)
     playbackOffset[instance] = seekPosition;
-    pausedPosition[instance] = seekPosition;
     updateProgressUI(instance);
 }
 
