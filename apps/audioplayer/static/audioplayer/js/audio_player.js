@@ -591,6 +591,10 @@ function handleSeek(instance, sliderValue) {
 function updateProgress(instance) {
     if (isPaused[instance]) return;
 
+    // Safety check: if animationFrameId was cleared, we were canceled - don't continue
+    // This prevents a race where we're executing but handleSeek already canceled us
+    if (animationFrameId[instance] === null) return;
+
     const currentPos = getCurrentPosition(instance);
 
     // Check if we've reached the end
