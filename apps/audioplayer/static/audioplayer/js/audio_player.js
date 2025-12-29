@@ -418,6 +418,8 @@ function togglePlay(instance, button) {
         button.textContent = 'Play';
         button.classList.remove('playing');
         eventEmitters[instance].emit('stop');
+        // Explicitly seek to beginning after stopping
+        eventEmitters[instance].emit('select', 0, 0);
     }
 }
 
