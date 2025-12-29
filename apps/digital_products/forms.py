@@ -21,28 +21,41 @@ class ProductForm(forms.ModelForm):
         ]
         widgets = {
             'title': forms.TextInput(attrs={
-                'class': 'form-input',
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
                 'placeholder': 'e.g., Baroque Ornamentation Workbook'
             }),
             'short_description': forms.Textarea(attrs={
-                'class': 'form-textarea',
-                'rows': 2,
-                'placeholder': 'Brief description (300 characters max)'
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all resize-none',
+                'rows': 3,
+                'placeholder': 'Brief summary that will appear in product listings'
             }),
-            'category': forms.Select(attrs={'class': 'form-select'}),
-            'product_type': forms.Select(attrs={'class': 'form-select'}),
+            'description': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
+                'rows': 6,
+                'placeholder': 'Detailed description of your product, including what students will learn and receive'
+            }),
+            'category': forms.Select(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white cursor-pointer'
+            }),
+            'product_type': forms.Select(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white cursor-pointer'
+            }),
             'tags': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'baroque, intermediate, ensemble (comma-separated)'
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all',
+                'placeholder': 'baroque, intermediate, ensemble'
             }),
             'price': forms.NumberInput(attrs={
-                'class': 'form-input',
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all',
                 'step': '0.01',
                 'min': '0.01',
                 'placeholder': '12.99'
             }),
-            'featured_image': forms.FileInput(attrs={'class': 'form-file'}),
-            'status': forms.Select(attrs={'class': 'form-select'}),
+            'featured_image': forms.FileInput(attrs={
+                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all bg-white cursor-pointer'
+            }),
         }
 
     def __init__(self, *args, **kwargs):
@@ -71,20 +84,22 @@ class ProductFileForm(forms.ModelForm):
         fields = ['title', 'file', 'content_url', 'file_role', 'order']
         widgets = {
             'title': forms.TextInput(attrs={
-                'class': 'form-input',
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
                 'placeholder': 'e.g., Main PDF, Video Tutorial'
             }),
             'file': forms.FileInput(attrs={
-                'class': 'form-file',
+                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100',
                 'accept': '.pdf,.zip,.mp3,.mp4,.wav,.flac,.avi,.mov'
             }),
             'content_url': forms.URLInput(attrs={
-                'class': 'form-input',
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
                 'placeholder': 'https://youtube.com/watch?v=... or https://vimeo.com/...'
             }),
-            'file_role': forms.Select(attrs={'class': 'form-select'}),
+            'file_role': forms.Select(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all bg-white cursor-pointer'
+            }),
             'order': forms.NumberInput(attrs={
-                'class': 'form-input',
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
                 'min': '0'
             }),
         }

@@ -5,146 +5,259 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-5xl mx-auto">
         <!-- Header -->
         <div class="mb-8">
-            <a href="{% url 'digital_products:teacher_dashboard' %}" class="text-blue-600 hover:underline mb-4 inline-block">
-                ← Back to Dashboard
+            <a href="{% url 'digital_products:teacher_dashboard' %}"
+               class="text-blue-600 hover:text-blue-800 hover:underline mb-4 inline-flex items-center gap-2 text-base font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Back to Dashboard
             </a>
-            <h1 class="text-4xl font-bold text-gray-900">
+            <h1 class="text-5xl font-bold text-gray-900 mt-4">
                 {% if object %}Edit Product{% else %}Create New Product{% endif %}
             </h1>
+            <p class="text-lg text-gray-600 mt-2">
+                Fill in the details below to {% if object %}update{% else %}create{% endif %} your product listing
+            </p>
         </div>
 
         <!-- Form -->
-        <form method="post" enctype="multipart/form-data" class="space-y-6">
+        <form method="post" enctype="multipart/form-data" class="space-y-8">
             {% csrf_token %}
 
             <!-- Basic Information -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Basic Information</h2>
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-blue-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Basic Information</h2>
+                </div>
 
-                <div class="space-y-4">
+                <div class="space-y-6">
                     <!-- Title -->
                     <div>
-                        <label for="id_title" class="block text-sm font-medium text-gray-700 mb-2">Product Title *</label>
+                        <label for="id_title" class="block text-base font-semibold text-gray-900 mb-3">
+                            Product Title <span class="text-red-600 text-lg">*</span>
+                        </label>
                         {{ form.title }}
                         {% if form.title.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.title.errors.0 }}</p>
+                        <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.title.errors.0 }}
+                        </p>
                         {% endif %}
                     </div>
 
                     <!-- Short Description -->
                     <div>
-                        <label for="id_short_description" class="block text-sm font-medium text-gray-700 mb-2">Short Description *</label>
+                        <label for="id_short_description" class="block text-base font-semibold text-gray-900 mb-3">
+                            Short Description <span class="text-red-600 text-lg">*</span>
+                        </label>
                         {{ form.short_description }}
-                        <p class="mt-1 text-sm text-gray-500">Brief summary (max 300 characters)</p>
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            Maximum 300 characters
+                        </p>
                         {% if form.short_description.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.short_description.errors.0 }}</p>
+                        <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.short_description.errors.0 }}
+                        </p>
                         {% endif %}
                     </div>
 
                     <!-- Full Description -->
                     <div>
-                        <label for="id_description" class="block text-sm font-medium text-gray-700 mb-2">Full Description</label>
+                        <label for="id_description" class="block text-base font-semibold text-gray-900 mb-3">
+                            Full Description
+                        </label>
                         {{ form.description }}
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            Provide comprehensive details to help students understand what they're purchasing
+                        </p>
                         {% if form.description.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                        <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.description.errors.0 }}
+                        </p>
                         {% endif %}
                     </div>
                 </div>
             </div>
 
             <!-- Categorization -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Categorization</h2>
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-purple-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Categorization</h2>
+                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Category -->
                     <div>
-                        <label for="id_category" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                        <label for="id_category" class="block text-base font-semibold text-gray-900 mb-3">
+                            Category
+                        </label>
                         {{ form.category }}
                         {% if form.category.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.category.errors.0 }}</p>
+                        <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.category.errors.0 }}
+                        </p>
                         {% endif %}
                     </div>
 
                     <!-- Product Type -->
                     <div>
-                        <label for="id_product_type" class="block text-sm font-medium text-gray-700 mb-2">Product Type *</label>
+                        <label for="id_product_type" class="block text-base font-semibold text-gray-900 mb-3">
+                            Product Type <span class="text-red-600 text-lg">*</span>
+                        </label>
                         {{ form.product_type }}
                         {% if form.product_type.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.product_type.errors.0 }}</p>
+                        <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.product_type.errors.0 }}
+                        </p>
                         {% endif %}
                     </div>
 
                     <!-- Tags -->
                     <div class="md:col-span-2">
-                        <label for="id_tags" class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+                        <label for="id_tags" class="block text-base font-semibold text-gray-900 mb-3">
+                            Tags
+                        </label>
                         {{ form.tags }}
-                        <p class="mt-1 text-sm text-gray-500">Comma-separated (e.g., baroque, intermediate, ensemble)</p>
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            Separate tags with commas to help students find your product
+                        </p>
                         {% if form.tags.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.tags.errors.0 }}</p>
+                        <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.tags.errors.0 }}
+                        </p>
                         {% endif %}
                     </div>
                 </div>
             </div>
 
             <!-- Pricing & Media -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Pricing & Media</h2>
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-green-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Pricing & Media</h2>
+                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Price -->
                     <div>
-                        <label for="id_price" class="block text-sm font-medium text-gray-700 mb-2">Price (£) *</label>
+                        <label for="id_price" class="block text-base font-semibold text-gray-900 mb-3">
+                            Price (£) <span class="text-red-600 text-lg">*</span>
+                        </label>
                         {{ form.price }}
                         {% if form.price.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.price.errors.0 }}</p>
+                        <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.price.errors.0 }}
+                        </p>
                         {% endif %}
                     </div>
 
                     <!-- Featured Image -->
                     <div>
-                        <label for="id_featured_image" class="block text-sm font-medium text-gray-700 mb-2">Featured Image</label>
+                        <label for="id_featured_image" class="block text-base font-semibold text-gray-900 mb-3">
+                            Featured Image
+                        </label>
                         {{ form.featured_image }}
-                        <p class="mt-1 text-sm text-gray-500">Recommended: 1200x800px</p>
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            Recommended size: 1200 × 800 pixels
+                        </p>
                         {% if form.featured_image.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.featured_image.errors.0 }}</p>
+                        <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.featured_image.errors.0 }}
+                        </p>
                         {% endif %}
                     </div>
                 </div>
             </div>
 
             <!-- Status -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Status</h2>
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-orange-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Publication Status</h2>
+                </div>
 
                 <div>
-                    <label for="id_status" class="block text-sm font-medium text-gray-700 mb-2">Publication Status *</label>
+                    <label for="id_status" class="block text-base font-semibold text-gray-900 mb-3">
+                        Status <span class="text-red-600 text-lg">*</span>
+                    </label>
                     {{ form.status }}
-                    <p class="mt-1 text-sm text-gray-500">Set to "Published" to make visible to students</p>
+                    <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        Set to "Published" to make this product visible to students
+                    </p>
                     {% if form.status.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.status.errors.0 }}</p>
+                    <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.status.errors.0 }}
+                        </p>
                     {% endif %}
                 </div>
             </div>
 
             <!-- Product Files -->
             {% if file_formset %}
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Product Files</h2>
-                <p class="text-gray-600 mb-4">Upload files OR provide URLs (e.g., private YouTube videos) that students will access after purchase</p>
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-indigo-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Product Files</h2>
+                </div>
+                <p class="text-base text-gray-700 mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                    <span class="font-semibold">Upload files OR provide URLs</span> (e.g., private YouTube videos) that students will access after purchase.
+                </p>
 
                 {{ file_formset.management_form }}
 
-                <div class="space-y-4">
+                <div class="space-y-6">
                     {% for file_form in file_formset %}
-                    <div class="border border-gray-300 rounded-lg p-4 {% if file_form.instance.pk %}bg-gray-50{% endif %}">
+                    <div class="border-2 border-gray-200 rounded-xl p-6 bg-gray-50 hover:border-indigo-300 transition-all">
                         {{ file_form.id }}
                         {% if file_form.instance.pk %}
-                        <div class="mb-2">
-                            <span class="text-sm font-semibold text-gray-700">
+                        <div class="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                            <span class="text-base font-semibold text-indigo-900">
                                 Current: {{ file_form.instance.title }}
                                 {% if file_form.instance.is_file %}
                                     (File: {{ file_form.instance.file.name }})
@@ -155,54 +268,59 @@
                         </div>
                         {% endif %}
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <!-- Title -->
                             <div class="md:col-span-2">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                                <label for="{{ file_form.title.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                                    File Title <span class="text-red-600 text-lg">*</span>
+                                </label>
                                 {{ file_form.title }}
                             </div>
 
                             <!-- File Upload -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <label for="{{ file_form.file.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
                                     Upload File
-                                    <span class="text-gray-500 font-normal">(max 50MB)</span>
+                                    <span class="text-gray-600 font-normal text-sm">(max 50MB)</span>
                                 </label>
                                 {{ file_form.file }}
                             </div>
 
                             <!-- URL Input -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <label for="{{ file_form.content_url.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
                                     OR Provide URL
-                                    <span class="text-gray-500 font-normal">(YouTube, Vimeo, etc.)</span>
+                                    <span class="text-gray-600 font-normal text-sm">(YouTube, Vimeo, etc.)</span>
                                 </label>
                                 {{ file_form.content_url }}
                             </div>
 
                             <!-- Helper Text -->
-                            <div class="md:col-span-2 text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded p-2">
-                                💡 <strong>Tip:</strong> You can provide a file, a URL, or both!
-                                For example: a YouTube video tutorial + a PDF worksheet.
+                            <div class="md:col-span-2 text-sm text-gray-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <strong>💡 Tip:</strong> You can provide a file, a URL, or both! For example: a YouTube video tutorial + a PDF worksheet.
                             </div>
 
                             <!-- File Role -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">File Role *</label>
+                                <label for="{{ file_form.file_role.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                                    File Role <span class="text-red-600 text-lg">*</span>
+                                </label>
                                 {{ file_form.file_role }}
                             </div>
 
                             <!-- Order -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
+                                <label for="{{ file_form.order.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                                    Display Order
+                                </label>
                                 {{ file_form.order }}
                             </div>
 
                             <!-- Delete Checkbox -->
                             {% if file_form.instance.pk %}
-                            <div class="md:col-span-2 flex items-center">
+                            <div class="md:col-span-2 flex items-center p-3 bg-red-50 border border-red-200 rounded-lg">
                                 {{ file_form.DELETE }}
-                                <label for="{{ file_form.DELETE.id_for_label }}" class="ml-2 text-sm text-red-600">
+                                <label for="{{ file_form.DELETE.id_for_label }}" class="ml-3 text-base font-medium text-red-700 cursor-pointer">
                                     Delete this file
                                 </label>
                             </div>
@@ -212,38 +330,45 @@
                     {% endfor %}
                 </div>
 
-                <p class="text-sm text-gray-500 mt-4">
-                    <strong>Note:</strong> Use "Main" for the primary product content, "Preview" for sample/demo
-                    content (publicly visible), and "Bonus" for additional content.
-                </p>
+                <div class="mt-6 p-4 bg-gray-100 border border-gray-300 rounded-lg">
+                    <p class="text-base text-gray-700">
+                        <strong>Note:</strong> Use "Main" for the primary product content, "Preview" for sample/demo
+                        content (publicly visible), and "Bonus" for additional content.
+                    </p>
+                </div>
             </div>
             {% endif %}
 
             <!-- Form Errors -->
             {% if form.errors or file_formset.errors %}
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p class="text-red-800 font-semibold mb-2">Please correct the following errors:</p>
-                <ul class="list-disc list-inside text-red-700">
+            <div class="bg-red-50 border-2 border-red-300 rounded-xl p-6">
+                <div class="flex items-center gap-3 mb-3">
+                    <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <p class="text-red-900 font-bold text-lg">Please correct the following errors:</p>
+                </div>
+                <ul class="list-disc list-inside text-red-800 space-y-1">
                     {% for field, errors in form.errors.items %}
                         {% for error in errors %}
-                        <li>{{ error }}</li>
+                        <li class="text-base">{{ error }}</li>
                         {% endfor %}
                     {% endfor %}
                     {% if file_formset.errors %}
-                    <li>Please check the file formset for errors</li>
+                    <li class="text-base">Please check the file formset for errors</li>
                     {% endif %}
                 </ul>
             </div>
             {% endif %}
 
             <!-- Action Buttons -->
-            <div class="flex gap-4">
+            <div class="flex flex-col sm:flex-row gap-4 pt-4">
                 <button type="submit" id="submitBtn"
-                        class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        class="flex-1 sm:flex-initial bg-blue-600 text-white px-10 py-4 rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-all font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
                     {% if object %}Update Product{% else %}Create Product{% endif %}
                 </button>
                 <a href="{% url 'digital_products:teacher_dashboard' %}"
-                   class="bg-gray-200 text-gray-800 px-8 py-3 rounded-lg hover:bg-gray-300 transition font-semibold">
+                   class="flex-1 sm:flex-initial bg-gray-200 text-gray-800 px-10 py-4 rounded-xl hover:bg-gray-300 active:bg-gray-400 transition-all font-bold text-lg text-center shadow-md hover:shadow-lg">
                     Cancel
                 </a>
             </div>
@@ -264,7 +389,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Disable submit button to prevent double-clicks
             submitBtn.disabled = true;
             submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+            submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 inline mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Saving...';
 
             // Re-enable after 3 seconds in case of validation errors
             setTimeout(function() {
