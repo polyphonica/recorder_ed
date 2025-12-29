@@ -12,7 +12,7 @@ class AssignmentForm(forms.ModelForm):
     new_tags = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={
-            'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all',
+            'class': 'input input-bordered w-full',
             'placeholder': 'e.g., Scales, Rhythm, Theory'
         }),
         label='New Tags',
@@ -34,35 +34,35 @@ class AssignmentForm(forms.ModelForm):
         ]
         widgets = {
             'title': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
+                'class': 'input input-bordered w-full',
                 'placeholder': 'e.g., Write a C Major Scale'
             }),
             'instructions': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
+                'class': 'textarea textarea-bordered w-full',
                 'rows': 5,
                 'placeholder': 'Provide assignment instructions and question(s) here...'
             }),
             'grading_scale': forms.Select(attrs={
-                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all bg-white cursor-pointer'
+                'class': 'select select-bordered w-full'
             }),
             'difficulty': forms.Select(attrs={
-                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white cursor-pointer'
+                'class': 'select select-bordered w-full'
             }),
             'tags': forms.SelectMultiple(attrs={
-                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white',
+                'class': 'select select-bordered w-full',
                 'size': '5'
             }),
             'is_public': forms.CheckboxInput(attrs={
-                'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
+                'class': 'checkbox checkbox-primary'
             }),
             'has_notation_component': forms.CheckboxInput(attrs={
-                'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
+                'class': 'checkbox checkbox-primary'
             }),
             'has_written_component': forms.CheckboxInput(attrs={
-                'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
+                'class': 'checkbox checkbox-primary'
             }),
             'reference_notation': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all font-mono',
+                'class': 'textarea textarea-bordered w-full font-mono text-sm',
                 'rows': 4,
                 'placeholder': 'VexFlow notation data (optional - can be added later)'
             }),

@@ -4,217 +4,298 @@
 {% block title %}Create Assignment{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-4xl">
-    <div class="mb-8">
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-4xl font-bold mb-2">Create New Assignment</h1>
-                <p class="text-base-content/70">Create a music theory assignment for your students</p>
-            </div>
-            <a href="{% url 'assignments:teacher_library' %}" class="btn btn-outline">
-                <i class="fas fa-arrow-left mr-2"></i>Back to Library
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-5xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="{% url 'assignments:teacher_library' %}"
+               class="text-blue-600 hover:text-blue-800 hover:underline mb-4 inline-flex items-center gap-2 text-base font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Back to Library
             </a>
+            <h1 class="text-5xl font-bold text-gray-900 mt-4">Create New Assignment</h1>
+            <p class="text-lg text-gray-600 mt-2">Create a music theory assignment for your students</p>
         </div>
-    </div>
 
-    <div class="card card-section shadow-xl">
-        <div class="card-body">
-            <form method="post" id="assignment-form">
-                {% csrf_token %}
+        <!-- Form -->
+        <form method="post" id="assignment-form" class="space-y-8">
+            {% csrf_token %}
 
-                <!-- Title -->
-                <div class="form-control mb-6">
-                    <label class="label">
-                        <span class="label-text font-semibold text-lg">{{ form.title.label }}</span>
-                    </label>
-                    {{ form.title }}
-                    {% if form.title.errors %}
-                        <label class="label">
-                            <span class="label-text-alt text-error">{{ form.title.errors.0 }}</span>
-                        </label>
-                    {% endif %}
-                    <label class="label">
-                        <span class="label-text-alt">{{ form.title.help_text }}</span>
-                    </label>
+            <!-- Basic Information -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-blue-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Basic Information</h2>
                 </div>
 
-                <!-- Instructions -->
-                <div class="form-control mb-6">
-                    <label class="label">
-                        <span class="label-text font-semibold text-lg">{{ form.instructions.label }}</span>
-                    </label>
-                    {{ form.instructions }}
-                    {% if form.instructions.errors %}
-                        <label class="label">
-                            <span class="label-text-alt text-error">{{ form.instructions.errors.0 }}</span>
+                <div class="space-y-6">
+                    <!-- Title -->
+                    <div>
+                        <label for="{{ form.title.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.title.label }} <span class="text-red-600 text-lg">*</span>
                         </label>
-                    {% endif %}
-                    <label class="label">
-                        <span class="label-text-alt">{{ form.instructions.help_text }}</span>
-                    </label>
-                </div>
-
-                <!-- Grading Scale -->
-                <div class="form-control mb-6">
-                    <label class="label">
-                        <span class="label-text font-semibold text-lg">{{ form.grading_scale.label }}</span>
-                    </label>
-                    {{ form.grading_scale }}
-                    {% if form.grading_scale.errors %}
-                        <label class="label">
-                            <span class="label-text-alt text-error">{{ form.grading_scale.errors.0 }}</span>
-                        </label>
-                    {% endif %}
-                    <label class="label">
-                        <span class="label-text-alt">{{ form.grading_scale.help_text }}</span>
-                    </label>
-                </div>
-
-                <!-- Categorization -->
-                <div class="divider"></div>
-                <h3 class="text-2xl font-bold mb-4">Categorization & Visibility</h3>
-
-                <!-- Difficulty -->
-                <div class="form-control mb-6">
-                    <label class="label">
-                        <span class="label-text font-semibold">{{ form.difficulty.label }}</span>
-                    </label>
-                    {{ form.difficulty }}
-                    {% if form.difficulty.errors %}
-                        <label class="label">
-                            <span class="label-text-alt text-error">{{ form.difficulty.errors.0 }}</span>
-                        </label>
-                    {% endif %}
-                    <label class="label">
-                        <span class="label-text-alt">{{ form.difficulty.help_text }}</span>
-                    </label>
-                </div>
-
-                <!-- Existing Tags -->
-                <div class="form-control mb-6">
-                    <label class="label">
-                        <span class="label-text font-semibold">{{ form.tags.label }}</span>
-                    </label>
-                    {{ form.tags }}
-                    {% if form.tags.errors %}
-                        <label class="label">
-                            <span class="label-text-alt text-error">{{ form.tags.errors.0 }}</span>
-                        </label>
-                    {% endif %}
-                    <label class="label">
-                        <span class="label-text-alt">{{ form.tags.help_text }}</span>
-                    </label>
-                </div>
-
-                <!-- Create New Tags -->
-                <div class="collapse collapse-arrow bg-base-200 border border-base-300 mb-6">
-                    <input type="checkbox" id="new-tags-toggle" />
-                    <div class="collapse-title font-medium">
-                        <i class="fas fa-plus-circle mr-2"></i>
-                        Or Create New Tags
+                        {{ form.title }}
+                        {% if form.title.help_text %}
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.title.help_text }}
+                        </p>
+                        {% endif %}
+                        {% if form.title.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.title.errors.0 }}
+                        </p>
+                        {% endif %}
                     </div>
-                    <div class="collapse-content">
-                        <div class="space-y-4 pt-2">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i>
-                                <span class="text-sm">Create new tags by entering them below, separated by commas. They will be automatically added to this assignment and saved for future use.</span>
+
+                    <!-- Instructions -->
+                    <div>
+                        <label for="{{ form.instructions.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.instructions.label }} <span class="text-red-600 text-lg">*</span>
+                        </label>
+                        {{ form.instructions }}
+                        {% if form.instructions.help_text %}
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.instructions.help_text }}
+                        </p>
+                        {% endif %}
+                        {% if form.instructions.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.instructions.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Grading Scale -->
+                    <div>
+                        <label for="{{ form.grading_scale.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.grading_scale.label }} <span class="text-red-600 text-lg">*</span>
+                        </label>
+                        {{ form.grading_scale }}
+                        {% if form.grading_scale.help_text %}
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.grading_scale.help_text }}
+                        </p>
+                        {% endif %}
+                        {% if form.grading_scale.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.grading_scale.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categorization & Visibility -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-purple-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Categorization & Visibility</h2>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Difficulty -->
+                    <div>
+                        <label for="{{ form.difficulty.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.difficulty.label }}
+                        </label>
+                        {{ form.difficulty }}
+                        {% if form.difficulty.help_text %}
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.difficulty.help_text }}
+                        </p>
+                        {% endif %}
+                        {% if form.difficulty.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600">{{ form.difficulty.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Existing Tags -->
+                    <div>
+                        <label for="{{ form.tags.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.tags.label }}
+                        </label>
+                        {{ form.tags }}
+                        {% if form.tags.help_text %}
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            Hold Ctrl (Cmd on Mac) to select multiple tags
+                        </p>
+                        {% endif %}
+                        {% if form.tags.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600">{{ form.tags.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Create New Tags -->
+                    <div class="border-2 border-gray-200 rounded-xl overflow-hidden">
+                        <input type="checkbox" id="new-tags-toggle" class="peer sr-only" />
+                        <label for="new-tags-toggle" class="flex items-center justify-between p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
+                            <span class="font-semibold text-gray-900 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
+                                </svg>
+                                Or Create New Tags
+                            </span>
+                            <svg class="w-5 h-5 text-gray-600 transition-transform peer-checked:rotate-180" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                        </label>
+                        <div class="hidden peer-checked:block p-6 space-y-6 bg-white border-t-2 border-gray-200">
+                            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                                <p class="text-sm text-blue-800 flex items-start gap-2">
+                                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span>Create new tags by entering them below, separated by commas. They will be automatically added to this assignment and saved for future use.</span>
+                                </p>
                             </div>
 
-                            <div class="form-control">
-                                <label class="label" for="{{ form.new_tags.id_for_label }}">
-                                    <span class="label-text font-semibold">{{ form.new_tags.label }}</span>
+                            <div>
+                                <label for="{{ form.new_tags.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                                    {{ form.new_tags.label }}
                                 </label>
                                 {{ form.new_tags }}
-                                <label class="label">
-                                    <span class="label-text-alt">{{ form.new_tags.help_text }}</span>
-                                </label>
+                                {% if form.new_tags.help_text %}
+                                <p class="mt-2 text-sm text-gray-600">{{ form.new_tags.help_text }}</p>
+                                {% endif %}
                             </div>
 
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle"></i>
-                                <span class="text-sm">Example: "Scales, Rhythm, Theory" will create three tags and add them all to this assignment.</span>
+                            <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                                <p class="text-sm text-green-800 flex items-start gap-2">
+                                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span>Example: "Scales, Rhythm, Theory" will create three tags and add them all to this assignment.</span>
+                                </p>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Make Public -->
+                    <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            {{ form.is_public }}
+                            <span class="flex-1">
+                                <span class="block text-base font-semibold text-gray-900">{{ form.is_public.label }}</span>
+                                {% if form.is_public.help_text %}
+                                <span class="block text-sm text-gray-600 mt-1">{{ form.is_public.help_text }}</span>
+                                {% endif %}
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assignment Components -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-orange-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Assignment Components</h2>
                 </div>
 
-                <!-- Make Public -->
-                <div class="form-control p-4 border border-base-300 rounded-lg bg-base-100 mb-6">
-                    <label class="label cursor-pointer justify-start gap-4">
-                        {{ form.is_public }}
-                        <div class="flex-1">
-                            <div class="font-semibold text-base">{{ form.is_public.label }}</div>
-                            <div class="text-sm text-base-content/70 mt-1">{{ form.is_public.help_text }}</div>
-                        </div>
-                    </label>
-                </div>
-
-                <!-- Assignment Components -->
-                <div class="divider"></div>
-                <h3 class="text-2xl font-bold mb-4">Assignment Components</h3>
-
-                <div class="space-y-4 mb-6">
+                <div class="space-y-4">
                     <!-- Notation Component -->
-                    <div class="form-control p-4 border border-base-300 rounded-lg bg-base-100">
-                        <label class="label cursor-pointer justify-start gap-4">
+                    <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                        <label class="flex items-start gap-3 cursor-pointer">
                             {{ form.has_notation_component }}
-                            <div class="flex-1">
-                                <div class="font-semibold text-base">{{ form.has_notation_component.label }}</div>
-                                <div class="text-sm text-base-content/70 mt-1">{{ form.has_notation_component.help_text }}</div>
-                            </div>
+                            <span class="flex-1">
+                                <span class="block text-base font-semibold text-gray-900">{{ form.has_notation_component.label }}</span>
+                                {% if form.has_notation_component.help_text %}
+                                <span class="block text-sm text-gray-600 mt-1">{{ form.has_notation_component.help_text }}</span>
+                                {% endif %}
+                            </span>
                         </label>
                     </div>
 
                     <!-- Written Component -->
-                    <div class="form-control p-4 border border-base-300 rounded-lg bg-base-100">
-                        <label class="label cursor-pointer justify-start gap-4">
+                    <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                        <label class="flex items-start gap-3 cursor-pointer">
                             {{ form.has_written_component }}
-                            <div class="flex-1">
-                                <div class="font-semibold text-base">{{ form.has_written_component.label }}</div>
-                                <div class="text-sm text-base-content/70 mt-1">{{ form.has_written_component.help_text }}</div>
-                            </div>
+                            <span class="flex-1">
+                                <span class="block text-base font-semibold text-gray-900">{{ form.has_written_component.label }}</span>
+                                {% if form.has_written_component.help_text %}
+                                <span class="block text-sm text-gray-600 mt-1">{{ form.has_written_component.help_text }}</span>
+                                {% endif %}
+                            </span>
                         </label>
                     </div>
                 </div>
+            </div>
 
-                <!-- Reference Notation -->
-                <div class="divider"></div>
-                <h3 class="text-2xl font-bold mb-4">Reference/Example (Optional)</h3>
+            <!-- Reference Notation -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-green-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Reference/Example (Optional)</h2>
+                </div>
 
-                <div class="form-control mb-6">
-                    <label class="label">
-                        <span class="label-text font-semibold">{{ form.reference_notation.label }}</span>
-                    </label>
-                    <div class="alert alert-warning mb-2">
-                        <i class="fas fa-exclamation-triangle"></i>
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-lg mb-6">
+                    <p class="text-sm text-yellow-800 flex items-start gap-2">
+                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
                         <span>You can add reference notation later using the notation editor</span>
-                    </div>
-                    {{ form.reference_notation }}
-                    {% if form.reference_notation.errors %}
-                        <label class="label">
-                            <span class="label-text-alt text-error">{{ form.reference_notation.errors.0 }}</span>
-                        </label>
-                    {% endif %}
-                    <label class="label">
-                        <span class="label-text-alt">{{ form.reference_notation.help_text }}</span>
-                    </label>
+                    </p>
                 </div>
 
-                <!-- Form Actions -->
-                <div class="divider"></div>
-                <div class="flex gap-4 justify-end">
-                    <a href="{% url 'assignments:teacher_library' %}" class="btn btn-outline">
-                        Cancel
-                    </a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-check mr-2"></i>Create Assignment
-                    </button>
+                <div>
+                    <label for="{{ form.reference_notation.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                        {{ form.reference_notation.label }}
+                    </label>
+                    {{ form.reference_notation }}
+                    {% if form.reference_notation.help_text %}
+                    <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        {{ form.reference_notation.help_text }}
+                    </p>
+                    {% endif %}
+                    {% if form.reference_notation.errors %}
+                    <p class="mt-2 text-sm font-medium text-red-600">{{ form.reference_notation.errors.0 }}</p>
+                    {% endif %}
                 </div>
-            </form>
-        </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                <button type="submit" class="flex-1 sm:flex-initial bg-blue-600 text-white px-10 py-4 rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-all font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 inline-flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    Create Assignment
+                </button>
+                <a href="{% url 'assignments:teacher_library' %}"
+                   class="flex-1 sm:flex-initial bg-gray-200 text-gray-800 px-10 py-4 rounded-xl hover:bg-gray-300 active:bg-gray-400 transition-all font-bold text-lg text-center shadow-md hover:shadow-lg">
+                    Cancel
+                </a>
+            </div>
+        </form>
     </div>
 </div>
-
-<script>
-</script>
 {% endblock %}
