@@ -510,11 +510,20 @@
 }
 </style>
 
+<script>
+// Define VF and initialization function BEFORE loading library
+let VF;
+
+function initVexFlow() {
+    VF = Vex.Flow;
+    console.log('VexFlow loaded:', VF.BUILD);
+}
+</script>
+
 <!-- VexFlow Library from CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vexflow/4.2.2/vexflow-min.js" onload="initVexFlow()"></script>
 
 <script>
-let VF;
 
 // Editor state
 let selectedClef = 'treble';
@@ -529,12 +538,6 @@ let currentChord = [];
 
 // VexFlow objects
 let renderer, context, stave;
-
-// Initialize VexFlow when script loads
-function initVexFlow() {
-    VF = Vex.Flow;
-    console.log('VexFlow loaded:', VF.BUILD);
-}
 
 // Open the notation editor modal
 function openNotationEditor() {
