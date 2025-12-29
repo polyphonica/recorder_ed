@@ -394,6 +394,14 @@ function setupTimeUpdateListener(instance) {
         if (currentTimeEl) {
             currentTimeEl.textContent = '0:00';
         }
+
+        // Reset playlist position to beginning after stopping
+        // Use setTimeout to ensure stop has completed before seeking
+        setTimeout(() => {
+            if (eventEmitters[instance]) {
+                eventEmitters[instance].emit('select', 0, 0);
+            }
+        }, 100);
     });
 }
 
@@ -418,8 +426,6 @@ function togglePlay(instance, button) {
         button.textContent = 'Play';
         button.classList.remove('playing');
         eventEmitters[instance].emit('stop');
-        // Explicitly seek to beginning after stopping
-        eventEmitters[instance].emit('select', 0, 0);
     }
 }
 
