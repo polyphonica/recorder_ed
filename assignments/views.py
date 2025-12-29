@@ -200,6 +200,7 @@ def teacher_preview(request, pk):
 def teacher_submissions(request):
     """Teacher views all submissions from their students"""
     from lessons.models import LessonAssignment, Lesson
+    from itertools import chain
 
     # Get all lessons where this user is the teacher
     teacher_lessons = Lesson.objects.filter(
@@ -209,7 +210,9 @@ def teacher_submissions(request):
 
     # Get all assignment links from these lessons
     lesson_ids = teacher_lessons.values_list('id', flat=True)
-    assignment_links = LessonAssignment.objects.filter(
+
+    # Query LessonAssignment (course lessons)
+    lesson_assignment_links = LessonAssignment.objects.filter(
         lesson_id__in=lesson_ids
     ).select_related(
         'assignment',
@@ -219,9 +222,21 @@ def teacher_submissions(request):
         'lesson__lesson_request__child_profile'
     ).order_by('-assigned_at')
 
+    # Query PrivateLessonAssignment (standalone assignments assigned via "Assign" button)
+    private_assignment_links = PrivateLessonAssignment.objects.filter(
+        lesson_id__in=lesson_ids
+    ).select_related(
+        'assignment',
+        'lesson',
+        'student',
+        'child_profile'
+    ).order_by('-assigned_at')
+
     # Get submissions for these assignments
     submissions_data = []
-    for link in assignment_links:
+
+    # Process LessonAssignment links
+    for link in lesson_assignment_links:
         try:
             submission = AssignmentSubmission.objects.get(
                 student=link.lesson.student,
@@ -234,6 +249,24 @@ def teacher_submissions(request):
                 })
         except AssignmentSubmission.DoesNotExist:
             continue
+
+    # Process PrivateLessonAssignment links
+    for link in private_assignment_links:
+        try:
+            submission = AssignmentSubmission.objects.get(
+                student=link.student,
+                assignment=link.assignment
+            )
+            if submission.status in ['submitted', 'graded']:
+                submissions_data.append({
+                    'link': link,
+                    'submission': submission,
+                })
+        except AssignmentSubmission.DoesNotExist:
+            continue
+
+    # Sort all submissions by submission date (most recent first)
+    submissions_data.sort(key=lambda x: x['submission'].submitted_at or x['submission'].updated_at, reverse=True)
 
     return render(request, 'assignments/teacher_submissions.html', {
         'submissions_data': submissions_data,
