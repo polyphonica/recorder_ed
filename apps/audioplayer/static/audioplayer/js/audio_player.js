@@ -19,6 +19,7 @@ let duration = [];              // total duration of audio
 let isPaused = [];              // whether playback is currently paused
 let pausedPosition = [];        // position where pause occurred (to detect seeks)
 let animationFrameId = [];      // requestAnimationFrame ID for progress updates
+let isDragging = [];            // whether user is currently dragging the seek slider
 
 /**
  * Initialize all audio players for pieces in a lesson
@@ -109,8 +110,43 @@ async function initPlayers(piecesData) {
         seekSlider.value = '0';
         seekSlider.classList.add('seek-slider');
         seekSlider.style.cssText = 'flex: 1;';
-        // Use onchange instead of oninput - only seek when user releases slider
-        seekSlider.onchange = () => handleSeek(pieceIndex + 1, seekSlider.value);
+
+        // Handle dragging - visual feedback only
+        seekSlider.addEventListener('mousedown', () => {
+            isDragging[pieceIndex + 1] = true;
+        });
+        seekSlider.addEventListener('touchstart', () => {
+            isDragging[pieceIndex + 1] = true;
+        });
+
+        // Update time display while dragging
+        seekSlider.oninput = () => {
+            if (isDragging[pieceIndex + 1]) {
+                const previewTime = (seekSlider.value / 1000) * duration[pieceIndex + 1];
+                const currentTimeDisplay = document.getElementById(`currentTime${pieceIndex + 1}`);
+                if (currentTimeDisplay) {
+                    currentTimeDisplay.textContent = formatTime(previewTime);
+                }
+            }
+        };
+
+        // Actually perform seek when released
+        seekSlider.onchange = () => {
+            isDragging[pieceIndex + 1] = false;
+            handleSeek(pieceIndex + 1, seekSlider.value);
+        };
+
+        // Also handle mouse/touch release outside slider
+        document.addEventListener('mouseup', () => {
+            if (isDragging[pieceIndex + 1]) {
+                isDragging[pieceIndex + 1] = false;
+            }
+        });
+        document.addEventListener('touchend', () => {
+            if (isDragging[pieceIndex + 1]) {
+                isDragging[pieceIndex + 1] = false;
+            }
+        });
 
         let totalTimeDisplay = document.createElement('span');
         totalTimeDisplay.id = `totalTime${pieceIndex + 1}`;
@@ -319,6 +355,7 @@ async function init(instance, trackUrls) {
     isPaused[instance] = false;
     pausedPosition[instance] = 0;
     animationFrameId[instance] = null;
+    isDragging[instance] = false;
 
     for (let i = 0; i < trackUrls.length; i++) {
         soloStates[instance][i] = false;
@@ -582,11 +619,13 @@ function updateProgressUI(instance, position = null) {
     const seekSlider = document.getElementById(`seekSlider${instance}`);
     const currentTimeDisplay = document.getElementById(`currentTime${instance}`);
 
-    if (seekSlider && duration[instance] > 0) {
+    // Don't update slider position if user is dragging it
+    if (seekSlider && duration[instance] > 0 && !isDragging[instance]) {
         seekSlider.value = (pos / duration[instance]) * 1000;
     }
 
-    if (currentTimeDisplay) {
+    // Don't update time display if user is dragging (they see preview time)
+    if (currentTimeDisplay && !isDragging[instance]) {
         currentTimeDisplay.textContent = formatTime(pos);
     }
 }
