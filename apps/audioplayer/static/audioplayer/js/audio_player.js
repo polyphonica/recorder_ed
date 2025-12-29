@@ -527,20 +527,44 @@ function toggleSolo(instance, button, trackIndex) {
  * Update volume for a track
  */
 function updateVolume(instance, trackIndex, slider) {
-    if (!eventEmitters[instance]) return;
+    if (!playlists[instance] || !playlists[instance].tracks) return;
 
-    const volume = slider.value; // 0-100
-    eventEmitters[instance].emit('volumechange', volume, trackIndex);
+    const track = playlists[instance].tracks[trackIndex];
+    if (!track) return;
+
+    // Convert 0-100 to 0-1
+    const volume = slider.value / 100;
+    track.gain = volume;
+    track.savedGain = volume; // Update saved gain so mute/unmute uses correct value
+
+    // Update the volumeGain node in playout
+    if (track.playout && track.playout.volumeGain) {
+        track.playout.volumeGain.gain.value = volume;
+    }
 }
 
 /**
  * Update master volume
  */
 function updateMasterVolume(instance, slider) {
-    if (!eventEmitters[instance]) return;
+    if (!playlists[instance]) return;
 
-    const volume = slider.value; // 0-100
-    eventEmitters[instance].emit('mastervolumechange', volume);
+    // Convert 0-100 to 0-1
+    const volume = slider.value / 100;
+
+    // Update master gain if available
+    if (playlists[instance].masterGain) {
+        playlists[instance].masterGain = volume;
+    }
+
+    // Update all tracks' master gain node if it exists
+    if (playlists[instance].tracks) {
+        playlists[instance].tracks.forEach(track => {
+            if (track.playout && track.playout.masterGain) {
+                track.playout.masterGain.gain.value = volume;
+            }
+        });
+    }
 }
 
 /**
