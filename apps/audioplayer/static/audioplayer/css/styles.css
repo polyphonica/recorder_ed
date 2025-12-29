@@ -113,6 +113,49 @@
     margin-top: 10px;
 }
 
+/* Seek slider styles */
+.seek-slider {
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #ddd;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.seek-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: rgb(139, 81, 143);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.seek-slider::-webkit-slider-thumb:hover {
+    background: rgb(119, 61, 123);
+    transform: scale(1.2);
+}
+
+.seek-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: rgb(139, 81, 143);
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.seek-slider::-moz-range-thumb:hover {
+    background: rgb(119, 61, 123);
+    transform: scale(1.2);
+}
+
 .piece-divider {
     margin: 40px 0;
     border: none;
