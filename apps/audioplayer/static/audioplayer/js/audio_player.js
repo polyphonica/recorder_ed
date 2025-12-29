@@ -312,17 +312,25 @@ function setupTimeUpdateListener(instance) {
     };
 
     eventEmitters[instance].on('timeupdate', (position) => {
-        console.log(`Timeupdate on instance ${instance}:`, position);
         const currentTimeEl = document.getElementById(`currentTime${instance}`);
         const seekSlider = document.getElementById(`seekSlider${instance}`);
         const duration = getDuration(instance);
+
+        // Debug once every second
+        if (Math.floor(position) % 1 === 0 && position % 1 < 0.02) {
+            console.log(`Instance ${instance} - Position: ${position}, Duration: ${duration}, Slider exists: ${!!seekSlider}`);
+        }
 
         if (currentTimeEl) {
             currentTimeEl.textContent = formatTime(position);
         }
 
         if (seekSlider && duration > 0) {
-            seekSlider.value = (position / duration) * 1000;
+            const newValue = (position / duration) * 1000;
+            seekSlider.value = newValue;
+            console.log(`Setting slider value to: ${newValue}`);
+        } else {
+            console.warn(`Cannot update slider - seekSlider: ${!!seekSlider}, duration: ${duration}`);
         }
     });
 
