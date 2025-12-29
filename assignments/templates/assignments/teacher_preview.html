@@ -232,6 +232,37 @@ document.addEventListener('DOMContentLoaded', function() {
                     clef: clef
                 });
 
+                // Apply automatic stem direction based on standard notation rules (skip for rests)
+                const isRest = noteData.duration.includes('r');
+                if (!isRest) {
+                    const middleLines = {
+                        'treble': { note: 'b', octave: 4 },  // B4 is middle line in treble
+                        'bass': { note: 'd', octave: 3 },    // D3 is middle line in bass
+                        'alto': { note: 'c', octave: 4 }     // C4 is middle line in alto
+                    };
+
+                    const getNotePitchValue = (key) => {
+                        const [noteName, octave] = key.split('/');
+                        const noteValues = { 'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'b': 6 };
+                        return parseInt(octave) * 7 + noteValues[noteName.toLowerCase()];
+                    };
+
+                    const middleLine = middleLines[clef] || middleLines['treble'];
+                    const middleLinePitch = middleLine.octave * 7 +
+                        { 'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'b': 6 }[middleLine.note];
+
+                    // For chords, use the average position
+                    const pitchValues = noteData.keys.map(getNotePitchValue);
+                    const avgPitch = pitchValues.reduce((a, b) => a + b, 0) / pitchValues.length;
+
+                    // Standard rule: notes on or above middle line get stems down
+                    if (avgPitch >= middleLinePitch) {
+                        note.setStemDirection(VF.Stem.DOWN);
+                    } else {
+                        note.setStemDirection(VF.Stem.UP);
+                    }
+                }
+
                 // Handle single note accidentals
                 if (noteData.accidental) {
                     note.addModifier(new VF.Accidental(noteData.accidental), 0);
