@@ -277,6 +277,48 @@
                     {% endif %}
                 </div>
 
+                <!-- OR Divider -->
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="flex-1 border-t-2 border-gray-300"></div>
+                    <span class="text-gray-500 font-semibold">OR</span>
+                    <div class="flex-1 border-t-2 border-gray-300"></div>
+                </div>
+
+                <!-- Simple Notation Editor Toggle -->
+                <div class="border-2 border-gray-200 rounded-xl overflow-hidden mb-6">
+                    <input type="checkbox" id="notation-editor-toggle" class="peer sr-only" />
+                    <label for="notation-editor-toggle" class="flex items-center justify-between p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
+                        <span class="font-semibold text-gray-900 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                            </svg>
+                            Use Simple Notation Editor
+                        </span>
+                        <svg class="w-5 h-5 text-gray-600 transition-transform peer-checked:rotate-180" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </label>
+                    <div class="hidden peer-checked:block p-6 bg-white border-t-2 border-gray-200">
+                        <!-- Simple Notation Editor -->
+                        <div class="space-y-4">
+                            <!-- Controls -->
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="addNoteToRef('c/4')">Add C</button>
+                                <button type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="addNoteToRef('d/4')">Add D</button>
+                                <button type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="addNoteToRef('e/4')">Add E</button>
+                                <button type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="addNoteToRef('f/4')">Add F</button>
+                                <button type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="addNoteToRef('g/4')">Add G</button>
+                                <button type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="addNoteToRef('a/4')">Add A</button>
+                                <button type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="addNoteToRef('b/4')">Add B</button>
+                                <button type="button" class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700" onclick="removeLastRefNote()">Remove Last</button>
+                                <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700" onclick="clearRefNotation()">Clear All</button>
+                            </div>
+                            <!-- Notation Display -->
+                            <div id="ref-notation-display" class="border-2 border-gray-200 rounded-lg p-4 bg-white min-h-[150px]"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Hidden input for notation data (populated by JS if editor used) -->
                 {{ form.reference_notation }}
             </div>
@@ -298,4 +340,100 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vexflow/4.2.2/vexflow-min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const VF = Vex.Flow;
+    let refNotes = [];
+
+    // Add note to reference notation
+    window.addNoteToRef = function(pitch) {
+        refNotes.push({
+            keys: [pitch],
+            duration: 'q'
+        });
+        renderRefNotation();
+        saveRefNotation();
+    };
+
+    // Remove last note
+    window.removeLastRefNote = function() {
+        if (refNotes.length > 0) {
+            refNotes.pop();
+            renderRefNotation();
+            saveRefNotation();
+        }
+    };
+
+    // Clear all notes
+    window.clearRefNotation = function() {
+        refNotes = [];
+        renderRefNotation();
+        saveRefNotation();
+    };
+
+    // Render the notation
+    function renderRefNotation() {
+        const container = document.getElementById('ref-notation-display');
+        if (!container) return;
+
+        // Clear container
+        container.innerHTML = '';
+
+        // Create renderer
+        const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+        renderer.resize(650, 200);
+        const context = renderer.getContext();
+
+        // Create stave
+        const stave = new VF.Stave(10, 40, 620);
+        stave.addClef('treble');
+        stave.setContext(context).draw();
+
+        // If no notes, just show empty stave
+        if (refNotes.length === 0) {
+            return;
+        }
+
+        // Create VexFlow notes
+        const vfNotes = refNotes.map(noteData => {
+            return new VF.StaveNote({
+                keys: noteData.keys,
+                duration: noteData.duration,
+                clef: 'treble'
+            });
+        });
+
+        // Create voice and format
+        const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+        voice.setMode(VF.Voice.Mode.SOFT);
+        voice.addTickables(vfNotes);
+
+        const formatter = new VF.Formatter();
+        formatter.joinVoices([voice]).format([voice], 580);
+
+        // Draw
+        voice.draw(context, stave);
+    }
+
+    // Save notation data to hidden input
+    function saveRefNotation() {
+        const hiddenInput = document.getElementById('id_reference_notation');
+        if (hiddenInput) {
+            const notationData = {
+                clef: 'treble',
+                keySignature: '',
+                notes: refNotes
+            };
+            hiddenInput.value = JSON.stringify(notationData);
+        }
+    }
+
+    // Initialize empty stave on page load
+    renderRefNotation();
+});
+</script>
 {% endblock %}
