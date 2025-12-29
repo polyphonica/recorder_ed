@@ -223,8 +223,9 @@ def teacher_submissions(request):
     ).order_by('-assigned_at')
 
     # Query PrivateLessonAssignment (standalone assignments assigned via "Assign" button)
+    # Filter by teacher instead of lesson since lesson is optional
     private_assignment_links = PrivateLessonAssignment.objects.filter(
-        lesson_id__in=lesson_ids
+        teacher=request.user
     ).select_related(
         'assignment',
         'lesson',
