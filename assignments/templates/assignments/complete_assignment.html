@@ -917,7 +917,7 @@ document.addEventListener('DOMContentLoaded', function() {
         maxBeatsInAnyMeasure = Math.max(maxBeatsInAnyMeasure, currentMeasureBeats);
 
         const maxBeats = num_beats * (4 / beat_value); // Convert to quarter note beats
-        const hasExceededBeats = maxBeatsInAnyMeasure > maxBeats;
+        const hasExceededBeats = timeSignature && maxBeatsInAnyMeasure > maxBeats;
 
         const voice = new VF.Voice({ num_beats: num_beats, beat_value: beat_value });
         voice.setMode(VF.Voice.Mode.SOFT);  // Allow incomplete measures while editing
