@@ -11,7 +11,7 @@ class PieceForm(forms.ModelForm):
         max_length=200,
         required=False,
         widget=forms.TextInput(attrs={
-            'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
+            'class': 'input input-bordered w-full',
             'placeholder': 'e.g., Johann Sebastian Bach'
         }),
         label='Composer Name',
@@ -22,7 +22,7 @@ class PieceForm(forms.ModelForm):
         max_length=100,
         required=False,
         widget=forms.TextInput(attrs={
-            'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
+            'class': 'input input-bordered w-full',
             'placeholder': 'e.g., 1685-1750 or c.1547 - c.1601'
         }),
         label='Dates (Optional)',
@@ -33,7 +33,7 @@ class PieceForm(forms.ModelForm):
         max_length=50,
         required=False,
         widget=forms.TextInput(attrs={
-            'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
+            'class': 'input input-bordered w-full',
             'placeholder': 'e.g., Baroque, Classical, Traditional'
         }),
         label='Period (Optional)',
@@ -44,7 +44,7 @@ class PieceForm(forms.ModelForm):
     new_tags = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={
-            'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all',
+            'class': 'input input-bordered w-full',
             'placeholder': 'e.g., Christmas, Duet, Folk Song'
         }),
         label='New Tags',
@@ -59,43 +59,43 @@ class PieceForm(forms.ModelForm):
         ]
         widgets = {
             'title': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
+                'class': 'input input-bordered w-full',
                 'placeholder': 'e.g., Hot Cross Buns'
             }),
             'composer': forms.Select(attrs={
-                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all bg-white cursor-pointer'
+                'class': 'select select-bordered w-full'
             }),
             'grade_level': forms.Select(attrs={
-                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white cursor-pointer'
+                'class': 'select select-bordered w-full'
             }),
             'genre': forms.Select(attrs={
-                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white cursor-pointer'
+                'class': 'select select-bordered w-full'
             }),
             'difficulty': forms.Select(attrs={
-                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white cursor-pointer'
+                'class': 'select select-bordered w-full'
             }),
             'tags': forms.SelectMultiple(attrs={
-                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white',
+                'class': 'select select-bordered w-full',
                 'size': '5'
             }),
             'description': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
-                'rows': 4,
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 3,
                 'placeholder': 'Performance notes, context, or tips...'
             }),
             'svg_image': forms.FileInput(attrs={
-                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100'
+                'class': 'file-input file-input-bordered w-full'
             }),
             'pdf_score': forms.FileInput(attrs={
-                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100',
+                'class': 'file-input file-input-bordered w-full',
                 'accept': '.pdf'
             }),
             'pdf_score_title': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all',
+                'class': 'input input-bordered w-full',
                 'placeholder': 'e.g., Full Score, Recorder Part, Piano Accompaniment'
             }),
             'is_public': forms.CheckboxInput(attrs={
-                'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
+                'class': 'checkbox'
             }),
         }
         labels = {
@@ -187,14 +187,14 @@ StemFormSet = inlineformset_factory(
     validate_max=False,  # Don't enforce maximum
     widgets={
         'instrument_name': forms.TextInput(attrs={
-            'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
+            'class': 'input input-bordered w-full',
             'placeholder': 'e.g., Piano, Metronome, Backing Track'
         }),
         'audio_file': forms.FileInput(attrs={
-            'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100'
+            'class': 'file-input file-input-bordered w-full'
         }),
         'order': forms.NumberInput(attrs={
-            'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
+            'class': 'input input-bordered w-full',
             'min': '0'
         }),
     },

@@ -8,329 +8,450 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-4xl">
-    <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold">{{ title }}</h1>
-        <p class="text-base-content/70 mt-2">
-            {% if piece %}
-            Update this piece's information and audio stems
-            {% else %}
-            Create a new playalong piece with multiple audio tracks
-            {% endif %}
-        </p>
-    </div>
-
-    {% if messages %}
-    <div class="mb-6">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} mb-2">
-            {{ message }}
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    {% if piece and lessons_using %}
-    <div class="alert alert-info mb-6">
-        <i class="fas fa-info-circle"></i>
-        <div>
-            <p class="font-semibold">This piece is used in {{ lessons_using.count }} lesson(s):</p>
-            <ul class="list-disc list-inside mt-2">
-                {% for lp in lessons_using|slice:":5" %}
-                <li>{{ lp.lesson.topic.course.title }} - {{ lp.lesson.lesson_title }}</li>
-                {% endfor %}
-                {% if lessons_using.count > 5 %}
-                <li>...and {{ lessons_using.count|add:"-5" }} more</li>
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-5xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="{% url 'audioplayer:piece_list' %}"
+               class="text-blue-600 hover:text-blue-800 hover:underline mb-4 inline-flex items-center gap-2 text-base font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Back to Piece List
+            </a>
+            <h1 class="text-5xl font-bold text-gray-900 mt-4">{{ title }}</h1>
+            <p class="text-lg text-gray-600 mt-2">
+                {% if piece %}
+                Update this piece's information and audio stems
+                {% else %}
+                Create a new playalong piece with multiple audio tracks
                 {% endif %}
-            </ul>
-            <p class="mt-2 text-sm">Changes will affect all lessons using this piece.</p>
+            </p>
         </div>
-    </div>
-    {% endif %}
 
-    <!-- Form -->
-    <form method="post" enctype="multipart/form-data" class="space-y-6">
-        {% csrf_token %}
+        {% if messages %}
+        <div class="mb-6 space-y-2">
+            {% for message in messages %}
+            <div class="bg-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-50 border-2 border-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-300 rounded-xl p-4">
+                <p class="text-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-900 text-base">{{ message }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
 
-        <!-- Piece Information -->
-        <div class="card bg-base-200 shadow-md">
-            <div class="card-body">
-                <h2 class="card-title mb-4">Piece Information</h2>
-
-                {{ form.non_field_errors }}
-
-                <!-- Title -->
-                <div class="form-control">
-                    <label class="label" for="{{ form.title.id_for_label }}">
-                        <span class="label-text font-semibold">{{ form.title.label }}</span>
-                    </label>
-                    {{ form.title }}
-                    {{ form.title.errors }}
-                </div>
-
-                <!-- Composer Selection -->
-                <div class="form-control">
-                    <label class="label" for="{{ form.composer.id_for_label }}">
-                        <span class="label-text font-semibold">{{ form.composer.label }}</span>
-                    </label>
-                    {{ form.composer }}
-                    {{ form.composer.errors }}
-                    <label class="label">
-                        <span class="label-text-alt">{{ form.composer.help_text }}</span>
-                    </label>
-                </div>
-
-                <!-- Create New Composer Section -->
-                <div class="collapse collapse-arrow bg-base-200 border border-base-300">
-                    <input type="checkbox" id="new-composer-toggle" />
-                    <div class="collapse-title font-medium">
-                        <i class="fas fa-plus-circle mr-2"></i>
-                        Or Create a New Composer
-                    </div>
-                    <div class="collapse-content">
-                        <div class="space-y-4 pt-2">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i>
-                                <span class="text-sm">If you create a new composer here, it will be saved and available for future pieces. Leave these fields empty to use the selected composer above.</span>
-                            </div>
-
-                            <div class="form-control">
-                                <label class="label" for="{{ form.new_composer_name.id_for_label }}">
-                                    <span class="label-text font-semibold">{{ form.new_composer_name.label }}</span>
-                                </label>
-                                {{ form.new_composer_name }}
-                                {{ form.new_composer_name.errors }}
-                                <label class="label">
-                                    <span class="label-text-alt">{{ form.new_composer_name.help_text }}</span>
-                                </label>
-                            </div>
-
-                            <div class="form-control">
-                                <label class="label" for="{{ form.new_composer_period.id_for_label }}">
-                                    <span class="label-text font-semibold">{{ form.new_composer_period.label }}</span>
-                                </label>
-                                {{ form.new_composer_period }}
-                                {{ form.new_composer_period.errors }}
-                                <label class="label">
-                                    <span class="label-text-alt">{{ form.new_composer_period.help_text }}</span>
-                                </label>
-                            </div>
-
-                            <div class="alert alert-warning">
-                                <i class="fas fa-lightbulb"></i>
-                                <span class="text-sm">You can add the composer's biography later by editing them in the admin panel.</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Metadata Row 1 -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="form-control">
-                        <label class="label" for="{{ form.grade_level.id_for_label }}">
-                            <span class="label-text font-semibold">{{ form.grade_level.label }}</span>
-                        </label>
-                        {{ form.grade_level }}
-                        {{ form.grade_level.errors }}
-                    </div>
-
-                    <div class="form-control">
-                        <label class="label" for="{{ form.genre.id_for_label }}">
-                            <span class="label-text font-semibold">{{ form.genre.label }}</span>
-                        </label>
-                        {{ form.genre }}
-                        {{ form.genre.errors }}
-                    </div>
-
-                    <div class="form-control">
-                        <label class="label" for="{{ form.difficulty.id_for_label }}">
-                            <span class="label-text font-semibold">{{ form.difficulty.label }}</span>
-                        </label>
-                        {{ form.difficulty }}
-                        {{ form.difficulty.errors }}
-                    </div>
-                </div>
-
-                <!-- Tags -->
-                <div class="form-control">
-                    <label class="label" for="{{ form.tags.id_for_label }}">
-                        <span class="label-text font-semibold">{{ form.tags.label }}</span>
-                    </label>
-                    {{ form.tags }}
-                    {{ form.tags.errors }}
-                    <label class="label">
-                        <span class="label-text-alt">{{ form.tags.help_text }}</span>
-                        <span class="label-text-alt text-info">
-                            <i class="fas fa-lightbulb mr-1"></i>
-                            Hold Ctrl (Cmd on Mac) to select multiple tags.
-                        </span>
-                    </label>
-                </div>
-
-                <!-- Create New Tags Section -->
-                <div class="collapse collapse-arrow bg-base-200 border border-base-300">
-                    <input type="checkbox" id="new-tags-toggle" />
-                    <div class="collapse-title font-medium">
-                        <i class="fas fa-plus-circle mr-2"></i>
-                        Or Create New Tags
-                    </div>
-                    <div class="collapse-content">
-                        <div class="space-y-4 pt-2">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i>
-                                <span class="text-sm">Create new tags by entering them below, separated by commas. They will be automatically added to this piece and saved for future use.</span>
-                            </div>
-
-                            <div class="form-control">
-                                <label class="label" for="{{ form.new_tags.id_for_label }}">
-                                    <span class="label-text font-semibold">{{ form.new_tags.label }}</span>
-                                </label>
-                                {{ form.new_tags }}
-                                {{ form.new_tags.errors }}
-                                <label class="label">
-                                    <span class="label-text-alt">{{ form.new_tags.help_text }}</span>
-                                </label>
-                            </div>
-
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle"></i>
-                                <span class="text-sm">Example: "Christmas, Duet, Folk Song" will create three tags and add them all to this piece.</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Description -->
-                <div class="form-control">
-                    <label class="label" for="{{ form.description.id_for_label }}">
-                        <span class="label-text font-semibold">{{ form.description.label }}</span>
-                    </label>
-                    {{ form.description }}
-                    {{ form.description.errors }}
-                </div>
-
-                <!-- Sheet Music Image -->
-                <div class="form-control">
-                    <label class="label" for="{{ form.svg_image.id_for_label }}">
-                        <span class="label-text font-semibold">{{ form.svg_image.label }}</span>
-                    </label>
-                    {{ form.svg_image }}
-                    {% if piece and piece.svg_image %}
-                    <label class="label">
-                        <span class="label-text-alt">Current: <a href="{{ piece.svg_image.url }}" target="_blank" class="link">View</a></span>
-                    </label>
-                    {% endif %}
-                    {{ form.svg_image.errors }}
-                    <label class="label">
-                        <span class="label-text-alt">{{ form.svg_image.help_text }}</span>
-                    </label>
-                </div>
-
-                <!-- PDF Score Title -->
-                <div class="form-control">
-                    <label class="label" for="{{ form.pdf_score_title.id_for_label }}">
-                        <span class="label-text font-semibold">{{ form.pdf_score_title.label }}</span>
-                    </label>
-                    {{ form.pdf_score_title }}
-                    {{ form.pdf_score_title.errors }}
-                    <label class="label">
-                        <span class="label-text-alt">{{ form.pdf_score_title.help_text }}</span>
-                    </label>
-                </div>
-
-                <!-- Printable PDF Score -->
-                <div class="form-control">
-                    <label class="label" for="{{ form.pdf_score.id_for_label }}">
-                        <span class="label-text font-semibold">{{ form.pdf_score.label }}</span>
-                    </label>
-                    {{ form.pdf_score }}
-                    {% if piece and piece.pdf_score %}
-                    <label class="label">
-                        <span class="label-text-alt">Current: <a href="{{ piece.pdf_score.url }}" target="_blank" class="link">View PDF</a></span>
-                    </label>
-                    {% endif %}
-                    {{ form.pdf_score.errors }}
-                    <label class="label">
-                        <span class="label-text-alt">{{ form.pdf_score.help_text }}</span>
-                    </label>
-                </div>
-
-                <!-- Visibility -->
-                <div class="form-control">
-                    <label class="label cursor-pointer justify-start">
-                        {{ form.is_public }}
-                        <span class="label-text ml-3">
-                            <span class="font-semibold">{{ form.is_public.label }}</span>
-                            <span class="block text-sm text-base-content/70 mt-1">{{ form.is_public.help_text }}</span>
-                        </span>
-                    </label>
-                    {{ form.is_public.errors }}
+        {% if piece and lessons_using %}
+        <div class="bg-blue-50 border-l-4 border-blue-500 rounded-r-xl p-6 mb-8">
+            <div class="flex items-start gap-3">
+                <svg class="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    <p class="font-bold text-blue-900 text-base">This piece is used in {{ lessons_using.count }} lesson(s):</p>
+                    <ul class="list-disc list-inside mt-2 text-blue-800">
+                        {% for lp in lessons_using|slice:":5" %}
+                        <li>{{ lp.lesson.topic.course.title }} - {{ lp.lesson.lesson_title }}</li>
+                        {% endfor %}
+                        {% if lessons_using.count > 5 %}
+                        <li>...and {{ lessons_using.count|add:"-5" }} more</li>
+                        {% endif %}
+                    </ul>
+                    <p class="mt-2 text-sm text-blue-700">Changes will affect all lessons using this piece.</p>
                 </div>
             </div>
         </div>
+        {% endif %}
 
-        <!-- Audio Stems -->
-        <div class="card bg-base-200 shadow-md">
-            <div class="card-body">
-                <h2 class="card-title mb-4">Audio Stems (Tracks)</h2>
-                <p class="text-sm text-base-content/70 mb-4">
+        <!-- Form -->
+        <form method="post" enctype="multipart/form-data" class="space-y-8">
+            {% csrf_token %}
+
+            <!-- Piece Information -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-blue-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Piece Information</h2>
+                </div>
+
+                {% if form.non_field_errors %}
+                <div class="bg-red-50 border-2 border-red-300 rounded-xl p-4 mb-6">
+                    <p class="text-red-900 font-semibold">{{ form.non_field_errors }}</p>
+                </div>
+                {% endif %}
+
+                <div class="space-y-6">
+                    <!-- Title -->
+                    <div>
+                        <label for="{{ form.title.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.title.label }} <span class="text-red-600 text-lg">*</span>
+                        </label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.title.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Composer Selection -->
+                    <div>
+                        <label for="{{ form.composer.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.composer.label }}
+                        </label>
+                        {{ form.composer }}
+                        {% if form.composer.help_text %}
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.composer.help_text }}
+                        </p>
+                        {% endif %}
+                        {% if form.composer.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.composer.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Create New Composer Section -->
+                    <div class="border-2 border-gray-200 rounded-xl overflow-hidden">
+                        <input type="checkbox" id="new-composer-toggle" class="peer sr-only" />
+                        <label for="new-composer-toggle" class="flex items-center justify-between p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
+                            <span class="font-semibold text-gray-900 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
+                                </svg>
+                                Or Create a New Composer
+                            </span>
+                            <svg class="w-5 h-5 text-gray-600 transition-transform peer-checked:rotate-180" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                        </label>
+                        <div class="hidden peer-checked:block p-6 space-y-6 bg-white border-t-2 border-gray-200">
+                            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                                <p class="text-sm text-blue-800 flex items-start gap-2">
+                                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span>If you create a new composer here, it will be saved and available for future pieces. Leave these fields empty to use the selected composer above.</span>
+                                </p>
+                            </div>
+
+                            <div>
+                                <label for="{{ form.new_composer_name.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                                    {{ form.new_composer_name.label }}
+                                </label>
+                                {{ form.new_composer_name }}
+                                {% if form.new_composer_name.help_text %}
+                                <p class="mt-2 text-sm text-gray-600">{{ form.new_composer_name.help_text }}</p>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.new_composer_period.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                                    {{ form.new_composer_period.label }}
+                                </label>
+                                {{ form.new_composer_period }}
+                                {% if form.new_composer_period.help_text %}
+                                <p class="mt-2 text-sm text-gray-600">{{ form.new_composer_period.help_text }}</p>
+                                {% endif %}
+                            </div>
+
+                            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-lg">
+                                <p class="text-sm text-yellow-800 flex items-start gap-2">
+                                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                    </svg>
+                                    <span>You can add the composer's biography later by editing them in the admin panel.</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metadata Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label for="{{ form.grade_level.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                                {{ form.grade_level.label }}
+                            </label>
+                            {{ form.grade_level }}
+                            {% if form.grade_level.errors %}
+                            <p class="mt-2 text-sm font-medium text-red-600">{{ form.grade_level.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.genre.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                                {{ form.genre.label }}
+                            </label>
+                            {{ form.genre }}
+                            {% if form.genre.errors %}
+                            <p class="mt-2 text-sm font-medium text-red-600">{{ form.genre.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.difficulty.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                                {{ form.difficulty.label }}
+                            </label>
+                            {{ form.difficulty }}
+                            {% if form.difficulty.errors %}
+                            <p class="mt-2 text-sm font-medium text-red-600">{{ form.difficulty.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Tags -->
+                    <div>
+                        <label for="{{ form.tags.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.tags.label }}
+                        </label>
+                        {{ form.tags }}
+                        {% if form.tags.help_text %}
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            Hold Ctrl (Cmd on Mac) to select multiple tags
+                        </p>
+                        {% endif %}
+                        {% if form.tags.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600">{{ form.tags.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Create New Tags Section -->
+                    <div class="border-2 border-gray-200 rounded-xl overflow-hidden">
+                        <input type="checkbox" id="new-tags-toggle" class="peer sr-only" />
+                        <label for="new-tags-toggle" class="flex items-center justify-between p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
+                            <span class="font-semibold text-gray-900 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
+                                </svg>
+                                Or Create New Tags
+                            </span>
+                            <svg class="w-5 h-5 text-gray-600 transition-transform peer-checked:rotate-180" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                        </label>
+                        <div class="hidden peer-checked:block p-6 space-y-6 bg-white border-t-2 border-gray-200">
+                            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                                <p class="text-sm text-blue-800 flex items-start gap-2">
+                                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span>Create new tags by entering them below, separated by commas. They will be automatically added to this piece and saved for future use.</span>
+                                </p>
+                            </div>
+
+                            <div>
+                                <label for="{{ form.new_tags.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                                    {{ form.new_tags.label }}
+                                </label>
+                                {{ form.new_tags }}
+                                {% if form.new_tags.help_text %}
+                                <p class="mt-2 text-sm text-gray-600">{{ form.new_tags.help_text }}</p>
+                                {% endif %}
+                            </div>
+
+                            <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                                <p class="text-sm text-green-800 flex items-start gap-2">
+                                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span>Example: "Christmas, Duet, Folk Song" will create three tags and add them all to this piece.</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label for="{{ form.description.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600">{{ form.description.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Media Files -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-green-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Sheet Music & PDF</h2>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Sheet Music Image -->
+                    <div>
+                        <label for="{{ form.svg_image.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.svg_image.label }}
+                        </label>
+                        {{ form.svg_image }}
+                        {% if piece and piece.svg_image %}
+                        <p class="mt-2 text-sm text-gray-600">
+                            Current: <a href="{{ piece.svg_image.url }}" target="_blank" class="text-blue-600 hover:underline font-medium">View Image</a>
+                        </p>
+                        {% endif %}
+                        {% if form.svg_image.help_text %}
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.svg_image.help_text }}
+                        </p>
+                        {% endif %}
+                        {% if form.svg_image.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600">{{ form.svg_image.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- PDF Score Title -->
+                    <div>
+                        <label for="{{ form.pdf_score_title.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.pdf_score_title.label }}
+                        </label>
+                        {{ form.pdf_score_title }}
+                        {% if form.pdf_score_title.help_text %}
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.pdf_score_title.help_text }}
+                        </p>
+                        {% endif %}
+                        {% if form.pdf_score_title.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600">{{ form.pdf_score_title.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Printable PDF Score -->
+                    <div>
+                        <label for="{{ form.pdf_score.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.pdf_score.label }}
+                        </label>
+                        {{ form.pdf_score }}
+                        {% if piece and piece.pdf_score %}
+                        <p class="mt-2 text-sm text-gray-600">
+                            Current: <a href="{{ piece.pdf_score.url }}" target="_blank" class="text-blue-600 hover:underline font-medium">View PDF</a>
+                        </p>
+                        {% endif %}
+                        {% if form.pdf_score.help_text %}
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.pdf_score.help_text }}
+                        </p>
+                        {% endif %}
+                        {% if form.pdf_score.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600">{{ form.pdf_score.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Visibility -->
+                    <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            {{ form.is_public }}
+                            <span class="flex-1">
+                                <span class="block text-base font-semibold text-gray-900">{{ form.is_public.label }}</span>
+                                {% if form.is_public.help_text %}
+                                <span class="block text-sm text-gray-600 mt-1">{{ form.is_public.help_text }}</span>
+                                {% endif %}
+                            </span>
+                        </label>
+                        {% if form.is_public.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600">{{ form.is_public.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audio Stems -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-indigo-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Audio Stems (Tracks)</h2>
+                </div>
+                <p class="text-base text-gray-700 mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
                     Add multiple audio tracks that will play simultaneously. Students can solo, mute, and adjust volume for each track.
                 </p>
 
-                <div class="stem-formset">
-                    {{ formset.management_form }}
-                    {{ formset.non_form_errors }}
+                {{ formset.management_form }}
+                {% if formset.non_form_errors %}
+                <div class="bg-red-50 border-2 border-red-300 rounded-xl p-4 mb-6">
+                    <p class="text-red-900 font-semibold">{{ formset.non_form_errors }}</p>
+                </div>
+                {% endif %}
 
+                <div class="stem-formset space-y-6">
                     {% for form in formset %}
-                    <div class="stem-form-row mb-4 p-4">
+                    <div class="stem-form-row border-2 border-gray-200 rounded-xl p-6 bg-gray-50 hover:border-indigo-300 transition-all">
                         {% if form.instance.pk %}
-                        <h3 class="font-semibold mb-3">Stem {{ forloop.counter }}: {{ form.instance.instrument_name }}</h3>
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">Stem {{ forloop.counter }}: {{ form.instance.instrument_name }}</h3>
                         {% else %}
-                        <h3 class="font-semibold mb-3">New Stem {{ forloop.counter }}</h3>
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">New Stem {{ forloop.counter }}</h3>
                         {% endif %}
 
                         {{ form.id }}
-                        {{ form.non_field_errors }}
+                        {% if form.non_field_errors %}
+                        <div class="bg-red-50 border-2 border-red-300 rounded-lg p-3 mb-4">
+                            <p class="text-red-900 text-sm">{{ form.non_field_errors }}</p>
+                        </div>
+                        {% endif %}
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="form-control">
-                                <label class="label">
-                                    <span class="label-text text-sm">{{ form.instrument_name.label }}</span>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label for="{{ form.instrument_name.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                                    {{ form.instrument_name.label }}
                                 </label>
                                 {{ form.instrument_name }}
-                                {{ form.instrument_name.errors }}
+                                {% if form.instrument_name.errors %}
+                                <p class="mt-2 text-sm font-medium text-red-600">{{ form.instrument_name.errors.0 }}</p>
+                                {% endif %}
                             </div>
 
-                            <div class="form-control">
-                                <label class="label">
-                                    <span class="label-text text-sm">{{ form.audio_file.label }}</span>
+                            <div>
+                                <label for="{{ form.audio_file.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                                    {{ form.audio_file.label }}
                                 </label>
                                 {{ form.audio_file }}
                                 {% if form.instance.pk and form.instance.audio_file %}
-                                <label class="label">
-                                    <span class="label-text-alt">
-                                        Current: <a href="{{ form.instance.audio_file.url }}" target="_blank" class="link text-xs">Play</a>
-                                    </span>
-                                </label>
+                                <p class="mt-2 text-sm text-gray-600">
+                                    Current: <a href="{{ form.instance.audio_file.url }}" target="_blank" class="text-blue-600 hover:underline font-medium">Play Audio</a>
+                                </p>
                                 {% endif %}
-                                {{ form.audio_file.errors }}
+                                {% if form.audio_file.errors %}
+                                <p class="mt-2 text-sm font-medium text-red-600">{{ form.audio_file.errors.0 }}</p>
+                                {% endif %}
                             </div>
 
-                            <div class="form-control">
-                                <label class="label">
-                                    <span class="label-text text-sm">{{ form.order.label }}</span>
+                            <div>
+                                <label for="{{ form.order.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                                    {{ form.order.label }}
                                 </label>
                                 {{ form.order }}
-                                {{ form.order.errors }}
+                                {% if form.order.errors %}
+                                <p class="mt-2 text-sm font-medium text-red-600">{{ form.order.errors.0 }}</p>
+                                {% endif %}
                             </div>
                         </div>
 
                         {% if form.instance.pk %}
-                        <div class="form-control mt-3">
-                            <label class="label cursor-pointer justify-start">
-                                {{ form.DELETE }}
-                                <span class="label-text ml-2 text-error">{{ form.DELETE.label }}</span>
+                        <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center">
+                            {{ form.DELETE }}
+                            <label for="{{ form.DELETE.id_for_label }}" class="ml-3 text-base font-medium text-red-700 cursor-pointer">
+                                {{ form.DELETE.label }}
                             </label>
                         </div>
                         {% endif %}
@@ -338,41 +459,40 @@
                     {% endfor %}
                 </div>
 
-                {% if formset.non_form_errors %}
-                <div class="alert alert-error mt-4">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <div>
-                        <p class="font-semibold">Formset Errors:</p>
-                        {{ formset.non_form_errors }}
-                    </div>
-                </div>
-                {% endif %}
-
-                <div class="flex justify-between items-center mt-4">
-                    <button type="button" id="add-stem-button" class="btn btn-sm btn-outline btn-secondary">
-                        <i class="fas fa-plus mr-2"></i>
+                <div class="flex justify-between items-center mt-6">
+                    <button type="button" id="add-stem-button" class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
+                        </svg>
                         Add Another Stem
                     </button>
                 </div>
 
-                <div class="alert alert-warning mt-4">
-                    <i class="fas fa-info-circle"></i>
-                    <span class="text-sm">Empty stem forms will be ignored. Fill in both instrument name AND audio file for each stem you want to add.</span>
+                <div class="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-r-lg">
+                    <p class="text-sm text-yellow-800 flex items-start gap-2">
+                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Empty stem forms will be ignored. Fill in both instrument name AND audio file for each stem you want to add.</span>
+                    </p>
                 </div>
             </div>
-        </div>
 
-        <!-- Actions -->
-        <div class="flex justify-end gap-4">
-            <a href="{% url 'audioplayer:piece_list' %}" class="btn btn-ghost">
-                Cancel
-            </a>
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save mr-2"></i>
-                {{ submit_text }}
-            </button>
-        </div>
-    </form>
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                <button type="submit" class="flex-1 sm:flex-initial bg-blue-600 text-white px-10 py-4 rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-all font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 inline-flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z"/>
+                    </svg>
+                    {{ submit_text }}
+                </button>
+                <a href="{% url 'audioplayer:piece_list' %}"
+                   class="flex-1 sm:flex-initial bg-gray-200 text-gray-800 px-10 py-4 rounded-xl hover:bg-gray-300 active:bg-gray-400 transition-all font-bold text-lg text-center shadow-md hover:shadow-lg">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}
 
