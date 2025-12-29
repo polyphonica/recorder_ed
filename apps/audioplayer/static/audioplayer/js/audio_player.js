@@ -98,12 +98,23 @@ async function initPlayers(piecesData) {
         seekSlider.classList.add('seek-slider');
         seekSlider.style.cssText = 'flex: 1;';
 
-        // Seek on input
+        // Seek on change (when user releases the slider)
+        seekSlider.onchange = (e) => {
+            const instance = pieceIndex + 1;
+            const position = (e.target.value / 1000) * getDuration(instance); // position in seconds
+            if (eventEmitters[instance]) {
+                // Seek by emitting a 'select' event with start/end at the same position
+                eventEmitters[instance].emit('select', position, position);
+            }
+        };
+
+        // Update slider position while dragging (visual feedback only)
         seekSlider.oninput = (e) => {
             const instance = pieceIndex + 1;
-            const position = (e.target.value / 1000); // 0 to 1
-            if (eventEmitters[instance]) {
-                eventEmitters[instance].emit('select', position * getDuration(instance), position * getDuration(instance));
+            const position = (e.target.value / 1000) * getDuration(instance);
+            const currentTimeEl = document.getElementById(`currentTime${instance}`);
+            if (currentTimeEl) {
+                currentTimeEl.textContent = formatTime(position);
             }
         };
 
