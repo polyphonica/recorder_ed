@@ -3,6 +3,18 @@
 
 {% block title %}Preview: {{ assignment.title }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    #reference-notation-display {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        min-height: 150px;
+        border: 1px solid #e5e7eb;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Preview Banner -->
@@ -73,19 +85,23 @@
                 </div>
             </div>
 
-            <!-- Reference Notation (if provided) -->
-            {% if assignment.reference_notation %}
+            <!-- Reference Notation/Image (if provided) -->
+            {% if assignment.reference_notation or assignment.reference_image %}
             <div class="mb-8">
                 <h2 class="text-2xl font-bold mb-3">
-                    <i class="fas fa-music mr-2 text-primary"></i>Reference Notation
+                    <i class="fas fa-eye mr-2 text-primary"></i>Reference/Example
                 </h2>
-                <div class="bg-base-200 p-6 rounded-lg">
-                    <div class="alert alert-warning mb-4">
-                        <i class="fas fa-info-circle"></i>
-                        <span>This is reference notation visible to students. To preview the interactive notation editor, students would see this in the assignment completion page.</span>
-                    </div>
-                    <pre class="text-sm font-mono bg-base-300 p-4 rounded overflow-x-auto">{{ assignment.reference_notation }}</pre>
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle"></i>
+                    <span>This is exactly how students will see the reference notation/image in their assignment</span>
                 </div>
+                {% if assignment.reference_image %}
+                    <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                        <img src="{{ assignment.reference_image.url }}" alt="Reference notation" class="max-w-full h-auto mx-auto">
+                    </div>
+                {% elif assignment.reference_notation %}
+                    <div id="reference-notation-display"></div>
+                {% endif %}
             </div>
             {% endif %}
 
@@ -160,4 +176,92 @@
         </div>
     </div>
 </div>
+
+{% if assignment.reference_notation %}
+<script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const VF = Vex.Flow;
+
+    // Render reference notation
+    {% if assignment.reference_notation %}
+    const referenceNotationData = {{ assignment.reference_notation|safe }};
+    renderNotation('reference-notation-display', referenceNotationData);
+    {% endif %}
+
+    function renderNotation(containerId, notationData) {
+        const container = document.getElementById(containerId);
+        if (!container || !notationData) {
+            return;
+        }
+
+        // Clear container
+        container.innerHTML = '';
+
+        // Create renderer
+        const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+        renderer.resize(700, 200);
+        const context = renderer.getContext();
+
+        // Create stave
+        const stave = new VF.Stave(10, 40, 680);
+
+        // Add clef and key signature
+        const clef = notationData.clef || 'treble';
+        const keySignature = notationData.keySignature || '';
+
+        stave.addClef(clef);
+        if (keySignature) {
+            stave.addKeySignature(keySignature);
+        }
+        stave.setContext(context).draw();
+
+        // If there are no notes, just show the empty stave
+        if (!notationData.notes || notationData.notes.length === 0) {
+            return;
+        }
+
+        // Create notes
+        const vfNotes = notationData.notes.map(noteData => {
+            if (noteData.type === 'barline') {
+                return new VF.BarNote();
+            } else {
+                const note = new VF.StaveNote({
+                    keys: noteData.keys,
+                    duration: noteData.duration,
+                    clef: clef
+                });
+
+                // Handle single note accidentals
+                if (noteData.accidental) {
+                    note.addModifier(new VF.Accidental(noteData.accidental), 0);
+                }
+
+                // Handle chord accidentals
+                if (noteData.accidentals && Array.isArray(noteData.accidentals)) {
+                    noteData.accidentals.forEach((acc, index) => {
+                        if (acc) {
+                            note.addModifier(new VF.Accidental(acc), index);
+                        }
+                    });
+                }
+
+                return note;
+            }
+        });
+
+        // Create voice and format
+        const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+        voice.setMode(VF.Voice.Mode.SOFT);  // Don't strictly enforce beat counting
+        voice.addTickables(vfNotes);
+
+        const formatter = new VF.Formatter();
+        formatter.joinVoices([voice]).format([voice], 650);
+
+        // Draw voice
+        voice.draw(context, stave);
+    }
+});
+</script>
+{% endif %}
 {% endblock %}
