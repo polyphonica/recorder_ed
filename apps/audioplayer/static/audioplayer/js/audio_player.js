@@ -281,7 +281,6 @@ async function initPlaylist(instance, stems) {
 
     try {
         await playlists[instance].load(tracks);
-        console.log(`Playlist ${instance} loaded successfully`);
 
         // Get duration from the playlist
         // The playlist stores duration in seconds - we need to access it from the internal state
@@ -293,18 +292,13 @@ async function initPlaylist(instance, stems) {
             durations[instance] = 0;
         }
 
-        console.log(`Instance ${instance} duration:`, durations[instance]);
-
         // Listen for audio sources loaded event to get duration
         eventEmitters[instance].on('audiosourcesloaded', () => {
-            console.log('Audio sources loaded for instance', instance);
             // Try to get duration from the playlist tracks
-            const ee = eventEmitters[instance];
             if (playlists[instance] && playlists[instance].tracks && playlists[instance].tracks.length > 0) {
                 const track = playlists[instance].tracks[0];
                 if (track && track.duration) {
                     durations[instance] = track.duration;
-                    console.log(`Got duration from track: ${durations[instance]}`);
                     const totalTimeEl = document.getElementById(`totalTime${instance}`);
                     if (totalTimeEl) {
                         totalTimeEl.textContent = formatTime(durations[instance]);
@@ -332,15 +326,6 @@ async function initPlaylist(instance, stems) {
 function setupTimeUpdateListener(instance) {
     if (!eventEmitters[instance]) return;
 
-    // Debug: Log all events to see what's being emitted
-    const originalEmit = eventEmitters[instance].emit;
-    eventEmitters[instance].emit = function(...args) {
-        if (args[0] !== 'timeupdate') { // Don't log timeupdate to avoid spam
-            console.log(`Event emitted on instance ${instance}:`, args[0], args.slice(1));
-        }
-        return originalEmit.apply(this, args);
-    };
-
     eventEmitters[instance].on('timeupdate', (position) => {
         const currentTimeEl = document.getElementById(`currentTime${instance}`);
         const seekSlider = document.getElementById(`seekSlider${instance}`);
@@ -356,7 +341,6 @@ function setupTimeUpdateListener(instance) {
                     if (totalTimeEl) {
                         totalTimeEl.textContent = formatTime(durations[instance]);
                     }
-                    console.log(`Captured duration from track buffer: ${durations[instance]}`);
                 }
             }
         }
@@ -476,9 +460,6 @@ function toggleMute(instance, button, trackIndex) {
     // Update the volumeGain node in playout
     if (track.playout && track.playout.volumeGain) {
         track.playout.volumeGain.gain.value = targetGain;
-        console.log(`Updated volumeGain to ${targetGain} for track ${trackIndex}`);
-    } else {
-        console.warn(`Could not find volumeGain for track ${trackIndex}`);
     }
 }
 
@@ -519,8 +500,6 @@ function toggleSolo(instance, button, trackIndex) {
             track.playout.volumeGain.gain.value = targetGain;
         }
     });
-
-    console.log(`Track ${trackIndex} solo: ${newSoloState}, any soloed: ${anySoloed}`);
 }
 
 /**
