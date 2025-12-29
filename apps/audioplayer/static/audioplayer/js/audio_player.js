@@ -12,6 +12,13 @@ let volumeStates = [];
 let masterVolumeStates = [];
 let activeAudioBufferSources = [];
 
+// Seek control state variables
+let startTimes = [];          // When playback started (audioContext time)
+let currentOffsets = [];      // Current offset in the audio (seconds)
+let durations = [];          // Duration of the audio (seconds)
+let isPlaying = [];          // Is currently playing
+let animationFrameIds = [];  // For updating progress bar
+
 /**
  * Initialize all audio players for pieces in a lesson
  */
@@ -83,6 +90,40 @@ async function initPlayers(piecesData) {
         pauseButton.textContent = 'Pause';
         pauseButton.onclick = () => togglePause(pieceIndex + 1, pauseButton);
 
+        // Seek control section
+        let seekContainer = document.createElement('div');
+        seekContainer.classList.add('seek-container');
+        seekContainer.style.cssText = 'display: flex; align-items: center; gap: 10px; margin: 10px 0;';
+
+        // Current time display
+        let currentTimeDisplay = document.createElement('span');
+        currentTimeDisplay.id = `currentTime${pieceIndex + 1}`;
+        currentTimeDisplay.classList.add('time-display');
+        currentTimeDisplay.textContent = '0:00';
+        currentTimeDisplay.style.cssText = 'min-width: 45px; text-align: right; font-family: monospace;';
+
+        // Seek slider
+        let seekSlider = document.createElement('input');
+        seekSlider.type = 'range';
+        seekSlider.id = `seekSlider${pieceIndex + 1}`;
+        seekSlider.min = '0';
+        seekSlider.max = '100';
+        seekSlider.value = '0';
+        seekSlider.classList.add('seek-slider');
+        seekSlider.style.cssText = 'flex: 1;';
+        seekSlider.oninput = () => seekTo(pieceIndex + 1, seekSlider);
+
+        // Total time display
+        let totalTimeDisplay = document.createElement('span');
+        totalTimeDisplay.id = `totalTime${pieceIndex + 1}`;
+        totalTimeDisplay.classList.add('time-display');
+        totalTimeDisplay.textContent = '0:00';
+        totalTimeDisplay.style.cssText = 'min-width: 45px; font-family: monospace;';
+
+        seekContainer.appendChild(currentTimeDisplay);
+        seekContainer.appendChild(seekSlider);
+        seekContainer.appendChild(totalTimeDisplay);
+
         // Master volume control
         let masterVolumeSlider = document.createElement('input');
         masterVolumeSlider.type = 'range';
@@ -98,6 +139,7 @@ async function initPlayers(piecesData) {
 
         controls.appendChild(playButton);
         controls.appendChild(pauseButton);
+        controls.appendChild(seekContainer);
         controls.appendChild(masterVolumeLabel);
         controls.appendChild(masterVolumeSlider);
 
@@ -273,6 +315,13 @@ async function init(instance, trackUrls) {
     volumeStates[instance] = [];
     activeAudioBufferSources[instance] = [];
 
+    // Initialize seek control state
+    startTimes[instance] = 0;
+    currentOffsets[instance] = 0;
+    durations[instance] = 0;
+    isPlaying[instance] = false;
+    animationFrameIds[instance] = null;
+
     for (let i = 0; i < trackUrls.length; i++) {
         soloStates[instance][i] = false;
         muteStates[instance][i] = false;
@@ -287,6 +336,15 @@ async function init(instance, trackUrls) {
             gainNodes[instance][i] = audioContexts[instance].createGain();
             gainNodes[instance][i].connect(masterGainNodes[instance]);
             gainNodes[instance][i].gain.value = volumeStates[instance][i];
+
+            // Set duration from the first track (all tracks should be same length)
+            if (i === 0) {
+                durations[instance] = audioBuffer.duration;
+                const totalTimeDisplay = document.getElementById(`totalTime${instance}`);
+                if (totalTimeDisplay) {
+                    totalTimeDisplay.textContent = formatTime(audioBuffer.duration);
+                }
+            }
         } catch (error) {
             console.error(`Error loading audio file ${trackUrls[i]}:`, error);
         }
@@ -296,25 +354,48 @@ async function init(instance, trackUrls) {
 }
 
 /**
- * Play all tracks synchronized
+ * Play all tracks synchronized from current offset
  */
-function playAll(instance) {
+function playAll(instance, offset = null) {
     stopAll(instance);
+
+    // Use provided offset or current offset
+    const startOffset = offset !== null ? offset : currentOffsets[instance];
+
+    // Don't play if we're at the end
+    if (startOffset >= durations[instance]) {
+        currentOffsets[instance] = 0;
+        updateSeekUI(instance);
+        return;
+    }
+
+    startTimes[instance] = audioContexts[instance].currentTime;
+    currentOffsets[instance] = startOffset;
+    isPlaying[instance] = true;
 
     activeAudioBufferSources[instance] = audioBuffers[instance].map((buffer, index) => {
         let source = audioContexts[instance].createBufferSource();
         source.buffer = buffer;
         source.connect(gainNodes[instance][index]);
         source.onended = () => {
-            const playBtn = document.getElementById(`playButton${instance}`);
-            if (playBtn) {
-                playBtn.textContent = 'Play';
-                playBtn.classList.remove('playing');
+            // Only reset UI if this is the last track to finish
+            if (index === audioBuffers[instance].length - 1) {
+                isPlaying[instance] = false;
+                currentOffsets[instance] = 0;
+                const playBtn = document.getElementById(`playButton${instance}`);
+                if (playBtn) {
+                    playBtn.textContent = 'Play';
+                    playBtn.classList.remove('playing');
+                }
+                updateSeekUI(instance);
             }
         };
-        source.start();
+        source.start(0, startOffset);
         return source;
     });
+
+    // Start updating the progress bar
+    updateProgressBar(instance);
 }
 
 /**
@@ -331,6 +412,17 @@ function stopAll(instance) {
         });
     }
     activeAudioBufferSources[instance] = [];
+    isPlaying[instance] = false;
+    currentOffsets[instance] = 0;
+
+    // Cancel animation frame
+    if (animationFrameIds[instance]) {
+        cancelAnimationFrame(animationFrameIds[instance]);
+        animationFrameIds[instance] = null;
+    }
+
+    // Reset seek UI
+    updateSeekUI(instance);
 }
 
 /**
@@ -338,7 +430,18 @@ function stopAll(instance) {
  */
 function pauseAll(instance) {
     if (audioContexts[instance].state === 'running') {
+        // Calculate and save current offset before pausing
+        const elapsed = audioContexts[instance].currentTime - startTimes[instance];
+        currentOffsets[instance] = currentOffsets[instance] + elapsed;
+
         audioContexts[instance].suspend();
+        isPlaying[instance] = false;
+
+        // Cancel animation frame
+        if (animationFrameIds[instance]) {
+            cancelAnimationFrame(animationFrameIds[instance]);
+            animationFrameIds[instance] = null;
+        }
     }
 }
 
@@ -347,7 +450,13 @@ function pauseAll(instance) {
  */
 function resumeAll(instance) {
     if (audioContexts[instance].state === 'suspended') {
+        // Update start time to account for the pause
+        startTimes[instance] = audioContexts[instance].currentTime;
         audioContexts[instance].resume();
+        isPlaying[instance] = true;
+
+        // Resume progress bar updates
+        updateProgressBar(instance);
     }
 }
 
@@ -377,6 +486,85 @@ function updateSolo(instance) {
                         (muteStates[instance][index] ? 0 : volumeStates[instance][index]);
         gainNode.gain.value = gainValue;
     });
+}
+
+/**
+ * Seek to a specific position in the audio
+ */
+function seekTo(instance, slider) {
+    const seekPercentage = slider.value / 100;
+    const newOffset = seekPercentage * durations[instance];
+
+    if (isPlaying[instance]) {
+        // If currently playing, restart from new position
+        playAll(instance, newOffset);
+        // Update the play button state
+        const playBtn = document.getElementById(`playButton${instance}`);
+        if (playBtn) {
+            playBtn.textContent = 'Stop';
+            playBtn.classList.add('playing');
+        }
+    } else {
+        // If not playing, just update the offset
+        currentOffsets[instance] = newOffset;
+        updateSeekUI(instance);
+    }
+}
+
+/**
+ * Update the seek slider and time displays
+ */
+function updateSeekUI(instance) {
+    const currentTime = currentOffsets[instance];
+    const seekSlider = document.getElementById(`seekSlider${instance}`);
+    const currentTimeDisplay = document.getElementById(`currentTime${instance}`);
+
+    if (seekSlider && durations[instance] > 0) {
+        seekSlider.value = (currentTime / durations[instance]) * 100;
+    }
+
+    if (currentTimeDisplay) {
+        currentTimeDisplay.textContent = formatTime(currentTime);
+    }
+}
+
+/**
+ * Update progress bar during playback
+ */
+function updateProgressBar(instance) {
+    if (!isPlaying[instance]) return;
+
+    // Calculate current position
+    const elapsed = audioContexts[instance].currentTime - startTimes[instance];
+    const currentTime = currentOffsets[instance] + elapsed;
+
+    // Check if we've reached the end
+    if (currentTime >= durations[instance]) {
+        isPlaying[instance] = false;
+        currentOffsets[instance] = 0;
+        updateSeekUI(instance);
+        return;
+    }
+
+    // Update temporary offset for display
+    const tempOffset = currentOffsets[instance];
+    currentOffsets[instance] = currentTime;
+    updateSeekUI(instance);
+    currentOffsets[instance] = tempOffset;
+
+    // Continue updating
+    animationFrameIds[instance] = requestAnimationFrame(() => updateProgressBar(instance));
+}
+
+/**
+ * Format time in seconds to MM:SS format
+ */
+function formatTime(seconds) {
+    if (!isFinite(seconds)) return '0:00';
+
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
 /**
