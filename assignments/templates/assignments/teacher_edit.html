@@ -514,8 +514,7 @@
 </style>
 
 <script>
-// Wait for VexFlow to load
-let VF;
+const VF = Vex.Flow;
 
 // Editor state
 let selectedClef = 'treble';
@@ -533,16 +532,6 @@ let renderer, context, stave;
 
 // Open the notation editor modal
 function openNotationEditor() {
-    // Initialize VexFlow if not already done
-    if (typeof Vex === 'undefined' || typeof Vex.Flow === 'undefined') {
-        alert('Music notation library is still loading. Please wait a moment and try again.');
-        return;
-    }
-
-    if (!VF) {
-        VF = Vex.Flow;
-    }
-
     document.getElementById('notation-editor-modal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 
@@ -906,23 +895,14 @@ function clearNotationData() {
 
 // Load existing notation on page load if present
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize VexFlow when page loads
-    if (typeof Vex !== 'undefined' && typeof Vex.Flow !== 'undefined') {
-        VF = Vex.Flow;
-    }
-
     const existingData = document.getElementById('id_reference_notation').value;
     if (existingData) {
         try {
             const data = JSON.parse(existingData);
             selectedClef = data.clef || 'treble';
             notes = data.notes || [];
-
-            // Only show preview if VexFlow is loaded
-            if (VF) {
-                showNotationPreview();
-                document.getElementById('editor-button-text').textContent = 'Edit Notation';
-            }
+            showNotationPreview();
+            document.getElementById('editor-button-text').textContent = 'Edit Notation';
         } catch (e) {
             console.error('Error loading existing notation:', e);
         }
