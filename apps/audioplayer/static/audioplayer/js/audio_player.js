@@ -445,24 +445,80 @@ function togglePause(instance, button) {
  * Toggle mute for a track
  */
 function toggleMute(instance, button, trackIndex) {
-    if (!eventEmitters[instance]) return;
+    if (!playlists[instance] || !playlists[instance].tracks) return;
 
+    const track = playlists[instance].tracks[trackIndex];
+    if (!track) return;
+
+    // Toggle mute state
     const isMuted = button.textContent === 'Unmute';
-    button.textContent = isMuted ? 'Mute' : 'Unmute';
+    const newMuteState = !isMuted;
 
-    eventEmitters[instance].emit('mute', trackIndex);
+    button.textContent = newMuteState ? 'Unmute' : 'Mute';
+
+    // Set the track's gain to 0 to mute, or restore to saved volume to unmute
+    if (!track.savedGain) {
+        track.savedGain = track.gain || 1.0;
+    }
+
+    if (newMuteState) {
+        track.gain = 0;
+    } else {
+        track.gain = track.savedGain;
+    }
+
+    // Update the gain on the gain node if it exists
+    if (track.gainNode) {
+        track.gainNode.gain.value = track.gain;
+    }
+
+    console.log(`Track ${trackIndex} mute: ${newMuteState}, gain: ${track.gain}`);
 }
 
 /**
  * Toggle solo for a track
  */
 function toggleSolo(instance, button, trackIndex) {
-    if (!eventEmitters[instance]) return;
+    if (!playlists[instance] || !playlists[instance].tracks) return;
 
+    const tracks = playlists[instance].tracks;
     const isSoloed = button.textContent === 'Unsolo';
-    button.textContent = isSoloed ? 'Solo' : 'Unsolo';
+    const newSoloState = !isSoloed;
 
-    eventEmitters[instance].emit('solo', trackIndex);
+    button.textContent = newSoloState ? 'Unsolo' : 'Solo';
+
+    // Check if any tracks are soloed
+    let anySoloed = false;
+    tracks.forEach((track, idx) => {
+        if (idx === trackIndex) {
+            track.soloed = newSoloState;
+        }
+        if (track.soloed) {
+            anySoloed = true;
+        }
+    });
+
+    // Update all track gains based on solo state
+    tracks.forEach((track, idx) => {
+        if (!track.savedGain) {
+            track.savedGain = track.gain || 1.0;
+        }
+
+        if (anySoloed) {
+            // If any track is soloed, mute all non-soloed tracks
+            track.gain = track.soloed ? track.savedGain : 0;
+        } else {
+            // No tracks soloed, restore all gains
+            track.gain = track.savedGain;
+        }
+
+        // Update the gain node
+        if (track.gainNode) {
+            track.gainNode.gain.value = track.gain;
+        }
+    });
+
+    console.log(`Track ${trackIndex} solo: ${newSoloState}, any soloed: ${anySoloed}`);
 }
 
 /**
