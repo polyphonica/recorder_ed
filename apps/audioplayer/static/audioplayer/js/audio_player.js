@@ -136,17 +136,8 @@ async function initPlayers(piecesData) {
             handleSeek(pieceIndex + 1, seekSlider.value);
         };
 
-        // Also handle mouse/touch release outside slider
-        document.addEventListener('mouseup', () => {
-            if (isDragging[pieceIndex + 1]) {
-                isDragging[pieceIndex + 1] = false;
-            }
-        });
-        document.addEventListener('touchend', () => {
-            if (isDragging[pieceIndex + 1]) {
-                isDragging[pieceIndex + 1] = false;
-            }
-        });
+        // Note: We don't need to handle mouseup/touchend to clear isDragging
+        // because handleSeek will clear it after the seek is complete
 
         let totalTimeDisplay = document.createElement('span');
         totalTimeDisplay.id = `totalTime${pieceIndex + 1}`;
