@@ -502,9 +502,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- VexFlow Library from CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vexflow/4.2.2/vexflow-min.js"></script>
-
 <style>
 .active {
     background-color: #4a90e2 !important;
@@ -513,8 +510,11 @@
 }
 </style>
 
+<!-- VexFlow Library from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vexflow/4.2.2/vexflow-min.js" onload="initVexFlow()"></script>
+
 <script>
-const VF = Vex.Flow;
+let VF;
 
 // Editor state
 let selectedClef = 'treble';
@@ -529,6 +529,12 @@ let currentChord = [];
 
 // VexFlow objects
 let renderer, context, stave;
+
+// Initialize VexFlow when script loads
+function initVexFlow() {
+    VF = Vex.Flow;
+    console.log('VexFlow loaded:', VF.BUILD);
+}
 
 // Open the notation editor modal
 function openNotationEditor() {
