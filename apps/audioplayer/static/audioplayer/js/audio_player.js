@@ -359,7 +359,9 @@ async function init(instance, trackUrls) {
  * Play all tracks synchronized from current offset
  */
 function playAll(instance, offset = null) {
-    stopAll(instance);
+    // If we have an explicit offset, don't reset the position in stopAll
+    const hasExplicitOffset = offset !== null;
+    stopAll(instance, !hasExplicitOffset);
 
     // Use provided offset or current offset
     const startOffset = offset !== null ? offset : currentOffsets[instance];
@@ -402,8 +404,10 @@ function playAll(instance, offset = null) {
 
 /**
  * Stop all tracks
+ * @param {number} instance - The player instance
+ * @param {boolean} resetPosition - Whether to reset position to 0 (default: true)
  */
-function stopAll(instance) {
+function stopAll(instance, resetPosition = true) {
     if (activeAudioBufferSources[instance]) {
         activeAudioBufferSources[instance].forEach(source => {
             try {
@@ -415,7 +419,6 @@ function stopAll(instance) {
     }
     activeAudioBufferSources[instance] = [];
     isPlaying[instance] = false;
-    currentOffsets[instance] = 0;
 
     // Cancel animation frame
     if (animationFrameIds[instance]) {
@@ -423,8 +426,11 @@ function stopAll(instance) {
         animationFrameIds[instance] = null;
     }
 
-    // Reset seek UI
-    updateSeekUI(instance);
+    // Only reset position and UI if requested (not when seeking)
+    if (resetPosition) {
+        currentOffsets[instance] = 0;
+        updateSeekUI(instance);
+    }
 }
 
 /**
@@ -456,13 +462,10 @@ function resumeAll(instance) {
         // Check if user seeked while paused
         if (Math.abs(currentOffsets[instance] - pausedOffsets[instance]) > 0.1) {
             // Position changed during pause - need to restart from new position
-            // Save the seek position before stopAll resets it
             const seekPosition = currentOffsets[instance];
             // Resume the context so we can properly stop sources
             audioContexts[instance].resume();
-            // Stop current sources (this will reset currentOffsets to 0)
-            stopAll(instance);
-            // Restart from the saved seek position
+            // Restart from the seek position (playAll will handle cleanup)
             playAll(instance, seekPosition);
         } else {
             // No seek during pause - just resume
