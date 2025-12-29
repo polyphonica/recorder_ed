@@ -113,66 +113,6 @@
     margin-top: 10px;
 }
 
-/* Seek control styles */
-.seek-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 10px 0;
-    padding: 10px;
-    background-color: #ffffff;
-    border-radius: 6px;
-    border: 1px solid #e0e0e0;
-}
-
-.seek-slider {
-    flex: 1;
-    height: 6px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: linear-gradient(to right, rgb(139, 81, 143) 0%, #ddd 0%);
-    border-radius: 3px;
-    outline: none;
-    cursor: pointer;
-}
-
-.seek-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    background: rgb(139, 81, 143);
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.seek-slider::-webkit-slider-thumb:hover {
-    background: rgb(119, 61, 123);
-    transform: scale(1.1);
-}
-
-.seek-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    background: rgb(139, 81, 143);
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.seek-slider::-moz-range-thumb:hover {
-    background: rgb(119, 61, 123);
-    transform: scale(1.1);
-}
-
-.time-display {
-    font-size: 13px;
-    color: #333;
-    font-weight: 500;
-}
-
 .piece-divider {
     margin: 40px 0;
     border: none;
