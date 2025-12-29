@@ -580,8 +580,10 @@ function handleSeek(instance, sliderValue) {
             playBtn.textContent = 'Stop';
             playBtn.classList.add('playing');
         }
-        // Clear dragging flag AFTER seek is complete and new progress loop started
-        isDragging[instance] = false;
+        // Clear dragging flag after a tiny delay to ensure seek completes
+        setTimeout(() => {
+            isDragging[instance] = false;
+        }, 50);
     }
 }
 
