@@ -452,7 +452,10 @@ function toggleMute(instance, button, trackIndex) {
 
     // Debug: log track properties to find gain node
     console.log('Track object keys:', Object.keys(track));
-    console.log('Track:', track);
+    console.log('Track playout:', track.playout);
+    if (track.playout) {
+        console.log('Playout keys:', Object.keys(track.playout));
+    }
 
     // Toggle mute state
     const isMuted = button.textContent === 'Unmute';
@@ -475,7 +478,10 @@ function toggleMute(instance, button, trackIndex) {
         track.volumeNode,
         track.volume,
         track.playout?.gainNode,
-        track.playout?.gain
+        track.playout?.gain,
+        track.playout?.volumeGainNode,
+        track.playout?.masterGainNode,
+        track.playout?.stereoPanNode?.gain
     ];
 
     let updated = false;
