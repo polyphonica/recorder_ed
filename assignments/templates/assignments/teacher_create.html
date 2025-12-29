@@ -711,6 +711,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function addSingleNote() {
+        console.log('addSingleNote called');
+        console.log('Duration:', selectedDuration);
+        console.log('Accidental:', selectedAccidental);
+        console.log('Pitch:', selectedPitch);
+
         const noteData = {
             type: 'note',
             keys: [selectedPitch],
@@ -721,7 +726,9 @@ document.addEventListener('DOMContentLoaded', function() {
             noteData.accidental = selectedAccidental;
         }
 
+        console.log('Note data:', noteData);
         notes.push(noteData);
+        console.log('Notes array length:', notes.length);
         renderNotes();
     }
 
@@ -767,8 +774,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function renderNotation(containerId, notationData) {
+        console.log('renderNotation called for:', containerId);
+        console.log('Notation data:', notationData);
+
         const container = document.getElementById(containerId);
         if (!container || !notationData) {
+            console.error('Container or notationData missing');
             return;
         }
 
@@ -824,9 +835,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const vfNotes = notationData.notes.map(noteData => {
-            if (noteData.type === 'barline') {
-                return new VF.BarNote();
-            } else {
+            try {
+                if (noteData.type === 'barline') {
+                    return new VF.BarNote();
+                } else {
                 // Handle dotted notes - strip 'd' suffix and add dots with Dot.buildAndAttach
                 let duration = noteData.duration;
                 let numDots = 0;
@@ -894,8 +906,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 return note;
+                }
+            } catch (error) {
+                console.error('Error creating note:', error);
+                console.error('Note data:', noteData);
+                return null;
             }
-        });
+        }).filter(note => note !== null);
 
         // Parse time signature for strict beat enforcement
         let num_beats = 4;
