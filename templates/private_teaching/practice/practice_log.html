@@ -21,10 +21,19 @@
                 <h1 class="text-4xl font-bold">My Practice Log</h1>
                 <p class="text-base-content/70 mt-2">Track your practice sessions and progress</p>
             </div>
-            <a href="{% url 'private_teaching:log_practice' %}" class="btn btn-primary">
-                <i class="fas fa-plus mr-2"></i>
-                Log Practice Session
-            </a>
+            <div class="flex gap-2">
+                <a href="{% url 'private_teaching:practice_log_print' %}?{% if teacher_filter %}teacher={{ teacher_filter }}&{% endif %}{% if child_filter %}child={{ child_filter }}&{% endif %}{% if exam_prep_filter %}exam_prep={{ exam_prep_filter }}&{% endif %}{% if performance_prep_filter %}performance_prep={{ performance_prep_filter }}&{% endif %}{% if start_date_filter %}start_date={{ start_date_filter }}&{% endif %}{% if end_date_filter %}end_date={{ end_date_filter }}{% endif %}"
+                   class="btn btn-outline"
+                   target="_blank"
+                   title="Open print-friendly view in new window">
+                    <i class="fas fa-print mr-2"></i>
+                    Print View
+                </a>
+                <a href="{% url 'private_teaching:log_practice' %}" class="btn btn-primary">
+                    <i class="fas fa-plus mr-2"></i>
+                    Log Practice Session
+                </a>
+            </div>
         </div>
 
         <!-- Statistics Cards -->
@@ -147,7 +156,22 @@
                         </select>
                     </div>
 
-                    <div class="form-control lg:col-span-4 flex flex-row gap-2 justify-end items-end">
+                    <!-- Date Range Filters -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">From Date</span>
+                        </label>
+                        <input type="date" name="start_date" class="input input-bordered input-sm" value="{{ start_date_filter }}">
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">To Date</span>
+                        </label>
+                        <input type="date" name="end_date" class="input input-bordered input-sm" value="{{ end_date_filter }}">
+                    </div>
+
+                    <div class="form-control lg:col-span-6 flex flex-row gap-2 justify-end items-end">
                         <button type="submit" class="btn btn-primary btn-sm">
                             <i class="fas fa-filter mr-2"></i>
                             Apply Filters
@@ -279,15 +303,15 @@
                 <div class="flex justify-center mt-8">
                     <div class="join">
                         {% if page_obj.has_previous %}
-                            <a href="?page=1{% if teacher_filter %}&teacher={{ teacher_filter }}{% endif %}{% if child_filter %}&child={{ child_filter }}{% endif %}{% if exam_prep_filter %}&exam_prep={{ exam_prep_filter }}{% endif %}{% if performance_prep_filter %}&performance_prep={{ performance_prep_filter }}{% endif %}" class="join-item btn btn-sm">«</a>
-                            <a href="?page={{ page_obj.previous_page_number }}{% if teacher_filter %}&teacher={{ teacher_filter }}{% endif %}{% if child_filter %}&child={{ child_filter }}{% endif %}{% if exam_prep_filter %}&exam_prep={{ exam_prep_filter }}{% endif %}{% if performance_prep_filter %}&performance_prep={{ performance_prep_filter }}{% endif %}" class="join-item btn btn-sm">‹</a>
+                            <a href="?page=1{% if teacher_filter %}&teacher={{ teacher_filter }}{% endif %}{% if child_filter %}&child={{ child_filter }}{% endif %}{% if exam_prep_filter %}&exam_prep={{ exam_prep_filter }}{% endif %}{% if performance_prep_filter %}&performance_prep={{ performance_prep_filter }}{% endif %}{% if start_date_filter %}&start_date={{ start_date_filter }}{% endif %}{% if end_date_filter %}&end_date={{ end_date_filter }}{% endif %}" class="join-item btn btn-sm">«</a>
+                            <a href="?page={{ page_obj.previous_page_number }}{% if teacher_filter %}&teacher={{ teacher_filter }}{% endif %}{% if child_filter %}&child={{ child_filter }}{% endif %}{% if exam_prep_filter %}&exam_prep={{ exam_prep_filter }}{% endif %}{% if performance_prep_filter %}&performance_prep={{ performance_prep_filter }}{% endif %}{% if start_date_filter %}&start_date={{ start_date_filter }}{% endif %}{% if end_date_filter %}&end_date={{ end_date_filter }}{% endif %}" class="join-item btn btn-sm">‹</a>
                         {% endif %}
 
                         <button class="join-item btn btn-sm btn-active">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</button>
 
                         {% if page_obj.has_next %}
-                            <a href="?page={{ page_obj.next_page_number }}{% if teacher_filter %}&teacher={{ teacher_filter }}{% endif %}{% if child_filter %}&child={{ child_filter }}{% endif %}{% if exam_prep_filter %}&exam_prep={{ exam_prep_filter }}{% endif %}{% if performance_prep_filter %}&performance_prep={{ performance_prep_filter }}{% endif %}" class="join-item btn btn-sm">›</a>
-                            <a href="?page={{ page_obj.paginator.num_pages }}{% if teacher_filter %}&teacher={{ teacher_filter }}{% endif %}{% if child_filter %}&child={{ child_filter }}{% endif %}{% if exam_prep_filter %}&exam_prep={{ exam_prep_filter }}{% endif %}{% if performance_prep_filter %}&performance_prep={{ performance_prep_filter }}{% endif %}" class="join-item btn btn-sm">»</a>
+                            <a href="?page={{ page_obj.next_page_number }}{% if teacher_filter %}&teacher={{ teacher_filter }}{% endif %}{% if child_filter %}&child={{ child_filter }}{% endif %}{% if exam_prep_filter %}&exam_prep={{ exam_prep_filter }}{% endif %}{% if performance_prep_filter %}&performance_prep={{ performance_prep_filter }}{% endif %}{% if start_date_filter %}&start_date={{ start_date_filter }}{% endif %}{% if end_date_filter %}&end_date={{ end_date_filter }}{% endif %}" class="join-item btn btn-sm">›</a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}{% if teacher_filter %}&teacher={{ teacher_filter }}{% endif %}{% if child_filter %}&child={{ child_filter }}{% endif %}{% if exam_prep_filter %}&exam_prep={{ exam_prep_filter }}{% endif %}{% if performance_prep_filter %}&performance_prep={{ performance_prep_filter }}{% endif %}{% if start_date_filter %}&start_date={{ start_date_filter }}{% endif %}{% if end_date_filter %}&end_date={{ end_date_filter }}{% endif %}" class="join-item btn btn-sm">»</a>
                         {% endif %}
                     </div>
                 </div>

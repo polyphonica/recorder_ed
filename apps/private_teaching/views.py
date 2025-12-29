@@ -2600,6 +2600,15 @@ class PracticeLogView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
         if performance_prep == 'yes':
             queryset = queryset.filter(preparing_for_performance=True)
 
+        # Filter by date range
+        start_date = self.request.GET.get('start_date')
+        if start_date:
+            queryset = queryset.filter(practice_date__gte=start_date)
+
+        end_date = self.request.GET.get('end_date')
+        if end_date:
+            queryset = queryset.filter(practice_date__lte=end_date)
+
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -2626,6 +2635,15 @@ class PracticeLogView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
         performance_prep = self.request.GET.get('performance_prep')
         if performance_prep == 'yes':
             all_entries = all_entries.filter(preparing_for_performance=True)
+
+        # Apply date range filters
+        start_date = self.request.GET.get('start_date')
+        if start_date:
+            all_entries = all_entries.filter(practice_date__gte=start_date)
+
+        end_date = self.request.GET.get('end_date')
+        if end_date:
+            all_entries = all_entries.filter(practice_date__lte=end_date)
 
         # Calculate statistics
         stats = all_entries.aggregate(
@@ -2680,6 +2698,104 @@ class PracticeLogView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
         context['teacher_filter'] = teacher_id
         context['exam_prep_filter'] = exam_prep
         context['performance_prep_filter'] = performance_prep
+        context['start_date_filter'] = start_date
+        context['end_date_filter'] = end_date
+
+        return context
+
+
+class PracticeLogPrintView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
+    """Print-friendly view of practice log with all entries (no pagination)"""
+    model = PracticeEntry
+    template_name = 'private_teaching/practice/practice_log_print.html'
+    context_object_name = 'practice_entries'
+    # No pagination - show all filtered entries
+
+    def get_queryset(self):
+        queryset = PracticeEntry.objects.filter(
+            student=self.request.user
+        ).select_related('teacher', 'teacher__profile', 'child_profile', 'lesson_request').order_by('-practice_date', '-created_at')
+
+        # Filter by child if guardian
+        child_id = self.request.GET.get('child')
+        if child_id:
+            queryset = queryset.filter(child_profile__id=child_id)
+
+        # Filter by teacher
+        teacher_id = self.request.GET.get('teacher')
+        if teacher_id:
+            queryset = queryset.filter(teacher__id=teacher_id)
+
+        # Filter by exam prep
+        exam_prep = self.request.GET.get('exam_prep')
+        if exam_prep == 'yes':
+            queryset = queryset.filter(preparing_for_exam=True)
+
+        # Filter by performance prep
+        performance_prep = self.request.GET.get('performance_prep')
+        if performance_prep == 'yes':
+            queryset = queryset.filter(preparing_for_performance=True)
+
+        # Filter by date range
+        start_date = self.request.GET.get('start_date')
+        if start_date:
+            queryset = queryset.filter(practice_date__gte=start_date)
+
+        end_date = self.request.GET.get('end_date')
+        if end_date:
+            queryset = queryset.filter(practice_date__lte=end_date)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from datetime import timedelta
+        from django.db.models import Sum, Avg, Count
+
+        # Get all practice entries for stats (same as filtered queryset)
+        all_entries = self.get_queryset()
+
+        # Calculate statistics
+        stats = all_entries.aggregate(
+            total_sessions=Count('id'),
+            total_minutes=Sum('duration_minutes'),
+            avg_duration=Avg('duration_minutes'),
+            avg_enjoyment=Avg('enjoyment_rating')
+        )
+
+        # PERFORMANCE FIX: Consolidate 2 count queries into 1 aggregate
+        prep_counts = all_entries.aggregate(
+            exam_prep=Count('id', filter=Q(preparing_for_exam=True)),
+            performance_prep=Count('id', filter=Q(preparing_for_performance=True))
+        )
+        exam_prep_count = prep_counts['exam_prep']
+        performance_prep_count = prep_counts['performance_prep']
+
+        context.update({
+            'total_sessions': stats['total_sessions'] or 0,
+            'total_minutes': stats['total_minutes'] or 0,
+            'total_hours': round((stats['total_minutes'] or 0) / 60, 1),
+            'avg_duration': round(stats['avg_duration'] or 0),
+            'avg_enjoyment': round(stats['avg_enjoyment'] or 0, 1) if stats['avg_enjoyment'] else None,
+            'exam_prep_count': exam_prep_count,
+            'performance_prep_count': performance_prep_count,
+        })
+
+        # Pass current filters for display
+        context['start_date_filter'] = self.request.GET.get('start_date')
+        context['end_date_filter'] = self.request.GET.get('end_date')
+        context['child_filter'] = self.request.GET.get('child')
+        context['teacher_filter'] = self.request.GET.get('teacher')
+
+        # Get child name if filtering by child
+        child_id = self.request.GET.get('child')
+        if child_id:
+            from apps.accounts.models import ChildProfile
+            try:
+                child = ChildProfile.objects.get(id=child_id, guardian=self.request.user)
+                context['child_name'] = child.full_name
+            except ChildProfile.DoesNotExist:
+                pass
 
         return context
 

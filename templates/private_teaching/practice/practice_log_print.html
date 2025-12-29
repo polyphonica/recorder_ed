@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Log - {{ request.user.get_full_name }}</title>
+    <style>
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #333;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header .student-name {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .header .date-range {
+            font-size: 16px;
+            color: #888;
+        }
+
+        /* Statistics Summary */
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .stat-box .label {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .stat-box .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-box .subvalue {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Practice Entries */
+        .practice-entries {
+            margin-top: 30px;
+        }
+
+        .practice-entry {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            page-break-inside: avoid;
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .entry-date {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .entry-badges {
+            display: flex;
+            gap: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-duration {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .badge-exam {
+            background-color: #f59e0b;
+            color: white;
+        }
+
+        .badge-performance {
+            background-color: #8b5cf6;
+            color: white;
+        }
+
+        .badge-viewed {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .entry-meta {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .entry-section {
+            margin-bottom: 12px;
+        }
+
+        .entry-section-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .entry-section-content {
+            font-size: 14px;
+            color: #333;
+            white-space: pre-wrap;
+        }
+
+        .rating {
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .star {
+            color: #fbbf24;
+        }
+
+        /* No entries message */
+        .no-entries {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .no-entries i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        /* Print Button (hide on print) */
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .print-button:hover {
+            background-color: #2563eb;
+        }
+
+        /* Print-specific styles */
+        @media print {
+            body {
+                padding: 0;
+            }
+
+            .print-button {
+                display: none;
+            }
+
+            .practice-entry {
+                page-break-inside: avoid;
+                margin-bottom: 20px;
+            }
+
+            .header {
+                page-break-after: avoid;
+            }
+
+            .stats-summary {
+                page-break-after: avoid;
+            }
+
+            @page {
+                margin: 1cm;
+            }
+        }
+
+        /* Screen-only notice */
+        .screen-notice {
+            background-color: #eff6ff;
+            border: 1px solid #3b82f6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        @media print {
+            .screen-notice {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Print Button -->
+    <button onclick="window.print()" class="print-button">
+        <i class="fas fa-print"></i> Print
+    </button>
+
+    <!-- Screen Notice -->
+    <div class="screen-notice">
+        <strong>Print View:</strong> Use your browser's print function (Ctrl+P / Cmd+P) or click the Print button above to print or save as PDF.
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>Practice Log</h1>
+        <div class="student-name">
+            {{ request.user.get_full_name|default:request.user.username }}
+            {% if child_name %} - {{ child_name }}{% endif %}
+        </div>
+        {% if start_date_filter or end_date_filter %}
+            <div class="date-range">
+                {% if start_date_filter and end_date_filter %}
+                    {{ start_date_filter }} to {{ end_date_filter }}
+                {% elif start_date_filter %}
+                    From {{ start_date_filter }}
+                {% elif end_date_filter %}
+                    Up to {{ end_date_filter }}
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="date-range">All Practice Sessions</div>
+        {% endif %}
+    </div>
+
+    <!-- Statistics Summary -->
+    <div class="stats-summary">
+        <div class="stat-box">
+            <div class="label">Total Sessions</div>
+            <div class="value">{{ total_sessions }}</div>
+        </div>
+
+        <div class="stat-box">
+            <div class="label">Total Time</div>
+            <div class="value">{{ total_hours }}h</div>
+            <div class="subvalue">{{ total_minutes }} minutes</div>
+        </div>
+
+        <div class="stat-box">
+            <div class="label">Average Duration</div>
+            <div class="value">{{ avg_duration }}</div>
+            <div class="subvalue">minutes/session</div>
+        </div>
+
+        {% if avg_enjoyment %}
+        <div class="stat-box">
+            <div class="label">Avg Enjoyment</div>
+            <div class="value">{{ avg_enjoyment }}/5</div>
+            <div class="subvalue">⭐</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Practice Entries -->
+    <div class="practice-entries">
+        <h2 style="margin-bottom: 20px; font-size: 24px;">Practice Sessions ({{ total_sessions }})</h2>
+
+        {% if practice_entries %}
+            {% for entry in practice_entries %}
+                <div class="practice-entry">
+                    <div class="entry-header">
+                        <div class="entry-date">{{ entry.practice_date|date:"F j, Y" }}</div>
+                        <div class="entry-badges">
+                            <span class="badge badge-duration">{{ entry.duration_minutes }} min</span>
+                            {% if entry.preparing_for_exam %}
+                                <span class="badge badge-exam">Exam Prep</span>
+                            {% endif %}
+                            {% if entry.preparing_for_performance %}
+                                <span class="badge badge-performance">Performance Prep</span>
+                            {% endif %}
+                            {% if entry.teacher_viewed_at %}
+                                <span class="badge badge-viewed">✓ Viewed</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="entry-meta">
+                        <strong>Teacher:</strong> {{ entry.teacher.get_full_name }}
+                        {% if entry.child_profile %}
+                            | <strong>Student:</strong> {{ entry.child_profile.full_name }}
+                        {% endif %}
+                        {% if entry.enjoyment_rating %}
+                            <span class="rating">
+                                <strong>Enjoyment:</strong>
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= entry.enjoyment_rating %}
+                                        <span class="star">★</span>
+                                    {% else %}
+                                        <span style="color: #ddd;">★</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    {% if entry.pieces_practiced %}
+                        <div class="entry-section">
+                            <div class="entry-section-title">Pieces Practiced:</div>
+                            <div class="entry-section-content">{{ entry.pieces_practiced }}</div>
+                        </div>
+                    {% endif %}
+
+                    {% if entry.exercises_practiced %}
+                        <div class="entry-section">
+                            <div class="entry-section-title">Exercises:</div>
+                            <div class="entry-section-content">{{ entry.exercises_practiced }}</div>
+                        </div>
+                    {% endif %}
+
+                    {% if entry.focus_areas %}
+                        <div class="entry-section">
+                            <div class="entry-section-title">Focus Areas:</div>
+                            <div class="entry-section-content">{{ entry.focus_areas }}</div>
+                        </div>
+                    {% endif %}
+
+                    {% if entry.achievements %}
+                        <div class="entry-section">
+                            <div class="entry-section-title">Achievements:</div>
+                            <div class="entry-section-content">{{ entry.achievements }}</div>
+                        </div>
+                    {% endif %}
+
+                    {% if entry.struggles %}
+                        <div class="entry-section">
+                            <div class="entry-section-title">Struggles:</div>
+                            <div class="entry-section-content">{{ entry.struggles }}</div>
+                        </div>
+                    {% endif %}
+
+                    {% if entry.teacher_feedback %}
+                        <div class="entry-section" style="background-color: #fef3c7; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                            <div class="entry-section-title">Teacher Feedback:</div>
+                            <div class="entry-section-content">{{ entry.teacher_feedback }}</div>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-entries">
+                <i class="fas fa-clipboard-list"></i>
+                <h3>No practice entries found</h3>
+                <p>Try adjusting your filters</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</body>
+</html>
