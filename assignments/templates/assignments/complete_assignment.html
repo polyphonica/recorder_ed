@@ -618,6 +618,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Validate beat count for submission
     function validateBeatCount() {
         if (notes.length === 0) return true; // Empty is okay
+        if (!selectedTimeSignature) return true; // No time signature = no validation
 
         const beatValues = {
             'w': 4, 'h': 2, 'q': 1, '8': 0.5, '16': 0.25
