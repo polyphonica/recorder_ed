@@ -132,7 +132,7 @@ async function initPlayers(piecesData) {
 
         // Actually perform seek when released
         seekSlider.onchange = () => {
-            isDragging[pieceIndex + 1] = false;
+            // Don't set isDragging = false here - let handleSeek do it after seeking
             handleSeek(pieceIndex + 1, seekSlider.value);
         };
 
@@ -578,6 +578,8 @@ function handleSeek(instance, sliderValue) {
         // Just update the offset if paused
         playbackOffset[instance] = seekPosition;
         updateProgressUI(instance);
+        // Safe to clear dragging flag now
+        isDragging[instance] = false;
     } else {
         // Restart playback from new position if playing
         playAll(instance, seekPosition);
@@ -587,6 +589,8 @@ function handleSeek(instance, sliderValue) {
             playBtn.textContent = 'Stop';
             playBtn.classList.add('playing');
         }
+        // Clear dragging flag AFTER seek is complete and new progress loop started
+        isDragging[instance] = false;
     }
 }
 
