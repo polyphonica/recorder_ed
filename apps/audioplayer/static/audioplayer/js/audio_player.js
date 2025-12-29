@@ -110,34 +110,12 @@ async function initPlayers(piecesData) {
         seekSlider.value = '0';
         seekSlider.classList.add('seek-slider');
         seekSlider.style.cssText = 'flex: 1;';
+        seekSlider.disabled = false; // Start enabled (not playing yet)
 
-        // Handle dragging - visual feedback only
-        seekSlider.addEventListener('mousedown', () => {
-            isDragging[pieceIndex + 1] = true;
-        });
-        seekSlider.addEventListener('touchstart', () => {
-            isDragging[pieceIndex + 1] = true;
-        });
-
-        // Update time display while dragging
-        seekSlider.oninput = () => {
-            if (isDragging[pieceIndex + 1]) {
-                const previewTime = (seekSlider.value / 1000) * duration[pieceIndex + 1];
-                const currentTimeDisplay = document.getElementById(`currentTime${pieceIndex + 1}`);
-                if (currentTimeDisplay) {
-                    currentTimeDisplay.textContent = formatTime(previewTime);
-                }
-            }
-        };
-
-        // Actually perform seek when released
+        // Only allow seeking when paused or stopped
         seekSlider.onchange = () => {
-            // Don't set isDragging = false here - let handleSeek do it after seeking
             handleSeek(pieceIndex + 1, seekSlider.value);
         };
-
-        // Note: We don't need to handle mouseup/touchend to clear isDragging
-        // because handleSeek will clear it after the seek is complete
 
         let totalTimeDisplay = document.createElement('span');
         totalTimeDisplay.id = `totalTime${pieceIndex + 1}`;
@@ -391,6 +369,9 @@ function playAll(instance, offset = 0) {
     playbackStartTime[instance] = audioContexts[instance].currentTime;
     isPaused[instance] = false;
 
+    // Disable seek slider while playing
+    setSeekSliderEnabled(instance, false);
+
     // Create and start buffer sources from the offset
     activeAudioBufferSources[instance] = audioBuffers[instance].map((buffer, index) => {
         let source = audioContexts[instance].createBufferSource();
@@ -402,6 +383,7 @@ function playAll(instance, offset = 0) {
                 playbackOffset[instance] = 0;
                 isPaused[instance] = false;
                 updateProgressUI(instance);
+                setSeekSliderEnabled(instance, true); // Re-enable when stopped
                 const playBtn = document.getElementById(`playButton${instance}`);
                 if (playBtn) {
                     playBtn.textContent = 'Play';
@@ -430,6 +412,7 @@ function stopAll(instance) {
     playbackOffset[instance] = 0;
     pausedPosition[instance] = 0;
     isPaused[instance] = false;
+    setSeekSliderEnabled(instance, true); // Enable seek slider when stopped
     updateProgressUI(instance);
 }
 
@@ -470,6 +453,9 @@ function pauseAll(instance) {
         audioContexts[instance].suspend();
         isPaused[instance] = true;
 
+        // Enable seek slider when paused
+        setSeekSliderEnabled(instance, true);
+
         // Stop progress updates
         if (animationFrameId[instance]) {
             cancelAnimationFrame(animationFrameId[instance]);
@@ -506,6 +492,9 @@ function resumeAll(instance) {
             audioContexts[instance].resume().then(() => {
                 playbackStartTime[instance] = audioContexts[instance].currentTime;
                 isPaused[instance] = false;
+
+                // Disable seek slider when playing
+                setSeekSliderEnabled(instance, false);
 
                 // Restart progress updates
                 updateProgress(instance);
@@ -554,36 +543,32 @@ function getCurrentPosition(instance) {
 }
 
 /**
- * Handle seek slider input
+ * Handle seek slider input (only when paused or stopped)
  */
 function handleSeek(instance, sliderValue) {
-    // Immediately cancel any pending progress updates to prevent race condition
-    if (animationFrameId[instance]) {
-        cancelAnimationFrame(animationFrameId[instance]);
-        animationFrameId[instance] = null;
-    }
-
     const seekPosition = (sliderValue / 1000) * duration[instance];
 
-    if (isPaused[instance]) {
-        // Just update the offset if paused
-        playbackOffset[instance] = seekPosition;
-        updateProgressUI(instance);
-        // Safe to clear dragging flag now
-        isDragging[instance] = false;
-    } else {
-        // Restart playback from new position if playing
-        playAll(instance, seekPosition);
-        // Make sure Play button still shows "Stop"
-        const playBtn = document.getElementById(`playButton${instance}`);
-        if (playBtn) {
-            playBtn.textContent = 'Stop';
-            playBtn.classList.add('playing');
+    // Update the offset
+    playbackOffset[instance] = seekPosition;
+    pausedPosition[instance] = seekPosition;
+    updateProgressUI(instance);
+}
+
+/**
+ * Enable or disable seek slider based on playback state
+ */
+function setSeekSliderEnabled(instance, enabled) {
+    const seekSlider = document.getElementById(`seekSlider${instance}`);
+    if (seekSlider) {
+        seekSlider.disabled = !enabled;
+        // Visual feedback: make it look disabled
+        if (enabled) {
+            seekSlider.style.opacity = '1';
+            seekSlider.style.cursor = 'pointer';
+        } else {
+            seekSlider.style.opacity = '0.5';
+            seekSlider.style.cursor = 'not-allowed';
         }
-        // Clear dragging flag after a tiny delay to ensure seek completes
-        setTimeout(() => {
-            isDragging[instance] = false;
-        }, 50);
     }
 }
 
@@ -592,9 +577,6 @@ function handleSeek(instance, sliderValue) {
  */
 function updateProgress(instance) {
     if (isPaused[instance]) return;
-
-    // Skip if user is dragging - prevents old callbacks from interfering with seek
-    if (isDragging[instance]) return;
 
     const currentPos = getCurrentPosition(instance);
 
@@ -625,13 +607,11 @@ function updateProgressUI(instance, position = null) {
     const seekSlider = document.getElementById(`seekSlider${instance}`);
     const currentTimeDisplay = document.getElementById(`currentTime${instance}`);
 
-    // Don't update slider position if user is dragging it
-    if (seekSlider && duration[instance] > 0 && !isDragging[instance]) {
+    if (seekSlider && duration[instance] > 0) {
         seekSlider.value = (pos / duration[instance]) * 1000;
     }
 
-    // Don't update time display if user is dragging (they see preview time)
-    if (currentTimeDisplay && !isDragging[instance]) {
+    if (currentTimeDisplay) {
         currentTimeDisplay.textContent = formatTime(pos);
     }
 }
