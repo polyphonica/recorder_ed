@@ -591,6 +591,9 @@ function handleSeek(instance, sliderValue) {
 function updateProgress(instance) {
     if (isPaused[instance]) return;
 
+    // Skip if user is dragging - prevents old callbacks from interfering with seek
+    if (isDragging[instance]) return;
+
     const currentPos = getCurrentPosition(instance);
 
     // Check if we've reached the end
