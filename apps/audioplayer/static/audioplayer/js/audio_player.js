@@ -450,13 +450,6 @@ function toggleMute(instance, button, trackIndex) {
     const track = playlists[instance].tracks[trackIndex];
     if (!track) return;
 
-    // Debug: log track properties to find gain node
-    console.log('Track object keys:', Object.keys(track));
-    console.log('Track playout:', track.playout);
-    if (track.playout) {
-        console.log('Playout keys:', Object.keys(track.playout));
-    }
-
     // Toggle mute state
     const isMuted = button.textContent === 'Unmute';
     const newMuteState = !isMuted;
@@ -471,34 +464,13 @@ function toggleMute(instance, button, trackIndex) {
     const targetGain = newMuteState ? 0 : track.savedGain;
     track.gain = targetGain;
 
-    // Try multiple possible locations for the gain node
-    const possibleGainNodes = [
-        track.gainNode,
-        track.gain_node,
-        track.volumeNode,
-        track.volume,
-        track.playout?.gainNode,
-        track.playout?.gain,
-        track.playout?.volumeGainNode,
-        track.playout?.masterGainNode,
-        track.playout?.stereoPanNode?.gain
-    ];
-
-    let updated = false;
-    for (const node of possibleGainNodes) {
-        if (node && node.gain && typeof node.gain.value !== 'undefined') {
-            node.gain.value = targetGain;
-            console.log(`Updated gain node to ${targetGain}`);
-            updated = true;
-            break;
-        }
+    // Update the volumeGain node in playout
+    if (track.playout && track.playout.volumeGain) {
+        track.playout.volumeGain.gain.value = targetGain;
+        console.log(`Updated volumeGain to ${targetGain} for track ${trackIndex}`);
+    } else {
+        console.warn(`Could not find volumeGain for track ${trackIndex}`);
     }
-
-    if (!updated) {
-        console.warn(`Could not find gain node for track ${trackIndex}`);
-    }
-
-    console.log(`Track ${trackIndex} mute: ${newMuteState}, gain: ${track.gain}`);
 }
 
 /**
@@ -530,17 +502,12 @@ function toggleSolo(instance, button, trackIndex) {
             track.savedGain = track.gain || 1.0;
         }
 
-        if (anySoloed) {
-            // If any track is soloed, mute all non-soloed tracks
-            track.gain = track.soloed ? track.savedGain : 0;
-        } else {
-            // No tracks soloed, restore all gains
-            track.gain = track.savedGain;
-        }
+        const targetGain = anySoloed ? (track.soloed ? track.savedGain : 0) : track.savedGain;
+        track.gain = targetGain;
 
-        // Update the gain node
-        if (track.gainNode) {
-            track.gainNode.gain.value = track.gain;
+        // Update the volumeGain node in playout
+        if (track.playout && track.playout.volumeGain) {
+            track.playout.volumeGain.gain.value = targetGain;
         }
     });
 
