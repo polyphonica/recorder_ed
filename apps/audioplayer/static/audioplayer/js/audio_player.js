@@ -566,6 +566,12 @@ function getCurrentPosition(instance) {
  * Handle seek slider input
  */
 function handleSeek(instance, sliderValue) {
+    // Immediately cancel any pending progress updates to prevent race condition
+    if (animationFrameId[instance]) {
+        cancelAnimationFrame(animationFrameId[instance]);
+        animationFrameId[instance] = null;
+    }
+
     const seekPosition = (sliderValue / 1000) * duration[instance];
 
     if (isPaused[instance]) {
