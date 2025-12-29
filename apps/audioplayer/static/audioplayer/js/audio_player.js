@@ -392,6 +392,8 @@ function setupTimeUpdateListener(instance) {
     eventEmitters[instance].on('stop', () => {
         const playBtn = document.getElementById(`playButton${instance}`);
         const pauseBtn = document.getElementById(`pauseButton${instance}`);
+        const seekSlider = document.getElementById(`seekSlider${instance}`);
+        const currentTimeEl = document.getElementById(`currentTime${instance}`);
 
         if (playBtn) {
             playBtn.textContent = 'Play';
@@ -400,6 +402,13 @@ function setupTimeUpdateListener(instance) {
         if (pauseBtn) {
             pauseBtn.disabled = true;
             pauseBtn.textContent = 'Pause';
+        }
+        // Reset seek slider and time to beginning
+        if (seekSlider) {
+            seekSlider.value = 0;
+        }
+        if (currentTimeEl) {
+            currentTimeEl.textContent = '0:00';
         }
     });
 }
