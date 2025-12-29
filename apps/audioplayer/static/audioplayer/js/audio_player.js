@@ -18,6 +18,7 @@ let currentOffsets = [];      // Current offset in the audio (seconds)
 let durations = [];          // Duration of the audio (seconds)
 let isPlaying = [];          // Is currently playing
 let animationFrameIds = [];  // For updating progress bar
+let pausedOffsets = [];       // Position where playback was paused
 
 /**
  * Initialize all audio players for pieces in a lesson
@@ -321,6 +322,7 @@ async function init(instance, trackUrls) {
     durations[instance] = 0;
     isPlaying[instance] = false;
     animationFrameIds[instance] = null;
+    pausedOffsets[instance] = 0;
 
     for (let i = 0; i < trackUrls.length; i++) {
         soloStates[instance][i] = false;
@@ -433,6 +435,7 @@ function pauseAll(instance) {
         // Calculate and save current offset before pausing
         const elapsed = audioContexts[instance].currentTime - startTimes[instance];
         currentOffsets[instance] = currentOffsets[instance] + elapsed;
+        pausedOffsets[instance] = currentOffsets[instance]; // Save where we paused
 
         audioContexts[instance].suspend();
         isPlaying[instance] = false;
@@ -450,13 +453,22 @@ function pauseAll(instance) {
  */
 function resumeAll(instance) {
     if (audioContexts[instance].state === 'suspended') {
-        // Update start time to account for the pause
-        startTimes[instance] = audioContexts[instance].currentTime;
-        audioContexts[instance].resume();
-        isPlaying[instance] = true;
+        // Check if user seeked while paused
+        if (Math.abs(currentOffsets[instance] - pausedOffsets[instance]) > 0.1) {
+            // Position changed during pause - need to restart from new position
+            audioContexts[instance].resume().then(() => {
+                audioContexts[instance].suspend();
+                playAll(instance, currentOffsets[instance]);
+            });
+        } else {
+            // No seek during pause - just resume
+            startTimes[instance] = audioContexts[instance].currentTime;
+            audioContexts[instance].resume();
+            isPlaying[instance] = true;
 
-        // Resume progress bar updates
-        updateProgressBar(instance);
+            // Resume progress bar updates
+            updateProgressBar(instance);
+        }
     }
 }
 
