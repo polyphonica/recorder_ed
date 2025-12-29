@@ -450,6 +450,10 @@ function toggleMute(instance, button, trackIndex) {
     const track = playlists[instance].tracks[trackIndex];
     if (!track) return;
 
+    // Debug: log track properties to find gain node
+    console.log('Track object keys:', Object.keys(track));
+    console.log('Track:', track);
+
     // Toggle mute state
     const isMuted = button.textContent === 'Unmute';
     const newMuteState = !isMuted;
@@ -461,15 +465,31 @@ function toggleMute(instance, button, trackIndex) {
         track.savedGain = track.gain || 1.0;
     }
 
-    if (newMuteState) {
-        track.gain = 0;
-    } else {
-        track.gain = track.savedGain;
+    const targetGain = newMuteState ? 0 : track.savedGain;
+    track.gain = targetGain;
+
+    // Try multiple possible locations for the gain node
+    const possibleGainNodes = [
+        track.gainNode,
+        track.gain_node,
+        track.volumeNode,
+        track.volume,
+        track.playout?.gainNode,
+        track.playout?.gain
+    ];
+
+    let updated = false;
+    for (const node of possibleGainNodes) {
+        if (node && node.gain && typeof node.gain.value !== 'undefined') {
+            node.gain.value = targetGain;
+            console.log(`Updated gain node to ${targetGain}`);
+            updated = true;
+            break;
+        }
     }
 
-    // Update the gain on the gain node if it exists
-    if (track.gainNode) {
-        track.gainNode.gain.value = track.gain;
+    if (!updated) {
+        console.warn(`Could not find gain node for track ${trackIndex}`);
     }
 
     console.log(`Track ${trackIndex} mute: ${newMuteState}, gain: ${track.gain}`);
