@@ -588,19 +588,8 @@
         setTheme(savedTheme);
     </script>
     
-    <!-- CKEditor Audio Upload Plugin -->
-    <script src="{% static 'js/ckeditor_audio_upload.js' %}" defer></script>
-    <script>
-        // Initialize audio upload plugin when CKEditor is ready
-        document.addEventListener('DOMContentLoaded', function() {
-            if (typeof ClassicEditor !== 'undefined') {
-                // Add the AudioUpload plugin to CKEditor's builtin plugins if not already present
-                if (window.AudioUpload && !ClassicEditor.builtinPlugins.find(p => p.pluginName === 'AudioUpload')) {
-                    ClassicEditor.builtinPlugins.push(window.AudioUpload);
-                }
-            }
-        });
-    </script>
+    <!-- CKEditor Audio Upload Helper -->
+    <script src="{% static 'js/ckeditor_audio_upload.js' %}"></script>
 
     {% block extra_js %}{% endblock %}
 </body>
