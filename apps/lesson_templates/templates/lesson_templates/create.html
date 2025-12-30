@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Lesson Template{% endblock %}
+
+{% block extra_head %}
+{{ form.media }}
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-2">Create Lesson Template</h1>
+        <p class="text-base-content/70">Create a reusable template for your lesson content</p>
+    </div>
+
+    <!-- Form -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-error">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <h2 class="card-title text-xl mb-4">Basic Information</h2>
+
+                <!-- Title -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">{{ form.title.label }}</span>
+                        {% if form.title.field.required %}<span class="text-error">*</span>{% endif %}
+                    </label>
+                    {{ form.title }}
+                    {% if form.title.help_text %}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.title.help_text }}</span>
+                    </label>
+                    {% endif %}
+                    {% if form.title.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.title.errors.0 }}</span>
+                    </label>
+                    {% endif %}
+                </div>
+
+                <!-- Content -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">{{ form.content.label }}</span>
+                        {% if form.content.field.required %}<span class="text-error">*</span>{% endif %}
+                    </label>
+                    {{ form.content }}
+                    {% if form.content.help_text %}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.content.help_text }}</span>
+                    </label>
+                    {% endif %}
+                    {% if form.content.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.content.errors.0 }}</span>
+                    </label>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <h2 class="card-title text-xl mb-4">Categorization</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Subject -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ form.subject.label }}</span>
+                        </label>
+                        {{ form.subject }}
+                        {% if form.subject.help_text %}
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.subject.help_text }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Syllabus -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ form.syllabus.label }}</span>
+                        </label>
+                        {{ form.syllabus }}
+                        {% if form.syllabus.help_text %}
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.syllabus.help_text }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Grade Level -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ form.grade_level.label }}</span>
+                        </label>
+                        {{ form.grade_level }}
+                        {% if form.grade_level.help_text %}
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.grade_level.help_text }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Lesson Number -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ form.lesson_number.label }}</span>
+                        </label>
+                        {{ form.lesson_number }}
+                        {% if form.lesson_number.help_text %}
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.lesson_number.help_text }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Tags -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">{{ form.tags.label }}</span>
+                    </label>
+                    {{ form.tags }}
+                    {% if form.tags.help_text %}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.tags.help_text }}</span>
+                    </label>
+                    {% endif %}
+                </div>
+
+                <!-- New Tags -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">{{ form.new_tags.label }}</span>
+                    </label>
+                    {{ form.new_tags }}
+                    {% if form.new_tags.help_text %}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.new_tags.help_text }}</span>
+                    </label>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <h2 class="card-title text-xl mb-4">Sharing</h2>
+
+                <!-- Is Public -->
+                <div class="form-control">
+                    <label class="label cursor-pointer justify-start gap-3">
+                        {{ form.is_public }}
+                        <span class="label-text">
+                            <span class="font-semibold">{{ form.is_public.label }}</span>
+                            {% if form.is_public.help_text %}
+                            <span class="block text-sm text-base-content/70 mt-1">{{ form.is_public.help_text }}</span>
+                            {% endif %}
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-4 justify-end">
+            <a href="{% url 'lesson_templates:library' %}" class="btn btn-ghost">
+                <i class="fas fa-times mr-2"></i>
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-2"></i>
+                Create Template
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Lesson Content Library{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold">📚 Lesson Content Library</h1>
+            <p class="text-base-content/70 mt-2">Create and manage reusable lesson content templates</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'lesson_templates:create' %}" class="btn btn-primary">
+                <i class="fas fa-plus mr-2"></i>Create Template
+            </a>
+        </div>
+    </div>
+
+    <!-- View Mode Tabs -->
+    <div class="tabs tabs-boxed mb-6">
+        <a class="tab {% if view_mode == 'my_templates' %}tab-active{% endif %}"
+           href="?mode=my_templates">
+            <i class="fas fa-book mr-2"></i>
+            My Templates
+        </a>
+        <a class="tab {% if view_mode == 'browse_all' %}tab-active{% endif %}"
+           href="?mode=browse_all">
+            <i class="fas fa-globe mr-2"></i>
+            Browse All
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-base-200 shadow-md mb-6">
+        <div class="card-body">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Preserve mode -->
+                <input type="hidden" name="mode" value="{{ view_mode }}">
+
+                <!-- Search -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Search</span>
+                    </label>
+                    <input type="text"
+                           name="search"
+                           value="{{ search_query }}"
+                           placeholder="Title or content..."
+                           class="input input-bordered">
+                </div>
+
+                <!-- Subject Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Subject</span>
+                    </label>
+                    <select name="subject" class="select select-bordered">
+                        <option value="">All Subjects</option>
+                        {% for subject in subjects %}
+                        <option value="{{ subject.id }}" {% if selected_subject == subject.id|stringformat:"s" %}selected{% endif %}>
+                            {{ subject.subject }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Syllabus Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Syllabus</span>
+                    </label>
+                    <select name="syllabus" class="select select-bordered">
+                        <option value="">All Syllabi</option>
+                        {% for value, label in syllabus_choices %}
+                        <option value="{{ value }}" {% if selected_syllabus == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Grade Level Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Grade Level</span>
+                    </label>
+                    <select name="grade" class="select select-bordered">
+                        <option value="">All Grades</option>
+                        {% for grade in grade_levels %}
+                        <option value="{{ grade }}" {% if selected_grade == grade %}selected{% endif %}>
+                            Grade {{ grade }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Tag Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Tag</span>
+                    </label>
+                    <select name="tag" class="select select-bordered">
+                        <option value="">All Tags</option>
+                        {% for tag in tags %}
+                        <option value="{{ tag.id }}" {% if selected_tag == tag.id|stringformat:"s" %}selected{% endif %}>
+                            {{ tag.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Lesson Number Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Lesson Number</span>
+                    </label>
+                    <input type="number"
+                           name="lesson"
+                           value="{{ selected_lesson }}"
+                           placeholder="e.g., 1, 2, 3..."
+                           min="1"
+                           class="input input-bordered">
+                </div>
+
+                <!-- Filter Actions -->
+                <div class="form-control flex flex-row gap-2 items-end lg:col-span-2">
+                    <button type="submit" class="btn btn-primary flex-1">
+                        <i class="fas fa-filter mr-2"></i>
+                        Apply Filters
+                    </button>
+                    {% if filters_active %}
+                    <a href="?mode={{ view_mode }}" class="btn btn-ghost" title="Clear filters">
+                        <i class="fas fa-times"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if templates %}
+        <!-- Templates Count -->
+        <div class="text-sm text-base-content/70 mb-4">
+            Found {{ templates|length }} template{{ templates|length|pluralize }}
+            {% if filters_active %}<span class="text-primary">(filtered)</span>{% endif %}
+        </div>
+
+        <!-- Templates Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for template in templates %}
+                <div class="card card-section shadow-lg hover:shadow-xl transition-shadow">
+                    <div class="card-body">
+                        <!-- Title -->
+                        <h2 class="card-title text-xl mb-2">
+                            {{ template.title }}
+                        </h2>
+
+                        <!-- Metadata -->
+                        <div class="space-y-1 mb-3 text-sm">
+                            {% if template.syllabus %}
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-book-open text-primary"></i>
+                                <span>{{ template.get_syllabus_display }}</span>
+                            </div>
+                            {% endif %}
+
+                            {% if template.grade_level %}
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-graduation-cap text-success"></i>
+                                <span>Grade {{ template.grade_level }}</span>
+                            </div>
+                            {% endif %}
+
+                            {% if template.lesson_number %}
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-list-ol text-info"></i>
+                                <span>Lesson {{ template.lesson_number }}</span>
+                            </div>
+                            {% endif %}
+
+                            {% if template.subject %}
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-music text-accent"></i>
+                                <span>{{ template.subject.subject }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Tags -->
+                        {% if template.tags.all %}
+                        <div class="flex flex-wrap gap-1 mb-3">
+                            {% for tag in template.tags.all %}
+                            <span class="badge badge-sm badge-outline">{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Stats -->
+                        <div class="flex items-center gap-4 text-xs text-base-content/60 mb-4">
+                            <div class="flex items-center gap-1">
+                                <i class="fas fa-user"></i>
+                                <span>{{ template.created_by.get_full_name|default:template.created_by.username }}</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Used {{ template.use_count }} time{{ template.use_count|pluralize }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Public Badge -->
+                        {% if template.is_public %}
+                        <div class="badge badge-success badge-sm mb-3">
+                            <i class="fas fa-globe mr-1"></i>
+                            Public
+                        </div>
+                        {% endif %}
+
+                        <!-- Actions -->
+                        <div class="card-actions justify-end mt-auto">
+                            <a href="{% url 'lesson_templates:preview' template.pk %}"
+                               class="btn btn-sm btn-ghost">
+                                <i class="fas fa-eye"></i>
+                                Preview
+                            </a>
+
+                            {% if template.created_by == request.user %}
+                            <a href="{% url 'lesson_templates:edit' template.pk %}"
+                               class="btn btn-sm btn-primary">
+                                <i class="fas fa-edit"></i>
+                                Edit
+                            </a>
+                            {% else %}
+                            <a href="{% url 'lesson_templates:duplicate' template.pk %}"
+                               class="btn btn-sm btn-secondary">
+                                <i class="fas fa-copy"></i>
+                                Duplicate
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Empty State -->
+        <div class="card bg-base-200 shadow-md">
+            <div class="card-body text-center py-12">
+                <i class="fas fa-book-open text-6xl text-base-content/30 mb-4"></i>
+                <h3 class="text-xl font-semibold mb-2">No Templates Found</h3>
+                {% if view_mode == 'my_templates' %}
+                    <p class="text-base-content/70 mb-4">
+                        You haven't created any lesson templates yet.
+                    </p>
+                    <a href="{% url 'lesson_templates:create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus mr-2"></i>
+                        Create Your First Template
+                    </a>
+                {% else %}
+                    <p class="text-base-content/70 mb-4">
+                        No public templates available. Try creating your own!
+                    </p>
+                    <a href="?mode=my_templates" class="btn btn-primary">
+                        <i class="fas fa-book mr-2"></i>
+                        View My Templates
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
