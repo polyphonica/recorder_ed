@@ -599,6 +599,8 @@ CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'jpg', 'png', 'gif', 'bmp', 'webp', 'svg
 CKEDITOR_5_UPLOAD_FILE_VIEW_NAME = "ck_editor_5_upload_file"
 # SECURITY FIX: Changed from "any" to "authenticated" to prevent anonymous uploads
 CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"  # Options: "staff", "authenticated", "any"
+# Allow non-raster files (SVG, audio) - file extensions still validated against CKEDITOR_5_UPLOAD_FILE_TYPES
+CKEDITOR_5_ALLOW_ALL_FILE_TYPES = True
 # Upload to media/uploads/ (ensure this directory exists)
 import os
 CKEDITOR_5_UPLOADS_PATH = os.path.join(MEDIA_ROOT, "uploads/")
