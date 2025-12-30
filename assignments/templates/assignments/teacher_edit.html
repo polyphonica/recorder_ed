@@ -832,7 +832,7 @@ document.addEventListener('DOMContentLoaded', function() {
             noteData.accidentals = accidentals;
         }
 
-        notes.push(noteData);
+        getCurrentStave().notes.push(noteData);
         currentChord = [];
         updateChordDisplay();
         renderNotes();
@@ -841,7 +841,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add barline
     document.getElementById('add-barline-btn').addEventListener('click', function() {
         const barlineType = document.getElementById('barline-type-select').value;
-        notes.push({
+        getCurrentStave().notes.push({
             type: 'barline',
             barlineType: barlineType
         });
@@ -900,7 +900,7 @@ document.addEventListener('DOMContentLoaded', function() {
             noteData.accidental = selectedAccidental;
         }
 
-        notes.push(noteData);
+        getCurrentStave().notes.push(noteData);
         renderNotes();
     }
 
