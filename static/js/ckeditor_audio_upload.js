@@ -147,21 +147,68 @@
 
     // Initialize audio upload buttons for all CKEditor instances
     function initializeAudioUpload() {
+        console.log('Audio Upload: Initializing...');
+
         // Wait for CKEditor instances to be ready
         const checkEditors = setInterval(function() {
-            // Find all CKEditor elements
-            const editorElements = document.querySelectorAll('.django_ckeditor_5');
+            // Try multiple selectors to find CKEditor elements
+            const selectors = [
+                '.django_ckeditor_5',
+                '.ck-editor',
+                '[id*="ckeditor"]',
+                'textarea[name*="content"]',
+                'textarea[name*="bio"]'
+            ];
 
-            editorElements.forEach(function(editorElement) {
-                // Try to find the CKEditor instance
-                // CKEditor 5 stores instance reference on the DOM element
-                if (editorElement.ckeditorInstance) {
-                    createAudioUploadButton(editorElement, editorElement.ckeditorInstance);
+            let foundEditors = [];
+            selectors.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                console.log(`Audio Upload: Found ${elements.length} elements with selector "${selector}"`);
+                elements.forEach(el => {
+                    if (!foundEditors.includes(el)) {
+                        foundEditors.push(el);
+                    }
+                });
+            });
+
+            console.log(`Audio Upload: Total unique elements found: ${foundEditors.length}`);
+
+            // Look for CKEditor instances in various ways
+            foundEditors.forEach(function(element) {
+                console.log('Audio Upload: Checking element:', element);
+
+                // Method 1: Check for ckeditorInstance property
+                if (element.ckeditorInstance) {
+                    console.log('Audio Upload: Found ckeditorInstance on element');
+                    createAudioUploadButton(element, element.ckeditorInstance);
+                }
+
+                // Method 2: Check if element is within .ck-editor container
+                const ckEditorContainer = element.closest('.ck-editor');
+                if (ckEditorContainer) {
+                    console.log('Audio Upload: Found .ck-editor container');
+                    // Try to find the editor instance from the container
+                    const editable = ckEditorContainer.querySelector('.ck-editor__editable');
+                    if (editable && editable.ckeditorInstance) {
+                        console.log('Audio Upload: Found editor instance on editable');
+                        createAudioUploadButton(ckEditorContainer, editable.ckeditorInstance);
+                    }
+                }
+
+                // Method 3: Check for editor in the parent's nextElementSibling
+                if (element.nextElementSibling && element.nextElementSibling.classList.contains('ck-editor')) {
+                    console.log('Audio Upload: Found .ck-editor as next sibling');
+                    const editable = element.nextElementSibling.querySelector('.ck-editor__editable');
+                    if (editable && editable.ckeditorInstance) {
+                        console.log('Audio Upload: Found editor instance on sibling editable');
+                        createAudioUploadButton(element.nextElementSibling, editable.ckeditorInstance);
+                    }
                 }
             });
 
             // Stop checking after 10 seconds
             if (Date.now() - startTime > 10000) {
+                console.log('Audio Upload: Stopping after 10 seconds');
                 clearInterval(checkEditors);
             }
         }, 500);
