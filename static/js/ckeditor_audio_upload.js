@@ -60,9 +60,14 @@
 
     // Upload audio file to server
     function uploadAudioFile(file, editor) {
+        console.log('Audio Upload: Starting upload for file:', file.name);
+        console.log('Audio Upload: Editor instance:', editor);
+
         // Get CSRF token
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
                          document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+        console.log('Audio Upload: CSRF token found:', !!csrfToken);
 
         // Create FormData
         const formData = new FormData();
@@ -75,6 +80,8 @@
         const editorContainer = editor.sourceElement?.parentElement || editor.ui.view.element.parentElement;
         editorContainer.appendChild(loadingMsg);
 
+        console.log('Audio Upload: Sending request to /ckeditor5/image_upload/');
+
         // Upload file
         fetch('/ckeditor5/image_upload/', {
             method: 'POST',
@@ -83,11 +90,16 @@
             },
             body: formData
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Audio Upload: Response status:', response.status);
+            return response.json();
+        })
         .then(data => {
+            console.log('Audio Upload: Response data:', data);
             loadingMsg.remove();
 
             if (data.url) {
+                console.log('Audio Upload: File uploaded successfully to:', data.url);
                 insertAudioElement(editor, data.url, file.name);
 
                 // Show success message
@@ -97,12 +109,13 @@
                 editorContainer.appendChild(successMsg);
                 setTimeout(() => successMsg.remove(), 3000);
             } else {
-                throw new Error(data.error?.message || 'Upload failed');
+                throw new Error(data.error?.message || 'Upload failed - no URL returned');
             }
         })
         .catch(error => {
             loadingMsg.remove();
-            console.error('Audio upload error:', error);
+            console.error('Audio Upload: ERROR:', error);
+            console.error('Audio Upload: Error stack:', error.stack);
 
             const errorMsg = document.createElement('div');
             errorMsg.className = 'alert alert-error mt-2';
@@ -114,19 +127,28 @@
 
     // Insert audio element into CKEditor
     function insertAudioElement(editor, url, filename) {
-        // Determine MIME type
-        const extension = url.split('.').pop().toLowerCase();
-        const mimeTypes = {
-            'mp3': 'audio/mpeg',
-            'wav': 'audio/wav',
-            'ogg': 'audio/ogg',
-            'm4a': 'audio/mp4',
-            'aac': 'audio/aac'
-        };
-        const mimeType = mimeTypes[extension] || 'audio/mpeg';
+        console.log('Audio Upload: Inserting audio element');
+        console.log('Audio Upload: URL:', url);
+        console.log('Audio Upload: Filename:', filename);
+        console.log('Audio Upload: Editor valid?', !!editor);
+        console.log('Audio Upload: Editor.model valid?', !!editor.model);
 
-        // Create HTML for audio player
-        const audioHtml = `
+        try {
+            // Determine MIME type
+            const extension = url.split('.').pop().toLowerCase();
+            const mimeTypes = {
+                'mp3': 'audio/mpeg',
+                'wav': 'audio/wav',
+                'ogg': 'audio/ogg',
+                'm4a': 'audio/mp4',
+                'aac': 'audio/aac'
+            };
+            const mimeType = mimeTypes[extension] || 'audio/mpeg';
+
+            console.log('Audio Upload: MIME type:', mimeType);
+
+            // Create HTML for audio player
+            const audioHtml = `
 <figure class="media">
     <audio controls style="width: 100%;">
         <source src="${url}" type="${mimeType}">
@@ -135,14 +157,27 @@
     <figcaption>${filename}</figcaption>
 </figure>
 <p>&nbsp;</p>
-        `.trim();
+            `.trim();
 
-        // Insert into editor using setData to append
-        editor.model.change(writer => {
-            const viewFragment = editor.data.processor.toView(audioHtml);
-            const modelFragment = editor.data.toModel(viewFragment);
-            editor.model.insertContent(modelFragment);
-        });
+            console.log('Audio Upload: Generated HTML:', audioHtml);
+
+            // Insert into editor using model.change
+            editor.model.change(writer => {
+                console.log('Audio Upload: Inside model.change');
+                const viewFragment = editor.data.processor.toView(audioHtml);
+                console.log('Audio Upload: View fragment created:', viewFragment);
+                const modelFragment = editor.data.toModel(viewFragment);
+                console.log('Audio Upload: Model fragment created:', modelFragment);
+                editor.model.insertContent(modelFragment);
+                console.log('Audio Upload: Content inserted successfully');
+            });
+
+            console.log('Audio Upload: Insertion completed');
+        } catch (error) {
+            console.error('Audio Upload: ERROR during insertion:', error);
+            console.error('Audio Upload: Error stack:', error.stack);
+            throw error;
+        }
     }
 
     // Initialize audio upload buttons for all CKEditor instances
