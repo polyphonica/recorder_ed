@@ -108,8 +108,9 @@
 
 .master-volume-label,
 .volume-label {
-    font-size: 12px;
-    color: #666;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
     margin-top: 10px;
 }
 
