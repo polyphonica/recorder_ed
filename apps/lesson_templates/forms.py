@@ -79,10 +79,8 @@ class LessonContentTemplateForm(forms.ModelForm):
             'is_public': 'Allow other teachers to browse and use this template',
         }
 
-    def save(self, commit=True):
-        instance = super().save(commit=commit)
-
-        # Handle new tags if provided
+    def _save_new_tags(self, instance):
+        """Helper method to save new tags after instance exists in database"""
         new_tags_str = self.cleaned_data.get('new_tags', '')
         if new_tags_str:
             # Split by commas, strip whitespace, and create tags
@@ -91,7 +89,18 @@ class LessonContentTemplateForm(forms.ModelForm):
                 tag, created = Tag.objects.get_or_create(name=tag_name)
                 instance.tags.add(tag)
 
+    def save(self, commit=True):
+        # Store the original save_m2m so we can wrap it
         if commit:
-            instance.save()
+            instance = super().save(commit=True)
+            self._save_new_tags(instance)
+        else:
+            instance = super().save(commit=False)
+            # Override save_m2m to also save new tags
+            old_save_m2m = self.save_m2m
+            def save_m2m():
+                old_save_m2m()
+                self._save_new_tags(instance)
+            self.save_m2m = save_m2m
 
         return instance
