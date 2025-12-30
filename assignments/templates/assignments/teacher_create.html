@@ -502,6 +502,12 @@
                         <button type="button" id="add-barline-btn" class="btn btn-sm">
                             <i class="fas fa-grip-lines-vertical mr-1"></i>Add Barline
                         </button>
+                        <button type="button" id="new-line-btn" class="btn btn-sm btn-info">
+                            <i class="fas fa-plus-circle mr-1"></i>New Line
+                        </button>
+                        <button type="button" id="delete-line-btn" class="btn btn-sm btn-warning">
+                            <i class="fas fa-times mr-1"></i>Delete Line
+                        </button>
                         <button type="button" id="label-mode-btn" class="btn btn-sm btn-info">
                             <i class="fas fa-tag mr-1"></i>Add Label
                         </button>
@@ -511,6 +517,15 @@
                         <button type="button" id="clear-all-btn" class="btn btn-sm btn-warning">
                             <i class="fas fa-trash mr-1"></i>Clear All
                         </button>
+                    </div>
+
+                    <!-- Stave Switcher -->
+                    <div id="stave-switcher" class="alert alert-info mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <strong><i class="fas fa-music mr-1"></i>Lines/Staves:</strong>
+                            <span id="current-stave-info" class="font-semibold">Editing Line 1</span>
+                        </div>
+                        <div id="stave-list" class="flex gap-2 flex-wrap"></div>
                     </div>
 
                     <!-- Notation Display -->
@@ -546,22 +561,102 @@
 document.addEventListener('DOMContentLoaded', function() {
     const VF = Vex.Flow;
 
-    // State
-    let selectedClef = 'treble';
-    let selectedKeySignature = '';  // Empty string = C major (no sharps/flats)
-    let selectedTimeSignature = '4/4';  // Default to 4/4 time
+    // Multi-stave data structure
+    let staves = [
+        {
+            clef: 'treble',
+            keySignature: '',
+            timeSignature: '4/4',
+            notes: [],
+            textLabels: []
+        }
+    ];
+    let currentStaveIndex = 0;
+
+    // Editor state (applies to current stave)
     let selectedDuration = 'w';  // Default to whole note (matches btn-active in HTML)
     let selectedAccidental = 'none';
     let selectedPitch = 'c/4';
     let chordMode = false;
     let currentChord = [];
-    let notes = [];
-    let textLabels = [];
+
+    // Helper to get current stave
+    function getCurrentStave() {
+        return staves[currentStaveIndex];
+    }
+
+    // Update stave switcher UI
+    function updateStaveSwitcher() {
+        const staveList = document.getElementById('stave-list');
+        const currentInfo = document.getElementById('current-stave-info');
+        const currentStave = getCurrentStave();
+
+        currentInfo.textContent = `Editing Line ${currentStaveIndex + 1} (${currentStave.timeSignature})`;
+
+        staveList.innerHTML = '';
+        staves.forEach((stave, index) => {
+            const badge = document.createElement('button');
+            badge.type = 'button';
+            badge.className = index === currentStaveIndex ? 'btn btn-xs btn-primary' : 'btn btn-xs';
+            badge.textContent = `Line ${index + 1}: ${stave.timeSignature}`;
+            badge.onclick = () => switchToStave(index);
+            staveList.appendChild(badge);
+        });
+
+        // Update UI controls to match current stave
+        document.getElementById('time-signature-select').value = currentStave.timeSignature;
+        document.getElementById('key-signature-select').value = currentStave.keySignature;
+        document.querySelectorAll('[data-clef]').forEach(btn => {
+            if (btn.getAttribute('data-clef') === currentStave.clef) {
+                btn.classList.add('btn-active');
+            } else {
+                btn.classList.remove('btn-active');
+            }
+        });
+    }
+
+    // Switch to a different stave
+    function switchToStave(index) {
+        if (index >= 0 && index < staves.length) {
+            currentStaveIndex = index;
+            updateStaveSwitcher();
+            renderNotes();
+        }
+    }
+
+    // Add new stave
+    function addNewStave() {
+        staves.push({
+            clef: 'treble',
+            keySignature: '',
+            timeSignature: '4/4',
+            notes: [],
+            textLabels: []
+        });
+        currentStaveIndex = staves.length - 1;
+        updateStaveSwitcher();
+        renderNotes();
+    }
+
+    // Delete current stave
+    function deleteCurrentStave() {
+        if (staves.length === 1) {
+            alert('Cannot delete the last stave. At least one line must remain.');
+            return;
+        }
+
+        if (confirm(`Delete Line ${currentStaveIndex + 1}?`)) {
+            staves.splice(currentStaveIndex, 1);
+            currentStaveIndex = Math.max(0, currentStaveIndex - 1);
+            updateStaveSwitcher();
+            renderNotes();
+        }
+    }
 
     // Clef selection
     document.querySelectorAll('[data-clef]').forEach(btn => {
         btn.addEventListener('click', function() {
-            selectedClef = this.getAttribute('data-clef');
+            getCurrentStave().clef = this.getAttribute('data-clef');
             document.querySelectorAll('[data-clef]').forEach(b => b.classList.remove('btn-active'));
             this.classList.add('btn-active');
             renderNotes();
@@ -570,13 +665,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Key signature selection
     document.getElementById('key-signature-select').addEventListener('change', function() {
-        selectedKeySignature = this.value;
+        getCurrentStave().keySignature = this.value;
+        updateStaveSwitcher();
         renderNotes();
     });
 
     // Time signature selection
     document.getElementById('time-signature-select').addEventListener('change', function() {
-        selectedTimeSignature = this.value;
+        getCurrentStave().timeSignature = this.value;
+        updateStaveSwitcher();
         renderNotes();
     });
 
@@ -677,7 +774,7 @@ document.addEventListener('DOMContentLoaded', function() {
             noteData.accidentals = accidentals;
         }
 
-        notes.push(noteData);
+        getCurrentStave().notes.push(noteData);
         currentChord = [];
         updateChordDisplay();
         renderNotes();
@@ -685,8 +782,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add barline
     document.getElementById('add-barline-btn').addEventListener('click', function() {
-        notes.push({ type: 'barline' });
+        getCurrentStave().notes.push({ type: 'barline' });
         renderNotes();
+    });
+
+    // New Line button
+    document.getElementById('new-line-btn').addEventListener('click', function() {
+        addNewStave();
+    });
+
+    // Delete Line button
+    document.getElementById('delete-line-btn').addEventListener('click', function() {
+        deleteCurrentStave();
     });
 
     // Remove last
@@ -694,18 +801,28 @@ document.addEventListener('DOMContentLoaded', function() {
         if (chordMode && currentChord.length > 0) {
             currentChord.pop();
             updateChordDisplay();
-        } else if (notes.length > 0) {
-            notes.pop();
+        } else if (getCurrentStave().notes.length > 0) {
+            getCurrentStave().notes.pop();
             renderNotes();
         }
     });
 
     // Clear all
     document.getElementById('clear-all-btn').addEventListener('click', function() {
-        if (confirm('Are you sure you want to clear all notation?')) {
-            notes = [];
+        if (confirm('Are you sure you want to clear all staves?')) {
+            staves = [
+                {
+                    clef: 'treble',
+                    keySignature: '',
+                    timeSignature: '4/4',
+                    notes: [],
+                    textLabels: []
+                }
+            ];
+            currentStaveIndex = 0;
             currentChord = [];
             updateChordDisplay();
+            updateStaveSwitcher();
             renderNotes();
         }
     });
@@ -727,8 +844,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         console.log('Note data:', noteData);
-        notes.push(noteData);
-        console.log('Notes array length:', notes.length);
+        getCurrentStave().notes.push(noteData);
+        console.log('Notes array length:', getCurrentStave().notes.length);
         renderNotes();
     }
 
@@ -747,11 +864,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function saveNotationData() {
         const notationData = {
-            clef: selectedClef,
-            keySignature: selectedKeySignature,
-            timeSignature: selectedTimeSignature,
-            notes: notes,
-            textLabels: textLabels
+            staves: staves
         };
         document.getElementById('id_reference_notation').value = JSON.stringify(notationData);
     }
@@ -760,19 +873,197 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('ref-notation-display');
         container.innerHTML = '';
 
-        // Always render the stave, even with no notes
-        renderNotation('ref-notation-display', {
-            clef: selectedClef,
-            keySignature: selectedKeySignature,
-            timeSignature: selectedTimeSignature,
-            notes: notes,
-            textLabels: textLabels
+        // Calculate height needed for all staves (250px per stave)
+        const totalHeight = staves.length * 250;
+
+        const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+        renderer.resize(900, totalHeight);
+        const context = renderer.getContext();
+
+        // Render each stave
+        staves.forEach((staveData, index) => {
+            const yPosition = 40 + (index * 250);
+            try {
+                renderSingleStave(context, staveData, yPosition, index === currentStaveIndex, 'ref-notation-display', index);
+            } catch (error) {
+                console.error(`Error rendering stave ${index + 1}:`, error);
+            }
         });
 
         // Save to hidden input
         saveNotationData();
     }
 
+    // Render a single stave at the given Y position
+    function renderSingleStave(context, staveData, yPosition, isCurrentStave, containerId, staveIndex) {
+        const stave = new VF.Stave(10, yPosition, 870);
+        stave.addClef(staveData.clef);
+        if (staveData.keySignature) {
+            stave.addKeySignature(staveData.keySignature);
+        }
+        if (staveData.timeSignature) {
+            stave.addTimeSignature(staveData.timeSignature);
+        }
+        stave.setContext(context).draw();
+
+        // Highlight current stave being edited
+        if (isCurrentStave) {
+            const svgElement = document.querySelector(`#${containerId} svg`);
+            if (svgElement) {
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', '5');
+                rect.setAttribute('y', yPosition - 10);
+                rect.setAttribute('width', '880');
+                rect.setAttribute('height', '130');
+                rect.setAttribute('fill', 'none');
+                rect.setAttribute('stroke', '#3b82f6');
+                rect.setAttribute('stroke-width', '2');
+                rect.setAttribute('stroke-dasharray', '5,5');
+                svgElement.appendChild(rect);
+            }
+        }
+
+        // Render text labels for this stave
+        if (staveData.textLabels && staveData.textLabels.length > 0) {
+            const svgElement = document.querySelector(`#${containerId} svg`);
+            if (svgElement) {
+                staveData.textLabels.forEach((label, index) => {
+                    const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    textElement.setAttribute('x', label.x);
+                    textElement.setAttribute('y', label.y + (staveIndex * 250));
+                    textElement.setAttribute('fill', '#dc2626');
+                    textElement.setAttribute('font-size', '14');
+                    textElement.setAttribute('font-weight', 'bold');
+                    textElement.setAttribute('cursor', 'pointer');
+                    textElement.textContent = label.text;
+                    textElement.dataset.labelIndex = index;
+                    textElement.dataset.staveIndex = staveIndex;
+
+                    if (containerId === 'ref-notation-display' && isCurrentStave) {
+                        textElement.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            editTextLabel(index);
+                        });
+                    }
+
+                    svgElement.appendChild(textElement);
+                });
+            }
+        }
+
+        if (!staveData.notes || staveData.notes.length === 0) return;
+
+        // Continue with original renderNotation logic for notes...
+        renderStaveNotes(context, stave, staveData, containerId, yPosition);
+    }
+
+    // Extract the note rendering logic
+    function renderStaveNotes(context, stave, notationData, containerId, yPosition) {
+        const notes = notationData.notes;
+        const timeSignature = notationData.timeSignature !== undefined ? notationData.timeSignature : '4/4';
+        const clef = notationData.clef || 'treble';
+
+        const vfNotes = notes.map(noteData => {
+            try {
+                if (noteData.type === 'barline') {
+                    return new VF.BarNote();
+                } else {
+                    let duration = noteData.duration;
+                    let numDots = 0;
+
+                    if (duration.endsWith('dd')) {
+                        numDots = 2;
+                        duration = duration.slice(0, -2);
+                    } else if (duration.endsWith('d')) {
+                        numDots = 1;
+                        duration = duration.slice(0, -1);
+                    }
+
+                    const note = new VF.StaveNote({
+                        keys: noteData.keys,
+                        duration: duration,
+                        clef: clef
+                    });
+
+                    const isRest = duration.includes('r');
+                    if (!isRest) {
+                        const middleLines = {
+                            'treble': { note: 'b', octave: 4 },
+                            'bass': { note: 'd', octave: 3 },
+                            'alto': { note: 'c', octave: 4 }
+                        };
+
+                        const getNotePitchValue = (key) => {
+                            const [noteName, octave] = key.split('/');
+                            const noteValues = { 'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'b': 6 };
+                            return parseInt(octave) * 7 + noteValues[noteName.toLowerCase()];
+                        };
+
+                        const middleLine = middleLines[clef] || middleLines['treble'];
+                        const middleLinePitch = middleLine.octave * 7 +
+                            { 'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'b': 6 }[middleLine.note];
+
+                        const pitchValues = noteData.keys.map(getNotePitchValue);
+                        const avgPitch = pitchValues.reduce((a, b) => a + b, 0) / pitchValues.length;
+
+                        if (avgPitch >= middleLinePitch) {
+                            note.setStemDirection(VF.Stem.DOWN);
+                        } else {
+                            note.setStemDirection(VF.Stem.UP);
+                        }
+                    }
+
+                    for (let i = 0; i < numDots; i++) {
+                        VF.Dot.buildAndAttach([note], { all: true });
+                    }
+
+                    if (noteData.accidental) {
+                        note.addModifier(new VF.Accidental(noteData.accidental), 0);
+                    }
+
+                    if (noteData.accidentals && Array.isArray(noteData.accidentals)) {
+                        noteData.accidentals.forEach((acc, index) => {
+                            if (acc) {
+                                note.addModifier(new VF.Accidental(acc), index);
+                            }
+                        });
+                    }
+
+                    return note;
+                }
+            } catch (error) {
+                console.error('Error creating note:', error);
+                return null;
+            }
+        }).filter(note => note !== null);
+
+        if (vfNotes.length === 0) return;
+
+        let num_beats = 4;
+        let beat_value = 4;
+
+        if (timeSignature === 'C') {
+            num_beats = 4;
+            beat_value = 4;
+        } else if (timeSignature === 'C|') {
+            num_beats = 2;
+            beat_value = 2;
+        } else if (timeSignature.includes('/')) {
+            const parts = timeSignature.split('/');
+            num_beats = parseInt(parts[0]);
+            beat_value = parseInt(parts[1]);
+        }
+
+        const voice = new VF.Voice({ num_beats: num_beats, beat_value: beat_value });
+        voice.setMode(VF.Voice.Mode.SOFT);
+        voice.addTickables(vfNotes);
+
+        const formatter = new VF.Formatter();
+        formatter.joinVoices([voice]).format([voice], 850);
+        voice.draw(context, stave);
+    }
+
+    // Keep old renderNotation for backward compatibility (used by preview)
     function renderNotation(containerId, notationData) {
         console.log('renderNotation called for:', containerId);
         console.log('Notation data:', notationData);
@@ -1116,28 +1407,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const text = prompt('Enter label text (e.g., "treble clef", "bar line", "time signature"):');
         if (text && text.trim()) {
-            textLabels.push({ x, y, text: text.trim() });
+            getCurrentStave().textLabels.push({ x, y, text: text.trim() });
             saveNotationData();
             renderNotes();
         }
     });
 
     function editTextLabel(index) {
-        const label = textLabels[index];
+        const label = getCurrentStave().textLabels[index];
         const action = confirm(`Edit label "${label.text}"?\n\nOK = Edit text\nCancel = Delete label`);
 
         if (action === true) {
             // Edit
             const newText = prompt('Edit label text:', label.text);
             if (newText && newText.trim()) {
-                textLabels[index].text = newText.trim();
+                getCurrentStave().textLabels[index].text = newText.trim();
                 saveNotationData();
                 renderNotes();
             }
         } else if (action === false) {
             // Delete
             if (confirm(`Delete label "${label.text}"?`)) {
-                textLabels.splice(index, 1);
+                getCurrentStave().textLabels.splice(index, 1);
                 saveNotationData();
                 renderNotes();
             }
@@ -1145,6 +1436,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Initial render
+    updateStaveSwitcher();
     renderNotes();
 
     // Save notation before form submission
