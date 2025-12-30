@@ -1,1 +1,129 @@
-<!-- Template placeholder -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Preview: {{ template.title }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/ckeditor_custom.css' %}?v=3" type="text/css">
+<link rel="stylesheet" href="{% static 'css/imagestyle.css' %}?v=3" type="text/css">
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-8">
+        <div>
+            <h1 class="text-3xl font-bold mb-2">{{ template.title }}</h1>
+            <div class="flex items-center gap-4 text-sm text-base-content/70">
+                <div class="flex items-center gap-1">
+                    <i class="fas fa-user"></i>
+                    <span>{{ template.created_by.get_full_name|default:template.created_by.username }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <i class="fas fa-calendar"></i>
+                    <span>{{ template.created_at|date:"M j, Y" }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="flex gap-2 no-print">
+            {% if template.created_by == request.user %}
+            <a href="{% url 'lesson_templates:edit' template.pk %}" class="btn btn-primary">
+                <i class="fas fa-edit mr-2"></i>Edit
+            </a>
+            {% else %}
+            <a href="{% url 'lesson_templates:duplicate' template.pk %}" class="btn btn-secondary">
+                <i class="fas fa-copy mr-2"></i>Duplicate
+            </a>
+            {% endif %}
+            <a href="{% url 'lesson_templates:library' %}" class="btn btn-ghost">
+                <i class="fas fa-times mr-2"></i>Close
+            </a>
+        </div>
+    </div>
+
+    <!-- Template Metadata -->
+    <div class="card bg-base-200 shadow-md mb-6">
+        <div class="card-body">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {% if template.syllabus %}
+                <div>
+                    <div class="text-sm text-base-content/60">Syllabus</div>
+                    <div class="font-semibold">{{ template.get_syllabus_display }}</div>
+                </div>
+                {% endif %}
+
+                {% if template.grade_level %}
+                <div>
+                    <div class="text-sm text-base-content/60">Grade Level</div>
+                    <div class="font-semibold">Grade {{ template.grade_level }}</div>
+                </div>
+                {% endif %}
+
+                {% if template.lesson_number %}
+                <div>
+                    <div class="text-sm text-base-content/60">Lesson Number</div>
+                    <div class="font-semibold">Lesson {{ template.lesson_number }}</div>
+                </div>
+                {% endif %}
+
+                {% if template.subject %}
+                <div>
+                    <div class="text-sm text-base-content/60">Subject</div>
+                    <div class="font-semibold">{{ template.subject.subject }}</div>
+                </div>
+                {% endif %}
+
+                <div>
+                    <div class="text-sm text-base-content/60">Times Used</div>
+                    <div class="font-semibold">{{ template.use_count }}</div>
+                </div>
+
+                {% if template.is_public %}
+                <div>
+                    <div class="text-sm text-base-content/60">Visibility</div>
+                    <div class="badge badge-success">
+                        <i class="fas fa-globe mr-1"></i>Public
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Tags -->
+            {% if template.tags.all %}
+            <div class="mt-4">
+                <div class="text-sm text-base-content/60 mb-2">Tags</div>
+                <div class="flex flex-wrap gap-2">
+                    {% for tag in template.tags.all %}
+                    <span class="badge badge-outline">{{ tag.name }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Template Content -->
+    <div class="card bg-base-100 shadow-lg">
+        <div class="card-body">
+            <h2 class="card-title text-2xl mb-4">Lesson Content</h2>
+            <div class="ck-content prose max-w-none">
+                {{ template.content|safe }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-4 justify-end mt-6 no-print">
+        <a href="{% url 'lesson_templates:library' %}" class="btn btn-ghost">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Library
+        </a>
+        {% if template.created_by == request.user %}
+        <a href="{% url 'lesson_templates:edit' template.pk %}" class="btn btn-primary">
+            <i class="fas fa-edit mr-2"></i>
+            Edit Template
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
