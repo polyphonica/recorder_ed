@@ -127,7 +127,9 @@
     button,
     .navbar,
     .modal,
-    .alert {
+    .alert,
+    .status-badge,
+    .badge {
         display: none !important;
     }
 
@@ -135,8 +137,8 @@
     body {
         background: white !important;
         color: black !important;
-        font-size: 12pt;
-        line-height: 1.5;
+        font-size: 11pt;
+        line-height: 1.4;
     }
 
     /* Container adjustments */
@@ -146,33 +148,73 @@
         margin: 0 !important;
     }
 
-    /* Lesson header adjustments for print */
+    /* Simplified lesson header for print */
     .lesson-header {
-        background: #f3f4f6 !important;
+        background: white !important;
         color: black !important;
-        border: 1px solid #d1d5db;
+        border: none !important;
+        border-bottom: 2px solid black !important;
+        padding: 0 0 0.5rem 0 !important;
+        margin-bottom: 1rem !important;
         page-break-inside: avoid;
-        margin-bottom: 1.5rem;
     }
 
     .lesson-header h1 {
         color: black !important;
-        font-size: 18pt;
+        font-size: 16pt !important;
+        font-weight: bold;
+        margin-bottom: 0.25rem !important;
     }
 
-    /* Content sections */
+    /* Hide the grid layout in lesson header, show only essential info */
+    .lesson-header .grid {
+        display: block !important;
+    }
+
+    .lesson-header .text-right {
+        display: none !important;
+    }
+
+    /* Show only date/time and teacher in header */
+    .lesson-header .lesson-detail-item {
+        display: inline !important;
+        border: none !important;
+        padding: 0 !important;
+        margin-right: 1.5rem;
+    }
+
+    .lesson-header .lesson-detail-label {
+        font-weight: normal;
+        font-size: 10pt;
+    }
+
+    .lesson-header .lesson-detail-value {
+        font-weight: bold;
+        font-size: 10pt;
+        color: black !important;
+    }
+
+    /* Hide Lesson Settings section entirely */
+    .lesson-settings-section {
+        display: none !important;
+    }
+
+    /* Simplified content sections */
     .content-section {
-        border: 1px solid #d1d5db;
+        border: none !important;
+        background: white !important;
         page-break-inside: avoid;
-        margin-bottom: 1rem;
-        padding: 1rem;
+        margin-bottom: 0.75rem !important;
+        padding: 0 !important;
     }
 
     .content-section h3 {
         color: black !important;
-        border-bottom: 2px solid #6b7280;
-        font-size: 14pt;
+        border-bottom: 1px solid #333 !important;
+        font-size: 12pt !important;
         font-weight: bold;
+        margin-bottom: 0.5rem !important;
+        padding-bottom: 0.25rem !important;
     }
 
     /* Ensure good page breaks */
@@ -180,35 +222,28 @@
         page-break-after: avoid;
     }
 
-    /* Assignment cards for print */
+    /* Assignment cards - simplified */
     .card {
-        border: 1px solid #d1d5db !important;
+        border: 1px solid #ccc !important;
         background: white !important;
         page-break-inside: avoid;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.5rem !important;
     }
 
     .card-body {
-        padding: 0.75rem !important;
+        padding: 0.5rem !important;
     }
 
-    /* Badges and status indicators */
-    .badge {
-        border: 1px solid #6b7280;
-        background: white !important;
-        color: black !important;
-        padding: 2px 6px;
-    }
-
-    .status-badge {
-        border: 1px solid black;
+    .card h4 {
+        font-size: 11pt;
+        margin-bottom: 0.25rem;
     }
 
     /* Links - show URL after link text */
     a[href]:after {
         content: " (" attr(href) ")";
-        font-size: 10pt;
-        color: #6b7280;
+        font-size: 9pt;
+        color: #666;
         word-break: break-all;
     }
 
@@ -218,52 +253,49 @@
         content: "";
     }
 
-    /* Attachment items */
+    /* Attachment items - simplified */
     .attachment-item {
         background: white !important;
-        border: 1px solid #d1d5db;
+        border: none !important;
+        border-bottom: 1px solid #ddd !important;
+        padding: 0.25rem 0 !important;
         page-break-inside: avoid;
+    }
+
+    .attachment-item .font-medium {
+        font-weight: bold;
+    }
+
+    .attachment-item .text-sm {
+        display: none !important;
     }
 
     /* Ensure prose content prints well */
     .prose,
     .ck-content {
         max-width: 100% !important;
-    }
-
-    /* Detail items */
-    .lesson-detail-item {
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-    .lesson-detail-label {
-        font-weight: bold;
+        font-size: 11pt;
     }
 
     /* Icon colors */
     .file-icon,
     svg {
-        color: #6b7280 !important;
+        display: none !important;
     }
 
-    /* Print header - add printed date and student info */
+    /* Print margins */
     @page {
         margin: 1.5cm;
-        @top-right {
-            content: "Printed: " date(datetime);
-        }
     }
 
-    /* First page header */
+    /* Simple page header */
     body::before {
-        content: "RECORDER-ED Private Lesson";
+        content: "Private Lesson";
         display: block;
-        text-align: center;
-        font-size: 10pt;
-        color: #6b7280;
-        margin-bottom: 1rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid #d1d5db;
+        text-align: left;
+        font-size: 9pt;
+        color: #666;
+        margin-bottom: 0.5rem;
     }
 
     /* Images */
@@ -272,28 +304,23 @@
         page-break-inside: avoid;
     }
 
-    /* Remove box shadows */
+    /* Remove box shadows and effects */
     * {
         box-shadow: none !important;
         text-shadow: none !important;
     }
 
-    /* Ensure black text on white background */
+    /* Ensure black text */
     .text-base-content,
     .text-base-content\/70,
-    .text-base-content\/60 {
+    .text-base-content\/60,
+    p, div, span {
         color: black !important;
     }
 
-    /* Table formatting if present */
-    table {
-        border-collapse: collapse;
-        width: 100%;
-    }
-
-    th, td {
-        border: 1px solid #d1d5db;
-        padding: 0.5rem;
+    /* Hide empty state messages in print */
+    .empty-state {
+        display: none !important;
     }
 }
 </style>
@@ -377,7 +404,7 @@
     </div>
 
     <!-- Lesson Settings -->
-    <div class="content-section">
+    <div class="content-section lesson-settings-section">
         <h3>Lesson Settings</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
