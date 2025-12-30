@@ -232,15 +232,19 @@
     <div class="instructions">
         <h3>How to Use:</h3>
         <ul>
-            <li><strong>Select Clef:</strong> Choose treble, bass, or alto clef</li>
+            <li><strong>Select Clef:</strong> Choose treble, bass, or alto clef for current line</li>
+            <li><strong>Select Time Signature:</strong> Choose 4/4, 3/4, 2/4, 6/8, or common/cut time for current line</li>
             <li><strong>Select Duration:</strong> Click on whole, half, quarter, or eighth note</li>
             <li><strong>Select Pitch & Octave:</strong> Click pitch buttons organized by octave</li>
             <li><strong>Add Accidentals:</strong> Click sharp (♯), flat (♭), or natural (♮) before adding note</li>
             <li><strong>Single Notes:</strong> Click "Add Note" to add one note at a time</li>
             <li><strong>Chords:</strong> Enable "Chord Mode", add multiple pitches, then click "Finish Chord"</li>
             <li><strong>Add Rest/Barline:</strong> Insert rests or measure separators</li>
-            <li><strong>Remove Last:</strong> Delete the most recent note/rest/barline</li>
-            <li><strong>Clear All:</strong> Start over with empty staff</li>
+            <li><strong>Multiple Lines:</strong> Click "New Line" to add a new staff with different time signature</li>
+            <li><strong>Switch Lines:</strong> Click on line badges to edit a different line</li>
+            <li><strong>Delete Line:</strong> Remove the current line (must have at least 1 line)</li>
+            <li><strong>Remove Last:</strong> Delete the most recent note/rest/barline from current line</li>
+            <li><strong>Clear All:</strong> Start over with one empty staff</li>
         </ul>
     </div>
 
@@ -293,6 +297,19 @@
                 <button class="note-btn" data-accidental="n" onclick="selectAccidental('n', this)">
                     <span style="font-size: 18px;">♮</span> Natural
                 </button>
+            </div>
+
+            <!-- Time Signature -->
+            <div class="toolbar-group">
+                <span class="toolbar-label">Time Signature:</span>
+                <select class="note-btn" style="cursor: pointer; padding: 8px 12px;" id="time-signature-select" onchange="selectTimeSignature(this.value)">
+                    <option value="4/4" selected>4/4</option>
+                    <option value="3/4">3/4</option>
+                    <option value="2/4">2/4</option>
+                    <option value="6/8">6/8</option>
+                    <option value="C">C (Common)</option>
+                    <option value="C|">C| (Cut)</option>
+                </select>
             </div>
         </div>
 
@@ -367,6 +384,16 @@
                 </button>
             </div>
 
+            <!-- Stave Management -->
+            <div class="toolbar-group">
+                <button class="action-btn btn-info" onclick="addNewStave()">
+                    <i class="fas fa-plus"></i> New Line
+                </button>
+                <button class="action-btn btn-warning" onclick="deleteCurrentStave()">
+                    <i class="fas fa-times"></i> Delete Line
+                </button>
+            </div>
+
             <!-- Edit Actions -->
             <div class="toolbar-group">
                 <button class="action-btn btn-warning" onclick="removeLast()">
@@ -383,6 +410,15 @@
                     <i class="fas fa-file-export"></i> Export JSON
                 </button>
             </div>
+        </div>
+
+        <!-- Stave Switcher (shows which line is being edited) -->
+        <div id="stave-switcher" style="background: #e7f3ff; border: 2px solid #4a90e2; border-radius: 8px; padding: 12px; margin-top: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <strong><i class="fas fa-music"></i> Lines/Staves:</strong>
+                <span id="current-stave-info" style="color: #2c5aa0; font-weight: 600;">Editing Line 1</span>
+            </div>
+            <div id="stave-list" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
         </div>
 
         <!-- Chord Builder (appears when in chord mode) -->
@@ -424,49 +460,115 @@
 <script>
 const VF = Vex.Flow;
 
-// Editor state
-let selectedClef = 'treble';
+// Multi-stave data structure
+let staves = [
+    {
+        clef: 'treble',
+        timeSignature: '4/4',
+        notes: []
+    }
+];
+let currentStaveIndex = 0;
+
+// Editor state (applies to current stave)
 let selectedDuration = 'w';
 let selectedPitch = 'd/4';
 let selectedAccidental = 'none';
-let notes = [];
 
 // Chord mode state
 let chordMode = false;
 let currentChord = [];
 
 // VexFlow objects
-let renderer, context, stave;
+let renderer, context;
+
+// Get current stave
+function getCurrentStave() {
+    return staves[currentStaveIndex];
+}
+
+// Update stave switcher UI
+function updateStaveSwitcher() {
+    const staveList = document.getElementById('stave-list');
+    const currentInfo = document.getElementById('current-stave-info');
+
+    currentInfo.textContent = `Editing Line ${currentStaveIndex + 1} (${getCurrentStave().timeSignature})`;
+
+    staveList.innerHTML = '';
+    staves.forEach((stave, index) => {
+        const badge = document.createElement('button');
+        badge.className = index === currentStaveIndex ? 'note-btn active small' : 'note-btn small';
+        badge.textContent = `Line ${index + 1}: ${stave.timeSignature}`;
+        badge.onclick = () => switchToStave(index);
+        staveList.appendChild(badge);
+    });
+
+    // Update UI controls to match current stave
+    document.getElementById('time-signature-select').value = getCurrentStave().timeSignature;
+    document.querySelectorAll('[data-clef]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.clef === getCurrentStave().clef);
+    });
+}
+
+// Switch to a different stave
+function switchToStave(index) {
+    if (index >= 0 && index < staves.length) {
+        currentStaveIndex = index;
+        updateStaveSwitcher();
+        renderAllStaves();
+    }
+}
+
+// Add new stave
+function addNewStave() {
+    staves.push({
+        clef: 'treble',
+        timeSignature: '4/4',
+        notes: []
+    });
+    currentStaveIndex = staves.length - 1;
+    updateStaveSwitcher();
+    renderAllStaves();
+}
+
+// Delete current stave
+function deleteCurrentStave() {
+    if (staves.length === 1) {
+        alert('Cannot delete the last stave. At least one line must remain.');
+        return;
+    }
+
+    if (confirm(`Delete Line ${currentStaveIndex + 1}?`)) {
+        staves.splice(currentStaveIndex, 1);
+        currentStaveIndex = Math.max(0, currentStaveIndex - 1);
+        updateStaveSwitcher();
+        renderAllStaves();
+    }
+}
 
 // Initialize the notation display
 function initNotation() {
-    const outputDiv = document.getElementById('notation-output');
-    outputDiv.innerHTML = '';
-
-    renderer = new VF.Renderer(outputDiv, VF.Renderer.Backends.SVG);
-    renderer.resize(1200, 200);
-    context = renderer.getContext();
-
-    stave = new VF.Stave(10, 40, 1150);
-    stave.addClef(selectedClef);
-    stave.addTimeSignature('4/4');
-    stave.setContext(context).draw();
-
-    if (notes.length > 0) {
-        renderNotes();
-    }
+    updateStaveSwitcher();
+    renderAllStaves();
 }
 
 // Select clef
 function selectClef(clef, button) {
-    selectedClef = clef;
+    getCurrentStave().clef = clef;
 
     document.querySelectorAll('[data-clef]').forEach(btn => {
         btn.classList.remove('active');
     });
     button.classList.add('active');
 
-    renderNotes();
+    renderAllStaves();
+}
+
+// Select time signature
+function selectTimeSignature(timeSignature) {
+    getCurrentStave().timeSignature = timeSignature;
+    updateStaveSwitcher();
+    renderAllStaves();
 }
 
 // Select duration
@@ -575,8 +677,8 @@ function addNote() {
             noteData.accidental = selectedAccidental;
         }
 
-        notes.push(noteData);
-        renderNotes();
+        getCurrentStave().notes.push(noteData);
+        renderAllStaves();
     }
 }
 
@@ -604,66 +706,114 @@ function finishChord() {
         accidentals: sortedChord.map(n => n.accidental !== 'none' ? n.accidental : null)
     };
 
-    notes.push(noteData);
+    getCurrentStave().notes.push(noteData);
 
     // Reset chord mode
     currentChord = [];
     updateChordDisplay();
-    renderNotes();
+    renderAllStaves();
 }
 
 // Add a rest
 function addRest() {
-    notes.push({
+    getCurrentStave().notes.push({
         type: 'rest',
         keys: ['b/4'],
         duration: selectedDuration + 'r'
     });
 
-    renderNotes();
+    renderAllStaves();
 }
 
 // Add a barline
 function addBarline() {
-    notes.push({
+    getCurrentStave().notes.push({
         type: 'barline'
     });
 
-    renderNotes();
+    renderAllStaves();
 }
 
 // Remove last element
 function removeLast() {
-    if (notes.length > 0) {
-        notes.pop();
-        renderNotes();
+    const currentStave = getCurrentStave();
+    if (currentStave.notes.length > 0) {
+        currentStave.notes.pop();
+        renderAllStaves();
     }
 }
 
-// Render all notes
-function renderNotes() {
+// Render all staves
+function renderAllStaves() {
     const outputDiv = document.getElementById('notation-output');
     outputDiv.innerHTML = '';
 
+    // Calculate height needed for all staves (200px per stave)
+    const totalHeight = staves.length * 200;
+
     renderer = new VF.Renderer(outputDiv, VF.Renderer.Backends.SVG);
-    renderer.resize(1200, 200);
+    renderer.resize(1200, totalHeight);
     context = renderer.getContext();
 
-    stave = new VF.Stave(10, 40, 1150);
-    stave.addClef(selectedClef);
-    stave.addTimeSignature('4/4');
+    // Render each stave
+    staves.forEach((staveData, index) => {
+        const yPosition = 40 + (index * 200);
+
+        try {
+            renderSingleStave(staveData, yPosition, index === currentStaveIndex);
+        } catch (error) {
+            console.error(`Error rendering stave ${index + 1}:`, error);
+        }
+    });
+}
+
+// Render a single stave at the given Y position
+function renderSingleStave(staveData, yPosition, isCurrentStave) {
+    const stave = new VF.Stave(10, yPosition, 1150);
+    stave.addClef(staveData.clef);
+    stave.addTimeSignature(staveData.timeSignature);
     stave.setContext(context).draw();
 
-    if (notes.length === 0) return;
+    // Highlight current stave being edited
+    if (isCurrentStave) {
+        const svgElement = document.querySelector('#notation-output svg');
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', '5');
+        rect.setAttribute('y', yPosition - 10);
+        rect.setAttribute('width', '1160');
+        rect.setAttribute('height', '120');
+        rect.setAttribute('fill', 'none');
+        rect.setAttribute('stroke', '#4a90e2');
+        rect.setAttribute('stroke-width', '3');
+        rect.setAttribute('stroke-dasharray', '5,5');
+        svgElement.appendChild(rect);
+    }
+
+    if (staveData.notes.length === 0) return;
 
     try {
+        // Parse time signature for beat calculation
+        let num_beats = 4;
+        let beat_value = 4;
+        const timeSignature = staveData.timeSignature;
+
+        if (timeSignature === 'C') {
+            num_beats = 4;
+            beat_value = 4;
+        } else if (timeSignature === 'C|') {
+            num_beats = 2;
+            beat_value = 2;
+        } else if (timeSignature.includes('/')) {
+            const parts = timeSignature.split('/');
+            num_beats = parseInt(parts[0]);
+            beat_value = parseInt(parts[1]);
+        }
+
         // Convert all items to VexFlow notes, including barlines
-        const vfNotes = notes.map(noteData => {
+        const vfNotes = staveData.notes.map(noteData => {
             if (noteData.type === 'barline') {
-                // Create a barline using BarNote
                 return new VF.BarNote();
             } else {
-                // Create regular note or rest (handles both single notes and chords)
                 const note = new VF.StaveNote({
                     keys: noteData.keys,
                     duration: noteData.duration
@@ -671,10 +821,8 @@ function renderNotes() {
 
                 // Add accidentals
                 if (noteData.accidental) {
-                    // Single note with one accidental
                     note.addModifier(new VF.Accidental(noteData.accidental), 0);
                 } else if (noteData.accidentals && Array.isArray(noteData.accidentals)) {
-                    // Chord with multiple accidentals
                     noteData.accidentals.forEach((acc, index) => {
                         if (acc) {
                             note.addModifier(new VF.Accidental(acc), index);
@@ -688,7 +836,7 @@ function renderNotes() {
 
         if (vfNotes.length === 0) return;
 
-        const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+        const voice = new VF.Voice({ num_beats: num_beats, beat_value: beat_value });
         voice.setMode(VF.Voice.Mode.SOFT);
         voice.addTickables(vfNotes);
 
@@ -697,16 +845,23 @@ function renderNotes() {
         voice.draw(context, stave);
 
     } catch (error) {
-        console.error('Error rendering notes:', error);
-        alert('Error rendering notes: ' + error.message);
+        console.error('Error rendering stave notes:', error);
     }
 }
 
 // Clear all notes
 function clearNotation() {
-    if (confirm('Are you sure you want to clear all notes?')) {
-        notes = [];
-        initNotation();
+    if (confirm('Are you sure you want to clear all staves and start over?')) {
+        staves = [
+            {
+                clef: 'treble',
+                timeSignature: '4/4',
+                notes: []
+            }
+        ];
+        currentStaveIndex = 0;
+        updateStaveSwitcher();
+        renderAllStaves();
         document.getElementById('data-output').style.display = 'none';
     }
 }
@@ -717,8 +872,7 @@ function exportJSON() {
     const jsonData = document.getElementById('json-data');
 
     const exportData = {
-        clef: selectedClef,
-        notes: notes
+        staves: staves
     };
 
     jsonData.textContent = JSON.stringify(exportData, null, 2);
