@@ -60,14 +60,9 @@
 
     // Upload audio file to server
     function uploadAudioFile(file, editor) {
-        console.log('Audio Upload: Starting upload for file:', file.name);
-        console.log('Audio Upload: Editor instance:', editor);
-
         // Get CSRF token
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
                          document.querySelector('meta[name="csrf-token"]')?.content || '';
-
-        console.log('Audio Upload: CSRF token found:', !!csrfToken);
 
         // Create FormData
         const formData = new FormData();
@@ -80,8 +75,6 @@
         const editorContainer = editor.sourceElement?.parentElement || editor.ui.view.element.parentElement;
         editorContainer.appendChild(loadingMsg);
 
-        console.log('Audio Upload: Sending request to /core/audio-upload/');
-
         // Upload file
         fetch('/core/audio-upload/', {
             method: 'POST',
@@ -90,17 +83,11 @@
             },
             body: formData
         })
-        .then(response => {
-            console.log('Audio Upload: Response status:', response.status);
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
-            console.log('Audio Upload: Response data:', data);
-            console.log('Audio Upload: Full error object:', JSON.stringify(data.error, null, 2));
             loadingMsg.remove();
 
             if (data.url) {
-                console.log('Audio Upload: File uploaded successfully to:', data.url);
                 insertAudioElement(editor, data.url, file.name);
 
                 // Show success message
@@ -110,13 +97,12 @@
                 editorContainer.appendChild(successMsg);
                 setTimeout(() => successMsg.remove(), 3000);
             } else {
-                throw new Error(data.error?.message || 'Upload failed - no URL returned');
+                throw new Error(data.error?.message || 'Upload failed');
             }
         })
         .catch(error => {
             loadingMsg.remove();
-            console.error('Audio Upload: ERROR:', error);
-            console.error('Audio Upload: Error stack:', error.stack);
+            console.error('Audio upload error:', error);
 
             const errorMsg = document.createElement('div');
             errorMsg.className = 'alert alert-error mt-2';
@@ -128,12 +114,6 @@
 
     // Insert audio element into CKEditor
     function insertAudioElement(editor, url, filename) {
-        console.log('Audio Upload: Inserting audio element');
-        console.log('Audio Upload: URL:', url);
-        console.log('Audio Upload: Filename:', filename);
-        console.log('Audio Upload: Editor valid?', !!editor);
-        console.log('Audio Upload: Editor.model valid?', !!editor.model);
-
         try {
             // Determine MIME type
             const extension = url.split('.').pop().toLowerCase();
@@ -145,8 +125,6 @@
                 'aac': 'audio/aac'
             };
             const mimeType = mimeTypes[extension] || 'audio/mpeg';
-
-            console.log('Audio Upload: MIME type:', mimeType);
 
             // Create HTML for audio player
             const audioHtml = `
@@ -160,31 +138,20 @@
 <p>&nbsp;</p>
             `.trim();
 
-            console.log('Audio Upload: Generated HTML:', audioHtml);
-
-            // Insert into editor using model.change
+            // Insert into editor at cursor position
             editor.model.change(writer => {
-                console.log('Audio Upload: Inside model.change');
                 const viewFragment = editor.data.processor.toView(audioHtml);
-                console.log('Audio Upload: View fragment created:', viewFragment);
                 const modelFragment = editor.data.toModel(viewFragment);
-                console.log('Audio Upload: Model fragment created:', modelFragment);
                 editor.model.insertContent(modelFragment);
-                console.log('Audio Upload: Content inserted successfully');
             });
-
-            console.log('Audio Upload: Insertion completed');
         } catch (error) {
-            console.error('Audio Upload: ERROR during insertion:', error);
-            console.error('Audio Upload: Error stack:', error.stack);
+            console.error('Error inserting audio element:', error);
             throw error;
         }
     }
 
     // Initialize audio upload buttons for all CKEditor instances
     function initializeAudioUpload() {
-        console.log('Audio Upload: Initializing...');
-
         // Wait for CKEditor instances to be ready
         const checkEditors = setInterval(function() {
             // Try multiple selectors to find CKEditor elements
@@ -199,7 +166,6 @@
             let foundEditors = [];
             selectors.forEach(selector => {
                 const elements = document.querySelectorAll(selector);
-                console.log(`Audio Upload: Found ${elements.length} elements with selector "${selector}"`);
                 elements.forEach(el => {
                     if (!foundEditors.includes(el)) {
                         foundEditors.push(el);
@@ -207,36 +173,26 @@
                 });
             });
 
-            console.log(`Audio Upload: Total unique elements found: ${foundEditors.length}`);
-
-            // Look for CKEditor instances in various ways
+            // Look for CKEditor instances
             foundEditors.forEach(function(element) {
-                console.log('Audio Upload: Checking element:', element);
-
                 // Method 1: Check for ckeditorInstance property
                 if (element.ckeditorInstance) {
-                    console.log('Audio Upload: Found ckeditorInstance on element');
                     createAudioUploadButton(element, element.ckeditorInstance);
                 }
 
                 // Method 2: Check if element is within .ck-editor container
                 const ckEditorContainer = element.closest('.ck-editor');
                 if (ckEditorContainer) {
-                    console.log('Audio Upload: Found .ck-editor container');
-                    // Try to find the editor instance from the container
                     const editable = ckEditorContainer.querySelector('.ck-editor__editable');
                     if (editable && editable.ckeditorInstance) {
-                        console.log('Audio Upload: Found editor instance on editable');
                         createAudioUploadButton(ckEditorContainer, editable.ckeditorInstance);
                     }
                 }
 
                 // Method 3: Check for editor in the parent's nextElementSibling
                 if (element.nextElementSibling && element.nextElementSibling.classList.contains('ck-editor')) {
-                    console.log('Audio Upload: Found .ck-editor as next sibling');
                     const editable = element.nextElementSibling.querySelector('.ck-editor__editable');
                     if (editable && editable.ckeditorInstance) {
-                        console.log('Audio Upload: Found editor instance on sibling editable');
                         createAudioUploadButton(element.nextElementSibling, editable.ckeditorInstance);
                     }
                 }
@@ -244,7 +200,6 @@
 
             // Stop checking after 10 seconds
             if (Date.now() - startTime > 10000) {
-                console.log('Audio Upload: Stopping after 10 seconds');
                 clearInterval(checkEditors);
             }
         }, 500);
