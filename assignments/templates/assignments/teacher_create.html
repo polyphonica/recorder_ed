@@ -499,6 +499,14 @@
                         <button type="button" id="add-note-btn" class="btn btn-primary btn-sm">
                             <i class="fas fa-plus mr-1"></i>Add Note
                         </button>
+                        <select id="barline-type-select" class="select select-sm select-bordered">
+                            <option value="SINGLE">Single Bar</option>
+                            <option value="DOUBLE">Double Bar</option>
+                            <option value="END">Final Bar (End)</option>
+                            <option value="REPEAT_BEGIN">Repeat Begin</option>
+                            <option value="REPEAT_END">Repeat End</option>
+                            <option value="REPEAT_BOTH">Repeat Both</option>
+                        </select>
                         <button type="button" id="add-barline-btn" class="btn btn-sm">
                             <i class="fas fa-grip-lines-vertical mr-1"></i>Add Barline
                         </button>
@@ -782,7 +790,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add barline
     document.getElementById('add-barline-btn').addEventListener('click', function() {
-        getCurrentStave().notes.push({ type: 'barline' });
+        const barlineType = document.getElementById('barline-type-select').value;
+        getCurrentStave().notes.push({
+            type: 'barline',
+            barlineType: barlineType
+        });
         renderNotes();
     });
 
@@ -966,7 +978,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const vfNotes = notes.map(noteData => {
             try {
                 if (noteData.type === 'barline') {
-                    return new VF.BarNote();
+                    const barlineType = noteData.barlineType || 'SINGLE';
+                    return new VF.BarNote(VF.Barline.type[barlineType]);
                 } else {
                     let duration = noteData.duration;
                     let numDots = 0;
@@ -1128,7 +1141,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const vfNotes = notationData.notes.map(noteData => {
             try {
                 if (noteData.type === 'barline') {
-                    return new VF.BarNote();
+                    const barlineType = noteData.barlineType || 'SINGLE';
+                    return new VF.BarNote(VF.Barline.type[barlineType]);
                 } else {
                 // Handle dotted notes - strip 'd' suffix and add dots with Dot.buildAndAttach
                 let duration = noteData.duration;

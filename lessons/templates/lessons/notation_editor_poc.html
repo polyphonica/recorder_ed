@@ -239,7 +239,7 @@
             <li><strong>Add Accidentals:</strong> Click sharp (♯), flat (♭), or natural (♮) before adding note</li>
             <li><strong>Single Notes:</strong> Click "Add Note" to add one note at a time</li>
             <li><strong>Chords:</strong> Enable "Chord Mode", add multiple pitches, then click "Finish Chord"</li>
-            <li><strong>Add Rest/Barline:</strong> Insert rests or measure separators</li>
+            <li><strong>Add Rest/Barline:</strong> Insert rests or measure separators. Choose barline type: Single, Double, Final (End), or Repeat marks</li>
             <li><strong>Multiple Lines:</strong> Click "New Line" to add a new staff with different time signature</li>
             <li><strong>Switch Lines:</strong> Click on line badges to edit a different line</li>
             <li><strong>Delete Line:</strong> Remove the current line (must have at least 1 line)</li>
@@ -379,6 +379,14 @@
                 <button class="action-btn btn-export" onclick="addRest()">
                     <i class="fas fa-pause"></i> Add Rest
                 </button>
+                <select id="barline-type-select" class="note-btn" style="cursor: pointer; padding: 8px 12px; margin-right: 8px;">
+                    <option value="SINGLE">Single Bar</option>
+                    <option value="DOUBLE">Double Bar</option>
+                    <option value="END">Final Bar (End)</option>
+                    <option value="REPEAT_BEGIN">Repeat Begin</option>
+                    <option value="REPEAT_END">Repeat End</option>
+                    <option value="REPEAT_BOTH">Repeat Both</option>
+                </select>
                 <button class="action-btn btn-info" onclick="addBarline()">
                     <i class="fas fa-grip-lines-vertical"></i> Add Barline
                 </button>
@@ -727,8 +735,10 @@ function addRest() {
 
 // Add a barline
 function addBarline() {
+    const barlineType = document.getElementById('barline-type-select').value;
     getCurrentStave().notes.push({
-        type: 'barline'
+        type: 'barline',
+        barlineType: barlineType  // SINGLE, DOUBLE, END, REPEAT_BEGIN, REPEAT_END, REPEAT_BOTH
     });
 
     renderAllStaves();
@@ -812,7 +822,9 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
         // Convert all items to VexFlow notes, including barlines
         const vfNotes = staveData.notes.map(noteData => {
             if (noteData.type === 'barline') {
-                return new VF.BarNote();
+                // Use specified barline type or default to SINGLE
+                const barlineType = noteData.barlineType || 'SINGLE';
+                return new VF.BarNote(VF.Barline.type[barlineType]);
             } else {
                 const note = new VF.StaveNote({
                     keys: noteData.keys,
