@@ -239,16 +239,31 @@
             <div class="mb-4">
                 <div class="flex justify-between items-center mb-2">
                     <label class="block text-sm font-medium text-gray-700">Lesson Content</label>
-                    <div class="relative">
-                        <button type="button" id="insert-homework-btn" class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
-                            📋 Insert Previous Homework
-                        </button>
-                        <div id="homework-dropdown" class="hidden absolute right-0 mt-2 w-96 bg-white border border-gray-300 rounded-lg shadow-lg z-50">
-                            <div class="p-3 border-b border-gray-200 bg-gray-50">
-                                <h4 class="font-semibold text-gray-700">Select Previous Homework</h4>
+                    <div class="flex gap-2">
+                        <div class="relative">
+                            <button type="button" id="insert-template-btn" class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                📚 Insert Template
+                            </button>
+                            <div id="template-dropdown" class="hidden absolute right-0 mt-2 w-96 bg-white border border-gray-300 rounded-lg shadow-lg z-50">
+                                <div class="p-3 border-b border-gray-200 bg-gray-50">
+                                    <h4 class="font-semibold text-gray-700">Select Lesson Template</h4>
+                                </div>
+                                <div id="template-list" class="max-h-96 overflow-y-auto p-2">
+                                    <!-- Template items will be inserted here -->
+                                </div>
                             </div>
-                            <div id="homework-list" class="max-h-96 overflow-y-auto">
-                                <!-- Homework items will be inserted here -->
+                        </div>
+                        <div class="relative">
+                            <button type="button" id="insert-homework-btn" class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                                📋 Insert Previous Homework
+                            </button>
+                            <div id="homework-dropdown" class="hidden absolute right-0 mt-2 w-96 bg-white border border-gray-300 rounded-lg shadow-lg z-50">
+                                <div class="p-3 border-b border-gray-200 bg-gray-50">
+                                    <h4 class="font-semibold text-gray-700">Select Previous Homework</h4>
+                                </div>
+                                <div id="homework-list" class="max-h-96 overflow-y-auto">
+                                    <!-- Homework items will be inserted here -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -701,6 +716,115 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else {
             alert('Could not access the editor. Please copy this homework manually:\n\n' + homeworkText);
+        }
+    }
+
+    // ============= TEMPLATE INSERTION FUNCTIONALITY =============
+    const insertTemplateBtn = document.getElementById('insert-template-btn');
+    const templateDropdown = document.getElementById('template-dropdown');
+    const templateList = document.getElementById('template-list');
+
+    // Toggle template dropdown
+    insertTemplateBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (templateDropdown.classList.contains('hidden')) {
+            templateDropdown.classList.remove('hidden');
+            fetchLessonTemplates();
+        } else {
+            templateDropdown.classList.add('hidden');
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!templateDropdown.contains(e.target) && e.target !== insertTemplateBtn) {
+            templateDropdown.classList.add('hidden');
+        }
+    });
+
+    // Fetch lesson templates from the server
+    function fetchLessonTemplates() {
+        templateList.innerHTML = '<div class="p-4 text-center text-gray-500">Loading templates...</div>';
+
+        fetch('/lesson-templates/?mode=my_templates', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // Parse the HTML to extract template data
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const templateCards = doc.querySelectorAll('[data-template-id]');
+
+            if (templateCards.length === 0) {
+                templateList.innerHTML = '<div class="p-4 text-center text-gray-500">No templates found. <a href="/lesson-templates/create/" class="text-blue-600 hover:underline">Create one</a></div>';
+                return;
+            }
+
+            templateList.innerHTML = '';
+            templateCards.forEach(card => {
+                const templateId = card.dataset.templateId;
+                const title = card.querySelector('h2').textContent.trim();
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 rounded';
+                itemDiv.innerHTML = `
+                    <div class="font-semibold text-gray-800">${title}</div>
+                `;
+                itemDiv.addEventListener('click', function() {
+                    insertTemplate(templateId, title);
+                });
+                templateList.appendChild(itemDiv);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching templates:', error);
+            templateList.innerHTML = '<div class="p-4 text-center text-red-500">Error loading templates</div>';
+        });
+    }
+
+    // Insert template content into editor
+    function insertTemplate(templateId, title) {
+        fetch(`/lesson-templates/api/${templateId}/content/`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                insertContentIntoEditor(data.content);
+                templateDropdown.classList.add('hidden');
+            } else {
+                alert('Error loading template content');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading template content');
+        });
+    }
+
+    // Insert content into CKEditor
+    function insertContentIntoEditor(content) {
+        if (!ckeditorInstance) {
+            ckeditorInstance = getCKEditorInstance();
+        }
+
+        if (ckeditorInstance) {
+            try {
+                const currentData = ckeditorInstance.getData();
+                ckeditorInstance.setData(currentData + '\n\n' + content);
+                console.log('Template content inserted');
+            } catch (error) {
+                console.error('Error inserting template:', error);
+                alert('Could not insert template. Please try again.');
+            }
+        } else {
+            alert('Could not access the editor. Please try again.');
         }
     }
 
