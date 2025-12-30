@@ -841,10 +841,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add barline
     document.getElementById('add-barline-btn').addEventListener('click', function() {
         const barlineType = document.getElementById('barline-type-select').value;
+        console.log('Adding barline type:', barlineType);
         getCurrentStave().notes.push({
             type: 'barline',
             barlineType: barlineType
         });
+        console.log('Current stave notes:', getCurrentStave().notes);
         renderNotes();
     });
 
@@ -1022,7 +1024,11 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 if (noteData.type === 'barline') {
                     const barlineType = noteData.barlineType || 'SINGLE';
-                    return new VF.BarNote(convertBarlineType(barlineType));
+                    const numericType = convertBarlineType(barlineType);
+                    console.log('Creating barline - original type:', barlineType, 'numeric type:', numericType);
+                    const barNote = new VF.BarNote(numericType);
+                    console.log('Barline created successfully:', barNote);
+                    return barNote;
                 } else {
                     let duration = noteData.duration;
                     let numDots = 0;
