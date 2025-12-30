@@ -80,10 +80,10 @@
         const editorContainer = editor.sourceElement?.parentElement || editor.ui.view.element.parentElement;
         editorContainer.appendChild(loadingMsg);
 
-        console.log('Audio Upload: Sending request to /ckeditor5/image_upload/');
+        console.log('Audio Upload: Sending request to /core/audio-upload/');
 
         // Upload file
-        fetch('/ckeditor5/image_upload/', {
+        fetch('/core/audio-upload/', {
             method: 'POST',
             headers: {
                 'X-CSRFToken': csrfToken
@@ -96,6 +96,7 @@
         })
         .then(data => {
             console.log('Audio Upload: Response data:', data);
+            console.log('Audio Upload: Full error object:', JSON.stringify(data.error, null, 2));
             loadingMsg.remove();
 
             if (data.url) {
