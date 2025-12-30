@@ -68,7 +68,7 @@ def template_library(request):
 
     # Get filter options for dropdowns
     from apps.private_teaching.models import Subject
-    subjects = Subject.objects.filter(teacher__user=request.user).order_by('subject')
+    subjects = Subject.objects.filter(teacher=request.user).order_by('subject')
     tags = Tag.objects.all().order_by('name')
 
     # Get unique grade levels and lesson numbers for filters
