@@ -473,17 +473,17 @@ document.addEventListener('DOMContentLoaded', function() {
         return staves[currentStaveIndex];
     }
 
-    // Convert barline type from our format to VexFlow format
+    // Convert barline type from our format to VexFlow numeric format
     function convertBarlineType(type) {
         const typeMap = {
-            'SINGLE': 'single',
-            'DOUBLE': 'double',
-            'END': 'end',
-            'REPEAT_BEGIN': 'repeatBegin',
-            'REPEAT_END': 'repeatEnd',
-            'REPEAT_BOTH': 'repeatBoth'
+            'SINGLE': 1,
+            'DOUBLE': 2,
+            'END': 3,
+            'REPEAT_BEGIN': 4,
+            'REPEAT_END': 5,
+            'REPEAT_BOTH': 6
         };
-        return typeMap[type] || 'single';
+        return typeMap[type] || 1;
     }
 
     // Update stave switcher UI
