@@ -353,11 +353,11 @@
                         </div>
                     </div>
                     <div>
-                        <div class="lesson-detail-item">
+                        <div class="lesson-detail-item no-print">
                             <span class="lesson-detail-label">Duration:</span>
                             <span class="lesson-detail-value">{{ lesson.duration_in_minutes }} mins</span>
                         </div>
-                        <div class="lesson-detail-item">
+                        <div class="lesson-detail-item no-print">
                             <span class="lesson-detail-label">Status:</span>
                             <span class="status-badge {% if lesson.status == 'Assigned' %}status-assigned{% else %}status-draft{% endif %}">{{ lesson.status }}</span>
                         </div>
