@@ -84,6 +84,7 @@ INSTALLED_APPS = [
     'apps.teacher_applications',
     'lessons',
     'assignments',
+    'apps.lesson_templates',
 ]
 
 MIDDLEWARE = [
