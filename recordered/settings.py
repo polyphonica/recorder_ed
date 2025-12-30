@@ -301,6 +301,7 @@ CKEDITOR_5_CONFIGS = {
             "blockQuote",
             "imageUpload",
             "imageInsert",
+            "audioUpload",
             "mediaEmbed",
             "htmlEmbed",
             "|",
