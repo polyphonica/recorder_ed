@@ -473,6 +473,19 @@ document.addEventListener('DOMContentLoaded', function() {
         return staves[currentStaveIndex];
     }
 
+    // Convert barline type from our format to VexFlow format
+    function convertBarlineType(type) {
+        const typeMap = {
+            'SINGLE': 'single',
+            'DOUBLE': 'double',
+            'END': 'end',
+            'REPEAT_BEGIN': 'repeatBegin',
+            'REPEAT_END': 'repeatEnd',
+            'REPEAT_BOTH': 'repeatBoth'
+        };
+        return typeMap[type] || 'single';
+    }
+
     // Update stave switcher UI
     function updateStaveSwitcher() {
         const staveList = document.getElementById('stave-list');
@@ -985,7 +998,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const vfNotes = notationData.notes.map(noteData => {
             if (noteData.type === 'barline') {
                 const barlineType = noteData.barlineType || 'SINGLE';
-                return new VF.BarNote(VF.Barline.type[barlineType]);
+                return new VF.BarNote(convertBarlineType(barlineType));
             } else {
                 // Handle dotted notes - strip 'd' suffix and add dots with Dot.buildAndAttach
                 let duration = noteData.duration;

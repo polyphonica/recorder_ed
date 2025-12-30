@@ -183,6 +183,19 @@
 document.addEventListener('DOMContentLoaded', function() {
     const VF = Vex.Flow;
 
+    // Convert barline type from our format to VexFlow format
+    function convertBarlineType(type) {
+        const typeMap = {
+            'SINGLE': 'single',
+            'DOUBLE': 'double',
+            'END': 'end',
+            'REPEAT_BEGIN': 'repeatBegin',
+            'REPEAT_END': 'repeatEnd',
+            'REPEAT_BOTH': 'repeatBoth'
+        };
+        return typeMap[type] || 'single';
+    }
+
     // Render reference notation
     {% if assignment.reference_notation %}
     const referenceNotationData = {{ assignment.reference_notation|safe }};
@@ -251,7 +264,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const vfNotes = staveData.notes.map(noteData => {
             if (noteData.type === 'barline') {
                 const barlineType = noteData.barlineType || 'SINGLE';
-                return new VF.BarNote(VF.Barline.type[barlineType]);
+                return new VF.BarNote(convertBarlineType(barlineType));
             } else {
                 const note = new VF.StaveNote({
                     keys: noteData.keys,
