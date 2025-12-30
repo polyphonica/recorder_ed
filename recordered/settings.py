@@ -594,8 +594,8 @@ CKEDITOR_5_CONFIGS = {
 
 # CKEditor 5 file upload settings
 CKEDITOR_5_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
-# SECURITY FIX: Removed 'svg' (XSS risk) and restricted to safe image and audio formats
-CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'jpg', 'png', 'gif', 'bmp', 'webp', 'mp3', 'wav', 'ogg', 'm4a', 'aac']
+# Allowed file types for CKEditor uploads (SVG enabled for trusted admin use only)
+CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'jpg', 'png', 'gif', 'bmp', 'webp', 'svg', 'mp3', 'wav', 'ogg', 'm4a', 'aac']
 CKEDITOR_5_UPLOAD_FILE_VIEW_NAME = "ck_editor_5_upload_file"
 # SECURITY FIX: Changed from "any" to "authenticated" to prevent anonymous uploads
 CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"  # Options: "staff", "authenticated", "any"
