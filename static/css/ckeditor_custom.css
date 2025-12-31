@@ -74,9 +74,11 @@ figure[style*="margin"] {
     margin-right: 0 !important;
 }
 
-/* Ensure outer figures don't interfere */
-figure:has(> figure.image),
-figure > figure.image {
+/* Ensure outer figures don't interfere - ONLY in rendered content, not in editor */
+.ck-content:not(.ck-editor__editable) figure:has(> figure.image),
+.ck-content:not(.ck-editor__editable) figure > figure.image,
+.prose figure:has(> figure.image),
+.prose figure > figure.image {
     display: contents !important; /* Makes wrapper transparent */
 }
 
