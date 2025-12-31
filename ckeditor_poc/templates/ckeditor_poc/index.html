@@ -1,0 +1,30 @@
+{% extends 'ckeditor_poc/base_isolated.html' %}
+
+{% block title %}Test Documents - CKEditor POC{% endblock %}
+
+{% block content %}
+<h2>Test Documents</h2>
+
+{% if documents %}
+<ul class="document-list">
+    {% for doc in documents %}
+    <li>
+        <div>
+            <strong>{{ doc.title }}</strong>
+            <div class="document-meta">
+                Created: {{ doc.created_at|date:"M j, Y g:i A" }} |
+                Updated: {{ doc.updated_at|date:"M j, Y g:i A" }}
+            </div>
+        </div>
+        <div>
+            <a href="{% url 'ckeditor_poc:view' doc.pk %}" class="btn btn-secondary">View</a>
+            <a href="{% url 'ckeditor_poc:edit' doc.pk %}" class="btn">Edit</a>
+            <a href="{% url 'ckeditor_poc:delete' doc.pk %}" class="btn btn-danger">Delete</a>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>No test documents yet. <a href="{% url 'ckeditor_poc:create' %}">Create one</a> to start testing CKEditor 5.</p>
+{% endif %}
+{% endblock %}

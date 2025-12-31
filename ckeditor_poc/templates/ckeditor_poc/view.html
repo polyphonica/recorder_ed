@@ -1,0 +1,32 @@
+{% extends 'ckeditor_poc/base_isolated.html' %}
+
+{% block title %}{{ document.title }} - CKEditor POC{% endblock %}
+
+{% block content %}
+<h2>{{ document.title }}</h2>
+
+<div class="document-meta" style="margin-bottom: 20px;">
+    Created: {{ document.created_at|date:"M j, Y g:i A" }} |
+    Updated: {{ document.updated_at|date:"M j, Y g:i A" }}
+</div>
+
+<div style="margin-bottom: 20px;">
+    <a href="{% url 'ckeditor_poc:edit' document.pk %}" class="btn">Edit</a>
+    <a href="{% url 'ckeditor_poc:delete' document.pk %}" class="btn btn-danger">Delete</a>
+    <a href="{% url 'ckeditor_poc:index' %}" class="btn btn-secondary">Back to List</a>
+</div>
+
+<hr style="margin: 20px 0;">
+
+<h3>Rendered Content (Clean CKEditor Output)</h3>
+
+<!-- Pure CKEditor content with NO custom CSS -->
+<div class="ck-content">
+    {{ document.content|safe }}
+</div>
+
+<hr style="margin: 30px 0;">
+
+<h3>HTML Source</h3>
+<pre style="background: #f5f5f5; padding: 15px; overflow-x: auto; font-size: 12px; border: 1px solid #ddd;">{{ document.content }}</pre>
+{% endblock %}

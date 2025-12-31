@@ -1,0 +1,48 @@
+{% extends 'ckeditor_poc/base_isolated.html' %}
+
+{% block title %}Create Test Document - CKEditor POC{% endblock %}
+
+{% block extra_head %}
+{{ form.media }}
+{% endblock %}
+
+{% block content %}
+<h2>Create Test Document</h2>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="form-group">
+        <label for="{{ form.title.id_for_label }}">Title</label>
+        {{ form.title }}
+        {% if form.title.errors %}
+        <div style="color: red;">{{ form.title.errors }}</div>
+        {% endif %}
+    </div>
+
+    <div class="form-group">
+        <label for="{{ form.content.id_for_label }}">Content</label>
+        {{ form.content }}
+        {% if form.content.errors %}
+        <div style="color: red;">{{ form.content.errors }}</div>
+        {% endif %}
+    </div>
+
+    <div>
+        <button type="submit">Create Document</button>
+        <a href="{% url 'ckeditor_poc:index' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<hr style="margin: 30px 0;">
+
+<h3>Testing Instructions</h3>
+<p><strong>This is a clean CKEditor 5 environment with NO custom CSS or JavaScript.</strong></p>
+<ul style="margin-left: 20px;">
+    <li>Test image alignment (left, center, right)</li>
+    <li>Test image resizing (drag corners or use handles)</li>
+    <li>Test table alignment via Table Properties panel</li>
+    <li>Test table resizing</li>
+    <li>Compare behavior here vs main app to identify conflicts</li>
+</ul>
+{% endblock %}

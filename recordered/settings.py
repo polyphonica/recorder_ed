@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     'lessons',
     'assignments',
     'apps.lesson_templates',
+    'ckeditor_poc',  # POC app for testing CKEditor in isolation
 ]
 
 MIDDLEWARE = [

@@ -56,6 +56,7 @@ urlpatterns = [
     path('help/', include('apps.help_center.urls')),
     path('teacher/', include('apps.teacher_applications.urls')),  # Teacher onboarding
     path('ckeditor5/', include('django_ckeditor_5.urls')),
+    path('ckeditor-poc/', include('ckeditor_poc.urls')),  # CKEditor POC for isolated testing
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('robots.txt', robots_txt, name='robots_txt'),
     path('', DomainSelectorView.as_view(), name='domain_selector'),  # Landing page at root

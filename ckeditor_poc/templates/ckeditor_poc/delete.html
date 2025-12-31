@@ -1,0 +1,15 @@
+{% extends 'ckeditor_poc/base_isolated.html' %}
+
+{% block title %}Delete: {{ document.title }} - CKEditor POC{% endblock %}
+
+{% block content %}
+<h2>Delete Test Document</h2>
+
+<p>Are you sure you want to delete "<strong>{{ document.title }}</strong>"?</p>
+
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+    <a href="{% url 'ckeditor_poc:view' document.pk %}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}
