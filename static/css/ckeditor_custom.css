@@ -80,10 +80,19 @@
     margin: 1em 0;
 }
 
-/* Resized images default to left alignment */
-.ck-content figure.image.image_resized:not(.image-style-align-left):not(.image-style-align-right):not(.image-style-align-center):not(.image-style-side) {
-    margin-left: 0;
-    margin-right: auto;
+/* Resized images default to left alignment - override prose defaults */
+.ck-content figure.image.image_resized:not(.image-style-align-left):not(.image-style-align-right):not(.image-style-align-center):not(.image-style-side),
+.prose figure.image.image_resized:not(.image-style-align-left):not(.image-style-align-right):not(.image-style-align-center):not(.image-style-side) {
+    margin-left: 0 !important;
+    margin-right: auto !important;
+    display: block !important;
+}
+
+/* Outer figure wrappers containing resized images should also be left-aligned */
+.ck-content figure:has(> figure.image.image_resized),
+.prose figure:has(> figure.image.image_resized) {
+    margin-left: 0 !important;
+    margin-right: auto !important;
 }
 
 /* Full width only for non-aligned, non-resized images */
