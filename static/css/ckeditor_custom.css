@@ -67,10 +67,11 @@
 /* REMOVED - was preventing CKEditor alignment buttons from working */
 
 /* Ensure outer figures don't interfere - ONLY in rendered content, not in editor */
-.ck-content:not(.ck-editor__editable) figure:has(> figure.image),
-.ck-content:not(.ck-editor__editable) figure > figure.image,
-.prose figure:has(> figure.image),
-.prose figure > figure.image {
+/* Exclude resized images which need to maintain their width */
+.ck-content:not(.ck-editor__editable) figure:has(> figure.image:not(.image_resized)),
+.ck-content:not(.ck-editor__editable) figure > figure.image:not(.image_resized),
+.prose figure:has(> figure.image:not(.image_resized)),
+.prose figure > figure.image:not(.image_resized) {
     display: contents !important; /* Makes wrapper transparent */
 }
 
