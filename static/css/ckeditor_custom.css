@@ -68,6 +68,11 @@
     width: 100%;
 }
 
+/* Fix CKEditor nested figure issue - remove inline margin styles */
+figure:has(> figure.image) {
+    margin: 0 !important;
+}
+
 /* Default margins for non-aligned images */
 .ck-content figure.image:not(.image-style-align-left):not(.image-style-align-right):not(.image-style-side):not(.image-style-block-align-left):not(.image-style-block-align-right) {
     margin: 1em 0;
