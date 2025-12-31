@@ -41,8 +41,14 @@
 .ck-content .image {
     min-width: 0 !important;
     min-height: 0 !important;
-    display: table;
+    display: block;
     clear: both;
+}
+
+/* Only use table display for centered images to support captions */
+.ck-content .image-style-align-center,
+.ck-content .image-style-block-align-center {
+    display: table;
 }
 
 .ck-content .image img {
@@ -62,42 +68,49 @@
     width: 100%;
 }
 
-/* Ensure images respect their container width */
-.ck-content figure.image {
+/* Default margins for non-aligned images */
+.ck-content figure.image:not(.image-style-align-left):not(.image-style-align-right):not(.image-style-side):not(.image-style-block-align-left):not(.image-style-block-align-right) {
     margin: 1em 0;
 }
 
-.ck-content figure.image img {
+/* Full width only for non-aligned images */
+.ck-content figure.image:not(.image-style-align-left):not(.image-style-align-right):not(.image-style-side) img {
     width: 100%;
 }
 
-/* Image alignment styles */
-.ck-content .image-style-align-left,
-.ck-content .image-style-side {
+/* Image alignment styles - higher specificity to override defaults */
+.ck-content figure.image.image-style-align-left,
+.ck-content figure.image.image-style-side {
     float: left;
-    margin-right: 1.5em;
-    max-width: 100%;
+    margin: 0.5em 1.5em 0.5em 0;
+    max-width: 50%;
 }
 
-.ck-content .image-style-align-right {
+.ck-content figure.image.image-style-align-right {
     float: right;
-    margin-left: 1.5em;
-    max-width: 100%;
+    margin: 0.5em 0 0.5em 1.5em;
+    max-width: 50%;
 }
 
-.ck-content .image-style-align-center {
+.ck-content figure.image.image-style-align-center {
     margin-left: auto;
     margin-right: auto;
+    margin-top: 1em;
+    margin-bottom: 1em;
 }
 
-.ck-content .image-style-block-align-right {
+.ck-content figure.image.image-style-block-align-right {
     margin-left: auto;
     margin-right: 0;
+    margin-top: 1em;
+    margin-bottom: 1em;
 }
 
-.ck-content .image-style-block-align-left {
+.ck-content figure.image.image-style-block-align-left {
     margin-right: auto;
     margin-left: 0;
+    margin-top: 1em;
+    margin-bottom: 1em;
 }
 
 /* Image captions */
