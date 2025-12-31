@@ -68,11 +68,7 @@
     width: 100%;
 }
 
-/* Fix CKEditor nested figure issue - AGGRESSIVE override of ALL figure margins */
-figure[style*="margin"] {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-}
+/* REMOVED - was preventing CKEditor alignment buttons from working */
 
 /* Ensure outer figures don't interfere - ONLY in rendered content, not in editor */
 .ck-content:not(.ck-editor__editable) figure:has(> figure.image),
@@ -92,61 +88,54 @@ figure[style*="margin"] {
     width: 100%;
 }
 
-/* Image alignment styles - MAXIMUM specificity and !important */
+/* Image alignment styles - Let CKEditor's inline styles work, only override prose/defaults */
 figure.image.image-style-align-left,
 figure.image.image-style-side,
 .ck-content figure.image.image-style-align-left,
 .ck-content figure.image.image-style-side,
 .prose figure.image.image-style-align-left,
-.prose figure.image.image-style-side,
-figure[style] > figure.image.image-style-align-left,
-figure[style] > figure.image.image-style-side {
-    display: block !important;
-    float: left !important;
-    margin: 0.5em 1.5em 0.5em 0 !important;
-    max-width: 50% !important;
-    clear: none !important;
+.prose figure.image.image-style-side {
+    float: left;
+    margin: 0.5em 1.5em 0.5em 0;
+    max-width: 50%;
 }
 
 figure.image.image-style-align-right,
 .ck-content figure.image.image-style-align-right,
-.prose figure.image.image-style-align-right,
-figure[style] > figure.image.image-style-align-right {
-    display: block !important;
-    float: right !important;
-    margin: 0.5em 0 0.5em 1.5em !important;
-    max-width: 50% !important;
-    clear: none !important;
+.prose figure.image.image-style-align-right {
+    float: right;
+    margin: 0.5em 0 0.5em 1.5em;
+    max-width: 50%;
 }
 
 figure.image.image-style-align-center,
 .ck-content figure.image.image-style-align-center,
 .prose figure.image.image-style-align-center {
-    margin-left: auto !important;
-    margin-right: auto !important;
-    margin-top: 1em !important;
-    margin-bottom: 1em !important;
-    float: none !important;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    float: none;
 }
 
 figure.image.image-style-block-align-right,
 .ck-content figure.image.image-style-block-align-right,
 .prose figure.image.image-style-block-align-right {
-    margin-left: auto !important;
-    margin-right: 0 !important;
-    margin-top: 1em !important;
-    margin-bottom: 1em !important;
-    float: none !important;
+    margin-left: auto;
+    margin-right: 0;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    float: none;
 }
 
 figure.image.image-style-block-align-left,
 .ck-content figure.image.image-style-block-align-left,
 .prose figure.image.image-style-block-align-left {
-    margin-right: auto !important;
-    margin-left: 0 !important;
-    margin-top: 1em !important;
-    margin-bottom: 1em !important;
-    float: none !important;
+    margin-right: auto;
+    margin-left: 0;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    float: none;
 }
 
 /* Image captions */
