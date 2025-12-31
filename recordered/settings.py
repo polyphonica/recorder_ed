@@ -543,7 +543,10 @@ CKEDITOR_5_CONFIGS = {
             ],
             "tableProperties": {
                 "borderColors": customColorPalette,
-                "backgroundColors": customColorPalette
+                "backgroundColors": customColorPalette,
+                "defaultProperties": {
+                    "alignment": "left"
+                }
             },
             "tableCellProperties": {
                 "borderColors": customColorPalette,
