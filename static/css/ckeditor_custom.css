@@ -68,9 +68,16 @@
     width: 100%;
 }
 
-/* Fix CKEditor nested figure issue - remove inline margin styles */
-figure:has(> figure.image) {
-    margin: 0 !important;
+/* Fix CKEditor nested figure issue - AGGRESSIVE override of ALL figure margins */
+figure[style*="margin"] {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Ensure outer figures don't interfere */
+figure:has(> figure.image),
+figure > figure.image {
+    display: contents !important; /* Makes wrapper transparent */
 }
 
 /* Default margins for non-aligned images */
@@ -83,24 +90,31 @@ figure:has(> figure.image) {
     width: 100%;
 }
 
-/* Image alignment styles - NO parent class required to ensure they work everywhere */
+/* Image alignment styles - MAXIMUM specificity and !important */
 figure.image.image-style-align-left,
 figure.image.image-style-side,
 .ck-content figure.image.image-style-align-left,
 .ck-content figure.image.image-style-side,
 .prose figure.image.image-style-align-left,
-.prose figure.image.image-style-side {
+.prose figure.image.image-style-side,
+figure[style] > figure.image.image-style-align-left,
+figure[style] > figure.image.image-style-side {
+    display: block !important;
     float: left !important;
     margin: 0.5em 1.5em 0.5em 0 !important;
     max-width: 50% !important;
+    clear: none !important;
 }
 
 figure.image.image-style-align-right,
 .ck-content figure.image.image-style-align-right,
-.prose figure.image.image-style-align-right {
+.prose figure.image.image-style-align-right,
+figure[style] > figure.image.image-style-align-right {
+    display: block !important;
     float: right !important;
     margin: 0.5em 0 0.5em 1.5em !important;
     max-width: 50% !important;
+    clear: none !important;
 }
 
 figure.image.image-style-align-center,
