@@ -78,7 +78,9 @@
     width: 100%;
 }
 
-/* Image alignment styles - higher specificity to override defaults and prose */
+/* Image alignment styles - NO parent class required to ensure they work everywhere */
+figure.image.image-style-align-left,
+figure.image.image-style-side,
 .ck-content figure.image.image-style-align-left,
 .ck-content figure.image.image-style-side,
 .prose figure.image.image-style-align-left,
@@ -88,6 +90,7 @@
     max-width: 50% !important;
 }
 
+figure.image.image-style-align-right,
 .ck-content figure.image.image-style-align-right,
 .prose figure.image.image-style-align-right {
     float: right !important;
@@ -95,6 +98,7 @@
     max-width: 50% !important;
 }
 
+figure.image.image-style-align-center,
 .ck-content figure.image.image-style-align-center,
 .prose figure.image.image-style-align-center {
     margin-left: auto !important;
@@ -104,6 +108,7 @@
     float: none !important;
 }
 
+figure.image.image-style-block-align-right,
 .ck-content figure.image.image-style-block-align-right,
 .prose figure.image.image-style-block-align-right {
     margin-left: auto !important;
@@ -113,6 +118,7 @@
     float: none !important;
 }
 
+figure.image.image-style-block-align-left,
 .ck-content figure.image.image-style-block-align-left,
 .prose figure.image.image-style-block-align-left {
     margin-right: auto !important;
