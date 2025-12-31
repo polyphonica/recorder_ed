@@ -146,6 +146,12 @@
             margin-right: auto;
         }
 
+        /* FIX: Make tables respect their parent figure's width */
+        /* CKEditor sets width on figure, but table inside needs to fill it */
+        .ck-content figure.table > table {
+            width: 100%;
+        }
+
         .document-list {
             list-style: none;
         }
