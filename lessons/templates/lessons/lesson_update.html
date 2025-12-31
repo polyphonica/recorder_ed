@@ -828,13 +828,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Wait for CKEditor to be ready
-    setTimeout(function() {
-        ckeditorInstance = getCKEditorInstance();
+    // Wait for CKEditor to be ready - poll every 500ms for up to 10 seconds
+    const startTime = Date.now();
+    const editorCheckInterval = setInterval(function() {
         if (!ckeditorInstance) {
-            console.warn('CKEditor instance not found immediately, will try again when inserting');
+            ckeditorInstance = getCKEditorInstance();
+            if (ckeditorInstance) {
+                console.log('CKEditor instance found and cached');
+                clearInterval(editorCheckInterval);
+            }
+        } else {
+            clearInterval(editorCheckInterval);
         }
-    }, 1000);
+
+        // Stop checking after 10 seconds
+        if (Date.now() - startTime > 10000) {
+            if (!ckeditorInstance) {
+                console.warn('CKEditor instance not found after 10 seconds, will try again when inserting');
+            }
+            clearInterval(editorCheckInterval);
+        }
+    }, 500);
     
     // Add visual feedback for delete checkboxes
     document.querySelectorAll('input[name*="DELETE"]').forEach(function(checkbox) {
