@@ -206,6 +206,12 @@ figure.image.image-style-block-align-left,
     margin: 1em 0; /* Default to left-aligned instead of centered */
 }
 
+/* Explicitly left-align tables without alignment styles (CKEditor omits styles for left-align) */
+.ck-content figure.table:not([style*="float"]):not([style*="margin"]) {
+    margin-left: 0;
+    margin-right: auto;
+}
+
 .ck-content .ck-table,
 .ck-content figure.table > table {
     width: 100%;
