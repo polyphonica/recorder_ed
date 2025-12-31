@@ -202,7 +202,7 @@ figure.image.image-style-block-align-left,
 /* Table Styling for CKEditor Content */
 .ck-content figure.table {
     display: table;
-    margin: 1em auto;
+    margin: 1em 0; /* Default to left-aligned instead of centered */
 }
 
 .ck-content .ck-table,
