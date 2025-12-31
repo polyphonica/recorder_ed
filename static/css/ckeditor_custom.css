@@ -80,8 +80,14 @@
     margin: 1em 0;
 }
 
-/* Full width only for non-aligned images */
-.ck-content figure.image:not(.image-style-align-left):not(.image-style-align-right):not(.image-style-side) img {
+/* Resized images default to left alignment */
+.ck-content figure.image.image_resized:not(.image-style-align-left):not(.image-style-align-right):not(.image-style-align-center):not(.image-style-side) {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+/* Full width only for non-aligned, non-resized images */
+.ck-content figure.image:not(.image-style-align-left):not(.image-style-align-right):not(.image-style-side):not(.image_resized) img {
     width: 100%;
 }
 
