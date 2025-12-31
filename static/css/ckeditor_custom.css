@@ -60,10 +60,6 @@
 }
 
 /* Support for resized images with inline width */
-.ck-content .image[style*="width"] {
-    width: auto;
-}
-
 .ck-content .image img[style*="width"] {
     width: 100%;
 }
