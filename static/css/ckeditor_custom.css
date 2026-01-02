@@ -265,25 +265,7 @@ figure.image.image-style-block-align-left,
     height: 30px;
 }
 
-/* Table cell styling - NUCLEAR OPTION: Completely override ALL prose table styling */
-/* Remove all prose defaults so CKEditor inline styles work */
-.prose .ck-content table,
-.ck-content.prose table,
-.prose .ck-content thead,
-.ck-content.prose thead,
-.prose .ck-content tbody,
-.ck-content.prose tbody,
-.prose .ck-content tr,
-.ck-content.prose tr,
-.prose .ck-content td,
-.ck-content.prose td,
-.prose .ck-content th,
-.ck-content.prose th {
-    all: unset !important;
-    display: revert !important;
-}
-
-/* Re-apply essential table structure */
+/* Table cell styling - Override prose defaults to allow CKEditor inline styles */
 .prose .ck-content table,
 .ck-content.prose table {
     border-collapse: collapse !important;
@@ -297,34 +279,30 @@ figure.image.image-style-block-align-left,
     padding: 5px !important;
 }
 
+/* CRITICAL: Provide border-style for all cells (CKEditor omits this property) */
+/* This must come BEFORE the default border so it doesn't get overridden */
+.prose .ck-content td,
+.ck-content.prose td,
+.prose .ck-content th,
+.ck-content.prose th {
+    border-style: solid !important;
+}
+
 /* Default border ONLY for cells without any inline border styles */
 .prose .ck-content td:not([style*="border"]),
 .ck-content.prose td:not([style*="border"]),
 .prose .ck-content th:not([style*="border"]),
 .ck-content.prose th:not([style*="border"]) {
-    border: 1px solid #ddd;
+    border-width: 1px;
+    border-color: #ddd;
 }
 
-/* CRITICAL FIX: CKEditor outputs incomplete border properties */
-/* Provide default border-style for all cells (won't override inline styles) */
-.prose .ck-content td,
-.ck-content.prose td,
-.prose .ck-content th,
-.ck-content.prose th {
-    border-style: solid;
-}
-
-/* If border-color is set, ensure borders are visible */
-.prose .ck-content table[style*="border-color"]:not([style*="border-width"]),
-.ck-content.prose table[style*="border-color"]:not([style*="border-width"]) {
-    border-width: 1px !important;
-}
-
+/* If border-color is set but no width, provide default width */
 .prose .ck-content td[style*="border-color"]:not([style*="border-width"]),
 .ck-content.prose td[style*="border-color"]:not([style*="border-width"]),
 .prose .ck-content th[style*="border-color"]:not([style*="border-width"]),
 .ck-content.prose th[style*="border-color"]:not([style*="border-width"]) {
-    border-width: 1px !important;
+    border-width: 1px;
 }
 
 /* Heading Styles - Override Tailwind prose and other styles */
