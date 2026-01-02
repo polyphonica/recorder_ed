@@ -265,6 +265,31 @@ figure.image.image-style-block-align-left,
     height: 30px;
 }
 
+/* Table cell styling - Override prose defaults to allow CKEditor inline styles */
+.ck-content table td,
+.ck-content table th,
+.ck-content.prose table td,
+.ck-content.prose table th,
+.prose .ck-content table td,
+.prose .ck-content table th {
+    /* Allow CKEditor inline styles to work in prose context */
+    padding: 5px;
+}
+
+/* Ensure inline border styles from CKEditor override prose defaults */
+.prose .ck-content table td[style*="border"],
+.prose .ck-content table th[style*="border"],
+.prose table td[style*="border"],
+.prose table th[style*="border"] {
+    border: revert !important;
+}
+
+/* For cells without inline border styles, use default */
+.prose .ck-content table td:not([style*="border"]),
+.prose .ck-content table th:not([style*="border"]) {
+    border: 1px solid #ddd;
+}
+
 /* Heading Styles - Override Tailwind prose and other styles */
 .ck-content h1,
 .ck-content.prose h1,
