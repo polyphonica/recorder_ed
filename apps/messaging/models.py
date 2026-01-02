@@ -63,6 +63,16 @@ class Conversation(models.Model):
         help_text="Child this conversation is about (if applicable)"
     )
 
+    # For assignment-specific conversations
+    private_lesson_assignment = models.ForeignKey(
+        'private_teaching.PrivateLessonAssignment',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='conversations',
+        help_text="Assignment this conversation is about (if applicable)"
+    )
+
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True, db_index=True)
@@ -73,6 +83,7 @@ class Conversation(models.Model):
             models.Index(fields=['domain', '-updated_at']),
             models.Index(fields=['workshop', '-updated_at']),
             models.Index(fields=['course', '-updated_at']),
+            models.Index(fields=['private_lesson_assignment', '-updated_at']),
         ]
         # Ensure one conversation per context
         constraints = [
@@ -92,7 +103,13 @@ class Conversation(models.Model):
             models.UniqueConstraint(
                 fields=['participant_1', 'participant_2', 'child_profile'],
                 name='unique_private_teaching_conversation',
-                condition=Q(domain='private_teaching')
+                condition=Q(domain='private_teaching') & Q(private_lesson_assignment__isnull=True)
+            ),
+            # Assignment: One conversation per assignment (with participants)
+            models.UniqueConstraint(
+                fields=['private_lesson_assignment', 'participant_1', 'participant_2'],
+                name='unique_assignment_conversation',
+                condition=Q(domain='private_teaching') & Q(private_lesson_assignment__isnull=False)
             ),
         ]
 
@@ -102,6 +119,8 @@ class Conversation(models.Model):
         elif self.domain == 'course' and self.course:
             return f"Course: {self.course.title} - {self.participant_1.get_full_name()} & {self.participant_2.get_full_name()}"
         elif self.domain == 'private_teaching':
+            if self.private_lesson_assignment:
+                return f"Assignment: {self.private_lesson_assignment.assignment.title} - {self.participant_1.get_full_name()} & {self.participant_2.get_full_name()}"
             child_info = f" (re: {self.child_profile.full_name})" if self.child_profile else ""
             return f"Private Teaching: {self.participant_1.get_full_name()} & {self.participant_2.get_full_name()}{child_info}"
         return f"{self.domain}: {self.participant_1.username} & {self.participant_2.username}"
@@ -143,6 +162,9 @@ class Conversation(models.Model):
         elif self.domain == 'course' and self.course:
             return f"{other_name} - {self.course.title}"
         elif self.domain == 'private_teaching':
+            if self.private_lesson_assignment:
+                assignment_title = self.private_lesson_assignment.assignment.title
+                return f"{other_name} - Assignment: {assignment_title}"
             if self.child_profile:
                 return f"{other_name} - {self.child_profile.full_name}"
             return other_name

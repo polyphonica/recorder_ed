@@ -10,4 +10,5 @@ urlpatterns = [
     path('start/course/<slug:course_slug>/', views.start_course_conversation, name='start_course_conversation'),
     path('start/private-teaching/<int:teacher_id>/', views.start_private_teaching_conversation, name='start_private_teaching_conversation'),
     path('start/private-teaching/<int:teacher_id>/<uuid:child_profile_id>/', views.start_private_teaching_conversation, name='start_private_teaching_conversation_child'),
+    path('start/assignment/<uuid:assignment_id>/', views.start_assignment_conversation, name='start_assignment_conversation'),
 ]

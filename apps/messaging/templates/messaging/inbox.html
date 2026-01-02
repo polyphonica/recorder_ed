@@ -37,7 +37,11 @@
                                 {% if item.conversation.domain == 'workshop' %}
                                     <span class="text-2xl">🎼</span>
                                 {% elif item.conversation.domain == 'private_teaching' %}
-                                    <span class="text-2xl">🎵</span>
+                                    {% if item.conversation.private_lesson_assignment %}
+                                        <span class="text-2xl">📝</span>
+                                    {% else %}
+                                        <span class="text-2xl">🎵</span>
+                                    {% endif %}
                                 {% elif item.conversation.domain == 'course' %}
                                     <span class="text-2xl">🎓</span>
                                 {% endif %}

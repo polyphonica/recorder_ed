@@ -497,8 +497,15 @@ def view_graded_assignment(request, pk):
         status='graded'
     )
 
+    # Get the PrivateLessonAssignment for messaging link
+    assignment_link = PrivateLessonAssignment.objects.filter(
+        assignment=submission.assignment,
+        student=request.user
+    ).first()
+
     return render(request, 'assignments/view_graded.html', {
         'submission': submission,
+        'assignment_link': assignment_link,
     })
 
 

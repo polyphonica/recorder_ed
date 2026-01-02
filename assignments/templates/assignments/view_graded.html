@@ -23,9 +23,15 @@
                 <h1 class="text-4xl font-bold mb-2">Graded Assignment</h1>
                 <p class="text-base-content/70">{{ submission.assignment.title }}</p>
             </div>
-            <a href="{% url 'assignments:student_library' %}" class="btn btn-outline">
-                <i class="fas fa-arrow-left mr-2"></i>Back to Assignments
-            </a>
+            <div class="flex gap-2">
+                <a href="{% url 'messaging:start_assignment_conversation' assignment_link.id %}"
+                   class="btn btn-outline btn-secondary">
+                    <i class="fas fa-question-circle mr-2"></i>Ask Teacher
+                </a>
+                <a href="{% url 'assignments:student_library' %}" class="btn btn-outline">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Assignments
+                </a>
+            </div>
         </div>
     </div>
 
@@ -205,10 +211,16 @@
 
                     <div class="divider"></div>
 
-                    <!-- Action Button -->
-                    <a href="{% url 'assignments:student_library' %}" class="btn btn-primary w-full">
-                        <i class="fas fa-arrow-left mr-2"></i>Back to Assignments
-                    </a>
+                    <!-- Action Buttons -->
+                    <div class="space-y-2">
+                        <a href="{% url 'messaging:start_assignment_conversation' assignment_link.id %}"
+                           class="btn btn-secondary w-full">
+                            <i class="fas fa-question-circle mr-2"></i>Question About Grade?
+                        </a>
+                        <a href="{% url 'assignments:student_library' %}" class="btn btn-outline w-full">
+                            <i class="fas fa-arrow-left mr-2"></i>Back to Assignments
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

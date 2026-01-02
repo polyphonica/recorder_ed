@@ -65,9 +65,15 @@
                 <h1 class="text-4xl font-bold mb-2">{{ assignment.title }}</h1>
                 <p class="text-base-content/70">Complete your assignment</p>
             </div>
-            <a href="{% url 'assignments:student_library' %}" class="btn btn-outline">
-                <i class="fas fa-arrow-left mr-2"></i>Back to Assignments
-            </a>
+            <div class="flex gap-2">
+                <a href="{% url 'messaging:start_assignment_conversation' assignment_link.id %}"
+                   class="btn btn-outline btn-secondary">
+                    <i class="fas fa-question-circle mr-2"></i>Ask Teacher
+                </a>
+                <a href="{% url 'assignments:student_library' %}" class="btn btn-outline">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Assignments
+                </a>
+            </div>
         </div>
     </div>
 

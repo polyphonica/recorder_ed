@@ -8,7 +8,7 @@ from django.utils import timezone
 from .models import Conversation, Message
 from .notifications import MessageNotificationService
 from apps.workshops.models import Workshop, WorkshopRegistration
-from apps.private_teaching.models import TeacherStudentApplication
+from apps.private_teaching.models import TeacherStudentApplication, PrivateLessonAssignment
 from apps.courses.models import Course, CourseEnrollment
 
 
@@ -36,7 +36,10 @@ def inbox(request):
         'participant_1',
         'participant_2',
         'workshop',
-        'child_profile'
+        'course',
+        'child_profile',
+        'private_lesson_assignment',
+        'private_lesson_assignment__assignment'
     ).order_by('-updated_at')
 
     # Annotate with unread counts
@@ -227,5 +230,46 @@ def start_course_conversation(request, course_slug):
         participant_1=p1,
         participant_2=p2
     )
+
+    return redirect('messaging:conversation_detail', conversation_id=conversation.id)
+
+
+@login_required
+def start_assignment_conversation(request, assignment_id):
+    """
+    Start or continue a conversation about a specific assignment.
+    Only the student assigned to this assignment can message the teacher about it.
+    """
+    user = request.user
+
+    # Get the assignment
+    assignment = get_object_or_404(PrivateLessonAssignment, id=assignment_id)
+
+    # Permission check - user must be the student
+    if assignment.student != user:
+        django_messages.error(request, 'You can only message about your own assignments.')
+        return redirect('assignments:student_library')
+
+    # Get teacher and student
+    teacher = assignment.teacher
+    student = assignment.student
+
+    # Ensure consistent participant ordering
+    p1, p2 = (student, teacher) if student.id < teacher.id else (teacher, student)
+
+    # Get or create conversation for this assignment
+    conversation, created = Conversation.objects.get_or_create(
+        domain='private_teaching',
+        private_lesson_assignment=assignment,
+        participant_1=p1,
+        participant_2=p2
+    )
+
+    # If just created, send user back with helpful message
+    if created:
+        django_messages.success(
+            request,
+            f'Started conversation with {teacher.get_full_name()} about "{assignment.assignment.title}"'
+        )
 
     return redirect('messaging:conversation_detail', conversation_id=conversation.id)
