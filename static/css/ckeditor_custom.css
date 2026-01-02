@@ -300,23 +300,25 @@ figure.image.image-style-block-align-left,
 }
 
 /* CRITICAL FIX: CKEditor outputs incomplete border properties */
-/* If border-color is set but width/style are missing, provide defaults */
-.prose .ck-content table[style*="border-color"],
-.ck-content.prose table[style*="border-color"] {
+/* Provide default border-style for all cells (won't override inline styles) */
+.prose .ck-content td,
+.ck-content.prose td,
+.prose .ck-content th,
+.ck-content.prose th {
+    border-style: solid;
+}
+
+/* If border-color is set, ensure borders are visible */
+.prose .ck-content table[style*="border-color"]:not([style*="border-width"]),
+.ck-content.prose table[style*="border-color"]:not([style*="border-width"]) {
     border-width: 1px !important;
 }
 
-.prose .ck-content table[style*="border-style"],
-.ck-content.prose table[style*="border-style"] {
+.prose .ck-content td[style*="border-color"]:not([style*="border-width"]),
+.ck-content.prose td[style*="border-color"]:not([style*="border-width"]),
+.prose .ck-content th[style*="border-color"]:not([style*="border-width"]),
+.ck-content.prose th[style*="border-color"]:not([style*="border-width"]) {
     border-width: 1px !important;
-}
-
-.prose .ck-content td[style*="border-color"],
-.ck-content.prose td[style*="border-color"],
-.prose .ck-content th[style*="border-color"],
-.ck-content.prose th[style*="border-color"] {
-    border-width: 1px !important;
-    border-style: solid !important;
 }
 
 /* Heading Styles - Override Tailwind prose and other styles */
