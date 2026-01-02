@@ -239,20 +239,59 @@ def start_assignment_conversation(request, assignment_id):
     """
     Start or continue a conversation about a specific assignment.
     Only the student assigned to this assignment can message the teacher about it.
+    Handles both PrivateLessonAssignment and LessonAssignment types.
     """
     user = request.user
+    from lessons.models import LessonAssignment
 
-    # Get the assignment
-    assignment = get_object_or_404(PrivateLessonAssignment, id=assignment_id)
+    # Try to get the assignment - could be either type
+    private_assignment = PrivateLessonAssignment.objects.filter(id=assignment_id).first()
+    lesson_assignment = LessonAssignment.objects.filter(id=assignment_id).first()
 
-    # Permission check - user must be the student
-    if assignment.student != user:
-        django_messages.error(request, 'You can only message about your own assignments.')
+    assignment_link = private_assignment or lesson_assignment
+
+    if not assignment_link:
+        django_messages.error(request, 'Assignment not found.')
         return redirect('assignments:student_library')
 
-    # Get teacher and student
-    teacher = assignment.teacher
-    student = assignment.student
+    # Determine teacher and student based on assignment type
+    if isinstance(assignment_link, PrivateLessonAssignment):
+        # Private lesson assignment
+        teacher = assignment_link.teacher
+        student = assignment_link.student
+
+        # Permission check
+        if student != user:
+            django_messages.error(request, 'You can only message about your own assignments.')
+            return redirect('assignments:student_library')
+
+        assignment_obj = assignment_link.assignment
+        private_lesson_assignment = assignment_link
+
+    else:  # LessonAssignment
+        # Course/lesson assignment
+        teacher = assignment_link.lesson.subject.teacher
+        student = assignment_link.lesson.student
+
+        # Permission check
+        if student != user:
+            django_messages.error(request, 'You can only message about your own assignments.')
+            return redirect('assignments:student_library')
+
+        assignment_obj = assignment_link.assignment
+
+        # For LessonAssignments, we need to find or create a PrivateLessonAssignment
+        # to link the conversation to
+        private_lesson_assignment, created_pla = PrivateLessonAssignment.objects.get_or_create(
+            assignment=assignment_obj,
+            student=student,
+            teacher=teacher,
+            lesson=assignment_link.lesson,
+            defaults={
+                'assigned_at': assignment_link.assigned_at if hasattr(assignment_link, 'assigned_at') else timezone.now(),
+                'due_date': assignment_link.due_date
+            }
+        )
 
     # Ensure consistent participant ordering
     p1, p2 = (student, teacher) if student.id < teacher.id else (teacher, student)
@@ -260,7 +299,7 @@ def start_assignment_conversation(request, assignment_id):
     # Get or create conversation for this assignment
     conversation, created = Conversation.objects.get_or_create(
         domain='private_teaching',
-        private_lesson_assignment=assignment,
+        private_lesson_assignment=private_lesson_assignment,
         participant_1=p1,
         participant_2=p2
     )
@@ -269,7 +308,7 @@ def start_assignment_conversation(request, assignment_id):
     if created:
         django_messages.success(
             request,
-            f'Started conversation with {teacher.get_full_name()} about "{assignment.assignment.title}"'
+            f'Started conversation with {teacher.get_full_name()} about "{assignment_obj.title}"'
         )
 
     return redirect('messaging:conversation_detail', conversation_id=conversation.id)
