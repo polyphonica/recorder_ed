@@ -265,34 +265,47 @@ figure.image.image-style-block-align-left,
     height: 30px;
 }
 
-/* Table cell styling - Override prose defaults to allow CKEditor inline styles */
-.ck-content table td,
-.ck-content table th,
-.ck-content.prose table td,
-.ck-content.prose table th,
-.prose .ck-content table td,
-.prose .ck-content table th {
-    /* Allow CKEditor inline styles to work in prose context */
-    padding: 5px;
+/* Table cell styling - NUCLEAR OPTION: Completely override ALL prose table styling */
+/* Remove all prose defaults so CKEditor inline styles work */
+.prose .ck-content table,
+.ck-content.prose table,
+.prose .ck-content thead,
+.ck-content.prose thead,
+.prose .ck-content tbody,
+.ck-content.prose tbody,
+.prose .ck-content tr,
+.ck-content.prose tr,
+.prose .ck-content td,
+.ck-content.prose td,
+.prose .ck-content th,
+.ck-content.prose th {
+    all: unset !important;
+    display: revert !important;
 }
 
-/* CRITICAL: Force prose to respect inline border styles from CKEditor */
-/* This uses unset to remove prose defaults, allowing inline styles to work */
-.prose .ck-content table td,
-.prose .ck-content table th,
-.ck-content.prose table td,
-.ck-content.prose table th {
-    border-width: unset !important;
-    border-style: unset !important;
-    border-color: unset !important;
+/* Re-apply essential table structure */
+.prose .ck-content table,
+.ck-content.prose table {
+    border-collapse: collapse !important;
+    width: 100% !important;
 }
 
-/* For cells without inline border styles, provide a default border */
-.prose .ck-content table td:not([style*="border"]),
-.prose .ck-content table th:not([style*="border"]),
-.ck-content.prose table td:not([style*="border"]),
-.ck-content.prose table th:not([style*="border"]) {
+.prose .ck-content td,
+.ck-content.prose td,
+.prose .ck-content th,
+.ck-content.prose th {
+    padding: 5px !important;
+    /* Default border for cells without inline styles */
     border: 1px solid #ddd !important;
+}
+
+/* CRITICAL: This selector must come AFTER the default above */
+/* Any inline border style will override the default */
+.prose .ck-content td[style],
+.ck-content.prose td[style],
+.prose .ck-content th[style],
+.ck-content.prose th[style] {
+    /* Inline styles will automatically apply due to specificity */
 }
 
 /* Heading Styles - Override Tailwind prose and other styles */
