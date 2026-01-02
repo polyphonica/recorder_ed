@@ -276,18 +276,23 @@ figure.image.image-style-block-align-left,
     padding: 5px;
 }
 
-/* Ensure inline border styles from CKEditor override prose defaults */
-.prose .ck-content table td[style*="border"],
-.prose .ck-content table th[style*="border"],
-.prose table td[style*="border"],
-.prose table th[style*="border"] {
-    border: revert !important;
+/* CRITICAL: Force prose to respect inline border styles from CKEditor */
+/* This uses unset to remove prose defaults, allowing inline styles to work */
+.prose .ck-content table td,
+.prose .ck-content table th,
+.ck-content.prose table td,
+.ck-content.prose table th {
+    border-width: unset !important;
+    border-style: unset !important;
+    border-color: unset !important;
 }
 
-/* For cells without inline border styles, use default */
+/* For cells without inline border styles, provide a default border */
 .prose .ck-content table td:not([style*="border"]),
-.prose .ck-content table th:not([style*="border"]) {
-    border: 1px solid #ddd;
+.prose .ck-content table th:not([style*="border"]),
+.ck-content.prose table td:not([style*="border"]),
+.ck-content.prose table th:not([style*="border"]) {
+    border: 1px solid #ddd !important;
 }
 
 /* Heading Styles - Override Tailwind prose and other styles */
