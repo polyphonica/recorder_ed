@@ -295,8 +295,14 @@ figure.image.image-style-block-align-left,
 .prose .ck-content th,
 .ck-content.prose th {
     padding: 5px !important;
-    /* Default border for cells without inline styles */
-    border: 1px solid #ddd !important;
+}
+
+/* Default border ONLY for cells without any inline border styles */
+.prose .ck-content td:not([style*="border"]),
+.ck-content.prose td:not([style*="border"]),
+.prose .ck-content th:not([style*="border"]),
+.ck-content.prose th:not([style*="border"]) {
+    border: 1px solid #ddd;
 }
 
 /* CRITICAL FIX: CKEditor outputs incomplete border properties */
