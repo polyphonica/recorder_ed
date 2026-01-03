@@ -250,7 +250,6 @@ figure.image.image-style-block-align-left,
 .ck-content .ck-table th {
     padding: 5px;
     border: 1px solid #000;
-    text-align: center;
     vertical-align: middle;
 }
 
@@ -303,6 +302,15 @@ figure.image.image-style-block-align-left,
 .prose .ck-content th[style*="border-color"]:not([style*="border-width"]),
 .ck-content.prose th[style*="border-color"]:not([style*="border-width"]) {
     border-width: 1px;
+}
+
+/* Default text alignment ONLY for cells without inline text-align styles */
+/* CKEditor outputs inline styles for center/right alignment, but not for left (default) */
+.prose .ck-content td:not([style*="text-align"]),
+.ck-content.prose td:not([style*="text-align"]),
+.prose .ck-content th:not([style*="text-align"]),
+.ck-content.prose th:not([style*="text-align"]) {
+    text-align: left;
 }
 
 /* Heading Styles - Override Tailwind prose and other styles */
