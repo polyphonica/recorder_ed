@@ -253,26 +253,59 @@ figure.image.image-style-block-align-left,
     vertical-align: middle;
 }
 
-/* Media inside table cells */
-/* Only force full width on images when the cell doesn't have center/right alignment */
-.ck-content .ck-table td:not([style*="text-align: center"]):not([style*="text-align:center"]):not([style*="text-align: right"]):not([style*="text-align:right"]) img,
-.ck-content .ck-table th:not([style*="text-align: center"]):not([style*="text-align:center"]):not([style*="text-align: right"]):not([style*="text-align:right"]) img {
-    width: 100%;
-    height: auto;
+/* Image alignment inside table cells - use figure classes */
+/* Center-aligned images in table cells */
+.ck-content .ck-table figure.image.image-style-align-center,
+.ck-content.prose .ck-table figure.image.image-style-align-center,
+.prose .ck-content .ck-table figure.image.image-style-align-center {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    display: block;
 }
 
-/* For centered/right-aligned cells, let images maintain their size */
-.ck-content .ck-table td[style*="text-align: center"] img,
-.ck-content .ck-table td[style*="text-align:center"] img,
-.ck-content .ck-table td[style*="text-align: right"] img,
-.ck-content .ck-table td[style*="text-align:right"] img,
-.ck-content .ck-table th[style*="text-align: center"] img,
-.ck-content .ck-table th[style*="text-align:center"] img,
-.ck-content .ck-table th[style*="text-align: right"] img,
-.ck-content .ck-table th[style*="text-align:right"] img {
+/* Left-aligned images in table cells (including image-style-side) */
+.ck-content .ck-table figure.image.image-style-align-left,
+.ck-content .ck-table figure.image.image-style-side,
+.ck-content.prose .ck-table figure.image.image-style-align-left,
+.ck-content.prose .ck-table figure.image.image-style-side,
+.prose .ck-content .ck-table figure.image.image-style-align-left,
+.prose .ck-content .ck-table figure.image.image-style-side {
+    margin-left: 0 !important;
+    margin-right: auto !important;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    display: block;
+}
+
+/* Right-aligned images in table cells */
+.ck-content .ck-table figure.image.image-style-align-right,
+.ck-content.prose .ck-table figure.image.image-style-align-right,
+.prose .ck-content .ck-table figure.image.image-style-align-right {
+    margin-left: auto !important;
+    margin-right: 0 !important;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    display: block;
+}
+
+/* Images without alignment class default to left */
+.ck-content .ck-table figure.image:not(.image-style-align-center):not(.image-style-align-left):not(.image-style-align-right):not(.image-style-side),
+.ck-content.prose .ck-table figure.image:not(.image-style-align-center):not(.image-style-align-left):not(.image-style-align-right):not(.image-style-side),
+.prose .ck-content .ck-table figure.image:not(.image-style-align-center):not(.image-style-align-left):not(.image-style-align-right):not(.image-style-side) {
+    margin-left: 0 !important;
+    margin-right: auto !important;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    display: block;
+}
+
+/* Images inside figure elements in table cells */
+.ck-content .ck-table figure.image img {
     max-width: 100%;
     height: auto;
-    display: inline-block;
+    display: block;
 }
 
 .ck-content .ck-table audio {
