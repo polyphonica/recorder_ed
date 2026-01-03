@@ -255,9 +255,9 @@ figure.image.image-style-block-align-left,
 
 /* Image alignment inside table cells - use figure classes */
 /* Center-aligned images in table cells */
-.ck-content .ck-table figure.image.image-style-align-center,
-.ck-content.prose .ck-table figure.image.image-style-align-center,
-.prose .ck-content .ck-table figure.image.image-style-align-center {
+.ck-content table figure.image.image-style-align-center,
+.ck-content.prose table figure.image.image-style-align-center,
+.prose .ck-content table figure.image.image-style-align-center {
     margin-left: auto !important;
     margin-right: auto !important;
     margin-top: 0.5em;
@@ -266,12 +266,12 @@ figure.image.image-style-block-align-left,
 }
 
 /* Left-aligned images in table cells (including image-style-side) */
-.ck-content .ck-table figure.image.image-style-align-left,
-.ck-content .ck-table figure.image.image-style-side,
-.ck-content.prose .ck-table figure.image.image-style-align-left,
-.ck-content.prose .ck-table figure.image.image-style-side,
-.prose .ck-content .ck-table figure.image.image-style-align-left,
-.prose .ck-content .ck-table figure.image.image-style-side {
+.ck-content table figure.image.image-style-align-left,
+.ck-content table figure.image.image-style-side,
+.ck-content.prose table figure.image.image-style-align-left,
+.ck-content.prose table figure.image.image-style-side,
+.prose .ck-content table figure.image.image-style-align-left,
+.prose .ck-content table figure.image.image-style-side {
     margin-left: 0 !important;
     margin-right: auto !important;
     margin-top: 0.5em;
@@ -280,9 +280,9 @@ figure.image.image-style-block-align-left,
 }
 
 /* Right-aligned images in table cells */
-.ck-content .ck-table figure.image.image-style-align-right,
-.ck-content.prose .ck-table figure.image.image-style-align-right,
-.prose .ck-content .ck-table figure.image.image-style-align-right {
+.ck-content table figure.image.image-style-align-right,
+.ck-content.prose table figure.image.image-style-align-right,
+.prose .ck-content table figure.image.image-style-align-right {
     margin-left: auto !important;
     margin-right: 0 !important;
     margin-top: 0.5em;
@@ -291,9 +291,9 @@ figure.image.image-style-block-align-left,
 }
 
 /* Images without alignment class default to left */
-.ck-content .ck-table figure.image:not(.image-style-align-center):not(.image-style-align-left):not(.image-style-align-right):not(.image-style-side),
-.ck-content.prose .ck-table figure.image:not(.image-style-align-center):not(.image-style-align-left):not(.image-style-align-right):not(.image-style-side),
-.prose .ck-content .ck-table figure.image:not(.image-style-align-center):not(.image-style-align-left):not(.image-style-align-right):not(.image-style-side) {
+.ck-content table figure.image:not(.image-style-align-center):not(.image-style-align-left):not(.image-style-align-right):not(.image-style-side),
+.ck-content.prose table figure.image:not(.image-style-align-center):not(.image-style-align-left):not(.image-style-align-right):not(.image-style-side),
+.prose .ck-content table figure.image:not(.image-style-align-center):not(.image-style-align-left):not(.image-style-align-right):not(.image-style-side) {
     margin-left: 0 !important;
     margin-right: auto !important;
     margin-top: 0.5em;
@@ -302,7 +302,7 @@ figure.image.image-style-block-align-left,
 }
 
 /* Images inside figure elements in table cells */
-.ck-content .ck-table figure.image img {
+.ck-content table figure.image img {
     max-width: 100%;
     height: auto;
     display: block;
