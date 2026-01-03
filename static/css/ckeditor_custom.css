@@ -254,9 +254,25 @@ figure.image.image-style-block-align-left,
 }
 
 /* Media inside table cells */
-.ck-content .ck-table img {
+/* Only force full width on images when the cell doesn't have center/right alignment */
+.ck-content .ck-table td:not([style*="text-align: center"]):not([style*="text-align:center"]):not([style*="text-align: right"]):not([style*="text-align:right"]) img,
+.ck-content .ck-table th:not([style*="text-align: center"]):not([style*="text-align:center"]):not([style*="text-align: right"]):not([style*="text-align:right"]) img {
     width: 100%;
     height: auto;
+}
+
+/* For centered/right-aligned cells, let images maintain their size */
+.ck-content .ck-table td[style*="text-align: center"] img,
+.ck-content .ck-table td[style*="text-align:center"] img,
+.ck-content .ck-table td[style*="text-align: right"] img,
+.ck-content .ck-table td[style*="text-align:right"] img,
+.ck-content .ck-table th[style*="text-align: center"] img,
+.ck-content .ck-table th[style*="text-align:center"] img,
+.ck-content .ck-table th[style*="text-align: right"] img,
+.ck-content .ck-table th[style*="text-align:right"] img {
+    max-width: 100%;
+    height: auto;
+    display: inline-block;
 }
 
 .ck-content .ck-table audio {
@@ -310,7 +326,16 @@ figure.image.image-style-block-align-left,
 .ck-content.prose td:not([style*="text-align"]),
 .prose .ck-content th:not([style*="text-align"]),
 .ck-content.prose th:not([style*="text-align"]) {
-    text-align: left;
+    text-align: left !important;
+}
+
+/* CRITICAL: Allow inline text-align styles to override defaults */
+/* This ensures CKEditor's center/right alignment displays in view mode */
+.prose .ck-content td[style*="text-align"],
+.ck-content.prose td[style*="text-align"],
+.prose .ck-content th[style*="text-align"],
+.ck-content.prose th[style*="text-align"] {
+    /* Inline styles will apply naturally - this selector just increases specificity */
 }
 
 /* Heading Styles - Override Tailwind prose and other styles */
