@@ -108,6 +108,34 @@ class LessonRequest(PayableModel):
         return self.is_for_child
 
     @property
+    def student_display_name(self):
+        """
+        Alias for student_name property from PayableModel.
+        Returns the display name for the student (child or adult).
+
+        - For child lessons: returns child_profile.full_name
+        - For adult lessons: returns student.get_full_name()
+        """
+        return self.student_name
+
+    @property
+    def is_child_lesson(self):
+        """
+        Alias for is_for_child property from PayableModel.
+        Check if this lesson request is for a child (under 18).
+        """
+        return self.is_for_child
+
+    @property
+    def guardian_name(self):
+        """
+        Returns guardian's name if this is a child lesson, None otherwise.
+        """
+        if self.guardian:
+            return self.guardian.get_full_name() or self.guardian.username
+        return None
+
+    @property
     def subject_display(self):
         """Get subject(s) for display - returns comma-separated list of unique subjects"""
         subjects = self.lessons.select_related('subject').values_list('subject__subject', flat=True).distinct()

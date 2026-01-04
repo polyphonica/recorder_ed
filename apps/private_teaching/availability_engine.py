@@ -330,10 +330,17 @@ def _is_slot_available(
 def check_slot_availability(
     teacher,
     slot_datetime: datetime,
-    duration: int
+    duration: int,
+    exclude_lesson_id=None
 ) -> Tuple[bool, str]:
     """
     Check if a specific slot is available and return reason if not.
+
+    Args:
+        teacher: User object (teacher)
+        slot_datetime: Proposed lesson datetime
+        duration: Lesson duration in minutes
+        exclude_lesson_id: Optional lesson ID to exclude from conflict check (for rescheduling)
 
     Returns:
         (is_available: bool, reason: str)
@@ -388,6 +395,10 @@ def check_slot_availability(
         lesson_date=slot_datetime.date(),
         is_deleted=False
     ).exclude(approved_status='Rejected')
+
+    # Exclude the current lesson if rescheduling
+    if exclude_lesson_id:
+        existing_lessons = existing_lessons.exclude(id=exclude_lesson_id)
 
     for lesson in existing_lessons:
         lesson_start = datetime.combine(lesson.lesson_date, lesson.lesson_time)

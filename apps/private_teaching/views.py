@@ -15,6 +15,7 @@ from django.conf import settings
 from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, UserFilterMixin
 from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard, LessonCancellationRequest, PracticeEntry
 from .notifications import TeacherNotificationService, StudentNotificationService
+from .availability_engine import check_slot_availability
 from lessons.models import Lesson, Document, LessonAttachedUrl, LessonAssignment
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, ExamRegistrationForm, ExamPieceFormSet, ExamResultsForm, PracticeEntryForm, RescheduleForm
 from .cart import CartManager
@@ -27,51 +28,6 @@ from .mixins import (
     PrivateTeachingLoginRequiredMixin,
     AcceptedStudentRequiredMixin
 )
-
-
-# Helper functions
-def check_teacher_availability(teacher, lesson_date, lesson_time, duration_minutes, exclude_lesson_id=None):
-    """
-    Check if a teacher has a scheduling conflict at the proposed date/time.
-
-    Args:
-        teacher: User object (teacher)
-        lesson_date: Date of the proposed lesson
-        lesson_time: Time of the proposed lesson
-        duration_minutes: Duration of the lesson in minutes
-        exclude_lesson_id: Optional lesson ID to exclude from conflict check (for rescheduling)
-
-    Returns:
-        tuple: (has_conflict: bool, conflicting_lessons: QuerySet)
-    """
-    from datetime import datetime, timedelta
-
-    # Calculate end time of proposed lesson
-    proposed_start = datetime.combine(lesson_date, lesson_time)
-    proposed_end = proposed_start + timedelta(minutes=int(duration_minutes))
-
-    # Get all non-deleted lessons for this teacher on the same date
-    lessons = Lesson.objects.filter(
-        teacher=teacher,
-        lesson_date=lesson_date,
-        is_deleted=False
-    )
-
-    # Exclude the current lesson if rescheduling
-    if exclude_lesson_id:
-        lessons = lessons.exclude(id=exclude_lesson_id)
-
-    conflicting_lessons = []
-    for lesson in lessons:
-        # Calculate existing lesson time range
-        existing_start = datetime.combine(lesson.lesson_date, lesson.lesson_time)
-        existing_end = existing_start + timedelta(minutes=int(lesson.duration_in_minutes))
-
-        # Check for overlap
-        if (proposed_start < existing_end) and (proposed_end > existing_start):
-            conflicting_lessons.append(lesson)
-
-    return len(conflicting_lessons) > 0, conflicting_lessons
 
 
 class PrivateTeachingLoginView(LoginView):
@@ -747,13 +703,9 @@ class CalendarView(PrivateTeachingLoginRequiredMixin, TemplateView):
             subject_name = lesson.subject.subject if lesson.subject else 'Unknown Subject'
 
             # Get student name - use child's name if lesson is for a child
-            student_display_name = 'Unknown'
-            if lesson.lesson_request and lesson.lesson_request.child_profile:
-                # Lesson is for a child - show child's name
-                student_display_name = lesson.lesson_request.child_profile.full_name
-            elif lesson.student:
-                # Regular student lesson
-                student_display_name = lesson.student.get_full_name()
+            student_display_name = lesson.lesson_request.student_display_name if lesson.lesson_request else (
+                lesson.student.get_full_name() if lesson.student else 'Unknown'
+            )
 
             # Determine title based on user role
             if is_teacher:
@@ -1247,9 +1199,9 @@ class LessonDetailView(PrivateTeachingLoginRequiredMixin, View):
                 )
 
             # Get student name - use child's name if lesson is for a child
-            if lesson.lesson_request and lesson.lesson_request.child_profile:
-                student_name = lesson.lesson_request.child_profile.full_name
-                guardian_name = lesson.student.get_full_name() if lesson.student else 'Unknown'
+            if lesson.lesson_request:
+                student_name = lesson.lesson_request.student_display_name
+                guardian_name = lesson.lesson_request.guardian_name
             else:
                 student_name = lesson.student.get_full_name() if lesson.student else 'Unknown'
                 guardian_name = None
@@ -1395,11 +1347,10 @@ class TeacherDocumentLibraryView(TeacherProfileCompletedMixin, TemplateView):
             if student_id not in seen_students:
                 seen_students.add(student_id)
                 # Check if this is a child profile lesson
-                if lesson.lesson_request and lesson.lesson_request.child_profile:
-                    # Show child's name
-                    display_name = lesson.lesson_request.child_profile.full_name
-                    # Add guardian info in parentheses
-                    guardian_name = f"{lesson.student.profile.first_name} {lesson.student.profile.last_name}" if hasattr(lesson.student, 'profile') else lesson.student.get_full_name()
+                if lesson.lesson_request and lesson.lesson_request.is_child_lesson:
+                    # Show child's name with guardian in parentheses
+                    display_name = lesson.lesson_request.student_display_name
+                    guardian_name = lesson.lesson_request.guardian_name
                     full_display = f"{display_name} ({guardian_name})"
                 else:
                     # Show adult student's name
@@ -1692,7 +1643,7 @@ class ApplyToTeacherView(StudentProfileCompletedMixin, StudentOnlyMixin, Templat
                 # Log error but don't fail the application
                 print(f"Error sending application notification email to teacher: {e}")
 
-        student_name = child_profile.full_name if child_profile else request.user.get_full_name()
+        student_name = application.student_name
         messages.success(request, f'Application submitted for {student_name}!')
         return redirect('private_teaching:student_application_detail', application_id=application.id)
 
@@ -3225,21 +3176,19 @@ class CancellationRequestDetailView(PrivateTeachingLoginRequiredMixin, View):
             lesson = cancellation_request.lesson
 
             # Check for scheduling conflicts
-            has_conflict, conflicting_lessons = check_teacher_availability(
+            from datetime import datetime
+            slot_datetime = datetime.combine(new_date, new_time)
+            is_available, reason = check_slot_availability(
                 teacher=cancellation_request.teacher,
-                lesson_date=new_date,
-                lesson_time=new_time,
-                duration_minutes=lesson.duration_in_minutes,
+                slot_datetime=slot_datetime,
+                duration=int(lesson.duration_in_minutes),
                 exclude_lesson_id=lesson.id
             )
 
-            if has_conflict:
-                conflict_times = ', '.join([
-                    f"{l.lesson_time.strftime('%I:%M %p')}" for l in conflicting_lessons
-                ])
+            if not is_available:
                 messages.error(
                     request,
-                    f"Scheduling conflict detected. You already have a lesson at {conflict_times} on {new_date.strftime('%B %d, %Y')}."
+                    f"Cannot reschedule to this time: {reason}"
                 )
             else:
                 # Update the proposed dates in the cancellation request

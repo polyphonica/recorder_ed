@@ -148,6 +148,28 @@ class Lesson(models.Model):
 
     class Meta:
         ordering = ["-lesson_date"]
+        indexes = [
+            # Teacher schedule queries - most common pattern
+            models.Index(
+                fields=['teacher', 'lesson_date', 'is_deleted'],
+                name='lesson_teacher_schedule_idx'
+            ),
+            # Payment filtering queries
+            models.Index(
+                fields=['payment_status', 'approved_status'],
+                name='lesson_payment_status_idx'
+            ),
+            # Calendar date/time queries
+            models.Index(
+                fields=['lesson_date', 'lesson_time'],
+                name='lesson_datetime_idx'
+            ),
+            # Student lesson queries
+            models.Index(
+                fields=['student', 'is_deleted', 'lesson_date'],
+                name='lesson_student_schedule_idx'
+            ),
+        ]
 
     def __str__(self):
         return f"{self.subject.subject} - {self.lesson_date}"
