@@ -54,6 +54,10 @@ def calculate_available_slots(
             4. Apply buffer time
             5. Apply min/max booking notice rules
             6. Generate slots at time_increment intervals
+
+    Performance Optimization:
+        Pre-fetches ALL lessons for the entire date range in ONE query,
+        reducing database hits from O(n * days) to O(1).
     """
     # Check if teacher has availability settings
     if not hasattr(teacher, 'availability_settings'):
@@ -65,6 +69,24 @@ def calculate_available_slots(
     if not settings.use_availability_calendar:
         return []  # Fall back to old request system
 
+    # OPTIMIZATION: Pre-fetch all lessons for entire date range in ONE query
+    # This eliminates repeated database queries in _is_slot_available()
+    all_lessons = list(Lesson.objects.filter(
+        teacher=teacher,
+        lesson_date__gte=start_date,
+        lesson_date__lte=end_date,
+        is_deleted=False
+    ).exclude(
+        approved_status='Rejected'
+    ).select_related('subject'))
+
+    # Group lessons by date for O(1) lookup
+    lessons_by_date = {}
+    for lesson in all_lessons:
+        if lesson.lesson_date not in lessons_by_date:
+            lessons_by_date[lesson.lesson_date] = []
+        lessons_by_date[lesson.lesson_date].append(lesson)
+
     available_slots = []
 
     # Iterate through each date in the range
@@ -72,6 +94,9 @@ def calculate_available_slots(
     while current_date <= end_date:
         # Get available time ranges for this date
         time_ranges = _get_available_ranges_for_date(teacher, current_date)
+
+        # Get lessons for this specific date from cache
+        date_lessons = lessons_by_date.get(current_date, [])
 
         # Generate slots within each time range
         for time_range in time_ranges:
@@ -85,7 +110,8 @@ def calculate_available_slots(
 
             # Filter slots based on booking rules and existing lessons
             for slot in slots:
-                if _is_slot_available(teacher, slot, duration, settings):
+                # Pass cached lessons instead of querying database
+                if _is_slot_available(teacher, slot, duration, settings, cached_lessons=date_lessons):
                     available_slots.append({
                         'datetime': slot.isoformat(),
                         'duration': duration,
@@ -269,7 +295,8 @@ def _is_slot_available(
     teacher,
     slot_datetime: datetime,
     duration: int,
-    settings
+    settings,
+    cached_lessons: List = None
 ) -> bool:
     """
     Check if a specific slot is available.
@@ -277,6 +304,22 @@ def _is_slot_available(
         1. Advance booking rules (min/max notice)
         2. Existing lessons (conflicts)
         3. Buffer time requirements
+
+    Args:
+        teacher: User object (teacher)
+        slot_datetime: Proposed slot datetime
+        duration: Lesson duration in minutes
+        settings: Teacher availability settings
+        cached_lessons: Optional pre-fetched list of lessons for this date
+                       (for performance optimization)
+
+    Returns:
+        bool: True if slot is available, False otherwise
+
+    Performance Note:
+        When cached_lessons is provided, this function uses O(n) time
+        instead of making a database query, significantly improving performance
+        when checking multiple slots.
     """
     now = timezone.now()
 
@@ -297,14 +340,19 @@ def _is_slot_available(
     # Check for existing lesson conflicts
     slot_end = slot_datetime + timedelta(minutes=duration)
 
-    # Get all non-deleted lessons for this teacher on this date
-    existing_lessons = Lesson.objects.filter(
-        teacher=teacher,
-        lesson_date=slot_datetime.date(),
-        is_deleted=False
-    ).exclude(
-        approved_status='Rejected'
-    )
+    # OPTIMIZATION: Use cached lessons if provided, otherwise query database
+    if cached_lessons is not None:
+        # Use pre-fetched lessons (performance optimized)
+        existing_lessons = cached_lessons
+    else:
+        # Fall back to database query (for backward compatibility)
+        existing_lessons = Lesson.objects.filter(
+            teacher=teacher,
+            lesson_date=slot_datetime.date(),
+            is_deleted=False
+        ).exclude(
+            approved_status='Rejected'
+        )
 
     for lesson in existing_lessons:
         lesson_start = datetime.combine(
