@@ -30,6 +30,174 @@ from .mixins import (
 )
 
 
+# ============================================================================
+# GENERIC BASE VIEWS FOR CRUD OPERATIONS
+# ============================================================================
+
+class PrivateTeachingCreateView(TeacherProfileCompletedMixin, View):
+    """
+    Generic base view for creating objects (POST-only pattern).
+
+    Subclasses should define:
+    - form_class: Form class to use
+    - success_message: Message template (use {object_name} placeholder)
+    - redirect_url_name: Named URL to redirect to after success
+
+    Optional:
+    - get_form_kwargs(): Customize form initialization
+    - get_object_name(): Return display name for the created object
+    """
+    form_class = None
+    success_message = '{object_name} created successfully!'
+    redirect_url_name = None
+
+    def get_form_kwargs(self):
+        """Override to customize form kwargs"""
+        return {}
+
+    def get_object_name(self, form):
+        """Override to customize the object name in success message"""
+        return self.form_class._meta.model._meta.verbose_name
+
+    def post(self, request, *args, **kwargs):
+        form_kwargs = {'data': request.POST}
+        form_kwargs.update(self.get_form_kwargs())
+        form = self.form_class(**form_kwargs)
+
+        if form.is_valid():
+            try:
+                obj = form.save()
+                object_name = self.get_object_name(form)
+                messages.success(request, self.success_message.format(object_name=object_name))
+            except Exception as e:
+                # Handle unique constraint violations gracefully
+                if 'unique constraint' in str(e).lower() or 'duplicate key' in str(e).lower():
+                    messages.error(
+                        request,
+                        'An item with this information already exists. Please use different values.'
+                    )
+                else:
+                    # Re-raise unexpected errors
+                    raise
+        else:
+            # Display form validation errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
+
+        return redirect(self.redirect_url_name)
+
+
+class PrivateTeachingUpdateView(TeacherProfileCompletedMixin, View):
+    """
+    Generic base view for updating objects (POST-only pattern).
+
+    Subclasses should define:
+    - model: Model class
+    - form_class: Form class to use
+    - success_message: Message template (use {object_name} placeholder)
+    - redirect_url_name: Named URL to redirect to after success
+    - pk_url_kwarg: URL kwarg name for object ID (default: 'pk')
+
+    Optional:
+    - get_queryset(): Customize queryset (e.g., filter by teacher)
+    - get_form_kwargs(): Customize form initialization
+    - get_object_name(): Return display name for the updated object
+    """
+    model = None
+    form_class = None
+    success_message = '{object_name} updated successfully!'
+    redirect_url_name = None
+    pk_url_kwarg = 'pk'
+
+    def get_queryset(self):
+        """Override to add additional filters (e.g., teacher=self.request.user)"""
+        return self.model.objects.all()
+
+    def get_object(self):
+        """Get the object to update"""
+        pk = self.kwargs[self.pk_url_kwarg]
+        return get_object_or_404(self.get_queryset(), pk=pk)
+
+    def get_form_kwargs(self):
+        """Override to customize form kwargs"""
+        return {}
+
+    def get_object_name(self, obj):
+        """Override to customize the object name in success message"""
+        return str(obj)
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+
+        form_kwargs = {'data': request.POST, 'instance': obj}
+        form_kwargs.update(self.get_form_kwargs())
+        form = self.form_class(**form_kwargs)
+
+        if form.is_valid():
+            try:
+                obj = form.save()
+                object_name = self.get_object_name(obj)
+                messages.success(request, self.success_message.format(object_name=object_name))
+            except Exception as e:
+                # Handle unique constraint violations gracefully
+                if 'unique constraint' in str(e).lower() or 'duplicate key' in str(e).lower():
+                    messages.error(
+                        request,
+                        'An item with this information already exists. Please use different values.'
+                    )
+                else:
+                    # Re-raise unexpected errors
+                    raise
+        else:
+            # Display form validation errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
+
+        return redirect(self.redirect_url_name)
+
+
+class PrivateTeachingDeleteView(TeacherProfileCompletedMixin, View):
+    """
+    Generic base view for deleting objects (POST-only pattern).
+
+    Subclasses should define:
+    - model: Model class
+    - success_message: Message template (use {object_name} placeholder)
+    - redirect_url_name: Named URL to redirect to after success
+    - pk_url_kwarg: URL kwarg name for object ID (default: 'pk')
+
+    Optional:
+    - get_queryset(): Customize queryset (e.g., filter by teacher)
+    - get_object_name(): Return display name for the deleted object
+    """
+    model = None
+    success_message = '{object_name} deleted successfully!'
+    redirect_url_name = None
+    pk_url_kwarg = 'pk'
+
+    def get_queryset(self):
+        """Override to add additional filters (e.g., teacher=self.request.user)"""
+        return self.model.objects.all()
+
+    def get_object(self):
+        """Get the object to delete"""
+        pk = self.kwargs[self.pk_url_kwarg]
+        return get_object_or_404(self.get_queryset(), pk=pk)
+
+    def get_object_name(self, obj):
+        """Override to customize the object name in success message"""
+        return str(obj)
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+        object_name = self.get_object_name(obj)
+        obj.delete()
+        messages.success(request, self.success_message.format(object_name=object_name))
+        return redirect(self.redirect_url_name)
+
+
 class PrivateTeachingLoginView(LoginView):
     """Custom login view that redirects to private teaching after login"""
     template_name = 'private_teaching/login.html'
@@ -819,62 +987,33 @@ class TeacherSettingsView(TeacherProfileCompletedMixin, TemplateView):
         return context
 
 
-class SubjectCreateView(TeacherProfileCompletedMixin, View):
+class SubjectCreateView(PrivateTeachingCreateView):
     """Create new subject for teacher"""
+    form_class = SubjectForm
+    redirect_url_name = 'private_teaching:teacher_settings'
 
-    def post(self, request, *args, **kwargs):
-        form = SubjectForm(request.POST, teacher=request.user)
-        if form.is_valid():
-            try:
-                form.save()
-                messages.success(request, f'Subject "{form.cleaned_data["subject"]}" created successfully!')
-            except Exception as e:
-                # Handle duplicate subject error gracefully
-                if 'unique constraint' in str(e).lower() or 'duplicate key' in str(e).lower():
-                    messages.error(
-                        request,
-                        f'You already have a subject called "{form.cleaned_data["subject"]}". '
-                        f'Please choose a different name or edit your existing subject.'
-                    )
-                else:
-                    # Re-raise unexpected errors
-                    raise
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f'{field}: {error}')
-        return redirect('private_teaching:teacher_settings')
+    def get_form_kwargs(self):
+        return {'teacher': self.request.user}
+
+    def get_object_name(self, form):
+        return f'Subject "{form.cleaned_data["subject"]}"'
 
 
-class SubjectUpdateView(TeacherProfileCompletedMixin, View):
+class SubjectUpdateView(PrivateTeachingUpdateView):
     """Update existing subject for teacher"""
+    model = Subject
+    form_class = SubjectForm
+    redirect_url_name = 'private_teaching:teacher_settings'
+    pk_url_kwarg = 'subject_id'
 
-    def get_subject(self):
-        return get_object_or_404(Subject, id=self.kwargs['subject_id'], teacher=self.request.user)
+    def get_queryset(self):
+        return Subject.objects.filter(teacher=self.request.user)
 
-    def post(self, request, *args, **kwargs):
-        subject = self.get_subject()
-        form = SubjectForm(request.POST, instance=subject, teacher=request.user)
-        if form.is_valid():
-            try:
-                form.save()
-                messages.success(request, f'Subject "{subject.subject}" updated successfully!')
-            except Exception as e:
-                # Handle duplicate subject error gracefully
-                if 'unique constraint' in str(e).lower() or 'duplicate key' in str(e).lower():
-                    messages.error(
-                        request,
-                        f'You already have another subject with this name. '
-                        f'Please choose a different name.'
-                    )
-                else:
-                    # Re-raise unexpected errors
-                    raise
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f'{field}: {error}')
-        return redirect('private_teaching:teacher_settings')
+    def get_form_kwargs(self):
+        return {'teacher': self.request.user}
+
+    def get_object_name(self, obj):
+        return f'Subject "{obj.subject}"'
 
 
 class SubjectReorderView(TeacherProfileCompletedMixin, View):
@@ -898,15 +1037,17 @@ class SubjectReorderView(TeacherProfileCompletedMixin, View):
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
-class SubjectDeleteView(TeacherProfileCompletedMixin, View):
+class SubjectDeleteView(PrivateTeachingDeleteView):
     """Delete subject for teacher"""
+    model = Subject
+    redirect_url_name = 'private_teaching:teacher_settings'
+    pk_url_kwarg = 'subject_id'
 
-    def post(self, request, *args, **kwargs):
-        subject = get_object_or_404(Subject, id=kwargs['subject_id'], teacher=request.user)
-        subject_name = subject.subject
-        subject.delete()
-        messages.success(request, f'Subject "{subject_name}" deleted successfully!')
-        return redirect('private_teaching:teacher_settings')
+    def get_queryset(self):
+        return Subject.objects.filter(teacher=self.request.user)
+
+    def get_object_name(self, obj):
+        return f'Subject "{obj.subject}"'
 
 
 class UpdateZoomLinkView(TeacherProfileCompletedMixin, View):
