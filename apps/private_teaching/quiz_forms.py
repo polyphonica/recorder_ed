@@ -318,6 +318,9 @@ class PrivateLessonQuizAssignmentForm(forms.ModelForm):
     def __init__(self, *args, teacher=None, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # Initialize student_selection choices
+        self.fields['student_selection'].choices = [('', '-- Select Student --')]
+
         if teacher:
             # Filter quizzes to teacher's own quizzes
             self.fields['quiz'].queryset = PrivateLessonQuiz.objects.filter(
@@ -335,16 +338,20 @@ class PrivateLessonQuizAssignmentForm(forms.ModelForm):
 
             for app in accepted_apps:
                 user = app.applicant
-                # Check if this is an adult student or a guardian with children
-                if hasattr(user, 'profile') and user.profile.is_student:
-                    # Adult student
-                    full_name = user.profile.full_name or user.username
-                    student_choices.append((f'user_{user.id}', full_name))
-                elif hasattr(user, 'profile') and user.profile.is_guardian:
-                    # Guardian - show their children
-                    children = user.children.all()
-                    for child in children:
-                        student_choices.append((f'child_{child.id}', child.full_name))
+                try:
+                    # Check if this is an adult student or a guardian with children
+                    if hasattr(user, 'profile') and user.profile.is_student:
+                        # Adult student
+                        full_name = user.profile.full_name or user.username
+                        student_choices.append((f'user_{user.id}', full_name))
+                    elif hasattr(user, 'profile') and user.profile.is_guardian:
+                        # Guardian - show their children
+                        children = user.children.all()
+                        for child in children:
+                            student_choices.append((f'child_{child.id}', child.full_name))
+                except Exception:
+                    # Skip users with profile issues
+                    continue
 
             self.fields['student_selection'].choices = student_choices
 
