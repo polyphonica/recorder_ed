@@ -16,21 +16,6 @@
         {% endif %}
     </div>
 
-    <!-- DEBUG INFO -->
-    {% if request.method == 'POST' %}
-        <div class="alert alert-info mb-4">
-            <div>
-                <span class="font-bold">DEBUG:</span> Form was submitted (POST request)
-                {% if form.is_valid %}
-                    <span class="text-success"> - Form is VALID</span>
-                {% else %}
-                    <span class="text-error"> - Form is INVALID</span>
-                    <br>Errors: {{ form.errors }}
-                {% endif %}
-            </div>
-        </div>
-    {% endif %}
-
     <form method="post" class="space-y-6">
         {% csrf_token %}
 
@@ -77,10 +62,6 @@
                         <label class="label"><span class="label-text-alt text-error">{{ form.student_selection.errors.0 }}</span></label>
                     {% endif %}
                     <label class="label"><span class="label-text-alt">{{ form.student_selection.help_text }}</span></label>
-                    <!-- DEBUG: Show number of choices -->
-                    {% if form.student_selection.field.choices %}
-                        <label class="label"><span class="label-text-alt text-info">{{ form.student_selection.field.choices|length }} students available</span></label>
-                    {% endif %}
                 </div>
 
                 <!-- Lesson Link (optional) -->
