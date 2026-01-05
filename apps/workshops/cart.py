@@ -76,20 +76,13 @@ class WorkshopCartManager(BaseCartManager):
         # Create new cart item
         try:
             from apps.accounts.models import ChildProfile
-            import logging
-            logger = logging.getLogger(__name__)
 
             child_profile = None
-            logger.info(f"[CART DEBUG] add_session called with child_profile_id={child_profile_id}")
-
             if child_profile_id:
                 try:
                     child_profile = ChildProfile.objects.get(id=child_profile_id, guardian=self.user)
-                    logger.info(f"[CART DEBUG] Found child_profile: {child_profile.full_name} (ID: {child_profile.id})")
                 except ChildProfile.DoesNotExist:
-                    logger.error(f"[CART DEBUG] ChildProfile {child_profile_id} not found for guardian {self.user.username}")
-            else:
-                logger.info(f"[CART DEBUG] No child_profile_id provided")
+                    pass
 
             # Prepare cart item data
             cart_item_data = {
@@ -99,8 +92,6 @@ class WorkshopCartManager(BaseCartManager):
                 'notes': notes,
                 'child_profile': child_profile,
             }
-
-            logger.info(f"[CART DEBUG] Creating cart item with child_profile={child_profile}")
 
             # Add registration data if provided (for in-person workshops)
             if registration_data:

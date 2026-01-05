@@ -21,10 +21,8 @@ class StripeWebhookView(View):
     """Handle Stripe webhook events"""
     
     def post(self, request):
-        print(f"[WEBHOOK DEBUG] POST request received", flush=True)
         payload = request.body
         sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
-        print(f"[WEBHOOK DEBUG] Signature present: {sig_header is not None}", flush=True)
 
         try:
             event = stripe.Webhook.construct_event(
@@ -39,7 +37,6 @@ class StripeWebhookView(View):
 
         # Log the event type for debugging
         logger.info(f"Stripe webhook received: {event['type']}")
-        print(f"[WEBHOOK DEBUG] Event type: {event['type']}", flush=True)
 
         # Handle the event
         if event['type'] == 'checkout.session.completed':
@@ -61,7 +58,6 @@ class StripeWebhookView(View):
         else:
             # Log unhandled event types
             logger.info(f"Unhandled webhook event type: {event['type']}")
-            print(f"[WEBHOOK DEBUG] Unhandled event: {event['type']}", flush=True)
 
         return HttpResponse(status=200)
     
@@ -137,11 +133,6 @@ class StripeWebhookView(View):
     def handle_refund(self, charge):
         """Handle refund event from Stripe"""
         payment_intent_id = charge.get('payment_intent')
-
-        print(f"[WEBHOOK DEBUG] handle_refund called, payment_intent={payment_intent_id}", flush=True)
-        print(f"[WEBHOOK DEBUG] charge keys: {list(charge.keys())}", flush=True)
-        print(f"[WEBHOOK DEBUG] amount_refunded: {charge.get('amount_refunded')}", flush=True)
-        print(f"[WEBHOOK DEBUG] refunded: {charge.get('refunded')}", flush=True)
 
         logger.info(f"Stripe refund webhook: payment_intent={payment_intent_id}")
 
@@ -413,7 +404,6 @@ class StripeWebhookView(View):
                     logger.info(f"  Found cart item: {cart_item.session.workshop.title}")
                     logger.info(f"  Session: {cart_item.session.start_datetime}")
                     logger.info(f"  Price: £{cart_item.price}")
-                    logger.info(f"  [WEBHOOK DEBUG] Cart item child_profile: {cart_item.child_profile}")
 
                     # Create registration with data from cart item
                     registration = WorkshopRegistration.objects.create(
