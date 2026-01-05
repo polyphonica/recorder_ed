@@ -3935,6 +3935,18 @@ class QuizAssignView(TeacherProfileCompletedMixin, CreateView):
             initial['quiz'] = quiz
         return initial
 
+    def get_form(self, form_class=None):
+        """Set quiz on instance before validation if in URL"""
+        form = super().get_form(form_class)
+        quiz_id = self.kwargs.get('quiz_id')
+        if quiz_id:
+            form.instance.quiz = get_object_or_404(
+                PrivateLessonQuiz,
+                pk=quiz_id,
+                created_by=self.request.user
+            )
+        return form
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         quiz_id = self.kwargs.get('quiz_id')

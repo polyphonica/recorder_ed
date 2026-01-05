@@ -321,6 +321,9 @@ class PrivateLessonQuizAssignmentForm(forms.ModelForm):
         # Initialize student_selection choices
         self.fields['student_selection'].choices = [('', '-- Select Student --')]
 
+        # Make quiz optional - it will be set by the view if quiz_id is in URL
+        self.fields['quiz'].required = False
+
         if teacher:
             # Filter quizzes to teacher's own quizzes
             self.fields['quiz'].queryset = PrivateLessonQuiz.objects.filter(
