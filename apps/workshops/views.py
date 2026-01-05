@@ -1487,7 +1487,7 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
         
         queryset = WorkshopRegistration.objects.filter(
             session=self.session
-        ).select_related('student').order_by('registration_date')
+        ).select_related('student', 'child_profile').order_by('registration_date')
         
         # Filter by status if requested
         status_filter = self.request.GET.get('status')
