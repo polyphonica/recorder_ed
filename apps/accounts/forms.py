@@ -207,8 +207,6 @@ class CustomUserCreationForm(UserCreationForm):
                 self.add_error('address_line_1', "Address is required for parent/guardian accounts.")
             if not city:
                 self.add_error('city', "City is required for parent/guardian accounts.")
-            if not state_province:
-                self.add_error('state_province', "State/Province is required for parent/guardian accounts.")
             if not postal_code:
                 self.add_error('postal_code', "Postal code is required for parent/guardian accounts.")
             if not country:
