@@ -13,11 +13,21 @@ from django.core.mail import send_mail
 from django.conf import settings
 
 from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, UserFilterMixin
-from .models import LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem, TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard, LessonCancellationRequest, PracticeEntry
+from .models import (
+    LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem,
+    TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard,
+    LessonCancellationRequest, PracticeEntry,
+    PrivateLessonQuiz, PrivateLessonQuizQuestion, PrivateLessonQuizAnswer,
+    PrivateLessonQuizAssignment, PrivateLessonQuizAttempt
+)
 from .notifications import TeacherNotificationService, StudentNotificationService
 from .availability_engine import check_slot_availability
 from lessons.models import Lesson, Document, LessonAttachedUrl, LessonAssignment
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, ExamRegistrationForm, ExamPieceFormSet, ExamResultsForm, PracticeEntryForm, RescheduleForm
+from .quiz_forms import (
+    PrivateLessonQuizForm, PrivateLessonQuizQuestionForm, PrivateLessonQuizAnswerFormSet,
+    PrivateLessonQuizAssignmentForm
+)
 from .cart import CartManager
 from .mixins import (
     StudentProfileCompletedMixin,
@@ -3512,3 +3522,707 @@ class TeacherRespondToCancellationView(TeacherProfileCompletedMixin, View):
             messages.error(request, 'Invalid action.')
 
         return redirect('private_teaching:teacher_cancellation_requests')
+
+
+# ============================================================================
+# QUIZ SYSTEM VIEWS
+# ============================================================================
+
+# -----------------------------
+# Teacher: Quiz Library & Management
+# -----------------------------
+
+class QuizLibraryView(TeacherProfileCompletedMixin, ListView):
+    """
+    Teacher's quiz library - browse, search, and filter quizzes.
+    Shows teacher's own quizzes plus public quizzes from other teachers.
+    """
+    model = PrivateLessonQuiz
+    template_name = 'private_teaching/quiz/quiz_library.html'
+    context_object_name = 'quizzes'
+    paginate_by = 20
+
+    def get_queryset(self):
+        """Get teacher's quizzes + public quizzes, with search/filters"""
+        queryset = PrivateLessonQuiz.objects.filter(
+            Q(created_by=self.request.user) | Q(is_public=True)
+        ).select_related('created_by', 'subject').prefetch_related('tags')
+
+        # Search
+        search_query = self.request.GET.get('q')
+        if search_query:
+            queryset = queryset.filter(
+                Q(title__icontains=search_query) |
+                Q(description__icontains=search_query) |
+                Q(tags__name__icontains=search_query)
+            ).distinct()
+
+        # Filter by subject
+        subject_id = self.request.GET.get('subject')
+        if subject_id:
+            queryset = queryset.filter(subject_id=subject_id)
+
+        # Filter by syllabus
+        syllabus = self.request.GET.get('syllabus')
+        if syllabus:
+            queryset = queryset.filter(syllabus=syllabus)
+
+        # Filter by grade level
+        grade = self.request.GET.get('grade')
+        if grade:
+            queryset = queryset.filter(grade_level__icontains=grade)
+
+        # Filter by ownership
+        ownership = self.request.GET.get('ownership')
+        if ownership == 'mine':
+            queryset = queryset.filter(created_by=self.request.user)
+        elif ownership == 'public':
+            queryset = queryset.filter(is_public=True).exclude(created_by=self.request.user)
+
+        return queryset.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['subjects'] = Subject.objects.filter(
+            teacher=self.request.user, is_active=True
+        )
+        context['search_query'] = self.request.GET.get('q', '')
+        context['selected_subject'] = self.request.GET.get('subject', '')
+        context['selected_syllabus'] = self.request.GET.get('syllabus', '')
+        context['selected_grade'] = self.request.GET.get('grade', '')
+        context['selected_ownership'] = self.request.GET.get('ownership', '')
+        return context
+
+
+class QuizCreateView(TeacherProfileCompletedMixin, CreateView):
+    """Create new quiz"""
+    model = PrivateLessonQuiz
+    form_class = PrivateLessonQuizForm
+    template_name = 'private_teaching/quiz/quiz_form.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['teacher'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        messages.success(self.request, f'Quiz "{form.instance.title}" created successfully!')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('private_teaching:quiz_detail', kwargs={'pk': self.object.pk})
+
+
+class QuizDetailView(TeacherProfileCompletedMixin, TemplateView):
+    """View quiz details with questions and statistics"""
+    template_name = 'private_teaching/quiz/quiz_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        quiz = get_object_or_404(
+            PrivateLessonQuiz,
+            pk=kwargs['pk']
+        )
+
+        # Check permissions - must be creator or quiz must be public
+        if quiz.created_by != self.request.user and not quiz.is_public:
+            messages.error(self.request, 'You do not have permission to view this quiz.')
+            return redirect('private_teaching:quiz_library')
+
+        context['quiz'] = quiz
+        context['questions'] = quiz.questions.prefetch_related('answers').order_by('order')
+        context['is_owner'] = quiz.created_by == self.request.user
+
+        # Get assignment statistics if owner
+        if context['is_owner']:
+            assignments = quiz.assignments.select_related('student').all()
+            context['total_assignments'] = assignments.count()
+            context['completed_assignments'] = assignments.filter(status='completed').count()
+            context['recent_assignments'] = assignments.order_by('-assigned_date')[:5]
+
+        return context
+
+
+class QuizEditView(TeacherProfileCompletedMixin, UpdateView):
+    """Edit existing quiz"""
+    model = PrivateLessonQuiz
+    form_class = PrivateLessonQuizForm
+    template_name = 'private_teaching/quiz/quiz_form.html'
+
+    def get_queryset(self):
+        """Only allow editing own quizzes"""
+        return PrivateLessonQuiz.objects.filter(created_by=self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['teacher'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        messages.success(self.request, f'Quiz "{form.instance.title}" updated successfully!')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('private_teaching:quiz_detail', kwargs={'pk': self.object.pk})
+
+
+class QuizDeleteView(TeacherProfileCompletedMixin, DeleteView):
+    """Delete quiz (with confirmation)"""
+    model = PrivateLessonQuiz
+    template_name = 'private_teaching/quiz/quiz_confirm_delete.html'
+    success_url = reverse_lazy('private_teaching:quiz_library')
+
+    def get_queryset(self):
+        """Only allow deleting own quizzes"""
+        return PrivateLessonQuiz.objects.filter(created_by=self.request.user)
+
+    def delete(self, request, *args, **kwargs):
+        quiz = self.get_object()
+        messages.success(request, f'Quiz "{quiz.title}" deleted successfully.')
+        return super().delete(request, *args, **kwargs)
+
+
+class QuizDuplicateView(TeacherProfileCompletedMixin, View):
+    """Duplicate an existing quiz with all questions and answers"""
+
+    def post(self, request, *args, **kwargs):
+        original_quiz = get_object_or_404(
+            PrivateLessonQuiz,
+            pk=kwargs['pk']
+        )
+
+        # Check permissions - must be creator or quiz must be public
+        if original_quiz.created_by != request.user and not original_quiz.is_public:
+            messages.error(request, 'You do not have permission to duplicate this quiz.')
+            return redirect('private_teaching:quiz_library')
+
+        try:
+            with transaction.atomic():
+                # Duplicate quiz
+                new_quiz = PrivateLessonQuiz.objects.create(
+                    title=f"{original_quiz.title} (Copy)",
+                    description=original_quiz.description,
+                    instructions=original_quiz.instructions,
+                    created_by=request.user,
+                    pass_percentage=original_quiz.pass_percentage,
+                    time_limit_minutes=original_quiz.time_limit_minutes,
+                    randomize_questions=original_quiz.randomize_questions,
+                    show_correct_answers=original_quiz.show_correct_answers,
+                    allow_retakes=original_quiz.allow_retakes,
+                    max_attempts=original_quiz.max_attempts,
+                    subject=original_quiz.subject,
+                    syllabus=original_quiz.syllabus,
+                    grade_level=original_quiz.grade_level,
+                    is_public=False  # Copies are always private initially
+                )
+
+                # Copy tags
+                new_quiz.tags.set(original_quiz.tags.all())
+
+                # Duplicate questions and answers
+                for question in original_quiz.questions.all():
+                    new_question = PrivateLessonQuizQuestion.objects.create(
+                        quiz=new_quiz,
+                        text=question.text,
+                        order=question.order,
+                        points=question.points,
+                        explanation=question.explanation
+                    )
+
+                    # Duplicate answers
+                    for answer in question.answers.all():
+                        PrivateLessonQuizAnswer.objects.create(
+                            question=new_question,
+                            text=answer.text,
+                            is_correct=answer.is_correct,
+                            order=answer.order
+                        )
+
+            messages.success(request, f'Quiz duplicated successfully as "{new_quiz.title}"')
+            return redirect('private_teaching:quiz_detail', pk=new_quiz.pk)
+
+        except Exception as e:
+            messages.error(request, f'Error duplicating quiz: {str(e)}')
+            return redirect('private_teaching:quiz_library')
+
+
+# -----------------------------
+# Teacher: Question Management
+# -----------------------------
+
+class QuestionCreateView(TeacherProfileCompletedMixin, TemplateView):
+    """Create question with inline answer formset"""
+    template_name = 'private_teaching/quiz/question_form.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        quiz = get_object_or_404(
+            PrivateLessonQuiz,
+            pk=kwargs['quiz_id'],
+            created_by=self.request.user
+        )
+        context['quiz'] = quiz
+        context['form'] = PrivateLessonQuizQuestionForm()
+        context['formset'] = PrivateLessonQuizAnswerFormSet()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        quiz = get_object_or_404(
+            PrivateLessonQuiz,
+            pk=kwargs['quiz_id'],
+            created_by=request.user
+        )
+
+        form = PrivateLessonQuizQuestionForm(request.POST)
+
+        # Create temporary question instance for formset
+        if form.is_valid():
+            question = form.save(commit=False)
+            question.quiz = quiz
+
+            formset = PrivateLessonQuizAnswerFormSet(request.POST, instance=question)
+
+            if formset.is_valid():
+                # Check at least one correct answer
+                correct_answers = sum(1 for form in formset if form.cleaned_data.get('is_correct', False) and not form.cleaned_data.get('DELETE', False))
+
+                if correct_answers == 0:
+                    messages.error(request, 'At least one answer must be marked as correct.')
+                    return render(request, self.template_name, {
+                        'quiz': quiz,
+                        'form': form,
+                        'formset': formset
+                    })
+
+                with transaction.atomic():
+                    question.save()
+                    formset.instance = question
+                    formset.save()
+
+                messages.success(request, 'Question added successfully!')
+                return redirect('private_teaching:quiz_detail', pk=quiz.pk)
+        else:
+            formset = PrivateLessonQuizAnswerFormSet(request.POST)
+
+        return render(request, self.template_name, {
+            'quiz': quiz,
+            'form': form,
+            'formset': formset
+        })
+
+
+class QuestionEditView(TeacherProfileCompletedMixin, TemplateView):
+    """Edit question with inline answer formset"""
+    template_name = 'private_teaching/quiz/question_form.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        question = get_object_or_404(
+            PrivateLessonQuizQuestion,
+            pk=kwargs['pk'],
+            quiz__created_by=self.request.user
+        )
+        context['quiz'] = question.quiz
+        context['question'] = question
+        context['form'] = PrivateLessonQuizQuestionForm(instance=question)
+        context['formset'] = PrivateLessonQuizAnswerFormSet(instance=question)
+        return context
+
+    def post(self, request, *args, **kwargs):
+        question = get_object_or_404(
+            PrivateLessonQuizQuestion,
+            pk=kwargs['pk'],
+            quiz__created_by=request.user
+        )
+
+        form = PrivateLessonQuizQuestionForm(request.POST, instance=question)
+        formset = PrivateLessonQuizAnswerFormSet(request.POST, instance=question)
+
+        if form.is_valid() and formset.is_valid():
+            # Check at least one correct answer (excluding deleted forms)
+            correct_answers = sum(
+                1 for f in formset
+                if f.cleaned_data.get('is_correct', False) and not f.cleaned_data.get('DELETE', False)
+            )
+
+            if correct_answers == 0:
+                messages.error(request, 'At least one answer must be marked as correct.')
+                return render(request, self.template_name, {
+                    'quiz': question.quiz,
+                    'question': question,
+                    'form': form,
+                    'formset': formset
+                })
+
+            with transaction.atomic():
+                form.save()
+                formset.save()
+
+            messages.success(request, 'Question updated successfully!')
+            return redirect('private_teaching:quiz_detail', pk=question.quiz.pk)
+
+        return render(request, self.template_name, {
+            'quiz': question.quiz,
+            'question': question,
+            'form': form,
+            'formset': formset
+        })
+
+
+class QuestionDeleteView(TeacherProfileCompletedMixin, DeleteView):
+    """Delete question"""
+    model = PrivateLessonQuizQuestion
+
+    def get_queryset(self):
+        """Only allow deleting questions from own quizzes"""
+        return PrivateLessonQuizQuestion.objects.filter(quiz__created_by=self.request.user)
+
+    def delete(self, request, *args, **kwargs):
+        question = self.get_object()
+        quiz = question.quiz
+        question.delete()
+        messages.success(request, 'Question deleted successfully.')
+        return redirect('private_teaching:quiz_detail', pk=quiz.pk)
+
+
+# -----------------------------
+# Teacher: Quiz Assignments
+# -----------------------------
+
+class QuizAssignView(TeacherProfileCompletedMixin, CreateView):
+    """Assign quiz to student(s)"""
+    model = PrivateLessonQuizAssignment
+    form_class = PrivateLessonQuizAssignmentForm
+    template_name = 'private_teaching/quiz/quiz_assign.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['teacher'] = self.request.user
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        quiz_id = self.kwargs.get('quiz_id')
+        if quiz_id:
+            context['quiz'] = get_object_or_404(
+                PrivateLessonQuiz,
+                pk=quiz_id,
+                created_by=self.request.user
+            )
+        return context
+
+    def form_valid(self, form):
+        form.instance.teacher = self.request.user
+
+        # If quiz_id in URL, set it
+        quiz_id = self.kwargs.get('quiz_id')
+        if quiz_id:
+            form.instance.quiz = get_object_or_404(
+                PrivateLessonQuiz,
+                pk=quiz_id,
+                created_by=self.request.user
+            )
+
+        messages.success(
+            self.request,
+            f'Quiz assigned to {form.instance.student.get_full_name() or form.instance.student.username} successfully!'
+        )
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('private_teaching:quiz_assignment_list')
+
+
+class QuizAssignmentListView(TeacherProfileCompletedMixin, ListView):
+    """Teacher's list of all quiz assignments"""
+    model = PrivateLessonQuizAssignment
+    template_name = 'private_teaching/quiz/quiz_assignment_list.html'
+    context_object_name = 'assignments'
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = PrivateLessonQuizAssignment.objects.filter(
+            teacher=self.request.user
+        ).select_related(
+            'quiz', 'student', 'child_profile', 'lesson'
+        ).prefetch_related('attempts')
+
+        # Filter by status
+        status = self.request.GET.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+
+        # Filter by student
+        student_id = self.request.GET.get('student')
+        if student_id:
+            queryset = queryset.filter(student_id=student_id)
+
+        # Filter by quiz
+        quiz_id = self.request.GET.get('quiz')
+        if quiz_id:
+            queryset = queryset.filter(quiz_id=quiz_id)
+
+        return queryset.order_by('-assigned_date')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get accepted students for filter
+        accepted_apps = TeacherStudentApplication.objects.filter(
+            teacher=self.request.user,
+            status='accepted'
+        ).values_list('applicant_id', flat=True)
+
+        context['students'] = User.objects.filter(id__in=accepted_apps).order_by('first_name', 'last_name')
+        context['quizzes'] = PrivateLessonQuiz.objects.filter(created_by=self.request.user).order_by('-created_at')
+        context['selected_status'] = self.request.GET.get('status', '')
+        context['selected_student'] = self.request.GET.get('student', '')
+        context['selected_quiz'] = self.request.GET.get('quiz', '')
+
+        return context
+
+
+class QuizAssignmentDetailView(TeacherProfileCompletedMixin, TemplateView):
+    """View assignment details with all attempts"""
+    template_name = 'private_teaching/quiz/quiz_assignment_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        assignment = get_object_or_404(
+            PrivateLessonQuizAssignment,
+            pk=kwargs['pk'],
+            teacher=self.request.user
+        )
+
+        context['assignment'] = assignment
+        context['attempts'] = assignment.attempts.order_by('-started_at')
+
+        # Calculate statistics
+        if context['attempts']:
+            scores = [attempt.score for attempt in context['attempts'] if attempt.submitted_at]
+            if scores:
+                context['best_score'] = max(scores)
+                context['average_score'] = sum(scores) / len(scores)
+                context['passed_attempts'] = sum(1 for attempt in context['attempts'] if attempt.passed)
+
+        return context
+
+
+class QuizAssignmentDeleteView(TeacherProfileCompletedMixin, DeleteView):
+    """Delete assignment"""
+    model = PrivateLessonQuizAssignment
+    template_name = 'private_teaching/quiz/quiz_assignment_confirm_delete.html'
+    success_url = reverse_lazy('private_teaching:quiz_assignment_list')
+
+    def get_queryset(self):
+        """Only allow deleting own assignments"""
+        return PrivateLessonQuizAssignment.objects.filter(teacher=self.request.user)
+
+    def delete(self, request, *args, **kwargs):
+        assignment = self.get_object()
+        messages.success(request, f'Assignment deleted successfully.')
+        return super().delete(request, *args, **kwargs)
+
+
+# -----------------------------
+# Student: Quiz Taking
+# -----------------------------
+
+class StudentQuizListView(AcceptedStudentRequiredMixin, ListView):
+    """Student's assigned quizzes"""
+    model = PrivateLessonQuizAssignment
+    template_name = 'private_teaching/quiz/student_quiz_list.html'
+    context_object_name = 'assignments'
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = PrivateLessonQuizAssignment.objects.filter(
+            student=self.request.user
+        ).select_related(
+            'quiz', 'teacher', 'child_profile', 'lesson'
+        ).prefetch_related('attempts')
+
+        # Filter by status
+        status = self.request.GET.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+
+        # Filter by child profile if guardian
+        child_id = self.request.GET.get('child')
+        if child_id:
+            queryset = queryset.filter(child_profile_id=child_id)
+
+        return queryset.order_by('-assigned_date')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get child profiles if guardian
+        from apps.accounts.models import ChildProfile
+        context['child_profiles'] = ChildProfile.objects.filter(guardian=self.request.user)
+        context['selected_status'] = self.request.GET.get('status', '')
+        context['selected_child'] = self.request.GET.get('child', '')
+
+        return context
+
+
+class QuizTakeView(AcceptedStudentRequiredMixin, TemplateView):
+    """Take quiz - show questions and collect answers"""
+    template_name = 'private_teaching/quiz/quiz_take.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        assignment = get_object_or_404(
+            PrivateLessonQuizAssignment,
+            pk=kwargs['assignment_id'],
+            student=self.request.user
+        )
+
+        # Check if already reached max attempts
+        if assignment.quiz.max_attempts:
+            attempt_count = assignment.attempts.count()
+            if attempt_count >= assignment.quiz.max_attempts:
+                messages.error(self.request, 'You have reached the maximum number of attempts for this quiz.')
+                return redirect('private_teaching:student_quiz_list')
+
+        # Check if quiz has questions
+        if not assignment.quiz.questions.exists():
+            messages.error(self.request, 'This quiz has no questions yet. Please contact your teacher.')
+            return redirect('private_teaching:student_quiz_list')
+
+        context['assignment'] = assignment
+        context['quiz'] = assignment.quiz
+
+        # Get questions (randomized if enabled)
+        questions = assignment.quiz.get_questions(randomize=assignment.quiz.randomize_questions)
+        context['questions'] = questions
+
+        # Create new attempt
+        attempt = PrivateLessonQuizAttempt.objects.create(
+            assignment=assignment
+        )
+        context['attempt'] = attempt
+
+        # Update assignment status
+        if assignment.status == 'assigned':
+            assignment.status = 'in_progress'
+            assignment.save()
+
+        return context
+
+
+class QuizSubmitView(AcceptedStudentRequiredMixin, View):
+    """Submit quiz answers (AJAX endpoint)"""
+
+    def post(self, request, *args, **kwargs):
+        assignment = get_object_or_404(
+            PrivateLessonQuizAssignment,
+            pk=kwargs['assignment_id'],
+            student=request.user
+        )
+
+        # Get attempt ID from POST data
+        attempt_id = request.POST.get('attempt_id')
+        if not attempt_id:
+            return JsonResponse({'success': False, 'error': 'No attempt ID provided'}, status=400)
+
+        attempt = get_object_or_404(
+            PrivateLessonQuizAttempt,
+            pk=attempt_id,
+            assignment=assignment
+        )
+
+        # Check if already submitted
+        if attempt.submitted_at:
+            return JsonResponse({'success': False, 'error': 'Quiz already submitted'}, status=400)
+
+        try:
+            with transaction.atomic():
+                # Collect answers from POST data
+                answers_data = {}
+                for key, value in request.POST.items():
+                    if key.startswith('question_'):
+                        question_id = key.replace('question_', '')
+                        answers_data[question_id] = value
+
+                # Save answers
+                attempt.answers_data = answers_data
+                attempt.submitted_at = timezone.now()
+
+                # Calculate time taken
+                time_taken = (attempt.submitted_at - attempt.started_at).total_seconds() / 60
+                attempt.time_taken_minutes = int(time_taken)
+
+                # Grade the attempt
+                attempt.calculate_score()
+                attempt.grade()
+                attempt.save()
+
+                # Update assignment status
+                assignment.status = 'completed'
+                assignment.save()
+
+                return JsonResponse({
+                    'success': True,
+                    'score': float(attempt.score),
+                    'passed': attempt.passed,
+                    'redirect_url': reverse('private_teaching:quiz_attempt_results', kwargs={'pk': attempt.pk})
+                })
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+class QuizAttemptResultsView(AcceptedStudentRequiredMixin, TemplateView):
+    """View quiz results after submission"""
+    template_name = 'private_teaching/quiz/quiz_results.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        attempt = get_object_or_404(
+            PrivateLessonQuizAttempt,
+            pk=kwargs['pk'],
+            assignment__student=self.request.user
+        )
+
+        context['attempt'] = attempt
+        context['assignment'] = attempt.assignment
+        context['quiz'] = attempt.assignment.quiz
+
+        # Get questions with student's answers
+        questions_data = []
+        for question in attempt.assignment.quiz.questions.order_by('order'):
+            question_id_str = str(question.id)
+            student_answer_id = attempt.answers_data.get(question_id_str)
+
+            question_info = {
+                'question': question,
+                'student_answer_id': student_answer_id,
+                'answers': question.answers.order_by('order'),
+                'correct_answer': question.answers.filter(is_correct=True).first(),
+                'is_correct': False
+            }
+
+            # Check if answer is correct
+            if student_answer_id:
+                correct_answer = question.answers.filter(is_correct=True).first()
+                if correct_answer and str(correct_answer.id) == student_answer_id:
+                    question_info['is_correct'] = True
+
+            questions_data.append(question_info)
+
+        context['questions_data'] = questions_data
+
+        # Check if can retake
+        context['can_retake'] = False
+        if attempt.assignment.quiz.allow_retakes:
+            if attempt.assignment.quiz.max_attempts:
+                attempt_count = attempt.assignment.attempts.count()
+                context['can_retake'] = attempt_count < attempt.assignment.quiz.max_attempts
+            else:
+                context['can_retake'] = True
+
+        return context
