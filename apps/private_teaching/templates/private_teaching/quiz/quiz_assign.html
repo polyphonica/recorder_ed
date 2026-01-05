@@ -16,6 +16,21 @@
         {% endif %}
     </div>
 
+    <!-- DEBUG INFO -->
+    {% if request.method == 'POST' %}
+        <div class="alert alert-info mb-4">
+            <div>
+                <span class="font-bold">DEBUG:</span> Form was submitted (POST request)
+                {% if form.is_valid %}
+                    <span class="text-success"> - Form is VALID</span>
+                {% else %}
+                    <span class="text-error"> - Form is INVALID</span>
+                    <br>Errors: {{ form.errors }}
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
     <form method="post" class="space-y-6">
         {% csrf_token %}
 
