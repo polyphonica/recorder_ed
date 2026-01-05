@@ -105,9 +105,9 @@
                         <div class="formset-row card bg-base-200 p-4">
                             {% if form.instance.pk %}{{ form.id }}{% endif %}
 
-                            <div class="grid grid-cols-12 gap-3 items-start">
-                                <!-- Answer Text (10 cols) -->
-                                <div class="col-span-10 form-control">
+                            <div class="flex gap-4 items-start">
+                                <!-- Answer Text (takes all available space) -->
+                                <div class="flex-1 form-control">
                                     <label class="label">
                                         <span class="label-text font-semibold">Answer {{ forloop.counter }}</span>
                                     </label>
@@ -117,8 +117,8 @@
                                     {% endif %}
                                 </div>
 
-                                <!-- Is Correct (1 col) -->
-                                <div class="col-span-1 form-control">
+                                <!-- Is Correct -->
+                                <div class="form-control">
                                     <label class="label">
                                         <span class="label-text font-semibold">Correct?</span>
                                     </label>
@@ -127,8 +127,8 @@
                                     </div>
                                 </div>
 
-                                <!-- Delete (1 col) -->
-                                <div class="col-span-1 form-control">
+                                <!-- Delete -->
+                                <div class="form-control">
                                     <label class="label">
                                         <span class="label-text font-semibold">Delete</span>
                                     </label>
