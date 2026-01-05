@@ -106,8 +106,8 @@
                             {% if form.instance.pk %}{{ form.id }}{% endif %}
 
                             <div class="grid grid-cols-12 gap-3 items-start">
-                                <!-- Answer Text (8 cols) -->
-                                <div class="col-span-7 form-control">
+                                <!-- Answer Text (9 cols) -->
+                                <div class="col-span-9 form-control">
                                     <label class="label">
                                         <span class="label-text font-semibold">Answer {{ forloop.counter }}</span>
                                     </label>
@@ -115,14 +115,6 @@
                                     {% if form.text.errors %}
                                         <label class="label"><span class="label-text-alt text-error">{{ form.text.errors.0 }}</span></label>
                                     {% endif %}
-                                </div>
-
-                                <!-- Order (2 cols) -->
-                                <div class="col-span-2 form-control">
-                                    <label class="label">
-                                        <span class="label-text font-semibold">Order</span>
-                                    </label>
-                                    {{ form.order }}
                                 </div>
 
                                 <!-- Is Correct (2 cols) -->
@@ -143,6 +135,11 @@
                                     <div class="flex items-center justify-center h-12">
                                         {{ form.DELETE }}
                                     </div>
+                                </div>
+
+                                <!-- Order (hidden) -->
+                                <div class="hidden">
+                                    {{ form.order }}
                                 </div>
                             </div>
                         </div>
