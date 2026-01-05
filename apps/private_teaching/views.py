@@ -3922,6 +3922,19 @@ class QuizAssignView(TeacherProfileCompletedMixin, CreateView):
         kwargs['teacher'] = self.request.user
         return kwargs
 
+    def get_initial(self):
+        """Set quiz from URL if provided"""
+        initial = super().get_initial()
+        quiz_id = self.kwargs.get('quiz_id')
+        if quiz_id:
+            quiz = get_object_or_404(
+                PrivateLessonQuiz,
+                pk=quiz_id,
+                created_by=self.request.user
+            )
+            initial['quiz'] = quiz
+        return initial
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         quiz_id = self.kwargs.get('quiz_id')
