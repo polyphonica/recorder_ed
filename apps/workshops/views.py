@@ -1997,10 +1997,13 @@ class EditSessionMaterialView(SuccessMessageMixin, InstructorRequiredMixin, Upda
     form_class = WorkshopMaterialForm
     template_name = 'workshops/edit_material.html'
     pk_url_kwarg = 'material_id'
+    context_object_name = 'material'
     success_message = 'Material "{title}" has been updated successfully!'
 
     def get_queryset(self):
-        return WorkshopMaterial.objects.filter(
+        return WorkshopMaterial.objects.select_related(
+            'session', 'session__workshop'
+        ).filter(
             session__workshop__instructor=self.request.user
         )
 
