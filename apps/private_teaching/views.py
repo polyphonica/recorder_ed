@@ -3945,9 +3945,15 @@ class QuizAssignView(TeacherProfileCompletedMixin, CreateView):
                 created_by=self.request.user
             )
 
+        # Get correct student name (child or adult)
+        student_name = (
+            form.instance.child_profile.full_name if form.instance.child_profile
+            else (form.instance.student.get_full_name() or form.instance.student.username)
+        )
+
         messages.success(
             self.request,
-            f'Quiz assigned to {form.instance.student.get_full_name() or form.instance.student.username} successfully!'
+            f'Quiz assigned to {student_name} successfully!'
         )
         return super().form_valid(form)
 

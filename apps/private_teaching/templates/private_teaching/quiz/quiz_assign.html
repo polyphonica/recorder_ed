@@ -38,28 +38,16 @@
                     </div>
                 {% endif %}
 
-                <!-- Student Selection -->
+                <!-- Student Selection (Adult or Child) -->
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text font-semibold">Student <span class="text-error">*</span></span>
                     </label>
-                    {{ form.student }}
-                    {% if form.student.errors %}
-                        <label class="label"><span class="label-text-alt text-error">{{ form.student.errors.0 }}</span></label>
+                    {{ form.student_selection }}
+                    {% if form.student_selection.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.student_selection.errors.0 }}</span></label>
                     {% endif %}
-                    <label class="label"><span class="label-text-alt">{{ form.student.help_text }}</span></label>
-                </div>
-
-                <!-- Child Profile (if applicable) -->
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text font-semibold">Child Profile</span>
-                    </label>
-                    {{ form.child_profile }}
-                    {% if form.child_profile.errors %}
-                        <label class="label"><span class="label-text-alt text-error">{{ form.child_profile.errors.0 }}</span></label>
-                    {% endif %}
-                    <label class="label"><span class="label-text-alt">{{ form.child_profile.help_text }}</span></label>
+                    <label class="label"><span class="label-text-alt">{{ form.student_selection.help_text }}</span></label>
                 </div>
 
                 <!-- Lesson Link (optional) -->
@@ -113,34 +101,4 @@
     </form>
 </div>
 </div>
-
-<script>
-// Dynamic child profile filtering based on selected student
-document.addEventListener('DOMContentLoaded', function() {
-    const studentSelect = document.getElementById('id_student');
-    const childProfileSelect = document.getElementById('id_child_profile');
-
-    if (studentSelect && childProfileSelect) {
-        studentSelect.addEventListener('change', function() {
-            const studentId = this.value;
-
-            if (studentId) {
-                // Filter child profiles via AJAX
-                fetch(`/api/child-profiles/?guardian=${studentId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        childProfileSelect.innerHTML = '<option value="">-- Adult Student (No Child) --</option>';
-                        data.forEach(profile => {
-                            const option = document.createElement('option');
-                            option.value = profile.id;
-                            option.textContent = profile.full_name;
-                            childProfileSelect.appendChild(option);
-                        });
-                    })
-                    .catch(error => console.error('Error loading child profiles:', error));
-            }
-        });
-    }
-});
-</script>
 {% endblock %}

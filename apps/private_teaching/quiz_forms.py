@@ -12,6 +12,7 @@ from .models import (
     PrivateLessonQuizAssignment,
 )
 from apps.lesson_templates.models import Tag
+from apps.accounts.models import ChildProfile
 
 User = get_user_model()
 
@@ -274,23 +275,25 @@ PrivateLessonQuizAnswerFormSet = forms.inlineformset_factory(
 class PrivateLessonQuizAssignmentForm(forms.ModelForm):
     """
     Form for assigning quiz to student(s).
-    Teacher selects quiz, student, optional child profile, and due date.
+    Teacher selects quiz, student (adult or child), and due date.
     """
+
+    # Custom field for combined student selection
+    student_selection = forms.ChoiceField(
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'select select-bordered w-full',
+            'id': 'id_student_selection'
+        }),
+        help_text='Select the student to assign this quiz to'
+    )
 
     class Meta:
         model = PrivateLessonQuizAssignment
-        fields = ['quiz', 'student', 'child_profile', 'lesson', 'due_date', 'notes']
+        fields = ['quiz', 'lesson', 'due_date', 'notes']
         widgets = {
             'quiz': forms.Select(attrs={
                 'class': 'select select-bordered w-full'
-            }),
-            'student': forms.Select(attrs={
-                'class': 'select select-bordered w-full',
-                'id': 'id_student'
-            }),
-            'child_profile': forms.Select(attrs={
-                'class': 'select select-bordered w-full',
-                'id': 'id_child_profile'
             }),
             'lesson': forms.Select(attrs={
                 'class': 'select select-bordered w-full'
@@ -307,8 +310,6 @@ class PrivateLessonQuizAssignmentForm(forms.ModelForm):
         }
         help_texts = {
             'quiz': 'Select which quiz to assign',
-            'student': 'Select the student (or guardian if child)',
-            'child_profile': 'If student is a guardian, select which child',
             'lesson': 'Optionally link to a specific lesson',
             'due_date': 'Optional deadline for completion',
             'notes': 'Additional information or context for the student',
@@ -323,16 +324,29 @@ class PrivateLessonQuizAssignmentForm(forms.ModelForm):
                 created_by=teacher
             ).order_by('-created_at')
 
-            # Filter students to teacher's accepted students
+            # Build combined student choices (adult students + child profiles)
             from .models import TeacherStudentApplication
             accepted_apps = TeacherStudentApplication.objects.filter(
                 teacher=teacher,
                 status='accepted'
-            ).values_list('applicant_id', flat=True)
+            ).select_related('applicant__profile')
 
-            self.fields['student'].queryset = User.objects.filter(
-                id__in=accepted_apps
-            ).order_by('first_name', 'last_name', 'username')
+            student_choices = [('', '-- Select Student --')]
+
+            for app in accepted_apps:
+                user = app.applicant
+                # Check if this is an adult student or a guardian with children
+                if hasattr(user, 'profile') and user.profile.is_student:
+                    # Adult student
+                    full_name = user.profile.full_name or user.username
+                    student_choices.append((f'user_{user.id}', full_name))
+                elif hasattr(user, 'profile') and user.profile.is_guardian:
+                    # Guardian - show their children
+                    children = user.children.all()
+                    for child in children:
+                        student_choices.append((f'child_{child.id}', child.full_name))
+
+            self.fields['student_selection'].choices = student_choices
 
             # Filter lessons to teacher's lessons
             from lessons.models import Lesson
@@ -341,42 +355,75 @@ class PrivateLessonQuizAssignmentForm(forms.ModelForm):
                 approved_status='accepted'
             ).order_by('-lesson_date', '-lesson_time')
 
-        # Make child_profile and lesson optional
-        self.fields['child_profile'].required = False
-        self.fields['child_profile'].empty_label = "-- Adult Student (No Child) --"
-
+        # Make lesson optional
         self.fields['lesson'].required = False
         self.fields['lesson'].empty_label = "-- No Specific Lesson --"
 
         self.fields['due_date'].required = False
 
-        # Initially, child_profile should show all children (filtered by JS)
-        self.fields['child_profile'].queryset = self.fields['child_profile'].queryset.none()
+        # Set initial value for student_selection if editing existing assignment
+        if self.instance and self.instance.pk:
+            if self.instance.child_profile:
+                self.fields['student_selection'].initial = f'child_{self.instance.child_profile.id}'
+            elif self.instance.student:
+                self.fields['student_selection'].initial = f'user_{self.instance.student.id}'
 
     def clean(self):
-        """Validate assignment doesn't already exist"""
+        """Parse student selection and validate assignment doesn't already exist"""
         cleaned_data = super().clean()
 
+        student_selection = cleaned_data.get('student_selection')
         quiz = cleaned_data.get('quiz')
-        student = cleaned_data.get('student')
-        child_profile = cleaned_data.get('child_profile')
 
-        if quiz and student:
+        if student_selection:
+            # Parse the student_selection value
+            if student_selection.startswith('user_'):
+                # Adult student
+                user_id = int(student_selection.replace('user_', ''))
+                student = User.objects.get(id=user_id)
+                child_profile = None
+            elif student_selection.startswith('child_'):
+                # Child profile
+                child_id = student_selection.replace('child_', '')
+                child_profile = ChildProfile.objects.get(id=child_id)
+                student = child_profile.guardian
+            else:
+                raise forms.ValidationError('Invalid student selection')
+
+            # Store parsed values for save method
+            cleaned_data['_parsed_student'] = student
+            cleaned_data['_parsed_child_profile'] = child_profile
+
             # Check for duplicate assignment
-            existing = PrivateLessonQuizAssignment.objects.filter(
-                quiz=quiz,
-                student=student,
-                child_profile=child_profile
-            )
-
-            # Exclude current instance if editing
-            if self.instance.pk:
-                existing = existing.exclude(pk=self.instance.pk)
-
-            if existing.exists():
-                student_name = child_profile.full_name if child_profile else student.get_full_name()
-                raise forms.ValidationError(
-                    f'This quiz is already assigned to {student_name}.'
+            if quiz and student:
+                existing = PrivateLessonQuizAssignment.objects.filter(
+                    quiz=quiz,
+                    student=student,
+                    child_profile=child_profile
                 )
 
+                # Exclude current instance if editing
+                if self.instance.pk:
+                    existing = existing.exclude(pk=self.instance.pk)
+
+                if existing.exists():
+                    student_name = child_profile.full_name if child_profile else student.get_full_name()
+                    raise forms.ValidationError(
+                        f'This quiz is already assigned to {student_name}.'
+                    )
+
         return cleaned_data
+
+    def save(self, commit=True):
+        """Set student and child_profile fields based on parsed selection"""
+        instance = super().save(commit=False)
+
+        # Set student and child_profile from parsed values
+        if hasattr(self, 'cleaned_data'):
+            instance.student = self.cleaned_data.get('_parsed_student')
+            instance.child_profile = self.cleaned_data.get('_parsed_child_profile')
+
+        if commit:
+            instance.save()
+
+        return instance
