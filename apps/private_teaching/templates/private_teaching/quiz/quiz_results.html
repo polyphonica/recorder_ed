@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Quiz Results - Recorder-ed{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Result Header -->
+    <div class="text-center mb-8">
+        {% if attempt.passed %}
+            <div class="text-6xl mb-4">🎉</div>
+            <h1 class="text-4xl font-bold text-success mb-2">Congratulations!</h1>
+            <p class="text-xl text-base-content/70">You passed the quiz!</p>
+        {% else %}
+            <div class="text-6xl mb-4">📚</div>
+            <h1 class="text-4xl font-bold text-error mb-2">Keep Practicing!</h1>
+            <p class="text-xl text-base-content/70">You didn't pass this time, but don't give up!</p>
+        {% endif %}
+    </div>
+
+    <!-- Score Card -->
+    <div class="card card-section shadow-xl bg-gradient-to-br {% if attempt.passed %}from-success/10 to-success/5{% else %}from-error/10 to-error/5{% endif %} mb-8">
+        <div class="card-body">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <!-- Score -->
+                <div>
+                    <div class="text-sm text-base-content/60 mb-1">Your Score</div>
+                    <div class="text-5xl font-bold {% if attempt.passed %}text-success{% else %}text-error{% endif %}">
+                        {{ attempt.score|floatformat:1 }}%
+                    </div>
+                </div>
+
+                <!-- Pass Mark -->
+                <div>
+                    <div class="text-sm text-base-content/60 mb-1">Pass Mark</div>
+                    <div class="text-5xl font-bold text-base-content/40">
+                        {{ quiz.pass_percentage }}%
+                    </div>
+                </div>
+
+                <!-- Time Taken -->
+                <div>
+                    <div class="text-sm text-base-content/60 mb-1">Time Taken</div>
+                    <div class="text-5xl font-bold text-primary">
+                        {% if attempt.time_taken_minutes %}
+                            {{ attempt.time_taken_minutes }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                    <div class="text-sm text-base-content/60">minute{{ attempt.time_taken_minutes|pluralize }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Info -->
+    <div class="card card-section shadow-lg mb-8">
+        <div class="card-body">
+            <h2 class="card-title mb-4">{{ quiz.title }}</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                    <span class="text-base-content/60">Teacher:</span>
+                    <div class="font-semibold">{{ assignment.teacher.get_full_name|default:assignment.teacher.username }}</div>
+                </div>
+                <div>
+                    <span class="text-base-content/60">Submitted:</span>
+                    <div class="font-semibold">{{ attempt.submitted_at|date:"M j, Y g:i A" }}</div>
+                </div>
+                <div>
+                    <span class="text-base-content/60">Attempt:</span>
+                    <div class="font-semibold">
+                        #{{ assignment.attempts.all|length }}
+                        {% if quiz.max_attempts %}
+                            of {{ quiz.max_attempts }}
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <span class="text-base-content/60">Status:</span>
+                    <div>
+                        {% if attempt.passed %}
+                            <div class="badge badge-success">Passed</div>
+                        {% else %}
+                            <div class="badge badge-error">Failed</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Questions and Answers -->
+    {% if quiz.show_correct_answers %}
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold mb-4">Review Your Answers</h2>
+            <div class="space-y-6">
+                {% for q_data in questions_data %}
+                    <div class="card card-section shadow-lg {% if q_data.is_correct %}bg-success/5{% else %}bg-error/5{% endif %}">
+                        <div class="card-body">
+                            <!-- Question Header -->
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="badge badge-primary badge-lg">{{ forloop.counter }}</div>
+                                    <div class="badge badge-outline">{{ q_data.question.points }} point{{ q_data.question.points|pluralize }}</div>
+                                </div>
+                                {% if q_data.is_correct %}
+                                    <div class="badge badge-success gap-2">
+                                        <i class="fas fa-check"></i>Correct
+                                    </div>
+                                {% else %}
+                                    <div class="badge badge-error gap-2">
+                                        <i class="fas fa-times"></i>Incorrect
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Question Text -->
+                            <div class="prose max-w-none mb-6">
+                                {{ q_data.question.text|safe }}
+                            </div>
+
+                            <!-- Answer Options -->
+                            <div class="space-y-3">
+                                {% for answer in q_data.answers %}
+                                    <div class="p-4 rounded-lg border-2
+                                        {% if answer.id|stringformat:'s' == q_data.student_answer_id %}
+                                            {% if answer.is_correct %}
+                                                border-success bg-success/10
+                                            {% else %}
+                                                border-error bg-error/10
+                                            {% endif %}
+                                        {% elif answer.is_correct %}
+                                            border-success bg-success/5
+                                        {% else %}
+                                            border-base-300
+                                        {% endif %}">
+
+                                        <div class="flex items-center gap-3">
+                                            <!-- Answer Icon -->
+                                            {% if answer.id|stringformat:'s' == q_data.student_answer_id %}
+                                                {% if answer.is_correct %}
+                                                    <i class="fas fa-check-circle text-success text-xl"></i>
+                                                {% else %}
+                                                    <i class="fas fa-times-circle text-error text-xl"></i>
+                                                {% endif %}
+                                            {% elif answer.is_correct %}
+                                                <i class="fas fa-check-circle text-success text-xl"></i>
+                                            {% else %}
+                                                <i class="far fa-circle text-base-content/40"></i>
+                                            {% endif %}
+
+                                            <!-- Answer Text -->
+                                            <span class="flex-1">{{ answer.text }}</span>
+
+                                            <!-- Labels -->
+                                            <div class="flex gap-2">
+                                                {% if answer.id|stringformat:'s' == q_data.student_answer_id %}
+                                                    <div class="badge badge-sm">Your Answer</div>
+                                                {% endif %}
+                                                {% if answer.is_correct %}
+                                                    <div class="badge badge-success badge-sm">Correct</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <!-- Explanation -->
+                            {% if q_data.question.explanation %}
+                                <div class="alert alert-info mt-4">
+                                    <i class="fas fa-lightbulb"></i>
+                                    <div>
+                                        <h4 class="font-bold">Explanation:</h4>
+                                        <p>{{ q_data.question.explanation }}</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-info mb-8">
+            <i class="fas fa-info-circle"></i>
+            <span>Your teacher has chosen not to show the correct answers for this quiz.</span>
+        </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="card card-section shadow-lg bg-base-200">
+        <div class="card-body">
+            <div class="flex flex-col md:flex-row gap-4 justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-lg mb-1">What's Next?</h3>
+                    {% if can_retake %}
+                        <p class="text-sm text-base-content/70">You can retake this quiz to improve your score</p>
+                    {% else %}
+                        <p class="text-sm text-base-content/70">Return to your quiz list</p>
+                    {% endif %}
+                </div>
+                <div class="flex gap-3">
+                    <a href="{% url 'private_teaching:student_quiz_list' %}" class="btn btn-ghost">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to My Quizzes
+                    </a>
+                    {% if can_retake %}
+                        <a href="{% url 'private_teaching:quiz_take' assignment.pk %}" class="btn btn-primary">
+                            <i class="fas fa-redo mr-2"></i>Retake Quiz
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Encouragement Message -->
+    {% if not attempt.passed and can_retake %}
+        <div class="alert alert-warning mt-6">
+            <i class="fas fa-star"></i>
+            <div>
+                <h4 class="font-bold">Don't give up!</h4>
+                <p class="text-sm">Review the correct answers above and try again. You can do this!</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Take Quiz: {{ quiz.title }} - Recorder-ed{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold mb-2">{{ quiz.title }}</h1>
+        <p class="text-base-content/70">
+            {{ quiz.questions.count }} question{{ quiz.questions.count|pluralize }}
+            {% if quiz.time_limit_minutes %} • {{ quiz.time_limit_minutes }} minute{{ quiz.time_limit_minutes|pluralize }} time limit{% endif %}
+        </p>
+    </div>
+
+    <!-- Instructions -->
+    {% if quiz.instructions %}
+        <div class="alert alert-info mb-6">
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <h3 class="font-bold">Instructions:</h3>
+                <p>{{ quiz.instructions }}</p>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Quiz Info Bar -->
+    <div class="stats stats-vertical lg:stats-horizontal shadow w-full mb-6">
+        <div class="stat">
+            <div class="stat-title">Questions</div>
+            <div class="stat-value text-primary text-2xl">{{ quiz.questions.count }}</div>
+            <div class="stat-desc">{{ quiz.total_points }} total points</div>
+        </div>
+        <div class="stat">
+            <div class="stat-title">Pass Mark</div>
+            <div class="stat-value text-success text-2xl">{{ quiz.pass_percentage }}%</div>
+        </div>
+        {% if quiz.time_limit_minutes %}
+            <div class="stat">
+                <div class="stat-title">Time Limit</div>
+                <div class="stat-value text-warning text-2xl" id="timer">{{ quiz.time_limit_minutes }}:00</div>
+                <div class="stat-desc">minutes remaining</div>
+            </div>
+        {% endif %}
+        <div class="stat">
+            <div class="stat-title">Attempt</div>
+            <div class="stat-value text-2xl">{{ assignment.attempts.count }}</div>
+            <div class="stat-desc">
+                {% if quiz.max_attempts %}
+                    of {{ quiz.max_attempts }} max
+                {% else %}
+                    unlimited attempts
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Form -->
+    <form id="quiz-form" method="post" action="{% url 'private_teaching:quiz_submit' assignment.pk %}" class="space-y-6">
+        {% csrf_token %}
+        <input type="hidden" name="attempt_id" value="{{ attempt.id }}">
+
+        {% for question in questions %}
+            <div class="card card-section shadow-lg">
+                <div class="card-body">
+                    <!-- Question Header -->
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="badge badge-primary badge-lg">{{ forloop.counter }}</div>
+                        <div class="badge badge-outline">{{ question.points }} point{{ question.points|pluralize }}</div>
+                    </div>
+
+                    <!-- Question Text -->
+                    <div class="prose max-w-none mb-6">
+                        {{ question.text|safe }}
+                    </div>
+
+                    <!-- Answer Options -->
+                    <div class="space-y-3">
+                        {% for answer in question.answers.all %}
+                            <label class="flex items-center gap-3 p-4 rounded-lg border-2 border-base-300 hover:border-primary cursor-pointer transition-colors">
+                                <input type="radio"
+                                       name="question_{{ question.id }}"
+                                       value="{{ answer.id }}"
+                                       class="radio radio-primary"
+                                       required>
+                                <span class="flex-1">{{ answer.text }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+
+        <!-- Submit Button -->
+        <div class="card card-section shadow-lg bg-base-200">
+            <div class="card-body">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-lg mb-1">Ready to submit?</h3>
+                        <p class="text-sm text-base-content/70">Make sure you've answered all questions before submitting.</p>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
+                        <i class="fas fa-paper-plane mr-2"></i>Submit Quiz
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('quiz-form');
+    const submitBtn = document.getElementById('submit-btn');
+
+    {% if quiz.time_limit_minutes %}
+    // Timer logic
+    const timeLimitMinutes = {{ quiz.time_limit_minutes }};
+    const startTime = new Date('{{ attempt.started_at|date:"c" }}');
+    const endTime = new Date(startTime.getTime() + timeLimitMinutes * 60000);
+    const timerElement = document.getElementById('timer');
+
+    function updateTimer() {
+        const now = new Date();
+        const remaining = endTime - now;
+
+        if (remaining <= 0) {
+            // Time's up - auto submit
+            timerElement.textContent = '0:00';
+            timerElement.classList.add('text-error');
+            form.submit();
+            return;
+        }
+
+        const minutes = Math.floor(remaining / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+        timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        // Change color when less than 5 minutes
+        if (minutes < 5) {
+            timerElement.classList.add('text-error');
+        }
+    }
+
+    updateTimer();
+    setInterval(updateTimer, 1000);
+    {% endif %}
+
+    // Form submission with AJAX
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Check all questions answered
+        const questions = {{ quiz.questions.count }};
+        const answeredQuestions = new Set();
+        const formData = new FormData(form);
+
+        for (let [key, value] of formData.entries()) {
+            if (key.startsWith('question_')) {
+                answeredQuestions.add(key);
+            }
+        }
+
+        if (answeredQuestions.size < questions) {
+            alert(`Please answer all questions. You've answered ${answeredQuestions.size} out of ${questions}.`);
+            return;
+        }
+
+        // Confirm submission
+        if (!confirm('Are you sure you want to submit your quiz? You cannot change your answers after submitting.')) {
+            return;
+        }
+
+        // Disable submit button
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="loading loading-spinner"></span>Submitting...';
+
+        // Submit via AJAX
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Redirect to results page
+                window.location.href = data.redirect_url;
+            } else {
+                alert('Error: ' + (data.error || 'Failed to submit quiz'));
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit Quiz';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while submitting the quiz. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit Quiz';
+        });
+    });
+
+    // Warn before leaving page
+    window.addEventListener('beforeunload', function(e) {
+        e.preventDefault();
+        e.returnValue = 'Are you sure you want to leave? Your progress will be lost.';
+    });
+});
+</script>
+{% endblock %}

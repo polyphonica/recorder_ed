@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assign Quiz - Recorder-ed{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold mb-2">Assign Quiz</h1>
+        {% if quiz %}
+            <p class="text-base-content/70">Assign "{{ quiz.title }}" to a student</p>
+        {% else %}
+            <p class="text-base-content/70">Assign a quiz to your students</p>
+        {% endif %}
+    </div>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Assignment Details -->
+        <div class="card card-section shadow-lg">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Assignment Details</h2>
+
+                {% if not quiz %}
+                    <!-- Quiz Selection (if not pre-selected) -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Quiz <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.quiz }}
+                        {% if form.quiz.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.quiz.errors.0 }}</span></label>
+                        {% endif %}
+                        <label class="label"><span class="label-text-alt">{{ form.quiz.help_text }}</span></label>
+                    </div>
+                {% endif %}
+
+                <!-- Student Selection -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Student <span class="text-error">*</span></span>
+                    </label>
+                    {{ form.student }}
+                    {% if form.student.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.student.errors.0 }}</span></label>
+                    {% endif %}
+                    <label class="label"><span class="label-text-alt">{{ form.student.help_text }}</span></label>
+                </div>
+
+                <!-- Child Profile (if applicable) -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Child Profile</span>
+                    </label>
+                    {{ form.child_profile }}
+                    {% if form.child_profile.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.child_profile.errors.0 }}</span></label>
+                    {% endif %}
+                    <label class="label"><span class="label-text-alt">{{ form.child_profile.help_text }}</span></label>
+                </div>
+
+                <!-- Lesson Link (optional) -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Link to Lesson (Optional)</span>
+                    </label>
+                    {{ form.lesson }}
+                    {% if form.lesson.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.lesson.errors.0 }}</span></label>
+                    {% endif %}
+                    <label class="label"><span class="label-text-alt">{{ form.lesson.help_text }}</span></label>
+                </div>
+
+                <!-- Due Date -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Due Date (Optional)</span>
+                    </label>
+                    {{ form.due_date }}
+                    {% if form.due_date.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.due_date.errors.0 }}</span></label>
+                    {% endif %}
+                    <label class="label"><span class="label-text-alt">{{ form.due_date.help_text }}</span></label>
+                </div>
+
+                <!-- Notes -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Notes for Student (Optional)</span>
+                    </label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.notes.errors.0 }}</span></label>
+                    {% endif %}
+                    <label class="label"><span class="label-text-alt">{{ form.notes.help_text }}</span></label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-3 justify-end">
+            <a href="{% if quiz %}{% url 'private_teaching:quiz_detail' quiz.pk %}{% else %}{% url 'private_teaching:quiz_assignment_list' %}{% endif %}"
+               class="btn btn-ghost">
+                <i class="fas fa-times mr-2"></i>Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-user-plus mr-2"></i>Assign Quiz
+            </button>
+        </div>
+    </form>
+</div>
+</div>
+
+<script>
+// Dynamic child profile filtering based on selected student
+document.addEventListener('DOMContentLoaded', function() {
+    const studentSelect = document.getElementById('id_student');
+    const childProfileSelect = document.getElementById('id_child_profile');
+
+    if (studentSelect && childProfileSelect) {
+        studentSelect.addEventListener('change', function() {
+            const studentId = this.value;
+
+            if (studentId) {
+                // Filter child profiles via AJAX
+                fetch(`/api/child-profiles/?guardian=${studentId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        childProfileSelect.innerHTML = '<option value="">-- Adult Student (No Child) --</option>';
+                        data.forEach(profile => {
+                            const option = document.createElement('option');
+                            option.value = profile.id;
+                            option.textContent = profile.full_name;
+                            childProfileSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Error loading child profiles:', error));
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

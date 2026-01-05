@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assignment Details - Recorder-ed{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold mb-2">Assignment Details</h1>
+        <p class="text-base-content/70">{{ assignment.quiz.title }} - {{ assignment.student.get_full_name|default:assignment.student.username }}</p>
+    </div>
+
+    <!-- Assignment Info -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Status Card -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Status</div>
+                <div class="stat-value text-2xl">
+                    {% if assignment.status == 'completed' %}
+                        <span class="text-success">Completed</span>
+                    {% elif assignment.status == 'in_progress' %}
+                        <span class="text-warning">In Progress</span>
+                    {% else %}
+                        <span class="text-ghost">Assigned</span>
+                    {% endif %}
+                </div>
+                <div class="stat-desc">{{ assignment.assigned_date|date:"M j, Y" }}</div>
+            </div>
+        </div>
+
+        <!-- Attempts Card -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Attempts</div>
+                <div class="stat-value text-primary">{{ attempts.count }}</div>
+                <div class="stat-desc">
+                    {% if assignment.quiz.max_attempts %}
+                        Max: {{ assignment.quiz.max_attempts }}
+                    {% else %}
+                        Unlimited
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Best Score Card -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Best Score</div>
+                {% if best_score is not None %}
+                    <div class="stat-value {% if best_score >= assignment.quiz.pass_percentage %}text-success{% else %}text-error{% endif %}">
+                        {{ best_score|floatformat:1 }}%
+                    </div>
+                    <div class="stat-desc">
+                        Pass: {{ assignment.quiz.pass_percentage }}%
+                        {% if passed_attempts %}
+                            ({{ passed_attempts }} passed)
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="stat-value text-base-content/40">-</div>
+                    <div class="stat-desc">No attempts yet</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignment Details Card -->
+    <div class="card card-section shadow-lg mb-8">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Assignment Information</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <span class="text-base-content/60">Quiz:</span>
+                    <a href="{% url 'private_teaching:quiz_detail' assignment.quiz.pk %}" class="link link-primary ml-2">
+                        {{ assignment.quiz.title }}
+                    </a>
+                </div>
+                <div>
+                    <span class="text-base-content/60">Student:</span>
+                    <span class="font-semibold ml-2">{{ assignment.student.get_full_name|default:assignment.student.username }}</span>
+                </div>
+                {% if assignment.child_profile %}
+                    <div>
+                        <span class="text-base-content/60">Child:</span>
+                        <span class="font-semibold ml-2">{{ assignment.child_profile.full_name }}</span>
+                    </div>
+                {% endif %}
+                {% if assignment.lesson %}
+                    <div>
+                        <span class="text-base-content/60">Lesson:</span>
+                        <a href="{% url 'private_teaching:lesson_detail' assignment.lesson.lesson_id %}" class="link link-primary ml-2">
+                            {{ assignment.lesson.lesson_date }}
+                        </a>
+                    </div>
+                {% endif %}
+                <div>
+                    <span class="text-base-content/60">Assigned:</span>
+                    <span class="ml-2">{{ assignment.assigned_date|date:"M j, Y, g:i A" }}</span>
+                </div>
+                {% if assignment.due_date %}
+                    <div>
+                        <span class="text-base-content/60">Due:</span>
+                        <span class="ml-2">{{ assignment.due_date|date:"M j, Y, g:i A" }}</span>
+                        {% if assignment.due_date < now and assignment.status != 'completed' %}
+                            <div class="badge badge-error badge-sm ml-2">Overdue</div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if assignment.notes %}
+                <div class="divider"></div>
+                <div>
+                    <h3 class="font-semibold mb-2">Teacher Notes:</h3>
+                    <p class="text-base-content/70">{{ assignment.notes }}</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Attempts History -->
+    {% if attempts %}
+        <div class="card card-section shadow-lg mb-8">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Attempt History</h2>
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra">
+                        <thead>
+                            <tr>
+                                <th>Attempt</th>
+                                <th>Started</th>
+                                <th>Submitted</th>
+                                <th>Time Taken</th>
+                                <th>Score</th>
+                                <th>Result</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for attempt in attempts %}
+                                <tr>
+                                    <td>#{{ forloop.counter }}</td>
+                                    <td>{{ attempt.started_at|date:"M j, g:i A" }}</td>
+                                    <td>
+                                        {% if attempt.submitted_at %}
+                                            {{ attempt.submitted_at|date:"M j, g:i A" }}
+                                        {% else %}
+                                            <span class="text-warning">In Progress</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if attempt.time_taken_minutes %}
+                                            {{ attempt.time_taken_minutes }} min
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if attempt.submitted_at %}
+                                            <span class="font-semibold {% if attempt.passed %}text-success{% else %}text-error{% endif %}">
+                                                {{ attempt.score|floatformat:1 }}%
+                                            </span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if attempt.submitted_at %}
+                                            {% if attempt.passed %}
+                                                <div class="badge badge-success">Passed</div>
+                                            {% else %}
+                                                <div class="badge badge-error">Failed</div>
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if attempt.submitted_at %}
+                                            <a href="{% url 'private_teaching:quiz_attempt_results' attempt.pk %}" class="btn btn-ghost btn-xs">
+                                                <i class="fas fa-eye mr-1"></i>View Results
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if average_score %}
+                    <div class="stats stats-vertical lg:stats-horizontal shadow mt-4">
+                        <div class="stat">
+                            <div class="stat-title">Average Score</div>
+                            <div class="stat-value text-primary">{{ average_score|floatformat:1 }}%</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Best Score</div>
+                            <div class="stat-value text-success">{{ best_score|floatformat:1 }}%</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Passed Attempts</div>
+                            <div class="stat-value">{{ passed_attempts }}/{{ attempts.count }}</div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <span>Student hasn't started this quiz yet</span>
+        </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="flex gap-3">
+        <a href="{% url 'private_teaching:quiz_assignment_list' %}" class="btn btn-ghost">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Assignments
+        </a>
+        <a href="{% url 'private_teaching:quiz_assignment_delete' assignment.pk %}" class="btn btn-error">
+            <i class="fas fa-trash mr-2"></i>Delete Assignment
+        </a>
+    </div>
+</div>
+</div>
+{% endblock %}

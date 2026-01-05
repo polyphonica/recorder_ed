@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Quiz Assignments - Recorder-ed{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-4xl font-bold mb-2">Quiz Assignments</h1>
+            <p class="text-base-content/70">Manage quiz assignments to your students</p>
+        </div>
+        <a href="{% url 'private_teaching:quiz_library' %}" class="btn btn-primary">
+            <i class="fas fa-clipboard-question mr-2"></i>Browse Quizzes
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card card-section shadow-lg mb-6">
+        <div class="card-body">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Status Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Status</span>
+                    </label>
+                    <select name="status" class="select select-bordered w-full">
+                        <option value="">All Statuses</option>
+                        <option value="assigned" {% if selected_status == "assigned" %}selected{% endif %}>Assigned</option>
+                        <option value="in_progress" {% if selected_status == "in_progress" %}selected{% endif %}>In Progress</option>
+                        <option value="completed" {% if selected_status == "completed" %}selected{% endif %}>Completed</option>
+                    </select>
+                </div>
+
+                <!-- Student Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Student</span>
+                    </label>
+                    <select name="student" class="select select-bordered w-full">
+                        <option value="">All Students</option>
+                        {% for student in students %}
+                            <option value="{{ student.id }}" {% if selected_student == student.id|stringformat:"s" %}selected{% endif %}>
+                                {{ student.get_full_name|default:student.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Quiz Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Quiz</span>
+                    </label>
+                    <select name="quiz" class="select select-bordered w-full">
+                        <option value="">All Quizzes</option>
+                        {% for quiz in quizzes %}
+                            <option value="{{ quiz.id }}" {% if selected_quiz == quiz.id|stringformat:"s" %}selected{% endif %}>
+                                {{ quiz.title }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="md:col-span-3 flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter mr-2"></i>Filter
+                    </button>
+                    <a href="{% url 'private_teaching:quiz_assignment_list' %}" class="btn btn-ghost">
+                        <i class="fas fa-times mr-2"></i>Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Assignments Table -->
+    {% if assignments %}
+        <div class="card card-section shadow-lg">
+            <div class="card-body overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            <th>Quiz</th>
+                            <th>Student</th>
+                            <th>Assigned</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Attempts</th>
+                            <th>Best Score</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assignment in assignments %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'private_teaching:quiz_detail' assignment.quiz.pk %}" class="link link-primary">
+                                        {{ assignment.quiz.title }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {{ assignment.student.get_full_name|default:assignment.student.username }}
+                                    {% if assignment.child_profile %}
+                                        <br><span class="text-sm text-base-content/60">For: {{ assignment.child_profile.full_name }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ assignment.assigned_date|date:"M j, Y" }}</td>
+                                <td>
+                                    {% if assignment.due_date %}
+                                        {{ assignment.due_date|date:"M j, Y" }}
+                                        {% if assignment.due_date < now and assignment.status != 'completed' %}
+                                            <div class="badge badge-error badge-sm">Overdue</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-base-content/40">No deadline</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if assignment.status == 'completed' %}
+                                        <div class="badge badge-success">Completed</div>
+                                    {% elif assignment.status == 'in_progress' %}
+                                        <div class="badge badge-warning">In Progress</div>
+                                    {% else %}
+                                        <div class="badge badge-ghost">Assigned</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ assignment.attempts.count }}
+                                    {% if assignment.quiz.max_attempts %}
+                                        / {{ assignment.quiz.max_attempts }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% with assignment.attempts.all|dictsort:"score"|last as best_attempt %}
+                                        {% if best_attempt and best_attempt.submitted_at %}
+                                            <span class="{% if best_attempt.passed %}text-success{% else %}text-error{% endif %} font-semibold">
+                                                {{ best_attempt.score|floatformat:1 }}%
+                                            </span>
+                                        {% else %}
+                                            <span class="text-base-content/40">-</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <div class="flex gap-2">
+                                        <a href="{% url 'private_teaching:quiz_assignment_detail' assignment.pk %}" class="btn btn-ghost btn-xs">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <form method="post" action="{% url 'private_teaching:quiz_assignment_delete' assignment.pk %}"
+                                              onsubmit="return confirm('Delete this assignment?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-ghost btn-xs text-error">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <div class="flex justify-center mt-6">
+                <div class="btn-group">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_student %}&student={{ selected_student }}{% endif %}{% if selected_quiz %}&quiz={{ selected_quiz }}{% endif %}"
+                           class="btn btn-sm">«</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_student %}&student={{ selected_student }}{% endif %}{% if selected_quiz %}&quiz={{ selected_quiz }}{% endif %}"
+                           class="btn btn-sm">‹</a>
+                    {% endif %}
+                    <button class="btn btn-sm btn-active">Page {{ page_obj.number }}</button>
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_student %}&student={{ selected_student }}{% endif %}{% if selected_quiz %}&quiz={{ selected_quiz }}{% endif %}"
+                           class="btn btn-sm">›</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_student %}&student={{ selected_student }}{% endif %}{% if selected_quiz %}&quiz={{ selected_quiz }}{% endif %}"
+                           class="btn btn-sm">»</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-16">
+            <i class="fas fa-clipboard-list text-6xl text-base-content/20 mb-4"></i>
+            <h3 class="text-2xl font-bold mb-2">No Assignments Found</h3>
+            {% if selected_status or selected_student or selected_quiz %}
+                <p class="text-base-content/70 mb-4">Try adjusting your filters</p>
+                <a href="{% url 'private_teaching:quiz_assignment_list' %}" class="btn btn-ghost">
+                    <i class="fas fa-times mr-2"></i>Clear Filters
+                </a>
+            {% else %}
+                <p class="text-base-content/70 mb-4">Assign quizzes to your students to get started</p>
+                <a href="{% url 'private_teaching:quiz_library' %}" class="btn btn-primary">
+                    <i class="fas fa-clipboard-question mr-2"></i>Browse Quizzes
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+</div>
+{% endblock %}
