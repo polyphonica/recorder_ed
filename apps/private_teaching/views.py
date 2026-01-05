@@ -3945,10 +3945,12 @@ class QuizAssignView(TeacherProfileCompletedMixin, CreateView):
                 created_by=self.request.user
             )
 
-        # Get correct student name (child or adult)
+        # Get student name from cleaned data (before save)
+        parsed_student = form.cleaned_data.get('_parsed_student')
+        parsed_child = form.cleaned_data.get('_parsed_child_profile')
         student_name = (
-            form.instance.child_profile.full_name if form.instance.child_profile
-            else (form.instance.student.get_full_name() or form.instance.student.username)
+            parsed_child.full_name if parsed_child
+            else (parsed_student.get_full_name() if parsed_student else parsed_student.username)
         )
 
         messages.success(
