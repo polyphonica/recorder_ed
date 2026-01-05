@@ -98,4 +98,33 @@ urlpatterns = [
     path('practice/<uuid:pk>/delete/', views.DeletePracticeView.as_view(), name='delete_practice'),
     path('teacher/students/<int:student_id>/practice/', views.TeacherStudentPracticeView.as_view(), name='teacher_student_practice'),
     path('teacher/practice/<uuid:entry_id>/comment/', views.AddPracticeCommentView.as_view(), name='add_practice_comment'),
+
+    # ========================================================================
+    # QUIZ SYSTEM URLs
+    # ========================================================================
+
+    # Teacher: Quiz Library & Management
+    path('quizzes/', views.QuizLibraryView.as_view(), name='quiz_library'),
+    path('quizzes/create/', views.QuizCreateView.as_view(), name='quiz_create'),
+    path('quizzes/<uuid:pk>/', views.QuizDetailView.as_view(), name='quiz_detail'),
+    path('quizzes/<uuid:pk>/edit/', views.QuizEditView.as_view(), name='quiz_edit'),
+    path('quizzes/<uuid:pk>/delete/', views.QuizDeleteView.as_view(), name='quiz_delete'),
+    path('quizzes/<uuid:pk>/duplicate/', views.QuizDuplicateView.as_view(), name='quiz_duplicate'),
+
+    # Teacher: Question Management
+    path('quizzes/<uuid:quiz_id>/questions/create/', views.QuestionCreateView.as_view(), name='question_create'),
+    path('questions/<uuid:pk>/edit/', views.QuestionEditView.as_view(), name='question_edit'),
+    path('questions/<uuid:pk>/delete/', views.QuestionDeleteView.as_view(), name='question_delete'),
+
+    # Teacher: Quiz Assignments
+    path('quizzes/<uuid:quiz_id>/assign/', views.QuizAssignView.as_view(), name='quiz_assign'),
+    path('quiz-assignments/', views.QuizAssignmentListView.as_view(), name='quiz_assignment_list'),
+    path('quiz-assignments/<uuid:pk>/', views.QuizAssignmentDetailView.as_view(), name='quiz_assignment_detail'),
+    path('quiz-assignments/<uuid:pk>/delete/', views.QuizAssignmentDeleteView.as_view(), name='quiz_assignment_delete'),
+
+    # Student: Quiz Taking
+    path('my-quizzes/', views.StudentQuizListView.as_view(), name='student_quiz_list'),
+    path('quiz-assignments/<uuid:assignment_id>/take/', views.QuizTakeView.as_view(), name='quiz_take'),
+    path('quiz-assignments/<uuid:assignment_id>/submit/', views.QuizSubmitView.as_view(), name='quiz_submit'),
+    path('quiz-attempts/<uuid:pk>/results/', views.QuizAttemptResultsView.as_view(), name='quiz_attempt_results'),
 ]
