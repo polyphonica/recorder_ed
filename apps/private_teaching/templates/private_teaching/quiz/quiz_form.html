@@ -4,7 +4,7 @@
 {% block title %}{% if object %}Edit Quiz{% else %}Create Quiz{% endif %} - Recorder-ed{% endblock %}
 
 {% block extra_head %}
-<script src="{% static 'django_ckeditor_5/dist/bundle.js' %}"></script>
+{{ form.media }}
 {% endblock %}
 
 {% block content %}

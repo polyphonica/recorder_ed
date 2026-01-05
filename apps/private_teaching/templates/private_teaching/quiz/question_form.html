@@ -4,7 +4,7 @@
 {% block title %}{% if question %}Edit Question{% else %}Add Question{% endif %} - Recorder-ed{% endblock %}
 
 {% block extra_head %}
-<script src="{% static 'django_ckeditor_5/dist/bundle.js' %}"></script>
+{{ form.media }}
 <style>
     .formset-row {
         position: relative;
