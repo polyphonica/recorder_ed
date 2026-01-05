@@ -413,6 +413,7 @@ class StripeWebhookView(View):
                     logger.info(f"  Found cart item: {cart_item.session.workshop.title}")
                     logger.info(f"  Session: {cart_item.session.start_datetime}")
                     logger.info(f"  Price: £{cart_item.price}")
+                    logger.info(f"  [WEBHOOK DEBUG] Cart item child_profile: {cart_item.child_profile}")
 
                     # Create registration with data from cart item
                     registration = WorkshopRegistration.objects.create(

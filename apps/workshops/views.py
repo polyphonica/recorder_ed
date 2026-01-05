@@ -405,9 +405,15 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
             }
 
         # Get child profile ID if guardian
+        import logging
+        logger = logging.getLogger(__name__)
+
         child_profile_id = None
         if registration.child_profile:
             child_profile_id = str(registration.child_profile.id)
+            logger.info(f"[VIEW DEBUG] Registration has child_profile: {registration.child_profile.full_name} (ID: {child_profile_id})")
+        else:
+            logger.info(f"[VIEW DEBUG] Registration has no child_profile")
 
         # Add to cart with registration data
         from .cart import WorkshopCartManager
@@ -422,6 +428,8 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
             'expectations': registration.expectations or '',
             'special_requirements': registration.special_requirements or '',
         }
+
+        logger.info(f"[VIEW DEBUG] Calling add_session with child_profile_id={child_profile_id}")
 
         success, message = cart_manager.add_session(
             str(self.session.id),
