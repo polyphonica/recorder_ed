@@ -383,6 +383,9 @@ class PrivateLessonQuizAssignmentForm(forms.ModelForm):
         student_selection = cleaned_data.get('student_selection')
         quiz = cleaned_data.get('quiz')
 
+        if not student_selection:
+            raise forms.ValidationError('Please select a student.')
+
         if student_selection:
             # Parse the student_selection value
             if student_selection.startswith('user_'):
@@ -428,8 +431,12 @@ class PrivateLessonQuizAssignmentForm(forms.ModelForm):
 
         # Set student and child_profile from parsed values
         if hasattr(self, 'cleaned_data'):
-            instance.student = self.cleaned_data.get('_parsed_student')
-            instance.child_profile = self.cleaned_data.get('_parsed_child_profile')
+            parsed_student = self.cleaned_data.get('_parsed_student')
+            parsed_child = self.cleaned_data.get('_parsed_child_profile')
+
+            if parsed_student:
+                instance.student = parsed_student
+                instance.child_profile = parsed_child  # May be None for adult students
 
         if commit:
             instance.save()

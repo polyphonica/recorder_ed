@@ -3948,10 +3948,13 @@ class QuizAssignView(TeacherProfileCompletedMixin, CreateView):
         # Get student name from cleaned data (before save)
         parsed_student = form.cleaned_data.get('_parsed_student')
         parsed_child = form.cleaned_data.get('_parsed_child_profile')
-        student_name = (
-            parsed_child.full_name if parsed_child
-            else (parsed_student.get_full_name() if parsed_student else parsed_student.username)
-        )
+
+        if parsed_child:
+            student_name = parsed_child.full_name
+        elif parsed_student:
+            student_name = parsed_student.get_full_name() or parsed_student.username
+        else:
+            student_name = 'Unknown Student'
 
         messages.success(
             self.request,
