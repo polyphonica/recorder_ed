@@ -3934,33 +3934,42 @@ class QuizAssignView(TeacherProfileCompletedMixin, CreateView):
         return context
 
     def form_valid(self, form):
-        form.instance.teacher = self.request.user
+        try:
+            form.instance.teacher = self.request.user
 
-        # If quiz_id in URL, set it
-        quiz_id = self.kwargs.get('quiz_id')
-        if quiz_id:
-            form.instance.quiz = get_object_or_404(
-                PrivateLessonQuiz,
-                pk=quiz_id,
-                created_by=self.request.user
+            # If quiz_id in URL, set it
+            quiz_id = self.kwargs.get('quiz_id')
+            if quiz_id:
+                form.instance.quiz = get_object_or_404(
+                    PrivateLessonQuiz,
+                    pk=quiz_id,
+                    created_by=self.request.user
+                )
+
+            # Get student name from cleaned data (before save)
+            parsed_student = form.cleaned_data.get('_parsed_student')
+            parsed_child = form.cleaned_data.get('_parsed_child_profile')
+
+            if parsed_child:
+                student_name = parsed_child.full_name
+            elif parsed_student:
+                student_name = parsed_student.get_full_name() or parsed_student.username
+            else:
+                student_name = 'Unknown Student'
+
+            response = super().form_valid(form)
+
+            messages.success(
+                self.request,
+                f'Quiz assigned to {student_name} successfully!'
             )
-
-        # Get student name from cleaned data (before save)
-        parsed_student = form.cleaned_data.get('_parsed_student')
-        parsed_child = form.cleaned_data.get('_parsed_child_profile')
-
-        if parsed_child:
-            student_name = parsed_child.full_name
-        elif parsed_student:
-            student_name = parsed_student.get_full_name() or parsed_student.username
-        else:
-            student_name = 'Unknown Student'
-
-        messages.success(
-            self.request,
-            f'Quiz assigned to {student_name} successfully!'
-        )
-        return super().form_valid(form)
+            return response
+        except Exception as e:
+            messages.error(
+                self.request,
+                f'Error assigning quiz: {str(e)}'
+            )
+            return self.form_invalid(form)
 
     def get_success_url(self):
         return reverse('private_teaching:quiz_assignment_list')
