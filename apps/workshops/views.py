@@ -2145,6 +2145,11 @@ class AddToCartView(LoginRequiredMixin, View):
         child_profile_id = request.POST.get('child_profile_id')
         notes = request.POST.get('notes', '')
 
+        # DEBUG: Log what child_profile_id we received
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[ADD_TO_CART DEBUG] session_id={session_id}, child_profile_id={child_profile_id}, POST data={request.POST}")
+
         # Store terms acceptance in session for later tracking
         from .models import WorkshopTermsAndConditions
         current_terms = WorkshopTermsAndConditions.objects.filter(is_current=True).first()

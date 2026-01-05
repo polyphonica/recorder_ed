@@ -1167,6 +1167,12 @@ function openChildSelectionModal(sessionId) {
         });
     });
 
+    // CRITICAL FIX: Initialize hidden field with the currently checked radio button value
+    const checkedRadio = document.querySelector('input[name="attendee"]:checked');
+    if (checkedRadio) {
+        document.getElementById('selectedChildId').value = checkedRadio.value;
+    }
+
     // Open the modal
     document.getElementById('childSelectionModal').checked = true;
 }
