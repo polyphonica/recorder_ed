@@ -370,10 +370,11 @@ class PrivateLessonQuizAssignmentForm(forms.ModelForm):
 
         # Set initial value for student_selection if editing existing assignment
         if self.instance and self.instance.pk:
-            if self.instance.child_profile:
-                self.fields['student_selection'].initial = f'child_{self.instance.child_profile.id}'
-            elif self.instance.student:
-                self.fields['student_selection'].initial = f'user_{self.instance.student.id}'
+            # Use _id fields to avoid RelatedObjectDoesNotExist errors
+            if self.instance.child_profile_id:
+                self.fields['student_selection'].initial = f'child_{self.instance.child_profile_id}'
+            elif self.instance.student_id:
+                self.fields['student_selection'].initial = f'user_{self.instance.student_id}'
 
     def clean(self):
         """Parse student selection and validate assignment doesn't already exist"""
