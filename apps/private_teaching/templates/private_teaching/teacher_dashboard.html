@@ -186,6 +186,22 @@
                 {% endif %}
             </div>
         </a>
+
+        <a href="{% url 'private_teaching:quiz_library' %}" class="stat rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col" style="background-color: #ec4899; color: white; height: 13rem;">
+            <div class="stat-title text-lg font-semibold" style="color: white;">Quiz Library</div>
+            <div class="stat-value text-4xl" style="color: white;">{{ my_quizzes_count }}</div>
+            <div class="stat-desc text-base mt-2" style="color: white;">
+                {% if my_quizzes_count > 0 %}
+                    {% if quiz_assignments_pending > 0 %}
+                        {{ quiz_assignments_pending }} pending assignment{{ quiz_assignments_pending|pluralize }}
+                    {% else %}
+                        Ready to assign to students
+                    {% endif %}
+                {% else %}
+                    Create your first quiz
+                {% endif %}
+            </div>
+        </a>
     </div>
 </div>
 {% endblock %}

@@ -550,6 +550,13 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             status='submitted'
         ).count()
 
+        # Get quiz stats
+        my_quizzes_count = PrivateLessonQuiz.objects.filter(created_by=self.request.user).count()
+        quiz_assignments_pending = PrivateLessonQuizAssignment.objects.filter(
+            teacher=self.request.user,
+            status='assigned'
+        ).count()
+
         context.update({
             'pending_applications': pending_applications,
             'pending_applications_count': pending_applications.count(),
@@ -566,6 +573,8 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             'pending_cancellations_count': pending_cancellations.count(),
             'my_assignments_count': my_assignments_count,
             'pending_assignment_submissions_count': pending_assignment_submissions_count,
+            'my_quizzes_count': my_quizzes_count,
+            'quiz_assignments_pending': quiz_assignments_pending,
             'today': today,
         })
         return context
@@ -649,6 +658,16 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
             except AssignmentSubmission.DoesNotExist:
                 pending_assignments_count += 1
 
+        # Get quiz stats
+        pending_quizzes = PrivateLessonQuizAssignment.objects.filter(
+            student=self.request.user,
+            status='assigned'
+        ).count()
+        completed_quizzes = PrivateLessonQuizAssignment.objects.filter(
+            student=self.request.user,
+            status='completed'
+        ).count()
+
         context.update({
             'my_applications': my_applications,
             'pending_applications': pending_applications,
@@ -660,6 +679,8 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
             'awaiting_payment': awaiting_payment,
             'upcoming_exams': upcoming_exams,
             'pending_assignments_count': pending_assignments_count,
+            'pending_quizzes': pending_quizzes,
+            'completed_quizzes': completed_quizzes,
             'today': today,
         })
         return context
