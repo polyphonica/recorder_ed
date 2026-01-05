@@ -196,7 +196,7 @@ class PrivateLessonQuizQuestionForm(forms.ModelForm):
         model = PrivateLessonQuizQuestion
         fields = ['text', 'order', 'points', 'explanation']
         widgets = {
-            'text': CKEditor5Widget(config_name='extends'),
+            'text': CKEditor5Widget(config_name='default'),
             'order': forms.NumberInput(attrs={
                 'class': 'input input-bordered w-full',
                 'min': 0,
