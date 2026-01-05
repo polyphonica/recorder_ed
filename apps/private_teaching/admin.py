@@ -1,8 +1,11 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from .models import (
     Subject, LessonRequest, LessonRequestMessage, Cart, CartItem, Order, OrderItem,
     TeacherStudentApplication, ApplicationMessage, ExamBoard, ExamRegistration, ExamPiece,
-    PrivateLessonTermsAndConditions, PrivateLessonTermsAcceptance, LessonCancellationRequest
+    PrivateLessonTermsAndConditions, PrivateLessonTermsAcceptance, LessonCancellationRequest,
+    PrivateLessonQuiz, PrivateLessonQuizQuestion, PrivateLessonQuizAnswer,
+    PrivateLessonQuizAssignment, PrivateLessonQuizAttempt
 )
 from lessons.models import Lesson
 
@@ -300,3 +303,162 @@ class LessonCancellationRequestAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         """Prevent manual creation - should be created through student interface"""
         return False
+
+
+# ============================================================================
+# QUIZ ADMIN CLASSES
+# ============================================================================
+
+class PrivateLessonQuizAnswerInline(admin.TabularInline):
+    model = PrivateLessonQuizAnswer
+    extra = 4
+    fields = ['text', 'is_correct', 'order']
+    ordering = ['order']
+
+
+@admin.register(PrivateLessonQuizQuestion)
+class PrivateLessonQuizQuestionAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'quiz', 'order', 'points']
+    list_filter = ['quiz']
+    search_fields = ['text', 'quiz__title']
+    ordering = ['quiz', 'order']
+    inlines = [PrivateLessonQuizAnswerInline]
+    readonly_fields = ['id']
+
+
+@admin.register(PrivateLessonQuiz)
+class PrivateLessonQuizAdmin(admin.ModelAdmin):
+    list_display = [
+        'title', 
+        'created_by', 
+        'syllabus', 
+        'grade_level',
+        'question_count',
+        'pass_percentage',
+        'is_public',
+        'use_count',
+        'created_at'
+    ]
+    list_filter = ['syllabus', 'is_public', 'created_at', 'grade_level']
+    search_fields = ['title', 'description']
+    filter_horizontal = ['tags']
+    readonly_fields = ['id', 'use_count', 'created_at', 'updated_at', 'total_points']
+    fieldsets = [
+        ('Basic Information', {
+            'fields': ['title', 'description', 'instructions', 'created_by']
+        }),
+        ('Quiz Settings', {
+            'fields': [
+                'pass_percentage',
+                'time_limit_minutes',
+                'randomize_questions',
+                'show_correct_answers',
+                'allow_retakes',
+                'max_attempts'
+            ]
+        }),
+        ('Categorization', {
+            'fields': ['subject', 'syllabus', 'grade_level', 'tags']
+        }),
+        ('Sharing', {
+            'fields': ['is_public']
+        }),
+        ('Metadata', {
+            'fields': ['id', 'use_count', 'total_points', 'created_at', 'updated_at'],
+            'classes': ['collapse']
+        }),
+    ]
+    
+    def save_model(self, request, obj, form, change):
+        if not change:  # Creating new quiz
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(PrivateLessonQuizAssignment)
+class PrivateLessonQuizAssignmentAdmin(admin.ModelAdmin):
+    list_display = [
+        'quiz',
+        'student_name',
+        'teacher',
+        'status',
+        'assigned_date',
+        'due_date',
+        'attempt_count',
+        'best_score'
+    ]
+    list_filter = ['status', 'assigned_date', 'teacher']
+    search_fields = ['quiz__title', 'student__username', 'student__email']
+    readonly_fields = [
+        'id', 
+        'assigned_date', 
+        'attempt_count', 
+        'best_score', 
+        'passed_status'
+    ]
+    
+    def student_name(self, obj):
+        if obj.child_profile:
+            return f"{obj.child_profile.full_name} (via {obj.student.username})"
+        return obj.student.get_full_name() or obj.student.username
+    student_name.short_description = 'Student'
+    
+    def best_score(self, obj):
+        best = obj.best_attempt
+        if not best:
+            return '-'
+        color = 'green' if best.passed else 'red'
+        return format_html(
+            '<span style="color: {};">{:.1f}%</span>',
+            color,
+            best.score
+        )
+    best_score.short_description = 'Best Score'
+    
+    def passed_status(self, obj):
+        if obj.passed:
+            return format_html('<span style="color: green;">✓ Passed</span>')
+        return format_html('<span style="color: red;">✗ Not Passed</span>')
+    passed_status.short_description = 'Status'
+
+
+@admin.register(PrivateLessonQuizAttempt)
+class PrivateLessonQuizAttemptAdmin(admin.ModelAdmin):
+    list_display = [
+        'assignment',
+        'started_at',
+        'submitted_at',
+        'colored_score',
+        'passed_indicator',
+        'time_taken_minutes'
+    ]
+    list_filter = ['passed', 'submitted_at', 'started_at']
+    search_fields = ['assignment__quiz__title', 'assignment__student__username']
+    readonly_fields = [
+        'id',
+        'started_at',
+        'submitted_at',
+        'score',
+        'passed',
+        'time_taken_minutes',
+        'answers_data'
+    ]
+    
+    def colored_score(self, obj):
+        if not obj.submitted_at:
+            return '-'
+        color = 'green' if obj.passed else 'red'
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{:.1f}%</span>',
+            color,
+            obj.score
+        )
+    colored_score.short_description = 'Score'
+    
+    def passed_indicator(self, obj):
+        if not obj.submitted_at:
+            return format_html('<span style="color: gray;">In Progress</span>')
+        if obj.passed:
+            return format_html('<span style="color: green;">✓ Passed</span>')
+        return format_html('<span style="color: red;">✗ Failed</span>')
+    passed_indicator.short_description = 'Result'
