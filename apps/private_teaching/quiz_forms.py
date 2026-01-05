@@ -238,8 +238,9 @@ class PrivateLessonQuizAnswerForm(forms.ModelForm):
         model = PrivateLessonQuizAnswer
         fields = ['text', 'is_correct', 'order']
         widgets = {
-            'text': forms.TextInput(attrs={
-                'class': 'input input-bordered w-full',
+            'text': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 2,
                 'placeholder': 'Answer text...'
             }),
             'is_correct': forms.CheckboxInput(attrs={
