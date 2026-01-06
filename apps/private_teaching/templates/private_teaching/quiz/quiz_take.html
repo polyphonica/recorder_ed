@@ -74,6 +74,24 @@
         <span class="text-sm text-base-content/70" id="autosave-message"></span>
     </div>
 
+    <!-- Progress Indicator -->
+    <div class="card card-section shadow-lg mb-6">
+        <div class="card-body py-4">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex-1 w-full">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-semibold text-base-content/70">Progress</span>
+                        <span class="text-sm font-bold text-primary" id="progress-text">0 of {{ quiz.questions.count }} answered</span>
+                    </div>
+                    <div class="w-full bg-base-300 rounded-full h-3">
+                        <div class="bg-primary h-3 rounded-full transition-all duration-300" id="progress-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="text-3xl font-bold text-primary" id="progress-percentage">0%</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Quiz Form -->
     <form id="quiz-form" method="post" action="{% url 'private_teaching:quiz_submit' assignment.pk %}" class="space-y-6">
         {% csrf_token %}
@@ -153,6 +171,50 @@ document.addEventListener('DOMContentLoaded', function() {
     let isAutoSaving = false;
     let isSavingAllowed = true; // Flag to prevent saves during submission
     let hasUnsavedChanges = false;
+
+    // Progress tracking elements
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const progressPercentage = document.getElementById('progress-percentage');
+    const totalQuestions = {{ quiz.questions.count }};
+
+    // Function to update progress indicator
+    function updateProgress() {
+        const answeredQuestions = new Set();
+        const formData = new FormData(form);
+
+        for (let [key, value] of formData.entries()) {
+            if (key.startsWith('question_')) {
+                answeredQuestions.add(key);
+            }
+        }
+
+        const answeredCount = answeredQuestions.size;
+        const percentage = Math.round((answeredCount / totalQuestions) * 100);
+
+        // Update progress bar
+        progressBar.style.width = percentage + '%';
+
+        // Update text
+        progressText.textContent = `${answeredCount} of ${totalQuestions} answered`;
+        progressPercentage.textContent = percentage + '%';
+
+        // Change color based on completion
+        if (percentage === 100) {
+            progressBar.classList.remove('bg-primary');
+            progressBar.classList.add('bg-success');
+            progressPercentage.classList.remove('text-primary');
+            progressPercentage.classList.add('text-success');
+        } else {
+            progressBar.classList.remove('bg-success');
+            progressBar.classList.add('bg-primary');
+            progressPercentage.classList.remove('text-success');
+            progressPercentage.classList.add('text-primary');
+        }
+    }
+
+    // Initialize progress on page load
+    updateProgress();
 
     {% if quiz.time_limit_minutes %}
     // Timer logic
@@ -234,17 +296,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Trigger auto-save on answer change (with debounce)
+    // Trigger auto-save and progress update on answer change
     form.addEventListener('change', function(e) {
         if (e.target.matches('input[type="radio"]')) {
             hasUnsavedChanges = true;
+
+            // Update progress indicator immediately
+            updateProgress();
 
             // Clear existing debounce timer
             if (debounceTimer) {
                 clearTimeout(debounceTimer);
             }
 
-            // Set new debounce timer
+            // Set new debounce timer for auto-save
             debounceTimer = setTimeout(() => {
                 performAutoSave();
             }, DEBOUNCE_DELAY);
