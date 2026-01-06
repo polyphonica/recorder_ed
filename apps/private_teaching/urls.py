@@ -40,6 +40,7 @@ urlpatterns = [
     path('teacher/bulk-action/', views.BulkActionView.as_view(), name='bulk_action'),
     path('teacher/library/', views.TeacherDocumentLibraryView.as_view(), name='teacher_library'),
     path('teacher/students/', views.TeacherStudentsListView.as_view(), name='teacher_students'),
+    path('teacher/students/<int:student_id>/progress/', views.TeacherStudentProgressView.as_view(), name='teacher_student_progress'),
     path('teacher/students/<int:student_id>/contact/', views.StudentContactDetailView.as_view(), name='student_contact_detail'),
     
     # Cart Views

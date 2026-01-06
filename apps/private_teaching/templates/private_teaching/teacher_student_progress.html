@@ -1,0 +1,558 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ student.get_full_name }} - Student Progress{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    <!-- Header with Navigation -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">
+                    {% if student.profile.first_name %}
+                        {{ student.profile.first_name }} {{ student.profile.last_name }}
+                    {% else %}
+                        {{ student.get_full_name }}
+                    {% endif %}
+                </h1>
+                <p class="text-base-content/70">Student Progress & Management</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'private_teaching:teacher_students' %}" class="btn btn-outline">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Students
+                </a>
+                {% if next_student_id %}
+                    <a href="{% url 'private_teaching:teacher_student_progress' next_student_id %}" class="btn btn-outline">
+                        Next Student<i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Overview Card -->
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Student Info -->
+                <div>
+                    <h3 class="font-bold text-lg mb-3">Contact Information</h3>
+                    <div class="space-y-2 text-base">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-envelope w-5 text-primary"></i>
+                            <span class="text-sm">{{ student.email }}</span>
+                        </div>
+                        {% if is_guardian %}
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-child w-5 text-warning"></i>
+                                <span class="text-sm">Guardian ({{ child_profiles|length }} child{{ child_profiles|length|pluralize:"ren" }})</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <button onclick="viewContactDetails({{ student.id }})" class="btn btn-sm btn-primary">
+                            <i class="fas fa-address-card mr-1"></i>Contact Details
+                        </button>
+                        <a href="{% url 'messaging:start_private_teaching_conversation' student.id %}" class="btn btn-sm btn-outline">
+                            💬 Message
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Subjects -->
+                <div>
+                    <h3 class="font-bold text-lg mb-3">Subjects</h3>
+                    <div class="flex flex-wrap gap-2">
+                        {% for subject in subjects %}
+                            <span class="badge badge-primary badge-lg">{{ subject.subject }}</span>
+                        {% empty %}
+                            <span class="text-base-content/70">No subjects</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-3 text-sm text-base-content/70">
+                        {{ total_lessons }} total lesson{{ total_lessons|pluralize }}
+                    </div>
+                </div>
+
+                <!-- Progress Summary -->
+                <div>
+                    <h3 class="font-bold text-lg mb-3">Outstanding Work</h3>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-base">Assignments:</span>
+                            <span class="badge badge-warning">{{ outstanding_assignments }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base">Quizzes:</span>
+                            <span class="badge badge-warning">{{ outstanding_quizzes }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Practice Stats -->
+                <div>
+                    <h3 class="font-bold text-lg mb-3">Practice Time</h3>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-base">This week:</span>
+                            <span class="font-semibold">{{ week_practice_minutes }} min</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base">This month:</span>
+                            <span class="font-semibold">{{ month_practice_minutes }} min</span>
+                        </div>
+                    </div>
+                    <a href="{% url 'private_teaching:teacher_student_practice' student.id %}" class="btn btn-sm btn-success mt-3 w-full">
+                        <i class="fas fa-clipboard-list mr-1"></i>View Practice Log
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="tabs tabs-boxed bg-base-200 mb-6">
+        <a href="?filter=all" class="tab {% if filter_status == 'all' %}tab-active{% endif %}">All</a>
+        <a href="?filter=outstanding" class="tab {% if filter_status == 'outstanding' %}tab-active{% endif %}">
+            Outstanding
+            {% if filter_status != 'outstanding' %}
+                <span class="ml-2 badge badge-sm badge-warning">{{ outstanding_assignments|add:outstanding_quizzes }}</span>
+            {% endif %}
+        </a>
+        <a href="?filter=completed" class="tab {% if filter_status == 'completed' %}tab-active{% endif %}">Completed</a>
+        <a href="?filter=not_passed" class="tab {% if filter_status == 'not_passed' %}tab-active{% endif %}">Not Passed</a>
+    </div>
+
+    <!-- Assignments Section -->
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-bold">
+                    <i class="fas fa-file-alt mr-2 text-primary"></i>Assignments
+                </h2>
+                <div class="text-base-content/70">
+                    {{ total_assignments }} total
+                </div>
+            </div>
+
+            {% if assignment_data %}
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th class="text-base">Title</th>
+                                <th class="text-base">Due Date</th>
+                                <th class="text-base">Status</th>
+                                <th class="text-base">Grade</th>
+                                <th class="text-base text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in assignment_data %}
+                                <tr>
+                                    <td class="font-medium">
+                                        {{ data.assignment.assignment.title }}
+                                        {% if data.is_overdue %}
+                                            <span class="badge badge-error badge-sm ml-2">Overdue</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if data.assignment.due_date %}
+                                            {{ data.assignment.due_date|date:"M d, Y" }}
+                                        {% else %}
+                                            <span class="text-base-content/70">No deadline</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if data.status == 'not_started' %}
+                                            <span class="badge badge-ghost">Not Started</span>
+                                        {% elif data.status == 'in_progress' %}
+                                            <span class="badge badge-info">In Progress</span>
+                                        {% elif data.status == 'submitted' %}
+                                            <span class="badge badge-warning">Submitted</span>
+                                        {% elif data.status == 'graded' %}
+                                            {% if data.passed %}
+                                                <span class="badge badge-success">Passed</span>
+                                            {% elif data.passed == False %}
+                                                <span class="badge badge-error">Not Passed</span>
+                                            {% else %}
+                                                <span class="badge badge-success">Graded</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                    <td class="font-semibold">{{ data.grade_display }}</td>
+                                    <td class="text-center">
+                                        {% if data.submission %}
+                                            <a href="{% url 'assignments:grade_submission' data.submission.id %}" class="btn btn-sm btn-outline">
+                                                <i class="fas fa-eye mr-1"></i>View/Grade
+                                            </a>
+                                        {% else %}
+                                            <span class="text-base-content/70 text-sm">Not started</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-8 text-base-content/70">
+                    {% if filter_status == 'all' %}
+                        No assignments assigned to this student yet
+                    {% else %}
+                        No {{ filter_status }} assignments
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quizzes Section -->
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-bold">
+                    <i class="fas fa-question-circle mr-2 text-success"></i>Quizzes
+                </h2>
+                <div class="text-base-content/70">
+                    {{ total_quizzes }} total
+                </div>
+            </div>
+
+            {% if quiz_data %}
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th class="text-base">Quiz Title</th>
+                                <th class="text-base">Due Date</th>
+                                <th class="text-base">Status</th>
+                                <th class="text-base">Best Score</th>
+                                <th class="text-base">Attempts</th>
+                                <th class="text-base text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in quiz_data %}
+                                <tr>
+                                    <td class="font-medium">
+                                        {{ data.assignment.quiz.title }}
+                                        {% if data.is_overdue %}
+                                            <span class="badge badge-error badge-sm ml-2">Overdue</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if data.assignment.due_date %}
+                                            {{ data.assignment.due_date|date:"M d, Y" }}
+                                        {% else %}
+                                            <span class="text-base-content/70">No deadline</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if data.status == 'not_started' %}
+                                            <span class="badge badge-ghost">Not Started</span>
+                                        {% elif data.status == 'assigned' %}
+                                            <span class="badge badge-info">Assigned</span>
+                                        {% elif data.status == 'in_progress' %}
+                                            <span class="badge badge-warning">In Progress</span>
+                                        {% elif data.status == 'completed' %}
+                                            {% if data.passed %}
+                                                <span class="badge badge-success">Passed</span>
+                                            {% else %}
+                                                <span class="badge badge-error">Not Passed</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                    <td class="font-semibold">{{ data.score_display }}</td>
+                                    <td>
+                                        {{ data.attempts }}{% if data.max_attempts %}/{{ data.max_attempts }}{% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if data.best_attempt %}
+                                            <a href="{% url 'private_teaching:quiz_attempt_results' data.best_attempt.id %}" class="btn btn-sm btn-outline">
+                                                <i class="fas fa-chart-bar mr-1"></i>View Results
+                                            </a>
+                                        {% else %}
+                                            <span class="text-base-content/70 text-sm">Not attempted</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-8 text-base-content/70">
+                    {% if filter_status == 'all' %}
+                        No quizzes assigned to this student yet
+                    {% else %}
+                        No {{ filter_status }} quizzes
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Exams Section -->
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-bold">
+                    <i class="fas fa-graduation-cap mr-2 text-accent"></i>Exams
+                </h2>
+                <a href="{% url 'private_teaching:exam_create' %}?student={{ student.id }}" class="btn btn-sm btn-accent">
+                    <i class="fas fa-plus mr-2"></i>Register for Exam
+                </a>
+            </div>
+
+            {% if upcoming_exams %}
+                <div class="mb-6">
+                    <h3 class="font-bold text-lg mb-3">Upcoming Exams</h3>
+                    <div class="space-y-3">
+                        {% for exam in upcoming_exams %}
+                            <div class="bg-base-200 rounded-lg p-4">
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <h4 class="font-semibold text-lg">{{ exam.exam_type }}</h4>
+                                        <div class="text-base-content/70 mt-1">
+                                            <i class="fas fa-calendar mr-2"></i>{{ exam.exam_date|date:"l, F j, Y" }}
+                                        </div>
+                                        {% if exam.exam_board %}
+                                            <div class="text-base-content/70 mt-1">
+                                                <i class="fas fa-building mr-2"></i>{{ exam.exam_board }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <a href="{% url 'private_teaching:exam_detail' exam.id %}" class="btn btn-sm btn-outline">
+                                        View Details
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if past_exams %}
+                <div>
+                    <h3 class="font-bold text-lg mb-3">Past Exams</h3>
+                    <div class="overflow-x-auto">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th class="text-base">Exam Type</th>
+                                    <th class="text-base">Date</th>
+                                    <th class="text-base">Result</th>
+                                    <th class="text-base text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for exam in past_exams %}
+                                    <tr>
+                                        <td>{{ exam.exam_type }}</td>
+                                        <td>{{ exam.exam_date|date:"M d, Y" }}</td>
+                                        <td>
+                                            {% if exam.result %}
+                                                <span class="badge badge-success">{{ exam.result }}</span>
+                                            {% else %}
+                                                <span class="text-base-content/70">Pending</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <a href="{% url 'private_teaching:exam_detail' exam.id %}" class="btn btn-xs btn-outline">
+                                                View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if not upcoming_exams and not past_exams %}
+                <div class="text-center py-8 text-base-content/70">
+                    No exams registered for this student
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Practice Log Section -->
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-bold">
+                    <i class="fas fa-music mr-2 text-success"></i>Recent Practice
+                </h2>
+                <a href="{% url 'private_teaching:teacher_student_practice' student.id %}" class="btn btn-sm btn-success">
+                    <i class="fas fa-clipboard-list mr-2"></i>Full Practice Log
+                </a>
+            </div>
+
+            {% if practice_entries %}
+                <div class="overflow-x-auto">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th class="text-base">Date</th>
+                                <th class="text-base">Duration</th>
+                                <th class="text-base">Focus</th>
+                                <th class="text-base">Teacher Comments</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in practice_entries %}
+                                <tr>
+                                    <td>{{ entry.practice_date|date:"M d, Y" }}</td>
+                                    <td>{{ entry.duration_minutes }} min</td>
+                                    <td>{{ entry.practice_focus|truncatewords:10 }}</td>
+                                    <td>
+                                        {% if entry.teacher_comments.count > 0 %}
+                                            <span class="badge badge-info badge-sm">{{ entry.teacher_comments.count }} comment{{ entry.teacher_comments.count|pluralize }}</span>
+                                        {% else %}
+                                            <span class="text-base-content/70">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-8 text-base-content/70">
+                    No practice entries logged yet
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Contact Details Modal (reuse from students list) -->
+<dialog id="contact_modal" class="modal">
+    <div class="modal-box max-w-2xl">
+        <h3 class="font-bold text-2xl mb-4">
+            <i class="fas fa-address-card mr-2"></i>
+            Contact Details
+        </h3>
+
+        <div id="contact_content" class="space-y-4">
+            <div class="flex justify-center py-8">
+                <span class="loading loading-spinner loading-lg"></span>
+            </div>
+        </div>
+
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Close</button>
+            </form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<script>
+    // HTML escape function to prevent XSS
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function viewContactDetails(studentId) {
+        const modal = document.getElementById('contact_modal');
+        const contentDiv = document.getElementById('contact_content');
+
+        contentDiv.innerHTML = '<div class="flex justify-center py-8"><span class="loading loading-spinner loading-lg"></span></div>';
+        modal.showModal();
+
+        fetch(`/private-teaching/teacher/students/${studentId}/contact/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load contact details');
+                }
+                return response.json();
+            })
+            .then(data => {
+                let html = `
+                    <div class="space-y-4">
+                        <div class="bg-base-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-lg mb-3 flex items-center">
+                                <i class="fas fa-user mr-2 text-primary"></i>
+                                ${escapeHtml(data.full_name)}
+                            </h4>
+
+                            <div class="grid grid-cols-1 gap-3">
+                                <div class="flex items-start">
+                                    <i class="fas fa-envelope w-6 text-primary mt-1"></i>
+                                    <div>
+                                        <div class="text-sm text-base-content/70">Email</div>
+                                        <div class="font-medium">${escapeHtml(data.email) || 'Not provided'}</div>
+                                    </div>
+                                </div>
+
+                                ${data.phone ? `
+                                <div class="flex items-start">
+                                    <i class="fas fa-phone w-6 text-primary mt-1"></i>
+                                    <div>
+                                        <div class="text-sm text-base-content/70">Phone</div>
+                                        <div class="font-medium">${escapeHtml(data.phone)}</div>
+                                    </div>
+                                </div>
+                                ` : ''}
+
+                                ${data.address ? `
+                                <div class="flex items-start">
+                                    <i class="fas fa-map-marker-alt w-6 text-primary mt-1"></i>
+                                    <div>
+                                        <div class="text-sm text-base-content/70">Address</div>
+                                        <div class="font-medium">${escapeHtml(data.address)}</div>
+                                    </div>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        ${data.is_guardian && data.children && data.children.length > 0 ? `
+                        <div class="bg-info/10 rounded-lg p-4 border border-info/20">
+                            <h4 class="font-semibold text-lg mb-3 flex items-center text-info">
+                                <i class="fas fa-child mr-2"></i>
+                                Guardian - Child Profiles
+                            </h4>
+                            <div class="space-y-2">
+                                ${data.children.map(child => `
+                                    <div class="flex items-center bg-base-100 rounded p-2">
+                                        <i class="fas fa-user-circle mr-2"></i>
+                                        <div>
+                                            <div class="font-medium">${escapeHtml(child.full_name)}</div>
+                                            ${child.date_of_birth ? `<div class="text-sm text-base-content/70">DOB: ${escapeHtml(child.date_of_birth)}</div>` : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                contentDiv.innerHTML = html;
+            })
+            .catch(error => {
+                contentDiv.innerHTML = `
+                    <div class="alert alert-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>Failed to load contact details. Please try again.</span>
+                    </div>
+                `;
+                console.error('Error loading contact details:', error);
+            });
+    }
+</script>
+{% endblock %}

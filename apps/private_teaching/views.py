@@ -5,18 +5,19 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.utils import timezone
-from django.db import transaction
+from django.db import transaction, models
 from django.db.models import Q
 from django.core.mail import send_mail
+from django.core.exceptions import PermissionDenied
 from django.conf import settings
 
 from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, UserFilterMixin
 from .models import (
     LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem,
     TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard,
-    LessonCancellationRequest, PracticeEntry,
+    LessonCancellationRequest, PracticeEntry, PrivateLessonAssignment,
     PrivateLessonQuiz, PrivateLessonQuizQuestion, PrivateLessonQuizAnswer,
     PrivateLessonQuizAssignment, PrivateLessonQuizAttempt
 )
@@ -1694,6 +1695,255 @@ class StudentContactDetailView(TeacherProfileCompletedMixin, View):
 
         except User.DoesNotExist:
             return JsonResponse({'error': 'Student not found'}, status=404)
+
+
+class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
+    """
+    Comprehensive student progress and management view for teachers.
+    Shows assignments, quizzes, exams, and practice logs for a specific student.
+    """
+    template_name = 'private_teaching/teacher_student_progress.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        student_id = kwargs.get('student_id')
+
+        try:
+            # Verify this teacher has lessons with this student
+            from lessons.models import Lesson
+            lesson_exists = Lesson.objects.filter(
+                teacher=self.request.user,
+                student_id=student_id,
+                approved_status='Accepted',
+                is_deleted=False
+            ).exists()
+
+            if not lesson_exists:
+                raise PermissionDenied("You don't have permission to view this student")
+
+            # Get student details
+            student = User.objects.select_related('profile').get(id=student_id)
+            context['student'] = student
+
+            # Get subjects for this student
+            subjects = Subject.objects.filter(
+                teacher=self.request.user,
+                lesson__student=student,
+                lesson__approved_status='Accepted',
+                lesson__is_deleted=False
+            ).distinct()
+            context['subjects'] = subjects
+
+            # Get total lessons count
+            total_lessons = Lesson.objects.filter(
+                teacher=self.request.user,
+                student=student,
+                approved_status='Accepted',
+                is_deleted=False
+            ).count()
+            context['total_lessons'] = total_lessons
+
+            # Check if student is a guardian with children
+            from apps.accounts.models import ChildProfile
+            lessons = Lesson.objects.filter(
+                teacher=self.request.user,
+                student=student,
+                approved_status='Accepted',
+                is_deleted=False
+            ).select_related('lesson_request__child_profile')
+
+            child_profiles = []
+            for lesson in lessons:
+                if lesson.lesson_request and lesson.lesson_request.child_profile:
+                    child_profile = lesson.lesson_request.child_profile
+                    if child_profile not in child_profiles:
+                        child_profiles.append(child_profile)
+
+            context['child_profiles'] = child_profiles
+            context['is_guardian'] = len(child_profiles) > 0
+
+            # Get filter parameter
+            filter_status = self.request.GET.get('filter', 'all')
+            context['filter_status'] = filter_status
+
+            # ===== ASSIGNMENTS SECTION =====
+            from assignments.models import AssignmentSubmission
+
+            assignments = PrivateLessonAssignment.objects.filter(
+                teacher=self.request.user,
+                student=student
+            ).select_related('assignment').prefetch_related('assignment__submissions')
+
+            # Annotate assignments with status
+            assignment_data = []
+            for assign in assignments:
+                sub = assign.submission
+
+                # Determine status
+                if not sub:
+                    status = 'not_started'
+                    grade = None
+                    grade_display = '—'
+                elif sub.status == 'draft':
+                    status = 'in_progress'
+                    grade = None
+                    grade_display = '—'
+                elif sub.status == 'submitted':
+                    status = 'submitted'
+                    grade = None
+                    grade_display = 'Pending'
+                elif sub.status == 'graded':
+                    status = 'graded'
+                    grade = sub.grade
+                    grade_display = assign.assignment.format_grade(grade)
+                else:
+                    status = 'unknown'
+                    grade = None
+                    grade_display = '—'
+
+                # Check if passed (for graded assignments)
+                passed = None
+                if status == 'graded' and grade is not None:
+                    if assign.assignment.grading_scale == 'pass_fail':
+                        passed = grade >= 1
+                    else:
+                        # Consider 60% as passing (adjust as needed)
+                        max_grade = assign.assignment.get_max_grade()
+                        passed = (grade / max_grade) >= 0.6 if max_grade > 0 else False
+
+                assignment_data.append({
+                    'assignment': assign,
+                    'submission': sub,
+                    'status': status,
+                    'grade': grade,
+                    'grade_display': grade_display,
+                    'passed': passed,
+                    'is_overdue': assign.is_overdue,
+                })
+
+            # Apply filter
+            if filter_status == 'outstanding':
+                assignment_data = [a for a in assignment_data if a['status'] in ['not_started', 'in_progress', 'submitted']]
+            elif filter_status == 'completed':
+                assignment_data = [a for a in assignment_data if a['status'] == 'graded']
+            elif filter_status == 'not_passed':
+                assignment_data = [a for a in assignment_data if a['status'] == 'graded' and a['passed'] is False]
+
+            context['assignment_data'] = assignment_data
+            context['total_assignments'] = len(assignments)
+            context['outstanding_assignments'] = len([a for a in assignment_data if a['status'] in ['not_started', 'in_progress', 'submitted']])
+
+            # ===== QUIZZES SECTION =====
+            quiz_assignments = PrivateLessonQuizAssignment.objects.filter(
+                teacher=self.request.user,
+                student=student
+            ).select_related('quiz').prefetch_related('attempts')
+
+            quiz_data = []
+            for quiz_assign in quiz_assignments:
+                best_attempt = quiz_assign.best_attempt
+
+                # Determine status
+                if quiz_assign.attempt_count == 0:
+                    status = 'not_started'
+                elif quiz_assign.status == 'completed':
+                    status = 'completed'
+                elif quiz_assign.status == 'in_progress':
+                    status = 'in_progress'
+                else:
+                    status = 'assigned'
+
+                # Get score
+                score = best_attempt.score if best_attempt else None
+                score_display = f"{score}%" if score is not None else '—'
+
+                # Check if passed
+                passed = quiz_assign.passed
+
+                quiz_data.append({
+                    'assignment': quiz_assign,
+                    'status': status,
+                    'score': score,
+                    'score_display': score_display,
+                    'passed': passed,
+                    'attempts': quiz_assign.attempt_count,
+                    'max_attempts': quiz_assign.quiz.max_attempts,
+                    'best_attempt': best_attempt,
+                    'is_overdue': quiz_assign.is_overdue,
+                })
+
+            # Apply filter
+            if filter_status == 'outstanding':
+                quiz_data = [q for q in quiz_data if q['status'] in ['not_started', 'assigned', 'in_progress'] or not q['passed']]
+            elif filter_status == 'completed':
+                quiz_data = [q for q in quiz_data if q['status'] == 'completed' and q['passed']]
+            elif filter_status == 'not_passed':
+                quiz_data = [q for q in quiz_data if q['status'] == 'completed' and not q['passed']]
+
+            context['quiz_data'] = quiz_data
+            context['total_quizzes'] = len(quiz_assignments)
+            context['outstanding_quizzes'] = len([q for q in quiz_data if q['status'] in ['not_started', 'assigned', 'in_progress'] or not q['passed']])
+
+            # ===== EXAMS SECTION =====
+            from django.utils import timezone
+
+            exams = ExamRegistration.objects.filter(
+                teacher=self.request.user,
+                student=student
+            ).order_by('exam_date')
+
+            upcoming_exams = exams.filter(exam_date__gte=timezone.now())
+            past_exams = exams.filter(exam_date__lt=timezone.now())
+
+            context['upcoming_exams'] = upcoming_exams
+            context['past_exams'] = past_exams
+            context['total_exams'] = exams.count()
+
+            # ===== PRACTICE LOG SECTION =====
+            practice_entries = PracticeEntry.objects.filter(
+                student=student
+            ).select_related('instrument').prefetch_related('teacher_comments').order_by('-practice_date')[:10]
+
+            # Calculate practice stats
+            from datetime import timedelta
+            now = timezone.now()
+            week_ago = now - timedelta(days=7)
+            month_ago = now - timedelta(days=30)
+
+            week_practice = PracticeEntry.objects.filter(
+                student=student,
+                practice_date__gte=week_ago
+            ).aggregate(total=models.Sum('duration_minutes'))['total'] or 0
+
+            month_practice = PracticeEntry.objects.filter(
+                student=student,
+                practice_date__gte=month_ago
+            ).aggregate(total=models.Sum('duration_minutes'))['total'] or 0
+
+            context['practice_entries'] = practice_entries
+            context['week_practice_minutes'] = week_practice
+            context['month_practice_minutes'] = month_practice
+
+            # ===== NAVIGATION =====
+            # Get all students for this teacher (for next/previous navigation)
+            all_student_ids = list(Lesson.objects.filter(
+                teacher=self.request.user,
+                approved_status='Accepted',
+                is_deleted=False
+            ).values_list('student__id', flat=True).distinct().order_by('student__profile__last_name', 'student__profile__first_name'))
+
+            try:
+                current_index = all_student_ids.index(student_id)
+                context['next_student_id'] = all_student_ids[current_index + 1] if current_index < len(all_student_ids) - 1 else None
+                context['previous_student_id'] = all_student_ids[current_index - 1] if current_index > 0 else None
+            except (ValueError, IndexError):
+                context['next_student_id'] = None
+                context['previous_student_id'] = None
+
+        except User.DoesNotExist:
+            raise Http404("Student not found")
+
+        return context
 
 
 # ==========================================
