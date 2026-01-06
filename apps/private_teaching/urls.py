@@ -127,5 +127,6 @@ urlpatterns = [
     path('my-quizzes/', views.StudentQuizListView.as_view(), name='student_quiz_list'),
     path('quiz-assignments/<uuid:assignment_id>/take/', views.QuizTakeView.as_view(), name='quiz_take'),
     path('quiz-assignments/<uuid:assignment_id>/submit/', views.QuizSubmitView.as_view(), name='quiz_submit'),
+    path('quiz-assignments/<uuid:assignment_id>/autosave/', views.QuizAutoSaveView.as_view(), name='quiz_autosave'),
     path('quiz-attempts/<uuid:pk>/results/', views.QuizAttemptResultsView.as_view(), name='quiz_attempt_results'),
 ]

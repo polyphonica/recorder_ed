@@ -57,6 +57,23 @@
         </div>
     </div>
 
+    <!-- Resume Message -->
+    {% if is_resuming and last_save_time %}
+    <div class="alert alert-success mb-6">
+        <i class="fas fa-play-circle"></i>
+        <div>
+            <h3 class="font-bold text-lg">Resuming Quiz</h3>
+            <p class="text-base">You're continuing from where you left off. Last saved at {{ last_save_time }}.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Auto-Save Status -->
+    <div class="flex items-center gap-2 mb-4" id="autosave-status" style="display: none;">
+        <span class="loading loading-spinner loading-xs" id="saving-spinner" style="display: none;"></span>
+        <span class="text-sm text-base-content/70" id="autosave-message"></span>
+    </div>
+
     <!-- Quiz Form -->
     <form id="quiz-form" method="post" action="{% url 'private_teaching:quiz_submit' assignment.pk %}" class="space-y-6">
         {% csrf_token %}
@@ -84,6 +101,9 @@
                                        name="question_{{ question.id }}"
                                        value="{{ answer.id }}"
                                        class="radio radio-primary"
+                                       {% for q_id, a_id in attempt.answers_data.items %}
+                                           {% if q_id|stringformat:"s" == question.id|stringformat:"s" and a_id|stringformat:"s" == answer.id|stringformat:"s" %}checked{% endif %}
+                                       {% endfor %}
                                        required>
                                 <span class="flex-1">{{ answer.text }}</span>
                             </label>
@@ -115,6 +135,18 @@
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('quiz-form');
     const submitBtn = document.getElementById('submit-btn');
+    const autosaveStatus = document.getElementById('autosave-status');
+    const savingSpinner = document.getElementById('saving-spinner');
+    const autosaveMessage = document.getElementById('autosave-message');
+
+    // Auto-save configuration
+    const AUTOSAVE_INTERVAL = 30000; // 30 seconds
+    const DEBOUNCE_DELAY = 2000; // 2 seconds after last change
+    let autosaveTimer = null;
+    let debounceTimer = null;
+    let isAutoSaving = false;
+    let isSavingAllowed = true; // Flag to prevent saves during submission
+    let hasUnsavedChanges = false;
 
     {% if quiz.time_limit_minutes %}
     // Timer logic
@@ -131,7 +163,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Time's up - auto submit
             timerElement.textContent = '0:00';
             timerElement.classList.add('text-error');
-            form.submit();
+            isSavingAllowed = false; // Prevent auto-save during forced submission
+            form.dispatchEvent(new Event('submit'));
             return;
         }
 
@@ -149,9 +182,82 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(updateTimer, 1000);
     {% endif %}
 
+    // Get CSRF token
+    function getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+               document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    }
+
+    // Auto-save function
+    async function performAutoSave() {
+        if (isAutoSaving || !isSavingAllowed) return;
+
+        isAutoSaving = true;
+        autosaveStatus.style.display = 'flex';
+        savingSpinner.style.display = 'inline-block';
+        autosaveMessage.textContent = 'Saving...';
+
+        try {
+            const formData = new FormData(form);
+
+            const response = await fetch('{% url "private_teaching:quiz_autosave" assignment.pk %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCsrfToken()
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                savingSpinner.style.display = 'none';
+                autosaveMessage.innerHTML = '<i class="fas fa-check text-success mr-1"></i>All changes saved at ' + data.saved_at;
+                hasUnsavedChanges = false;
+            } else {
+                savingSpinner.style.display = 'none';
+                autosaveMessage.innerHTML = '<i class="fas fa-exclamation-triangle text-warning mr-1"></i>Auto-save failed';
+            }
+        } catch (error) {
+            console.error('Auto-save error:', error);
+            savingSpinner.style.display = 'none';
+            autosaveMessage.innerHTML = '<i class="fas fa-exclamation-triangle text-warning mr-1"></i>Auto-save failed - check connection';
+        } finally {
+            isAutoSaving = false;
+        }
+    }
+
+    // Trigger auto-save on answer change (with debounce)
+    form.addEventListener('change', function(e) {
+        if (e.target.matches('input[type="radio"]')) {
+            hasUnsavedChanges = true;
+
+            // Clear existing debounce timer
+            if (debounceTimer) {
+                clearTimeout(debounceTimer);
+            }
+
+            // Set new debounce timer
+            debounceTimer = setTimeout(() => {
+                performAutoSave();
+            }, DEBOUNCE_DELAY);
+        }
+    });
+
+    // Periodic auto-save every 30 seconds
+    autosaveTimer = setInterval(performAutoSave, AUTOSAVE_INTERVAL);
+
     // Form submission with AJAX
     form.addEventListener('submit', function(e) {
         e.preventDefault();
+
+        // Stop auto-saving during submission
+        isSavingAllowed = false;
+        clearInterval(autosaveTimer);
+        if (debounceTimer) {
+            clearTimeout(debounceTimer);
+        }
 
         // Check all questions answered
         const questions = {{ quiz.questions.count }};
@@ -166,11 +272,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (answeredQuestions.size < questions) {
             alert(`Please answer all questions. You've answered ${answeredQuestions.size} out of ${questions}.`);
+            // Re-enable auto-save
+            isSavingAllowed = true;
+            autosaveTimer = setInterval(performAutoSave, AUTOSAVE_INTERVAL);
             return;
         }
 
         // Confirm submission
         if (!confirm('Are you sure you want to submit your quiz? You cannot change your answers after submitting.')) {
+            // Re-enable auto-save
+            isSavingAllowed = true;
+            autosaveTimer = setInterval(performAutoSave, AUTOSAVE_INTERVAL);
             return;
         }
 
@@ -183,7 +295,8 @@ document.addEventListener('DOMContentLoaded', function() {
             method: 'POST',
             body: formData,
             headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCsrfToken()
             }
         })
         .then(response => response.json())
@@ -195,6 +308,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Error: ' + (data.error || 'Failed to submit quiz'));
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit Quiz';
+                // Re-enable auto-save
+                isSavingAllowed = true;
+                autosaveTimer = setInterval(performAutoSave, AUTOSAVE_INTERVAL);
             }
         })
         .catch(error => {
@@ -202,13 +318,25 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('An error occurred while submitting the quiz. Please try again.');
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit Quiz';
+            // Re-enable auto-save
+            isSavingAllowed = true;
+            autosaveTimer = setInterval(performAutoSave, AUTOSAVE_INTERVAL);
         });
     });
 
-    // Warn before leaving page
+    // Modified beforeunload - only warn if there's unsaved work
     window.addEventListener('beforeunload', function(e) {
-        e.preventDefault();
-        e.returnValue = 'Are you sure you want to leave? Your progress will be lost.';
+        // Only warn if there are changes since last auto-save
+        if (isSavingAllowed && hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = 'You have unsaved answers. Are you sure you want to leave?';
+        }
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('unload', function() {
+        if (autosaveTimer) clearInterval(autosaveTimer);
+        if (debounceTimer) clearTimeout(debounceTimer);
     });
 });
 </script>

@@ -1952,7 +1952,14 @@ class PrivateLessonQuizAttempt(models.Model):
         blank=True,
         help_text="How long student took (minutes)"
     )
-    
+
+    # Auto-save tracking
+    last_autosave_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp of last auto-save operation"
+    )
+
     class Meta:
         verbose_name = 'Quiz Attempt'
         ordering = ['-started_at']
@@ -1978,7 +1985,24 @@ class PrivateLessonQuizAttempt(models.Model):
     def is_submitted(self):
         """Has this attempt been submitted?"""
         return self.submitted_at is not None
-    
+
+    def autosave_answers(self, answers_data):
+        """
+        Save answers without grading or marking as submitted.
+        Used for periodic auto-save functionality.
+
+        Args:
+            answers_data: dict mapping question_id to answer_id
+
+        Returns:
+            bool: True if save successful
+        """
+        from django.utils import timezone
+        self.answers_data = answers_data
+        self.last_autosave_at = timezone.now()
+        self.save(update_fields=['answers_data', 'last_autosave_at'])
+        return True
+
     def calculate_score(self):
         """
         Calculate percentage score based on answers_data.

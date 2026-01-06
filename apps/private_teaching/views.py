@@ -4415,10 +4415,27 @@ class QuizTakeView(AcceptedStudentRequiredMixin, TemplateView):
         questions = assignment.quiz.get_questions(randomize=assignment.quiz.randomize_questions)
         context['questions'] = questions
 
-        # Create new attempt
-        attempt = PrivateLessonQuizAttempt.objects.create(
-            assignment=assignment
-        )
+        # Check for existing in-progress attempt to resume
+        existing_attempt = assignment.attempts.filter(
+            submitted_at__isnull=True
+        ).order_by('-started_at').first()
+
+        if existing_attempt:
+            # Resume existing attempt
+            attempt = existing_attempt
+            context['is_resuming'] = True
+            context['last_save_time'] = (
+                existing_attempt.last_autosave_at.strftime('%I:%M %p')
+                if existing_attempt.last_autosave_at
+                else None
+            )
+        else:
+            # Create new attempt only if no in-progress attempt exists
+            attempt = PrivateLessonQuizAttempt.objects.create(
+                assignment=assignment
+            )
+            context['is_resuming'] = False
+
         context['attempt'] = attempt
 
         # Update assignment status
@@ -4466,6 +4483,8 @@ class QuizSubmitView(AcceptedStudentRequiredMixin, View):
                 # Save answers
                 attempt.answers_data = answers_data
                 attempt.submitted_at = timezone.now()
+                # Clear auto-save timestamp on final submission
+                attempt.last_autosave_at = None
 
                 # Calculate time taken
                 time_taken = (attempt.submitted_at - attempt.started_at).total_seconds() / 60
@@ -4489,6 +4508,68 @@ class QuizSubmitView(AcceptedStudentRequiredMixin, View):
 
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+class QuizAutoSaveView(AcceptedStudentRequiredMixin, View):
+    """
+    Auto-save quiz answers without grading (AJAX endpoint).
+    Allows students to save progress periodically.
+    """
+
+    def post(self, request, *args, **kwargs):
+        """Save answers without submitting quiz"""
+        assignment = get_object_or_404(
+            PrivateLessonQuizAssignment,
+            pk=kwargs['assignment_id'],
+            student=request.user
+        )
+
+        # Get attempt ID from POST data
+        attempt_id = request.POST.get('attempt_id')
+        if not attempt_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'No attempt ID provided'
+            }, status=400)
+
+        attempt = get_object_or_404(
+            PrivateLessonQuizAttempt,
+            pk=attempt_id,
+            assignment=assignment
+        )
+
+        # Don't allow auto-save on submitted attempts
+        if attempt.submitted_at:
+            return JsonResponse({
+                'success': False,
+                'error': 'Cannot auto-save submitted quiz'
+            }, status=400)
+
+        try:
+            # Collect answers from POST data
+            answers_data = {}
+            for key, value in request.POST.items():
+                if key.startswith('question_'):
+                    question_id = key.replace('question_', '')
+                    answers_data[question_id] = value
+
+            # Perform auto-save
+            attempt.autosave_answers(answers_data)
+
+            # Format timestamp for display
+            save_time = attempt.last_autosave_at.strftime('%I:%M %p')
+
+            return JsonResponse({
+                'success': True,
+                'saved_at': save_time,
+                'timestamp': attempt.last_autosave_at.isoformat()
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
 
 
 class QuizAttemptResultsView(AcceptedStudentRequiredMixin, TemplateView):
