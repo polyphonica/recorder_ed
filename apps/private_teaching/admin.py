@@ -409,9 +409,9 @@ class PrivateLessonQuizAssignmentAdmin(admin.ModelAdmin):
             return '-'
         color = 'green' if best.passed else 'red'
         return format_html(
-            '<span style="color: {};">{:.1f}%</span>',
+            '<span style="color: {};">{}%</span>',
             color,
-            best.score
+            f'{float(best.score):.1f}'
         )
     best_score.short_description = 'Best Score'
     
@@ -449,9 +449,9 @@ class PrivateLessonQuizAttemptAdmin(admin.ModelAdmin):
             return '-'
         color = 'green' if obj.passed else 'red'
         return format_html(
-            '<span style="color: {}; font-weight: bold;">{:.1f}%</span>',
+            '<span style="color: {}; font-weight: bold;">{}%</span>',
             color,
-            obj.score
+            f'{float(obj.score):.1f}'
         )
     colored_score.short_description = 'Score'
     
