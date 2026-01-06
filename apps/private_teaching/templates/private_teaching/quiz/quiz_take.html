@@ -116,14 +116,19 @@
         <!-- Submit Button -->
         <div class="card card-section shadow-lg bg-base-200">
             <div class="card-body">
-                <div class="flex justify-between items-center">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h3 class="font-bold text-lg mb-1">Ready to submit?</h3>
                         <p class="text-sm text-base-content/70">Make sure you've answered all questions before submitting.</p>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
-                        <i class="fas fa-paper-plane mr-2"></i>Submit Quiz
-                    </button>
+                    <div class="flex gap-2">
+                        <button type="button" class="btn btn-ghost btn-lg" id="save-exit-btn">
+                            <i class="fas fa-save mr-2"></i>Save & Exit
+                        </button>
+                        <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
+                            <i class="fas fa-paper-plane mr-2"></i>Submit Quiz
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -135,6 +140,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('quiz-form');
     const submitBtn = document.getElementById('submit-btn');
+    const saveExitBtn = document.getElementById('save-exit-btn');
     const autosaveStatus = document.getElementById('autosave-status');
     const savingSpinner = document.getElementById('saving-spinner');
     const autosaveMessage = document.getElementById('autosave-message');
@@ -247,6 +253,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Periodic auto-save every 30 seconds
     autosaveTimer = setInterval(performAutoSave, AUTOSAVE_INTERVAL);
+
+    // Save & Exit button handler
+    saveExitBtn.addEventListener('click', async function() {
+        // Stop periodic auto-save
+        clearInterval(autosaveTimer);
+        if (debounceTimer) {
+            clearTimeout(debounceTimer);
+        }
+
+        // Show saving state
+        saveExitBtn.disabled = true;
+        saveExitBtn.innerHTML = '<span class="loading loading-spinner"></span>Saving...';
+
+        try {
+            // Perform final auto-save
+            await performAutoSave();
+
+            // Redirect to quiz list
+            window.location.href = '{% url "private_teaching:student_quiz_list" %}';
+        } catch (error) {
+            console.error('Error saving:', error);
+            alert('Failed to save your progress. Please try again.');
+            saveExitBtn.disabled = false;
+            saveExitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Save & Exit';
+            // Restart auto-save
+            autosaveTimer = setInterval(performAutoSave, AUTOSAVE_INTERVAL);
+        }
+    });
 
     // Form submission with AJAX
     form.addEventListener('submit', function(e) {

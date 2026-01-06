@@ -172,10 +172,19 @@
                                     {% endif %}
                                 {% endwith %}
                             {% else %}
-                                <a href="{% url 'private_teaching:quiz_take' assignment.pk %}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-play mr-1"></i>
-                                    {% if assignment.status == 'assigned' %}Start Quiz{% else %}Continue Quiz{% endif %}
-                                </a>
+                                {% with assignment.attempts.all|first as latest_attempt %}
+                                    {% if latest_attempt and not latest_attempt.submitted_at %}
+                                        {# Has incomplete attempt - show Continue #}
+                                        <a href="{% url 'private_teaching:quiz_take' assignment.pk %}" class="btn btn-warning btn-sm">
+                                            <i class="fas fa-play-circle mr-1"></i>Continue Quiz
+                                        </a>
+                                    {% else %}
+                                        {# No incomplete attempt - show Start #}
+                                        <a href="{% url 'private_teaching:quiz_take' assignment.pk %}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-play mr-1"></i>Start Quiz
+                                        </a>
+                                    {% endif %}
+                                {% endwith %}
                             {% endif %}
                         </div>
                     </div>
