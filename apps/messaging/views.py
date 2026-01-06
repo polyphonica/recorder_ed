@@ -176,13 +176,21 @@ def start_private_teaching_conversation(request, teacher_id, child_profile_id=No
     # Ensure consistent participant ordering
     p1, p2 = (user, teacher) if user.id < teacher.id else (teacher, user)
 
-    # Get or create conversation
-    conversation, created = Conversation.objects.get_or_create(
+    # Get or create conversation - handle case where duplicates exist
+    conversation = Conversation.objects.filter(
         domain='private_teaching',
         participant_1=p1,
         participant_2=p2,
         child_profile=child_profile
-    )
+    ).order_by('-created_at').first()
+
+    if not conversation:
+        conversation = Conversation.objects.create(
+            domain='private_teaching',
+            participant_1=p1,
+            participant_2=p2,
+            child_profile=child_profile
+        )
 
     return redirect('messaging:conversation_detail', conversation_id=conversation.id)
 
