@@ -4623,3 +4623,54 @@ class QuizAttemptResultsView(AcceptedStudentRequiredMixin, TemplateView):
                 context['can_retake'] = True
 
         return context
+
+
+class TeacherQuizAttemptResultsView(TeacherProfileCompletedMixin, TemplateView):
+    """Teacher view for student quiz results"""
+    template_name = 'private_teaching/quiz/quiz_results.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get the attempt
+        attempt = get_object_or_404(
+            PrivateLessonQuizAttempt,
+            pk=kwargs['pk']
+        )
+
+        # Verify teacher has access (must be assigned by this teacher)
+        if attempt.assignment.teacher != self.request.user:
+            messages.error(self.request, 'You do not have permission to view this quiz attempt.')
+            return redirect('private_teaching:teacher_dashboard')
+
+        context['attempt'] = attempt
+        context['assignment'] = attempt.assignment
+        context['quiz'] = attempt.assignment.quiz
+        context['is_teacher_view'] = True  # Flag for template
+
+        # Get questions with student's answers
+        questions_data = []
+        for question in attempt.assignment.quiz.questions.order_by('order'):
+            question_id_str = str(question.id)
+            student_answer_id = attempt.answers_data.get(question_id_str)
+
+            question_info = {
+                'question': question,
+                'student_answer_id': student_answer_id,
+                'answers': question.answers.order_by('order'),
+                'correct_answer': question.answers.filter(is_correct=True).first(),
+                'is_correct': False
+            }
+
+            # Check if answer is correct
+            if student_answer_id:
+                correct_answer = question.answers.filter(is_correct=True).first()
+                if correct_answer and str(correct_answer.id) == student_answer_id:
+                    question_info['is_correct'] = True
+
+            questions_data.append(question_info)
+
+        context['questions_data'] = questions_data
+        context['can_retake'] = False  # Teachers viewing, no retake option
+
+        return context

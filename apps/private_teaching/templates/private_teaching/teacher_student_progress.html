@@ -271,7 +271,7 @@
                                     </td>
                                     <td class="text-center">
                                         {% if data.best_attempt %}
-                                            <a href="{% url 'private_teaching:quiz_attempt_results' data.best_attempt.id %}" class="btn btn-sm btn-outline">
+                                            <a href="{% url 'private_teaching:teacher_quiz_attempt_results' data.best_attempt.id %}" class="btn btn-sm btn-outline">
                                                 <i class="fas fa-chart-bar mr-1"></i>View Results
                                             </a>
                                         {% else %}
