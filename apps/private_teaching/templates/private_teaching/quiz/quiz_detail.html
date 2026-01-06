@@ -210,8 +210,8 @@
                                     </div>
                                     {% if is_owner %}
                                         <div class="dropdown dropdown-end">
-                                            <label tabindex="0" class="btn btn-ghost btn-sm btn-circle">
-                                                <i class="fas fa-ellipsis-v"></i>
+                                            <label tabindex="0" class="btn btn-ghost btn-circle tooltip tooltip-left" data-tip="Edit or delete question">
+                                                <i class="fas fa-ellipsis-v text-lg"></i>
                                             </label>
                                             <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-40">
                                                 <li><a href="{% url 'private_teaching:question_edit' question.pk %}">
