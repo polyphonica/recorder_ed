@@ -1902,7 +1902,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             # ===== PRACTICE LOG SECTION =====
             practice_entries = PracticeEntry.objects.filter(
                 student=student
-            ).select_related('instrument').prefetch_related('teacher_comments').order_by('-practice_date')[:10]
+            ).select_related('child_profile').order_by('-practice_date')[:10]
 
             # Calculate practice stats
             from datetime import timedelta
@@ -1930,7 +1930,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
                 teacher=self.request.user,
                 approved_status='Accepted',
                 is_deleted=False
-            ).values_list('student__id', flat=True).distinct().order_by('student__profile__last_name', 'student__profile__first_name'))
+            ).order_by('student__profile__last_name', 'student__profile__first_name').values_list('student__id', flat=True).distinct())
 
             try:
                 current_index = all_student_ids.index(student_id)

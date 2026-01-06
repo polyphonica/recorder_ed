@@ -409,12 +409,14 @@
                                 <tr>
                                     <td>{{ entry.practice_date|date:"M d, Y" }}</td>
                                     <td>{{ entry.duration_minutes }} min</td>
-                                    <td>{{ entry.practice_focus|truncatewords:10 }}</td>
+                                    <td>{{ entry.focus_areas|truncatewords:10|default:"—" }}</td>
                                     <td>
-                                        {% if entry.teacher_comments.count > 0 %}
-                                            <span class="badge badge-info badge-sm">{{ entry.teacher_comments.count }} comment{{ entry.teacher_comments.count|pluralize }}</span>
+                                        {% if entry.teacher_comment %}
+                                            <span class="badge badge-success badge-sm">
+                                                <i class="fas fa-comment mr-1"></i>Commented
+                                            </span>
                                         {% else %}
-                                            <span class="text-base-content/70">—</span>
+                                            <span class="text-base-content/70">No comment</span>
                                         {% endif %}
                                     </td>
                                 </tr>
