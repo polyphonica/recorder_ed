@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="section-private-teaching">
-<div class="container mx-auto px-4 py-8 max-w-4xl">
+<div class="container mx-auto px-4 py-8 max-w-6xl">
     <!-- Header -->
     <div class="mb-8">
         <h1 class="text-4xl font-bold mb-2">{{ quiz.title }}</h1>
@@ -20,8 +20,8 @@
         <div class="alert alert-info mb-6">
             <i class="fas fa-info-circle"></i>
             <div>
-                <h3 class="font-bold">Instructions:</h3>
-                <p>{{ quiz.instructions }}</p>
+                <h3 class="font-bold text-lg">Instructions:</h3>
+                <p class="text-base">{{ quiz.instructions }}</p>
             </div>
         </div>
     {% endif %}
@@ -29,25 +29,25 @@
     <!-- Quiz Info Bar -->
     <div class="stats stats-vertical lg:stats-horizontal shadow w-full mb-6">
         <div class="stat">
-            <div class="stat-title">Questions</div>
+            <div class="stat-title text-base">Questions</div>
             <div class="stat-value text-primary text-2xl">{{ quiz.questions.count }}</div>
-            <div class="stat-desc">{{ quiz.total_points }} total points</div>
+            <div class="stat-desc text-sm">{{ quiz.total_points }} total points</div>
         </div>
         <div class="stat">
-            <div class="stat-title">Pass Mark</div>
+            <div class="stat-title text-base">Pass Mark</div>
             <div class="stat-value text-success text-2xl">{{ quiz.pass_percentage }}%</div>
         </div>
         {% if quiz.time_limit_minutes %}
             <div class="stat">
-                <div class="stat-title">Time Limit</div>
+                <div class="stat-title text-base">Time Limit</div>
                 <div class="stat-value text-warning text-2xl" id="timer">{{ quiz.time_limit_minutes }}:00</div>
-                <div class="stat-desc">minutes remaining</div>
+                <div class="stat-desc text-sm">minutes remaining</div>
             </div>
         {% endif %}
         <div class="stat">
-            <div class="stat-title">Attempt</div>
+            <div class="stat-title text-base">Attempt</div>
             <div class="stat-value text-2xl">{{ assignment.attempts.count }}</div>
-            <div class="stat-desc">
+            <div class="stat-desc text-sm">
                 {% if quiz.max_attempts %}
                     of {{ quiz.max_attempts }} max
                 {% else %}
