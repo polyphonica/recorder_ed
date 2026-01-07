@@ -851,10 +851,15 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
                 const barlineType = noteData.barlineType || 'SINGLE';
                 return new VF.BarNote(VF.Barline.type[barlineType]);
             } else {
-                // Calculate stem direction BEFORE creating note
-                const isRest = noteData.duration.includes('r');
-                let stemDirection;
+                const note = new VF.StaveNote({
+                    keys: noteData.keys,
+                    duration: noteData.duration,
+                    clef: staveData.clef,
+                    auto_stem: false
+                });
 
+                // Apply automatic stem direction (EXACT copy from working teacher_preview.html)
+                const isRest = noteData.duration.includes('r');
                 if (!isRest) {
                     const middleLines = {
                         'treble': { note: 'b', octave: 4 },
@@ -875,16 +880,12 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
                     const pitchValues = noteData.keys.map(getNotePitchValue);
                     const avgPitch = pitchValues.reduce((a, b) => a + b, 0) / pitchValues.length;
 
-                    // Use VexFlow constants: STEM_DOWN or STEM_UP
-                    stemDirection = avgPitch >= middleLinePitch ? VF.StaveNote.STEM_DOWN : VF.StaveNote.STEM_UP;
+                    if (avgPitch >= middleLinePitch) {
+                        note.setStemDirection(VF.Stem.DOWN);
+                    } else {
+                        note.setStemDirection(VF.Stem.UP);
+                    }
                 }
-
-                const note = new VF.StaveNote({
-                    keys: noteData.keys,
-                    duration: noteData.duration,
-                    clef: staveData.clef,
-                    stem_direction: stemDirection  // Pass stem_direction in constructor, not auto_stem
-                });
 
                 // Add accidentals
                 if (noteData.accidental) {
