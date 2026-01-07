@@ -393,12 +393,15 @@ document.addEventListener('DOMContentLoaded', function() {
             stave.addKeySignature(keySignature);
         }
 
-        // Check if last note is a barline to prevent double rendering
+        // Check if last element is a barline and set it on the stave
+        let hasEndBarline = false;
         if (notationData.notes && notationData.notes.length > 0) {
             const lastNote = notationData.notes[notationData.notes.length - 1];
             if (lastNote.type === 'barline') {
-                // User added explicit end barline, remove default one
-                stave.setEndBarType(VF.Barline.type.NONE);
+                hasEndBarline = true;
+                // Set the barline type on the stave
+                const barlineType = lastNote.barlineType || 'SINGLE';
+                stave.setEndBarType(convertBarlineType(barlineType));
             }
         }
 
@@ -409,9 +412,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Create notes
-        const vfNotes = notationData.notes.map(noteData => {
+        // Create notes (filter out last barline if it's set on the stave)
+        const vfNotes = notationData.notes.map((noteData, index) => {
             if (noteData.type === 'barline') {
+                // Skip the last barline - it's already on the stave
+                if (index === notationData.notes.length - 1 && hasEndBarline) {
+                    return null;
+                }
                 const barlineType = noteData.barlineType || 'SINGLE';
                 return new VF.BarNote(convertBarlineType(barlineType));
             } else {
@@ -469,7 +476,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 return note;
             }
-        });
+        }).filter(note => note !== null);
 
         // Create voice and format
         const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
