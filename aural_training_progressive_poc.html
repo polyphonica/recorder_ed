@@ -652,23 +652,49 @@
             const rootNote = 'g/4';
             const semitones = intervals[interval].semitones;
 
-            // Calculate second note
+            // Map intervals to letter-name steps (not semitones)
+            const intervalToSteps = {
+                1: 0,   // m2: G to Ab (same letter)
+                2: 1,   // M2: G to A
+                3: 2,   // m3: G to Bb (2 letter steps)
+                4: 2,   // M3: G to B
+                5: 3,   // P4: G to C
+                7: 4,   // P5: G to D
+                8: 5,   // m6: G to Eb
+                9: 5,   // M6: G to E
+                10: 6,  // m7: G to F
+                11: 6,  // M7: G to F#
+                12: 0   // P8: G to G (octave)
+            };
+
             const notes = ['c', 'd', 'e', 'f', 'g', 'a', 'b'];
             const noteIndex = notes.indexOf('g');
             const rootOctave = 4;
 
-            let intervalSteps = Math.floor(semitones / 2);
+            let intervalSteps = intervalToSteps[semitones] || 0;
             let secondNoteIndex = direction === 'ascending' ?
                 noteIndex + intervalSteps : noteIndex - intervalSteps;
             let secondOctave = rootOctave;
 
-            while (secondNoteIndex >= notes.length) {
-                secondNoteIndex -= notes.length;
-                secondOctave++;
-            }
-            while (secondNoteIndex < 0) {
-                secondNoteIndex += notes.length;
-                secondOctave--;
+            // Adjust octave for intervals
+            if (direction === 'ascending') {
+                if (interval === 'P8') {
+                    secondOctave++;
+                } else {
+                    while (secondNoteIndex >= notes.length) {
+                        secondNoteIndex -= notes.length;
+                        secondOctave++;
+                    }
+                }
+            } else {
+                if (interval === 'P8') {
+                    secondOctave--;
+                } else {
+                    while (secondNoteIndex < 0) {
+                        secondNoteIndex += notes.length;
+                        secondOctave--;
+                    }
+                }
             }
 
             const secondNote = `${notes[secondNoteIndex]}/${secondOctave}`;
