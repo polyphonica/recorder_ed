@@ -894,14 +894,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Check if the last element is a barline and apply it as end bar type
+        let hasEndBarline = false;
         if (staveData.notes && staveData.notes.length > 0) {
             const lastNote = staveData.notes[staveData.notes.length - 1];
             if (lastNote.type === 'barline') {
                 // Apply ending barline to stave
                 const barlineType = lastNote.barlineType || 'SINGLE';
                 stave.setEndBarType(convertBarlineType(barlineType));
-                // Mark it so we don't render it again as a BarNote
-                lastNote._appliedToStave = true;
+                hasEndBarline = true;
             }
         }
 
@@ -955,11 +955,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!staveData.notes || staveData.notes.length === 0) return;
 
         // Render the notes for this stave using existing renderNotation logic
-        renderStaveNotesInternal(context, stave, staveData, containerId, yPosition);
+        renderStaveNotesInternal(context, stave, staveData, containerId, yPosition, hasEndBarline);
     }
 
     // Internal function to render notes on a single stave
-    function renderStaveNotesInternal(context, stave, staveData, containerId, yPosition) {
+    function renderStaveNotesInternal(context, stave, staveData, containerId, yPosition, hasEndBarline) {
         const notes = staveData.notes;
         const timeSignature = staveData.timeSignature || '4/4';
         const clef = staveData.clef || 'treble';
@@ -983,13 +983,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const measures = [];
         let currentMeasure = [];
 
-        notes.forEach(noteData => {
-            if (noteData.type === 'barline' && !noteData._appliedToStave) {
+        notes.forEach((noteData, index) => {
+            // Skip the last note if it's the ending barline applied to stave
+            const isEndBarline = hasEndBarline && index === notes.length - 1 && noteData.type === 'barline';
+
+            if (isEndBarline) {
+                // Skip - already applied to stave
+                return;
+            }
+
+            if (noteData.type === 'barline') {
                 // Add barline to current measure and start new measure
                 currentMeasure.push(noteData);
                 measures.push(currentMeasure);
                 currentMeasure = [];
-            } else if (!noteData._appliedToStave) {
+            } else {
                 currentMeasure.push(noteData);
             }
         });
