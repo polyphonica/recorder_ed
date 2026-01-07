@@ -1355,10 +1355,59 @@ document.addEventListener('DOMContentLoaded', function() {
         voice.setMode(VF.Voice.Mode.SOFT);
         voice.addTickables(vfNotes);
 
+        // Manual beam grouping based on staveData.beamGrouping setting
+        const beamGrouping = staveData.beamGrouping || 'all';
+        const groupSize = beamGrouping === 'all' ? Infinity : parseInt(beamGrouping);
+
+        let beams = [];
+        let currentBeamGroup = [];
+
+        vfNotes.forEach((note, index) => {
+            if (!note.duration || typeof note.duration !== 'string') return;
+
+            const baseDuration = note.duration.replace(/[rd]+$/, '');
+            const isBeamable = (baseDuration === '8' || baseDuration === '16' || baseDuration === '32');
+            const isRest = note.duration.includes('r');
+
+            if (isBeamable && !isRest) {
+                currentBeamGroup.push(note);
+
+                if (currentBeamGroup.length >= groupSize) {
+                    if (currentBeamGroup.length >= 2) {
+                        try {
+                            beams.push(new VF.Beam(currentBeamGroup, true));
+                        } catch (e) {
+                            console.log('Beam generation skipped:', e.message);
+                        }
+                    }
+                    currentBeamGroup = [];
+                }
+            } else {
+                if (currentBeamGroup.length >= 2) {
+                    try {
+                        beams.push(new VF.Beam(currentBeamGroup, true));
+                    } catch (e) {
+                        console.log('Beam generation skipped:', e.message);
+                    }
+                }
+                currentBeamGroup = [];
+            }
+        });
+
+        if (currentBeamGroup.length >= 2) {
+            try {
+                beams.push(new VF.Beam(currentBeamGroup, true));
+            } catch (e) {
+                console.log('Beam generation skipped:', e.message);
+            }
+        }
+
         const formatter = new VF.Formatter();
         // Leave extra space (80px) to account for end barline and any middle barlines
         formatter.joinVoices([voice]).format([voice], 790);
         voice.draw(context, stave);
+
+        beams.forEach(beam => beam.setContext(context).draw());
     }
 
     function renderNotation(containerId, notationData) {
