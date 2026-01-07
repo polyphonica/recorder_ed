@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ student.get_full_name }} - Student Progress{% endblock %}
+{% block title %}{% if child_profiles %}{{ child_profiles.0.full_name }}{% else %}{{ student.get_full_name }}{% endif %} - Student Progress{% endblock %}
 
 {% block content %}
 <div class="section-private-teaching">
@@ -11,7 +11,10 @@
         <div class="flex items-center justify-between mb-4">
             <div>
                 <h1 class="text-4xl font-bold mb-2">
-                    {% if student.profile.first_name %}
+                    {% if child_profiles %}
+                        {{ child_profiles.0.full_name }}
+                        <span class="text-xl text-base-content/60 font-normal">(Guardian: {{ student.get_full_name }})</span>
+                    {% elif student.profile.first_name %}
                         {{ student.profile.first_name }} {{ student.profile.last_name }}
                     {% else %}
                         {{ student.get_full_name }}
