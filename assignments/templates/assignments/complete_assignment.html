@@ -707,7 +707,7 @@ document.addEventListener('DOMContentLoaded', function() {
             noteData.accidentals = accidentals;
         }
 
-        notes.push(noteData);
+        getCurrentStave().notes.push(noteData);
         currentChord = [];
         updateChordDisplay();
         renderNotes();
@@ -766,42 +766,48 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Validate beat count for submission
     function validateBeatCount() {
-        if (notes.length === 0) return true; // Empty is okay
-        if (!selectedTimeSignature) return true; // No time signature = no validation
+        // Check all staves for beat count issues
+        for (let stave of staves) {
+            if (stave.notes.length === 0) continue; // Empty is okay
+            if (!stave.timeSignature) continue; // No time signature = no validation
 
-        const beatValues = {
-            'w': 4, 'h': 2, 'q': 1, '8': 0.5, '16': 0.25
-        };
+            const beatValues = {
+                'w': 4, 'h': 2, 'q': 1, '8': 0.5, '16': 0.25
+            };
 
-        let totalBeats = 0;
-        notes.forEach(note => {
-            if (note.type === 'barline') return;
-            const duration = note.duration;
-            const baseDuration = duration.replace(/d+$/, '');
-            const numDots = (duration.match(/d/g) || []).length;
+            let totalBeats = 0;
+            stave.notes.forEach(note => {
+                if (note.type === 'barline') return;
+                const duration = note.duration;
+                const baseDuration = duration.replace(/d+$/, '');
+                const numDots = (duration.match(/d/g) || []).length;
 
-            let beatValue = beatValues[baseDuration] || 1;
-            for (let i = 0; i < numDots; i++) {
-                beatValue += beatValue / Math.pow(2, i + 1);
+                let beatValue = beatValues[baseDuration] || 1;
+                for (let i = 0; i < numDots; i++) {
+                    beatValue += beatValue / Math.pow(2, i + 1);
+                }
+                totalBeats += beatValue;
+            });
+
+            const timeSignature = stave.timeSignature || '4/4';
+            let num_beats = 4, beat_value = 4;
+
+            if (timeSignature === 'C') {
+                num_beats = 4; beat_value = 4;
+            } else if (timeSignature === 'C|') {
+                num_beats = 2; beat_value = 2;
+            } else if (timeSignature.includes('/')) {
+                const parts = timeSignature.split('/');
+                num_beats = parseInt(parts[0]);
+                beat_value = parseInt(parts[1]);
             }
-            totalBeats += beatValue;
-        });
 
-        const timeSignature = selectedTimeSignature || '4/4';
-        let num_beats = 4, beat_value = 4;
-
-        if (timeSignature === 'C') {
-            num_beats = 4; beat_value = 4;
-        } else if (timeSignature === 'C|') {
-            num_beats = 2; beat_value = 2;
-        } else if (timeSignature.includes('/')) {
-            const parts = timeSignature.split('/');
-            num_beats = parseInt(parts[0]);
-            beat_value = parseInt(parts[1]);
+            const expectedBeats = num_beats * (4 / beat_value);
+            if (totalBeats !== expectedBeats) {
+                return false;
+            }
         }
-
-        const expectedBeats = num_beats * (4 / beat_value);
-        return totalBeats === expectedBeats;
+        return true;
     }
 
     // Make saveNotationData and validateBeatCount globally accessible
@@ -819,7 +825,7 @@ document.addEventListener('DOMContentLoaded', function() {
             noteData.accidental = selectedAccidental;
         }
 
-        notes.push(noteData);
+        getCurrentStave().notes.push(noteData);
         renderNotes();
     }
 
@@ -1280,7 +1286,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (text && text.trim()) {
             getCurrentStave().textLabels.push({ x, y, text: text.trim() });
             console.log('Added label:', { x, y, text: text.trim() });
-            console.log('All labels:', textLabels);
+            console.log('All labels:', getCurrentStave().textLabels);
             saveNotationData();
             renderNotes();
         }
