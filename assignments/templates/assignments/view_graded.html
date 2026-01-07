@@ -312,11 +312,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Check if last note is a barline to prevent double rendering
+        let hasEndBarline = false;
         if (staveData.notes && staveData.notes.length > 0) {
             const lastNote = staveData.notes[staveData.notes.length - 1];
             if (lastNote.type === 'barline') {
-                // User added explicit end barline, remove default one
-                stave.setEndBarType(VF.Barline.type.NONE);
+                hasEndBarline = true;
+                // Set the explicit end barline type on the stave
+                const barlineType = lastNote.barlineType || 'SINGLE';
+                stave.setEndBarType(convertBarlineType(barlineType));
             }
         }
 
@@ -327,7 +330,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const vfNotes = staveData.notes.map(noteData => {
+        const vfNotes = staveData.notes.map((noteData, index) => {
+            // Skip the last barline - it's already on the stave as end barline
+            if (index === staveData.notes.length - 1 && hasEndBarline) {
+                return null;
+            }
+
             if (noteData.type === 'barline') {
                 const barlineType = noteData.barlineType || 'SINGLE';
                 return new VF.BarNote(convertBarlineType(barlineType));

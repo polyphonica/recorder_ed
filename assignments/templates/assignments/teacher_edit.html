@@ -1057,11 +1057,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Split notes into measures at barlines
         const measures = [];
         let currentMeasure = [];
+        let finalBarlineType = null;
 
         notes.forEach((noteData, index) => {
             const isEndBarline = hasEndBarline && index === notes.length - 1 && noteData.type === 'barline';
 
             if (isEndBarline) {
+                finalBarlineType = noteData.barlineType || 'SINGLE';
                 return;
             }
 
@@ -1079,7 +1081,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         if (currentMeasure.length > 0) {
-            measures.push({ notes: currentMeasure, endBarline: null });
+            measures.push({ notes: currentMeasure, endBarline: finalBarlineType });
         }
 
         if (measures.length === 0) return;
