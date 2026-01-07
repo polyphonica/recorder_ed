@@ -311,6 +311,17 @@
                     <option value="C|">C| (Cut)</option>
                 </select>
             </div>
+
+            <!-- Beam Grouping -->
+            <div class="toolbar-group">
+                <span class="toolbar-label">Beam Grouping:</span>
+                <select class="note-btn" style="cursor: pointer; padding: 8px 12px;" id="beam-grouping-select" onchange="selectBeamGrouping(this.value)">
+                    <option value="2">Pairs (2)</option>
+                    <option value="3">Groups of 3</option>
+                    <option value="4">Groups of 4</option>
+                    <option value="all" selected>Beam All</option>
+                </select>
+            </div>
         </div>
 
         <!-- Toolbar Row 2: Pitches by Octave -->
@@ -483,6 +494,7 @@ let currentStaveIndex = 0;
 let selectedDuration = 'w';
 let selectedPitch = 'd/4';
 let selectedAccidental = 'none';
+let beamGrouping = 'all'; // 2, 3, 4, or 'all'
 
 // Chord mode state
 let chordMode = false;
@@ -608,6 +620,12 @@ function selectAccidental(accidental, button) {
         btn.classList.remove('active');
     });
     button.classList.add('active');
+}
+
+// Select beam grouping
+function selectBeamGrouping(grouping) {
+    beamGrouping = grouping;
+    renderAllStaves();
 }
 
 // Toggle chord mode
@@ -855,11 +873,10 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
                 const note = new VF.StaveNote({
                     keys: noteData.keys,
                     duration: noteData.duration,
-                    clef: staveData.clef,
-                    auto_stem: false
+                    clef: staveData.clef
                 });
 
-                // Apply automatic stem direction (EXACT copy from working teacher_preview.html)
+                // Set stem direction for each individual note based on pitch
                 const isRest = noteData.duration.includes('r');
                 if (!isRest) {
                     const middleLines = {
@@ -882,13 +899,10 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
                     const avgPitch = pitchValues.reduce((a, b) => a + b, 0) / pitchValues.length;
 
                     if (avgPitch >= middleLinePitch) {
-                        console.log('DEBUG: Setting STEM DOWN for', noteData.keys, 'avgPitch:', avgPitch, 'middleLinePitch:', middleLinePitch);
                         note.setStemDirection(VF.Stem.DOWN);
                     } else {
-                        console.log('DEBUG: Setting STEM UP for', noteData.keys, 'avgPitch:', avgPitch, 'middleLinePitch:', middleLinePitch);
                         note.setStemDirection(VF.Stem.UP);
                     }
-                    console.log('DEBUG: After setStemDirection, direction is:', note.getStemDirection());
                 }
 
                 // Add accidentals
@@ -908,13 +922,55 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
 
         if (vfNotes.length === 0) return;
 
+        // Separate barlines from notes for proper rendering
+        const notesOnly = vfNotes.filter(n => !(n instanceof VF.BarNote));
+        const barNotes = vfNotes.filter(n => n instanceof VF.BarNote);
+
+        if (notesOnly.length === 0) return;
+
         const voice = new VF.Voice({ num_beats: num_beats, beat_value: beat_value });
         voice.setMode(VF.Voice.Mode.SOFT);
-        voice.addTickables(vfNotes);
+        voice.addTickables(notesOnly);
+
+        // Create beams manually with configurable grouping
+        const beams = [];
+        let currentBeamGroup = [];
+        const groupSize = beamGrouping === 'all' ? Infinity : parseInt(beamGrouping);
+
+        notesOnly.forEach((note, index) => {
+            const isBeamable = note.duration === '8' || note.duration === '16' || note.duration === '32';
+            const isRest = note.duration.includes('r');
+
+            if (isBeamable && !isRest) {
+                currentBeamGroup.push(note);
+
+                // Check if we've reached the group size
+                if (currentBeamGroup.length >= groupSize) {
+                    if (currentBeamGroup.length >= 2) {
+                        beams.push(new VF.Beam(currentBeamGroup, true)); // true = auto_stem
+                    }
+                    currentBeamGroup = [];
+                }
+            } else {
+                // Finish current beam group if we have at least 2 notes
+                if (currentBeamGroup.length >= 2) {
+                    beams.push(new VF.Beam(currentBeamGroup, true));
+                }
+                currentBeamGroup = [];
+            }
+        });
+
+        // Don't forget the last group
+        if (currentBeamGroup.length >= 2) {
+            beams.push(new VF.Beam(currentBeamGroup, true));
+        }
 
         const formatter = new VF.Formatter();
         formatter.joinVoices([voice]).format([voice], 1100);
         voice.draw(context, stave);
+
+        // Draw beams
+        beams.forEach(beam => beam.setContext(context).draw());
 
     } catch (error) {
         console.error('Error rendering stave notes:', error);

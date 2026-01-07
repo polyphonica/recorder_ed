@@ -342,10 +342,63 @@ document.addEventListener('DOMContentLoaded', function() {
         voice.setMode(VF.Voice.Mode.SOFT);
         voice.addTickables(vfNotes);
 
+        // Manual beam grouping based on staveData.beamGrouping setting
+        const beamGrouping = staveData.beamGrouping || 'all';
+        const groupSize = beamGrouping === 'all' ? Infinity : parseInt(beamGrouping);
+
+        let beams = [];
+        let currentBeamGroup = [];
+
+        vfNotes.forEach((note, index) => {
+            if (!note.duration || typeof note.duration !== 'string') return;
+
+            const baseDuration = note.duration.replace(/[rd]+$/, '');
+            const isBeamable = (baseDuration === '8' || baseDuration === '16' || baseDuration === '32');
+            const isRest = note.duration.includes('r');
+
+            if (isBeamable && !isRest) {
+                currentBeamGroup.push(note);
+
+                // Check if we've reached the group size
+                if (currentBeamGroup.length >= groupSize) {
+                    if (currentBeamGroup.length >= 2) {
+                        try {
+                            beams.push(new VF.Beam(currentBeamGroup, true));
+                        } catch (e) {
+                            console.log('Beam generation skipped for group:', e.message);
+                        }
+                    }
+                    currentBeamGroup = [];
+                }
+            } else {
+                // Finish current beam group if we have at least 2 notes
+                if (currentBeamGroup.length >= 2) {
+                    try {
+                        beams.push(new VF.Beam(currentBeamGroup, true));
+                    } catch (e) {
+                        console.log('Beam generation skipped for group:', e.message);
+                    }
+                }
+                currentBeamGroup = [];
+            }
+        });
+
+        // Don't forget the last group
+        if (currentBeamGroup.length >= 2) {
+            try {
+                beams.push(new VF.Beam(currentBeamGroup, true));
+            } catch (e) {
+                console.log('Beam generation skipped for group:', e.message);
+            }
+        }
+
         const formatter = new VF.Formatter();
         // Leave extra space (80px) to account for end barline and any middle barlines
         formatter.joinVoices([voice]).format([voice], 600);
         voice.draw(context, stave);
+
+        // Draw beams after notes are drawn
+        beams.forEach(beam => beam.setContext(context).draw());
     }
 
     function renderSingleStaveOld(container, notationData) {
