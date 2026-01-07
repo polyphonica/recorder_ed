@@ -376,8 +376,8 @@
                             <li><a href="{% url 'private_teaching:incoming_requests' %}" class="{% if request.resolver_match.url_name == 'incoming_requests' %}bg-primary text-primary-content{% endif %}">Incoming Requests</a></li>
                             <li><a href="{% url 'private_teaching:teacher_schedule' %}" class="{% if request.resolver_match.url_name == 'teacher_schedule' %}bg-primary text-primary-content{% endif %}">My Schedule</a></li>
                             <li><a href="{% url 'private_teaching:calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}bg-primary text-primary-content{% endif %}">Calendar</a></li>
-                            <li class="dropdown dropdown-hover dropdown-end">
-                                <label tabindex="0" class="cursor-pointer"><i class="fas fa-ellipsis-h mr-1"></i>More</label>
+                            <li class="dropdown dropdown-end">
+                                <label tabindex="0" class="btn btn-ghost btn-sm"><i class="fas fa-ellipsis-h mr-1"></i>More</label>
                                 <ul tabindex="0" class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-56">
                                     <li class="menu-title"><span>Student Management</span></li>
                                     <li><a href="{% url 'private_teaching:teacher_applications' %}"><i class="fas fa-clipboard-list mr-2"></i>Applications</a></li>
