@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progressive Aural Training - Interval Recognition</title>
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/vexflow.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .level-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f4ff;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .level-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .level-description {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .progress-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .section-title {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .interval-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .interval-card {
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+
+        .interval-card.locked {
+            background: #f5f5f5;
+            color: #999;
+            opacity: 0.6;
+        }
+
+        .interval-card.learning {
+            background: #fff8e1;
+            border-color: #ffd54f;
+            color: #333;
+        }
+
+        .interval-card.mastered {
+            background: #e8f5e9;
+            border-color: #4caf50;
+            color: #2e7d32;
+        }
+
+        .interval-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .interval-status {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .interval-accuracy {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .unlock-progress {
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #667eea;
+            transition: width 0.3s ease;
+        }
+
+        .main-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .play-section {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: #f0f4ff;
+            border-radius: 10px;
+        }
+
+        .play-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .play-button:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .play-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .answer-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .answer-btn {
+            padding: 15px 10px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .answer-btn:hover:not(:disabled) {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: translateY(-2px);
+        }
+
+        .answer-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .answer-btn.correct {
+            background: #4caf50;
+            color: white;
+            border-color: #4caf50;
+        }
+
+        .answer-btn.incorrect {
+            background: #f44336;
+            color: white;
+            border-color: #f44336;
+        }
+
+        .answer-btn.locked {
+            background: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .feedback {
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .feedback.correct {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 2px solid #4caf50;
+        }
+
+        .feedback.incorrect {
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #f44336;
+        }
+
+        .feedback.unlock {
+            background: #fff8e1;
+            color: #f57f17;
+            border: 2px solid #ffd54f;
+        }
+
+        .notation-display {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .notation-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .hint-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #1565c0;
+        }
+
+        .hint-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .next-button {
+            width: 100%;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .next-button:hover {
+            background: #5568d3;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header, .progress-section, .main-section {
+                padding: 20px;
+            }
+
+            .interval-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎵 Progressive Interval Training</h1>
+            <p class="subtitle">Master intervals step-by-step with structured learning</p>
+
+            <div class="level-info">
+                <div class="level-title" id="level-title">Level 1: Perfect Intervals</div>
+                <div class="level-description" id="level-description">Start with the easiest intervals to recognize</div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="progress-section">
+            <div class="section-title">Your Progress</div>
+            <div class="interval-grid" id="interval-progress"></div>
+        </div>
+
+        <!-- Main Training Section -->
+        <div class="main-section">
+            <!-- Stats -->
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">Session Score</div>
+                    <div class="stat-value" id="session-score">0/0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Streak</div>
+                    <div class="stat-value" id="streak">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Accuracy</div>
+                    <div class="stat-value" id="accuracy">0%</div>
+                </div>
+            </div>
+
+            <!-- Play Section -->
+            <div class="play-section">
+                <button class="play-button" id="play-btn">▶ Play Interval</button>
+            </div>
+
+            <!-- Feedback -->
+            <div id="feedback" class="feedback hidden"></div>
+
+            <!-- Notation Display -->
+            <div id="notation-section" class="notation-display hidden">
+                <div class="notation-title">Notation</div>
+                <div id="notation-output"></div>
+            </div>
+
+            <!-- Hint -->
+            <div id="hint-section" class="hint-section hidden">
+                <div class="hint-title">💡 Memory Hint</div>
+                <div id="hint-text"></div>
+            </div>
+
+            <!-- Answer Buttons -->
+            <div class="answer-buttons" id="answer-buttons"></div>
+
+            <!-- Next Button -->
+            <button class="next-button hidden" id="next-btn">Next Interval →</button>
+        </div>
+    </div>
+
+    <script>
+        // Interval definitions
+        const intervals = {
+            'P5': { semitones: 7, name: 'Perfect 5th', hint: 'Like "Twinkle Twinkle Little Star" or Star Wars theme' },
+            'P4': { semitones: 5, name: 'Perfect 4th', hint: 'Like "Here Comes the Bride"' },
+            'P8': { semitones: 12, name: 'Octave', hint: 'Like "Somewhere Over the Rainbow"' },
+            'M3': { semitones: 4, name: 'Major 3rd', hint: 'Like "Kumbaya" or "Oh When the Saints"' },
+            'm3': { semitones: 3, name: 'Minor 3rd', hint: 'Like "Greensleeves" opening' },
+            'M6': { semitones: 9, name: 'Major 6th', hint: 'Like "My Bonnie Lies Over the Ocean"' },
+            'M2': { semitones: 2, name: 'Major 2nd', hint: 'Like "Happy Birthday" (Happy-Birth)' },
+            'm6': { semitones: 8, name: 'Minor 6th', hint: 'Like "The Entertainer"' },
+            'm2': { semitones: 1, name: 'Minor 2nd', hint: 'Like Jaws theme - very close together' },
+            'M7': { semitones: 11, name: 'Major 7th', hint: 'Very tense, leading tone to octave' },
+            'm7': { semitones: 10, name: 'Minor 7th', hint: 'Like "There\'s a Place for Us" (West Side Story)' }
+        };
+
+        // Learning progression levels
+        const levels = [
+            {
+                name: 'Level 1: Perfect Intervals',
+                description: 'Start with the easiest intervals to recognize',
+                intervals: ['P5', 'P8'],
+                unlockThreshold: 5
+            },
+            {
+                name: 'Level 2: Add Perfect 4th',
+                description: 'Learn another perfect interval',
+                intervals: ['P5', 'P8', 'P4'],
+                unlockThreshold: 5
+            },
+            {
+                name: 'Level 3: Major 3rd',
+                description: 'Add the cheerful major 3rd',
+                intervals: ['P5', 'P8', 'P4', 'M3'],
+                unlockThreshold: 5
+            },
+            {
+                name: 'Level 4: Minor 3rd',
+                description: 'Learn the sadder minor 3rd',
+                intervals: ['P5', 'P8', 'P4', 'M3', 'm3'],
+                unlockThreshold: 5
+            },
+            {
+                name: 'Level 5: Add 6ths',
+                description: 'Major and minor 6ths',
+                intervals: ['P5', 'P8', 'P4', 'M3', 'm3', 'M6', 'm6'],
+                unlockThreshold: 5
+            },
+            {
+                name: 'Level 6: Major 2nd',
+                description: 'Add the major 2nd',
+                intervals: ['P5', 'P8', 'P4', 'M3', 'm3', 'M6', 'm6', 'M2'],
+                unlockThreshold: 5
+            },
+            {
+                name: 'Level 7: Advanced',
+                description: 'Master all intervals including the difficult ones',
+                intervals: ['P5', 'P8', 'P4', 'M3', 'm3', 'M6', 'm6', 'M2', 'm2', 'M7', 'm7'],
+                unlockThreshold: 5
+            }
+        ];
+
+        // Initialize Tone.js
+        const synth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'sine' },
+            envelope: {
+                attack: 0.02,
+                decay: 0.1,
+                sustain: 0.3,
+                release: 1
+            }
+        }).toDestination();
+
+        // Game state
+        let currentLevel = 0;
+        let currentInterval = null;
+        let sessionCorrect = 0;
+        let sessionTotal = 0;
+        let currentStreak = 0;
+        let consecutiveCorrect = 0;
+        let hasAnswered = false;
+
+        // Track progress for each interval
+        const intervalProgress = {};
+        Object.keys(intervals).forEach(key => {
+            intervalProgress[key] = {
+                attempts: 0,
+                correct: 0,
+                unlocked: false
+            };
+        });
+
+        // Unlock initial intervals
+        levels[0].intervals.forEach(int => {
+            intervalProgress[int].unlocked = true;
+        });
+
+        // Initialize
+        function init() {
+            updateLevelInfo();
+            updateProgressDisplay();
+            renderAnswerButtons();
+            newQuestion();
+        }
+
+        // Update level info
+        function updateLevelInfo() {
+            document.getElementById('level-title').textContent = levels[currentLevel].name;
+            document.getElementById('level-description').textContent = levels[currentLevel].description;
+        }
+
+        // Update progress display
+        function updateProgressDisplay() {
+            const container = document.getElementById('interval-progress');
+            container.innerHTML = '';
+
+            Object.keys(intervals).forEach(key => {
+                const progress = intervalProgress[key];
+                const accuracy = progress.attempts > 0 ? Math.round((progress.correct / progress.attempts) * 100) : 0;
+
+                let status = 'locked';
+                if (progress.unlocked) {
+                    status = accuracy >= 80 ? 'mastered' : 'learning';
+                }
+
+                const card = document.createElement('div');
+                card.className = `interval-card ${status}`;
+
+                let statusText = '';
+                if (!progress.unlocked) {
+                    statusText = '🔒 Locked';
+                } else if (accuracy >= 80) {
+                    statusText = '✅ Mastered';
+                } else {
+                    statusText = '📚 Learning';
+                }
+
+                card.innerHTML = `
+                    <div class="interval-name">${intervals[key].name}</div>
+                    <div class="interval-status">${statusText}</div>
+                    ${progress.unlocked ? `<div class="interval-accuracy">${accuracy}%</div>` : ''}
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // Render answer buttons
+        function renderAnswerButtons() {
+            const container = document.getElementById('answer-buttons');
+            container.innerHTML = '';
+
+            const currentIntervals = levels[currentLevel].intervals;
+
+            Object.keys(intervals).forEach(key => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.dataset.interval = key;
+                btn.textContent = intervals[key].name;
+
+                if (!intervalProgress[key].unlocked) {
+                    btn.classList.add('locked');
+                    btn.disabled = true;
+                }
+
+                btn.addEventListener('click', () => checkAnswer(key));
+                container.appendChild(btn);
+            });
+        }
+
+        // Note to frequency
+        function midiToFreq(midi) {
+            return 440 * Math.pow(2, (midi - 69) / 12);
+        }
+
+        // Generate question
+        function generateInterval() {
+            const availableIntervals = levels[currentLevel].intervals;
+            const randomInterval = availableIntervals[Math.floor(Math.random() * availableIntervals.length)];
+            const direction = Math.random() > 0.5 ? 'ascending' : 'descending';
+            return { interval: randomInterval, direction: direction };
+        }
+
+        // Play interval
+        async function playInterval() {
+            if (!currentInterval) return;
+
+            await Tone.start();
+
+            const rootNote = 67; // G4
+            const semitones = intervals[currentInterval.interval].semitones;
+
+            let note1, note2;
+            if (currentInterval.direction === 'ascending') {
+                note1 = rootNote;
+                note2 = rootNote + semitones;
+            } else {
+                note1 = rootNote;
+                note2 = rootNote - semitones;
+            }
+
+            const freq1 = midiToFreq(note1);
+            const freq2 = midiToFreq(note2);
+
+            // Play melodic
+            const now = Tone.now();
+            synth.triggerAttackRelease(freq1, '0.5', now);
+            synth.triggerAttackRelease(freq2, '0.5', now + 0.6);
+
+            document.getElementById('play-btn').disabled = true;
+            setTimeout(() => {
+                document.getElementById('play-btn').disabled = false;
+            }, 1500);
+        }
+
+        // Show notation using VexFlow
+        function showNotation(interval, direction) {
+            const container = document.getElementById('notation-output');
+            container.innerHTML = '';
+
+            const VF = Vex.Flow;
+            const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+            renderer.resize(300, 150);
+            const context = renderer.getContext();
+
+            const stave = new VF.Stave(10, 20, 280);
+            stave.addClef('treble');
+            stave.setContext(context).draw();
+
+            const rootNote = 'g/4';
+            const semitones = intervals[interval].semitones;
+
+            // Calculate second note
+            const notes = ['c', 'd', 'e', 'f', 'g', 'a', 'b'];
+            const noteIndex = notes.indexOf('g');
+            const rootOctave = 4;
+
+            let intervalSteps = Math.floor(semitones / 2);
+            let secondNoteIndex = direction === 'ascending' ?
+                noteIndex + intervalSteps : noteIndex - intervalSteps;
+            let secondOctave = rootOctave;
+
+            while (secondNoteIndex >= notes.length) {
+                secondNoteIndex -= notes.length;
+                secondOctave++;
+            }
+            while (secondNoteIndex < 0) {
+                secondNoteIndex += notes.length;
+                secondOctave--;
+            }
+
+            const secondNote = `${notes[secondNoteIndex]}/${secondOctave}`;
+
+            const note1 = new VF.StaveNote({
+                keys: [rootNote],
+                duration: 'q',
+                clef: 'treble'
+            });
+
+            const note2 = new VF.StaveNote({
+                keys: [secondNote],
+                duration: 'q',
+                clef: 'treble'
+            });
+
+            const voice = new VF.Voice({ num_beats: 2, beat_value: 4 });
+            voice.addTickables([note1, note2]);
+
+            new VF.Formatter().joinVoices([voice]).format([voice], 250);
+            voice.draw(context, stave);
+
+            document.getElementById('notation-section').classList.remove('hidden');
+        }
+
+        // Check answer
+        function checkAnswer(selectedInterval) {
+            if (hasAnswered) return;
+
+            hasAnswered = true;
+            sessionTotal++;
+            intervalProgress[currentInterval.interval].attempts++;
+
+            const isCorrect = selectedInterval === currentInterval.interval;
+            const feedbackEl = document.getElementById('feedback');
+
+            if (isCorrect) {
+                sessionCorrect++;
+                currentStreak++;
+                consecutiveCorrect++;
+                intervalProgress[currentInterval.interval].correct++;
+
+                feedbackEl.className = 'feedback correct';
+                feedbackEl.textContent = `✓ Correct! It was ${intervals[currentInterval.interval].name} ${currentInterval.direction}`;
+
+                // Check for unlock
+                if (consecutiveCorrect >= levels[currentLevel].unlockThreshold && currentLevel < levels.length - 1) {
+                    currentLevel++;
+                    consecutiveCorrect = 0;
+
+                    // Unlock new intervals
+                    const newIntervals = levels[currentLevel].intervals.filter(int => !intervalProgress[int].unlocked);
+                    newIntervals.forEach(int => {
+                        intervalProgress[int].unlocked = true;
+                    });
+
+                    const unlockFeedback = document.createElement('div');
+                    unlockFeedback.className = 'feedback unlock';
+                    unlockFeedback.textContent = `🎉 Level Up! ${levels[currentLevel].name} unlocked!`;
+                    unlockFeedback.style.marginTop = '10px';
+                    feedbackEl.appendChild(unlockFeedback);
+
+                    updateLevelInfo();
+                    renderAnswerButtons();
+                }
+            } else {
+                currentStreak = 0;
+                consecutiveCorrect = 0;
+
+                feedbackEl.className = 'feedback incorrect';
+                feedbackEl.textContent = `✗ Not quite. It was ${intervals[currentInterval.interval].name} ${currentInterval.direction}. You selected ${intervals[selectedInterval].name}.`;
+            }
+
+            feedbackEl.classList.remove('hidden');
+
+            // Show notation
+            showNotation(currentInterval.interval, currentInterval.direction);
+
+            // Show hint
+            document.getElementById('hint-text').textContent = intervals[currentInterval.interval].hint;
+            document.getElementById('hint-section').classList.remove('hidden');
+
+            // Highlight buttons
+            const buttons = document.querySelectorAll('.answer-btn');
+            buttons.forEach(btn => {
+                if (!btn.classList.contains('locked')) {
+                    btn.disabled = true;
+                    const btnInterval = btn.dataset.interval;
+                    if (btnInterval === currentInterval.interval) {
+                        btn.classList.add('correct');
+                    } else if (btnInterval === selectedInterval && !isCorrect) {
+                        btn.classList.add('incorrect');
+                    }
+                }
+            });
+
+            updateStats();
+            updateProgressDisplay();
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        // Update stats
+        function updateStats() {
+            document.getElementById('session-score').textContent = `${sessionCorrect}/${sessionTotal}`;
+            document.getElementById('streak').textContent = currentStreak;
+
+            const accuracy = sessionTotal > 0 ? Math.round((sessionCorrect / sessionTotal) * 100) : 0;
+            document.getElementById('accuracy').textContent = accuracy + '%';
+        }
+
+        // New question
+        function newQuestion() {
+            currentInterval = generateInterval();
+            hasAnswered = false;
+
+            document.getElementById('feedback').classList.add('hidden');
+            document.getElementById('notation-section').classList.add('hidden');
+            document.getElementById('hint-section').classList.add('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+
+            const buttons = document.querySelectorAll('.answer-btn');
+            buttons.forEach(btn => {
+                if (!btn.classList.contains('locked')) {
+                    btn.disabled = false;
+                }
+                btn.classList.remove('correct', 'incorrect');
+            });
+        }
+
+        // Event listeners
+        document.getElementById('play-btn').addEventListener('click', playInterval);
+        document.getElementById('next-btn').addEventListener('click', newQuestion);
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
