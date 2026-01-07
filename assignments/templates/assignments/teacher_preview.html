@@ -352,6 +352,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (keySignature) {
             stave.addKeySignature(keySignature);
         }
+
+        // Check if last note is a barline to prevent double rendering
+        if (notationData.notes && notationData.notes.length > 0) {
+            const lastNote = notationData.notes[notationData.notes.length - 1];
+            if (lastNote.type === 'barline') {
+                // User added explicit end barline, remove default one
+                stave.setEndBarType(VF.Barline.type.NONE);
+            }
+        }
+
         stave.setContext(context).draw();
 
         // If there are no notes, just show the empty stave
@@ -362,7 +372,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create notes
         const vfNotes = notationData.notes.map(noteData => {
             if (noteData.type === 'barline') {
-                return new VF.BarNote();
+                const barlineType = noteData.barlineType || 'SINGLE';
+                return new VF.BarNote(convertBarlineType(barlineType));
             } else {
                 const note = new VF.StaveNote({
                     keys: noteData.keys,
