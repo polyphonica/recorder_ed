@@ -836,15 +836,10 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
                 const barlineType = noteData.barlineType || 'SINGLE';
                 return new VF.BarNote(VF.Barline.type[barlineType]);
             } else {
-                const note = new VF.StaveNote({
-                    keys: noteData.keys,
-                    duration: noteData.duration,
-                    clef: staveData.clef,
-                    auto_stem: false
-                });
-
-                // Apply automatic stem direction based on standard notation rules (skip for rests)
+                // Calculate stem direction first
                 const isRest = noteData.duration.includes('r');
+                let stemDirection = VF.Stem.UP; // default
+
                 if (!isRest) {
                     const middleLines = {
                         'treble': { note: 'b', octave: 4 },  // B4 is middle line in treble
@@ -867,12 +862,15 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
                     const avgPitch = pitchValues.reduce((a, b) => a + b, 0) / pitchValues.length;
 
                     // Standard rule: notes on or above middle line get stems down
-                    if (avgPitch >= middleLinePitch) {
-                        note.setStemDirection(VF.Stem.DOWN);
-                    } else {
-                        note.setStemDirection(VF.Stem.UP);
-                    }
+                    stemDirection = avgPitch >= middleLinePitch ? VF.Stem.DOWN : VF.Stem.UP;
                 }
+
+                const note = new VF.StaveNote({
+                    keys: noteData.keys,
+                    duration: noteData.duration,
+                    clef: staveData.clef,
+                    stem_direction: stemDirection
+                });
 
                 // Add accidentals
                 if (noteData.accidental) {
