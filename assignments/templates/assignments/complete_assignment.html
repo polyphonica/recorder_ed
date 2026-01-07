@@ -783,20 +783,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 'w': 4, 'h': 2, 'q': 1, '8': 0.5, '16': 0.25
             };
 
-            let totalBeats = 0;
-            stave.notes.forEach(note => {
-                if (note.type === 'barline') return;
-                const duration = note.duration;
-                const baseDuration = duration.replace(/d+$/, '');
-                const numDots = (duration.match(/d/g) || []).length;
-
-                let beatValue = beatValues[baseDuration] || 1;
-                for (let i = 0; i < numDots; i++) {
-                    beatValue += beatValue / Math.pow(2, i + 1);
-                }
-                totalBeats += beatValue;
-            });
-
             const timeSignature = stave.timeSignature || '4/4';
             let num_beats = 4, beat_value = 4;
 
@@ -811,7 +797,35 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const expectedBeats = num_beats * (4 / beat_value);
-            if (totalBeats !== expectedBeats) {
+
+            // Split notes into measures at barlines and validate each measure
+            let currentMeasureBeats = 0;
+            for (let i = 0; i < stave.notes.length; i++) {
+                const note = stave.notes[i];
+
+                if (note.type === 'barline') {
+                    // Check if current measure matches expected beats
+                    if (currentMeasureBeats !== 0 && currentMeasureBeats !== expectedBeats) {
+                        return false;
+                    }
+                    currentMeasureBeats = 0;
+                    continue;
+                }
+
+                const duration = note.duration;
+                const baseDuration = duration.replace(/d+$/, '');
+                const numDots = (duration.match(/d/g) || []).length;
+
+                let beatValue = beatValues[baseDuration] || 1;
+                for (let i = 0; i < numDots; i++) {
+                    beatValue += beatValue / Math.pow(2, i + 1);
+                }
+                currentMeasureBeats += beatValue;
+            }
+
+            // Check the last measure (if there are notes after the last barline or no barlines at all)
+            // Allow the last measure to be incomplete (partial measure at end is ok)
+            if (currentMeasureBeats > expectedBeats) {
                 return false;
             }
         }
