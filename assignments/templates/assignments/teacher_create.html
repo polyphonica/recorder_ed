@@ -1152,7 +1152,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 voice.addTickables(vfNotes);
 
                 const formatter = new VF.Formatter();
-                formatter.joinVoices([voice]).format([voice], measureWidth - 20);
+                // Leave more space for end barlines (they're wider than regular barlines)
+                const formatWidth = measure.endBarline ? measureWidth - 40 : measureWidth - 20;
+                formatter.joinVoices([voice]).format([voice], formatWidth);
                 voice.draw(context, measureStave);
             }
 
