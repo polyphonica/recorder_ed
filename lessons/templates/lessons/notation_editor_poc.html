@@ -783,14 +783,13 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
     stave.addClef(staveData.clef);
     stave.addTimeSignature(staveData.timeSignature);
 
-    // Check if there's an explicit end barline in the notes
-    const hasExplicitEndBarline = staveData.notes && staveData.notes.some(note =>
-        note.type === 'barline' && (note.barlineType === 'END' || note.barlineType === 'DOUBLE')
-    );
-
-    // If there's an explicit end barline, remove the default one
-    if (hasExplicitEndBarline) {
-        stave.setEndBarType(VF.Barline.type.NONE);
+    // Check if the last element is a barline - if so, remove the default end barline
+    if (staveData.notes && staveData.notes.length > 0) {
+        const lastNote = staveData.notes[staveData.notes.length - 1];
+        if (lastNote.type === 'barline') {
+            // User added explicit end barline, remove default one to prevent overlap
+            stave.setEndBarType(VF.Barline.type.NONE);
+        }
     }
 
     stave.setContext(context).draw();
