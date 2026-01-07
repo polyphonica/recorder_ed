@@ -961,6 +961,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (staveData.timeSignature) {
             stave.addTimeSignature(staveData.timeSignature);
         }
+
+        // Check if the last element is a barline and apply it as end bar type
+        if (staveData.notes && staveData.notes.length > 0) {
+            const lastNote = staveData.notes[staveData.notes.length - 1];
+            if (lastNote.type === 'barline') {
+                // Apply ending barline to stave
+                const barlineType = lastNote.barlineType || 'SINGLE';
+                stave.setEndBarType(convertBarlineType(barlineType));
+                // Mark it so we don't render it again as a BarNote
+                lastNote._appliedToStave = true;
+            }
+        }
+
         stave.setContext(context).draw();
 
         // Highlight current stave being edited
@@ -1023,6 +1036,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const vfNotes = notes.map(noteData => {
             try {
                 if (noteData.type === 'barline') {
+                    // Skip if already applied to stave as end bar
+                    if (noteData._appliedToStave) {
+                        return null;
+                    }
                     const barlineType = noteData.barlineType || 'SINGLE';
                     const numericType = convertBarlineType(barlineType);
                     console.log('Creating barline - original type:', barlineType, 'numeric type:', numericType);
