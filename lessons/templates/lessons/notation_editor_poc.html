@@ -854,10 +854,38 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
                 const note = new VF.StaveNote({
                     keys: noteData.keys,
                     duration: noteData.duration,
-                    clef: staveData.clef
+                    clef: staveData.clef,
+                    auto_stem: false
                 });
 
-                // VexFlow auto-stems correctly, no manual intervention needed
+                // Apply stem direction (same logic as working view mode)
+                const isRest = noteData.duration.includes('r');
+                if (!isRest) {
+                    const middleLines = {
+                        'treble': { note: 'b', octave: 4 },
+                        'bass': { note: 'd', octave: 3 },
+                        'alto': { note: 'c', octave: 4 }
+                    };
+
+                    const getNotePitchValue = (key) => {
+                        const [noteName, octave] = key.split('/');
+                        const noteValues = { 'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'b': 6 };
+                        return parseInt(octave) * 7 + noteValues[noteName.toLowerCase()];
+                    };
+
+                    const middleLine = middleLines[staveData.clef] || middleLines['treble'];
+                    const middleLinePitch = middleLine.octave * 7 +
+                        { 'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'b': 6 }[middleLine.note];
+
+                    const pitchValues = noteData.keys.map(getNotePitchValue);
+                    const avgPitch = pitchValues.reduce((a, b) => a + b, 0) / pitchValues.length;
+
+                    if (avgPitch >= middleLinePitch) {
+                        note.setStemDirection(VF.Stem.DOWN);
+                    } else {
+                        note.setStemDirection(VF.Stem.UP);
+                    }
+                }
 
                 // Add accidentals
                 if (noteData.accidental) {
