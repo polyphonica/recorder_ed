@@ -958,26 +958,94 @@ document.addEventListener('DOMContentLoaded', function() {
         renderStaveNotesInternal(context, stave, staveData, containerId, yPosition, hasEndBarline);
     }
 
-    // Internal function to render notes on a single stave
+    // Internal function to render notes on a single stave line (may contain multiple measures)
     function renderStaveNotesInternal(context, stave, staveData, containerId, yPosition, hasEndBarline) {
         const notes = staveData.notes;
         const timeSignature = staveData.timeSignature || '4/4';
         const clef = staveData.clef || 'treble';
 
-        // Convert notes to VexFlow objects
-        const vfNotes = notes.map((noteData, index) => {
-            try {
-                // Skip the last note if it's the ending barline applied to stave
-                const isEndBarline = hasEndBarline && index === notes.length - 1 && noteData.type === 'barline';
-                if (isEndBarline) {
-                    return null;
-                }
+        // Parse time signature
+        let num_beats = 4;
+        let beat_value = 4;
+        if (timeSignature === 'C') {
+            num_beats = 4;
+            beat_value = 4;
+        } else if (timeSignature === 'C|') {
+            num_beats = 2;
+            beat_value = 2;
+        } else if (timeSignature.includes('/')) {
+            const parts = timeSignature.split('/');
+            num_beats = parseInt(parts[0]);
+            beat_value = parseInt(parts[1]);
+        }
 
-                if (noteData.type === 'barline') {
-                    const barlineType = noteData.barlineType || 'SINGLE';
-                    const numericType = convertBarlineType(barlineType);
-                    return new VF.BarNote(numericType);
-                } else {
+        // Split notes into measures at barlines
+        const measures = [];
+        let currentMeasure = [];
+
+        notes.forEach((noteData, index) => {
+            const isEndBarline = hasEndBarline && index === notes.length - 1 && noteData.type === 'barline';
+
+            if (isEndBarline) {
+                // Skip ending barline - already applied to stave
+                return;
+            }
+
+            if (noteData.type === 'barline') {
+                // End current measure with this barline
+                if (currentMeasure.length > 0) {
+                    measures.push({
+                        notes: currentMeasure,
+                        endBarline: noteData.barlineType || 'SINGLE'
+                    });
+                    currentMeasure = [];
+                }
+            } else {
+                currentMeasure.push(noteData);
+            }
+        });
+
+        // Add final measure (no barline or has ending barline on stave)
+        if (currentMeasure.length > 0) {
+            measures.push({ notes: currentMeasure, endBarline: null });
+        }
+
+        if (measures.length === 0) return;
+
+        // Calculate width for each measure
+        const totalWidth = 850;
+        const measureWidth = totalWidth / measures.length;
+
+        // Render each measure as a separate stave positioned horizontally
+        let xOffset = 10;
+        measures.forEach((measure, measureIndex) => {
+            const isFirstMeasure = measureIndex === 0;
+            const isLastMeasure = measureIndex === measures.length - 1;
+
+            // Create stave for this measure
+            const measureStave = new VF.Stave(xOffset, yPosition, measureWidth);
+
+            // Only add clef, key sig, time sig to first measure
+            if (isFirstMeasure) {
+                measureStave.addClef(clef);
+                if (staveData.keySignature) {
+                    measureStave.addKeySignature(staveData.keySignature);
+                }
+                if (timeSignature) {
+                    measureStave.addTimeSignature(timeSignature);
+                }
+            }
+
+            // Add ending barline if this measure has one
+            if (measure.endBarline) {
+                measureStave.setEndBarType(convertBarlineType(measure.endBarline));
+            }
+
+            measureStave.setContext(context).draw();
+
+            // Convert notes to VexFlow objects
+            const vfNotes = measure.notes.map(noteData => {
+                try {
                     let duration = noteData.duration;
                     let numDots = 0;
 
@@ -1012,24 +1080,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
 
                     return note;
+                } catch (error) {
+                    console.error('Error creating note:', error);
+                    return null;
                 }
-            } catch (error) {
-                console.error('Error creating note:', error);
-                return null;
+            }).filter(note => note !== null);
+
+            if (vfNotes.length > 0) {
+                const voice = new VF.Voice({ num_beats: num_beats, beat_value: beat_value });
+                voice.setMode(VF.Voice.Mode.SOFT);
+                voice.addTickables(vfNotes);
+
+                const formatter = new VF.Formatter();
+                formatter.joinVoices([voice]).format([voice], measureWidth - 20);
+                voice.draw(context, measureStave);
             }
-        }).filter(note => note !== null);
 
-        if (vfNotes.length === 0) return;
-
-        // Create single voice with all notes - VexFlow will format barlines inline
-        const voice = new VF.Voice({ num_beats: 1, beat_value: 4 });
-        voice.setMode(VF.Voice.Mode.SOFT); // Allow any duration
-        voice.addTickables(vfNotes);
-
-        // Format with generous width to prevent cramping
-        const formatter = new VF.Formatter();
-        formatter.joinVoices([voice]).format([voice], 850);
-        voice.draw(context, stave);
+            xOffset += measureWidth;
+        });
     }
 
     function renderNotation(containerId, notationData) {
