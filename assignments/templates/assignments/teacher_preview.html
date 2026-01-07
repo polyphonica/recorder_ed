@@ -279,7 +279,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const note = new VF.StaveNote({
                     keys: noteData.keys,
                     duration: noteData.duration,
-                    clef: clef
+                    clef: clef,
+                        auto_stem: false
                 });
 
                 // Apply automatic stem direction
@@ -378,7 +379,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const note = new VF.StaveNote({
                     keys: noteData.keys,
                     duration: noteData.duration,
-                    clef: clef
+                    clef: clef,
+                        auto_stem: false
                 });
 
                 // Apply automatic stem direction based on standard notation rules (skip for rests)

@@ -1092,7 +1092,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const note = new VF.StaveNote({
                         keys: noteData.keys,
                         duration: duration,
-                        clef: clef
+                        clef: clef,
+                        auto_stem: false
                     });
 
                     const isRest = duration.includes('r');

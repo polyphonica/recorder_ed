@@ -840,7 +840,8 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
                 const note = new VF.StaveNote({
                     keys: noteData.keys,
                     duration: noteData.duration,
-                    clef: staveData.clef
+                    clef: staveData.clef,
+                    auto_stem: false
                 });
 
                 // Apply automatic stem direction based on standard notation rules (skip for rests)
