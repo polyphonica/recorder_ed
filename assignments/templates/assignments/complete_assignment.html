@@ -96,7 +96,13 @@
                         {% endif %}
                         <div>
                             <div class="text-sm text-base-content/70">Teacher</div>
-                            <div class="font-semibold">{{ assignment_link.lesson.subject.teacher.get_full_name|default:assignment_link.lesson.subject.teacher.username }}</div>
+                            <div class="font-semibold">
+                                {% if assignment_link.teacher %}
+                                    {{ assignment_link.teacher.get_full_name|default:assignment_link.teacher.username }}
+                                {% elif assignment_link.lesson and assignment_link.lesson.subject %}
+                                    {{ assignment_link.lesson.subject.teacher.get_full_name|default:assignment_link.lesson.subject.teacher.username }}
+                                {% endif %}
+                            </div>
                         </div>
                         {% if assignment_link.due_date %}
                             <div>
@@ -109,10 +115,12 @@
                                 </div>
                             </div>
                         {% endif %}
-                        <div>
-                            <div class="text-sm text-base-content/70">Lesson</div>
-                            <div class="font-semibold">{{ assignment_link.lesson.lesson_date|date:"M j, Y" }}</div>
-                        </div>
+                        {% if assignment_link.lesson %}
+                            <div>
+                                <div class="text-sm text-base-content/70">Lesson</div>
+                                <div class="font-semibold">{{ assignment_link.lesson.lesson_date|date:"M j, Y" }}</div>
+                            </div>
+                        {% endif %}
                         {% if submission.status == 'draft' and submission.draft_saved_at %}
                             <div>
                                 <div class="text-sm text-base-content/70">Draft Saved</div>
