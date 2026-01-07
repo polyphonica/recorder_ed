@@ -788,7 +788,8 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
         const lastNote = staveData.notes[staveData.notes.length - 1];
         if (lastNote.type === 'barline') {
             // User added explicit end barline, remove default one to prevent overlap
-            stave.setEndBarType(VF.Barline.type.NONE);
+            // Try using 0 instead of VF.Barline.type.NONE
+            stave.setEndBarType(0);
         }
     }
 
