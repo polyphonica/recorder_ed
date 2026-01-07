@@ -962,20 +962,17 @@ document.addEventListener('DOMContentLoaded', function() {
             stave.addTimeSignature(staveData.timeSignature);
         }
 
-        // Check if the last element is a barline and apply it as end bar type
+        // Check if the last element is a barline
         let hasEndBarline = false;
         if (staveData.notes && staveData.notes.length > 0) {
             const lastNote = staveData.notes[staveData.notes.length - 1];
             if (lastNote.type === 'barline') {
-                // Apply ending barline to stave (and remove default barline first)
-                const barlineType = lastNote.barlineType || 'SINGLE';
-                stave.setEndBarType(convertBarlineType(barlineType));
                 hasEndBarline = true;
-            } else {
-                // No explicit end barline - remove the default one to prevent double rendering
-                stave.setEndBarType(VF.Barline.type.NONE);
             }
         }
+
+        // Remove default end barline - renderStaveNotes will handle it
+        stave.setEndBarType(VF.Barline.type.NONE);
 
         stave.setContext(context).draw();
 
