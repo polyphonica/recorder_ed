@@ -935,10 +935,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (staveData.notes && staveData.notes.length > 0) {
             const lastNote = staveData.notes[staveData.notes.length - 1];
             if (lastNote.type === 'barline') {
-                // Apply ending barline to stave
+                // Apply ending barline to stave (and remove default barline first)
                 const barlineType = lastNote.barlineType || 'SINGLE';
                 stave.setEndBarType(convertBarlineType(barlineType));
                 hasEndBarline = true;
+            } else {
+                // No explicit end barline - remove the default one to prevent double rendering
+                stave.setEndBarType(VF.Barline.type.NONE);
             }
         }
 
