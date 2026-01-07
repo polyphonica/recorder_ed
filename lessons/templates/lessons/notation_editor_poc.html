@@ -881,10 +881,13 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
                     const avgPitch = pitchValues.reduce((a, b) => a + b, 0) / pitchValues.length;
 
                     if (avgPitch >= middleLinePitch) {
+                        console.log('DEBUG: Setting STEM DOWN for', noteData.keys, 'avgPitch:', avgPitch, 'middleLinePitch:', middleLinePitch);
                         note.setStemDirection(VF.Stem.DOWN);
                     } else {
+                        console.log('DEBUG: Setting STEM UP for', noteData.keys, 'avgPitch:', avgPitch, 'middleLinePitch:', middleLinePitch);
                         note.setStemDirection(VF.Stem.UP);
                     }
+                    console.log('DEBUG: After setStemDirection, direction is:', note.getStemDirection());
                 }
 
                 // Add accidentals
