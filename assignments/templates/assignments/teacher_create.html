@@ -1001,145 +1001,99 @@ document.addEventListener('DOMContentLoaded', function() {
         const timeSignature = notationData.timeSignature !== undefined ? notationData.timeSignature : '4/4';
         const clef = notationData.clef || 'treble';
 
-        // Parse time signature
-        let num_beats = 4;
-        let beat_value = 4;
-        if (timeSignature === 'C') {
-            num_beats = 4;
-            beat_value = 4;
-        } else if (timeSignature === 'C|') {
-            num_beats = 2;
-            beat_value = 2;
-        } else if (timeSignature.includes('/')) {
-            const parts = timeSignature.split('/');
-            num_beats = parseInt(parts[0]);
-            beat_value = parseInt(parts[1]);
-        }
-
-        // Split notes into measures at barlines
-        const measures = [];
-        let currentMeasure = [];
-
-        notes.forEach((noteData, index) => {
-            // Skip the last note if it's the ending barline applied to stave
-            const isEndBarline = hasEndBarline && index === notes.length - 1 && noteData.type === 'barline';
-
-            if (isEndBarline) {
-                // Skip - already applied to stave
-                return;
-            }
-
-            if (noteData.type === 'barline') {
-                // Add barline to current measure and start new measure
-                currentMeasure.push(noteData);
-                measures.push(currentMeasure);
-                currentMeasure = [];
-            } else {
-                currentMeasure.push(noteData);
-            }
-        });
-
-        // Add remaining notes as final measure
-        if (currentMeasure.length > 0) {
-            measures.push(currentMeasure);
-        }
-
-        if (measures.length === 0) return;
-
-        // Convert each measure to VexFlow notes and create voices
-        const voices = measures.map(measureNotes => {
-            const vfNotes = measureNotes.map(noteData => {
-                try {
-                    if (noteData.type === 'barline') {
-                        const barlineType = noteData.barlineType || 'SINGLE';
-                        return new VF.BarNote(convertBarlineType(barlineType));
-                    } else {
-                        let duration = noteData.duration;
-                        let numDots = 0;
-
-                        if (duration.endsWith('dd')) {
-                            numDots = 2;
-                            duration = duration.slice(0, -2);
-                        } else if (duration.endsWith('d')) {
-                            numDots = 1;
-                            duration = duration.slice(0, -1);
-                        }
-
-                        const note = new VF.StaveNote({
-                            keys: noteData.keys,
-                            duration: duration,
-                            clef: clef
-                        });
-
-                        const isRest = duration.includes('r');
-                        if (!isRest) {
-                            const middleLines = {
-                                'treble': { note: 'b', octave: 4 },
-                                'bass': { note: 'd', octave: 3 },
-                                'alto': { note: 'c', octave: 4 }
-                            };
-
-                            const getNotePitchValue = (key) => {
-                                const [noteName, octave] = key.split('/');
-                                const noteValues = { 'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'b': 6 };
-                                return parseInt(octave) * 7 + noteValues[noteName.toLowerCase()];
-                            };
-
-                            const middleLine = middleLines[clef] || middleLines['treble'];
-                            const middleLinePitch = middleLine.octave * 7 +
-                                { 'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'b': 6 }[middleLine.note];
-
-                            const pitchValues = noteData.keys.map(getNotePitchValue);
-                            const avgPitch = pitchValues.reduce((a, b) => a + b, 0) / pitchValues.length;
-
-                            if (avgPitch >= middleLinePitch) {
-                                note.setStemDirection(VF.Stem.DOWN);
-                            } else {
-                                note.setStemDirection(VF.Stem.UP);
-                            }
-                        }
-
-                        for (let i = 0; i < numDots; i++) {
-                            VF.Dot.buildAndAttach([note], { all: true });
-                        }
-
-                        if (noteData.accidental) {
-                            note.addModifier(new VF.Accidental(noteData.accidental), 0);
-                        }
-
-                        if (noteData.accidentals && Array.isArray(noteData.accidentals)) {
-                            noteData.accidentals.forEach((acc, index) => {
-                                if (acc) {
-                                    note.addModifier(new VF.Accidental(acc), index);
-                                }
-                            });
-                        }
-
-                        return note;
-                    }
-                } catch (error) {
-                    console.error('Error creating note:', error);
+        // Convert notes to VexFlow objects
+        const vfNotes = notes.map((noteData, index) => {
+            try {
+                // Skip the last note if it's the ending barline applied to stave
+                const isEndBarline = hasEndBarline && index === notes.length - 1 && noteData.type === 'barline';
+                if (isEndBarline) {
                     return null;
                 }
-            }).filter(note => note !== null);
 
-            if (vfNotes.length === 0) return null;
+                if (noteData.type === 'barline') {
+                    const barlineType = noteData.barlineType || 'SINGLE';
+                    return new VF.BarNote(convertBarlineType(barlineType));
+                } else {
+                    let duration = noteData.duration;
+                    let numDots = 0;
 
-            const voice = new VF.Voice({ num_beats: num_beats, beat_value: beat_value });
-            voice.setMode(VF.Voice.Mode.SOFT);
-            voice.addTickables(vfNotes);
-            return voice;
-        }).filter(voice => voice !== null);
+                    if (duration.endsWith('dd')) {
+                        numDots = 2;
+                        duration = duration.slice(0, -2);
+                    } else if (duration.endsWith('d')) {
+                        numDots = 1;
+                        duration = duration.slice(0, -1);
+                    }
 
-        if (voices.length === 0) return;
+                    const note = new VF.StaveNote({
+                        keys: noteData.keys,
+                        duration: duration,
+                        clef: clef
+                    });
 
-        // Format and draw all voices (measures) together
+                    const isRest = duration.includes('r');
+                    if (!isRest) {
+                        const middleLines = {
+                            'treble': { note: 'b', octave: 4 },
+                            'bass': { note: 'd', octave: 3 },
+                            'alto': { note: 'c', octave: 4 }
+                        };
+
+                        const getNotePitchValue = (key) => {
+                            const [noteName, octave] = key.split('/');
+                            const noteValues = { 'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'b': 6 };
+                            return parseInt(octave) * 7 + noteValues[noteName.toLowerCase()];
+                        };
+
+                        const middleLine = middleLines[clef] || middleLines['treble'];
+                        const middleLinePitch = middleLine.octave * 7 +
+                            { 'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'b': 6 }[middleLine.note];
+
+                        const pitchValues = noteData.keys.map(getNotePitchValue);
+                        const avgPitch = pitchValues.reduce((a, b) => a + b, 0) / pitchValues.length;
+
+                        if (avgPitch >= middleLinePitch) {
+                            note.setStemDirection(VF.Stem.DOWN);
+                        } else {
+                            note.setStemDirection(VF.Stem.UP);
+                        }
+                    }
+
+                    for (let i = 0; i < numDots; i++) {
+                        VF.Dot.buildAndAttach([note], { all: true });
+                    }
+
+                    if (noteData.accidental) {
+                        note.addModifier(new VF.Accidental(noteData.accidental), 0);
+                    }
+
+                    if (noteData.accidentals && Array.isArray(noteData.accidentals)) {
+                        noteData.accidentals.forEach((acc, index) => {
+                            if (acc) {
+                                note.addModifier(new VF.Accidental(acc), index);
+                            }
+                        });
+                    }
+
+                    return note;
+                }
+            } catch (error) {
+                console.error('Error creating note:', error);
+                return null;
+            }
+        }).filter(note => note !== null);
+
+        if (vfNotes.length === 0) return;
+
+        // Create single voice with all notes - VexFlow will format barlines inline
+        const voice = new VF.Voice({ num_beats: 1, beat_value: 4 });
+        voice.setMode(VF.Voice.Mode.SOFT); // Allow any duration
+        voice.addTickables(vfNotes);
+
+        // Format with generous width to prevent cramping
         const formatter = new VF.Formatter();
-        formatter.joinVoices(voices).format(voices, 850);
-
-        voices.forEach(voice => {
-            voice.draw(context, stave);
-        });
+        formatter.joinVoices([voice]).format([voice], 850);
+        voice.draw(context, stave);
     }
 
     // Keep old renderNotation for backward compatibility (used by preview)
