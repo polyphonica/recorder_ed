@@ -783,13 +783,23 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
     stave.addClef(staveData.clef);
     stave.addTimeSignature(staveData.timeSignature);
 
-    // Check if the last element is a barline - if so, remove the default end barline
+    // Check if the last element is a barline and set it on the stave (not as BarNote)
+    let hasEndBarline = false;
     if (staveData.notes && staveData.notes.length > 0) {
         const lastNote = staveData.notes[staveData.notes.length - 1];
         if (lastNote.type === 'barline') {
-            // User added explicit end barline, remove default one to prevent overlap
-            // Try using 0 instead of VF.Barline.type.NONE
-            stave.setEndBarType(0);
+            hasEndBarline = true;
+            // Map barline types to VexFlow constants
+            const barlineMap = {
+                'SINGLE': 1,
+                'DOUBLE': 2,
+                'END': 3,
+                'REPEAT_BEGIN': 4,
+                'REPEAT_END': 5,
+                'REPEAT_BOTH': 6
+            };
+            const barlineType = lastNote.barlineType || 'SINGLE';
+            stave.setEndBarType(barlineMap[barlineType] || 1);
         }
     }
 
@@ -830,9 +840,13 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
             beat_value = parseInt(parts[1]);
         }
 
-        // Convert all items to VexFlow notes, including barlines
-        const vfNotes = staveData.notes.map(noteData => {
+        // Convert all items to VexFlow notes, including barlines (except the last one if it's a barline)
+        const vfNotes = staveData.notes.map((noteData, index) => {
             if (noteData.type === 'barline') {
+                // Skip the last barline - it's already on the stave as end barline
+                if (index === staveData.notes.length - 1 && hasEndBarline) {
+                    return null;
+                }
                 // Use specified barline type or default to SINGLE
                 const barlineType = noteData.barlineType || 'SINGLE';
                 return new VF.BarNote(VF.Barline.type[barlineType]);
@@ -888,7 +902,7 @@ function renderSingleStave(staveData, yPosition, isCurrentStave) {
 
                 return note;
             }
-        });
+        }).filter(note => note !== null);
 
         if (vfNotes.length === 0) return;
 
