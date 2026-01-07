@@ -343,8 +343,8 @@ document.addEventListener('DOMContentLoaded', function() {
         voice.addTickables(vfNotes);
 
         const formatter = new VF.Formatter();
-        // Leave extra space (60px) to account for end barline and any middle barlines
-        formatter.joinVoices([voice]).format([voice], 620);
+        // Leave extra space (80px) to account for end barline and any middle barlines
+        formatter.joinVoices([voice]).format([voice], 600);
         voice.draw(context, stave);
     }
 
@@ -454,8 +454,8 @@ document.addEventListener('DOMContentLoaded', function() {
         voice.addTickables(vfNotes);
 
         const formatter = new VF.Formatter();
-        // Leave extra space (60px) to account for end barline and any middle barlines
-        formatter.joinVoices([voice]).format([voice], 620);
+        // Leave extra space (80px) to account for end barline and any middle barlines
+        formatter.joinVoices([voice]).format([voice], 600);
 
         // Draw voice
         voice.draw(context, stave);
