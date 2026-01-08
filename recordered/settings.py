@@ -300,7 +300,6 @@ CKEDITOR_5_CONFIGS = {
             "numberedList",
             "todoList",
             "blockQuote",
-            "imageUpload",
             "imageInsert",
             "mediaEmbed",
             "htmlEmbed",
