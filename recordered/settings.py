@@ -387,6 +387,9 @@ CKEDITOR_5_CONFIGS = {
             "upload": {
                 'types': ['jpeg', 'png', 'gif', 'svg+xml']
             },
+            "insert": {
+                "integrations": ["upload", "url"]
+            },
             "styles": [
                 "full",
                 "side",
@@ -498,7 +501,7 @@ CKEDITOR_5_CONFIGS = {
             "todoList",
             "|",
             "blockQuote",
-            "insertImage",
+            "imageInsert",
             "|",
             "fontSize",
             "fontFamily",
@@ -524,6 +527,9 @@ CKEDITOR_5_CONFIGS = {
             ],
             "upload": {
                 'types': ['jpeg', 'png', 'gif', 'svg+xml']
+            },
+            "insert": {
+                "integrations": ["upload", "url"]
             },
             "styles": [
                 "full",
