@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delete Assignment{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <!-- Back button -->
+        <a href="{% url 'assignments:teacher_library' %}" class="btn btn-ghost btn-sm mb-4">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Library
+        </a>
+
+        <!-- Delete Confirmation Card -->
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <!-- Warning Icon -->
+                <div class="flex justify-center mb-4">
+                    <div class="bg-error/20 rounded-full p-4">
+                        <i class="fas fa-exclamation-triangle text-error text-4xl"></i>
+                    </div>
+                </div>
+
+                <!-- Title -->
+                <h2 class="card-title text-2xl justify-center mb-2">Delete Assignment?</h2>
+
+                <!-- Assignment Details -->
+                <div class="bg-base-100 rounded-lg p-4 mb-4">
+                    <h3 class="font-semibold text-lg mb-2">{{ assignment.title }}</h3>
+                    <p class="text-sm text-base-content/70">
+                        {{ assignment.instructions|truncatewords:30 }}
+                    </p>
+
+                    <!-- Assignment Stats -->
+                    <div class="flex gap-4 mt-3 text-sm">
+                        {% if assignment.difficulty %}
+                        <div>
+                            <span class="badge badge-accent badge-sm">{{ assignment.get_difficulty_display }}</span>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <i class="fas fa-calendar text-primary mr-1"></i>
+                            <span class="text-base-content/70">Created {{ assignment.created_at|date:"M j, Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Warning Message -->
+                <div class="alert alert-warning mb-4">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        {% if times_assigned > 0 %}
+                            <p class="font-semibold">This assignment has been assigned to students {{ times_assigned }} time{{ times_assigned|pluralize }}.</p>
+                            <p class="text-sm mt-1">Student submissions and grades will remain, but the assignment will no longer appear in your library.</p>
+                        {% else %}
+                            <p>This assignment has not been assigned to any students yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="card-actions justify-end gap-3 mt-4">
+                    <a href="{% url 'assignments:teacher_library' %}" class="btn btn-ghost">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </a>
+                    <form method="post" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-error">
+                            <i class="fas fa-trash mr-2"></i>Delete Assignment
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -187,6 +187,30 @@ def assign_to_student(request, pk):
 
 
 @login_required
+def assignment_delete(request, pk):
+    """Teacher deletes (soft delete) an assignment"""
+    assignment = get_object_or_404(Assignment, pk=pk, created_by=request.user, is_active=True)
+
+    if request.method == 'POST':
+        # Soft delete - set is_active to False
+        assignment.is_active = False
+        assignment.save()
+        messages.success(request, f'Assignment "{assignment.title}" has been deleted.')
+        return redirect('assignments:teacher_library')
+
+    # If GET request, show confirmation page
+    # Count how many times this assignment has been assigned
+    from lessons.models import LessonAssignment
+    times_assigned = LessonAssignment.objects.filter(assignment=assignment).count()
+    times_assigned += PrivateLessonAssignment.objects.filter(assignment=assignment).count()
+
+    return render(request, 'assignments/teacher_delete_confirm.html', {
+        'assignment': assignment,
+        'times_assigned': times_assigned,
+    })
+
+
+@login_required
 def teacher_preview(request, pk):
     """Teacher previews assignment as students see it"""
     assignment = get_object_or_404(Assignment, pk=pk, created_by=request.user)
