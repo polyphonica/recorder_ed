@@ -29,7 +29,7 @@
     {% endif %}
 
     <!-- Booking Configuration - Sticky Bar -->
-    <div class="sticky top-0 z-20 bg-base-100 shadow-md rounded-lg -mx-4 px-4 py-4 mb-4" style="margin-top: -1rem;">
+    <div class="sticky top-0 z-20 bg-base-100 shadow-lg rounded-lg px-4 py-4 mb-6 border-2 border-primary/20" style="margin-left: -2rem; margin-right: -2rem; padding-left: 2rem; padding-right: 2rem;">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Subject Selection -->
             <div class="form-control">
@@ -430,53 +430,54 @@
     </template>
 
     <!-- Floating Booking Summary Card -->
-    <template x-if="selectedSlots.length > 0">
-        <div class="fixed bottom-4 right-4 z-30 w-80 max-w-[calc(100vw-2rem)]">
-            <div class="card bg-primary text-primary-content shadow-2xl">
-                <div class="card-body p-4">
-                    <div class="flex items-start justify-between mb-2">
-                        <h3 class="card-title text-base">
-                            <i class="fas fa-shopping-cart"></i>
-                            Booking Summary
-                        </h3>
-                        <button class="btn btn-ghost btn-xs btn-circle" @click="clearSelection()" title="Clear all">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
+    <div x-show="selectedSlots.length > 0"
+         x-transition
+         class="fixed bottom-4 right-4 z-[9999] w-80 max-w-[calc(100vw-2rem)]"
+         style="position: fixed !important; bottom: 1rem !important; right: 1rem !important;">
+        <div class="card bg-primary text-primary-content shadow-2xl border-2 border-primary-content/20">
+            <div class="card-body p-4">
+                <div class="flex items-start justify-between mb-2">
+                    <h3 class="card-title text-base">
+                        <i class="fas fa-shopping-cart"></i>
+                        Booking Summary
+                    </h3>
+                    <button class="btn btn-ghost btn-xs btn-circle" @click="clearSelection()" title="Clear all">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
 
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <span class="opacity-90">Subject:</span>
-                            <span class="font-semibold" x-text="getSelectedSubjectName()"></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="opacity-90">Duration:</span>
-                            <span class="font-semibold" x-text="duration + ' min'"></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="opacity-90">Location:</span>
-                            <span class="font-semibold" x-text="location"></span>
-                        </div>
-                        <div class="divider my-2"></div>
-                        <div class="flex justify-between">
-                            <span class="opacity-90">Lessons selected:</span>
-                            <span class="font-bold text-lg" x-text="selectedSlots.length"></span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="opacity-90">Total cost:</span>
-                            <span class="font-bold text-2xl">£<span x-text="calculateTotalCost()"></span></span>
-                        </div>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="opacity-90">Subject:</span>
+                        <span class="font-semibold" x-text="getSelectedSubjectName()"></span>
                     </div>
+                    <div class="flex justify-between">
+                        <span class="opacity-90">Duration:</span>
+                        <span class="font-semibold" x-text="duration + ' min'"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="opacity-90">Location:</span>
+                        <span class="font-semibold" x-text="location"></span>
+                    </div>
+                    <div class="divider my-2"></div>
+                    <div class="flex justify-between">
+                        <span class="opacity-90">Lessons selected:</span>
+                        <span class="font-bold text-lg" x-text="selectedSlots.length"></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="opacity-90">Total cost:</span>
+                        <span class="font-bold text-2xl">£<span x-text="calculateTotalCost()"></span></span>
+                    </div>
+                </div>
 
-                    <div class="card-actions justify-end mt-3">
-                        <button class="btn btn-sm btn-ghost" @click="document.querySelector('.card.bg-base-200').scrollIntoView({ behavior: 'smooth' })">
-                            <i class="fas fa-eye mr-1"></i>View Details
-                        </button>
-                    </div>
+                <div class="card-actions justify-end mt-3">
+                    <button class="btn btn-sm btn-ghost" @click="document.querySelector('.card.bg-base-200').scrollIntoView({ behavior: 'smooth' })">
+                        <i class="fas fa-eye mr-1"></i>View Details
+                    </button>
                 </div>
             </div>
         </div>
-    </template>
+    </div>
 </div>
 
 <script>
