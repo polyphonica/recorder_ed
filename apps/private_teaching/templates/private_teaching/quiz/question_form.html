@@ -5,6 +5,11 @@
 
 {% block extra_head %}
 {{ form.media }}
+<script>
+// Fix Chrome user activation timeout for file inputs
+// Adding this capture-phase click listener extends Chrome's user gesture tracking
+document.addEventListener('click', function() {}, true);
+</script>
 <style>
     .formset-row {
         position: relative;
