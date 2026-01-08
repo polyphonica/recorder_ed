@@ -28,45 +28,47 @@
         </div>
     {% endif %}
 
-    <!-- Booking Configuration -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- Subject Selection -->
-        <div class="form-control">
-            <label class="label">
-                <span class="label-text font-medium">Subject</span>
-            </label>
-            <select class="select select-bordered" x-model="selectedSubject" @change="loadAvailableSlots()">
-                <option value="">Select a subject...</option>
-                {% for subject in subjects %}
-                    <option value="{{ subject.id }}" data-price="{{ subject.base_price_60min }}">
-                        {{ subject.subject }} - £{{ subject.base_price_60min }}/hour
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
+    <!-- Booking Configuration - Sticky Bar -->
+    <div class="sticky top-0 z-20 bg-base-100 shadow-md rounded-lg -mx-4 px-4 py-4 mb-4" style="margin-top: -1rem;">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Subject Selection -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">Subject</span>
+                </label>
+                <select class="select select-bordered" x-model="selectedSubject" @change="loadAvailableSlots()">
+                    <option value="">Select a subject...</option>
+                    {% for subject in subjects %}
+                        <option value="{{ subject.id }}" data-price="{{ subject.base_price_60min }}">
+                            {{ subject.subject }} - £{{ subject.base_price_60min }}/hour
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <!-- Duration Selection -->
-        <div class="form-control">
-            <label class="label">
-                <span class="label-text font-medium">Lesson Duration</span>
-            </label>
-            <select class="select select-bordered" x-model.number="duration" @change="loadAvailableSlots()">
-                <option value="30">30 minutes</option>
-                <option value="45">45 minutes</option>
-                <option value="60">60 minutes</option>
-                <option value="90">90 minutes</option>
-            </select>
-        </div>
+            <!-- Duration Selection -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">Lesson Duration</span>
+                </label>
+                <select class="select select-bordered" x-model.number="duration" @change="loadAvailableSlots()">
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                    <option value="90">90 minutes</option>
+                </select>
+            </div>
 
-        <!-- Location Selection -->
-        <div class="form-control">
-            <label class="label">
-                <span class="label-text font-medium">Location</span>
-            </label>
-            <select class="select select-bordered" x-model="location">
-                <option value="Online">Online</option>
-                <option value="Onsite">Onsite</option>
-            </select>
+            <!-- Location Selection -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-medium">Location</span>
+                </label>
+                <select class="select select-bordered" x-model="location">
+                    <option value="Online">Online</option>
+                    <option value="Onsite">Onsite</option>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -150,31 +152,122 @@
                     </template>
                 </div>
 
-                <!-- Time Slots Grid -->
-                <div class="space-y-1">
-                    <template x-for="hour in timeRange" :key="hour">
-                        <div class="grid gap-2" style="grid-template-columns: 80px repeat(7, 1fr);">
-                            <!-- Time Label -->
-                            <div class="flex items-center justify-end pr-2 text-sm font-medium">
-                                <span x-text="formatTime(hour)"></span>
+                <!-- Time Slots Grid with Collapsible Sections -->
+                <div class="space-y-3">
+                    <!-- Morning Section (6 AM - 12 PM) -->
+                    <template x-if="getAvailableHoursInRange(6, 11).length > 0">
+                        <div class="collapse collapse-arrow bg-base-200 rounded-box">
+                            <input type="checkbox" x-model="showMorning" />
+                            <div class="collapse-title text-md font-medium flex items-center gap-2">
+                                <i class="fas fa-sunrise text-warning"></i>
+                                Morning (6 AM - 12 PM)
+                                <span class="badge badge-sm" x-text="getAvailableHoursInRange(6, 11).length + ' hours'"></span>
                             </div>
+                            <div class="collapse-content space-y-1 pt-2">
+                                <template x-for="hour in getAvailableHoursInRange(6, 11)" :key="hour">
+                                    <div class="grid gap-2" style="grid-template-columns: 80px repeat(7, 1fr);">
+                                        <!-- Time Label -->
+                                        <div class="flex items-center justify-end pr-2 text-sm font-medium">
+                                            <span x-text="formatTime(hour)"></span>
+                                        </div>
 
-                            <!-- Day Cells -->
-                            <template x-for="day in weekDays" :key="day.dateStr">
-                                <div>
-                                    <template x-for="slot in getSlotsForDayAndHour(day.dateStr, hour)" :key="slot.datetime">
-                                        <button
-                                            class="w-full mb-1 px-2 py-3 rounded border-2 transition-all text-sm"
-                                            :class="isSlotSelected(slot) ? 'bg-primary border-primary text-primary-content font-bold' : 'bg-success/10 border-success/30 hover:border-success hover:bg-success/20'"
-                                            @click="toggleSlot(slot)">
-                                            <div x-text="extractTime(slot.datetime)"></div>
-                                        </button>
-                                    </template>
-                                    <template x-if="getSlotsForDayAndHour(day.dateStr, hour).length === 0">
-                                        <div class="w-full h-12"></div>
-                                    </template>
-                                </div>
-                            </template>
+                                        <!-- Day Cells -->
+                                        <template x-for="day in weekDays" :key="day.dateStr">
+                                            <div>
+                                                <template x-for="slot in getSlotsForDayAndHour(day.dateStr, hour)" :key="slot.datetime">
+                                                    <button
+                                                        class="w-full mb-1 px-2 py-3 rounded border-2 transition-all text-sm"
+                                                        :class="isSlotSelected(slot) ? 'bg-primary border-primary text-primary-content font-bold' : 'bg-success/10 border-success/30 hover:border-success hover:bg-success/20'"
+                                                        @click="toggleSlot(slot)">
+                                                        <div x-text="extractTime(slot.datetime)"></div>
+                                                    </button>
+                                                </template>
+                                                <template x-if="getSlotsForDayAndHour(day.dateStr, hour).length === 0">
+                                                    <div class="w-full h-12"></div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Afternoon Section (12 PM - 5 PM) -->
+                    <template x-if="getAvailableHoursInRange(12, 16).length > 0">
+                        <div class="collapse collapse-arrow bg-base-200 rounded-box">
+                            <input type="checkbox" x-model="showAfternoon" checked />
+                            <div class="collapse-title text-md font-medium flex items-center gap-2">
+                                <i class="fas fa-sun text-orange-500"></i>
+                                Afternoon (12 PM - 5 PM)
+                                <span class="badge badge-sm" x-text="getAvailableHoursInRange(12, 16).length + ' hours'"></span>
+                            </div>
+                            <div class="collapse-content space-y-1 pt-2">
+                                <template x-for="hour in getAvailableHoursInRange(12, 16)" :key="hour">
+                                    <div class="grid gap-2" style="grid-template-columns: 80px repeat(7, 1fr);">
+                                        <!-- Time Label -->
+                                        <div class="flex items-center justify-end pr-2 text-sm font-medium">
+                                            <span x-text="formatTime(hour)"></span>
+                                        </div>
+
+                                        <!-- Day Cells -->
+                                        <template x-for="day in weekDays" :key="day.dateStr">
+                                            <div>
+                                                <template x-for="slot in getSlotsForDayAndHour(day.dateStr, hour)" :key="slot.datetime">
+                                                    <button
+                                                        class="w-full mb-1 px-2 py-3 rounded border-2 transition-all text-sm"
+                                                        :class="isSlotSelected(slot) ? 'bg-primary border-primary text-primary-content font-bold' : 'bg-success/10 border-success/30 hover:border-success hover:bg-success/20'"
+                                                        @click="toggleSlot(slot)">
+                                                        <div x-text="extractTime(slot.datetime)"></div>
+                                                    </button>
+                                                </template>
+                                                <template x-if="getSlotsForDayAndHour(day.dateStr, hour).length === 0">
+                                                    <div class="w-full h-12"></div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Evening Section (5 PM - 9 PM) -->
+                    <template x-if="getAvailableHoursInRange(17, 21).length > 0">
+                        <div class="collapse collapse-arrow bg-base-200 rounded-box">
+                            <input type="checkbox" x-model="showEvening" checked />
+                            <div class="collapse-title text-md font-medium flex items-center gap-2">
+                                <i class="fas fa-moon text-info"></i>
+                                Evening (5 PM - 9 PM)
+                                <span class="badge badge-sm" x-text="getAvailableHoursInRange(17, 21).length + ' hours'"></span>
+                            </div>
+                            <div class="collapse-content space-y-1 pt-2">
+                                <template x-for="hour in getAvailableHoursInRange(17, 21)" :key="hour">
+                                    <div class="grid gap-2" style="grid-template-columns: 80px repeat(7, 1fr);">
+                                        <!-- Time Label -->
+                                        <div class="flex items-center justify-end pr-2 text-sm font-medium">
+                                            <span x-text="formatTime(hour)"></span>
+                                        </div>
+
+                                        <!-- Day Cells -->
+                                        <template x-for="day in weekDays" :key="day.dateStr">
+                                            <div>
+                                                <template x-for="slot in getSlotsForDayAndHour(day.dateStr, hour)" :key="slot.datetime">
+                                                    <button
+                                                        class="w-full mb-1 px-2 py-3 rounded border-2 transition-all text-sm"
+                                                        :class="isSlotSelected(slot) ? 'bg-primary border-primary text-primary-content font-bold' : 'bg-success/10 border-success/30 hover:border-success hover:bg-success/20'"
+                                                        @click="toggleSlot(slot)">
+                                                        <div x-text="extractTime(slot.datetime)"></div>
+                                                    </button>
+                                                </template>
+                                                <template x-if="getSlotsForDayAndHour(day.dateStr, hour).length === 0">
+                                                    <div class="w-full h-12"></div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
                     </template>
                 </div>
@@ -335,6 +428,55 @@
             <p>Please select a subject to view available time slots</p>
         </div>
     </template>
+
+    <!-- Floating Booking Summary Card -->
+    <template x-if="selectedSlots.length > 0">
+        <div class="fixed bottom-4 right-4 z-30 w-80 max-w-[calc(100vw-2rem)]">
+            <div class="card bg-primary text-primary-content shadow-2xl">
+                <div class="card-body p-4">
+                    <div class="flex items-start justify-between mb-2">
+                        <h3 class="card-title text-base">
+                            <i class="fas fa-shopping-cart"></i>
+                            Booking Summary
+                        </h3>
+                        <button class="btn btn-ghost btn-xs btn-circle" @click="clearSelection()" title="Clear all">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="opacity-90">Subject:</span>
+                            <span class="font-semibold" x-text="getSelectedSubjectName()"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="opacity-90">Duration:</span>
+                            <span class="font-semibold" x-text="duration + ' min'"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="opacity-90">Location:</span>
+                            <span class="font-semibold" x-text="location"></span>
+                        </div>
+                        <div class="divider my-2"></div>
+                        <div class="flex justify-between">
+                            <span class="opacity-90">Lessons selected:</span>
+                            <span class="font-bold text-lg" x-text="selectedSlots.length"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="opacity-90">Total cost:</span>
+                            <span class="font-bold text-2xl">£<span x-text="calculateTotalCost()"></span></span>
+                        </div>
+                    </div>
+
+                    <div class="card-actions justify-end mt-3">
+                        <button class="btn btn-sm btn-ghost" @click="document.querySelector('.card.bg-base-200').scrollIntoView({ behavior: 'smooth' })">
+                            <i class="fas fa-eye mr-1"></i>View Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
 </div>
 
 <script>
@@ -350,10 +492,14 @@ function calendarBooking() {
         availableSlots: [],
         selectedSlots: [],
         weekDays: [],
-        timeRange: [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
         loading: false,
         submitting: false,
         message: '',
+
+        // Collapsible section states
+        showMorning: false,
+        showAfternoon: true,
+        showEvening: true,
 
         // Recurring booking properties
         enableRecurring: false,
@@ -431,6 +577,18 @@ function calendarBooking() {
             const start = this.startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             const end = this.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             return `${start} - ${end}`;
+        },
+
+        getAvailableHoursInRange(startHour, endHour) {
+            // Get unique hours that have available slots in the given range
+            const hours = new Set();
+            this.availableSlots.forEach(slot => {
+                const slotHour = parseInt(slot.datetime.split('T')[1].substring(0, 2));
+                if (slotHour >= startHour && slotHour <= endHour) {
+                    hours.add(slotHour);
+                }
+            });
+            return Array.from(hours).sort((a, b) => a - b);
         },
 
         async loadAvailableSlots() {
