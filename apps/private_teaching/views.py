@@ -4076,8 +4076,14 @@ class QuestionCreateView(TeacherProfileCompletedMixin, TemplateView):
             formset = formset_class(request.POST, instance=question)
 
             if formset.is_valid():
-                # Check at least one correct answer
-                correct_answers = sum(1 for form in formset if form.cleaned_data.get('is_correct', False) and not form.cleaned_data.get('DELETE', False))
+                # Check at least one correct answer (only count forms with actual data)
+                correct_answers = sum(
+                    1 for form in formset
+                    if form.cleaned_data  # Form has data
+                    and not form.cleaned_data.get('DELETE', False)  # Not marked for deletion
+                    and form.cleaned_data.get('text')  # Has answer text
+                    and form.cleaned_data.get('is_correct', False)  # Is marked as correct
+                )
 
                 if correct_answers == 0:
                     messages.error(request, 'At least one answer must be marked as correct.')
@@ -4153,10 +4159,13 @@ class QuestionEditView(TeacherProfileCompletedMixin, TemplateView):
         formset = formset_class(request.POST, instance=question)
 
         if form.is_valid() and formset.is_valid():
-            # Check at least one correct answer (excluding deleted forms)
+            # Check at least one correct answer (only count forms with actual data)
             correct_answers = sum(
                 1 for f in formset
-                if f.cleaned_data.get('is_correct', False) and not f.cleaned_data.get('DELETE', False)
+                if f.cleaned_data  # Form has data
+                and not f.cleaned_data.get('DELETE', False)  # Not marked for deletion
+                and f.cleaned_data.get('text')  # Has answer text
+                and f.cleaned_data.get('is_correct', False)  # Is marked as correct
             )
 
             if correct_answers == 0:
