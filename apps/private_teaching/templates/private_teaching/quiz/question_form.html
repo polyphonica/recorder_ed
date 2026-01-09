@@ -251,27 +251,38 @@ document.addEventListener('DOMContentLoaded', function() {
             label.textContent = 'Answer ' + (formIndex + 1);
         }
 
-        // Remove any CKEditor UI elements that might have been cloned
-        newForm.querySelectorAll('.ck-editor').forEach(el => el.remove());
-
-        // Find or create the textarea for CKEditor
-        let textarea = newForm.querySelector('textarea[name$="text"]');
-        if (!textarea) {
-            // Create a clean textarea if needed
-            const textareaContainer = newForm.querySelector('.flex-1.form-control');
-            if (textareaContainer) {
-                textarea = document.createElement('textarea');
-                textarea.name = newFormPrefix + 'text';
-                textarea.id = 'id_' + newFormPrefix + 'text';
-                textarea.className = 'django_ckeditor_5';
-                textareaContainer.appendChild(textarea);
-            }
+        // Find the container where the CKEditor field should be
+        const textareaContainer = newForm.querySelector('.flex-1.form-control');
+        if (!textareaContainer) {
+            console.error('Could not find textarea container');
+            return;
         }
 
-        // Ensure textarea is visible and clean
-        if (textarea) {
-            textarea.value = '';
-            textarea.style.display = 'block';
+        // Remove any CKEditor UI elements that might have been cloned
+        // But preserve the original textarea if it exists outside the .ck-editor wrapper
+        const existingTextarea = newForm.querySelector('textarea[name$="text"]');
+        let textareaParent = null;
+
+        if (existingTextarea && !existingTextarea.closest('.ck-editor')) {
+            textareaParent = existingTextarea.parentElement;
+        }
+
+        // Remove all CKEditor UI
+        newForm.querySelectorAll('.ck-editor').forEach(el => el.remove());
+
+        // Create a fresh textarea
+        const textarea = document.createElement('textarea');
+        textarea.name = newFormPrefix + 'text';
+        textarea.id = 'id_' + newFormPrefix + 'text';
+        textarea.className = 'django_ckeditor_5';
+        textarea.value = '';
+
+        // Add textarea to the container (after the label)
+        const labelElement = textareaContainer.querySelector('.label');
+        if (labelElement && labelElement.nextSibling) {
+            textareaContainer.insertBefore(textarea, labelElement.nextSibling);
+        } else {
+            textareaContainer.appendChild(textarea);
         }
 
         // Append the new form

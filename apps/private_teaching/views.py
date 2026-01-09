@@ -4077,13 +4077,26 @@ class QuestionCreateView(TeacherProfileCompletedMixin, TemplateView):
 
             if formset.is_valid():
                 # Check at least one correct answer (only count forms with actual data)
-                correct_answers = sum(
-                    1 for form in formset
-                    if form.cleaned_data  # Form has data
-                    and not form.cleaned_data.get('DELETE', False)  # Not marked for deletion
-                    and form.cleaned_data.get('text')  # Has answer text
-                    and form.cleaned_data.get('is_correct', False)  # Is marked as correct
-                )
+                # Debug: Let's see what we're actually checking
+                import logging
+                logger = logging.getLogger(__name__)
+
+                correct_answers = 0
+                for idx, form in enumerate(formset):
+                    if not form.cleaned_data:
+                        logger.info(f"Form {idx}: No cleaned_data")
+                        continue
+
+                    is_deleted = form.cleaned_data.get('DELETE', False)
+                    has_text = bool(form.cleaned_data.get('text'))
+                    is_correct = form.cleaned_data.get('is_correct', False)
+
+                    logger.info(f"Form {idx}: DELETE={is_deleted}, has_text={has_text}, is_correct={is_correct}")
+
+                    if not is_deleted and has_text and is_correct:
+                        correct_answers += 1
+
+                logger.info(f"Total correct answers: {correct_answers}")
 
                 if correct_answers == 0:
                     messages.error(request, 'At least one answer must be marked as correct.')

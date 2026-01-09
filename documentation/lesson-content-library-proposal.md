@@ -1,5 +1,3 @@
-# Lesson Content Library Feature Proposal
-
 **Status:** Proposed
 **Date:** December 28, 2024
 **Author:** Feature Planning Discussion
