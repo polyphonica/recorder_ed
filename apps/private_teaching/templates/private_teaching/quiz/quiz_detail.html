@@ -230,6 +230,7 @@
                                 </div>
 
                                 <!-- Answers -->
+                                <h3 class="font-semibold text-lg mb-3 mt-4">Answers</h3>
                                 <div class="space-y-2">
                                     {% for answer in question.answers.all %}
                                         <div class="flex items-center gap-2 p-3 rounded-lg {% if answer.is_correct %}bg-success/10 border border-success{% else %}bg-base-300{% endif %}">
