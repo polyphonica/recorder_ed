@@ -221,6 +221,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const newForm = document.createElement('div');
         newForm.className = 'formset-row card bg-base-200 p-4';
 
+        const scriptId = `id_${formPrefix}text_script`;
+
         newForm.innerHTML = `
             <div class="flex gap-4 items-start">
                 <!-- Answer Text -->
@@ -228,7 +230,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     <label class="label">
                         <span class="label-text font-semibold">Answer ${formIndex + 1}</span>
                     </label>
-                    <textarea name="${formPrefix}text" class="django_ckeditor_5 textarea textarea-bordered w-full" id="id_${formPrefix}text" style="min-height: 150px;"></textarea>
+                    <div class="ck-editor-container">
+                        <textarea name="${formPrefix}text" class="django_ckeditor_5" id="id_${formPrefix}text"></textarea>
+                        <span class="word-count" id="${scriptId}-word-count"></span>
+                    </div>
+                    <input type="hidden" id="${scriptId}-ck-editor-5-upload-url"
+                           data-upload-url="/ckeditor5/image_upload/"
+                           data-upload-file-types='["jpeg", "png", "gif", "bmp", "webp", "tiff"]'
+                           data-csrf_cookie_name="csrftoken">
+                    <span id="${scriptId}-span">{"language":"en"}</span>
                 </div>
 
                 <!-- Is Correct -->
@@ -265,30 +275,9 @@ document.addEventListener('DOMContentLoaded', function() {
         formIndex++;
         totalFormsInput.value = formIndex;
 
-        // Log what's available
-        console.log('Window globals:', {
-            ClassicEditor: typeof ClassicEditor,
-            CKEDITOR: typeof CKEDITOR,
-            window_ClassicEditor: typeof window.ClassicEditor
-        });
-
-        // CKEditor is already styled as a textarea, so it's usable
-        // Attempt to initialize CKEditor if available
-        const textarea = newForm.querySelector('textarea');
-        if (textarea && typeof window.ClassicEditor !== 'undefined') {
-            setTimeout(function() {
-                window.ClassicEditor.create(textarea)
-                    .then(editor => {
-                        console.log('✓ CKEditor initialized for Answer ' + formIndex);
-                    })
-                    .catch(error => {
-                        console.error('✗ CKEditor initialization failed:', error);
-                        console.log('Plain textarea is still usable');
-                    });
-            }, 300);
-        } else {
-            console.log('ClassicEditor not available, using plain textarea');
-        }
+        // Django-ckeditor-5's MutationObserver will automatically initialize CKEditor
+        // for the new textarea since we've added all the required companion elements
+        console.log('✓ Answer form added with CKEditor structure');
     });
 });
 </script>
