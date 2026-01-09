@@ -12,24 +12,6 @@
         font-weight: 600;
     }
 
-    .question-grid-btn.btn-success {
-        background-color: hsl(var(--su)) !important;
-        border-color: hsl(var(--su)) !important;
-        color: hsl(var(--suc)) !important;
-    }
-
-    .question-grid-btn.btn-primary {
-        background-color: hsl(var(--p)) !important;
-        border-color: hsl(var(--p)) !important;
-        color: hsl(var(--pc)) !important;
-    }
-
-    .question-grid-btn.btn-ghost {
-        background-color: hsl(var(--b3)) !important;
-        border-color: hsl(var(--b3)) !important;
-        color: hsl(var(--bc)) !important;
-    }
-
     .question-grid-btn:hover {
         transform: scale(1.05);
         transition: transform 0.2s ease;
@@ -150,7 +132,7 @@
             <div class="grid grid-cols-5 sm:grid-cols-10 gap-2" id="question-grid">
                 {% for question in questions %}
                     <button type="button"
-                            class="question-grid-btn btn btn-sm btn-square {% if forloop.first %}btn-primary{% else %}btn-ghost{% endif %}"
+                            class="question-grid-btn btn btn-sm btn-square"
                             data-question-index="{{ forloop.counter0 }}"
                             data-question-id="{{ question.id }}">
                         {{ forloop.counter }}
@@ -373,27 +355,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        console.log('Answered questions:', Array.from(answeredQuestions));
-
-        // Update grid button styles
+        // Update grid button styles with inline styles for guaranteed visibility
         questionGridBtns.forEach((btn, index) => {
             const questionId = btn.dataset.questionId;
 
-            // Remove all status classes including DaisyUI variants
-            btn.classList.remove('btn-success', 'btn-primary', 'btn-ghost', 'btn-neutral', 'btn-info', 'btn-warning', 'btn-error');
-
             if (index === currentQuestionIndex) {
-                // Current question
-                btn.classList.add('btn-primary');
-                console.log(`Button ${index + 1}: current (blue)`);
+                // Current question - blue
+                btn.style.backgroundColor = '#3b82f6';
+                btn.style.borderColor = '#3b82f6';
+                btn.style.color = '#ffffff';
             } else if (answeredQuestions.has(questionId)) {
-                // Answered question
-                btn.classList.add('btn-success');
-                console.log(`Button ${index + 1}: answered (green)`);
+                // Answered question - green
+                btn.style.backgroundColor = '#10b981';
+                btn.style.borderColor = '#10b981';
+                btn.style.color = '#ffffff';
             } else {
-                // Unanswered question
-                btn.classList.add('btn-ghost');
-                console.log(`Button ${index + 1}: unanswered (grey)`);
+                // Unanswered question - grey
+                btn.style.backgroundColor = '#d1d5db';
+                btn.style.borderColor = '#d1d5db';
+                btn.style.color = '#374151';
             }
         });
     }
