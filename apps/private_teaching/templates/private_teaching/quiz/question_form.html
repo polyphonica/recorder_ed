@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', function() {
                            data-upload-url="/ckeditor5/image_upload/"
                            data-upload-file-types='["jpeg", "png", "gif", "bmp", "webp", "tiff"]'
                            data-csrf_cookie_name="csrftoken">
-                    <span id="${scriptId}-span">{"language":"en"}</span>
+                    <span id="${scriptId}-span" style="display:none;">{"language":"en"}</span>
                 </div>
 
                 <!-- Is Correct -->
@@ -275,51 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
         formIndex++;
         totalFormsInput.value = formIndex;
 
-        console.log('✓ Answer form added with CKEditor structure');
-
-        // Force a small delay to let the MutationObserver process, then manually initialize if needed
-        setTimeout(function() {
-            const textarea = newForm.querySelector('textarea.django_ckeditor_5');
-            console.log('Checking if CKEditor initialized...', {
-                textarea: !!textarea,
-                hasEditor: textarea ? !!textarea.nextElementSibling?.classList?.contains('ck-editor') : false
-            });
-
-            // If CKEditor hasn't initialized after 500ms, do it manually
-            if (textarea && !textarea.nextElementSibling?.classList?.contains('ck-editor')) {
-                console.log('CKEditor not auto-initialized, initializing manually...');
-                if (typeof ClassicEditor !== 'undefined') {
-                    const uploadInput = newForm.querySelector(`input[id$="-ck-editor-5-upload-url"]`);
-                    const configSpan = newForm.querySelector(`span[id$="-span"]`);
-
-                    let config = { language: 'en' };
-                    try {
-                        if (configSpan) {
-                            config = JSON.parse(configSpan.textContent);
-                        }
-                    } catch (e) {
-                        console.error('Failed to parse config:', e);
-                    }
-
-                    if (uploadInput) {
-                        config.simpleUpload = {
-                            uploadUrl: uploadInput.getAttribute('data-upload-url')
-                        };
-                    }
-
-                    ClassicEditor.create(textarea, config)
-                        .then(editor => {
-                            console.log('✓ Manual CKEditor initialization successful');
-                            textarea.setAttribute('data-processed', '1');
-                        })
-                        .catch(error => {
-                            console.error('✗ Manual CKEditor initialization failed:', error);
-                        });
-                }
-            } else {
-                console.log('✓ CKEditor auto-initialized successfully');
-            }
-        }, 500);
+        console.log('✓ Answer form added - django-ckeditor-5 MutationObserver should auto-initialize');
     });
 });
 </script>
