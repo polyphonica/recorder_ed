@@ -4192,12 +4192,16 @@ class QuestionDeleteView(TeacherProfileCompletedMixin, DeleteView):
         """Only allow deleting questions from own quizzes"""
         return PrivateLessonQuizQuestion.objects.filter(quiz__created_by=self.request.user)
 
+    def get_success_url(self):
+        """Redirect to quiz detail page after deletion"""
+        return reverse('private_teaching:quiz_detail', kwargs={'pk': self.object.quiz.pk})
+
     def delete(self, request, *args, **kwargs):
         question = self.get_object()
-        quiz = question.quiz
-        question.delete()
+        quiz_pk = question.quiz.pk
         messages.success(request, 'Question deleted successfully.')
-        return redirect('private_teaching:quiz_detail', pk=quiz.pk)
+        response = super().delete(request, *args, **kwargs)
+        return response
 
 
 # -----------------------------

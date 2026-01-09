@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Input Test</title>
+</head>
+<body>
+    <h1>File Input Test</h1>
+
+    <h2>Test 1: Regular File Input</h2>
+    <input type="file" id="regularInput">
+
+    <h2>Test 2: Programmatic File Input (like CKEditor)</h2>
+    <button id="testButton">Click to Open File Dialog</button>
+
+    <script>
+        document.getElementById('testButton').addEventListener('click', function() {
+            console.log('Button clicked');
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.style.display = 'none';
+
+            fileInput.addEventListener('change', function(event) {
+                console.log('File selected:', event.target.files[0]);
+                alert('File selected: ' + event.target.files[0].name);
+            });
+
+            document.body.appendChild(fileInput);
+            console.log('About to click file input');
+            fileInput.click();
+            console.log('Clicked file input');
+        });
+    </script>
+
+    <h2>Console Log</h2>
+    <p>Open browser console (F12) to see logs</p>
+</body>
+</html>
