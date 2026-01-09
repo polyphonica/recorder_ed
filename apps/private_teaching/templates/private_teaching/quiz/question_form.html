@@ -238,7 +238,9 @@ document.addEventListener('DOMContentLoaded', function() {
                            data-upload-url="/ckeditor5/image_upload/"
                            data-upload-file-types='["jpeg", "png", "gif", "bmp", "webp", "tiff"]'
                            data-csrf_cookie_name="csrftoken">
-                    <span id="${scriptId}-span" style="display:none;">{"language":"en"}</span>
+                    <span id="${scriptId}-span">
+                        <script id="${scriptId.replace('_script', '')}" type="application/json">{"language":"en"}</script>
+                    </span>
                 </div>
 
                 <!-- Is Correct -->
