@@ -44,6 +44,7 @@ class PrivateLessonQuizForm(forms.ModelForm):
             'show_correct_answers',
             'allow_retakes',
             'max_attempts',
+            'pagination_mode',
             'subject',
             'syllabus',
             'grade_level',
@@ -107,6 +108,9 @@ class PrivateLessonQuizForm(forms.ModelForm):
             'is_public': forms.CheckboxInput(attrs={
                 'class': 'checkbox checkbox-primary'
             }),
+            'pagination_mode': forms.RadioSelect(attrs={
+                'class': 'radio radio-primary'
+            }),
         }
         help_texts = {
             'pass_percentage': 'Minimum percentage required to pass (0-100)',
@@ -116,6 +120,7 @@ class PrivateLessonQuizForm(forms.ModelForm):
             'allow_retakes': 'Allow students to retake the quiz',
             'max_attempts': 'Maximum number of attempts (leave blank for unlimited)',
             'is_public': 'Make this quiz available to other teachers',
+            'pagination_mode': 'Choose how questions are displayed to students',
         }
 
     def __init__(self, *args, teacher=None, **kwargs):

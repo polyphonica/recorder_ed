@@ -1636,7 +1636,16 @@ class PrivateLessonQuiz(models.Model):
         blank=True,
         help_text="Maximum attempts allowed (null = unlimited)"
     )
-    
+    pagination_mode = models.CharField(
+        max_length=20,
+        choices=[
+            ('continuous', 'Continuous (Single Page)'),
+            ('paginated', 'Paginated (One at a Time)'),
+        ],
+        default='continuous',
+        help_text="Display mode for quiz questions"
+    )
+
     # Categorization (align with LessonTemplate system)
     subject = models.ForeignKey(
         'private_teaching.Subject',
