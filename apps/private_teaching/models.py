@@ -1780,7 +1780,10 @@ class PrivateLessonQuizAnswer(models.Model):
     )
     
     # Answer Content
-    text = models.TextField(help_text="Answer text")
+    text = CKEditor5Field(
+        config_name='default',
+        help_text="Answer text (supports images, formatting, music notation)"
+    )
     
     # Correctness
     is_correct = models.BooleanField(

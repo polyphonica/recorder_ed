@@ -137,25 +137,25 @@
                                             border-base-300
                                         {% endif %}">
 
-                                        <div class="flex items-center gap-3">
+                                        <div class="flex items-start gap-3">
                                             <!-- Answer Icon -->
                                             {% if answer.id|stringformat:'s' == q_data.student_answer_id %}
                                                 {% if answer.is_correct %}
-                                                    <i class="fas fa-check-circle text-success text-xl"></i>
+                                                    <i class="fas fa-check-circle text-success text-xl mt-1"></i>
                                                 {% else %}
-                                                    <i class="fas fa-times-circle text-error text-xl"></i>
+                                                    <i class="fas fa-times-circle text-error text-xl mt-1"></i>
                                                 {% endif %}
                                             {% elif answer.is_correct %}
-                                                <i class="fas fa-check-circle text-success text-xl"></i>
+                                                <i class="fas fa-check-circle text-success text-xl mt-1"></i>
                                             {% else %}
-                                                <i class="far fa-circle text-base-content/40"></i>
+                                                <i class="far fa-circle text-base-content/40 mt-1"></i>
                                             {% endif %}
 
                                             <!-- Answer Text -->
-                                            <span class="flex-1">{{ answer.text }}</span>
+                                            <div class="flex-1 prose max-w-none">{{ answer.text|safe }}</div>
 
                                             <!-- Labels -->
-                                            <div class="flex gap-2">
+                                            <div class="flex gap-2 mt-1">
                                                 {% if answer.id|stringformat:'s' == q_data.student_answer_id %}
                                                     <div class="badge badge-sm">Your Answer</div>
                                                 {% endif %}

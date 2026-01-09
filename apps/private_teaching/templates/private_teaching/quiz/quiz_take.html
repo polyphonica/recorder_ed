@@ -114,16 +114,16 @@
                     <!-- Answer Options -->
                     <div class="space-y-3">
                         {% for answer in question.answers.all %}
-                            <label class="flex items-center gap-3 p-4 rounded-lg border-2 border-base-300 hover:border-primary cursor-pointer transition-colors">
+                            <label class="flex items-start gap-3 p-4 rounded-lg border-2 border-base-300 hover:border-primary cursor-pointer transition-colors">
                                 <input type="radio"
                                        name="question_{{ question.id }}"
                                        value="{{ answer.id }}"
-                                       class="radio radio-primary"
+                                       class="radio radio-primary mt-1"
                                        {% for q_id, a_id in attempt.answers_data.items %}
                                            {% if q_id|stringformat:"s" == question.id|stringformat:"s" and a_id|stringformat:"s" == answer.id|stringformat:"s" %}checked{% endif %}
                                        {% endfor %}
                                        required>
-                                <span class="flex-1">{{ answer.text }}</span>
+                                <div class="flex-1 prose max-w-none">{{ answer.text|safe }}</div>
                             </label>
                         {% endfor %}
                     </div>

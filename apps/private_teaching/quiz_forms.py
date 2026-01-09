@@ -231,7 +231,7 @@ class PrivateLessonQuizQuestionForm(forms.ModelForm):
 
 class PrivateLessonQuizAnswerForm(forms.ModelForm):
     """
-    Form for quiz answers.
+    Form for quiz answers with CKEditor5 support.
     Used in formset for managing multiple answers per question.
     """
 
@@ -239,11 +239,7 @@ class PrivateLessonQuizAnswerForm(forms.ModelForm):
         model = PrivateLessonQuizAnswer
         fields = ['text', 'is_correct', 'order']
         widgets = {
-            'text': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full',
-                'rows': 2,
-                'placeholder': 'Answer text...'
-            }),
+            'text': CKEditor5Widget(config_name='default'),
             'is_correct': forms.CheckboxInput(attrs={
                 'class': 'checkbox checkbox-primary'
             }),
@@ -253,7 +249,7 @@ class PrivateLessonQuizAnswerForm(forms.ModelForm):
             }),
         }
         help_texts = {
-            'text': 'Answer text',
+            'text': 'Answer text (supports images, formatting, music notation)',
             'is_correct': 'Mark as correct answer',
             'order': 'Display order',
         }
