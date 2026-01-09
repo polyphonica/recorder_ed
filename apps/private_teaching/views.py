@@ -4034,9 +4034,7 @@ class QuestionCreateView(TeacherProfileCompletedMixin, TemplateView):
             PrivateLessonQuizAnswer,
             form=PrivateLessonQuizAnswerForm,
             extra=3,
-            min_num=2,
             max_num=10,
-            validate_min=True,
             can_delete=True
         )
 
