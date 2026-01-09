@@ -232,7 +232,7 @@
                                 <th class="text-base">Quiz Title</th>
                                 <th class="text-base">Due Date</th>
                                 <th class="text-base">Status</th>
-                                <th class="text-base">Best Score</th>
+                                <th class="text-base">Latest / Best Score</th>
                                 <th class="text-base">Attempts</th>
                                 <th class="text-base text-center">Actions</th>
                             </tr>
@@ -268,14 +268,19 @@
                                             {% endif %}
                                         {% endif %}
                                     </td>
-                                    <td class="font-semibold">{{ data.score_display }}</td>
+                                    <td>
+                                        <div class="font-semibold">{{ data.latest_score_display }}</div>
+                                        {% if data.latest_score != data.best_score and data.best_score is not None %}
+                                            <div class="text-sm text-base-content/60">Best: {{ data.best_score_display }}</div>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         {{ data.attempts }}{% if data.max_attempts %}/{{ data.max_attempts }}{% endif %}
                                     </td>
                                     <td class="text-center">
-                                        {% if data.best_attempt %}
-                                            <a href="{% url 'private_teaching:teacher_quiz_attempt_results' data.best_attempt.id %}" class="btn btn-sm btn-outline">
-                                                <i class="fas fa-chart-bar mr-1"></i>View Results
+                                        {% if data.latest_attempt and data.latest_attempt.submitted_at %}
+                                            <a href="{% url 'private_teaching:teacher_quiz_attempt_results' data.latest_attempt.id %}" class="btn btn-sm btn-outline">
+                                                <i class="fas fa-chart-bar mr-1"></i>View Latest
                                             </a>
                                         {% else %}
                                             <span class="text-base-content/70 text-sm">Not attempted</span>

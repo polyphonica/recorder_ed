@@ -1843,6 +1843,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             quiz_data = []
             for quiz_assign in quiz_assignments:
                 best_attempt = quiz_assign.best_attempt
+                latest_attempt = quiz_assign.latest_attempt
 
                 # Determine status
                 if quiz_assign.attempt_count == 0:
@@ -1854,22 +1855,29 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
                 else:
                     status = 'assigned'
 
-                # Get score
-                score = best_attempt.score if best_attempt else None
-                score_display = f"{score}%" if score is not None else '—'
+                # Get best score
+                best_score = best_attempt.score if best_attempt else None
+                best_score_display = f"{best_score}%" if best_score is not None else '—'
 
-                # Check if passed
-                passed = quiz_assign.passed
+                # Get latest score
+                latest_score = latest_attempt.score if latest_attempt and latest_attempt.submitted_at else None
+                latest_score_display = f"{latest_score}%" if latest_score is not None else '—'
+
+                # Check if passed (based on latest attempt)
+                passed = latest_attempt.passed if latest_attempt and latest_attempt.submitted_at else quiz_assign.passed
 
                 quiz_data.append({
                     'assignment': quiz_assign,
                     'status': status,
-                    'score': score,
-                    'score_display': score_display,
+                    'best_score': best_score,
+                    'best_score_display': best_score_display,
+                    'latest_score': latest_score,
+                    'latest_score_display': latest_score_display,
                     'passed': passed,
                     'attempts': quiz_assign.attempt_count,
                     'max_attempts': quiz_assign.quiz.max_attempts,
                     'best_attempt': best_attempt,
+                    'latest_attempt': latest_attempt,
                     'is_overdue': quiz_assign.is_overdue,
                 })
 
