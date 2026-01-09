@@ -4082,7 +4082,16 @@ class QuestionCreateView(TeacherProfileCompletedMixin, TemplateView):
                 with transaction.atomic():
                     question.save()
                     formset.instance = question
-                    formset.save()
+
+                    # Save answers and assign sequential order values
+                    answers = formset.save(commit=False)
+                    for index, answer in enumerate(answers):
+                        answer.order = index
+                        answer.save()
+
+                    # Handle deletions
+                    for obj in formset.deleted_objects:
+                        obj.delete()
 
                 messages.success(request, 'Question added successfully!')
                 return redirect('private_teaching:quiz_detail', pk=quiz.pk)
@@ -4100,6 +4109,17 @@ class QuestionEditView(TeacherProfileCompletedMixin, TemplateView):
     """Edit question with inline answer formset"""
     template_name = 'private_teaching/quiz/question_form.html'
 
+    def get_answer_formset_class_edit(self):
+        """Generate formset class for editing with no extra blank forms"""
+        return forms.inlineformset_factory(
+            PrivateLessonQuizQuestion,
+            PrivateLessonQuizAnswer,
+            form=PrivateLessonQuizAnswerForm,
+            extra=0,  # No extra blank forms when editing
+            max_num=10,
+            can_delete=True
+        )
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         question = get_object_or_404(
@@ -4110,7 +4130,7 @@ class QuestionEditView(TeacherProfileCompletedMixin, TemplateView):
         context['quiz'] = question.quiz
         context['question'] = question
         context['form'] = PrivateLessonQuizQuestionForm(instance=question)
-        context['formset'] = PrivateLessonQuizAnswerFormSet(instance=question)
+        context['formset'] = self.get_answer_formset_class_edit()(instance=question)
         return context
 
     def post(self, request, *args, **kwargs):
@@ -4121,7 +4141,8 @@ class QuestionEditView(TeacherProfileCompletedMixin, TemplateView):
         )
 
         form = PrivateLessonQuizQuestionForm(request.POST, instance=question)
-        formset = PrivateLessonQuizAnswerFormSet(request.POST, instance=question)
+        formset_class = self.get_answer_formset_class_edit()
+        formset = formset_class(request.POST, instance=question)
 
         if form.is_valid() and formset.is_valid():
             # Check at least one correct answer (excluding deleted forms)
@@ -4141,7 +4162,16 @@ class QuestionEditView(TeacherProfileCompletedMixin, TemplateView):
 
             with transaction.atomic():
                 form.save()
-                formset.save()
+
+                # Save answers and assign sequential order values
+                answers = formset.save(commit=False)
+                for index, answer in enumerate(answers):
+                    answer.order = index
+                    answer.save()
+
+                # Handle deletions
+                for obj in formset.deleted_objects:
+                    obj.delete()
 
             messages.success(request, 'Question updated successfully!')
             return redirect('private_teaching:quiz_detail', pk=question.quiz.pk)
