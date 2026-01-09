@@ -4076,27 +4076,14 @@ class QuestionCreateView(TeacherProfileCompletedMixin, TemplateView):
             formset = formset_class(request.POST, instance=question)
 
             if formset.is_valid():
-                # Check at least one correct answer (only count forms with actual data)
-                # Debug: Let's see what we're actually checking
-                import logging
-                logger = logging.getLogger(__name__)
-
-                correct_answers = 0
-                for idx, form in enumerate(formset):
-                    if not form.cleaned_data:
-                        logger.info(f"Form {idx}: No cleaned_data")
-                        continue
-
-                    is_deleted = form.cleaned_data.get('DELETE', False)
-                    has_text = bool(form.cleaned_data.get('text'))
-                    is_correct = form.cleaned_data.get('is_correct', False)
-
-                    logger.info(f"Form {idx}: DELETE={is_deleted}, has_text={has_text}, is_correct={is_correct}")
-
-                    if not is_deleted and has_text and is_correct:
-                        correct_answers += 1
-
-                logger.info(f"Total correct answers: {correct_answers}")
+                # Check at least one correct answer (only count valid forms with text)
+                correct_answers = sum(
+                    1 for f in formset
+                    if f.cleaned_data  # Form has data
+                    and not f.cleaned_data.get('DELETE', False)  # Not marked for deletion
+                    and f.cleaned_data.get('text', '').strip()  # Has answer text (not just whitespace)
+                    and f.cleaned_data.get('is_correct', False)  # Is marked as correct
+                )
 
                 if correct_answers == 0:
                     messages.error(request, 'At least one answer must be marked as correct.')
@@ -4172,12 +4159,12 @@ class QuestionEditView(TeacherProfileCompletedMixin, TemplateView):
         formset = formset_class(request.POST, instance=question)
 
         if form.is_valid() and formset.is_valid():
-            # Check at least one correct answer (only count forms with actual data)
+            # Check at least one correct answer (only count valid forms with text)
             correct_answers = sum(
                 1 for f in formset
                 if f.cleaned_data  # Form has data
                 and not f.cleaned_data.get('DELETE', False)  # Not marked for deletion
-                and f.cleaned_data.get('text')  # Has answer text
+                and f.cleaned_data.get('text', '').strip()  # Has answer text (not just whitespace)
                 and f.cleaned_data.get('is_correct', False)  # Is marked as correct
             )
 

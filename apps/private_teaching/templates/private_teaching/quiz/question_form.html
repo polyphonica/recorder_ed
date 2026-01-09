@@ -186,9 +186,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let formIndex = parseInt(totalFormsInput.value);
     const maxForms = parseInt(maxFormsInput.value);
 
-    // Store the first form as a clean template (before any CKEditor initialization affects it)
-    const firstForm = formsetContainer.querySelector('.formset-row:first-child');
-    const templateHTML = firstForm ? firstForm.outerHTML : null;
+    // Get the prefix from the management form name
+    const prefix = totalFormsInput.name.replace('-TOTAL_FORMS', '');
 
     addButton.addEventListener('click', function() {
         // Check if we've reached the maximum
@@ -197,93 +196,48 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        if (!templateHTML) {
-            alert('Error: Could not find form template.');
-            return;
-        }
+        const formPrefix = prefix + '-' + formIndex + '-';
 
-        // Get the prefix from the management form name
-        const prefix = totalFormsInput.name.replace('-TOTAL_FORMS', '');
+        // Create new form from scratch instead of cloning
+        const newForm = document.createElement('div');
+        newForm.className = 'formset-row card bg-base-200 p-4';
 
-        // Create new form from clean template
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = templateHTML;
-        const newForm = tempDiv.firstElementChild;
+        newForm.innerHTML = `
+            <div class="flex gap-4 items-start">
+                <!-- Answer Text -->
+                <div class="flex-1 form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Answer ${formIndex + 1}</span>
+                    </label>
+                    <textarea name="${formPrefix}text" class="django_ckeditor_5" id="id_${formPrefix}text"></textarea>
+                </div>
 
-        // Replace the template's index (0) with the new form index
-        const oldFormPrefix = prefix + '-0-';
-        const newFormPrefix = prefix + '-' + formIndex + '-';
+                <!-- Is Correct -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Correct?</span>
+                    </label>
+                    <div class="flex items-center justify-center h-12">
+                        <input type="checkbox" name="${formPrefix}is_correct" class="checkbox checkbox-primary" id="id_${formPrefix}is_correct">
+                    </div>
+                </div>
 
-        // Update all attributes in the cloned form
-        function updateFormIndexes(element) {
-            // Update name, id, for attributes
-            ['name', 'id', 'for'].forEach(attr => {
-                if (element.hasAttribute(attr)) {
-                    const value = element.getAttribute(attr);
-                    if (value && value.includes(oldFormPrefix)) {
-                        element.setAttribute(attr, value.replace(oldFormPrefix, newFormPrefix));
-                    }
-                }
-            });
+                <!-- Delete -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Delete</span>
+                    </label>
+                    <div class="flex items-center justify-center h-12">
+                        <input type="checkbox" name="${formPrefix}DELETE" class="checkbox checkbox-error" id="id_${formPrefix}DELETE">
+                    </div>
+                </div>
 
-            // Process all child elements
-            Array.from(element.children).forEach(child => updateFormIndexes(child));
-        }
-
-        updateFormIndexes(newForm);
-
-        // Clear all input values
-        newForm.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
-            input.value = '';
-        });
-        newForm.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        newForm.querySelectorAll('input[type="hidden"]').forEach(input => {
-            if (input.name && !input.name.endsWith('-id')) {
-                input.value = '';
-            }
-        });
-
-        // Update the label to show the correct answer number
-        const label = newForm.querySelector('.label-text.font-semibold');
-        if (label && label.textContent.startsWith('Answer')) {
-            label.textContent = 'Answer ' + (formIndex + 1);
-        }
-
-        // Find the container where the CKEditor field should be
-        const textareaContainer = newForm.querySelector('.flex-1.form-control');
-        if (!textareaContainer) {
-            console.error('Could not find textarea container');
-            return;
-        }
-
-        // Remove any CKEditor UI elements that might have been cloned
-        // But preserve the original textarea if it exists outside the .ck-editor wrapper
-        const existingTextarea = newForm.querySelector('textarea[name$="text"]');
-        let textareaParent = null;
-
-        if (existingTextarea && !existingTextarea.closest('.ck-editor')) {
-            textareaParent = existingTextarea.parentElement;
-        }
-
-        // Remove all CKEditor UI
-        newForm.querySelectorAll('.ck-editor').forEach(el => el.remove());
-
-        // Create a fresh textarea
-        const textarea = document.createElement('textarea');
-        textarea.name = newFormPrefix + 'text';
-        textarea.id = 'id_' + newFormPrefix + 'text';
-        textarea.className = 'django_ckeditor_5';
-        textarea.value = '';
-
-        // Add textarea to the container (after the label)
-        const labelElement = textareaContainer.querySelector('.label');
-        if (labelElement && labelElement.nextSibling) {
-            textareaContainer.insertBefore(textarea, labelElement.nextSibling);
-        } else {
-            textareaContainer.appendChild(textarea);
-        }
+                <!-- Order (hidden) -->
+                <div class="hidden">
+                    <input type="number" name="${formPrefix}order" value="0" id="id_${formPrefix}order">
+                </div>
+            </div>
+        `;
 
         // Append the new form
         formsetContainer.appendChild(newForm);
@@ -293,8 +247,8 @@ document.addEventListener('DOMContentLoaded', function() {
         totalFormsInput.value = formIndex;
 
         // Initialize CKEditor for the new textarea
+        const textarea = newForm.querySelector('textarea');
         if (textarea && typeof CKEDITOR !== 'undefined' && CKEDITOR.ClassicEditor) {
-            // Small delay to ensure DOM is ready
             setTimeout(function() {
                 CKEDITOR.ClassicEditor.create(textarea, CKEDITOR.config.default || {})
                     .catch(error => {
