@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <label class="label">
                         <span class="label-text font-semibold">Answer ${formIndex + 1}</span>
                     </label>
-                    <textarea name="${formPrefix}text" class="django_ckeditor_5" id="id_${formPrefix}text"></textarea>
+                    <textarea name="${formPrefix}text" class="django_ckeditor_5 textarea textarea-bordered w-full" id="id_${formPrefix}text" style="min-height: 150px;"></textarea>
                 </div>
 
                 <!-- Is Correct -->
@@ -246,40 +246,29 @@ document.addEventListener('DOMContentLoaded', function() {
         formIndex++;
         totalFormsInput.value = formIndex;
 
-        // Initialize CKEditor for the new textarea
+        // Log what's available
+        console.log('Window globals:', {
+            ClassicEditor: typeof ClassicEditor,
+            CKEDITOR: typeof CKEDITOR,
+            window_ClassicEditor: typeof window.ClassicEditor
+        });
+
+        // CKEditor is already styled as a textarea, so it's usable
+        // Attempt to initialize CKEditor if available
         const textarea = newForm.querySelector('textarea');
-        if (textarea) {
-            // Make textarea visible by default in case CKEditor fails
-            textarea.style.display = 'block';
-            textarea.style.minHeight = '200px';
-            textarea.className = 'django_ckeditor_5 textarea textarea-bordered w-full';
-
-            // Check for ClassicEditor global (django-ckeditor-5 exposes this)
-            if (typeof ClassicEditor !== 'undefined') {
-                setTimeout(function() {
-                    // Get the configuration from the first CKEditor instance if available
-                    const firstEditor = document.querySelector('.ck-editor');
-                    let config = {
-                        simpleUpload: {
-                            uploadUrl: '/ckeditor5/image_upload/',
-                        }
-                    };
-
-                    ClassicEditor.create(textarea, config)
-                        .then(editor => {
-                            console.log('CKEditor initialized for Answer ' + formIndex);
-                        })
-                        .catch(error => {
-                            console.error('CKEditor initialization error:', error);
-                            console.error('Error details:', error.message, error.stack);
-                            // Keep textarea visible as fallback
-                        });
-                }, 200);
-            } else {
-                console.error('ClassicEditor not found - CKEditor may not be loaded');
-            }
+        if (textarea && typeof window.ClassicEditor !== 'undefined') {
+            setTimeout(function() {
+                window.ClassicEditor.create(textarea)
+                    .then(editor => {
+                        console.log('✓ CKEditor initialized for Answer ' + formIndex);
+                    })
+                    .catch(error => {
+                        console.error('✗ CKEditor initialization failed:', error);
+                        console.log('Plain textarea is still usable');
+                    });
+            }, 300);
         } else {
-            console.error('Could not find textarea in new form');
+            console.log('ClassicEditor not available, using plain textarea');
         }
     });
 });
