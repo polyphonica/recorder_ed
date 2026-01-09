@@ -177,19 +177,38 @@ document.addEventListener('click', function() {}, true);
 </div>
 
 <script>
+console.log('=== Answer form script loading ===');
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== DOMContentLoaded fired ===');
+
     const addButton = document.getElementById('add-answer-btn');
     const formsetContainer = document.getElementById('answer-formset');
     const totalFormsInput = document.querySelector('[name$="TOTAL_FORMS"]');
     const maxFormsInput = document.querySelector('[name$="MAX_NUM_FORMS"]');
 
+    console.log('Elements found:', {
+        addButton: !!addButton,
+        formsetContainer: !!formsetContainer,
+        totalFormsInput: !!totalFormsInput,
+        maxFormsInput: !!maxFormsInput
+    });
+
+    if (!addButton) {
+        console.error('Add button not found!');
+        return;
+    }
+
     let formIndex = parseInt(totalFormsInput.value);
     const maxForms = parseInt(maxFormsInput.value);
+
+    console.log('Initial state:', { formIndex, maxForms });
 
     // Get the prefix from the management form name
     const prefix = totalFormsInput.name.replace('-TOTAL_FORMS', '');
 
     addButton.addEventListener('click', function() {
+        console.log('=== Add Answer button clicked ===');
         // Check if we've reached the maximum
         if (formIndex >= maxForms) {
             alert('Maximum number of answers (' + maxForms + ') reached.');
