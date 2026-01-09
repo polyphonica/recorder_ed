@@ -71,7 +71,7 @@
                         {% for subject in subjects %}
                             <span class="badge badge-primary badge-lg">{{ subject.subject }}</span>
                         {% empty %}
-                            <span class="text-base-content/70">No subjects</span>
+                            <span class="text-base-content/70 text-lg">No subjects</span>
                         {% endfor %}
                     </div>
                     <div class="mt-3 text-base text-base-content/70">
@@ -135,7 +135,7 @@
                 <h2 class="text-2xl font-bold">
                     <i class="fas fa-file-alt mr-2 text-primary"></i>Assignments
                 </h2>
-                <div class="text-base-content/70">
+                <div class="text-base-content/70 text-lg">
                     {{ total_assignments }} total
                 </div>
             </div>
@@ -155,44 +155,44 @@
                         <tbody>
                             {% for data in assignment_data %}
                                 <tr>
-                                    <td class="font-medium">
+                                    <td class="font-medium text-lg">
                                         {{ data.assignment.assignment.title }}
                                         {% if data.is_overdue %}
-                                            <span class="badge badge-error badge-sm ml-2">Overdue</span>
+                                            <span class="badge badge-error ml-2">Overdue</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="text-lg">
                                         {% if data.assignment.due_date %}
                                             {{ data.assignment.due_date|date:"M d, Y" }}
                                         {% else %}
                                             <span class="text-base-content/70">No deadline</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="text-lg">
                                         {% if data.status == 'not_started' %}
-                                            <span class="badge badge-ghost">Not Started</span>
+                                            <span class="badge badge-ghost badge-lg">Not Started</span>
                                         {% elif data.status == 'in_progress' %}
-                                            <span class="badge badge-info">In Progress</span>
+                                            <span class="badge badge-info badge-lg">In Progress</span>
                                         {% elif data.status == 'submitted' %}
-                                            <span class="badge badge-warning">Submitted</span>
+                                            <span class="badge badge-warning badge-lg">Submitted</span>
                                         {% elif data.status == 'graded' %}
                                             {% if data.passed %}
-                                                <span class="badge badge-success">Passed</span>
+                                                <span class="badge badge-success badge-lg">Passed</span>
                                             {% elif data.passed == False %}
-                                                <span class="badge badge-error">Not Passed</span>
+                                                <span class="badge badge-error badge-lg">Not Passed</span>
                                             {% else %}
-                                                <span class="badge badge-success">Graded</span>
+                                                <span class="badge badge-success badge-lg">Graded</span>
                                             {% endif %}
                                         {% endif %}
                                     </td>
-                                    <td class="font-semibold">{{ data.grade_display }}</td>
-                                    <td class="text-center">
+                                    <td class="font-semibold text-lg">{{ data.grade_display }}</td>
+                                    <td class="text-center text-lg">
                                         {% if data.submission %}
                                             <a href="{% url 'assignments:grade_submission' data.submission.id %}" class="btn btn-sm btn-outline">
                                                 <i class="fas fa-eye mr-1"></i>View/Grade
                                             </a>
                                         {% else %}
-                                            <span class="text-base-content/70 text-sm">Not started</span>
+                                            <span class="text-base-content/70">Not started</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -201,7 +201,7 @@
                     </table>
                 </div>
             {% else %}
-                <div class="text-center py-8 text-base-content/70">
+                <div class="text-center py-8 text-base-content/70 text-lg">
                     {% if filter_status == 'all' %}
                         No assignments assigned to this student yet
                     {% else %}
@@ -219,7 +219,7 @@
                 <h2 class="text-2xl font-bold">
                     <i class="fas fa-question-circle mr-2 text-success"></i>Quizzes
                 </h2>
-                <div class="text-base-content/70">
+                <div class="text-base-content/70 text-lg">
                     {{ total_quizzes }} total
                 </div>
             </div>
@@ -240,50 +240,50 @@
                         <tbody>
                             {% for data in quiz_data %}
                                 <tr>
-                                    <td class="font-medium">
+                                    <td class="font-medium text-lg">
                                         {{ data.assignment.quiz.title }}
                                         {% if data.is_overdue %}
-                                            <span class="badge badge-error badge-sm ml-2">Overdue</span>
+                                            <span class="badge badge-error ml-2">Overdue</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="text-lg">
                                         {% if data.assignment.due_date %}
                                             {{ data.assignment.due_date|date:"M d, Y" }}
                                         {% else %}
                                             <span class="text-base-content/70">No deadline</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="text-lg">
                                         {% if data.status == 'not_started' %}
-                                            <span class="badge badge-ghost">Not Started</span>
+                                            <span class="badge badge-ghost badge-lg">Not Started</span>
                                         {% elif data.status == 'assigned' %}
-                                            <span class="badge badge-info">Assigned</span>
+                                            <span class="badge badge-info badge-lg">Assigned</span>
                                         {% elif data.status == 'in_progress' %}
-                                            <span class="badge badge-warning">In Progress</span>
+                                            <span class="badge badge-warning badge-lg">In Progress</span>
                                         {% elif data.status == 'completed' %}
                                             {% if data.passed %}
-                                                <span class="badge badge-success">Passed</span>
+                                                <span class="badge badge-success badge-lg">Passed</span>
                                             {% else %}
-                                                <span class="badge badge-error">Not Passed</span>
+                                                <span class="badge badge-error badge-lg">Not Passed</span>
                                             {% endif %}
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="text-lg">
                                         <div class="font-semibold">{{ data.latest_score_display }}</div>
                                         {% if data.latest_score != data.best_score and data.best_score is not None %}
-                                            <div class="text-sm text-base-content/60">Best: {{ data.best_score_display }}</div>
+                                            <div class="text-base text-base-content/60">Best: {{ data.best_score_display }}</div>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="text-lg">
                                         {{ data.attempts }}{% if data.max_attempts %}/{{ data.max_attempts }}{% endif %}
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center text-lg">
                                         {% if data.latest_attempt and data.latest_attempt.submitted_at %}
                                             <a href="{% url 'private_teaching:teacher_quiz_attempt_results' data.latest_attempt.id %}" class="btn btn-sm btn-outline">
                                                 <i class="fas fa-chart-bar mr-1"></i>View Latest
                                             </a>
                                         {% else %}
-                                            <span class="text-base-content/70 text-sm">Not attempted</span>
+                                            <span class="text-base-content/70">Not attempted</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -292,7 +292,7 @@
                     </table>
                 </div>
             {% else %}
-                <div class="text-center py-8 text-base-content/70">
+                <div class="text-center py-8 text-base-content/70 text-lg">
                     {% if filter_status == 'all' %}
                         No quizzes assigned to this student yet
                     {% else %}
@@ -359,17 +359,17 @@
                             <tbody>
                                 {% for exam in past_exams %}
                                     <tr>
-                                        <td>{{ exam.exam_type }}</td>
-                                        <td>{{ exam.exam_date|date:"M d, Y" }}</td>
-                                        <td>
+                                        <td class="text-lg">{{ exam.exam_type }}</td>
+                                        <td class="text-lg">{{ exam.exam_date|date:"M d, Y" }}</td>
+                                        <td class="text-lg">
                                             {% if exam.result %}
-                                                <span class="badge badge-success">{{ exam.result }}</span>
+                                                <span class="badge badge-success badge-lg">{{ exam.result }}</span>
                                             {% else %}
                                                 <span class="text-base-content/70">Pending</span>
                                             {% endif %}
                                         </td>
-                                        <td class="text-center">
-                                            <a href="{% url 'private_teaching:exam_detail' exam.id %}" class="btn btn-xs btn-outline">
+                                        <td class="text-center text-lg">
+                                            <a href="{% url 'private_teaching:exam_detail' exam.id %}" class="btn btn-sm btn-outline">
                                                 View
                                             </a>
                                         </td>
@@ -382,7 +382,7 @@
             {% endif %}
 
             {% if not upcoming_exams and not past_exams %}
-                <div class="text-center py-8 text-base-content/70">
+                <div class="text-center py-8 text-base-content/70 text-lg">
                     No exams registered for this student
                 </div>
             {% endif %}
@@ -415,12 +415,12 @@
                         <tbody>
                             {% for entry in practice_entries %}
                                 <tr>
-                                    <td>{{ entry.practice_date|date:"M d, Y" }}</td>
-                                    <td>{{ entry.duration_minutes }} min</td>
-                                    <td>{{ entry.focus_areas|truncatewords:10|default:"—" }}</td>
-                                    <td>
+                                    <td class="text-lg">{{ entry.practice_date|date:"M d, Y" }}</td>
+                                    <td class="text-lg">{{ entry.duration_minutes }} min</td>
+                                    <td class="text-lg">{{ entry.focus_areas|truncatewords:10|default:"—" }}</td>
+                                    <td class="text-lg">
                                         {% if entry.teacher_comment %}
-                                            <span class="badge badge-success badge-sm">
+                                            <span class="badge badge-success badge-lg">
                                                 <i class="fas fa-comment mr-1"></i>Commented
                                             </span>
                                         {% else %}
@@ -433,7 +433,7 @@
                     </table>
                 </div>
             {% else %}
-                <div class="text-center py-8 text-base-content/70">
+                <div class="text-center py-8 text-base-content/70 text-lg">
                     No practice entries logged yet
                 </div>
             {% endif %}
