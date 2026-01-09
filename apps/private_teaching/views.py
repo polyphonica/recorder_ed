@@ -4027,17 +4027,9 @@ class QuestionCreateView(TeacherProfileCompletedMixin, TemplateView):
     """Create question with inline answer formset"""
     template_name = 'private_teaching/quiz/question_form.html'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        quiz = get_object_or_404(
-            PrivateLessonQuiz,
-            pk=kwargs['quiz_id'],
-            created_by=self.request.user
-        )
-        context['quiz'] = quiz
-        context['form'] = PrivateLessonQuizQuestionForm()
-        # Force exactly 3 empty answer forms
-        formset_class = forms.inlineformset_factory(
+    def get_answer_formset_class(self):
+        """Generate formset class with exactly 3 answer forms"""
+        return forms.inlineformset_factory(
             PrivateLessonQuizQuestion,
             PrivateLessonQuizAnswer,
             form=PrivateLessonQuizAnswerForm,
@@ -4047,7 +4039,17 @@ class QuestionCreateView(TeacherProfileCompletedMixin, TemplateView):
             validate_min=True,
             can_delete=True
         )
-        context['formset'] = formset_class()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        quiz = get_object_or_404(
+            PrivateLessonQuiz,
+            pk=kwargs['quiz_id'],
+            created_by=self.request.user
+        )
+        context['quiz'] = quiz
+        context['form'] = PrivateLessonQuizQuestionForm()
+        context['formset'] = self.get_answer_formset_class()()
         return context
 
     def post(self, request, *args, **kwargs):
@@ -4058,13 +4060,14 @@ class QuestionCreateView(TeacherProfileCompletedMixin, TemplateView):
         )
 
         form = PrivateLessonQuizQuestionForm(request.POST)
+        formset_class = self.get_answer_formset_class()
 
         # Create temporary question instance for formset
         if form.is_valid():
             question = form.save(commit=False)
             question.quiz = quiz
 
-            formset = PrivateLessonQuizAnswerFormSet(request.POST, instance=question)
+            formset = formset_class(request.POST, instance=question)
 
             if formset.is_valid():
                 # Check at least one correct answer
@@ -4086,7 +4089,7 @@ class QuestionCreateView(TeacherProfileCompletedMixin, TemplateView):
                 messages.success(request, 'Question added successfully!')
                 return redirect('private_teaching:quiz_detail', pk=quiz.pk)
         else:
-            formset = PrivateLessonQuizAnswerFormSet(request.POST)
+            formset = formset_class(request.POST)
 
         return render(request, self.template_name, {
             'quiz': quiz,
