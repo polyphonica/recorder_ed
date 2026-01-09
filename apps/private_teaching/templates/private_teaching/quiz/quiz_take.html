@@ -157,17 +157,17 @@
                     </button>
                 {% endfor %}
             </div>
-            <div class="mt-3 flex gap-4 text-xs">
+            <div class="mt-3 flex flex-wrap gap-4 text-sm font-medium">
                 <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 rounded" style="background-color: hsl(var(--su));"></div>
+                    <div class="w-6 h-6 rounded border-2" style="background-color: #10b981; border-color: #10b981;"></div>
                     <span>Answered</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 rounded" style="background-color: hsl(var(--p));"></div>
+                    <div class="w-6 h-6 rounded border-2" style="background-color: #3b82f6; border-color: #3b82f6;"></div>
                     <span>Current</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 rounded" style="background-color: hsl(var(--b3));"></div>
+                    <div class="w-6 h-6 rounded border-2" style="background-color: #d1d5db; border-color: #d1d5db;"></div>
                     <span>Unanswered</span>
                 </div>
             </div>
@@ -373,22 +373,27 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        console.log('Answered questions:', Array.from(answeredQuestions));
+
         // Update grid button styles
         questionGridBtns.forEach((btn, index) => {
             const questionId = btn.dataset.questionId;
 
-            // Remove all status classes
-            btn.classList.remove('btn-success', 'btn-primary', 'btn-ghost');
+            // Remove all status classes including DaisyUI variants
+            btn.classList.remove('btn-success', 'btn-primary', 'btn-ghost', 'btn-neutral', 'btn-info', 'btn-warning', 'btn-error');
 
             if (index === currentQuestionIndex) {
                 // Current question
                 btn.classList.add('btn-primary');
+                console.log(`Button ${index + 1}: current (blue)`);
             } else if (answeredQuestions.has(questionId)) {
                 // Answered question
                 btn.classList.add('btn-success');
+                console.log(`Button ${index + 1}: answered (green)`);
             } else {
                 // Unanswered question
                 btn.classList.add('btn-ghost');
+                console.log(`Button ${index + 1}: unanswered (grey)`);
             }
         });
     }
