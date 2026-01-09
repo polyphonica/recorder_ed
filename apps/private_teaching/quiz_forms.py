@@ -260,7 +260,7 @@ PrivateLessonQuizAnswerFormSet = forms.inlineformset_factory(
     PrivateLessonQuizQuestion,
     PrivateLessonQuizAnswer,
     form=PrivateLessonQuizAnswerForm,
-    extra=4,  # Show 4 empty forms
+    extra=3,  # Show 3 empty forms initially
     min_num=2,  # At least 2 answers required
     max_num=10,  # Maximum 10 answers
     validate_min=True,

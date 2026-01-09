@@ -151,6 +151,10 @@ document.addEventListener('click', function() {}, true);
                     {% endfor %}
                 </div>
 
+                <button type="button" id="add-answer-btn" class="btn btn-secondary mt-4">
+                    <i class="fas fa-plus mr-2"></i>Add Another Answer
+                </button>
+
                 <div class="alert alert-info mt-4">
                     <i class="fas fa-info-circle"></i>
                     <span>You must mark at least one answer as correct. You can mark multiple answers as correct for multi-choice questions.</span>
@@ -171,4 +175,92 @@ document.addEventListener('click', function() {}, true);
     </form>
 </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addButton = document.getElementById('add-answer-btn');
+    const formsetContainer = document.getElementById('answer-formset');
+    const totalFormsInput = document.querySelector('[name$="TOTAL_FORMS"]');
+    const maxFormsInput = document.querySelector('[name$="MAX_NUM_FORMS"]');
+
+    // Get the last form to use as template
+    let formIndex = parseInt(totalFormsInput.value);
+    const maxForms = parseInt(maxFormsInput.value);
+
+    addButton.addEventListener('click', function() {
+        // Check if we've reached the maximum
+        if (formIndex >= maxForms) {
+            alert('Maximum number of answers (' + maxForms + ') reached.');
+            return;
+        }
+
+        // Get the last formset row as template
+        const lastForm = formsetContainer.querySelector('.formset-row:last-child');
+        if (!lastForm) {
+            alert('Error: Could not find form template.');
+            return;
+        }
+
+        // Clone the form
+        const newForm = lastForm.cloneNode(true);
+
+        // Get the prefix from the management form name
+        const prefix = totalFormsInput.name.replace('-TOTAL_FORMS', '');
+
+        // Replace all instances of the old form index with the new one
+        const oldFormPrefix = prefix + '-' + (formIndex - 1) + '-';
+        const newFormPrefix = prefix + '-' + formIndex + '-';
+
+        // Update all input names, IDs, and labels
+        newForm.innerHTML = newForm.innerHTML.replace(
+            new RegExp(oldFormPrefix, 'g'),
+            newFormPrefix
+        );
+
+        // Clear all input values in the new form
+        newForm.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(input => {
+            input.value = '';
+        });
+        newForm.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // Update the label to show the correct answer number
+        const label = newForm.querySelector('.label-text.font-semibold');
+        if (label) {
+            label.textContent = 'Answer ' + (formIndex + 1);
+        }
+
+        // For CKEditor fields, we need to remove the old editor instance first
+        const ckeditorContainer = newForm.querySelector('.django_ckeditor_5');
+        if (ckeditorContainer) {
+            // Remove any existing CKEditor instance HTML
+            const editorWrapper = ckeditorContainer.closest('.ck-editor__editable_inline');
+            if (editorWrapper && editorWrapper.parentElement) {
+                editorWrapper.parentElement.innerHTML = '<textarea name="' + newFormPrefix + 'text" class="django_ckeditor_5" id="id_' + newFormPrefix + 'text"></textarea>';
+            }
+        }
+
+        // Append the new form
+        formsetContainer.appendChild(newForm);
+
+        // Update the TOTAL_FORMS count
+        formIndex++;
+        totalFormsInput.value = formIndex;
+
+        // Reinitialize CKEditor for the new textarea if needed
+        const newTextarea = newForm.querySelector('textarea[name$="text"]');
+        if (newTextarea && typeof CKEDITOR !== 'undefined' && CKEDITOR.ClassicEditor) {
+            // CKEditor 5 initialization
+            const textareaId = newTextarea.id;
+            if (document.getElementById(textareaId)) {
+                CKEDITOR.ClassicEditor.create(document.getElementById(textareaId), CKEDITOR.config.default || {})
+                    .catch(error => {
+                        console.error('CKEditor initialization error:', error);
+                    });
+            }
+        }
+    });
+});
+</script>
 {% endblock %}
