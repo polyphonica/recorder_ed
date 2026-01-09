@@ -4076,12 +4076,12 @@ class QuestionCreateView(TeacherProfileCompletedMixin, TemplateView):
             formset = formset_class(request.POST, instance=question)
 
             if formset.is_valid():
-                # Check at least one correct answer (only count valid forms with text)
+                # Check at least one correct answer
+                # Don't check for text content here - formset validation handles that
                 correct_answers = sum(
                     1 for f in formset
                     if f.cleaned_data  # Form has data
                     and not f.cleaned_data.get('DELETE', False)  # Not marked for deletion
-                    and f.cleaned_data.get('text', '').strip()  # Has answer text (not just whitespace)
                     and f.cleaned_data.get('is_correct', False)  # Is marked as correct
                 )
 
@@ -4159,12 +4159,12 @@ class QuestionEditView(TeacherProfileCompletedMixin, TemplateView):
         formset = formset_class(request.POST, instance=question)
 
         if form.is_valid() and formset.is_valid():
-            # Check at least one correct answer (only count valid forms with text)
+            # Check at least one correct answer
+            # Don't check for text content here - formset validation handles that
             correct_answers = sum(
                 1 for f in formset
                 if f.cleaned_data  # Form has data
                 and not f.cleaned_data.get('DELETE', False)  # Not marked for deletion
-                and f.cleaned_data.get('text', '').strip()  # Has answer text (not just whitespace)
                 and f.cleaned_data.get('is_correct', False)  # Is marked as correct
             )
 

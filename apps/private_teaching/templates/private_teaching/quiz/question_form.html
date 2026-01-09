@@ -248,13 +248,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Initialize CKEditor for the new textarea
         const textarea = newForm.querySelector('textarea');
-        if (textarea && typeof CKEDITOR !== 'undefined' && CKEDITOR.ClassicEditor) {
-            setTimeout(function() {
-                CKEDITOR.ClassicEditor.create(textarea, CKEDITOR.config.default || {})
-                    .catch(error => {
-                        console.error('CKEditor initialization error:', error);
-                    });
-            }, 100);
+        if (textarea) {
+            // Make textarea visible by default in case CKEditor fails
+            textarea.style.display = 'block';
+            textarea.style.minHeight = '200px';
+            textarea.className = 'django_ckeditor_5 textarea textarea-bordered w-full';
+
+            if (typeof CKEDITOR !== 'undefined' && CKEDITOR.ClassicEditor) {
+                setTimeout(function() {
+                    CKEDITOR.ClassicEditor.create(textarea, CKEDITOR.config.default || {})
+                        .then(editor => {
+                            console.log('CKEditor initialized for Answer ' + formIndex);
+                        })
+                        .catch(error => {
+                            console.error('CKEditor initialization error:', error);
+                            // If CKEditor fails, at least the textarea is visible
+                            alert('CKEditor failed to initialize. You can still use the text field.');
+                        });
+                }, 150);
+            }
+        } else {
+            console.error('Could not find textarea in new form');
         }
     });
 });
