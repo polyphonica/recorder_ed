@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="section-private-teaching">
-<div class="container mx-auto px-4 py-8 max-w-7xl">
+<div class="container mx-auto px-4 py-8 max-w-[1600px]">
     <!-- Header with Navigation -->
     <div class="mb-8">
         <div class="flex items-center justify-between mb-4">
@@ -20,7 +20,7 @@
                         {{ student.get_full_name }}
                     {% endif %}
                 </h1>
-                <p class="text-base-content/70">Student Progress & Management</p>
+                <p class="text-lg text-base-content/70">Student Progress & Management</p>
             </div>
             <div class="flex gap-2">
                 <a href="{% url 'private_teaching:teacher_students' %}" class="btn btn-outline">
@@ -41,16 +41,16 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- Student Info -->
                 <div>
-                    <h3 class="font-bold text-lg mb-3">Contact Information</h3>
+                    <h3 class="font-bold text-xl mb-3">Contact Information</h3>
                     <div class="space-y-2 text-base">
                         <div class="flex items-center gap-2">
                             <i class="fas fa-envelope w-5 text-primary"></i>
-                            <span class="text-sm">{{ student.email }}</span>
+                            <span class="text-base">{{ student.email }}</span>
                         </div>
                         {% if is_guardian %}
                             <div class="flex items-center gap-2">
                                 <i class="fas fa-child w-5 text-warning"></i>
-                                <span class="text-sm">Guardian ({{ child_profiles|length }} child{{ child_profiles|length|pluralize:"ren" }})</span>
+                                <span class="text-base">Guardian ({{ child_profiles|length }} child{{ child_profiles|length|pluralize:"ren" }})</span>
                             </div>
                         {% endif %}
                     </div>
@@ -66,7 +66,7 @@
 
                 <!-- Subjects -->
                 <div>
-                    <h3 class="font-bold text-lg mb-3">Subjects</h3>
+                    <h3 class="font-bold text-xl mb-3">Subjects</h3>
                     <div class="flex flex-wrap gap-2">
                         {% for subject in subjects %}
                             <span class="badge badge-primary badge-lg">{{ subject.subject }}</span>
@@ -74,37 +74,37 @@
                             <span class="text-base-content/70">No subjects</span>
                         {% endfor %}
                     </div>
-                    <div class="mt-3 text-sm text-base-content/70">
+                    <div class="mt-3 text-base text-base-content/70">
                         {{ total_lessons }} total lesson{{ total_lessons|pluralize }}
                     </div>
                 </div>
 
                 <!-- Progress Summary -->
                 <div>
-                    <h3 class="font-bold text-lg mb-3">Outstanding Work</h3>
+                    <h3 class="font-bold text-xl mb-3">Outstanding Work</h3>
                     <div class="space-y-2">
                         <div class="flex justify-between">
-                            <span class="text-base">Assignments:</span>
-                            <span class="badge badge-warning">{{ outstanding_assignments }}</span>
+                            <span class="text-lg">Assignments:</span>
+                            <span class="badge badge-warning badge-lg">{{ outstanding_assignments }}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-base">Quizzes:</span>
-                            <span class="badge badge-warning">{{ outstanding_quizzes }}</span>
+                            <span class="text-lg">Quizzes:</span>
+                            <span class="badge badge-warning badge-lg">{{ outstanding_quizzes }}</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Practice Stats -->
                 <div>
-                    <h3 class="font-bold text-lg mb-3">Practice Time</h3>
+                    <h3 class="font-bold text-xl mb-3">Practice Time</h3>
                     <div class="space-y-2">
                         <div class="flex justify-between">
-                            <span class="text-base">This week:</span>
-                            <span class="font-semibold">{{ week_practice_minutes }} min</span>
+                            <span class="text-lg">This week:</span>
+                            <span class="font-semibold text-lg">{{ week_practice_minutes }} min</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-base">This month:</span>
-                            <span class="font-semibold">{{ month_practice_minutes }} min</span>
+                            <span class="text-lg">This month:</span>
+                            <span class="font-semibold text-lg">{{ month_practice_minutes }} min</span>
                         </div>
                     </div>
                     <a href="{% url 'private_teaching:teacher_student_practice' student.id %}" class="btn btn-sm btn-success mt-3 w-full">
@@ -142,14 +142,14 @@
 
             {% if assignment_data %}
                 <div class="overflow-x-auto">
-                    <table class="table table-zebra w-full">
+                    <table class="table table-zebra w-full text-base">
                         <thead>
                             <tr>
-                                <th class="text-base">Title</th>
-                                <th class="text-base">Due Date</th>
-                                <th class="text-base">Status</th>
-                                <th class="text-base">Grade</th>
-                                <th class="text-base text-center">Actions</th>
+                                <th class="text-lg">Title</th>
+                                <th class="text-lg">Due Date</th>
+                                <th class="text-lg">Status</th>
+                                <th class="text-lg">Grade</th>
+                                <th class="text-lg text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -226,15 +226,15 @@
 
             {% if quiz_data %}
                 <div class="overflow-x-auto">
-                    <table class="table table-zebra w-full">
+                    <table class="table table-zebra w-full text-base">
                         <thead>
                             <tr>
-                                <th class="text-base">Quiz Title</th>
-                                <th class="text-base">Due Date</th>
-                                <th class="text-base">Status</th>
-                                <th class="text-base">Latest / Best Score</th>
-                                <th class="text-base">Attempts</th>
-                                <th class="text-base text-center">Actions</th>
+                                <th class="text-lg">Quiz Title</th>
+                                <th class="text-lg">Due Date</th>
+                                <th class="text-lg">Status</th>
+                                <th class="text-lg">Latest / Best Score</th>
+                                <th class="text-lg">Attempts</th>
+                                <th class="text-lg text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -317,18 +317,18 @@
 
             {% if upcoming_exams %}
                 <div class="mb-6">
-                    <h3 class="font-bold text-lg mb-3">Upcoming Exams</h3>
+                    <h3 class="font-bold text-xl mb-3">Upcoming Exams</h3>
                     <div class="space-y-3">
                         {% for exam in upcoming_exams %}
                             <div class="bg-base-200 rounded-lg p-4">
                                 <div class="flex items-start justify-between">
                                     <div>
-                                        <h4 class="font-semibold text-lg">{{ exam.exam_type }}</h4>
-                                        <div class="text-base-content/70 mt-1">
+                                        <h4 class="font-semibold text-xl">{{ exam.exam_type }}</h4>
+                                        <div class="text-base text-base-content/70 mt-1">
                                             <i class="fas fa-calendar mr-2"></i>{{ exam.exam_date|date:"l, F j, Y" }}
                                         </div>
                                         {% if exam.exam_board %}
-                                            <div class="text-base-content/70 mt-1">
+                                            <div class="text-base text-base-content/70 mt-1">
                                                 <i class="fas fa-building mr-2"></i>{{ exam.exam_board }}
                                             </div>
                                         {% endif %}
@@ -345,15 +345,15 @@
 
             {% if past_exams %}
                 <div>
-                    <h3 class="font-bold text-lg mb-3">Past Exams</h3>
+                    <h3 class="font-bold text-xl mb-3">Past Exams</h3>
                     <div class="overflow-x-auto">
-                        <table class="table table-sm">
+                        <table class="table text-base">
                             <thead>
                                 <tr>
-                                    <th class="text-base">Exam Type</th>
-                                    <th class="text-base">Date</th>
-                                    <th class="text-base">Result</th>
-                                    <th class="text-base text-center">Actions</th>
+                                    <th class="text-lg">Exam Type</th>
+                                    <th class="text-lg">Date</th>
+                                    <th class="text-lg">Result</th>
+                                    <th class="text-lg text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -403,13 +403,13 @@
 
             {% if practice_entries %}
                 <div class="overflow-x-auto">
-                    <table class="table table-sm">
+                    <table class="table text-base">
                         <thead>
                             <tr>
-                                <th class="text-base">Date</th>
-                                <th class="text-base">Duration</th>
-                                <th class="text-base">Focus</th>
-                                <th class="text-base">Teacher Comments</th>
+                                <th class="text-lg">Date</th>
+                                <th class="text-lg">Duration</th>
+                                <th class="text-lg">Focus</th>
+                                <th class="text-lg">Teacher Comments</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -494,7 +494,7 @@
                 let html = `
                     <div class="space-y-4">
                         <div class="bg-base-200 rounded-lg p-4">
-                            <h4 class="font-semibold text-lg mb-3 flex items-center">
+                            <h4 class="font-semibold text-xl mb-3 flex items-center">
                                 <i class="fas fa-user mr-2 text-primary"></i>
                                 ${escapeHtml(data.full_name)}
                             </h4>
@@ -503,8 +503,8 @@
                                 <div class="flex items-start">
                                     <i class="fas fa-envelope w-6 text-primary mt-1"></i>
                                     <div>
-                                        <div class="text-sm text-base-content/70">Email</div>
-                                        <div class="font-medium">${escapeHtml(data.email) || 'Not provided'}</div>
+                                        <div class="text-base text-base-content/70">Email</div>
+                                        <div class="font-medium text-base">${escapeHtml(data.email) || 'Not provided'}</div>
                                     </div>
                                 </div>
 
@@ -512,8 +512,8 @@
                                 <div class="flex items-start">
                                     <i class="fas fa-phone w-6 text-primary mt-1"></i>
                                     <div>
-                                        <div class="text-sm text-base-content/70">Phone</div>
-                                        <div class="font-medium">${escapeHtml(data.phone)}</div>
+                                        <div class="text-base text-base-content/70">Phone</div>
+                                        <div class="font-medium text-base">${escapeHtml(data.phone)}</div>
                                     </div>
                                 </div>
                                 ` : ''}
@@ -522,8 +522,8 @@
                                 <div class="flex items-start">
                                     <i class="fas fa-map-marker-alt w-6 text-primary mt-1"></i>
                                     <div>
-                                        <div class="text-sm text-base-content/70">Address</div>
-                                        <div class="font-medium">${escapeHtml(data.address)}</div>
+                                        <div class="text-base text-base-content/70">Address</div>
+                                        <div class="font-medium text-base">${escapeHtml(data.address)}</div>
                                     </div>
                                 </div>
                                 ` : ''}
@@ -532,7 +532,7 @@
 
                         ${data.is_guardian && data.children && data.children.length > 0 ? `
                         <div class="bg-info/10 rounded-lg p-4 border border-info/20">
-                            <h4 class="font-semibold text-lg mb-3 flex items-center text-info">
+                            <h4 class="font-semibold text-xl mb-3 flex items-center text-info">
                                 <i class="fas fa-child mr-2"></i>
                                 Guardian - Child Profiles
                             </h4>
@@ -541,8 +541,8 @@
                                     <div class="flex items-center bg-base-100 rounded p-2">
                                         <i class="fas fa-user-circle mr-2"></i>
                                         <div>
-                                            <div class="font-medium">${escapeHtml(child.full_name)}</div>
-                                            ${child.date_of_birth ? `<div class="text-sm text-base-content/70">DOB: ${escapeHtml(child.date_of_birth)}</div>` : ''}
+                                            <div class="font-medium text-base">${escapeHtml(child.full_name)}</div>
+                                            ${child.date_of_birth ? `<div class="text-base text-base-content/70">DOB: ${escapeHtml(child.date_of_birth)}</div>` : ''}
                                         </div>
                                     </div>
                                 `).join('')}
