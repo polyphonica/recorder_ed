@@ -148,6 +148,7 @@ class AssignToStudentForm(forms.ModelForm):
 
     def __init__(self, *args, teacher=None, **kwargs):
         super().__init__(*args, **kwargs)
+        from datetime import date
 
         if teacher:
             # Filter students to only those who are the teacher's students
@@ -162,9 +163,19 @@ class AssignToStudentForm(forms.ModelForm):
 
             # Build a dict of student choices with proper display names
             student_choices = {}
+            students_without_lessons = []  # Track students who haven't had completed lessons
+
             for lesson in lessons:
                 student_id = lesson.student.id
                 if student_id not in student_choices:
+                    # Check if student has had a completed lesson (in the past)
+                    has_completed_lesson = Lesson.objects.filter(
+                        teacher=teacher,
+                        student=lesson.student,
+                        approved_status='Accepted',
+                        lesson_date__lt=date.today()
+                    ).exists()
+
                     # Check if this is a child student
                     if lesson.lesson_request and lesson.lesson_request.child_profile:
                         child = lesson.lesson_request.child_profile
@@ -174,6 +185,11 @@ class AssignToStudentForm(forms.ModelForm):
                     else:
                         # Show regular student name
                         display_name = lesson.student.get_full_name() or lesson.student.username
+
+                    # Add warning indicator if no completed lessons
+                    if not has_completed_lesson:
+                        display_name += ' ⚠️ No lessons yet'
+                        students_without_lessons.append(str(student_id))
 
                     student_choices[student_id] = display_name
 
@@ -186,6 +202,7 @@ class AssignToStudentForm(forms.ModelForm):
 
             # Store display names for use in label_from_instance
             self._student_display_names = student_choices
+            self.students_without_lessons = students_without_lessons  # Store for JavaScript access
 
             # Override the label display method
             original_label = self.fields['student'].label_from_instance

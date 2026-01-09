@@ -1,6 +1,7 @@
 """
 Forms for Private Lesson Quiz System
 """
+import json
 from django import forms
 from django.contrib.auth import get_user_model
 from django_ckeditor_5.widgets import CKEditor5Widget
@@ -316,6 +317,8 @@ class PrivateLessonQuizAssignmentForm(forms.ModelForm):
 
     def __init__(self, *args, teacher=None, **kwargs):
         super().__init__(*args, **kwargs)
+        from django.utils import timezone
+        from datetime import date
 
         # Initialize student_selection choices
         self.fields['student_selection'].choices = [('', '-- Select Student --')]
@@ -331,37 +334,72 @@ class PrivateLessonQuizAssignmentForm(forms.ModelForm):
 
             # Build combined student choices (adult students + child profiles)
             from .models import TeacherStudentApplication
+            from lessons.models import Lesson
+
             accepted_apps = TeacherStudentApplication.objects.filter(
                 teacher=teacher,
                 status='accepted'
             ).select_related('applicant__profile')
 
             student_choices = [('', '-- Select Student --')]
+            students_without_lessons = []  # Track students who haven't had first lesson
 
             for app in accepted_apps:
                 user = app.applicant
                 try:
                     # Check if this is an adult student or a guardian with children
                     if hasattr(user, 'profile') and user.profile.is_student:
-                        # Adult student
+                        # Adult student - check if they've had a completed lesson
+                        has_completed_lesson = Lesson.objects.filter(
+                            teacher=teacher,
+                            student=user,
+                            approved_status='Accepted',
+                            lesson_date__lt=date.today()
+                        ).exists()
+
                         full_name = user.profile.full_name or user.username
-                        student_choices.append((f'user_{user.id}', full_name))
+                        student_key = f'user_{user.id}'
+
+                        if not has_completed_lesson:
+                            full_name += ' ⚠️ No lessons yet'
+                            students_without_lessons.append(student_key)
+
+                        student_choices.append((student_key, full_name))
+
                     elif hasattr(user, 'profile') and user.profile.is_guardian:
                         # Guardian - show their children
                         children = user.children.all()
                         for child in children:
-                            student_choices.append((f'child_{child.id}', child.full_name))
+                            # Check if child has had a completed lesson
+                            # For child profiles, lessons are booked under guardian's account
+                            has_completed_lesson = Lesson.objects.filter(
+                                teacher=teacher,
+                                student=user,  # Lessons booked under guardian
+                                approved_status='Accepted',
+                                lesson_date__lt=date.today()
+                            ).exists()
+
+                            child_name = child.full_name
+                            student_key = f'child_{child.id}'
+
+                            if not has_completed_lesson:
+                                child_name += ' ⚠️ No lessons yet'
+                                students_without_lessons.append(student_key)
+
+                            student_choices.append((student_key, child_name))
                 except Exception:
                     # Skip users with profile issues
                     continue
 
             self.fields['student_selection'].choices = student_choices
 
+            # Store list of students without lessons for JavaScript access
+            self.students_without_lessons = students_without_lessons
+
             # Filter lessons to teacher's lessons
-            from lessons.models import Lesson
             self.fields['lesson'].queryset = Lesson.objects.filter(
                 teacher=teacher,
-                approved_status='accepted'
+                approved_status='Accepted'
             ).order_by('-lesson_date', '-lesson_time')
 
         # Make lesson optional

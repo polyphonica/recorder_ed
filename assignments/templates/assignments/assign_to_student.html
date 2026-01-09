@@ -117,4 +117,42 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const studentSelect = document.getElementById('id_student');
+    const form = document.querySelector('form');
+    const studentsWithoutLessons = [
+        {% for student_id in form.students_without_lessons %}
+            '{{ student_id }}'{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    let warningShown = false;
+
+    form.addEventListener('submit', function(e) {
+        const selectedStudent = studentSelect.value;
+
+        // Check if selected student hasn't had a lesson yet
+        if (selectedStudent && studentsWithoutLessons.includes(selectedStudent) && !warningShown) {
+            e.preventDefault();
+            warningShown = false;  // Reset for next submission
+
+            const studentName = studentSelect.options[studentSelect.selectedIndex].text.replace(' ⚠️ No lessons yet', '');
+
+            // Show confirmation dialog
+            const confirmation = confirm(
+                '⚠️ First Lesson Not Yet Completed\n\n' +
+                studentName + ' has not yet had their first private lesson with you.\n\n' +
+                'Consider whether this material is appropriate before their first meeting.\n\n' +
+                'Do you want to proceed with this assignment?'
+            );
+
+            if (confirmation) {
+                warningShown = true;
+                form.submit();
+            }
+        }
+    });
+});
+</script>
 {% endblock %}
