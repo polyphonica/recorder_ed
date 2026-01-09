@@ -254,18 +254,29 @@ document.addEventListener('DOMContentLoaded', function() {
             textarea.style.minHeight = '200px';
             textarea.className = 'django_ckeditor_5 textarea textarea-bordered w-full';
 
-            if (typeof CKEDITOR !== 'undefined' && CKEDITOR.ClassicEditor) {
+            // Check for ClassicEditor global (django-ckeditor-5 exposes this)
+            if (typeof ClassicEditor !== 'undefined') {
                 setTimeout(function() {
-                    CKEDITOR.ClassicEditor.create(textarea, CKEDITOR.config.default || {})
+                    // Get the configuration from the first CKEditor instance if available
+                    const firstEditor = document.querySelector('.ck-editor');
+                    let config = {
+                        simpleUpload: {
+                            uploadUrl: '/ckeditor5/image_upload/',
+                        }
+                    };
+
+                    ClassicEditor.create(textarea, config)
                         .then(editor => {
                             console.log('CKEditor initialized for Answer ' + formIndex);
                         })
                         .catch(error => {
                             console.error('CKEditor initialization error:', error);
-                            // If CKEditor fails, at least the textarea is visible
-                            alert('CKEditor failed to initialize. You can still use the text field.');
+                            console.error('Error details:', error.message, error.stack);
+                            // Keep textarea visible as fallback
                         });
-                }, 150);
+                }, 200);
+            } else {
+                console.error('ClassicEditor not found - CKEditor may not be loaded');
             }
         } else {
             console.error('Could not find textarea in new form');
