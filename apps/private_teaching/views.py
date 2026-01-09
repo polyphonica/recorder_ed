@@ -12,6 +12,7 @@ from django.db.models import Q
 from django.core.mail import send_mail
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
+from django import forms
 
 from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, UserFilterMixin
 from .models import (
@@ -4035,7 +4036,18 @@ class QuestionCreateView(TeacherProfileCompletedMixin, TemplateView):
         )
         context['quiz'] = quiz
         context['form'] = PrivateLessonQuizQuestionForm()
-        context['formset'] = PrivateLessonQuizAnswerFormSet()
+        # Force exactly 3 empty answer forms
+        formset_class = forms.inlineformset_factory(
+            PrivateLessonQuizQuestion,
+            PrivateLessonQuizAnswer,
+            form=PrivateLessonQuizAnswerForm,
+            extra=3,
+            min_num=2,
+            max_num=10,
+            validate_min=True,
+            can_delete=True
+        )
+        context['formset'] = formset_class()
         return context
 
     def post(self, request, *args, **kwargs):
