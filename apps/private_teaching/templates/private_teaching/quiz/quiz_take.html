@@ -393,9 +393,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Question grid button handlers
+    console.log('Setting up grid button handlers, found buttons:', questionGridBtns.length);
     questionGridBtns.forEach((btn) => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
             const targetIndex = parseInt(this.dataset.questionIndex);
+            console.log('Grid button clicked! Jumping to question index:', targetIndex);
             showQuestion(targetIndex);
         });
     });
