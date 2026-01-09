@@ -28,7 +28,7 @@ from lessons.models import Lesson, Document, LessonAttachedUrl, LessonAssignment
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, ExamRegistrationForm, ExamPieceFormSet, ExamResultsForm, PracticeEntryForm, RescheduleForm
 from .quiz_forms import (
     PrivateLessonQuizForm, PrivateLessonQuizQuestionForm, PrivateLessonQuizAnswerFormSet,
-    PrivateLessonQuizAssignmentForm
+    PrivateLessonQuizAssignmentForm, PrivateLessonQuizAnswerForm
 )
 from .cart import CartManager
 from .mixins import (
