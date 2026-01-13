@@ -176,10 +176,43 @@ class PieceForm(forms.ModelForm):
         return instance
 
 
+class BaseStemFormSet(forms.BaseInlineFormSet):
+    """Custom formset that only validates forms with data"""
+
+    def clean(self):
+        """Override clean to ignore completely empty forms"""
+        super().clean()
+
+        # Check if at least one valid stem exists (not required, but good to know)
+        has_filled_form = False
+        for form in self.forms:
+            # Skip deleted forms and forms without data
+            if self.can_delete and self._should_delete_form(form):
+                continue
+
+            # Check if this form has any meaningful data
+            if form.cleaned_data.get('instrument_name') or form.cleaned_data.get('audio_file'):
+                has_filled_form = True
+                break
+
+    def is_valid(self):
+        """Override is_valid to skip validation on empty forms"""
+        # First check basic validity
+        if not super().is_valid():
+            # Filter out errors from completely empty forms
+            for i, form in enumerate(self.forms):
+                if not form.instance.pk and not form.has_changed():
+                    # This is an empty new form - clear its errors
+                    form._errors = {}
+            return not any(form.errors for form in self.forms if form not in self.deleted_forms)
+        return True
+
+
 # Formset for adding multiple stems to a piece
 StemFormSet = inlineformset_factory(
     Piece,
     Stem,
+    formset=BaseStemFormSet,  # Use custom formset
     fields=['instrument_name', 'audio_file', 'order'],
     extra=3,  # Show 3 empty forms by default
     can_delete=True,

@@ -60,13 +60,19 @@ def piece_create(request):
             return redirect('audioplayer:piece_list')
         else:
             if not form.is_valid():
-                messages.error(request, f'Piece form errors: {form.errors}')
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field.replace("_", " ").title()}: {error}')
             if not formset.is_valid():
-                for i, form_errors in enumerate(formset.errors):
-                    if form_errors:
-                        messages.error(request, f'Stem {i+1} errors: {form_errors}')
+                for i, stem_form in enumerate(formset.forms):
+                    if stem_form.errors and stem_form.has_changed():
+                        for field, errors in stem_form.errors.items():
+                            for error in errors:
+                                field_label = stem_form.fields[field].label if field in stem_form.fields else field
+                                messages.error(request, f'Stem {i+1} - {field_label}: {error}')
                 if formset.non_form_errors():
-                    messages.error(request, f'Formset errors: {formset.non_form_errors()}')
+                    for error in formset.non_form_errors():
+                        messages.error(request, f'Stems: {error}')
     else:
         form = PieceForm()
         formset = StemFormSet()
@@ -97,13 +103,19 @@ def piece_edit(request, pk):
             return redirect('audioplayer:piece_list')
         else:
             if not form.is_valid():
-                messages.error(request, f'Piece form errors: {form.errors}')
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field.replace("_", " ").title()}: {error}')
             if not formset.is_valid():
-                for i, form_errors in enumerate(formset.errors):
-                    if form_errors:
-                        messages.error(request, f'Stem {i+1} errors: {form_errors}')
+                for i, stem_form in enumerate(formset.forms):
+                    if stem_form.errors and stem_form.has_changed():
+                        for field, errors in stem_form.errors.items():
+                            for error in errors:
+                                field_label = stem_form.fields[field].label if field in stem_form.fields else field
+                                messages.error(request, f'Stem {i+1} - {field_label}: {error}')
                 if formset.non_form_errors():
-                    messages.error(request, f'Formset errors: {formset.non_form_errors()}')
+                    for error in formset.non_form_errors():
+                        messages.error(request, f'Stems: {error}')
     else:
         form = PieceForm(instance=piece)
         formset = StemFormSet(instance=piece)
