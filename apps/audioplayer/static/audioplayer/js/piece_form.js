@@ -4,6 +4,40 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Piece form JavaScript loaded');
 
+    // Handle composer toggle
+    const composerToggle = document.getElementById('new-composer-toggle');
+    if (composerToggle) {
+        composerToggle.addEventListener('change', function() {
+            // Find the content div - it's the next sibling after the label
+            const label = this.nextElementSibling;
+            const contentDiv = label ? label.nextElementSibling : null;
+            if (contentDiv) {
+                if (this.checked) {
+                    contentDiv.classList.remove('hidden');
+                } else {
+                    contentDiv.classList.add('hidden');
+                }
+            }
+        });
+    }
+
+    // Handle tags toggle
+    const tagsToggle = document.getElementById('new-tags-toggle');
+    if (tagsToggle) {
+        tagsToggle.addEventListener('change', function() {
+            // Find the content div - it's the next sibling after the label
+            const label = this.nextElementSibling;
+            const contentDiv = label ? label.nextElementSibling : null;
+            if (contentDiv) {
+                if (this.checked) {
+                    contentDiv.classList.remove('hidden');
+                } else {
+                    contentDiv.classList.add('hidden');
+                }
+            }
+        });
+    }
+
     // Add Stem Button Functionality
     const addStemButton = document.getElementById('add-stem-button');
     const totalFormsInput = document.getElementById('id_stems-TOTAL_FORMS');
