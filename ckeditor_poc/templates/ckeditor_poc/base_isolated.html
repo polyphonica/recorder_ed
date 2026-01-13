@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +8,7 @@
 
     <!-- ONLY CKEditor CSS - NO Tailwind, NO custom app CSS -->
     <link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/43.2.0/ckeditor5.css">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/ckeditor_custom.css' %}">{# Opus font and custom CKEditor styling #}
 
     <!-- Minimal styling for the POC -->
     <style>
