@@ -152,14 +152,14 @@ figure.image.image-style-block-align-left,
 
 /* Image captions */
 .ck-content .image > figcaption {
-    display: table-caption;
-    caption-side: bottom;
+    display: block;
     word-break: break-word;
     color: #333;
     background-color: #f7f7f7;
     padding: 0.6em;
     font-size: 0.75em;
     outline-offset: -1px;
+    text-align: center;
 }
 
 /* Custom time signature styling */
