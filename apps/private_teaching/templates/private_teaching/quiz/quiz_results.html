@@ -97,11 +97,46 @@
 
     <!-- Questions and Answers -->
     {% if quiz.show_correct_answers %}
+        <!-- Jump to Incorrect Answers Navigation -->
+        <div id="incorrect-answers-nav" class="card card-section shadow-lg bg-error/5 border border-error/20 mb-8 hidden">
+            <div class="card-body">
+                <h3 class="font-bold text-lg mb-3 flex items-center gap-2">
+                    <i class="fas fa-exclamation-circle text-error"></i>
+                    Jump to Incorrect Answers
+                </h3>
+                <div class="flex flex-wrap gap-2" id="incorrect-links"></div>
+            </div>
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const incorrectQuestions = [
+                    {% for q_data in questions_data %}
+                        {% if not q_data.is_correct %}{{ forloop.counter }},{% endif %}
+                    {% endfor %}
+                ];
+
+                if (incorrectQuestions.length > 0) {
+                    const nav = document.getElementById('incorrect-answers-nav');
+                    const linksContainer = document.getElementById('incorrect-links');
+                    nav.classList.remove('hidden');
+
+                    incorrectQuestions.forEach(num => {
+                        const link = document.createElement('a');
+                        link.href = '#question-' + num;
+                        link.className = 'btn btn-sm btn-error btn-outline';
+                        link.textContent = 'Question ' + num;
+                        linksContainer.appendChild(link);
+                    });
+                }
+            });
+        </script>
+
         <div class="mb-8">
             <h2 class="text-2xl font-bold mb-4">Review Your Answers</h2>
             <div class="space-y-6">
                 {% for q_data in questions_data %}
-                    <div class="card card-section shadow-lg {% if q_data.is_correct %}bg-success/5{% else %}bg-error/5{% endif %}">
+                    <div id="question-{{ forloop.counter }}" class="card card-section shadow-lg {% if q_data.is_correct %}bg-success/5{% else %}bg-error/5{% endif %} scroll-mt-4">
                         <div class="card-body">
                             <!-- Question Header -->
                             <div class="flex items-center justify-between mb-4">
