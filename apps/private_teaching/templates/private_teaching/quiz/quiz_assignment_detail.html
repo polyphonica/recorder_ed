@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Assignment Details - Recorder-ed{% endblock %}
+{% block title %}Quiz Assignment Details - Recorder-ed{% endblock %}
 
 {% block content %}
 <div class="section-private-teaching">
 <div class="container mx-auto px-4 py-8">
     <!-- Header -->
     <div class="mb-8">
-        <h1 class="text-4xl font-bold mb-2">Assignment Details</h1>
+        <h1 class="text-4xl font-bold mb-2">Quiz Assignment Details</h1>
         <p class="text-base-content/70">{{ assignment.quiz.title }} - {{ assignment.student.get_full_name|default:assignment.student.username }}</p>
     </div>
 
@@ -71,8 +71,8 @@
     <!-- Assignment Details Card -->
     <div class="card card-section shadow-lg mb-8">
         <div class="card-body">
-            <h2 class="card-title mb-4">Assignment Information</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h2 class="card-title mb-4">Quiz Assignment Information</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-base">
                 <div>
                     <span class="text-base-content/60">Quiz:</span>
                     <a href="{% url 'private_teaching:quiz_detail' assignment.quiz.pk %}" class="link link-primary ml-2">
@@ -143,7 +143,7 @@
                         <tbody>
                             {% for attempt in attempts %}
                                 <tr>
-                                    <td>#{{ forloop.counter }}</td>
+                                    <td>#{{ forloop.revcounter }}</td>
                                     <td>{{ attempt.started_at|date:"M j, g:i A" }}</td>
                                     <td>
                                         {% if attempt.submitted_at %}
