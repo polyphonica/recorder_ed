@@ -79,7 +79,9 @@
                                                     {% endif %}
                                                 </td>
                                                 <td class="text-base py-4 align-top">
-                                                    <span class="badge badge-info">{{ data.total_lessons }}</span>
+                                                    <a href="{% url 'private_teaching:teacher_student_progress' student.id %}?filter=lessons" class="badge badge-info cursor-pointer hover:badge-info/80 transition-colors">
+                                                        {{ data.total_lessons }}
+                                                    </a>
                                                 </td>
                                                 <td class="text-center">
                                                     <div class="flex gap-2 justify-center flex-wrap">
@@ -131,7 +133,9 @@
                                                 {% endif %}
                                             </td>
                                             <td class="text-base py-4 align-top">
-                                                <span class="badge badge-info">{{ data.total_lessons }}</span>
+                                                <a href="{% url 'private_teaching:teacher_student_progress' student.id %}?filter=lessons" class="badge badge-info cursor-pointer hover:badge-info/80 transition-colors">
+                                                    {{ data.total_lessons }}
+                                                </a>
                                             </td>
                                             <td class="text-center">
                                                 <div class="flex gap-2 justify-center flex-wrap">

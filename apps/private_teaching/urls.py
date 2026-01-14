@@ -42,7 +42,8 @@ urlpatterns = [
     path('teacher/students/', views.TeacherStudentsListView.as_view(), name='teacher_students'),
     path('teacher/students/<int:student_id>/progress/', views.TeacherStudentProgressView.as_view(), name='teacher_student_progress'),
     path('teacher/students/<int:student_id>/contact/', views.StudentContactDetailView.as_view(), name='student_contact_detail'),
-    
+    path('teacher/lessons/<uuid:lesson_id>/', views.TeacherLessonDetailView.as_view(), name='teacher_lesson_detail'),
+
     # Cart Views
     path('cart/', views.CartView.as_view(), name='cart'),
     path('cart/add/<uuid:lesson_id>/', views.AddToCartView.as_view(), name='add_to_cart'),

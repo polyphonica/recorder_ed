@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Lesson Detail - {{ lesson.subject.subject }} - {{ lesson.lesson_date|date:"M d, Y" }}{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8 max-w-[1400px]">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">
+                    <i class="fas fa-calendar-alt mr-2 text-info"></i>
+                    {{ lesson.subject.subject }} Lesson
+                </h1>
+                <p class="text-lg text-base-content/70">{{ lesson.lesson_date|date:"l, F j, Y" }} at {{ lesson.lesson_time|time:"g:i A" }}</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'private_teaching:teacher_student_progress' lesson.student.id %}?filter=lessons" class="btn btn-outline">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Lessons
+                </a>
+                {% if lesson.location == 'Online' and lesson.zoom_link %}
+                    <a href="{{ lesson.zoom_link }}" target="_blank" class="btn btn-primary">
+                        <i class="fas fa-video mr-2"></i>Join Zoom
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Lesson Overview Card -->
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="text-2xl font-bold mb-4">
+                <i class="fas fa-info-circle mr-2 text-primary"></i>Lesson Information
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Student Info -->
+                <div>
+                    <h3 class="font-bold text-xl mb-3">Student</h3>
+                    <div class="space-y-2">
+                        {% if child_profile %}
+                            <div class="text-lg font-medium">{{ child_profile.full_name }}</div>
+                            <div class="text-base text-base-content/70">Guardian: {{ lesson.student.get_full_name }}</div>
+                        {% elif lesson.student.profile.first_name %}
+                            <div class="text-lg font-medium">{{ lesson.student.profile.first_name }} {{ lesson.student.profile.last_name }}</div>
+                        {% else %}
+                            <div class="text-lg font-medium">{{ lesson.student.get_full_name }}</div>
+                        {% endif %}
+                        <a href="{% url 'private_teaching:teacher_student_progress' lesson.student.id %}" class="btn btn-sm btn-outline mt-2">
+                            <i class="fas fa-user mr-1"></i>View Progress
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Lesson Details -->
+                <div>
+                    <h3 class="font-bold text-xl mb-3">Details</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-clock w-5 text-primary"></i>
+                            <span class="text-lg">{{ lesson.duration_in_minutes }} minutes</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-map-marker-alt w-5 text-primary"></i>
+                            {% if lesson.location == 'Online' %}
+                                <span class="badge badge-info badge-lg">
+                                    <i class="fas fa-video mr-1"></i>Online
+                                </span>
+                            {% else %}
+                                <span class="badge badge-success badge-lg">
+                                    <i class="fas fa-home mr-1"></i>Onsite
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-user-check w-5 text-primary"></i>
+                            <span class="text-lg">{{ lesson.attendance }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Info -->
+                <div>
+                    <h3 class="font-bold text-xl mb-3">Payment</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-dollar-sign w-5 text-primary"></i>
+                            <span class="text-lg font-semibold">${{ lesson.fee|floatformat:2 }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-credit-card w-5 text-primary"></i>
+                            {% if lesson.payment_status == 'Paid' %}
+                                <span class="badge badge-success badge-lg">Paid</span>
+                            {% elif lesson.payment_status == 'Not Paid' %}
+                                <span class="badge badge-warning badge-lg">Not Paid</span>
+                            {% elif lesson.payment_status == 'Payment In Process' %}
+                                <span class="badge badge-info badge-lg">Processing</span>
+                            {% elif lesson.payment_status == 'Failed' %}
+                                <span class="badge badge-error badge-lg">Failed</span>
+                            {% else %}
+                                <span class="text-lg">{{ lesson.payment_status }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Info -->
+                <div>
+                    <h3 class="font-bold text-xl mb-3">Status</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-check-circle w-5 text-primary"></i>
+                            <span class="badge badge-success badge-lg">{{ lesson.approved_status }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-file-alt w-5 text-primary"></i>
+                            <span class="badge badge-lg {% if lesson.status == 'Assigned' %}badge-info{% else %}badge-ghost{% endif %}">
+                                {{ lesson.status }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lesson Content -->
+    {% if lesson.lesson_content %}
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="text-2xl font-bold mb-4">
+                <i class="fas fa-book-open mr-2 text-success"></i>Lesson Content
+            </h2>
+            <div class="prose prose-lg max-w-none">
+                {{ lesson.lesson_content|safe }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Teacher Notes -->
+    {% if lesson.teacher_notes %}
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="text-2xl font-bold mb-4">
+                <i class="fas fa-sticky-note mr-2 text-warning"></i>Teacher Notes
+            </h2>
+            <div class="text-lg whitespace-pre-wrap">{{ lesson.teacher_notes }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Homework -->
+    {% if lesson.homework %}
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="text-2xl font-bold mb-4">
+                <i class="fas fa-tasks mr-2 text-accent"></i>Homework
+            </h2>
+            <div class="text-lg whitespace-pre-wrap">{{ lesson.homework }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Homework Assignments -->
+    {% if lesson_assignments %}
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="text-2xl font-bold mb-4">
+                <i class="fas fa-file-alt mr-2 text-primary"></i>Homework Assignments
+            </h2>
+            <div class="space-y-4">
+                {% for lesson_assign in lesson_assignments %}
+                    <div class="bg-base-200 rounded-lg p-4">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h3 class="font-semibold text-xl">{{ lesson_assign.assignment.title }}</h3>
+                                {% if lesson_assign.due_date %}
+                                    <div class="text-base text-base-content/70 mt-1">
+                                        <i class="fas fa-calendar mr-2"></i>Due: {{ lesson_assign.due_date|date:"M d, Y g:i A" }}
+                                    </div>
+                                {% endif %}
+                                {% if lesson_assign.instructions %}
+                                    <div class="text-base text-base-content/70 mt-2">{{ lesson_assign.instructions }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Playalong Pieces -->
+    {% if lesson_pieces %}
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="text-2xl font-bold mb-4">
+                <i class="fas fa-music mr-2 text-success"></i>Playalong Pieces
+            </h2>
+            <div class="space-y-4">
+                {% for lesson_piece in lesson_pieces %}
+                    <div class="bg-base-200 rounded-lg p-4">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h3 class="font-semibold text-xl">
+                                    {{ lesson_piece.piece.title }}
+                                    {% if lesson_piece.is_optional %}
+                                        <span class="badge badge-ghost ml-2">Optional</span>
+                                    {% endif %}
+                                </h3>
+                                {% if lesson_piece.instructions %}
+                                    <div class="text-base text-base-content/70 mt-2">{{ lesson_piece.instructions }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Documents and URLs -->
+    {% if documents or urls %}
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="text-2xl font-bold mb-4">
+                <i class="fas fa-paperclip mr-2 text-info"></i>Attachments
+            </h2>
+
+            {% if documents %}
+                <div class="mb-4">
+                    <h3 class="font-bold text-xl mb-3">Documents</h3>
+                    <div class="space-y-2">
+                        {% for doc in documents %}
+                            <div class="flex items-center justify-between bg-base-200 rounded-lg p-3">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-file text-primary text-xl"></i>
+                                    <span class="text-lg">{{ doc.title }}</span>
+                                </div>
+                                <a href="{{ doc.document.url }}" target="_blank" class="btn btn-sm btn-outline">
+                                    <i class="fas fa-download mr-1"></i>Download
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if urls %}
+                <div>
+                    <h3 class="font-bold text-xl mb-3">Links</h3>
+                    <div class="space-y-2">
+                        {% for attached_url in urls %}
+                            <div class="flex items-center justify-between bg-base-200 rounded-lg p-3">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-link text-primary text-xl"></i>
+                                    <span class="text-lg">{{ attached_url.name }}</span>
+                                </div>
+                                <a href="{{ attached_url.url }}" target="_blank" class="btn btn-sm btn-outline">
+                                    <i class="fas fa-external-link-alt mr-1"></i>Visit
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Private Notes -->
+    {% if lesson.private_note %}
+    <div class="card card-section shadow-xl mb-6 border-2 border-warning">
+        <div class="card-body">
+            <h2 class="text-2xl font-bold mb-4">
+                <i class="fas fa-lock mr-2 text-warning"></i>Private Notes
+                <span class="badge badge-warning ml-2">Teacher Only</span>
+            </h2>
+            <div class="text-lg whitespace-pre-wrap">{{ lesson.private_note }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Metadata -->
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="text-2xl font-bold mb-4">
+                <i class="fas fa-info mr-2 text-base-content/70"></i>Metadata
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-base text-base-content/70">
+                <div>
+                    <span class="font-semibold">Created:</span> {{ lesson.created_at|date:"M d, Y g:i A" }}
+                </div>
+                <div>
+                    <span class="font-semibold">Last Updated:</span> {{ lesson.updated_at|date:"M d, Y g:i A" }}
+                </div>
+                <div>
+                    <span class="font-semibold">Lesson ID:</span> {{ lesson.id }}
+                </div>
+                {% if lesson.exam_registration %}
+                <div>
+                    <span class="font-semibold">Exam Preparation:</span>
+                    <a href="{% url 'private_teaching:exam_detail' lesson.exam_registration.id %}" class="link link-primary">
+                        {{ lesson.exam_registration.exam_type }}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

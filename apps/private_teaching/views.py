@@ -1933,6 +1933,58 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             context['week_practice_minutes'] = week_practice
             context['month_practice_minutes'] = month_practice
 
+            # ===== LESSONS SECTION =====
+            from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+            # Get all lessons for this student
+            lessons_queryset = Lesson.objects.filter(
+                teacher=self.request.user,
+                student=student,
+                approved_status='Accepted',
+                is_deleted=False
+            ).select_related('subject', 'lesson_request').order_by('-lesson_date', '-lesson_time')
+
+            # Apply filters
+            subject_filter = self.request.GET.get('subject')
+            date_from = self.request.GET.get('date_from')
+            date_to = self.request.GET.get('date_to')
+
+            if subject_filter:
+                lessons_queryset = lessons_queryset.filter(subject_id=subject_filter)
+
+            if date_from:
+                from datetime import datetime
+                try:
+                    date_from_parsed = datetime.strptime(date_from, '%Y-%m-%d').date()
+                    lessons_queryset = lessons_queryset.filter(lesson_date__gte=date_from_parsed)
+                except ValueError:
+                    pass  # Invalid date format, ignore filter
+
+            if date_to:
+                from datetime import datetime
+                try:
+                    date_to_parsed = datetime.strptime(date_to, '%Y-%m-%d').date()
+                    lessons_queryset = lessons_queryset.filter(lesson_date__lte=date_to_parsed)
+                except ValueError:
+                    pass  # Invalid date format, ignore filter
+
+            # Paginate lessons (20 per page)
+            paginator = Paginator(lessons_queryset, 20)
+            page = self.request.GET.get('page')
+
+            try:
+                lessons_page = paginator.page(page)
+            except PageNotAnInteger:
+                lessons_page = paginator.page(1)
+            except EmptyPage:
+                lessons_page = paginator.page(paginator.num_pages)
+
+            context['lessons'] = lessons_page
+            context['lessons_total'] = lessons_queryset.count()
+            context['subject_filter'] = subject_filter
+            context['date_from'] = date_from
+            context['date_to'] = date_to
+
             # ===== NAVIGATION =====
             # Get all students for this teacher (for next/previous navigation)
             all_student_ids = list(Lesson.objects.filter(
@@ -1951,6 +2003,59 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
 
         except User.DoesNotExist:
             raise Http404("Student not found")
+
+        return context
+
+
+class TeacherLessonDetailView(TeacherProfileCompletedMixin, TemplateView):
+    """
+    Detailed view of a specific lesson for teachers.
+    Shows lesson information, content, notes, and related materials.
+    """
+    template_name = 'private_teaching/teacher_lesson_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        lesson_id = kwargs.get('lesson_id')
+
+        try:
+            from lessons.models import Lesson
+            # Get lesson and verify teacher owns it
+            lesson = Lesson.objects.select_related(
+                'subject', 'student', 'student__profile', 'lesson_request__child_profile'
+            ).prefetch_related(
+                'lesson_pieces__piece',
+                'lesson_assignments__assignment'
+            ).get(id=lesson_id, teacher=self.request.user, is_deleted=False)
+
+            context['lesson'] = lesson
+
+            # Get student info
+            context['student'] = lesson.student
+            child_profile = None
+            if lesson.lesson_request and lesson.lesson_request.child_profile:
+                child_profile = lesson.lesson_request.child_profile
+            context['child_profile'] = child_profile
+
+            # Get lesson pieces (playalongs)
+            lesson_pieces = lesson.lesson_pieces.filter(is_visible=True).order_by('order')
+            context['lesson_pieces'] = lesson_pieces
+
+            # Get lesson assignments (homework)
+            lesson_assignments = lesson.lesson_assignments.all().order_by('order')
+            context['lesson_assignments'] = lesson_assignments
+
+            # Get documents and URLs attached to this lesson
+            from lessons.models import Document, LessonAttachedUrl
+            documents = Document.objects.filter(lesson=lesson).order_by('-uploaded_at')
+            urls = LessonAttachedUrl.objects.filter(lesson=lesson).order_by('-created_at')
+            context['documents'] = documents
+            context['urls'] = urls
+
+        except Lesson.DoesNotExist:
+            from django.core.exceptions import PermissionDenied
+            from django.http import Http404
+            raise Http404("Lesson not found")
 
         return context
 
