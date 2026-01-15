@@ -1769,14 +1769,22 @@ class PrivateLessonQuizQuestion(models.Model):
         return self.answers.all().order_by('order')
     
     def get_correct_answer(self):
-        """Get the correct answer"""
+        """Get the first correct answer (for single-answer questions)"""
         return self.answers.filter(is_correct=True).first()
+
+    def get_correct_answers(self):
+        """Get all correct answers for this question"""
+        return self.answers.filter(is_correct=True)
+
+    def has_multiple_correct_answers(self):
+        """Check if this question has more than one correct answer"""
+        return self.answers.filter(is_correct=True).count() > 1
 
 
 class PrivateLessonQuizAnswer(models.Model):
     """
     Answer option for a quiz question.
-    Multiple choice - only one can be correct.
+    Supports multiple correct answers when teacher marks more than one.
     """
     # Primary Key
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -2018,27 +2026,52 @@ class PrivateLessonQuizAttempt(models.Model):
     def calculate_score(self):
         """
         Calculate percentage score based on answers_data.
+        Supports both single-answer and multi-answer questions.
         Returns: (earned_points, total_points, percentage)
         """
         quiz = self.quiz
         questions = quiz.get_questions()
-        
+
         earned_points = 0
         total_points = 0
-        
+
         for question in questions:
             total_points += question.points
-            
-            # Get student's answer
-            student_answer_id = self.answers_data.get(str(question.id))
-            if not student_answer_id:
+
+            # Get student's answer(s)
+            student_answer = self.answers_data.get(str(question.id))
+            if not student_answer:
                 continue
-            
-            # Check if correct
-            correct_answer = question.get_correct_answer()
-            if correct_answer and str(correct_answer.id) == str(student_answer_id):
-                earned_points += question.points
-        
+
+            # Check if question has multiple correct answers
+            if question.has_multiple_correct_answers():
+                # Multi-answer question: student must select ALL correct answers
+                # and NO incorrect answers to earn points
+                correct_answer_ids = set(
+                    str(a.id) for a in question.get_correct_answers()
+                )
+                # student_answer should be a list for multi-answer questions
+                if isinstance(student_answer, list):
+                    student_answer_ids = set(str(a) for a in student_answer)
+                else:
+                    # Backwards compatibility: single value stored
+                    student_answer_ids = {str(student_answer)}
+
+                # Award points only if exact match
+                if student_answer_ids == correct_answer_ids:
+                    earned_points += question.points
+            else:
+                # Single-answer question
+                correct_answer = question.get_correct_answer()
+                # Handle both string and list formats for backwards compatibility
+                if isinstance(student_answer, list):
+                    student_answer_id = str(student_answer[0]) if student_answer else None
+                else:
+                    student_answer_id = str(student_answer)
+
+                if correct_answer and str(correct_answer.id) == student_answer_id:
+                    earned_points += question.points
+
         # Calculate percentage
         percentage = (earned_points / total_points * 100) if total_points > 0 else 0
         

@@ -187,6 +187,31 @@
 
                     <!-- Answer Options -->
                     <div class="space-y-3">
+                        {% if question.has_multiple_correct_answers %}
+                        <!-- Multiple correct answers - use checkboxes -->
+                        <p class="text-sm text-base-content/70 mb-2"><i class="fas fa-info-circle mr-1"></i>Select all correct answers</p>
+                        {% for answer in question.answers.all %}
+                            <label class="flex items-start gap-3 p-4 rounded-lg border-2 border-base-300 hover:border-primary cursor-pointer transition-colors">
+                                <input type="checkbox"
+                                       name="question_{{ question.id }}[]"
+                                       value="{{ answer.id }}"
+                                       class="checkbox checkbox-primary mt-1 question-answer"
+                                       data-question-id="{{ question.id }}"
+                                       data-multi-answer="true"
+                                       {% with saved_answers=attempt.answers_data|default_if_none:"" %}
+                                           {% for q_id, a_ids in saved_answers.items %}
+                                               {% if q_id|stringformat:"s" == question.id|stringformat:"s" %}
+                                                   {% for a_id in a_ids %}
+                                                       {% if a_id|stringformat:"s" == answer.id|stringformat:"s" %}checked{% endif %}
+                                                   {% endfor %}
+                                               {% endif %}
+                                           {% endfor %}
+                                       {% endwith %}>
+                                <div class="flex-1 prose max-w-none">{{ answer.text|safe }}</div>
+                            </label>
+                        {% endfor %}
+                        {% else %}
+                        <!-- Single correct answer - use radio buttons -->
                         {% for answer in question.answers.all %}
                             <label class="flex items-start gap-3 p-4 rounded-lg border-2 border-base-300 hover:border-primary cursor-pointer transition-colors">
                                 <input type="radio"
@@ -201,6 +226,7 @@
                                 <div class="flex-1 prose max-w-none">{{ answer.text|safe }}</div>
                             </label>
                         {% endfor %}
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -279,7 +305,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         for (let [key, value] of formData.entries()) {
             if (key.startsWith('question_')) {
-                answeredQuestions.add(key);
+                // Normalize key by removing [] suffix for checkbox fields
+                const normalizedKey = key.replace('[]', '');
+                answeredQuestions.add(normalizedKey);
             }
         }
 
@@ -351,7 +379,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Track which questions have been answered
         for (let [key, value] of formData.entries()) {
             if (key.startsWith('question_')) {
-                const questionId = key.replace('question_', '');
+                // Normalize key by removing [] suffix for checkbox fields
+                const questionId = key.replace('question_', '').replace('[]', '');
                 answeredQuestions.add(questionId);
             }
         }
@@ -503,7 +532,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Trigger auto-save and progress update on answer change
     form.addEventListener('change', function(e) {
-        if (e.target.matches('input[type="radio"]')) {
+        if (e.target.matches('input[type="radio"], input[type="checkbox"].question-answer')) {
             hasUnsavedChanges = true;
 
             // Update progress indicator immediately
@@ -570,7 +599,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         for (let [key, value] of formData.entries()) {
             if (key.startsWith('question_')) {
-                answeredQuestions.add(key);
+                // Normalize key by removing [] suffix for checkbox fields
+                const normalizedKey = key.replace('[]', '');
+                answeredQuestions.add(normalizedKey);
             }
         }
 

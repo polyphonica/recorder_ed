@@ -161,10 +161,14 @@
                             </div>
 
                             <!-- Answer Options -->
+                            {% if q_data.is_multi_answer %}
+                            <p class="text-sm text-base-content/70 mb-2"><i class="fas fa-info-circle mr-1"></i>This question required selecting all correct answers</p>
+                            {% endif %}
                             <div class="space-y-3">
                                 {% for answer in q_data.answers %}
+                                    {% with answer_id_str=answer.id|stringformat:'s' %}
                                     <div class="p-4 rounded-lg border-2
-                                        {% if answer.id|stringformat:'s' == q_data.student_answer_id %}
+                                        {% if answer_id_str in q_data.student_answer_ids %}
                                             {% if answer.is_correct %}
                                                 border-success bg-success/10
                                             {% else %}
@@ -178,7 +182,7 @@
 
                                         <div class="flex items-start gap-3">
                                             <!-- Answer Icon -->
-                                            {% if answer.id|stringformat:'s' == q_data.student_answer_id %}
+                                            {% if answer_id_str in q_data.student_answer_ids %}
                                                 {% if answer.is_correct %}
                                                     <i class="fas fa-check-circle text-success text-xl mt-1"></i>
                                                 {% else %}
@@ -195,7 +199,7 @@
 
                                             <!-- Labels -->
                                             <div class="flex gap-2 mt-1">
-                                                {% if answer.id|stringformat:'s' == q_data.student_answer_id %}
+                                                {% if answer_id_str in q_data.student_answer_ids %}
                                                     <div class="badge badge-sm">Your Answer</div>
                                                 {% endif %}
                                                 {% if answer.is_correct %}
@@ -204,6 +208,7 @@
                                             </div>
                                         </div>
                                     </div>
+                                    {% endwith %}
                                 {% endfor %}
                             </div>
 

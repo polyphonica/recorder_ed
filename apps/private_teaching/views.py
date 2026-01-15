@@ -4643,11 +4643,20 @@ class QuizSubmitView(AcceptedStudentRequiredMixin, View):
         try:
             with transaction.atomic():
                 # Collect answers from POST data
+                # Handles both single-answer (radio) and multi-answer (checkbox) questions
                 answers_data = {}
-                for key, value in request.POST.items():
-                    if key.startswith('question_'):
-                        question_id = key.replace('question_', '')
-                        answers_data[question_id] = value
+                processed_keys = set()
+                for key in request.POST.keys():
+                    if key.startswith('question_') and key not in processed_keys:
+                        processed_keys.add(key)
+                        if key.endswith('[]'):
+                            # Multi-answer question (checkboxes)
+                            question_id = key.replace('question_', '').replace('[]', '')
+                            answers_data[question_id] = request.POST.getlist(key)
+                        else:
+                            # Single-answer question (radio)
+                            question_id = key.replace('question_', '')
+                            answers_data[question_id] = request.POST.get(key)
 
                 # Save answers
                 attempt.answers_data = answers_data
@@ -4716,11 +4725,20 @@ class QuizAutoSaveView(AcceptedStudentRequiredMixin, View):
 
         try:
             # Collect answers from POST data
+            # Handles both single-answer (radio) and multi-answer (checkbox) questions
             answers_data = {}
-            for key, value in request.POST.items():
-                if key.startswith('question_'):
-                    question_id = key.replace('question_', '')
-                    answers_data[question_id] = value
+            processed_keys = set()
+            for key in request.POST.keys():
+                if key.startswith('question_') and key not in processed_keys:
+                    processed_keys.add(key)
+                    if key.endswith('[]'):
+                        # Multi-answer question (checkboxes)
+                        question_id = key.replace('question_', '').replace('[]', '')
+                        answers_data[question_id] = request.POST.getlist(key)
+                    else:
+                        # Single-answer question (radio)
+                        question_id = key.replace('question_', '')
+                        answers_data[question_id] = request.POST.get(key)
 
             # Perform auto-save
             attempt.autosave_answers(answers_data)
@@ -4762,21 +4780,37 @@ class QuizAttemptResultsView(AcceptedStudentRequiredMixin, TemplateView):
         questions_data = []
         for question in attempt.assignment.quiz.questions.order_by('order'):
             question_id_str = str(question.id)
-            student_answer_id = attempt.answers_data.get(question_id_str)
+            student_answer = attempt.answers_data.get(question_id_str)
+
+            # Normalize student answer(s) to a list of strings
+            if student_answer is None:
+                student_answer_ids = []
+            elif isinstance(student_answer, list):
+                student_answer_ids = [str(a) for a in student_answer]
+            else:
+                student_answer_ids = [str(student_answer)]
+
+            is_multi_answer = question.has_multiple_correct_answers()
+            correct_answers = question.get_correct_answers()
+            correct_answer_ids = [str(a.id) for a in correct_answers]
 
             question_info = {
                 'question': question,
-                'student_answer_id': student_answer_id,
+                'student_answer_ids': student_answer_ids,
+                'is_multi_answer': is_multi_answer,
                 'answers': question.answers.order_by('order'),
-                'correct_answer': question.answers.filter(is_correct=True).first(),
+                'correct_answer_ids': correct_answer_ids,
                 'is_correct': False
             }
 
-            # Check if answer is correct
-            if student_answer_id:
-                correct_answer = question.answers.filter(is_correct=True).first()
-                if correct_answer and str(correct_answer.id) == student_answer_id:
-                    question_info['is_correct'] = True
+            # Check if answer(s) are correct
+            if student_answer_ids:
+                if is_multi_answer:
+                    # Must match exactly for multi-answer questions
+                    question_info['is_correct'] = set(student_answer_ids) == set(correct_answer_ids)
+                else:
+                    # Single answer check
+                    question_info['is_correct'] = student_answer_ids[0] in correct_answer_ids
 
             questions_data.append(question_info)
 
@@ -4821,21 +4855,37 @@ class TeacherQuizAttemptResultsView(TeacherProfileCompletedMixin, TemplateView):
         questions_data = []
         for question in attempt.assignment.quiz.questions.order_by('order'):
             question_id_str = str(question.id)
-            student_answer_id = attempt.answers_data.get(question_id_str)
+            student_answer = attempt.answers_data.get(question_id_str)
+
+            # Normalize student answer(s) to a list of strings
+            if student_answer is None:
+                student_answer_ids = []
+            elif isinstance(student_answer, list):
+                student_answer_ids = [str(a) for a in student_answer]
+            else:
+                student_answer_ids = [str(student_answer)]
+
+            is_multi_answer = question.has_multiple_correct_answers()
+            correct_answers = question.get_correct_answers()
+            correct_answer_ids = [str(a.id) for a in correct_answers]
 
             question_info = {
                 'question': question,
-                'student_answer_id': student_answer_id,
+                'student_answer_ids': student_answer_ids,
+                'is_multi_answer': is_multi_answer,
                 'answers': question.answers.order_by('order'),
-                'correct_answer': question.answers.filter(is_correct=True).first(),
+                'correct_answer_ids': correct_answer_ids,
                 'is_correct': False
             }
 
-            # Check if answer is correct
-            if student_answer_id:
-                correct_answer = question.answers.filter(is_correct=True).first()
-                if correct_answer and str(correct_answer.id) == student_answer_id:
-                    question_info['is_correct'] = True
+            # Check if answer(s) are correct
+            if student_answer_ids:
+                if is_multi_answer:
+                    # Must match exactly for multi-answer questions
+                    question_info['is_correct'] = set(student_answer_ids) == set(correct_answer_ids)
+                else:
+                    # Single answer check
+                    question_info['is_correct'] = student_answer_ids[0] in correct_answer_ids
 
             questions_data.append(question_info)
 
