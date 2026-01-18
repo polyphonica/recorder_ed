@@ -181,7 +181,7 @@
                                     </td>
                                     <td>
                                         {% if attempt.submitted_at %}
-                                            <a href="{% url 'private_teaching:quiz_attempt_results' attempt.pk %}" class="btn btn-ghost btn-xs">
+                                            <a href="{% url 'private_teaching:teacher_quiz_attempt_results' attempt.pk %}" class="btn btn-ghost btn-xs">
                                                 <i class="fas fa-eye mr-1"></i>View Results
                                             </a>
                                         {% endif %}
