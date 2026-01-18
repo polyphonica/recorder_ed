@@ -128,9 +128,9 @@
             <div class="card-body">
                 <h2 class="card-title mb-4">Attempt History</h2>
                 <div class="overflow-x-auto">
-                    <table class="table table-zebra">
+                    <table class="table table-zebra text-base">
                         <thead>
-                            <tr>
+                            <tr class="text-base">
                                 <th>Attempt</th>
                                 <th>Started</th>
                                 <th>Submitted</th>
@@ -181,7 +181,7 @@
                                     </td>
                                     <td>
                                         {% if attempt.submitted_at %}
-                                            <a href="{% url 'private_teaching:teacher_quiz_attempt_results' attempt.pk %}" class="btn btn-ghost btn-xs">
+                                            <a href="{% url 'private_teaching:teacher_quiz_attempt_results' attempt.pk %}" class="btn btn-ghost btn-sm">
                                                 <i class="fas fa-eye mr-1"></i>View Results
                                             </a>
                                         {% endif %}
