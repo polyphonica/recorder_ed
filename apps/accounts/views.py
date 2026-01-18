@@ -339,7 +339,7 @@ def transfer_account_view(request, child_id):
     # Verify the child is 18 or older
     if not child.is_adult:
         messages.error(request, 'Account transfer is only available for students who are 18 years or older.')
-        return redirect('core:home')
+        return redirect('domain_selector')
 
     if request.method == 'POST':
         form = AccountTransferForm(request.POST)
@@ -719,7 +719,7 @@ def unsubscribe_workshop_emails_view(request, uidb64, token):
     if request.user.is_authenticated:
         return redirect('accounts:profile_edit')
     else:
-        return redirect('core:home')
+        return redirect('domain_selector')
 
 
 @login_required

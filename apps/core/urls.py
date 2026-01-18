@@ -5,7 +5,6 @@ from .views_audio_upload import audio_upload
 app_name = 'core'
 
 urlpatterns = [
-    path('', views.HomeView.as_view(), name='home'),
     path('about/', views.AboutView.as_view(), name='about'),
     path('privacy/', views.PrivacyPolicyView.as_view(), name='privacy'),
     path('terms/', views.TermsConditionsView.as_view(), name='terms'),

@@ -679,7 +679,7 @@ class TeacherOnlyMixin(UserPassesTestMixin):
 
     def handle_no_permission(self):
         messages.error(self.request, 'You must be a teacher to access finance dashboard.')
-        return redirect('core:home')
+        return redirect('domain_selector')
 
 
 class FinanceDashboardView(LoginRequiredMixin, TeacherOnlyMixin, DateRangeMixin, TemplateView):

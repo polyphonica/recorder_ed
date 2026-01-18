@@ -76,54 +76,6 @@ class AboutView(TemplateView):
         return context
 
 
-class HomeView(TemplateView):
-    template_name = 'core/home.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update({
-            'stats': [
-                {'icon': 'users', 'value': '2,500+', 'label': 'Students Taught', 'color': 'primary'},
-                {'icon': 'book-open', 'value': '45', 'label': 'Courses Created', 'color': 'secondary'},
-                {'icon': 'award', 'value': '98%', 'label': 'Success Rate', 'color': 'accent'},
-                {'icon': 'calendar', 'value': '8+', 'label': 'Years Experience', 'color': 'info'},
-            ],
-            'featured_courses': [
-                {
-                    'title': 'Full-Stack Web Development',
-                    'description': 'Learn modern web development with Python, Django, and JavaScript.',
-                    'level': 'Intermediate',
-                    'duration': '12 weeks',
-                    'students': 450,
-                    'rating': 4.8,
-                    'price': 299,
-                    'image': 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400',
-                },
-                {
-                    'title': 'Data Science Fundamentals',
-                    'description': 'Master data analysis, visualization, and machine learning basics.',
-                    'level': 'Beginner',
-                    'duration': '8 weeks',
-                    'students': 320,
-                    'rating': 4.9,
-                    'price': 199,
-                    'image': 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400',
-                },
-                {
-                    'title': 'Advanced Python Programming',
-                    'description': 'Deep dive into Python with advanced concepts and best practices.',
-                    'level': 'Advanced',
-                    'duration': '10 weeks',
-                    'students': 180,
-                    'rating': 4.7,
-                    'price': 399,
-                    'image': 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=400',
-                },
-            ]
-        })
-        return context
-
-
 class ComponentShowcaseView(TemplateView):
     template_name = 'core/components.html'
 
