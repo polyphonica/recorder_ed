@@ -177,11 +177,9 @@
                         {# In workshops section → link to workshop cart #}
                         <a href="{% url 'workshops:cart' %}" class="btn btn-ghost btn-circle" aria-label="Shopping cart{% if workshop_cart_count > 0 %}, {{ workshop_cart_count }} item{{ workshop_cart_count|pluralize }}{% else %}, empty{% endif %}">
                             <div class="indicator">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L8 21m0 0h8m-8 0v-2m8 2v-2"></path>
-                                </svg>
+                                <i class="fas fa-shopping-cart text-lg" aria-hidden="true"></i>
                                 {% if workshop_cart_count > 0 %}
-                                    <span class="badge badge-sm badge-primary indicator-item" aria-hidden="true">{{ workshop_cart_count }}</span>
+                                    <span class="badge badge-sm badge-error indicator-item" aria-hidden="true">{{ workshop_cart_count }}</span>
                                 {% endif %}
                             </div>
                         </a>
@@ -189,11 +187,9 @@
                         {# In private teaching section → link to lesson cart #}
                         <a href="{% url 'private_teaching:cart' %}" class="btn btn-ghost btn-circle" aria-label="Lesson cart{% if lesson_cart_count > 0 %}, {{ lesson_cart_count }} item{{ lesson_cart_count|pluralize }}{% else %}, empty{% endif %}">
                             <div class="indicator">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L8 21m0 0h8m-8 0v-2m8 2v-2"></path>
-                                </svg>
+                                <i class="fas fa-shopping-cart text-lg" aria-hidden="true"></i>
                                 {% if lesson_cart_count > 0 %}
-                                    <span class="badge badge-sm badge-primary indicator-item" aria-hidden="true">{{ lesson_cart_count }}</span>
+                                    <span class="badge badge-sm badge-error indicator-item" aria-hidden="true">{{ lesson_cart_count }}</span>
                                 {% endif %}
                             </div>
                         </a>
@@ -201,11 +197,9 @@
                         {# In digital products section → link to digital products cart #}
                         <a href="{% url 'digital_products:cart' %}" class="btn btn-ghost btn-circle" aria-label="Shopping cart{% if digital_product_cart_count > 0 %}, {{ digital_product_cart_count }} item{{ digital_product_cart_count|pluralize }}{% else %}, empty{% endif %}">
                             <div class="indicator">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L8 21m0 0h8m-8 0v-2m8 2v-2"></path>
-                                </svg>
+                                <i class="fas fa-shopping-cart text-lg" aria-hidden="true"></i>
                                 {% if digital_product_cart_count > 0 %}
-                                    <span class="badge badge-sm badge-primary indicator-item" aria-hidden="true">{{ digital_product_cart_count }}</span>
+                                    <span class="badge badge-sm badge-error indicator-item" aria-hidden="true">{{ digital_product_cart_count }}</span>
                                 {% endif %}
                             </div>
                         </a>
@@ -217,11 +211,9 @@
                             <a href="{% url 'workshops:cart' %}" class="btn btn-ghost btn-circle" aria-label="Shopping cart{% if total_cart_count > 0 %}, {{ total_cart_count }} item{{ total_cart_count|pluralize }}{% else %}, empty{% endif %}">
                         {% endif %}
                             <div class="indicator">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m2.6 8L8 21m0 0h8m-8 0v-2m8 2v-2"></path>
-                                </svg>
+                                <i class="fas fa-shopping-cart text-lg" aria-hidden="true"></i>
                                 {% if total_cart_count > 0 %}
-                                    <span class="badge badge-sm badge-primary indicator-item" aria-hidden="true">{{ total_cart_count }}</span>
+                                    <span class="badge badge-sm badge-error indicator-item" aria-hidden="true">{{ total_cart_count }}</span>
                                 {% endif %}
                             </div>
                         </a>
