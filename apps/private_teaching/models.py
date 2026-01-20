@@ -88,9 +88,10 @@ class LessonRequest(PayableModel):
         ]
 
     def __str__(self):
+        # PERFORMANCE FIX: Removed lessons.count() call that triggered a query on every __str__
         student_name = self.child_profile.full_name if self.child_profile else self.student.get_full_name()
         guardian_info = f" (Guardian: {self.student.get_full_name()})" if self.child_profile else ""
-        return f"{student_name}{guardian_info} - {self.lessons.count()} lesson(s) - {self.created_at.strftime('%Y-%m-%d')}"
+        return f"{student_name}{guardian_info} - {self.created_at.strftime('%Y-%m-%d')}"
 
     def get_absolute_url(self):
         return reverse('private_teaching:my_requests')
@@ -186,6 +187,10 @@ class LessonRequestMessage(models.Model):
         ordering = ['created_at']
         verbose_name = 'Lesson Request Message'
         verbose_name_plural = 'Lesson Request Messages'
+        # PERFORMANCE FIX: Add index for message thread queries
+        indexes = [
+            models.Index(fields=['lesson_request', 'created_at']),
+        ]
 
     def __str__(self):
         return f"{self.author.get_full_name()}: {self.message[:50]}"
@@ -261,6 +266,10 @@ class CartItem(models.Model):
         verbose_name = 'Cart Item'
         verbose_name_plural = 'Cart Items'
         unique_together = ['cart', 'lesson']  # Prevent duplicates
+        # PERFORMANCE FIX: Add index for cart item queries
+        indexes = [
+            models.Index(fields=['cart', 'added_at']),
+        ]
 
     def __str__(self):
         return f"{self.lesson.subject} - {self.lesson.lesson_date}"
@@ -330,7 +339,12 @@ class Order(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Order'
         verbose_name_plural = 'Orders'
-    
+        # PERFORMANCE FIX: Add index for order history queries
+        indexes = [
+            models.Index(fields=['student', '-created_at']),
+            models.Index(fields=['payment_status', '-created_at']),
+        ]
+
     def __str__(self):
         return f"Order {self.order_number} - {self.student.get_full_name()}"
     
@@ -375,6 +389,10 @@ class OrderItem(models.Model):
         ordering = ['order__created_at']
         verbose_name = 'Order Item'
         verbose_name_plural = 'Order Items'
+        # PERFORMANCE FIX: Add index for order item queries
+        indexes = [
+            models.Index(fields=['order']),
+        ]
 
     def __str__(self):
         return f"{self.lesson.subject} - {self.order.order_number}"
@@ -497,6 +515,10 @@ class ApplicationMessage(models.Model):
         ordering = ['created_at']
         verbose_name = 'Application Message'
         verbose_name_plural = 'Application Messages'
+        # PERFORMANCE FIX: Add index for application message queries
+        indexes = [
+            models.Index(fields=['application', 'created_at']),
+        ]
 
     def __str__(self):
         return f"{self.author.get_full_name()}: {self.message[:50]}"
@@ -834,6 +856,10 @@ class ExamPiece(models.Model):
         verbose_name = 'Exam Piece'
         verbose_name_plural = 'Exam Pieces'
         unique_together = ['exam_registration', 'piece_number']
+        # PERFORMANCE FIX: Add index for exam piece queries
+        indexes = [
+            models.Index(fields=['exam_registration', 'piece_number']),
+        ]
 
     def __str__(self):
         return f"Piece {self.piece_number}: {self.title} by {self.composer}"
@@ -967,6 +993,12 @@ class LessonCancellationRequest(BaseCancellationRequest):
         verbose_name = 'Lesson Cancellation Request'
         verbose_name_plural = 'Lesson Cancellation Requests'
         ordering = ['-created_at']
+        # PERFORMANCE FIX: Add indexes for cancellation request queries
+        indexes = [
+            models.Index(fields=['teacher', 'status']),
+            models.Index(fields=['student', '-created_at']),
+            models.Index(fields=['lesson']),
+        ]
 
     def __str__(self):
         return f"{self.get_request_type_display()} - {self.lesson} by {self.student.username}"

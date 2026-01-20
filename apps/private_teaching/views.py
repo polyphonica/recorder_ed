@@ -633,6 +633,7 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
         ).select_related('subject', 'exam_board').order_by('exam_date')
 
         # Get pending assignments (draft or not yet submitted)
+        # PERFORMANCE FIX: Use single query instead of N+1 pattern
         from assignments.models import AssignmentSubmission
 
         # Get all lessons for this student
@@ -645,19 +646,23 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
         lesson_ids = student_lessons.values_list('id', flat=True)
         assignment_links = LessonAssignment.objects.filter(
             lesson_id__in=lesson_ids
-        )
+        ).select_related('assignment')
 
-        # Count pending assignments (not submitted or in draft status)
+        # Get all assignment IDs and fetch submissions in a single query
+        assignment_ids = [link.assignment_id for link in assignment_links]
+        submissions_by_assignment = {
+            sub.assignment_id: sub
+            for sub in AssignmentSubmission.objects.filter(
+                student=self.request.user,
+                assignment_id__in=assignment_ids
+            )
+        }
+
+        # Count pending assignments using the lookup dictionary (no additional queries)
         pending_assignments_count = 0
         for link in assignment_links:
-            try:
-                submission = AssignmentSubmission.objects.get(
-                    student=self.request.user,
-                    assignment=link.assignment
-                )
-                if not submission or submission.status == 'draft':
-                    pending_assignments_count += 1
-            except AssignmentSubmission.DoesNotExist:
+            submission = submissions_by_assignment.get(link.assignment_id)
+            if not submission or submission.status == 'draft':
                 pending_assignments_count += 1
 
         # Get quiz stats

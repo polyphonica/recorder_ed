@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.db.models import Count, Sum, Max, Subquery, OuterRef, DecimalField
+from django.db.models.functions import Coalesce
 from .models import (
     Subject, LessonRequest, LessonRequestMessage, Cart, CartItem, Order, OrderItem,
     TeacherStudentApplication, ApplicationMessage, ExamBoard, ExamRegistration, ExamPiece,
@@ -16,6 +18,7 @@ class SubjectAdmin(admin.ModelAdmin):
     list_filter = ['is_active', 'created_at']
     search_fields = ['subject', 'teacher__first_name', 'teacher__last_name']
     ordering = ['subject']
+    list_select_related = ['teacher']
 
 
 class LessonInline(admin.TabularInline):
@@ -39,10 +42,18 @@ class LessonRequestAdmin(admin.ModelAdmin):
     search_fields = ['student__first_name', 'student__last_name', 'student__email']
     ordering = ['-created_at']
     inlines = [LessonInline, LessonRequestMessageInline]
+    list_select_related = ['student']
+
+    def get_queryset(self, request):
+        """PERFORMANCE FIX: Annotate lesson count to avoid N+1 queries"""
+        return super().get_queryset(request).annotate(
+            _lesson_count=Count('lessons')
+        )
 
     def lesson_count(self, obj):
-        return obj.lessons.count()
+        return obj._lesson_count
     lesson_count.short_description = 'Lessons'
+    lesson_count.admin_order_field = '_lesson_count'
 
 
 @admin.register(LessonRequestMessage)
@@ -51,6 +62,7 @@ class LessonRequestMessageAdmin(admin.ModelAdmin):
     list_filter = ['created_at']
     search_fields = ['author__first_name', 'author__last_name', 'message']
     ordering = ['-created_at']
+    list_select_related = ['lesson_request', 'author']
 
     def message_preview(self, obj):
         return obj.message[:50] + '...' if len(obj.message) > 50 else obj.message
@@ -71,6 +83,24 @@ class CartAdmin(admin.ModelAdmin):
     search_fields = ['user__first_name', 'user__last_name', 'user__email']
     inlines = [CartItemInline]
     ordering = ['-updated_at']
+    list_select_related = ['user']
+
+    def get_queryset(self, request):
+        """PERFORMANCE FIX: Annotate item count and total to avoid N+1 queries"""
+        return super().get_queryset(request).annotate(
+            _item_count=Count('items'),
+            _total_amount=Coalesce(Sum('items__price'), 0, output_field=DecimalField())
+        )
+
+    def item_count(self, obj):
+        return obj._item_count
+    item_count.short_description = 'Items'
+    item_count.admin_order_field = '_item_count'
+
+    def total_amount(self, obj):
+        return f"£{obj._total_amount:.2f}" if obj._total_amount else "£0.00"
+    total_amount.short_description = 'Total'
+    total_amount.admin_order_field = '_total_amount'
 
 
 @admin.register(CartItem)
@@ -94,6 +124,7 @@ class OrderAdmin(admin.ModelAdmin):
     search_fields = ['order_number', 'student__first_name', 'student__last_name']
     inlines = [OrderItemInline]
     ordering = ['-created_at']
+    list_select_related = ['student']
 
 
 @admin.register(OrderItem)
@@ -122,6 +153,7 @@ class TeacherStudentApplicationAdmin(admin.ModelAdmin):
     ordering = ['-created_at']
     inlines = [ApplicationMessageInline]
     readonly_fields = ['created_at', 'updated_at', 'status_changed_at']
+    list_select_related = ['applicant', 'teacher', 'child_profile']
 
     fieldsets = (
         ('Application Info', {
@@ -179,6 +211,7 @@ class ExamRegistrationAdmin(admin.ModelAdmin):
     ordering = ['-exam_date', '-created_at']
     inlines = [ExamPieceInline]
     readonly_fields = ['created_at', 'updated_at', 'student_name']
+    list_select_related = ['student', 'teacher', 'child_profile', 'exam_board', 'subject']
 
     fieldsets = (
         ('Student & Teacher', {
@@ -279,6 +312,7 @@ class LessonCancellationRequestAdmin(admin.ModelAdmin):
     search_fields = ['student__username', 'teacher__username', 'lesson__subject__subject', 'reason']
     readonly_fields = ['created_at', 'updated_at', 'hours_before_lesson', 'is_within_policy', 'teacher_responded_at', 'completed_at', 'refund_processed_at']
     ordering = ['-created_at']
+    list_select_related = ['lesson', 'lesson__subject', 'student', 'teacher']
 
     fieldsets = (
         ('Request Information', {
@@ -329,9 +363,9 @@ class PrivateLessonQuizQuestionAdmin(admin.ModelAdmin):
 @admin.register(PrivateLessonQuiz)
 class PrivateLessonQuizAdmin(admin.ModelAdmin):
     list_display = [
-        'title', 
-        'created_by', 
-        'syllabus', 
+        'title',
+        'created_by',
+        'syllabus',
         'grade_level',
         'question_count',
         'pass_percentage',
@@ -343,6 +377,7 @@ class PrivateLessonQuizAdmin(admin.ModelAdmin):
     search_fields = ['title', 'description']
     filter_horizontal = ['tags']
     readonly_fields = ['id', 'use_count', 'created_at', 'updated_at', 'total_points']
+    list_select_related = ['created_by']
     fieldsets = [
         ('Basic Information', {
             'fields': ['title', 'description', 'instructions', 'created_by']
@@ -368,7 +403,18 @@ class PrivateLessonQuizAdmin(admin.ModelAdmin):
             'classes': ['collapse']
         }),
     ]
-    
+
+    def get_queryset(self, request):
+        """PERFORMANCE FIX: Annotate question count to avoid N+1 queries"""
+        return super().get_queryset(request).annotate(
+            _question_count=Count('questions')
+        )
+
+    def question_count(self, obj):
+        return obj._question_count
+    question_count.short_description = 'Questions'
+    question_count.admin_order_field = '_question_count'
+
     def save_model(self, request, obj, form, change):
         if not change:  # Creating new quiz
             obj.created_by = request.user
@@ -390,33 +436,61 @@ class PrivateLessonQuizAssignmentAdmin(admin.ModelAdmin):
     list_filter = ['status', 'assigned_date', 'teacher']
     search_fields = ['quiz__title', 'student__username', 'student__email']
     readonly_fields = [
-        'id', 
-        'assigned_date', 
-        'attempt_count', 
-        'best_score', 
+        'id',
+        'assigned_date',
+        'attempt_count',
+        'best_score',
         'passed_status'
     ]
-    
+    list_select_related = ['quiz', 'student', 'child_profile', 'teacher']
+
+    def get_queryset(self, request):
+        """PERFORMANCE FIX: Annotate attempt count and best score to avoid N+1 queries"""
+        # Subquery to get the best (max) score from submitted attempts
+        best_score_subquery = PrivateLessonQuizAttempt.objects.filter(
+            assignment=OuterRef('pk'),
+            submitted_at__isnull=False
+        ).order_by('-score').values('score')[:1]
+
+        # Subquery to check if any attempt passed
+        has_passed_subquery = PrivateLessonQuizAttempt.objects.filter(
+            assignment=OuterRef('pk'),
+            submitted_at__isnull=False,
+            passed=True
+        ).values('passed')[:1]
+
+        return super().get_queryset(request).annotate(
+            _attempt_count=Count('attempts'),
+            _best_score=Subquery(best_score_subquery),
+            _has_passed=Subquery(has_passed_subquery)
+        )
+
     def student_name(self, obj):
+        # child_profile and student are already prefetched via list_select_related
         if obj.child_profile:
             return f"{obj.child_profile.full_name} (via {obj.student.username})"
         return obj.student.get_full_name() or obj.student.username
     student_name.short_description = 'Student'
-    
+
+    def attempt_count(self, obj):
+        return obj._attempt_count
+    attempt_count.short_description = 'Attempts'
+    attempt_count.admin_order_field = '_attempt_count'
+
     def best_score(self, obj):
-        best = obj.best_attempt
-        if not best:
+        if obj._best_score is None:
             return '-'
-        color = 'green' if best.passed else 'red'
+        color = 'green' if obj._has_passed else 'red'
         return format_html(
             '<span style="color: {};">{}%</span>',
             color,
-            f'{float(best.score):.1f}'
+            f'{float(obj._best_score):.1f}'
         )
     best_score.short_description = 'Best Score'
-    
+    best_score.admin_order_field = '_best_score'
+
     def passed_status(self, obj):
-        if obj.passed:
+        if obj._has_passed:
             return format_html('<span style="color: green;">✓ Passed</span>')
         return format_html('<span style="color: red;">✗ Not Passed</span>')
     passed_status.short_description = 'Status'
@@ -443,6 +517,7 @@ class PrivateLessonQuizAttemptAdmin(admin.ModelAdmin):
         'time_taken_minutes',
         'answers_data'
     ]
+    list_select_related = ['assignment', 'assignment__quiz', 'assignment__student']
     
     def colored_score(self, obj):
         if not obj.submitted_at:
