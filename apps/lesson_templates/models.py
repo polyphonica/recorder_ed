@@ -102,6 +102,12 @@ class TemplateCategory(models.Model):
             models.Index(fields=['created_by', 'display_order']),
             models.Index(fields=['is_public']),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'created_by'],
+                name='unique_category_name_per_user'
+            ),
+        ]
 
     def __str__(self):
         return self.name
