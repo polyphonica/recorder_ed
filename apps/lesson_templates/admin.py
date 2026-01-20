@@ -1,5 +1,14 @@
 from django.contrib import admin
-from .models import LessonContentTemplate, Tag
+from .models import LessonContentTemplate, TemplateCategory, Tag
+
+
+@admin.register(TemplateCategory)
+class TemplateCategoryAdmin(admin.ModelAdmin):
+    list_display = ['name', 'created_by', 'subject', 'syllabus', 'grade_level', 'is_public', 'display_order', 'created_at']
+    list_filter = ['is_public', 'syllabus', 'created_by']
+    search_fields = ['name', 'description']
+    ordering = ['created_by', 'display_order', 'name']
+    readonly_fields = ['created_at', 'updated_at']
 
 
 @admin.register(Tag)
@@ -22,7 +31,7 @@ class LessonContentTemplateAdmin(admin.ModelAdmin):
             'fields': ('title', 'content', 'created_by')
         }),
         ('Categorization', {
-            'fields': ('subject', 'syllabus', 'grade_level', 'lesson_number', 'tags')
+            'fields': ('category', 'subject', 'syllabus', 'grade_level', 'lesson_number', 'tags')
         }),
         ('Sharing', {
             'fields': ('is_public',)
