@@ -63,7 +63,7 @@
                         <option value="">All Categories</option>
                         {% for category in categories %}
                         <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
-                            {{ category.name }} ({{ category._template_count }})
+                            {{ category.name }} ({{ category.template_count }})
                         </option>
                         {% endfor %}
                         {% if standalone_count > 0 %}

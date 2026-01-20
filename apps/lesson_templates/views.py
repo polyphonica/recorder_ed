@@ -78,7 +78,7 @@ def template_library(request):
     categories = TemplateCategory.objects.filter(
         created_by=request.user
     ).annotate(
-        _template_count=Count('templates')
+        template_count=Count('templates')
     ).order_by('display_order', 'name')
 
     # Count standalone templates
@@ -265,7 +265,7 @@ def category_list(request):
     categories = TemplateCategory.objects.filter(
         created_by=request.user
     ).annotate(
-        _template_count=Count('templates')
+        template_count=Count('templates')
     ).order_by('display_order', 'name')
 
     # Count standalone templates
