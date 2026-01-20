@@ -1,7 +1,11 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}About Us{% endblock %}
+{% block title %}About Us | Recorder-ed{% endblock %}
+
+{% block meta_tags %}
+{% include 'includes/meta_tags.html' with page_title="About Us | Recorder-ed" page_description="Learn about Recorder-ed, our mission to make quality recorder education accessible to everyone. Discover our private lessons, workshops, and online courses." page_url=request.build_absolute_uri page_keywords="about recorder-ed, recorder education, music education platform, recorder lessons, recorder teachers" %}
+{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-base-100">

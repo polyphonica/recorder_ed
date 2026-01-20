@@ -4,8 +4,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RECORDER-ED - Music Education Platform</title>
-    
+    <title>RECORDER-ED - Online Recorder Lessons, Workshops & Courses</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Learn recorder with expert teachers at Recorder-ed. Private lessons, group workshops, and self-paced courses for all levels. Start your musical journey today.">
+    <meta name="keywords" content="recorder lessons, learn recorder, recorder workshops, recorder courses, music education, online music lessons, recorder teacher">
+    <meta name="author" content="Recorder-ed">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="googlebot" content="index, follow">
+    <link rel="canonical" href="https://www.recorder-ed.com/">
+
+    <!-- Open Graph Tags -->
+    <meta property="og:title" content="RECORDER-ED - Online Recorder Lessons, Workshops & Courses">
+    <meta property="og:description" content="Learn recorder with expert teachers at Recorder-ed. Private lessons, group workshops, and self-paced courses for all levels.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.recorder-ed.com/">
+    <meta property="og:site_name" content="Recorder-ed">
+    <meta property="og:locale" content="en_GB">
+
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="RECORDER-ED - Online Recorder Lessons, Workshops & Courses">
+    <meta name="twitter:description" content="Learn recorder with expert teachers at Recorder-ed. Private lessons, group workshops, and self-paced courses for all levels.">
+
     <!-- Tailwind CSS -->
     <link rel="stylesheet" type="text/css" href="{% static 'css/dist/styles.css' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'css/custom.css' %}">
@@ -33,6 +54,9 @@
             }
         });
     </script>
+
+    <!-- Organization Schema -->
+    {% include 'includes/schema_organization.html' %}
 </head>
 <body class="bg-base-100 text-base-content min-h-screen">
     <!-- Header -->

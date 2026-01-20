@@ -1,7 +1,11 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Terms and Conditions{% endblock %}
+{% block title %}Terms and Conditions | Recorder-ed{% endblock %}
+
+{% block meta_tags %}
+{% include 'includes/meta_tags.html' with page_title="Terms and Conditions | Recorder-ed" page_description="Read the terms and conditions for using Recorder-ed music education platform. Information about account registration, payments, refunds, and user responsibilities." page_url=request.build_absolute_uri page_keywords="terms and conditions, terms of service, recorder-ed terms, music lessons terms" %}
+{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-base-100">

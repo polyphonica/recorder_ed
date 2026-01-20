@@ -1,7 +1,11 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Privacy Policy{% endblock %}
+{% block title %}Privacy Policy | Recorder-ed{% endblock %}
+
+{% block meta_tags %}
+{% include 'includes/meta_tags.html' with page_title="Privacy Policy | Recorder-ed" page_description="Read our privacy policy to understand how Recorder-ed collects, uses, and protects your personal data. We comply with UK GDPR and data protection laws." page_url=request.build_absolute_uri page_keywords="privacy policy, data protection, GDPR, recorder-ed privacy" %}
+{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-base-100">

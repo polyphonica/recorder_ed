@@ -12,6 +12,9 @@
         {% include 'includes/meta_tags.html' %}
     {% endblock %}
 
+    <!-- Organization Schema (appears on all pages) -->
+    {% include 'includes/schema_organization.html' %}
+
     <!-- Tailwind CSS -->
     <link rel="stylesheet" type="text/css" href="{% static 'css/dist/styles.css' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'css/custom.css' %}?v={{ request.user.id|default:'1' }}{{ request.path|slugify }}">
