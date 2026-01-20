@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manage Categories{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold">Manage Categories</h1>
+            <p class="text-base-content/70 mt-2">Organize your lesson templates into categories/series</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'lesson_templates:library' %}" class="btn btn-ghost">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Library
+            </a>
+            <a href="{% url 'lesson_templates:category_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus mr-2"></i>Create Category
+            </a>
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="alert alert-info mb-6">
+        <i class="fas fa-info-circle"></i>
+        <div>
+            <p class="font-semibold">About Categories</p>
+            <p class="text-sm">Categories let you organize templates into independent series with their own lesson numbering. For example, you can have "Rhythm Fundamentals" (lessons 1-5) and "ABRSM Grade 1 Theory" (lessons 1-20) without number conflicts.</p>
+        </div>
+    </div>
+
+    {% if categories %}
+        <!-- Categories Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {% for category in categories %}
+                <div class="card card-section shadow-lg hover:shadow-xl transition-shadow">
+                    <div class="card-body">
+                        <!-- Category Badge & Title -->
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="w-4 h-4 rounded-full mt-1.5" style="background-color: {{ category.color }};"></div>
+                            <div class="flex-1">
+                                <h2 class="card-title text-xl">{{ category.name }}</h2>
+                                {% if category.description %}
+                                <p class="text-sm text-base-content/70 mt-1">{{ category.description|truncatewords:20 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Metadata -->
+                        <div class="space-y-1 mb-3 text-sm">
+                            {% if category.syllabus %}
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-book-open text-primary"></i>
+                                <span>{{ category.get_syllabus_display }}</span>
+                            </div>
+                            {% endif %}
+
+                            {% if category.grade_level %}
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-graduation-cap text-success"></i>
+                                <span>Grade {{ category.grade_level }}</span>
+                            </div>
+                            {% endif %}
+
+                            {% if category.subject %}
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-music text-accent"></i>
+                                <span>{{ category.subject.subject }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Template Count -->
+                        <div class="badge badge-lg badge-outline mb-3">
+                            <i class="fas fa-file-alt mr-2"></i>
+                            {{ category._template_count }} template{{ category._template_count|pluralize }}
+                        </div>
+
+                        <!-- Public Badge -->
+                        {% if category.is_public %}
+                        <div class="badge badge-success badge-sm mb-3">
+                            <i class="fas fa-globe mr-1"></i>
+                            Public
+                        </div>
+                        {% endif %}
+
+                        <!-- Actions -->
+                        <div class="card-actions justify-end mt-auto">
+                            <a href="{% url 'lesson_templates:category_detail' category.pk %}"
+                               class="btn btn-sm btn-ghost">
+                                <i class="fas fa-eye"></i>
+                                View
+                            </a>
+                            <a href="{% url 'lesson_templates:category_edit' category.pk %}"
+                               class="btn btn-sm btn-primary">
+                                <i class="fas fa-edit"></i>
+                                Edit
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Empty State -->
+        <div class="card bg-base-200 shadow-md mb-8">
+            <div class="card-body text-center py-12">
+                <i class="fas fa-folder-open text-6xl text-base-content/30 mb-4"></i>
+                <h3 class="text-xl font-semibold mb-2">No Categories Yet</h3>
+                <p class="text-base-content/70 mb-4">
+                    Create categories to organize your lesson templates into series with independent numbering.
+                </p>
+                <a href="{% url 'lesson_templates:category_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus mr-2"></i>
+                    Create Your First Category
+                </a>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Standalone Templates Info -->
+    {% if standalone_count > 0 %}
+    <div class="card bg-base-200 shadow-md">
+        <div class="card-body">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-4 h-4 rounded-full bg-gray-400"></div>
+                    <div>
+                        <h3 class="font-semibold">Standalone Lessons</h3>
+                        <p class="text-sm text-base-content/70">Templates not assigned to any category</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="badge badge-lg badge-outline">
+                        {{ standalone_count }} template{{ standalone_count|pluralize }}
+                    </span>
+                    <a href="{% url 'lesson_templates:library' %}?category=standalone" class="btn btn-sm btn-ghost">
+                        <i class="fas fa-eye mr-1"></i>
+                        View
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

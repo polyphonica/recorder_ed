@@ -8,10 +8,13 @@
     <!-- Header -->
     <div class="flex justify-between items-center mb-8">
         <div>
-            <h1 class="text-3xl font-bold">📚 Lesson Content Library</h1>
+            <h1 class="text-3xl font-bold">Lesson Content Library</h1>
             <p class="text-base-content/70 mt-2">Create and manage reusable lesson content templates</p>
         </div>
         <div class="flex gap-2">
+            <a href="{% url 'lesson_templates:category_list' %}" class="btn btn-ghost">
+                <i class="fas fa-folder mr-2"></i>Manage Categories
+            </a>
             <a href="{% url 'lesson_templates:create' %}" class="btn btn-primary">
                 <i class="fas fa-plus mr-2"></i>Create Template
             </a>
@@ -49,6 +52,26 @@
                            value="{{ search_query }}"
                            placeholder="Title or content..."
                            class="input input-bordered">
+                </div>
+
+                <!-- Category Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Category</span>
+                    </label>
+                    <select name="category" class="select select-bordered">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                            {{ category.name }} ({{ category._template_count }})
+                        </option>
+                        {% endfor %}
+                        {% if standalone_count > 0 %}
+                        <option value="standalone" {% if selected_category == 'standalone' %}selected{% endif %}>
+                            Standalone ({{ standalone_count }})
+                        </option>
+                        {% endif %}
+                    </select>
                 </div>
 
                 <!-- Subject Filter -->

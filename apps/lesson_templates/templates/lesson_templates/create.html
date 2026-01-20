@@ -74,6 +74,26 @@
             <div class="card-body">
                 <h2 class="card-title text-xl mb-4">Categorization</h2>
 
+                <!-- Category (full width) -->
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text font-semibold">{{ form.category.label }}</span>
+                    </label>
+                    {{ form.category }}
+                    {% if form.category.help_text %}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.category.help_text }}</span>
+                    </label>
+                    {% endif %}
+                    <label class="label">
+                        <span class="label-text-alt">
+                            <a href="{% url 'lesson_templates:category_create' %}" class="link link-primary">
+                                <i class="fas fa-plus mr-1"></i>Create new category
+                            </a>
+                        </span>
+                    </label>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Subject -->
                     <div class="form-control">
