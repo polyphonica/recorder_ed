@@ -161,7 +161,7 @@ class LessonContentTemplateForm(forms.ModelForm):
             from django.db.models import Q
             self.fields['category'].queryset = TemplateCategory.objects.filter(
                 Q(created_by=user) | Q(is_public=True)
-            ).order_by('display_order', 'name')
+            ).distinct().order_by('display_order', 'name')
         self.fields['category'].empty_label = '-- Standalone (no category) --'
 
     def _save_new_tags(self, instance):
