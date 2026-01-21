@@ -3,6 +3,34 @@
 
 {% block title %}Shopping Cart{% endblock %}
 
+{% block extra_js %}
+<script>
+// GA4 E-commerce: Begin Checkout Event (fires when cart page is viewed with items)
+{% if cart_items and GOOGLE_ANALYTICS_ID %}
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof gtag === 'function') {
+        var items = [];
+        {% for item in cart_items %}
+        items.push({
+            item_id: "workshop_{{ item.session.workshop.id }}",
+            item_name: "{{ item.session.workshop.title|escapejs }}",
+            item_category: "workshops",
+            price: {{ item.price|default:0 }},
+            quantity: 1
+        });
+        {% endfor %}
+
+        gtag('event', 'begin_checkout', {
+            value: {{ total_amount|default:0 }},
+            currency: "GBP",
+            items: items
+        });
+    }
+});
+{% endif %}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-4xl mx-auto">

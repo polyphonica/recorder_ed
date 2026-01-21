@@ -189,6 +189,7 @@
                 <!-- Add to Cart -->
                 {% if user.is_authenticated %}
                 <a href="{% url 'digital_products:add_to_cart' product.id %}?next={{ request.path }}"
+                   id="addToCartBtn"
                    class="block w-full bg-blue-600 text-white text-center px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
                     Add to Cart
                 </a>
@@ -257,4 +258,33 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// GA4 E-commerce: Add to Cart Event
+{% if GOOGLE_ANALYTICS_ID %}
+document.addEventListener('DOMContentLoaded', function() {
+    var addToCartBtn = document.getElementById('addToCartBtn');
+    if (addToCartBtn) {
+        addToCartBtn.addEventListener('click', function() {
+            if (typeof gtag === 'function') {
+                gtag('event', 'add_to_cart', {
+                    value: {{ product.price|default:0 }},
+                    currency: "GBP",
+                    items: [{
+                        item_id: "product_{{ product.id }}",
+                        item_name: "{{ product.title|escapejs }}",
+                        item_category: "digital_products",
+                        item_category2: "{{ product.category.name|default:'Uncategorized'|escapejs }}",
+                        price: {{ product.price|default:0 }},
+                        quantity: 1
+                    }]
+                });
+            }
+        });
+    }
+});
+{% endif %}
+</script>
 {% endblock %}

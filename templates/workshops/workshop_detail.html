@@ -1176,5 +1176,53 @@ function openChildSelectionModal(sessionId) {
     // Open the modal
     document.getElementById('childSelectionModal').checked = true;
 }
+
+// GA4 E-commerce: Add to Cart Event
+{% if GOOGLE_ANALYTICS_ID %}
+document.addEventListener('DOMContentLoaded', function() {
+    // Track add-to-cart form submissions
+    document.querySelectorAll('form[action*="add"]').forEach(function(form) {
+        if (form.action.includes('/cart/add/')) {
+            form.addEventListener('submit', function() {
+                if (typeof gtag === 'function') {
+                    gtag('event', 'add_to_cart', {
+                        value: {{ workshop.price|default:0 }},
+                        currency: "GBP",
+                        items: [{
+                            item_id: "workshop_{{ workshop.id }}",
+                            item_name: "{{ workshop.title|escapejs }}",
+                            item_category: "workshops",
+                            item_category2: "{{ workshop.category.name|default:'Uncategorized'|escapejs }}",
+                            price: {{ workshop.price|default:0 }},
+                            quantity: 1
+                        }]
+                    });
+                }
+            });
+        }
+    });
+
+    // Track child selection modal form submission
+    var childForm = document.getElementById('childSelectionForm');
+    if (childForm) {
+        childForm.addEventListener('submit', function() {
+            if (typeof gtag === 'function') {
+                gtag('event', 'add_to_cart', {
+                    value: {{ workshop.price|default:0 }},
+                    currency: "GBP",
+                    items: [{
+                        item_id: "workshop_{{ workshop.id }}",
+                        item_name: "{{ workshop.title|escapejs }}",
+                        item_category: "workshops",
+                        item_category2: "{{ workshop.category.name|default:'Uncategorized'|escapejs }}",
+                        price: {{ workshop.price|default:0 }},
+                        quantity: 1
+                    }]
+                });
+            }
+        });
+    }
+});
+{% endif %}
 </script>
 {% endblock %}

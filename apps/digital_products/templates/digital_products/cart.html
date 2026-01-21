@@ -3,6 +3,35 @@
 
 {% block title %}Shopping Cart - Digital Products - {{ block.super }}{% endblock %}
 
+{% block extra_js %}
+<script>
+// GA4 E-commerce: Begin Checkout Event (fires when cart page is viewed with items)
+{% if digital_product_cart_items and GOOGLE_ANALYTICS_ID %}
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof gtag === 'function') {
+        var items = [];
+        {% for item in digital_product_cart_items %}
+        items.push({
+            item_id: "product_{{ item.product.id }}",
+            item_name: "{{ item.product.title|escapejs }}",
+            item_category: "digital_products",
+            item_category2: "{{ item.product.category.name|default:'Uncategorized'|escapejs }}",
+            price: {{ item.price|default:0 }},
+            quantity: 1
+        });
+        {% endfor %}
+
+        gtag('event', 'begin_checkout', {
+            value: {{ digital_product_cart_total|default:0 }},
+            currency: "GBP",
+            items: items
+        });
+    }
+});
+{% endif %}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <h1 class="text-4xl font-bold text-gray-900 mb-8">Shopping Cart</h1>

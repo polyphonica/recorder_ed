@@ -118,3 +118,28 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+// GA4 E-commerce: Purchase Event
+{% if registration and GOOGLE_ANALYTICS_ID %}
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof gtag === 'function') {
+        gtag('event', 'purchase', {
+            transaction_id: "{{ registration.stripe_payment_intent_id|default:registration.id }}",
+            value: {{ registration.payment_amount|default:0 }},
+            currency: "GBP",
+            items: [{
+                item_id: "workshop_{{ workshop.id }}",
+                item_name: "{{ workshop.title|escapejs }}",
+                item_category: "workshops",
+                item_category2: "{{ workshop.category.name|default:'Uncategorized'|escapejs }}",
+                price: {{ registration.payment_amount|default:0 }},
+                quantity: 1
+            }]
+        });
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

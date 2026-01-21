@@ -164,3 +164,33 @@
     {% endif %}
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+// GA4 E-commerce: Purchase Event
+{% if order and order_items and GOOGLE_ANALYTICS_ID %}
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof gtag === 'function') {
+        var items = [];
+        {% for item in order_items %}
+        items.push({
+            item_id: "lesson_{{ item.lesson.id }}",
+            item_name: "{{ item.lesson.subject.subject|escapejs }} - Private Lesson",
+            item_category: "private_teaching",
+            item_category2: "{{ item.lesson.subject.subject|escapejs }}",
+            price: {{ item.price_paid|default:0 }},
+            quantity: 1
+        });
+        {% endfor %}
+
+        gtag('event', 'purchase', {
+            transaction_id: "{{ order.stripe_payment_intent_id|default:order.order_number }}",
+            value: {{ order.total_amount|default:0 }},
+            currency: "GBP",
+            items: items
+        });
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

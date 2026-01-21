@@ -64,3 +64,35 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+// GA4 E-commerce: Purchase Event
+{% if purchases and GOOGLE_ANALYTICS_ID %}
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof gtag === 'function') {
+        var items = [];
+        var totalValue = 0;
+        {% for purchase in purchases %}
+        items.push({
+            item_id: "product_{{ purchase.product.id }}",
+            item_name: "{{ purchase.product.title|escapejs }}",
+            item_category: "digital_products",
+            item_category2: "{{ purchase.product.category.name|default:'Uncategorized'|escapejs }}",
+            price: {{ purchase.payment_amount|default:0 }},
+            quantity: 1
+        });
+        totalValue += {{ purchase.payment_amount|default:0 }};
+        {% endfor %}
+
+        gtag('event', 'purchase', {
+            transaction_id: "{{ purchases.0.stripe_payment_intent_id|default:'DP_' }}{{ request.user.id }}_{{ purchases.0.id|default:'' }}",
+            value: totalValue,
+            currency: "GBP",
+            items: items
+        });
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

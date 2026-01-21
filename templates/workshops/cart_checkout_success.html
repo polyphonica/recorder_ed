@@ -128,3 +128,35 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+// GA4 E-commerce: Purchase Event
+{% if registrations and GOOGLE_ANALYTICS_ID %}
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof gtag === 'function') {
+        var items = [];
+        var totalValue = 0;
+        {% for registration in registrations %}
+        items.push({
+            item_id: "workshop_{{ registration.session.workshop.id }}",
+            item_name: "{{ registration.session.workshop.title|escapejs }}",
+            item_category: "workshops",
+            item_category2: "{{ registration.session.workshop.category.name|default:'Uncategorized'|escapejs }}",
+            price: {{ registration.payment_amount|default:0 }},
+            quantity: 1
+        });
+        totalValue += {{ registration.payment_amount|default:0 }};
+        {% endfor %}
+
+        gtag('event', 'purchase', {
+            transaction_id: "{{ session_id|default:'WS_'|add:request.user.id }}",
+            value: totalValue,
+            currency: "GBP",
+            items: items
+        });
+    }
+});
+{% endif %}
+</script>
+{% endblock %}
