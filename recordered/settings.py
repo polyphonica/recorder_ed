@@ -34,6 +34,9 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv(
 # CSRF trusted origins for Django 4.0+ (required for HTTPS)
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())
 
+# Google Analytics
+GOOGLE_ANALYTICS_ID = config('GOOGLE_ANALYTICS_ID', default='')
+
 # Security settings for production
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
@@ -115,6 +118,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'apps.core.context_processors.google_analytics',
                 'apps.private_teaching.context_processors.cart_context',
                 'apps.workshops.context_processors.unified_cart_context',
                 'apps.messaging.context_processors.unread_messages',  # Unified messaging (includes course messages)
