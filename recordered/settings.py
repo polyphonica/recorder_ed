@@ -50,6 +50,8 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     # Allow file input dialogs to work (required for CKEditor image/audio upload)
     SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
+    # Allow YouTube/Vimeo embeds to work (they need referrer to verify embed requests)
+    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 # Application definition
 
