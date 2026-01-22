@@ -445,3 +445,31 @@ figure.image.image-style-block-align-left,
         height: auto;
     }
 }
+
+/* Media embeds (YouTube, Vimeo, etc.) */
+.ck-content figure.media,
+.prose figure.media,
+.prose .ck-content figure.media {
+    display: block;
+    width: 100%;
+    margin: 1em 0;
+    clear: both;
+}
+
+.ck-content figure.media > div,
+.prose figure.media > div,
+.prose .ck-content figure.media > div {
+    display: block;
+    width: 100%;
+}
+
+.ck-content figure.media div[data-oembed-url],
+.prose figure.media div[data-oembed-url] {
+    display: block;
+    width: 100%;
+}
+
+.ck-content figure.media iframe,
+.prose figure.media iframe {
+    max-width: 100%;
+}
