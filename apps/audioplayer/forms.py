@@ -497,13 +497,14 @@ class QuickAddPiecesForm(forms.Form):
     )
 
     audio_files = forms.FileField(
-        widget=forms.ClearableFileInput(attrs={
+        widget=forms.FileInput(attrs={
             'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100',
             'multiple': True,
             'accept': 'audio/*'
         }),
         label='Audio Files',
-        help_text='Select multiple audio files. They will be assigned to pieces in alphabetical order by filename.'
+        help_text='Select multiple audio files. They will be assigned to pieces in alphabetical order by filename.',
+        required=False  # We validate in the view since FileField doesn't handle multiple natively
     )
 
     def clean_audio_files(self):
