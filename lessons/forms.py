@@ -7,7 +7,8 @@ from django_ckeditor_5.widgets import CKEditor5Widget
 from apps.private_teaching.models import Subject
 
 from .models import (
-    Lesson, Document, LessonAttachedUrl, PrivateLessonPiece, LessonAssignment
+    Lesson, Document, LessonAttachedUrl, PrivateLessonPiece, LessonAssignment,
+    PrivateLessonCollection
 )
 
 
@@ -140,5 +141,27 @@ class LessonAssignmentForm(forms.ModelForm):
 
 LessonAssignmentFormSet = inlineformset_factory(
     Lesson, LessonAssignment, form=LessonAssignmentForm,
+    extra=1, can_delete=True, can_delete_extra=True
+)
+
+
+class PrivateLessonCollectionForm(forms.ModelForm):
+    """Form for assigning piece collections to private lessons"""
+
+    def __init__(self, *args, **kwargs):
+        super(PrivateLessonCollectionForm, self).__init__(*args, **kwargs)
+        for visible in self.visible_fields():
+            visible.field.widget.attrs['class'] = 'form-control'
+
+    class Meta:
+        model = PrivateLessonCollection
+        fields = ('collection', 'order', 'is_visible', 'instructions')
+        widgets = {
+            'instructions': forms.Textarea(attrs={'rows': 3}),
+        }
+
+
+PrivateLessonCollectionFormSet = inlineformset_factory(
+    Lesson, PrivateLessonCollection, form=PrivateLessonCollectionForm,
     extra=1, can_delete=True, can_delete_extra=True
 )

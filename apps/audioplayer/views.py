@@ -317,16 +317,25 @@ def private_lesson_player(request, lesson_id):
         messages.error(request, 'This lesson is not yet available. Playalong content will be accessible when the teacher assigns the lesson.')
         return redirect('lessons:lesson_detail', pk=lesson_id)
 
-    # Get count of visible pieces
+    # Get count of visible pieces (individual pieces)
     piece_count = lesson.lesson_pieces.filter(is_visible=True).count()
 
-    if piece_count == 0:
+    # Get count of visible collections and their pieces
+    collection_count = lesson.lesson_collections.filter(is_visible=True).count()
+    collection_piece_count = 0
+    for lc in lesson.lesson_collections.filter(is_visible=True):
+        collection_piece_count += lc.collection.pieces.count()
+
+    total_piece_count = piece_count + collection_piece_count
+
+    if total_piece_count == 0:
         messages.info(request, 'No playalong pieces have been assigned to this lesson yet.')
         return redirect('lessons:lesson_detail', pk=lesson_id)
 
     context = {
         'lesson': lesson,
-        'piece_count': piece_count,
+        'piece_count': total_piece_count,
+        'collection_count': collection_count,
         'title': f'Playalong: {lesson.subject.subject} - {lesson.lesson_date}',
         'is_private_lesson': True  # Flag to help template know this is a private lesson
     }
@@ -337,8 +346,9 @@ def private_lesson_pieces_json(request, lesson_id):
     """
     JSON API endpoint for private lesson audio player JavaScript.
     Returns all visible pieces and stems for a private teaching lesson.
+    Includes both individual pieces and pieces from assigned collections.
     """
-    from lessons.models import Lesson as PrivateLesson, PrivateLessonPiece
+    from lessons.models import Lesson as PrivateLesson, PrivateLessonPiece, PrivateLessonCollection
 
     lesson = get_object_or_404(PrivateLesson, pk=lesson_id)
 
@@ -353,13 +363,15 @@ def private_lesson_pieces_json(request, lesson_id):
     if not is_teacher and lesson.status != 'Assigned':
         return JsonResponse({'error': 'Lesson not assigned yet'}, status=403)
 
-    # Get pieces through the PrivateLessonPiece relationship
+    pieces_data = []
+    collections_data = []
+
+    # Get individual pieces through the PrivateLessonPiece relationship
     lesson_pieces = PrivateLessonPiece.objects.filter(
         lesson=lesson,
         is_visible=True
     ).select_related('piece').prefetch_related('piece__stems').order_by('order')
 
-    pieces_data = []
     for lp in lesson_pieces:
         # Get stems ordered by their order field
         stems_data = [
@@ -388,7 +400,55 @@ def private_lesson_pieces_json(request, lesson_id):
 
         pieces_data.append(piece_data)
 
-    return JsonResponse({'pieces_data': pieces_data})
+    # Get collections and their pieces
+    lesson_collections = PrivateLessonCollection.objects.filter(
+        lesson=lesson,
+        is_visible=True
+    ).select_related('collection').prefetch_related(
+        'collection__pieces',
+        'collection__pieces__stems'
+    ).order_by('order')
+
+    for lc in lesson_collections:
+        collection = lc.collection
+        collection_pieces = []
+
+        for piece in collection.pieces.all().order_by('order_in_collection'):
+            stems_data = [
+                {
+                    'audio_file': stem.audio_file.url,
+                    'instrument_name': stem.instrument_name
+                }
+                for stem in piece.stems.all().order_by('order')
+            ]
+
+            piece_data = {
+                'title': piece.title,
+                'stems': stems_data,
+                'svg_image': piece.svg_image.url if piece.svg_image else None,
+                'order': piece.order_in_collection,
+                'description': piece.description if piece.description else None,
+            }
+            collection_pieces.append(piece_data)
+
+        collection_data = {
+            'title': collection.title,
+            'pdf_score': collection.pdf_score.url if collection.pdf_score else None,
+            'pdf_score_title': collection.pdf_score_title if collection.pdf_score_title else None,
+            'order': lc.order,
+            'pieces': collection_pieces,
+        }
+
+        # Add lesson-specific instructions for the collection
+        if lc.instructions:
+            collection_data['instructions'] = lc.instructions
+
+        collections_data.append(collection_data)
+
+    return JsonResponse({
+        'pieces_data': pieces_data,
+        'collections_data': collections_data
+    })
 
 
 # ===== PLAY-ALONG LIBRARY VIEWS =====

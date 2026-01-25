@@ -19,7 +19,7 @@ from django.core.exceptions import PermissionDenied
 from apps.private_teaching.models import LessonRequest
 
 from .models import Lesson, LessonOrder
-from .forms import LessonForm, DocumentFormSet, LessonUrlsFormSet, PrivateLessonPieceFormSet, LessonAssignmentFormSet
+from .forms import LessonForm, DocumentFormSet, LessonUrlsFormSet, PrivateLessonPieceFormSet, LessonAssignmentFormSet, PrivateLessonCollectionFormSet
 
 
 class CalendarView(LoginRequiredMixin, TemplateView):
@@ -234,10 +234,15 @@ class LessonUpdateView(LoginRequiredMixin, LessonInline, UpdateView):
         return lesson
 
     def get_context_data(self, **kwargs):
-        from apps.audioplayer.models import Piece
+        from apps.audioplayer.models import Piece, PieceCollection
         ctx = super().get_context_data(**kwargs)
         ctx['named_formsets'] = self.get_named_formsets()
         ctx['pieces'] = Piece.objects.all().order_by('title')  # For piece dropdown in JavaScript
+
+        # Add available collections for dropdown
+        ctx['collections'] = PieceCollection.objects.filter(
+            created_by=self.request.user
+        ).order_by('title')
 
         # Add available assignments for dropdown
         from assignments.models import Assignment
@@ -266,6 +271,11 @@ class LessonUpdateView(LoginRequiredMixin, LessonInline, UpdateView):
                 self.request.POST or None,
                 instance=self.object,
                 prefix='pieces'
+            ),
+            'collections': PrivateLessonCollectionFormSet(
+                self.request.POST or None,
+                instance=self.object,
+                prefix='collections'
             ),
             'assignments': LessonAssignmentFormSet(
                 self.request.POST or None,

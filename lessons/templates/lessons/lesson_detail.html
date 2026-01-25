@@ -391,14 +391,16 @@
             </a>
         {% endif %}
 
-        {% if lesson.lesson_pieces.exists and lesson.status == 'Assigned' %}
-            <a href="{% url 'audioplayer:private_lesson_player' lesson.pk %}" class="btn btn-success">
-                🎵 Practice with Playalong
-            </a>
-        {% elif lesson.lesson_pieces.exists and lesson.status != 'Assigned' and request.user == lesson.student.user %}
-            <button type="button" class="btn btn-outline opacity-50 cursor-not-allowed" disabled title="Playalong will be available when lesson is assigned">
-                🎵 Playalong (Not Yet Available)
-            </button>
+        {% if lesson.lesson_pieces.exists or lesson.lesson_collections.exists %}
+            {% if lesson.status == 'Assigned' %}
+                <a href="{% url 'audioplayer:private_lesson_player' lesson.pk %}" class="btn btn-success">
+                    🎵 Practice with Playalong
+                </a>
+            {% elif request.user == lesson.student %}
+                <button type="button" class="btn btn-outline opacity-50 cursor-not-allowed" disabled title="Playalong will be available when lesson is assigned">
+                    🎵 Playalong (Not Yet Available)
+                </button>
+            {% endif %}
         {% endif %}
 
         {% if request.user == lesson.student %}
