@@ -9,22 +9,29 @@
     <div class="flex justify-between items-center mb-8">
         <div>
             <h1 class="text-3xl font-bold">Play-Along Library</h1>
-            <p class="text-base-content/70 mt-2">Browse and practice with multi-track playalong pieces</p>
+            <p class="text-base-content/70 mt-2">
+                {% if is_teacher %}
+                    Preview the public library as students see it
+                {% else %}
+                    Browse and practice with multi-track playalong pieces
+                {% endif %}
+            </p>
         </div>
         {% if is_teacher %}
-        <a href="{% url 'audioplayer:piece_create' %}" class="btn btn-primary">
-            <i class="fas fa-plus mr-2"></i>
-            Create New Piece
+        <a href="{% url 'audioplayer:piece_list' %}" class="btn btn-primary">
+            <i class="fas fa-cog mr-2"></i>
+            Manage Library
         </a>
         {% endif %}
     </div>
 
-    <!-- View Mode Tabs -->
+    <!-- View Mode Tabs (students only) -->
+    {% if not is_teacher %}
     <div class="tabs tabs-boxed mb-6">
         <a class="tab {% if view_mode == 'my_pieces' %}tab-active{% endif %}"
            href="?mode=my_pieces">
             <i class="fas fa-book-reader mr-2"></i>
-            {% if is_teacher %}My Pieces{% else %}My Assigned Pieces{% endif %}
+            My Assigned Pieces
         </a>
         <a class="tab {% if view_mode == 'browse_all' %}tab-active{% endif %}"
            href="?mode=browse_all">
@@ -32,6 +39,7 @@
             Browse All
         </a>
     </div>
+    {% endif %}
 
     <!-- Filters -->
     <div class="card bg-base-200 shadow-md mb-6">
@@ -309,23 +317,23 @@
             <i class="fas fa-music text-6xl text-base-content/20"></i>
         </div>
         <h2 class="text-2xl font-bold mb-4">
-            {% if view_mode == 'my_pieces' %}
-                {% if is_teacher %}
-                    No Pieces Yet
-                {% else %}
-                    No Assigned Content Yet
-                {% endif %}
+            {% if is_teacher %}
+                No Public Content Yet
+            {% elif view_mode == 'my_pieces' %}
+                No Assigned Content Yet
             {% else %}
                 No Pieces Found
             {% endif %}
         </h2>
         <p class="text-base-content/70 mb-8">
-            {% if view_mode == 'my_pieces' %}
-                {% if is_teacher %}
-                    You haven't created any playalong pieces yet. Create your first piece or browse all public pieces!
+            {% if is_teacher %}
+                {% if search_query or selected_composer or selected_grade or selected_genre or selected_difficulty or selected_tag %}
+                    No pieces match your current filters. Try adjusting your search criteria.
                 {% else %}
-                    Your teacher hasn't assigned any playalong pieces or collections yet. Try browsing all available pieces!
+                    No public playalong pieces or collections are available yet. Create content and mark it as public for students to browse.
                 {% endif %}
+            {% elif view_mode == 'my_pieces' %}
+                Your teacher hasn't assigned any playalong pieces or collections yet. Try browsing all available pieces!
             {% else %}
                 {% if search_query or selected_composer or selected_grade or selected_genre or selected_difficulty or selected_tag %}
                     No pieces match your current filters. Try adjusting your search criteria.
@@ -334,7 +342,12 @@
                 {% endif %}
             {% endif %}
         </p>
-        {% if view_mode == 'my_pieces' %}
+        {% if is_teacher %}
+        <a href="{% url 'audioplayer:piece_list' %}" class="btn btn-primary">
+            <i class="fas fa-cog mr-2"></i>
+            Manage Library
+        </a>
+        {% elif view_mode == 'my_pieces' %}
         <a href="?mode=browse_all" class="btn btn-primary">
             <i class="fas fa-globe mr-2"></i>
             Browse All Pieces
