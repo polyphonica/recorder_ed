@@ -7,7 +7,7 @@ from django.db.models import Q, Count, Max
 from django.views.generic import TemplateView
 from functools import wraps
 from .models import Piece, Stem, LessonPiece, Composer, Tag, PieceCollection
-from .forms import PieceForm, StemFormSet, PieceCollectionForm, CollectionPieceFormSet
+from .forms import PieceForm, StemFormSet, PieceCollectionForm, CollectionPieceFormSet, QuickAddPiecesForm
 from apps.courses.models import Lesson
 
 
@@ -1016,3 +1016,88 @@ def collection_reorder_pieces(request, pk):
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
+@teacher_required
+def collection_quick_add(request, pk):
+    """
+    Quick add multiple pieces to a collection at once.
+    Creates pieces with auto-generated titles and single audio track each.
+    """
+    collection = get_object_or_404(PieceCollection, pk=pk, created_by=request.user)
+
+    if request.method == 'POST':
+        form = QuickAddPiecesForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            title_prefix = form.cleaned_data['title_prefix']
+            start_number = form.cleaned_data['start_number']
+            track_name = form.cleaned_data['track_name']
+
+            # Get all uploaded audio files
+            audio_files = request.FILES.getlist('audio_files')
+
+            if not audio_files:
+                messages.error(request, 'Please select at least one audio file.')
+                return render(request, 'audioplayer/collection_quick_add.html', {
+                    'form': form,
+                    'collection': collection,
+                    'title': f'Quick Add Pieces to: {collection.title}'
+                })
+
+            # Sort files by name for consistent ordering
+            audio_files_sorted = sorted(audio_files, key=lambda f: f.name.lower())
+
+            # Get current max order in collection
+            max_order = collection.pieces.aggregate(
+                max_order=Max('order_in_collection')
+            )['max_order'] or 0
+
+            created_count = 0
+            with transaction.atomic():
+                for i, audio_file in enumerate(audio_files_sorted):
+                    piece_number = start_number + i
+                    piece_title = f"{title_prefix} {piece_number}"
+
+                    # Create the piece
+                    piece = Piece.objects.create(
+                        title=piece_title,
+                        collection=collection,
+                        order_in_collection=max_order + i + 1,
+                        created_by=request.user
+                    )
+
+                    # Create the stem (audio track)
+                    Stem.objects.create(
+                        piece=piece,
+                        instrument_name=track_name,
+                        audio_file=audio_file,
+                        order=0
+                    )
+
+                    created_count += 1
+
+            messages.success(
+                request,
+                f'Successfully created {created_count} pieces in "{collection.title}"!'
+            )
+            return redirect('audioplayer:collection_edit', pk=collection.pk)
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field.replace("_", " ").title()}: {error}')
+    else:
+        # Pre-populate with sensible defaults
+        # Check existing pieces to suggest next number
+        existing_count = collection.pieces.count()
+        form = QuickAddPiecesForm(initial={
+            'start_number': existing_count + 1,
+            'track_name': 'Backing Track'
+        })
+
+    context = {
+        'form': form,
+        'collection': collection,
+        'title': f'Quick Add Pieces to: {collection.title}'
+    }
+    return render(request, 'audioplayer/collection_quick_add.html', context)

@@ -457,3 +457,56 @@ CollectionPieceFormSet = inlineformset_factory(
     validate_min=False,
     validate_max=False,
 )
+
+
+class QuickAddPiecesForm(forms.Form):
+    """
+    Form for quickly adding multiple simple pieces to a collection.
+    Allows batch creation with auto-generated titles and single audio track per piece.
+    """
+    title_prefix = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
+            'placeholder': 'e.g., Exercise, Pattern, Rhythm'
+        }),
+        label='Title Prefix',
+        help_text='Each piece will be named: "[Prefix] 1", "[Prefix] 2", etc.'
+    )
+
+    start_number = forms.IntegerField(
+        min_value=1,
+        initial=1,
+        widget=forms.NumberInput(attrs={
+            'class': 'w-32 px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
+            'min': '1'
+        }),
+        label='Starting Number',
+        help_text='Number to start counting from'
+    )
+
+    track_name = forms.CharField(
+        max_length=100,
+        initial='Backing Track',
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
+            'placeholder': 'e.g., Backing Track, Piano, Full Mix'
+        }),
+        label='Track Name',
+        help_text='Name for the audio track (same for all pieces)'
+    )
+
+    audio_files = forms.FileField(
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100',
+            'multiple': True,
+            'accept': 'audio/*'
+        }),
+        label='Audio Files',
+        help_text='Select multiple audio files. They will be assigned to pieces in alphabetical order by filename.'
+    )
+
+    def clean_audio_files(self):
+        """Validate that files are audio files"""
+        # This is handled in the view since FileField doesn't support multiple files natively
+        return self.cleaned_data.get('audio_files')

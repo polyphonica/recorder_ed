@@ -21,6 +21,7 @@ urlpatterns = [
     path('collections/<int:pk>/edit/', views.collection_edit, name='collection_edit'),
     path('collections/<int:pk>/delete/', views.collection_delete, name='collection_delete'),
     path('collections/<int:pk>/add-piece/', views.collection_add_piece, name='collection_add_piece'),
+    path('collections/<int:pk>/quick-add/', views.collection_quick_add, name='collection_quick_add'),
     path('collections/<int:pk>/remove-piece/<int:piece_pk>/', views.collection_remove_piece, name='collection_remove_piece'),
     path('collections/<int:pk>/reorder/', views.collection_reorder_pieces, name='collection_reorder_pieces'),
 

@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="{% url 'audioplayer:collection_edit' pk=collection.pk %}"
+               class="text-blue-600 hover:text-blue-800 hover:underline mb-4 inline-flex items-center gap-2 text-base font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Back to {{ collection.title }}
+            </a>
+            <h1 class="text-4xl font-bold text-gray-900 mt-4">{{ title }}</h1>
+            <p class="text-lg text-gray-600 mt-2">
+                Add multiple simple pieces at once with auto-generated titles
+            </p>
+        </div>
+
+        {% if messages %}
+        <div class="mb-6 space-y-2">
+            {% for message in messages %}
+            <div class="bg-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-50 border-2 border-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-300 rounded-xl p-4">
+                <p class="text-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-900 text-base">{{ message }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Instructions -->
+        <div class="bg-blue-50 border-l-4 border-blue-500 rounded-r-xl p-6 mb-8">
+            <h3 class="font-bold text-blue-900 mb-2">How Quick Add Works</h3>
+            <ol class="list-decimal list-inside text-blue-800 space-y-2">
+                <li>Enter a <strong>title prefix</strong> (e.g., "Exercise" or "Pattern")</li>
+                <li>Choose your <strong>starting number</strong></li>
+                <li>Set a <strong>track name</strong> for all audio files</li>
+                <li>Select <strong>multiple audio files</strong> at once</li>
+                <li>Pieces will be created as: "Exercise 1", "Exercise 2", etc.</li>
+            </ol>
+            <p class="mt-3 text-sm text-blue-700">
+                <i class="fas fa-lightbulb mr-1"></i>
+                Tip: Name your audio files in order (e.g., 01.mp3, 02.mp3) so they're matched correctly.
+            </p>
+        </div>
+
+        <!-- Form -->
+        <form method="post" enctype="multipart/form-data" class="space-y-8">
+            {% csrf_token %}
+
+            <!-- Title Settings -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-blue-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Title Settings</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.title_prefix.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.title_prefix.label }} <span class="text-red-600">*</span>
+                        </label>
+                        {{ form.title_prefix }}
+                        <p class="mt-2 text-sm text-gray-600">{{ form.title_prefix.help_text }}</p>
+                    </div>
+                    <div>
+                        <label for="{{ form.start_number.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.start_number.label }}
+                        </label>
+                        {{ form.start_number }}
+                        <p class="mt-2 text-sm text-gray-600">{{ form.start_number.help_text }}</p>
+                    </div>
+                </div>
+
+                <!-- Preview -->
+                <div class="mt-6 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Preview:</p>
+                    <div id="title-preview" class="flex flex-wrap gap-2">
+                        <span class="badge badge-primary">Exercise 1</span>
+                        <span class="badge badge-primary">Exercise 2</span>
+                        <span class="badge badge-primary">Exercise 3</span>
+                        <span class="text-gray-500">...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audio Settings -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-indigo-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Audio Files</h2>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label for="{{ form.track_name.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.track_name.label }} <span class="text-red-600">*</span>
+                        </label>
+                        {{ form.track_name }}
+                        <p class="mt-2 text-sm text-gray-600">{{ form.track_name.help_text }}</p>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.audio_files.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.audio_files.label }} <span class="text-red-600">*</span>
+                        </label>
+                        {{ form.audio_files }}
+                        <p class="mt-2 text-sm text-gray-600">{{ form.audio_files.help_text }}</p>
+                    </div>
+
+                    <!-- File list preview -->
+                    <div id="file-list" class="hidden mt-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                        <p class="text-sm font-medium text-gray-700 mb-2">Selected files (<span id="file-count">0</span>):</p>
+                        <ul id="file-names" class="list-disc list-inside text-sm text-gray-600 max-h-48 overflow-y-auto">
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-6 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg">
+                    <p class="text-sm text-amber-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>File size limit:</strong> Each audio file max 10MB. Files will be sorted alphabetically and matched to piece numbers.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button type="submit" class="flex-1 sm:flex-initial bg-blue-600 text-white px-10 py-4 rounded-xl hover:bg-blue-700 font-bold text-lg shadow-lg inline-flex items-center justify-center gap-2">
+                    <i class="fas fa-bolt"></i>
+                    Create Pieces
+                </button>
+                <a href="{% url 'audioplayer:collection_edit' pk=collection.pk %}" class="flex-1 sm:flex-initial bg-gray-200 text-gray-800 px-10 py-4 rounded-xl hover:bg-gray-300 font-bold text-lg text-center">
+                    Cancel
+                </a>
+            </div>
+        </form>
+
+        <!-- Alternative: Add pieces one by one -->
+        <div class="mt-8 text-center">
+            <p class="text-gray-600 mb-2">Need more control over each piece?</p>
+            <a href="{% url 'audioplayer:collection_add_piece' pk=collection.pk %}" class="text-blue-600 hover:underline font-medium">
+                Add pieces one at a time instead
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const titlePrefixInput = document.getElementById('{{ form.title_prefix.id_for_label }}');
+    const startNumberInput = document.getElementById('{{ form.start_number.id_for_label }}');
+    const titlePreview = document.getElementById('title-preview');
+    const audioFilesInput = document.getElementById('{{ form.audio_files.id_for_label }}');
+    const fileList = document.getElementById('file-list');
+    const fileNames = document.getElementById('file-names');
+    const fileCount = document.getElementById('file-count');
+
+    // Update title preview
+    function updateTitlePreview() {
+        const prefix = titlePrefixInput.value || 'Exercise';
+        const start = parseInt(startNumberInput.value) || 1;
+
+        titlePreview.innerHTML = `
+            <span class="badge badge-primary">${prefix} ${start}</span>
+            <span class="badge badge-primary">${prefix} ${start + 1}</span>
+            <span class="badge badge-primary">${prefix} ${start + 2}</span>
+            <span class="text-gray-500">...</span>
+        `;
+    }
+
+    titlePrefixInput.addEventListener('input', updateTitlePreview);
+    startNumberInput.addEventListener('input', updateTitlePreview);
+
+    // Show selected files
+    audioFilesInput.addEventListener('change', function() {
+        const files = Array.from(this.files).sort((a, b) => a.name.localeCompare(b.name));
+
+        if (files.length > 0) {
+            fileList.classList.remove('hidden');
+            fileCount.textContent = files.length;
+            fileNames.innerHTML = '';
+
+            const prefix = titlePrefixInput.value || 'Exercise';
+            const start = parseInt(startNumberInput.value) || 1;
+
+            files.forEach((file, index) => {
+                const li = document.createElement('li');
+                const pieceTitle = `${prefix} ${start + index}`;
+                li.innerHTML = `<span class="font-medium">${pieceTitle}</span> ← ${file.name}`;
+                fileNames.appendChild(li);
+            });
+
+            // Update preview to match file count
+            titlePreview.innerHTML = '';
+            const showCount = Math.min(files.length, 5);
+            for (let i = 0; i < showCount; i++) {
+                const badge = document.createElement('span');
+                badge.className = 'badge badge-primary';
+                badge.textContent = `${prefix} ${start + i}`;
+                titlePreview.appendChild(badge);
+            }
+            if (files.length > 5) {
+                const more = document.createElement('span');
+                more.className = 'text-gray-500';
+                more.textContent = `... +${files.length - 5} more`;
+                titlePreview.appendChild(more);
+            }
+        } else {
+            fileList.classList.add('hidden');
+            updateTitlePreview();
+        }
+    });
+
+    // Initial preview
+    updateTitlePreview();
+});
+</script>
+{% endblock %}

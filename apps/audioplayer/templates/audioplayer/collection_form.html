@@ -199,10 +199,16 @@
                         <h2 class="text-2xl font-bold text-gray-900">Pieces in Collection</h2>
                         <span class="badge badge-primary">{{ pieces.count }}</span>
                     </div>
-                    <a href="{% url 'audioplayer:collection_add_piece' pk=collection.pk %}" class="btn btn-primary">
-                        <i class="fas fa-plus mr-2"></i>
-                        Add Piece
-                    </a>
+                    <div class="flex gap-2">
+                        <a href="{% url 'audioplayer:collection_quick_add' pk=collection.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-bolt mr-2"></i>
+                            Quick Add Multiple
+                        </a>
+                        <a href="{% url 'audioplayer:collection_add_piece' pk=collection.pk %}" class="btn btn-primary">
+                            <i class="fas fa-plus mr-2"></i>
+                            Add Piece
+                        </a>
+                    </div>
                 </div>
 
                 {% if pieces %}
@@ -265,10 +271,16 @@
                 <div class="text-center py-12">
                     <i class="fas fa-music text-4xl text-base-content/20 mb-4"></i>
                     <p class="text-base-content/60 mb-4">No pieces in this collection yet</p>
-                    <a href="{% url 'audioplayer:collection_add_piece' pk=collection.pk %}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-plus mr-2"></i>
-                        Add First Piece
-                    </a>
+                    <div class="flex justify-center gap-3">
+                        <a href="{% url 'audioplayer:collection_quick_add' pk=collection.pk %}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-bolt mr-2"></i>
+                            Quick Add Multiple
+                        </a>
+                        <a href="{% url 'audioplayer:collection_add_piece' pk=collection.pk %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus mr-2"></i>
+                            Add Piece
+                        </a>
+                    </div>
                 </div>
                 {% endif %}
             </div>
