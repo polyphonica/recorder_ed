@@ -55,7 +55,7 @@
                 <div class="text-sm text-base-content/70 space-y-1 mt-2">
                     <p>
                         <i class="fas fa-music mr-2"></i>
-                        <strong>{{ collection.piece_count }}</strong> piece{{ collection.piece_count|pluralize }}
+                        <strong>{{ collection.pieces.count }}</strong> piece{{ collection.pieces.count|pluralize }}
                     </p>
                     {% if collection.grade_level and collection.grade_level != 'N/A' %}
                     <p>

@@ -784,8 +784,6 @@ def collection_list(request):
     """List all collections created by the logged-in teacher"""
     collections = PieceCollection.objects.filter(
         created_by=request.user
-    ).annotate(
-        piece_count=Count('pieces')
     ).prefetch_related('pieces', 'tags')
 
     context = {
