@@ -3,11 +3,11 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Count, Max
 from django.views.generic import TemplateView
 from functools import wraps
-from .models import Piece, Stem, LessonPiece, Composer, Tag
-from .forms import PieceForm, StemFormSet
+from .models import Piece, Stem, LessonPiece, Composer, Tag, PieceCollection
+from .forms import PieceForm, StemFormSet, PieceCollectionForm, CollectionPieceFormSet
 from apps.courses.models import Lesson
 
 
@@ -714,3 +714,245 @@ def composer_delete(request, pk):
         'title': f'Delete Composer: {composer.name}'
     }
     return render(request, 'audioplayer/composer_confirm_delete.html', context)
+
+
+# ===== COLLECTION MANAGEMENT VIEWS =====
+
+@teacher_required
+def collection_list(request):
+    """List all collections created by the logged-in teacher"""
+    collections = PieceCollection.objects.filter(
+        created_by=request.user
+    ).annotate(
+        piece_count=Count('pieces')
+    ).prefetch_related('pieces', 'tags')
+
+    context = {
+        'collections': collections,
+        'title': 'My Collections'
+    }
+    return render(request, 'audioplayer/collection_list.html', context)
+
+
+@teacher_required
+@transaction.atomic
+def collection_create(request):
+    """Create a new collection"""
+    if request.method == 'POST':
+        form = PieceCollectionForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            collection = form.save(commit=False)
+            collection.created_by = request.user
+            collection.save()
+            form.save_m2m()
+            messages.success(request, f'Collection "{collection.title}" created successfully!')
+            return redirect('audioplayer:collection_edit', pk=collection.pk)
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field.replace("_", " ").title()}: {error}')
+    else:
+        form = PieceCollectionForm()
+
+    context = {
+        'form': form,
+        'title': 'Create New Collection',
+        'submit_text': 'Create Collection'
+    }
+    return render(request, 'audioplayer/collection_form.html', context)
+
+
+@teacher_required
+@transaction.atomic
+def collection_edit(request, pk):
+    """Edit collection and manage its pieces"""
+    collection = get_object_or_404(PieceCollection, pk=pk, created_by=request.user)
+
+    if request.method == 'POST':
+        form = PieceCollectionForm(request.POST, request.FILES, instance=collection)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Collection "{collection.title}" updated successfully!')
+            return redirect('audioplayer:collection_edit', pk=collection.pk)
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field.replace("_", " ").title()}: {error}')
+    else:
+        form = PieceCollectionForm(instance=collection)
+
+    # Get pieces in this collection
+    pieces = collection.pieces.prefetch_related('stems').order_by('order_in_collection', 'title')
+
+    context = {
+        'form': form,
+        'collection': collection,
+        'pieces': pieces,
+        'title': f'Edit: {collection.title}',
+        'submit_text': 'Update Collection'
+    }
+    return render(request, 'audioplayer/collection_form.html', context)
+
+
+@teacher_required
+def collection_delete(request, pk):
+    """Delete a collection (pieces can optionally be kept as standalone)"""
+    collection = get_object_or_404(PieceCollection, pk=pk, created_by=request.user)
+
+    pieces_count = collection.pieces.count()
+
+    if request.method == 'POST':
+        action = request.POST.get('action', 'delete_all')
+        collection_title = collection.title
+
+        if action == 'keep_pieces':
+            # Detach pieces from collection (they become standalone)
+            collection.pieces.update(collection=None, order_in_collection=0)
+            collection.delete()
+            messages.success(
+                request,
+                f'Collection "{collection_title}" deleted. {pieces_count} piece(s) are now standalone.'
+            )
+        else:
+            # Delete collection and all its pieces
+            collection.delete()  # CASCADE will delete pieces
+            messages.success(
+                request,
+                f'Collection "{collection_title}" and all {pieces_count} piece(s) deleted.'
+            )
+
+        return redirect('audioplayer:collection_list')
+
+    context = {
+        'collection': collection,
+        'pieces_count': pieces_count,
+        'title': f'Delete: {collection.title}'
+    }
+    return render(request, 'audioplayer/collection_confirm_delete.html', context)
+
+
+@teacher_required
+def collection_detail(request, pk):
+    """View collection details and its pieces"""
+    collection = get_object_or_404(
+        PieceCollection.objects.prefetch_related('pieces__stems', 'tags'),
+        pk=pk
+    )
+
+    # Check if user owns this collection or if it's public
+    is_owner = collection.created_by == request.user
+
+    pieces = collection.pieces.order_by('order_in_collection', 'title')
+
+    context = {
+        'collection': collection,
+        'pieces': pieces,
+        'is_owner': is_owner,
+        'title': collection.title
+    }
+    return render(request, 'audioplayer/collection_detail.html', context)
+
+
+@teacher_required
+@transaction.atomic
+def collection_add_piece(request, pk):
+    """Add a new piece to a collection (with stems)"""
+    collection = get_object_or_404(PieceCollection, pk=pk, created_by=request.user)
+
+    if request.method == 'POST':
+        form = PieceForm(request.POST, request.FILES)
+        formset = StemFormSet(request.POST, request.FILES)
+
+        if form.is_valid() and formset.is_valid():
+            piece = form.save(commit=False)
+            piece.created_by = request.user
+            piece.collection = collection
+            # Set order to be last in collection
+            max_order = collection.pieces.aggregate(
+                max_order=Max('order_in_collection')
+            )['max_order'] or 0
+            piece.order_in_collection = max_order + 1
+            piece.save()
+            form.save_m2m()
+            formset.instance = piece
+            formset.save()
+            messages.success(request, f'Piece "{piece.title}" added to collection!')
+            return redirect('audioplayer:collection_edit', pk=collection.pk)
+        else:
+            if not form.is_valid():
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field.replace("_", " ").title()}: {error}')
+            if not formset.is_valid():
+                for i, stem_form in enumerate(formset.forms):
+                    if stem_form.errors and stem_form.has_changed():
+                        for field, errors in stem_form.errors.items():
+                            for error in errors:
+                                messages.error(request, f'Stem {i+1} - {field}: {error}')
+    else:
+        form = PieceForm()
+        formset = StemFormSet()
+
+    context = {
+        'form': form,
+        'formset': formset,
+        'collection': collection,
+        'title': f'Add Piece to: {collection.title}',
+        'submit_text': 'Add Piece'
+    }
+    return render(request, 'audioplayer/collection_add_piece.html', context)
+
+
+@teacher_required
+def collection_remove_piece(request, pk, piece_pk):
+    """Remove a piece from a collection (keeps piece as standalone or deletes)"""
+    collection = get_object_or_404(PieceCollection, pk=pk, created_by=request.user)
+    piece = get_object_or_404(Piece, pk=piece_pk, collection=collection)
+
+    if request.method == 'POST':
+        action = request.POST.get('action', 'remove')
+        piece_title = piece.title
+
+        if action == 'delete':
+            piece.delete()
+            messages.success(request, f'Piece "{piece_title}" deleted.')
+        else:
+            # Make standalone
+            piece.collection = None
+            piece.order_in_collection = 0
+            piece.save()
+            messages.success(request, f'Piece "{piece_title}" removed from collection (now standalone).')
+
+        return redirect('audioplayer:collection_edit', pk=collection.pk)
+
+    context = {
+        'collection': collection,
+        'piece': piece,
+        'title': f'Remove: {piece.title}'
+    }
+    return render(request, 'audioplayer/collection_remove_piece.html', context)
+
+
+@teacher_required
+def collection_reorder_pieces(request, pk):
+    """AJAX endpoint to reorder pieces in a collection"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    collection = get_object_or_404(PieceCollection, pk=pk, created_by=request.user)
+
+    import json
+    try:
+        data = json.loads(request.body)
+        piece_ids = data.get('piece_ids', [])
+
+        for index, piece_id in enumerate(piece_ids):
+            Piece.objects.filter(pk=piece_id, collection=collection).update(
+                order_in_collection=index
+            )
+
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)

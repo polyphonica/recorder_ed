@@ -14,6 +14,16 @@ urlpatterns = [
     path('pieces/<int:pk>/edit/', views.piece_edit, name='piece_edit'),
     path('pieces/<int:pk>/delete/', views.piece_delete, name='piece_delete'),
 
+    # Teacher - Collection Management
+    path('collections/', views.collection_list, name='collection_list'),
+    path('collections/create/', views.collection_create, name='collection_create'),
+    path('collections/<int:pk>/', views.collection_detail, name='collection_detail'),
+    path('collections/<int:pk>/edit/', views.collection_edit, name='collection_edit'),
+    path('collections/<int:pk>/delete/', views.collection_delete, name='collection_delete'),
+    path('collections/<int:pk>/add-piece/', views.collection_add_piece, name='collection_add_piece'),
+    path('collections/<int:pk>/remove-piece/<int:piece_pk>/', views.collection_remove_piece, name='collection_remove_piece'),
+    path('collections/<int:pk>/reorder/', views.collection_reorder_pieces, name='collection_reorder_pieces'),
+
     # Teacher - Composer Management
     path('composers/', views.composer_list, name='composer_list'),
     path('composers/create/', views.composer_create, name='composer_create'),

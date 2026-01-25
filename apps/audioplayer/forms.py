@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Piece, Stem, LessonPiece, Composer, Tag
+from .models import Piece, Stem, LessonPiece, Composer, Tag, PieceCollection
 
 
 class PieceForm(forms.ModelForm):
@@ -287,3 +287,173 @@ class LessonPieceForm(forms.ModelForm):
 #     extra=1,
 #     can_delete=True
 # )
+
+
+class PieceCollectionForm(forms.ModelForm):
+    """Form for creating/editing piece collections"""
+
+    # Additional field for creating new tags inline
+    new_tags = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all',
+            'placeholder': 'e.g., Exercises, Grade 2, Syncopation'
+        }),
+        label='New Tags',
+        help_text='Enter tag names separated by commas to create and add them'
+    )
+
+    class Meta:
+        model = PieceCollection
+        fields = [
+            'title', 'description', 'composer', 'grade_level', 'genre',
+            'difficulty', 'tags', 'pdf_score', 'pdf_score_title', 'is_public'
+        ]
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
+                'placeholder': 'e.g., Syncopation Exercises Grade 2'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
+                'rows': 4,
+                'placeholder': 'Description, learning objectives, instructions...'
+            }),
+            'composer': forms.Select(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all bg-white cursor-pointer'
+            }),
+            'grade_level': forms.Select(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white cursor-pointer'
+            }),
+            'genre': forms.Select(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white cursor-pointer'
+            }),
+            'difficulty': forms.Select(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white cursor-pointer'
+            }),
+            'tags': forms.SelectMultiple(attrs={
+                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white',
+                'size': '5'
+            }),
+            'pdf_score': forms.FileInput(attrs={
+                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100',
+                'accept': '.pdf'
+            }),
+            'pdf_score_title': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all',
+                'placeholder': 'e.g., Complete Worksheet, Full Score'
+            }),
+            'is_public': forms.CheckboxInput(attrs={
+                'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
+            }),
+        }
+        labels = {
+            'title': 'Collection Title',
+            'description': 'Description',
+            'composer': 'Composer/Arranger',
+            'grade_level': 'Grade Level',
+            'genre': 'Genre',
+            'difficulty': 'Difficulty',
+            'tags': 'Tags',
+            'pdf_score': 'Full Score PDF',
+            'pdf_score_title': 'PDF Title',
+            'is_public': 'Make publicly visible in library',
+        }
+        help_texts = {
+            'pdf_score': 'Upload a PDF containing the full score/worksheet for all pieces in this collection',
+            'pdf_score_title': 'Descriptive title for the PDF download button',
+            'is_public': 'If checked, collection will be visible to all students in the library',
+        }
+
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+
+        # Store new tags for later
+        self._new_tags_to_add = []
+        new_tags_str = self.cleaned_data.get('new_tags', '')
+        if new_tags_str:
+            tag_names = [name.strip() for name in new_tags_str.split(',') if name.strip()]
+            for tag_name in tag_names:
+                tag, created = Tag.objects.get_or_create(
+                    name__iexact=tag_name,
+                    defaults={'name': tag_name}
+                )
+                if not created:
+                    tag = Tag.objects.filter(name__iexact=tag_name).first()
+                self._new_tags_to_add.append(tag)
+
+        if commit and self._new_tags_to_add:
+            for tag in self._new_tags_to_add:
+                instance.tags.add(tag)
+
+        return instance
+
+    def save_m2m(self):
+        """Override to also save new tags after the instance has been saved"""
+        super().save_m2m()
+        if hasattr(self, '_new_tags_to_add') and self._new_tags_to_add:
+            for tag in self._new_tags_to_add:
+                self.instance.tags.add(tag)
+
+
+class CollectionPieceForm(forms.ModelForm):
+    """Simplified form for adding/editing pieces within a collection"""
+
+    class Meta:
+        model = Piece
+        fields = ['title', 'order_in_collection', 'svg_image', 'description']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
+                'placeholder': 'e.g., Exercise 1'
+            }),
+            'order_in_collection': forms.NumberInput(attrs={
+                'class': 'w-24 px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
+                'min': '0'
+            }),
+            'svg_image': forms.FileInput(attrs={
+                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
+                'rows': 2,
+                'placeholder': 'Optional notes for this piece...'
+            }),
+        }
+        labels = {
+            'title': 'Piece Title',
+            'order_in_collection': 'Order',
+            'svg_image': 'Score Image (Optional)',
+            'description': 'Notes (Optional)',
+        }
+
+
+class BaseCollectionPieceFormSet(forms.BaseInlineFormSet):
+    """Custom formset for pieces in a collection"""
+
+    def clean(self):
+        super().clean()
+        # Could add validation here if needed
+
+    def is_valid(self):
+        if not super().is_valid():
+            for i, form in enumerate(self.forms):
+                if not form.instance.pk and not form.has_changed():
+                    form._errors = {}
+            return not any(form.errors for form in self.forms if form not in self.deleted_forms)
+        return True
+
+
+# Formset for adding/editing pieces within a collection
+CollectionPieceFormSet = inlineformset_factory(
+    PieceCollection,
+    Piece,
+    form=CollectionPieceForm,
+    formset=BaseCollectionPieceFormSet,
+    fk_name='collection',
+    fields=['title', 'order_in_collection', 'svg_image', 'description'],
+    extra=3,
+    can_delete=True,
+    validate_min=False,
+    validate_max=False,
+)

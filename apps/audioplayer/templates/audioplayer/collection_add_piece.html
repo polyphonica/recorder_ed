@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} - {{ block.super }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'audioplayer/css/styles.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-5xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="{% url 'audioplayer:collection_edit' pk=collection.pk %}"
+               class="text-blue-600 hover:text-blue-800 hover:underline mb-4 inline-flex items-center gap-2 text-base font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Back to {{ collection.title }}
+            </a>
+            <h1 class="text-4xl font-bold text-gray-900 mt-4">{{ title }}</h1>
+            <p class="text-lg text-gray-600 mt-2">
+                Add a new piece with audio tracks to this collection
+            </p>
+        </div>
+
+        <!-- Collection Info Banner -->
+        <div class="bg-indigo-50 border-l-4 border-indigo-500 rounded-r-xl p-4 mb-8">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-folder-open text-indigo-600 text-xl"></i>
+                <div>
+                    <p class="font-semibold text-indigo-900">Adding to: {{ collection.title }}</p>
+                    <p class="text-sm text-indigo-700">Currently {{ collection.pieces.count }} piece{{ collection.pieces.count|pluralize }} in this collection</p>
+                </div>
+            </div>
+        </div>
+
+        {% if messages %}
+        <div class="mb-6 space-y-2">
+            {% for message in messages %}
+            <div class="bg-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-50 border-2 border-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-300 rounded-xl p-4">
+                <p class="text-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-900 text-base">{{ message }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Form -->
+        <form method="post" enctype="multipart/form-data" class="space-y-8">
+            {% csrf_token %}
+
+            <!-- Piece Information -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-blue-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Piece Information</h2>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Title -->
+                    <div>
+                        <label for="{{ form.title.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.title.label }} <span class="text-red-600 text-lg">*</span>
+                        </label>
+                        {{ form.title }}
+                        <p class="mt-2 text-sm text-gray-600">e.g., "Exercise 1", "Scale Pattern A"</p>
+                    </div>
+
+                    <!-- Score Image -->
+                    <div>
+                        <label for="{{ form.svg_image.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            Score Image (Optional)
+                        </label>
+                        {{ form.svg_image }}
+                        <p class="mt-2 text-sm text-gray-600">
+                            Individual score image for this piece. Shown when the student plays this exercise.
+                        </p>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label for="{{ form.description.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            Notes (Optional)
+                        </label>
+                        {{ form.description }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audio Stems -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-indigo-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Audio Tracks</h2>
+                </div>
+                <p class="text-base text-gray-700 mb-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                    Add audio tracks for this piece. Students can solo, mute, and adjust volume for each track.
+                </p>
+                <div class="mb-6 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg">
+                    <p class="text-sm text-amber-800">
+                        <strong>File size limits:</strong> Each audio file max 10MB, total upload max 14MB.
+                    </p>
+                </div>
+
+                {{ formset.management_form }}
+
+                <div class="stem-formset space-y-6">
+                    {% for stem_form in formset %}
+                    <div class="stem-form-row border-2 border-gray-200 rounded-xl p-6 bg-gray-50 hover:border-indigo-300 transition-all">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">Track {{ forloop.counter }}</h3>
+
+                        {{ stem_form.id }}
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label class="block text-base font-semibold text-gray-900 mb-3">
+                                    Track Name
+                                </label>
+                                {{ stem_form.instrument_name }}
+                            </div>
+
+                            <div>
+                                <label class="block text-base font-semibold text-gray-900 mb-3">
+                                    Audio File
+                                </label>
+                                {{ stem_form.audio_file }}
+                            </div>
+
+                            <div>
+                                <label class="block text-base font-semibold text-gray-900 mb-3">
+                                    Order
+                                </label>
+                                {{ stem_form.order }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mt-6">
+                    <button type="button" id="add-stem-button" class="btn btn-outline btn-primary">
+                        <i class="fas fa-plus mr-2"></i>
+                        Add Another Track
+                    </button>
+                </div>
+
+                <div class="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-r-lg">
+                    <p class="text-sm text-yellow-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Empty track forms will be ignored. Fill in both name AND audio file for each track you want to add.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button type="submit" class="flex-1 sm:flex-initial bg-blue-600 text-white px-10 py-4 rounded-xl hover:bg-blue-700 font-bold text-lg shadow-lg inline-flex items-center justify-center gap-2">
+                    <i class="fas fa-plus"></i>
+                    {{ submit_text }}
+                </button>
+                <a href="{% url 'audioplayer:collection_edit' pk=collection.pk %}" class="flex-1 sm:flex-initial bg-gray-200 text-gray-800 px-10 py-4 rounded-xl hover:bg-gray-300 font-bold text-lg text-center">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'audioplayer/js/piece_form.js' %}"></script>
+{% endblock %}

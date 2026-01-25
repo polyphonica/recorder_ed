@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="{% url 'audioplayer:collection_list' %}"
+               class="text-blue-600 hover:text-blue-800 hover:underline mb-4 inline-flex items-center gap-2 text-base font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Back to Collections
+            </a>
+            <h1 class="text-4xl font-bold text-gray-900 mt-4">{{ title }}</h1>
+            <p class="text-lg text-gray-600 mt-2">
+                {% if collection %}
+                Update collection details and manage its pieces
+                {% else %}
+                Create a new collection to group related pieces together
+                {% endif %}
+            </p>
+        </div>
+
+        {% if messages %}
+        <div class="mb-6 space-y-2">
+            {% for message in messages %}
+            <div class="bg-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-50 border-2 border-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-300 rounded-xl p-4">
+                <p class="text-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-900 text-base">{{ message }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Collection Form -->
+        <form method="post" enctype="multipart/form-data" class="space-y-8">
+            {% csrf_token %}
+
+            <!-- Basic Information -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-blue-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Collection Details</h2>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Title -->
+                    <div>
+                        <label for="{{ form.title.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.title.label }} <span class="text-red-600">*</span>
+                        </label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600">{{ form.title.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label for="{{ form.description.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600">{{ form.description.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Composer -->
+                    <div>
+                        <label for="{{ form.composer.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.composer.label }}
+                        </label>
+                        {{ form.composer }}
+                        <p class="mt-2 text-sm text-gray-600">Optional - if all pieces are by the same composer</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Classification -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-purple-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Classification</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label for="{{ form.grade_level.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.grade_level.label }}
+                        </label>
+                        {{ form.grade_level }}
+                    </div>
+                    <div>
+                        <label for="{{ form.genre.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.genre.label }}
+                        </label>
+                        {{ form.genre }}
+                    </div>
+                    <div>
+                        <label for="{{ form.difficulty.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.difficulty.label }}
+                        </label>
+                        {{ form.difficulty }}
+                    </div>
+                </div>
+
+                <!-- Tags -->
+                <div class="mt-6">
+                    <label for="{{ form.tags.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                        {{ form.tags.label }}
+                    </label>
+                    {{ form.tags }}
+                    <p class="mt-2 text-sm text-gray-600">Hold Ctrl (Cmd on Mac) to select multiple</p>
+                </div>
+
+                <!-- New Tags -->
+                <div class="mt-6">
+                    <label for="{{ form.new_tags.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                        {{ form.new_tags.label }}
+                    </label>
+                    {{ form.new_tags }}
+                    {% if form.new_tags.help_text %}
+                    <p class="mt-2 text-sm text-gray-600">{{ form.new_tags.help_text }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- PDF Score -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-green-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Full Score PDF</h2>
+                </div>
+
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
+                    <p class="text-sm text-blue-800">
+                        Upload a PDF containing the complete score/worksheet for all pieces in this collection.
+                        Students will see a single download button for the entire collection.
+                    </p>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label for="{{ form.pdf_score_title.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.pdf_score_title.label }}
+                        </label>
+                        {{ form.pdf_score_title }}
+                        <p class="mt-2 text-sm text-gray-600">{{ form.pdf_score_title.help_text }}</p>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.pdf_score.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.pdf_score.label }}
+                        </label>
+                        {{ form.pdf_score }}
+                        {% if collection and collection.pdf_score %}
+                        <p class="mt-2 text-sm text-gray-600">
+                            Current: <a href="{{ collection.pdf_score.url }}" target="_blank" class="text-blue-600 hover:underline font-medium">View PDF</a>
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Visibility -->
+                    <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            {{ form.is_public }}
+                            <span class="flex-1">
+                                <span class="block text-base font-semibold text-gray-900">{{ form.is_public.label }}</span>
+                                <span class="block text-sm text-gray-600 mt-1">{{ form.is_public.help_text }}</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button type="submit" class="flex-1 sm:flex-initial bg-blue-600 text-white px-10 py-4 rounded-xl hover:bg-blue-700 font-bold text-lg shadow-lg inline-flex items-center justify-center gap-2">
+                    <i class="fas fa-save"></i>
+                    {{ submit_text }}
+                </button>
+                <a href="{% url 'audioplayer:collection_list' %}" class="flex-1 sm:flex-initial bg-gray-200 text-gray-800 px-10 py-4 rounded-xl hover:bg-gray-300 font-bold text-lg text-center">
+                    Cancel
+                </a>
+            </div>
+        </form>
+
+        {% if collection %}
+        <!-- Pieces Section (only shown when editing) -->
+        <div class="mt-12">
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-1.5 h-8 bg-indigo-600 rounded-full"></div>
+                        <h2 class="text-2xl font-bold text-gray-900">Pieces in Collection</h2>
+                        <span class="badge badge-primary">{{ pieces.count }}</span>
+                    </div>
+                    <a href="{% url 'audioplayer:collection_add_piece' pk=collection.pk %}" class="btn btn-primary">
+                        <i class="fas fa-plus mr-2"></i>
+                        Add Piece
+                    </a>
+                </div>
+
+                {% if pieces %}
+                <div class="overflow-x-auto">
+                    <table class="table w-full">
+                        <thead>
+                            <tr>
+                                <th class="w-16">Order</th>
+                                <th>Title</th>
+                                <th>Tracks</th>
+                                <th>Score Image</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pieces-sortable">
+                            {% for piece in pieces %}
+                            <tr class="hover" data-piece-id="{{ piece.pk }}">
+                                <td class="font-mono text-base-content/60">{{ piece.order_in_collection }}</td>
+                                <td class="font-medium">{{ piece.title }}</td>
+                                <td>
+                                    <div class="flex flex-wrap gap-1">
+                                        {% for stem in piece.stems.all %}
+                                        <span class="badge badge-outline badge-xs">{{ stem.instrument_name }}</span>
+                                        {% endfor %}
+                                        {% if not piece.stems.all %}
+                                        <span class="text-base-content/40 text-sm">No tracks</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if piece.svg_image %}
+                                    <span class="text-success"><i class="fas fa-check"></i></span>
+                                    {% else %}
+                                    <span class="text-base-content/30">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <a href="{% url 'audioplayer:piece_edit' pk=piece.pk %}" class="btn btn-xs btn-ghost" title="Edit piece">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'audioplayer:collection_remove_piece' pk=collection.pk piece_pk=piece.pk %}" class="btn btn-xs btn-ghost text-error" title="Remove from collection">
+                                            <i class="fas fa-times"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-r-lg">
+                    <p class="text-sm text-yellow-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        To change piece order, edit the "Order" field on each piece. Lower numbers appear first.
+                    </p>
+                </div>
+                {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-music text-4xl text-base-content/20 mb-4"></i>
+                    <p class="text-base-content/60 mb-4">No pieces in this collection yet</p>
+                    <a href="{% url 'audioplayer:collection_add_piece' pk=collection.pk %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus mr-2"></i>
+                        Add First Piece
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
