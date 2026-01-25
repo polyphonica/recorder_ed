@@ -213,7 +213,7 @@ StemFormSet = inlineformset_factory(
     Stem,
     formset=BaseStemFormSet,
     fields=['instrument_name', 'audio_file', 'order'],
-    extra=3,
+    extra=0,  # Don't show empty forms by default - use "Add Another Stem" button
     can_delete=True,
     validate_min=False,
     validate_max=False,

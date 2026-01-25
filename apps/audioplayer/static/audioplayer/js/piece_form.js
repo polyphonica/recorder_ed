@@ -113,24 +113,54 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add Stem Button Functionality
     const addStemButton = document.getElementById('add-stem-button');
     const totalFormsInput = document.getElementById('id_stems-TOTAL_FORMS');
+    const stemTemplate = document.getElementById('stem-form-template');
+    const stemContainer = document.getElementById('stem-formset-container');
 
-    if (addStemButton && totalFormsInput) {
+    if (addStemButton && totalFormsInput && stemContainer) {
         addStemButton.addEventListener('click', function() {
-            const currentForms = document.querySelectorAll('.stem-form-row');
             const totalForms = parseInt(totalFormsInput.value);
+            let newForm;
 
-            // Clone the last form
-            const lastForm = currentForms[currentForms.length - 1];
-            const newForm = lastForm.cloneNode(true);
+            // Use template to create new form
+            if (stemTemplate) {
+                newForm = stemTemplate.content.cloneNode(true).querySelector('.stem-form-row');
+                // Replace __prefix__ with actual index
+                newForm.innerHTML = newForm.innerHTML.replace(/__prefix__/g, totalForms);
+            } else {
+                // Fallback: clone existing form if template not available
+                const currentForms = document.querySelectorAll('.stem-form-row');
+                if (currentForms.length === 0) {
+                    console.error('No stem form template or existing forms to clone');
+                    return;
+                }
+                const lastForm = currentForms[currentForms.length - 1];
+                newForm = lastForm.cloneNode(true);
 
-            // Update form index in all fields
-            const formRegex = new RegExp('stems-' + (totalForms - 1) + '-', 'g');
-            newForm.innerHTML = newForm.innerHTML.replace(formRegex, 'stems-' + totalForms + '-');
+                // Update form index in all fields
+                const formRegex = new RegExp('stems-\\d+-', 'g');
+                newForm.innerHTML = newForm.innerHTML.replace(formRegex, 'stems-' + totalForms + '-');
 
-            // Clear all input values in the new form
-            newForm.querySelectorAll('input[type="text"], input[type="number"], input[type="file"]').forEach(function(input) {
-                input.value = '';
-            });
+                // Clear all input values in the new form
+                newForm.querySelectorAll('input[type="text"], input[type="number"], input[type="file"]').forEach(function(input) {
+                    input.value = '';
+                });
+
+                // Remove any current file display from cloned form
+                newForm.querySelectorAll('.bg-green-50').forEach(function(el) {
+                    el.remove();
+                });
+
+                // Remove delete checkbox section from new forms
+                const deleteSection = newForm.querySelector('.bg-red-50');
+                if (deleteSection) {
+                    deleteSection.remove();
+                }
+
+                // Clear any error messages
+                newForm.querySelectorAll('.text-red-600').forEach(function(error) {
+                    error.remove();
+                });
+            }
 
             // Update the header
             const header = newForm.querySelector('h3');
@@ -138,30 +168,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 header.textContent = 'New Stem ' + (totalForms + 1);
             }
 
-            // Remove any "Current file" links from cloned form
-            const currentFileLabels = newForm.querySelectorAll('.label-text-alt');
-            currentFileLabels.forEach(function(label) {
-                if (label.textContent.includes('Current:')) {
-                    label.parentElement.remove();
-                }
-            });
-
-            // Remove delete checkbox section from new forms (only for existing stems)
-            const deleteSection = newForm.querySelector('.form-control.mt-3');
-            if (deleteSection && deleteSection.querySelector('input[name$="-DELETE"]')) {
-                deleteSection.remove();
-            }
-
-            // Clear any error messages
-            newForm.querySelectorAll('.errorlist').forEach(function(error) {
-                error.remove();
-            });
-
-            // Insert the new form before the last form
-            lastForm.parentNode.insertBefore(newForm, lastForm.nextSibling);
+            // Add the new form to the container
+            stemContainer.appendChild(newForm);
 
             // Increment total forms
             totalFormsInput.value = totalForms + 1;
+
+            // Apply styling to new form
+            newForm.style.backgroundColor = '#f9f9f9';
+            newForm.style.borderLeft = '3px solid rgb(139, 81, 143)';
 
             console.log('Added new stem form. Total forms now:', totalForms + 1);
         });
