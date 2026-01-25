@@ -499,8 +499,11 @@ class PlayAlongLibraryView(TemplateView):
         if view_mode == 'my_pieces' and self.request.user.is_authenticated:
             # Show pieces based on user role
             if is_teacher:
-                # Teachers see only pieces they created
+                # Teachers see pieces and collections they created
                 pieces = pieces.filter(created_by=self.request.user)
+                collections = PieceCollection.objects.filter(
+                    created_by=self.request.user
+                ).prefetch_related('collection_memberships__piece__stems', 'tags')
             else:
                 # Students see pieces and collections assigned to them in lessons
                 from lessons.models import Lesson as PrivateLesson, PrivateLessonPiece, PrivateLessonCollection
