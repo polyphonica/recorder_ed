@@ -154,12 +154,12 @@ class PieceForm(forms.ModelForm):
     def save(self, commit=True):
         instance = super().save(commit=commit)
 
-        # Handle new tags if provided
+        # Store new tags for later - they'll be added in _save_new_tags
+        # which is called after the instance has a pk
+        self._new_tags_to_add = []
         new_tags_str = self.cleaned_data.get('new_tags', '')
         if new_tags_str:
-            # Parse comma-separated tags
             tag_names = [name.strip() for name in new_tags_str.split(',') if name.strip()]
-
             for tag_name in tag_names:
                 # Get or create tag (case-insensitive check)
                 tag, created = Tag.objects.get_or_create(
@@ -169,11 +169,22 @@ class PieceForm(forms.ModelForm):
                 # If tag exists but with different case, use the existing one
                 if not created:
                     tag = Tag.objects.filter(name__iexact=tag_name).first()
+                self._new_tags_to_add.append(tag)
 
-                # Add tag to piece
+        # If commit=True, we can add tags now since instance has pk
+        if commit and self._new_tags_to_add:
+            for tag in self._new_tags_to_add:
                 instance.tags.add(tag)
 
         return instance
+
+    def save_m2m(self):
+        """Override to also save new tags after the instance has been saved"""
+        super().save_m2m()
+        # Add any new tags that were created
+        if hasattr(self, '_new_tags_to_add') and self._new_tags_to_add:
+            for tag in self._new_tags_to_add:
+                self.instance.tags.add(tag)
 
 
 class BaseStemFormSet(forms.BaseInlineFormSet):
