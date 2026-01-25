@@ -398,27 +398,27 @@ class PieceCollectionForm(forms.ModelForm):
         return instance
 
     def _save_pieces(self, collection):
-        """Save the selected pieces to the collection"""
+        """Save the selected pieces to the collection, preserving order from form"""
         selected_pieces = self.cleaned_data.get('pieces', [])
+
+        # Convert QuerySet to list to preserve order from form submission
+        selected_piece_ids = [p.id for p in selected_pieces]
 
         # Get current pieces in collection
         current_piece_ids = set(
             CollectionPiece.objects.filter(collection=collection).values_list('piece_id', flat=True)
         )
-        selected_piece_ids = set(p.id for p in selected_pieces)
 
         # Remove pieces no longer selected
-        to_remove = current_piece_ids - selected_piece_ids
+        to_remove = current_piece_ids - set(selected_piece_ids)
         CollectionPiece.objects.filter(collection=collection, piece_id__in=to_remove).delete()
 
-        # Add newly selected pieces
-        to_add = selected_piece_ids - current_piece_ids
-        for i, piece_id in enumerate(to_add):
-            max_order = CollectionPiece.objects.filter(collection=collection).count()
-            CollectionPiece.objects.create(
+        # Update or add pieces with correct order
+        for order, piece_id in enumerate(selected_piece_ids):
+            CollectionPiece.objects.update_or_create(
                 collection=collection,
                 piece_id=piece_id,
-                order=max_order
+                defaults={'order': order}
             )
 
     def save_m2m(self):
