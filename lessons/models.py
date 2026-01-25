@@ -293,6 +293,47 @@ class PrivateLessonPiece(models.Model):
         return f"{self.lesson} - {self.piece.title}"
 
 
+class PrivateLessonCollection(models.Model):
+    """
+    Through model for associating piece collections with private lessons.
+    Assigning a collection gives the student access to all pieces within it.
+    """
+    lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name='lesson_collections',
+        help_text="The lesson this collection is assigned to"
+    )
+    collection = models.ForeignKey(
+        'audioplayer.PieceCollection',
+        on_delete=models.CASCADE,
+        related_name='private_lesson_assignments',
+        help_text="The piece collection"
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Display order within the lesson"
+    )
+    is_visible = models.BooleanField(
+        default=True,
+        help_text="Whether students can see this collection"
+    )
+    instructions = models.TextField(
+        blank=True,
+        help_text="Lesson-specific instructions for this collection"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'created_at']
+        verbose_name = 'Lesson Collection'
+        verbose_name_plural = 'Lesson Collections'
+        unique_together = ['lesson', 'collection']
+
+    def __str__(self):
+        return f"{self.lesson} - {self.collection.title}"
+
+
 class LessonAssignment(models.Model):
     """Through model for associating homework assignments with lessons"""
     id = models.UUIDField(

@@ -59,10 +59,10 @@ class Tag(models.Model):
         return self.name
 
 
-class Piece(models.Model):
+class PieceCollection(models.Model):
     """
-    A playalong piece with title, optional sheet music, and metadata for library organization.
-    Reusable across multiple lessons.
+    A collection of related pieces (e.g., "Syncopation Exercises", "Scale Patterns").
+    Allows grouping multiple pieces together for easier assignment and organization.
     """
 
     GRADE_CHOICES = [
@@ -93,6 +93,141 @@ class Piece(models.Model):
         ('intermediate', 'Intermediate'),
         ('advanced', 'Advanced'),
     ]
+
+    title = models.CharField(
+        max_length=200,
+        help_text="Collection title (e.g., 'Syncopation Exercises Grade 2')"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Description of the collection, learning objectives, etc."
+    )
+
+    # Full score PDF for download (shared across all pieces in collection)
+    pdf_score = models.FileField(
+        upload_to='audioplayer/collection_pdfs/',
+        null=True,
+        blank=True,
+        validators=SHEET_MUSIC_PDF_VALIDATORS,
+        help_text="Full score PDF containing all exercises (max 5MB)"
+    )
+    pdf_score_title = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Title for the PDF download (e.g., 'Complete Worksheet')"
+    )
+
+    # Metadata
+    composer = models.ForeignKey(
+        Composer,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='collections',
+        help_text="Composer or arranger (if applicable)"
+    )
+    grade_level = models.CharField(
+        max_length=20,
+        choices=GRADE_CHOICES,
+        blank=True,
+        default='N/A',
+        help_text="Associated exam grade level"
+    )
+    genre = models.CharField(
+        max_length=50,
+        choices=GENRE_CHOICES,
+        blank=True,
+        help_text="Musical genre or style"
+    )
+    difficulty = models.CharField(
+        max_length=20,
+        choices=DIFFICULTY_CHOICES,
+        blank=True,
+        help_text="Overall difficulty level"
+    )
+    tags = models.ManyToManyField(
+        Tag,
+        blank=True,
+        related_name='collections',
+        help_text="Tags for categorization"
+    )
+
+    is_public = models.BooleanField(
+        default=True,
+        help_text="If checked, collection appears in library for all students"
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_collections',
+        help_text="Teacher who created this collection"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['title']
+        verbose_name = 'Piece Collection'
+        verbose_name_plural = 'Piece Collections'
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def piece_count(self):
+        return self.pieces.count()
+
+
+class Piece(models.Model):
+    """
+    A playalong piece with title, optional sheet music, and metadata for library organization.
+    Reusable across multiple lessons. Can be standalone or part of a collection.
+    """
+
+    GRADE_CHOICES = [
+        ('N/A', 'N/A'),
+        ('grade_1', 'Grade 1'),
+        ('grade_2', 'Grade 2'),
+        ('grade_3', 'Grade 3'),
+        ('grade_4', 'Grade 4'),
+        ('grade_5', 'Grade 5'),
+        ('grade_6', 'Grade 6'),
+        ('grade_7', 'Grade 7'),
+        ('grade_8', 'Grade 8'),
+    ]
+
+    GENRE_CHOICES = [
+        ('classical', 'Classical'),
+        ('folk', 'Folk/Traditional'),
+        ('pop', 'Popular'),
+        ('jazz', 'Jazz'),
+        ('baroque', 'Baroque'),
+        ('renaissance', 'Renaissance'),
+        ('contemporary', 'Contemporary'),
+        ('other', 'Other'),
+    ]
+
+    DIFFICULTY_CHOICES = [
+        ('beginner', 'Beginner'),
+        ('intermediate', 'Intermediate'),
+        ('advanced', 'Advanced'),
+    ]
+
+    # Collection membership (optional - null means standalone piece)
+    collection = models.ForeignKey(
+        PieceCollection,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pieces',
+        help_text="Collection this piece belongs to (leave empty for standalone pieces)"
+    )
+    order_in_collection = models.PositiveIntegerField(
+        default=0,
+        help_text="Display order within the collection"
+    )
 
     # Basic fields
     title = models.CharField(max_length=200)
@@ -180,12 +315,19 @@ class Piece(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['title']
+        ordering = ['order_in_collection', 'title']
         verbose_name = 'Playalong Piece'
         verbose_name_plural = 'Playalong Pieces'
 
     def __str__(self):
+        if self.collection:
+            return f'{self.title} ({self.collection.title})'
         return self.title
+
+    @property
+    def is_standalone(self):
+        """Returns True if this piece is not part of a collection"""
+        return self.collection is None
 
 
 class Stem(models.Model):
@@ -262,3 +404,41 @@ class LessonPiece(models.Model):
 
     def __str__(self):
         return f'{self.piece.title} in {self.lesson.lesson_title}'
+
+
+class LessonCollection(models.Model):
+    """
+    Through model connecting course lessons to piece collections.
+    Assigning a collection gives students access to all pieces within it.
+    """
+    lesson = models.ForeignKey(
+        'courses.Lesson',
+        on_delete=models.CASCADE,
+        related_name='lesson_collections'
+    )
+    collection = models.ForeignKey(
+        PieceCollection,
+        on_delete=models.CASCADE,
+        related_name='lesson_assignments'
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Order within this specific lesson"
+    )
+    is_visible = models.BooleanField(
+        default=True,
+        help_text="Show/hide this collection in the lesson"
+    )
+    instructions = models.TextField(
+        blank=True,
+        help_text="Custom instructions for this collection in this lesson"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order']
+        verbose_name = 'Lesson Collection Assignment'
+        verbose_name_plural = 'Lesson Collection Assignments'
+
+    def __str__(self):
+        return f'{self.collection.title} in {self.lesson.lesson_title}'

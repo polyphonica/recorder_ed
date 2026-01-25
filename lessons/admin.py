@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Lesson, Document, LessonOrder, LessonAttachedUrl, PrivateLessonPiece
+from .models import Lesson, Document, LessonOrder, LessonAttachedUrl, PrivateLessonPiece, PrivateLessonCollection
 
 
 @admin.register(Lesson)
@@ -72,6 +72,27 @@ class PrivateLessonPieceAdmin(admin.ModelAdmin):
         }),
         ('Settings', {
             'fields': ('is_visible', 'is_optional', 'instructions')
+        }),
+        ('Metadata', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(PrivateLessonCollection)
+class PrivateLessonCollectionAdmin(admin.ModelAdmin):
+    list_display = ('collection', 'lesson', 'order', 'is_visible', 'created_at')
+    list_filter = ('is_visible', 'created_at')
+    search_fields = ('collection__title', 'lesson__subject__subject', 'lesson__student__email')
+    readonly_fields = ('created_at',)
+
+    fieldsets = (
+        ('Collection Assignment', {
+            'fields': ('lesson', 'collection', 'order')
+        }),
+        ('Settings', {
+            'fields': ('is_visible', 'instructions')
         }),
         ('Metadata', {
             'fields': ('created_at',),
