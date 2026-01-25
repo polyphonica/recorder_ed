@@ -1,6 +1,78 @@
 // Enhanced form handling for Piece creation/editing with stem formsets
 // Works with Django inline formsets
 
+// File size limits (in bytes) - must match server limits
+const FILE_SIZE_LIMITS = {
+    audio: 10 * 1024 * 1024,      // 10MB per audio file
+    image: 5 * 1024 * 1024,       // 5MB for sheet music image
+    pdf: 5 * 1024 * 1024,         // 5MB for PDF score
+    totalUpload: 14 * 1024 * 1024 // 14MB total (nginx limit is 15MB)
+};
+
+// Format bytes to human-readable size
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Validate file sizes and return error messages
+function validateFileSizes(form) {
+    const errors = [];
+    let totalSize = 0;
+
+    // Check audio files (stems)
+    const audioInputs = form.querySelectorAll('input[type="file"][name*="audio_file"]');
+    audioInputs.forEach((input, index) => {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            totalSize += file.size;
+            if (file.size > FILE_SIZE_LIMITS.audio) {
+                errors.push(`Audio file "${file.name}" is too large (${formatFileSize(file.size)}). Maximum allowed: ${formatFileSize(FILE_SIZE_LIMITS.audio)}`);
+            }
+        }
+    });
+
+    // Check sheet music image
+    const imageInput = form.querySelector('input[type="file"][name="svg_image"]');
+    if (imageInput && imageInput.files && imageInput.files[0]) {
+        const file = imageInput.files[0];
+        totalSize += file.size;
+        if (file.size > FILE_SIZE_LIMITS.image) {
+            errors.push(`Sheet music image "${file.name}" is too large (${formatFileSize(file.size)}). Maximum allowed: ${formatFileSize(FILE_SIZE_LIMITS.image)}`);
+        }
+    }
+
+    // Check PDF score
+    const pdfInput = form.querySelector('input[type="file"][name="pdf_score"]');
+    if (pdfInput && pdfInput.files && pdfInput.files[0]) {
+        const file = pdfInput.files[0];
+        totalSize += file.size;
+        if (file.size > FILE_SIZE_LIMITS.pdf) {
+            errors.push(`PDF score "${file.name}" is too large (${formatFileSize(file.size)}). Maximum allowed: ${formatFileSize(FILE_SIZE_LIMITS.pdf)}`);
+        }
+    }
+
+    // Check total upload size
+    if (totalSize > FILE_SIZE_LIMITS.totalUpload) {
+        errors.push(`Total upload size (${formatFileSize(totalSize)}) exceeds the maximum allowed (${formatFileSize(FILE_SIZE_LIMITS.totalUpload)}). Please compress your audio files or upload fewer files at once.`);
+    }
+
+    return errors;
+}
+
+// Show error modal/alert with file size errors
+function showFileSizeErrors(errors) {
+    // Create a more user-friendly error display
+    const errorMessage = 'Your files are too large to upload:\n\n' +
+        errors.map(e => '• ' + e).join('\n') +
+        '\n\nPlease compress your audio files (try using a lower bitrate like 128kbps) and try again.';
+
+    alert(errorMessage);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Piece form JavaScript loaded');
 
@@ -167,7 +239,52 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!isValid) {
                 e.preventDefault();
                 alert('Please fill in all required fields');
+                return;
+            }
+
+            // Validate file sizes before submission
+            const fileSizeErrors = validateFileSizes(form);
+            if (fileSizeErrors.length > 0) {
+                e.preventDefault();
+                showFileSizeErrors(fileSizeErrors);
+                return;
             }
         });
     }
+
+    // Real-time file size validation on file input change
+    const allFileInputs = document.querySelectorAll('input[type="file"]');
+    allFileInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            // Remove any existing size warning
+            const existingWarning = this.parentNode.querySelector('.file-size-warning');
+            if (existingWarning) {
+                existingWarning.remove();
+            }
+
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                const isAudio = this.name.includes('audio_file');
+                const isPdf = this.name === 'pdf_score';
+                const limit = isAudio ? FILE_SIZE_LIMITS.audio :
+                             isPdf ? FILE_SIZE_LIMITS.pdf : FILE_SIZE_LIMITS.image;
+
+                if (file.size > limit) {
+                    // Show warning immediately
+                    const warning = document.createElement('p');
+                    warning.className = 'file-size-warning mt-2 text-sm font-medium text-red-600 flex items-center gap-1';
+                    warning.innerHTML = `
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        File too large (${formatFileSize(file.size)}). Max: ${formatFileSize(limit)}
+                    `;
+                    this.parentNode.appendChild(warning);
+                    this.style.borderColor = '#c0392b';
+                } else {
+                    this.style.borderColor = '';
+                }
+            }
+        });
+    });
 });
