@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{% if is_library_player %}{{ title }}{% elif is_private_lesson %}Playalong: {{ lesson.subject.subject }}{% else %}Playalong: {{ lesson.lesson_title }}{% endif %} - {{ block.super }}{% endblock %}
+{% block title %}{% if is_library_player or is_library_collection %}{{ title }}{% elif is_private_lesson %}Playalong: {{ lesson.subject.subject }}{% else %}Playalong: {{ lesson.lesson_title }}{% endif %} - {{ block.super }}{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'audioplayer/css/styles.css' %}">
@@ -18,6 +18,10 @@
             <a href="{% url 'audioplayer:library' %}" class="text-primary hover:underline">Play-Along Library</a>
             <span class="mx-2">›</span>
             <span class="text-base-content/70">{{ piece.title }}</span>
+        {% elif is_library_collection %}
+            <a href="{% url 'audioplayer:library' %}" class="text-primary hover:underline">Play-Along Library</a>
+            <span class="mx-2">›</span>
+            <span class="text-base-content/70">{{ collection.title }}</span>
         {% elif is_private_lesson %}
             <a href="{% url 'private_teaching:calendar' %}" class="text-primary hover:underline">My Calendar</a>
             <span class="mx-2">›</span>
@@ -47,6 +51,14 @@
             <h1 class="text-3xl font-bold mb-4">{{ piece.title }}</h1>
             {% if piece.composer %}
             <p class="text-lg text-base-content/70 mb-4">by {{ piece.composer.name }}</p>
+            {% endif %}
+        {% elif is_library_collection %}
+            <h1 class="text-3xl font-bold mb-4">
+                <i class="fas fa-folder-open text-secondary mr-2"></i>
+                {{ collection.title }}
+            </h1>
+            {% if collection.description %}
+            <p class="text-lg text-base-content/70 mb-4">{{ collection.description }}</p>
             {% endif %}
         {% elif is_private_lesson %}
             <h1 class="text-3xl font-bold mb-4">Playalong: {{ lesson.subject.subject }}</h1>
@@ -86,6 +98,9 @@
     {% if is_library_player %}
     <input type="hidden" id="piece-id" value="{{ piece.id }}">
     <input type="hidden" id="is-library-player" value="true">
+    {% elif is_library_collection %}
+    <input type="hidden" id="collection-id" value="{{ collection.id }}">
+    <input type="hidden" id="is-library-collection" value="true">
     {% else %}
     <input type="hidden" id="lesson-id" value="{{ lesson.id }}">
     <input type="hidden" id="is-private-lesson" value="{% if is_private_lesson %}true{% else %}false{% endif %}">
@@ -103,7 +118,7 @@
 
     <!-- Back Button -->
     <div class="mt-8 mb-8 text-center">
-        {% if is_library_player %}
+        {% if is_library_player or is_library_collection %}
             <a href="{% url 'audioplayer:library' %}"
                class="btn btn-primary">
                 <i class="fas fa-arrow-left mr-2"></i>

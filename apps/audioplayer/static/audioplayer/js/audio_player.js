@@ -675,12 +675,17 @@ window.onload = async () => {
     const isPrivateLesson = document.getElementById('is-private-lesson')?.value === 'true';
     const pieceId = document.getElementById('piece-id')?.value;
     const isLibraryPlayer = document.getElementById('is-library-player')?.value === 'true';
+    const collectionId = document.getElementById('collection-id')?.value;
+    const isLibraryCollection = document.getElementById('is-library-collection')?.value === 'true';
 
     // Determine which mode we're in and construct the appropriate URL
     let url;
     if (isLibraryPlayer && pieceId) {
         console.log("Fetching piece from library:", pieceId);
         url = `/audioplayer/library/piece/${pieceId}/pieces-json/`;
+    } else if (isLibraryCollection && collectionId) {
+        console.log("Fetching collection from library:", collectionId);
+        url = `/audioplayer/library/collection/${collectionId}/pieces-json/`;
     } else if (lessonId) {
         console.log("Fetching pieces for lesson:", lessonId, "Private lesson:", isPrivateLesson);
         // Use different URL pattern for private lessons vs course lessons
@@ -688,7 +693,7 @@ window.onload = async () => {
             ? `/audioplayer/private-lesson/${lessonId}/pieces-json/`
             : `/audioplayer/lesson/${lessonId}/pieces-json/`;
     } else {
-        console.error('No lesson ID or piece ID found');
+        console.error('No lesson ID, piece ID, or collection ID found');
         return;
     }
 

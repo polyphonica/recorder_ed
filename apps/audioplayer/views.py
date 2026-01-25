@@ -493,14 +493,17 @@ class PlayAlongLibraryView(TemplateView):
         # Base queryset - will be filtered based on mode
         pieces = Piece.objects.select_related('composer').prefetch_related('tags', 'stems')
 
+        # Collections for students (will be populated below)
+        collections = PieceCollection.objects.none()
+
         if view_mode == 'my_pieces' and self.request.user.is_authenticated:
             # Show pieces based on user role
             if is_teacher:
                 # Teachers see only pieces they created
                 pieces = pieces.filter(created_by=self.request.user)
             else:
-                # Students see ONLY pieces assigned to them in lessons
-                from lessons.models import Lesson as PrivateLesson, PrivateLessonPiece
+                # Students see pieces and collections assigned to them in lessons
+                from lessons.models import Lesson as PrivateLesson, PrivateLessonPiece, PrivateLessonCollection
                 student_lessons = PrivateLesson.objects.filter(
                     student=self.request.user,
                     approved_status='Accepted',
@@ -509,12 +512,23 @@ class PlayAlongLibraryView(TemplateView):
                     is_deleted=False
                 ).values_list('id', flat=True)
 
+                # Get individual pieces assigned to lessons
                 piece_ids_from_lessons = PrivateLessonPiece.objects.filter(
                     lesson_id__in=student_lessons
                 ).values_list('piece_id', flat=True).distinct()
 
                 # Students see only their assigned pieces
                 pieces = pieces.filter(id__in=piece_ids_from_lessons)
+
+                # Get collections assigned to lessons
+                collection_ids = PrivateLessonCollection.objects.filter(
+                    lesson_id__in=student_lessons,
+                    is_visible=True
+                ).values_list('collection_id', flat=True).distinct()
+
+                collections = PieceCollection.objects.filter(
+                    id__in=collection_ids
+                ).prefetch_related('collection_memberships__piece__stems', 'tags')
 
         elif view_mode == 'browse_all':
             # Show all public pieces (both teachers and students)
@@ -560,6 +574,7 @@ class PlayAlongLibraryView(TemplateView):
 
         # Add to context
         context['pieces'] = pieces
+        context['collections'] = collections
         context['composers'] = composers
         context['tags'] = tags
         context['grade_choices'] = Piece.GRADE_CHOICES
@@ -623,6 +638,73 @@ def library_piece_json(request, piece_id):
     }
 
     return JsonResponse({'pieces_data': [piece_data]})
+
+
+def library_collection_player(request, collection_id):
+    """
+    Audio player page for a collection from the library.
+    Displays all pieces in the collection with their audio players.
+    """
+    collection = get_object_or_404(
+        PieceCollection.objects.prefetch_related('collection_memberships__piece__stems'),
+        pk=collection_id
+    )
+
+    piece_count = collection.collection_memberships.count()
+
+    context = {
+        'collection': collection,
+        'piece_count': piece_count,
+        'title': f'Play: {collection.title}',
+        'is_library_collection': True  # Flag to help template know this is collection mode
+    }
+    return render(request, 'audioplayer/audio_player.html', context)
+
+
+def library_collection_json(request, collection_id):
+    """
+    Returns JSON data for a collection from the library.
+    Used by the audio player JavaScript.
+    """
+    collection = get_object_or_404(
+        PieceCollection.objects.prefetch_related('collection_memberships__piece__stems'),
+        pk=collection_id
+    )
+
+    collection_pieces = []
+
+    # Get pieces through the M2M relationship, ordered by their order in the collection
+    for cp in collection.collection_memberships.all().order_by('order'):
+        piece = cp.piece
+        stems_data = [
+            {
+                'audio_file': stem.audio_file.url if stem.audio_file else None,
+                'instrument_name': stem.instrument_name
+            }
+            for stem in piece.stems.all().order_by('order')
+        ]
+
+        piece_data = {
+            'title': piece.title,
+            'stems': stems_data,
+            'svg_image': piece.svg_image.url if piece.svg_image else None,
+            'order': cp.order,
+            'description': piece.description if piece.description else None,
+        }
+        collection_pieces.append(piece_data)
+
+    collection_data = {
+        'title': collection.title,
+        'pdf_score': collection.pdf_score.url if collection.pdf_score else None,
+        'pdf_score_title': collection.pdf_score_title if collection.pdf_score_title else None,
+        'order': 0,
+        'pieces': collection_pieces,
+    }
+
+    return JsonResponse({
+        'pieces_data': [],
+        'collections_data': [collection_data]
+    })
 
 
 # ===== COMPOSER MANAGEMENT VIEWS =====

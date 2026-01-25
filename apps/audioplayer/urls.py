@@ -39,4 +39,8 @@ urlpatterns = [
     # Student - Playback Interface (Library Pieces)
     path('library/piece/<int:piece_id>/player/', views.library_piece_player, name='library_piece_player'),
     path('library/piece/<int:piece_id>/pieces-json/', views.library_piece_json, name='library_piece_json'),
+
+    # Student - Playback Interface (Library Collections)
+    path('library/collection/<int:collection_id>/player/', views.library_collection_player, name='library_collection_player'),
+    path('library/collection/<int:collection_id>/pieces-json/', views.library_collection_json, name='library_collection_json'),
 ]
