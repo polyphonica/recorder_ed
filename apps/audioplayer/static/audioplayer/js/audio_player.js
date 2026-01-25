@@ -7,7 +7,7 @@ let eventEmitters = [];
 let durations = []; // Store duration for each piece
 
 /**
- * Initialize all audio players for pieces in a lesson
+ * Initialize all audio players for pieces in a lesson (legacy function for backwards compatibility)
  */
 async function initPlayers(piecesData) {
     console.log("initPlayers called, piecesData:", piecesData);
@@ -28,220 +28,7 @@ async function initPlayers(piecesData) {
             playersContainer.appendChild(hr);
         }
 
-        // Create player container
-        let playerContainer = document.createElement('div');
-        playerContainer.classList.add('player-container');
-
-        // Piece title with optional badge
-        let pieceTitle = document.createElement('h2');
-        pieceTitle.classList.add('piece-title');
-        pieceTitle.textContent = piece.title;
-        if (piece.is_optional) {
-            let optionalBadge = document.createElement('span');
-            optionalBadge.classList.add('optional-badge');
-            optionalBadge.textContent = 'OPTIONAL';
-            pieceTitle.appendChild(optionalBadge);
-        }
-        playerContainer.appendChild(pieceTitle);
-
-        // Piece description if provided
-        if (piece.description) {
-            let description = document.createElement('div');
-            description.classList.add('piece-description');
-            description.textContent = piece.description;
-            playerContainer.appendChild(description);
-        }
-
-        // Custom instructions if provided
-        if (piece.instructions) {
-            let instructions = document.createElement('div');
-            instructions.classList.add('piece-instructions');
-            instructions.textContent = piece.instructions;
-            playerContainer.appendChild(instructions);
-        }
-
-        // Controls section
-        let controls = document.createElement('div');
-        controls.classList.add('controls');
-        controls.id = `controls${pieceIndex + 1}`;
-
-        // Play/Stop button
-        let playButton = document.createElement('button');
-        playButton.id = `playButton${pieceIndex + 1}`;
-        playButton.classList.add('button');
-        playButton.textContent = 'Play';
-        playButton.onclick = () => togglePlay(pieceIndex + 1, playButton);
-
-        // Pause/Resume button
-        let pauseButton = document.createElement('button');
-        pauseButton.id = `pauseButton${pieceIndex + 1}`;
-        pauseButton.classList.add('button');
-        pauseButton.textContent = 'Pause';
-        pauseButton.disabled = true;
-        pauseButton.onclick = () => togglePause(pieceIndex + 1, pauseButton);
-
-        // Seek control with time displays
-        let seekContainer = document.createElement('div');
-        seekContainer.classList.add('seek-container');
-        seekContainer.style.cssText = 'display: flex; align-items: center; gap: 10px; margin: 10px 0; padding: 10px; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px;';
-
-        let currentTimeDisplay = document.createElement('span');
-        currentTimeDisplay.id = `currentTime${pieceIndex + 1}`;
-        currentTimeDisplay.textContent = '0:00';
-        currentTimeDisplay.style.cssText = 'min-width: 45px; text-align: right; font-family: monospace; font-size: 13px;';
-
-        let seekSlider = document.createElement('input');
-        seekSlider.type = 'range';
-        seekSlider.id = `seekSlider${pieceIndex + 1}`;
-        seekSlider.min = '0';
-        seekSlider.max = '1000';
-        seekSlider.value = '0';
-        seekSlider.classList.add('seek-slider');
-        seekSlider.style.cssText = 'flex: 1;';
-
-        // Seek on change (when user releases the slider)
-        seekSlider.onchange = (e) => {
-            const instance = pieceIndex + 1;
-            const position = (e.target.value / 1000) * getDuration(instance); // position in seconds
-            if (eventEmitters[instance]) {
-                // Seek by emitting a 'select' event with start/end at the same position
-                eventEmitters[instance].emit('select', position, position);
-            }
-        };
-
-        // Update slider position while dragging (visual feedback only)
-        seekSlider.oninput = (e) => {
-            const instance = pieceIndex + 1;
-            const position = (e.target.value / 1000) * getDuration(instance);
-            const currentTimeEl = document.getElementById(`currentTime${instance}`);
-            if (currentTimeEl) {
-                currentTimeEl.textContent = formatTime(position);
-            }
-        };
-
-        let totalTimeDisplay = document.createElement('span');
-        totalTimeDisplay.id = `totalTime${pieceIndex + 1}`;
-        totalTimeDisplay.textContent = '0:00';
-        totalTimeDisplay.style.cssText = 'min-width: 45px; font-family: monospace; font-size: 13px;';
-
-        seekContainer.appendChild(currentTimeDisplay);
-        seekContainer.appendChild(seekSlider);
-        seekContainer.appendChild(totalTimeDisplay);
-
-        // Master volume control
-        let masterVolumeSlider = document.createElement('input');
-        masterVolumeSlider.type = 'range';
-        masterVolumeSlider.min = '0';
-        masterVolumeSlider.max = '100';
-        masterVolumeSlider.value = '100';
-        masterVolumeSlider.classList.add('master-volume-slider');
-        masterVolumeSlider.oninput = () => updateMasterVolume(pieceIndex + 1, masterVolumeSlider);
-
-        let masterVolumeLabel = document.createElement('div');
-        masterVolumeLabel.textContent = 'Master Volume';
-        masterVolumeLabel.classList.add('master-volume-label');
-
-        controls.appendChild(playButton);
-        controls.appendChild(pauseButton);
-        controls.appendChild(seekContainer);
-        controls.appendChild(masterVolumeLabel);
-        controls.appendChild(masterVolumeSlider);
-
-        // Waveform container (hidden - we don't show waveforms but playlist needs a container)
-        let playlistContainer = document.createElement('div');
-        playlistContainer.id = `playlist${pieceIndex + 1}`;
-        playlistContainer.style.display = 'none'; // Hide the waveform display
-
-        // Tracks container for our custom UI
-        let tracksContainer = document.createElement('div');
-        tracksContainer.id = `tracks${pieceIndex + 1}`;
-
-        // Create controls for each stem/track
-        piece.stems.forEach((stem, trackIndex) => {
-            let trackColumn = document.createElement('div');
-            trackColumn.classList.add('track-column');
-
-            let trackTitle = document.createElement('div');
-            trackTitle.classList.add('track-title');
-            trackTitle.textContent = stem.instrument_name;
-
-            let muteButton = document.createElement('button');
-            muteButton.id = `muteButton${pieceIndex + 1}-${trackIndex}`;
-            muteButton.classList.add('button');
-            muteButton.textContent = 'Mute';
-            muteButton.onclick = () => toggleMute(pieceIndex + 1, muteButton, trackIndex);
-
-            let soloButton = document.createElement('button');
-            soloButton.id = `soloButton${pieceIndex + 1}-${trackIndex}`;
-            soloButton.classList.add('button');
-            soloButton.textContent = 'Solo';
-            soloButton.onclick = () => toggleSolo(pieceIndex + 1, soloButton, trackIndex);
-
-            let volumeSlider = document.createElement('input');
-            volumeSlider.type = 'range';
-            volumeSlider.min = '0';
-            volumeSlider.max = '100';
-            volumeSlider.value = '100';
-            volumeSlider.classList.add('volume-slider');
-            volumeSlider.oninput = () => updateVolume(pieceIndex + 1, trackIndex, volumeSlider);
-
-            let volumeLabel = document.createElement('div');
-            volumeLabel.textContent = 'Volume';
-            volumeLabel.classList.add('volume-label');
-
-            trackColumn.appendChild(trackTitle);
-            trackColumn.appendChild(muteButton);
-            trackColumn.appendChild(soloButton);
-            trackColumn.appendChild(volumeLabel);
-            trackColumn.appendChild(volumeSlider);
-
-            tracksContainer.appendChild(trackColumn);
-        });
-
-        playerContainer.appendChild(controls);
-        playerContainer.appendChild(playlistContainer);
-        playerContainer.appendChild(tracksContainer);
-
-        // Add sheet music image if available
-        if (piece.svg_image) {
-            let svgImage = document.createElement('img');
-            svgImage.src = piece.svg_image;
-            svgImage.classList.add('svg-image');
-            svgImage.alt = `Sheet music for ${piece.title}`;
-            playerContainer.appendChild(svgImage);
-        }
-
-        // Add PDF download button if available
-        if (piece.pdf_score) {
-            let pdfContainer = document.createElement('div');
-            pdfContainer.classList.add('pdf-download-container');
-            pdfContainer.style.textAlign = 'center';
-            pdfContainer.style.marginTop = '20px';
-
-            let pdfLink = document.createElement('a');
-            pdfLink.href = piece.pdf_score;
-            pdfLink.target = '_blank';
-            pdfLink.download = '';
-            pdfLink.classList.add('btn', 'btn-primary', 'btn-outline');
-
-            let pdfIcon = document.createElement('i');
-            pdfIcon.classList.add('fas', 'fa-file-pdf');
-            pdfIcon.style.marginRight = '8px';
-
-            let pdfText = document.createTextNode(
-                piece.pdf_score_title || 'Download Printable Score (PDF)'
-            );
-
-            pdfLink.appendChild(pdfIcon);
-            pdfLink.appendChild(pdfText);
-            pdfContainer.appendChild(pdfLink);
-            playerContainer.appendChild(pdfContainer);
-        }
-
-        playersContainer.appendChild(playerContainer);
-
-        // Initialize waveform-playlist for this piece
-        await initPlaylist(pieceIndex + 1, piece.stems);
+        await createPiecePlayer(piece, pieceIndex, playersContainer, false);
     }
 }
 
@@ -565,6 +352,322 @@ function formatTime(seconds) {
 }
 
 /**
+ * Initialize players for a collection of pieces
+ * Renders a collection header followed by all pieces in the collection
+ */
+async function initCollectionPlayers(collectionsData, startingPieceIndex) {
+    let playersContainer = document.getElementById('players-container');
+    let currentPieceIndex = startingPieceIndex;
+
+    for (let collectionIndex = 0; collectionIndex < collectionsData.length; collectionIndex++) {
+        const collection = collectionsData[collectionIndex];
+
+        // Add horizontal divider before collection (if not first item)
+        if (currentPieceIndex > 0) {
+            let hr = document.createElement('hr');
+            hr.classList.add('piece-divider');
+            hr.style.borderTop = '3px solid #4a5568';
+            hr.style.margin = '2rem 0';
+            playersContainer.appendChild(hr);
+        }
+
+        // Create collection header
+        let collectionHeader = document.createElement('div');
+        collectionHeader.classList.add('collection-header');
+        collectionHeader.style.cssText = 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;';
+
+        let collectionTitle = document.createElement('h2');
+        collectionTitle.style.cssText = 'font-size: 1.5rem; font-weight: bold; margin: 0 0 0.5rem 0;';
+        collectionTitle.innerHTML = '<i class="fas fa-folder-open" style="margin-right: 10px;"></i>' + collection.title;
+        collectionHeader.appendChild(collectionTitle);
+
+        let pieceCount = document.createElement('p');
+        pieceCount.style.cssText = 'margin: 0; opacity: 0.9; font-size: 0.9rem;';
+        pieceCount.textContent = `${collection.pieces.length} piece${collection.pieces.length !== 1 ? 's' : ''} in this collection`;
+        collectionHeader.appendChild(pieceCount);
+
+        // Collection instructions if provided
+        if (collection.instructions) {
+            let instructions = document.createElement('div');
+            instructions.style.cssText = 'margin-top: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.15); border-radius: 8px; font-size: 0.9rem;';
+            instructions.textContent = collection.instructions;
+            collectionHeader.appendChild(instructions);
+        }
+
+        // Collection PDF download if available
+        if (collection.pdf_score) {
+            let pdfContainer = document.createElement('div');
+            pdfContainer.style.cssText = 'margin-top: 1rem;';
+
+            let pdfLink = document.createElement('a');
+            pdfLink.href = collection.pdf_score;
+            pdfLink.target = '_blank';
+            pdfLink.download = '';
+            pdfLink.style.cssText = 'display: inline-flex; align-items: center; background: white; color: #667eea; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-weight: 500;';
+
+            let pdfIcon = document.createElement('i');
+            pdfIcon.classList.add('fas', 'fa-file-pdf');
+            pdfIcon.style.marginRight = '8px';
+
+            let pdfText = document.createTextNode(
+                collection.pdf_score_title || 'Download Full Collection Score (PDF)'
+            );
+
+            pdfLink.appendChild(pdfIcon);
+            pdfLink.appendChild(pdfText);
+            pdfContainer.appendChild(pdfLink);
+            collectionHeader.appendChild(pdfContainer);
+        }
+
+        playersContainer.appendChild(collectionHeader);
+
+        // Render each piece in the collection
+        for (let i = 0; i < collection.pieces.length; i++) {
+            const piece = collection.pieces[i];
+
+            // Add divider between pieces within collection
+            if (i > 0) {
+                let hr = document.createElement('hr');
+                hr.classList.add('piece-divider');
+                hr.style.borderStyle = 'dashed';
+                playersContainer.appendChild(hr);
+            }
+
+            // Create player for this piece (reusing existing logic)
+            await createPiecePlayer(piece, currentPieceIndex, playersContainer, true);
+            currentPieceIndex++;
+        }
+    }
+
+    return currentPieceIndex;
+}
+
+/**
+ * Create a player for a single piece
+ * Extracted from initPlayers for reuse with collections
+ */
+async function createPiecePlayer(piece, pieceIndex, container, isInCollection = false) {
+    // Create player container
+    let playerContainer = document.createElement('div');
+    playerContainer.classList.add('player-container');
+    if (isInCollection) {
+        playerContainer.style.marginLeft = '1rem';
+        playerContainer.style.borderLeft = '3px solid #667eea';
+        playerContainer.style.paddingLeft = '1rem';
+    }
+
+    // Piece title with optional badge
+    let pieceTitle = document.createElement('h2');
+    pieceTitle.classList.add('piece-title');
+    pieceTitle.textContent = piece.title;
+    if (piece.is_optional) {
+        let optionalBadge = document.createElement('span');
+        optionalBadge.classList.add('optional-badge');
+        optionalBadge.textContent = 'OPTIONAL';
+        pieceTitle.appendChild(optionalBadge);
+    }
+    playerContainer.appendChild(pieceTitle);
+
+    // Piece description if provided
+    if (piece.description) {
+        let description = document.createElement('div');
+        description.classList.add('piece-description');
+        description.textContent = piece.description;
+        playerContainer.appendChild(description);
+    }
+
+    // Custom instructions if provided
+    if (piece.instructions) {
+        let instructions = document.createElement('div');
+        instructions.classList.add('piece-instructions');
+        instructions.textContent = piece.instructions;
+        playerContainer.appendChild(instructions);
+    }
+
+    // Controls section
+    let controls = document.createElement('div');
+    controls.classList.add('controls');
+    controls.id = `controls${pieceIndex + 1}`;
+
+    // Play/Stop button
+    let playButton = document.createElement('button');
+    playButton.id = `playButton${pieceIndex + 1}`;
+    playButton.classList.add('button');
+    playButton.textContent = 'Play';
+    playButton.onclick = () => togglePlay(pieceIndex + 1, playButton);
+
+    // Pause/Resume button
+    let pauseButton = document.createElement('button');
+    pauseButton.id = `pauseButton${pieceIndex + 1}`;
+    pauseButton.classList.add('button');
+    pauseButton.textContent = 'Pause';
+    pauseButton.disabled = true;
+    pauseButton.onclick = () => togglePause(pieceIndex + 1, pauseButton);
+
+    // Seek control with time displays
+    let seekContainer = document.createElement('div');
+    seekContainer.classList.add('seek-container');
+    seekContainer.style.cssText = 'display: flex; align-items: center; gap: 10px; margin: 10px 0; padding: 10px; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px;';
+
+    let currentTimeDisplay = document.createElement('span');
+    currentTimeDisplay.id = `currentTime${pieceIndex + 1}`;
+    currentTimeDisplay.textContent = '0:00';
+    currentTimeDisplay.style.cssText = 'min-width: 45px; text-align: right; font-family: monospace; font-size: 13px;';
+
+    let seekSlider = document.createElement('input');
+    seekSlider.type = 'range';
+    seekSlider.id = `seekSlider${pieceIndex + 1}`;
+    seekSlider.min = '0';
+    seekSlider.max = '1000';
+    seekSlider.value = '0';
+    seekSlider.classList.add('seek-slider');
+    seekSlider.style.cssText = 'flex: 1;';
+
+    // Seek on change (when user releases the slider)
+    seekSlider.onchange = (e) => {
+        const instance = pieceIndex + 1;
+        const position = (e.target.value / 1000) * getDuration(instance);
+        if (eventEmitters[instance]) {
+            eventEmitters[instance].emit('select', position, position);
+        }
+    };
+
+    // Update slider position while dragging (visual feedback only)
+    seekSlider.oninput = (e) => {
+        const instance = pieceIndex + 1;
+        const position = (e.target.value / 1000) * getDuration(instance);
+        const currentTimeEl = document.getElementById(`currentTime${instance}`);
+        if (currentTimeEl) {
+            currentTimeEl.textContent = formatTime(position);
+        }
+    };
+
+    let totalTimeDisplay = document.createElement('span');
+    totalTimeDisplay.id = `totalTime${pieceIndex + 1}`;
+    totalTimeDisplay.textContent = '0:00';
+    totalTimeDisplay.style.cssText = 'min-width: 45px; font-family: monospace; font-size: 13px;';
+
+    seekContainer.appendChild(currentTimeDisplay);
+    seekContainer.appendChild(seekSlider);
+    seekContainer.appendChild(totalTimeDisplay);
+
+    // Master volume control
+    let masterVolumeSlider = document.createElement('input');
+    masterVolumeSlider.type = 'range';
+    masterVolumeSlider.min = '0';
+    masterVolumeSlider.max = '100';
+    masterVolumeSlider.value = '100';
+    masterVolumeSlider.classList.add('master-volume-slider');
+    masterVolumeSlider.oninput = () => updateMasterVolume(pieceIndex + 1, masterVolumeSlider);
+
+    let masterVolumeLabel = document.createElement('div');
+    masterVolumeLabel.textContent = 'Master Volume';
+    masterVolumeLabel.classList.add('master-volume-label');
+
+    controls.appendChild(playButton);
+    controls.appendChild(pauseButton);
+    controls.appendChild(seekContainer);
+    controls.appendChild(masterVolumeLabel);
+    controls.appendChild(masterVolumeSlider);
+
+    // Waveform container (hidden - we don't show waveforms but playlist needs a container)
+    let playlistContainer = document.createElement('div');
+    playlistContainer.id = `playlist${pieceIndex + 1}`;
+    playlistContainer.style.display = 'none';
+
+    // Tracks container for our custom UI
+    let tracksContainer = document.createElement('div');
+    tracksContainer.id = `tracks${pieceIndex + 1}`;
+
+    // Create controls for each stem/track
+    piece.stems.forEach((stem, trackIndex) => {
+        let trackColumn = document.createElement('div');
+        trackColumn.classList.add('track-column');
+
+        let trackTitle = document.createElement('div');
+        trackTitle.classList.add('track-title');
+        trackTitle.textContent = stem.instrument_name;
+
+        let muteButton = document.createElement('button');
+        muteButton.id = `muteButton${pieceIndex + 1}-${trackIndex}`;
+        muteButton.classList.add('button');
+        muteButton.textContent = 'Mute';
+        muteButton.onclick = () => toggleMute(pieceIndex + 1, muteButton, trackIndex);
+
+        let soloButton = document.createElement('button');
+        soloButton.id = `soloButton${pieceIndex + 1}-${trackIndex}`;
+        soloButton.classList.add('button');
+        soloButton.textContent = 'Solo';
+        soloButton.onclick = () => toggleSolo(pieceIndex + 1, soloButton, trackIndex);
+
+        let volumeSlider = document.createElement('input');
+        volumeSlider.type = 'range';
+        volumeSlider.min = '0';
+        volumeSlider.max = '100';
+        volumeSlider.value = '100';
+        volumeSlider.classList.add('volume-slider');
+        volumeSlider.oninput = () => updateVolume(pieceIndex + 1, trackIndex, volumeSlider);
+
+        let volumeLabel = document.createElement('div');
+        volumeLabel.textContent = 'Volume';
+        volumeLabel.classList.add('volume-label');
+
+        trackColumn.appendChild(trackTitle);
+        trackColumn.appendChild(muteButton);
+        trackColumn.appendChild(soloButton);
+        trackColumn.appendChild(volumeLabel);
+        trackColumn.appendChild(volumeSlider);
+
+        tracksContainer.appendChild(trackColumn);
+    });
+
+    playerContainer.appendChild(controls);
+    playerContainer.appendChild(playlistContainer);
+    playerContainer.appendChild(tracksContainer);
+
+    // Add sheet music image if available
+    if (piece.svg_image) {
+        let svgImage = document.createElement('img');
+        svgImage.src = piece.svg_image;
+        svgImage.classList.add('svg-image');
+        svgImage.alt = `Sheet music for ${piece.title}`;
+        playerContainer.appendChild(svgImage);
+    }
+
+    // Add PDF download button if available (for standalone pieces, not in collections)
+    if (piece.pdf_score && !isInCollection) {
+        let pdfContainer = document.createElement('div');
+        pdfContainer.classList.add('pdf-download-container');
+        pdfContainer.style.textAlign = 'center';
+        pdfContainer.style.marginTop = '20px';
+
+        let pdfLink = document.createElement('a');
+        pdfLink.href = piece.pdf_score;
+        pdfLink.target = '_blank';
+        pdfLink.download = '';
+        pdfLink.classList.add('btn', 'btn-primary', 'btn-outline');
+
+        let pdfIcon = document.createElement('i');
+        pdfIcon.classList.add('fas', 'fa-file-pdf');
+        pdfIcon.style.marginRight = '8px';
+
+        let pdfText = document.createTextNode(
+            piece.pdf_score_title || 'Download Printable Score (PDF)'
+        );
+
+        pdfLink.appendChild(pdfIcon);
+        pdfLink.appendChild(pdfText);
+        pdfContainer.appendChild(pdfLink);
+        playerContainer.appendChild(pdfContainer);
+    }
+
+    container.appendChild(playerContainer);
+
+    // Initialize waveform-playlist for this piece
+    await initPlaylist(pieceIndex + 1, piece.stems);
+}
+
+/**
  * Load and initialize on page load
  */
 window.onload = async () => {
@@ -599,10 +702,44 @@ window.onload = async () => {
         console.log("Data:", data);
 
         // Handle both lesson data format and library piece format
-        const piecesData = data.pieces_data || data.pieces;
+        const piecesData = data.pieces_data || data.pieces || [];
+        const collectionsData = data.collections_data || [];
 
-        if (piecesData && piecesData.length > 0) {
-            await initPlayers(piecesData);
+        const hasContent = (piecesData && piecesData.length > 0) || (collectionsData && collectionsData.length > 0);
+
+        if (hasContent) {
+            let playersContainer = document.getElementById('players-container');
+            playersContainer.innerHTML = '';
+
+            let currentPieceIndex = 0;
+
+            // First render individual pieces
+            if (piecesData && piecesData.length > 0) {
+                // Sort pieces by order
+                piecesData.sort((a, b) => a.order - b.order);
+
+                for (let i = 0; i < piecesData.length; i++) {
+                    const piece = piecesData[i];
+
+                    // Add divider between pieces
+                    if (i > 0) {
+                        let hr = document.createElement('hr');
+                        hr.classList.add('piece-divider');
+                        playersContainer.appendChild(hr);
+                    }
+
+                    await createPiecePlayer(piece, currentPieceIndex, playersContainer, false);
+                    currentPieceIndex++;
+                }
+            }
+
+            // Then render collections
+            if (collectionsData && collectionsData.length > 0) {
+                // Sort collections by order
+                collectionsData.sort((a, b) => a.order - b.order);
+
+                currentPieceIndex = await initCollectionPlayers(collectionsData, currentPieceIndex);
+            }
         } else {
             document.getElementById('players-container').innerHTML =
                 '<p style="text-align: center; color: #666; padding: 40px;">No playalong pieces available.</p>';
