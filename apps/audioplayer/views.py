@@ -500,7 +500,8 @@ class PlayAlongLibraryView(TemplateView):
             # Show pieces based on user role
             if is_teacher:
                 # Teachers see pieces and collections they created
-                pieces = pieces.filter(created_by=self.request.user)
+                # Filter out hidden pieces - those are only visible in the management view (/audioplayer/pieces/)
+                pieces = pieces.filter(created_by=self.request.user, show_in_library=True)
                 collections = PieceCollection.objects.filter(
                     created_by=self.request.user
                 ).prefetch_related('collection_memberships__piece__stems', 'tags')
