@@ -535,14 +535,15 @@ class PlayAlongLibraryView(TemplateView):
 
         elif view_mode == 'browse_all':
             # Show all public pieces and collections (both teachers and students)
-            pieces = pieces.filter(is_public=True)
+            # Respect show_in_library setting - pieces marked as hidden shouldn't appear
+            pieces = pieces.filter(is_public=True, show_in_library=True)
             collections = PieceCollection.objects.filter(
                 is_public=True
             ).prefetch_related('collection_memberships__piece__stems', 'tags')
         else:
             # Default to empty if not authenticated
             if not self.request.user.is_authenticated:
-                pieces = pieces.filter(is_public=True)
+                pieces = pieces.filter(is_public=True, show_in_library=True)
 
         # Apply filters
         if search_query:
