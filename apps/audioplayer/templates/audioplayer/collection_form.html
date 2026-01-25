@@ -36,7 +36,7 @@
         {% endif %}
 
         <!-- Collection Form -->
-        <form method="post" enctype="multipart/form-data" class="space-y-8">
+        <form method="post" enctype="multipart/form-data" class="space-y-8" id="collection-form">
             {% csrf_token %}
 
             <!-- Basic Information -->
@@ -177,65 +177,47 @@
                 </div>
             </div>
 
-            <!-- Piece Selection -->
+            <!-- Pieces in Collection -->
             <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="w-1.5 h-8 bg-indigo-600 rounded-full"></div>
-                    <h2 class="text-2xl font-bold text-gray-900">Select Pieces</h2>
-                </div>
-
-                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
-                    <p class="text-sm text-blue-800">
-                        Select existing pieces from your library to include in this collection.
-                        Pieces can belong to multiple collections.
-                        <a href="{% url 'audioplayer:piece_create' %}" target="_blank" class="underline font-medium">Create new pieces</a> first if needed.
-                    </p>
-                </div>
-
-                {% if form.pieces.field.queryset.count > 0 %}
-                <div class="max-h-96 overflow-y-auto border-2 border-gray-200 rounded-lg p-4">
-                    <div class="space-y-2">
-                        {% for piece in form.pieces.field.queryset %}
-                        <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors border border-transparent hover:border-gray-200">
-                            <input type="checkbox" name="pieces" value="{{ piece.pk }}"
-                                   class="checkbox checkbox-primary piece-checkbox"
-                                   {% if piece in form.pieces.initial %}checked{% endif %}>
-                            <div class="flex-1">
-                                <span class="font-medium text-gray-900">{{ piece.title }}</span>
-                                <div class="flex flex-wrap gap-1 mt-1">
-                                    {% for stem in piece.stems.all %}
-                                    <span class="badge badge-outline badge-xs">{{ stem.instrument_name }}</span>
-                                    {% endfor %}
-                                    {% if piece.composer %}
-                                    <span class="badge badge-ghost badge-xs">{{ piece.composer.name }}</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {% if piece.svg_image %}
-                            <span class="tooltip" data-tip="Has score image">
-                                <i class="fas fa-image text-success text-sm"></i>
-                            </span>
-                            {% endif %}
-                        </label>
-                        {% endfor %}
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-1.5 h-8 bg-indigo-600 rounded-full"></div>
+                        <h2 class="text-2xl font-bold text-gray-900">Pieces in Collection</h2>
                     </div>
+                    {% if form.pieces.field.queryset.count > 0 %}
+                    <button type="button" onclick="openPiecePicker()" class="btn btn-primary">
+                        <i class="fas fa-plus mr-2"></i>
+                        Add Pieces
+                    </button>
+                    {% endif %}
                 </div>
 
-                <div class="mt-4 flex items-center gap-4 text-sm text-gray-600">
-                    <span id="pieces-selected-count"></span>
-                    <button type="button" onclick="toggleAllPieces(true)" class="text-blue-600 hover:underline">Select All</button>
-                    <button type="button" onclick="toggleAllPieces(false)" class="text-blue-600 hover:underline">Deselect All</button>
+                <!-- Hidden inputs for selected pieces -->
+                <div id="selected-pieces-inputs"></div>
+
+                <!-- Selected Pieces List -->
+                <div id="selected-pieces-list">
+                    {% if form.pieces.field.queryset.count == 0 %}
+                    <div class="text-center py-12">
+                        <i class="fas fa-music text-4xl text-base-content/20 mb-4"></i>
+                        <p class="text-base-content/60 mb-4">No pieces in your library yet</p>
+                        <a href="{% url 'audioplayer:piece_create' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus mr-2"></i>
+                            Create Your First Piece
+                        </a>
+                    </div>
+                    {% else %}
+                    <div id="empty-state" class="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg" style="display: none;">
+                        <i class="fas fa-layer-group text-3xl text-gray-400 mb-3"></i>
+                        <p class="text-gray-500">No pieces added yet</p>
+                        <button type="button" onclick="openPiecePicker()" class="btn btn-sm btn-outline btn-primary mt-3">
+                            <i class="fas fa-plus mr-1"></i>
+                            Add Pieces
+                        </button>
+                    </div>
+                    <ul id="pieces-list" class="space-y-2"></ul>
+                    {% endif %}
                 </div>
-                {% else %}
-                <div class="text-center py-12">
-                    <i class="fas fa-music text-4xl text-base-content/20 mb-4"></i>
-                    <p class="text-base-content/60 mb-4">No pieces in your library yet</p>
-                    <a href="{% url 'audioplayer:piece_create' %}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-plus mr-2"></i>
-                        Create Your First Piece
-                    </a>
-                </div>
-                {% endif %}
             </div>
 
             <!-- Submit -->
@@ -252,28 +234,220 @@
     </div>
 </div>
 
+<!-- Piece Picker Modal -->
+<dialog id="piece-picker-modal" class="modal">
+    <div class="modal-box max-w-2xl">
+        <h3 class="font-bold text-xl mb-4">
+            <i class="fas fa-music mr-2 text-indigo-600"></i>
+            Select Pieces
+        </h3>
+
+        <!-- Search -->
+        <div class="mb-4">
+            <input type="text" id="piece-search" placeholder="Search pieces..."
+                   class="input input-bordered w-full"
+                   onkeyup="filterPieces()">
+        </div>
+
+        <!-- Available Pieces -->
+        <div class="max-h-96 overflow-y-auto border rounded-lg">
+            <ul id="available-pieces-list" class="menu p-2">
+                {% for piece in form.pieces.field.queryset %}
+                <li data-piece-id="{{ piece.pk }}"
+                    data-piece-title="{{ piece.title }}"
+                    data-piece-composer="{% if piece.composer %}{{ piece.composer.name }}{% endif %}"
+                    data-piece-stems="{% for stem in piece.stems.all %}{{ stem.instrument_name }}{% if not forloop.last %}, {% endif %}{% endfor %}"
+                    data-has-image="{% if piece.svg_image %}1{% else %}0{% endif %}"
+                    class="available-piece">
+                    <a onclick="togglePieceSelection({{ piece.pk }})" class="flex items-center gap-3">
+                        <span class="piece-check text-indigo-600" style="display: none;">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                        <span class="piece-uncheck text-gray-400">
+                            <i class="far fa-circle"></i>
+                        </span>
+                        <div class="flex-1">
+                            <span class="font-medium">{{ piece.title }}</span>
+                            <div class="text-xs text-gray-500">
+                                {% if piece.composer %}{{ piece.composer.name }} &bull; {% endif %}
+                                {{ piece.stems.count }} track{{ piece.stems.count|pluralize }}
+                                {% if piece.svg_image %}&bull; <i class="fas fa-image text-success"></i>{% endif %}
+                            </div>
+                        </div>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="modal-action">
+            <button type="button" class="btn" onclick="closePiecePicker()">Done</button>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
 <script>
-function toggleAllPieces(checked) {
-    document.querySelectorAll('.piece-checkbox').forEach(cb => {
-        cb.checked = checked;
-    });
-    updateSelectedCount();
-}
+// Store selected pieces with their data
+let selectedPieces = [];
 
-function updateSelectedCount() {
-    const count = document.querySelectorAll('.piece-checkbox:checked').length;
-    const countEl = document.getElementById('pieces-selected-count');
-    if (countEl) {
-        countEl.textContent = count + ' piece' + (count !== 1 ? 's' : '') + ' selected';
-    }
-}
-
-// Update count on page load and when checkboxes change
+// Initialize with existing pieces
 document.addEventListener('DOMContentLoaded', function() {
-    updateSelectedCount();
-    document.querySelectorAll('.piece-checkbox').forEach(cb => {
-        cb.addEventListener('change', updateSelectedCount);
+    {% for piece in form.pieces.initial %}
+    selectedPieces.push({
+        id: {{ piece.pk }},
+        title: "{{ piece.title|escapejs }}",
+        composer: "{% if piece.composer %}{{ piece.composer.name|escapejs }}{% endif %}",
+        stems: "{% for stem in piece.stems.all %}{{ stem.instrument_name|escapejs }}{% if not forloop.last %}, {% endif %}{% endfor %}",
+        hasImage: {% if piece.svg_image %}true{% else %}false{% endif %}
     });
+    {% endfor %}
+
+    renderSelectedPieces();
+    updateAvailablePiecesUI();
 });
+
+function openPiecePicker() {
+    document.getElementById('piece-picker-modal').showModal();
+    document.getElementById('piece-search').focus();
+}
+
+function closePiecePicker() {
+    document.getElementById('piece-picker-modal').close();
+}
+
+function filterPieces() {
+    const searchTerm = document.getElementById('piece-search').value.toLowerCase();
+    document.querySelectorAll('.available-piece').forEach(li => {
+        const title = li.dataset.pieceTitle.toLowerCase();
+        const composer = li.dataset.pieceComposer.toLowerCase();
+        if (title.includes(searchTerm) || composer.includes(searchTerm)) {
+            li.style.display = '';
+        } else {
+            li.style.display = 'none';
+        }
+    });
+}
+
+function togglePieceSelection(pieceId) {
+    const index = selectedPieces.findIndex(p => p.id === pieceId);
+
+    if (index > -1) {
+        // Remove from selection
+        selectedPieces.splice(index, 1);
+    } else {
+        // Add to selection
+        const li = document.querySelector(`[data-piece-id="${pieceId}"]`);
+        selectedPieces.push({
+            id: pieceId,
+            title: li.dataset.pieceTitle,
+            composer: li.dataset.pieceComposer,
+            stems: li.dataset.pieceStems,
+            hasImage: li.dataset.hasImage === '1'
+        });
+    }
+
+    renderSelectedPieces();
+    updateAvailablePiecesUI();
+}
+
+function updateAvailablePiecesUI() {
+    document.querySelectorAll('.available-piece').forEach(li => {
+        const pieceId = parseInt(li.dataset.pieceId);
+        const isSelected = selectedPieces.some(p => p.id === pieceId);
+
+        li.querySelector('.piece-check').style.display = isSelected ? 'inline' : 'none';
+        li.querySelector('.piece-uncheck').style.display = isSelected ? 'none' : 'inline';
+
+        if (isSelected) {
+            li.classList.add('bg-indigo-50');
+        } else {
+            li.classList.remove('bg-indigo-50');
+        }
+    });
+}
+
+function removePiece(pieceId) {
+    selectedPieces = selectedPieces.filter(p => p.id !== pieceId);
+    renderSelectedPieces();
+    updateAvailablePiecesUI();
+}
+
+function movePiece(pieceId, direction) {
+    const index = selectedPieces.findIndex(p => p.id === pieceId);
+    if (index === -1) return;
+
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= selectedPieces.length) return;
+
+    // Swap
+    [selectedPieces[index], selectedPieces[newIndex]] = [selectedPieces[newIndex], selectedPieces[index]];
+    renderSelectedPieces();
+}
+
+function renderSelectedPieces() {
+    const list = document.getElementById('pieces-list');
+    const inputsContainer = document.getElementById('selected-pieces-inputs');
+    const emptyState = document.getElementById('empty-state');
+
+    if (!list) return;
+
+    // Clear current content
+    list.innerHTML = '';
+    inputsContainer.innerHTML = '';
+
+    // Show/hide empty state
+    if (emptyState) {
+        emptyState.style.display = selectedPieces.length === 0 ? 'block' : 'none';
+    }
+
+    // Render each selected piece
+    selectedPieces.forEach((piece, index) => {
+        // Add hidden input
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'pieces';
+        input.value = piece.id;
+        inputsContainer.appendChild(input);
+
+        // Add list item
+        const li = document.createElement('li');
+        li.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 group';
+        li.innerHTML = `
+            <span class="font-bold text-indigo-600 w-6">${index + 1}.</span>
+            <div class="flex-1 min-w-0">
+                <span class="font-medium text-gray-900">${escapeHtml(piece.title)}</span>
+                <div class="text-xs text-gray-500 truncate">
+                    ${piece.composer ? escapeHtml(piece.composer) + ' &bull; ' : ''}
+                    ${piece.stems || 'No tracks'}
+                    ${piece.hasImage ? ' &bull; <i class="fas fa-image text-success"></i>' : ''}
+                </div>
+            </div>
+            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button type="button" onclick="movePiece(${piece.id}, 'up')"
+                        class="btn btn-xs btn-ghost" ${index === 0 ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-up"></i>
+                </button>
+                <button type="button" onclick="movePiece(${piece.id}, 'down')"
+                        class="btn btn-xs btn-ghost" ${index === selectedPieces.length - 1 ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <button type="button" onclick="removePiece(${piece.id})"
+                        class="btn btn-xs btn-ghost text-error">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        list.appendChild(li);
+    });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 </script>
 {% endblock %}
