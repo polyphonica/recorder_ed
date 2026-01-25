@@ -83,9 +83,9 @@ class PieceCollectionMembershipInline(admin.TabularInline):
 
 @admin.register(Piece)
 class PieceAdmin(admin.ModelAdmin):
-    list_display = ['title', 'composer', 'created_by', 'grade_level', 'genre', 'difficulty', 'is_public', 'stem_count', 'collection_count', 'lesson_count', 'created_at']
+    list_display = ['title', 'composer', 'created_by', 'grade_level', 'genre', 'difficulty', 'is_public', 'show_in_library', 'stem_count', 'collection_count', 'lesson_count', 'created_at']
     search_fields = ['title', 'composer__name', 'description', 'created_by__username', 'created_by__email']
-    list_filter = ['created_by', 'grade_level', 'genre', 'difficulty', 'is_public', 'tags', 'composer', 'created_at']
+    list_filter = ['created_by', 'grade_level', 'genre', 'difficulty', 'is_public', 'show_in_library', 'tags', 'composer', 'created_at']
     filter_horizontal = ['tags']
     inlines = [StemInline, PieceCollectionMembershipInline]
 
@@ -100,7 +100,8 @@ class PieceAdmin(admin.ModelAdmin):
             'fields': ('description',)
         }),
         ('Visibility & Owner', {
-            'fields': ('is_public', 'created_by')
+            'fields': ('is_public', 'show_in_library', 'created_by'),
+            'description': 'is_public controls overall visibility. show_in_library controls whether the piece appears individually in the library (uncheck for pieces only accessed via collections).'
         }),
     )
 

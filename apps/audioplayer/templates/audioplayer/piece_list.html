@@ -114,11 +114,19 @@
 
         <!-- Pieces -->
         {% for piece in pieces %}
-        <div class="card shadow-md border-l-4 border-primary bg-gradient-to-br from-primary/5 to-base-100 hover:shadow-lg transition-shadow">
+        <div class="card shadow-md border-l-4 border-primary bg-gradient-to-br from-primary/5 to-base-100 hover:shadow-lg transition-shadow{% if not piece.show_in_library %} opacity-75{% endif %}">
             <div class="card-body p-5">
                 <div class="flex items-start justify-between">
                     <h2 class="card-title text-lg">{{ piece.title }}</h2>
-                    <span class="badge badge-primary badge-sm">Piece</span>
+                    <div class="flex gap-1">
+                        {% if not piece.show_in_library %}
+                        <span class="badge badge-ghost badge-sm" title="Hidden from library - only accessible via collections">
+                            <i class="fas fa-eye-slash mr-1"></i>
+                            Hidden
+                        </span>
+                        {% endif %}
+                        <span class="badge badge-primary badge-sm">Piece</span>
+                    </div>
                 </div>
 
                 <!-- Piece Info -->

@@ -55,7 +55,7 @@ class PieceForm(forms.ModelForm):
         model = Piece
         fields = [
             'title', 'composer', 'grade_level', 'genre', 'difficulty',
-            'tags', 'description', 'svg_image', 'pdf_score', 'pdf_score_title', 'is_public'
+            'tags', 'description', 'svg_image', 'pdf_score', 'pdf_score_title', 'is_public', 'show_in_library'
         ]
         widgets = {
             'title': forms.TextInput(attrs={
@@ -97,6 +97,9 @@ class PieceForm(forms.ModelForm):
             'is_public': forms.CheckboxInput(attrs={
                 'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
             }),
+            'show_in_library': forms.CheckboxInput(attrs={
+                'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
+            }),
         }
         labels = {
             'title': 'Piece Title',
@@ -110,6 +113,7 @@ class PieceForm(forms.ModelForm):
             'pdf_score': 'Printable PDF Score',
             'pdf_score_title': 'PDF Title (Optional)',
             'is_public': 'Make publicly visible in library',
+            'show_in_library': 'Show as individual piece in library',
         }
         help_texts = {
             'svg_image': 'Upload an image to display below the player for on-screen practice',
@@ -119,6 +123,7 @@ class PieceForm(forms.ModelForm):
             'grade_level': 'Associated exam grade (if applicable)',
             'is_public': 'If checked, piece will be visible to all students in the library',
             'tags': 'Additional categorization (e.g., Christmas, Duet, etc.)',
+            'show_in_library': 'Uncheck for pieces only accessed through collections (e.g., exercises in a collection)',
         }
 
     def clean(self):

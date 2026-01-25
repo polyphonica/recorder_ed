@@ -319,6 +319,11 @@ class Piece(models.Model):
         help_text="If checked, piece appears in library for all students to browse"
     )
 
+    show_in_library = models.BooleanField(
+        default=True,
+        help_text="If unchecked, piece won't appear individually in library (useful for pieces only accessed via collections)"
+    )
+
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

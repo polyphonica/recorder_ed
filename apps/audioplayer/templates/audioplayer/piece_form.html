@@ -359,20 +359,37 @@
                         {% endif %}
                     </div>
 
-                    <!-- Visibility -->
-                    <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
-                        <label class="flex items-start gap-3 cursor-pointer">
-                            {{ form.is_public }}
-                            <span class="flex-1">
-                                <span class="block text-base font-semibold text-gray-900">{{ form.is_public.label }}</span>
-                                {% if form.is_public.help_text %}
-                                <span class="block text-sm text-gray-600 mt-1">{{ form.is_public.help_text }}</span>
-                                {% endif %}
-                            </span>
-                        </label>
-                        {% if form.is_public.errors %}
-                        <p class="mt-2 text-sm font-medium text-red-600">{{ form.is_public.errors.0 }}</p>
-                        {% endif %}
+                    <!-- Visibility Options -->
+                    <div class="space-y-4">
+                        <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                {{ form.is_public }}
+                                <span class="flex-1">
+                                    <span class="block text-base font-semibold text-gray-900">{{ form.is_public.label }}</span>
+                                    {% if form.is_public.help_text %}
+                                    <span class="block text-sm text-gray-600 mt-1">{{ form.is_public.help_text }}</span>
+                                    {% endif %}
+                                </span>
+                            </label>
+                            {% if form.is_public.errors %}
+                            <p class="mt-2 text-sm font-medium text-red-600">{{ form.is_public.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                {{ form.show_in_library }}
+                                <span class="flex-1">
+                                    <span class="block text-base font-semibold text-gray-900">{{ form.show_in_library.label }}</span>
+                                    {% if form.show_in_library.help_text %}
+                                    <span class="block text-sm text-gray-600 mt-1">{{ form.show_in_library.help_text }}</span>
+                                    {% endif %}
+                                </span>
+                            </label>
+                            {% if form.show_in_library.errors %}
+                            <p class="mt-2 text-sm font-medium text-red-600">{{ form.show_in_library.errors.0 }}</p>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
