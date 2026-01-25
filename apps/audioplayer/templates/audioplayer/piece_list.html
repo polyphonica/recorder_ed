@@ -1,24 +1,24 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Playalong Piece Library - {{ block.super }}{% endblock %}
+{% block title %}Playalong Library - {{ block.super }}{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Header -->
     <div class="flex justify-between items-center mb-8">
         <div>
-            <h1 class="text-3xl font-bold">Playalong Piece Library</h1>
-            <p class="text-base-content/70 mt-2">Manage your reusable playalong pieces with multi-track audio</p>
+            <h1 class="text-3xl font-bold">Playalong Library</h1>
+            <p class="text-base-content/70 mt-2">Manage your pieces and collections</p>
         </div>
         <div class="flex gap-3">
-            <a href="{% url 'audioplayer:collection_list' %}" class="btn btn-ghost">
-                <i class="fas fa-folder-open mr-2"></i>
-                Collections
-            </a>
             <a href="{% url 'audioplayer:piece_create' %}" class="btn btn-primary">
                 <i class="fas fa-plus mr-2"></i>
-                Create New Piece
+                Create Piece
+            </a>
+            <a href="{% url 'audioplayer:collection_create' %}" class="btn btn-secondary">
+                <i class="fas fa-folder-plus mr-2"></i>
+                Create Collection
             </a>
         </div>
     </div>
@@ -33,63 +33,166 @@
     </div>
     {% endif %}
 
-    {% if pieces %}
-    <!-- Pieces Grid -->
+    <!-- Filter Tabs -->
+    <div class="tabs tabs-boxed mb-6 bg-base-200 p-1">
+        <a href="?filter=all" class="tab {% if view_filter == 'all' %}tab-active{% endif %}">
+            All
+        </a>
+        <a href="?filter=pieces" class="tab {% if view_filter == 'pieces' %}tab-active{% endif %}">
+            <i class="fas fa-music mr-2"></i>
+            Pieces Only
+        </a>
+        <a href="?filter=collections" class="tab {% if view_filter == 'collections' %}tab-active{% endif %}">
+            <i class="fas fa-folder-open mr-2"></i>
+            Collections Only
+        </a>
+    </div>
+
+    {% if collections or pieces %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for piece in pieces %}
-        <div class="card bg-base-100 shadow-xl piece-card">
+
+        <!-- Collections -->
+        {% for collection in collections %}
+        <div class="card bg-base-100 shadow-xl border-l-4 border-secondary">
             <div class="card-body">
-                <h2 class="card-title">{{ piece.title }}</h2>
-
-                {% if piece.collection %}
-                <div class="mb-2">
-                    <a href="{% url 'audioplayer:collection_edit' pk=piece.collection.pk %}" class="badge badge-primary badge-outline gap-1 hover:badge-primary">
-                        <i class="fas fa-folder-open text-xs"></i>
-                        {{ piece.collection.title }}
-                    </a>
+                <div class="flex items-start justify-between">
+                    <h2 class="card-title text-lg">
+                        <i class="fas fa-folder-open text-secondary mr-2"></i>
+                        {{ collection.title }}
+                    </h2>
+                    <span class="badge badge-secondary badge-sm">Collection</span>
                 </div>
-                {% endif %}
 
-                <!-- Piece Info -->
-                <div class="text-sm text-base-content/70 space-y-1">
+                <!-- Collection Info -->
+                <div class="text-sm text-base-content/70 space-y-1 mt-2">
                     <p>
                         <i class="fas fa-music mr-2"></i>
-                        <strong>{{ piece.stems.count }}</strong> stem{{ piece.stems.count|pluralize }}
+                        <strong>{{ collection.piece_count }}</strong> piece{{ collection.piece_count|pluralize }}
                     </p>
-                    {% if piece.svg_image %}
+                    {% if collection.grade_level and collection.grade_level != 'N/A' %}
                     <p>
-                        <i class="fas fa-image mr-2 text-success"></i>
-                        Sheet music image included
+                        <i class="fas fa-graduation-cap mr-2"></i>
+                        {{ collection.get_grade_level_display }}
                     </p>
                     {% endif %}
+                    {% if collection.difficulty %}
                     <p>
-                        <i class="fas fa-book-open mr-2"></i>
-                        Used in <strong>{{ piece.lesson_assignments.count }}</strong> lesson{{ piece.lesson_assignments.count|pluralize }}
+                        <i class="fas fa-signal mr-2"></i>
+                        {{ collection.get_difficulty_display }}
                     </p>
+                    {% endif %}
+                    {% if collection.pdf_score %}
+                    <p>
+                        <i class="fas fa-file-pdf mr-2 text-error"></i>
+                        PDF score included
+                    </p>
+                    {% endif %}
                 </div>
 
-                <!-- Stems List -->
-                {% if piece.stems.all %}
-                <div class="mt-4">
-                    <p class="text-xs font-semibold uppercase text-base-content/50 mb-2">Tracks:</p>
-                    <div class="flex flex-wrap gap-2">
-                        {% for stem in piece.stems.all %}
-                        <span class="badge badge-outline badge-sm">{{ stem.instrument_name }}</span>
+                {% if collection.description %}
+                <p class="text-sm text-base-content/60 mt-3 line-clamp-2">
+                    {{ collection.description|truncatewords:15 }}
+                </p>
+                {% endif %}
+
+                <!-- Pieces Preview -->
+                {% if collection.piece_count > 0 %}
+                <div class="mt-3 pt-3 border-t border-base-200">
+                    <div class="flex flex-wrap gap-1">
+                        {% for cp in collection.collection_memberships.all|slice:":3" %}
+                        <span class="badge badge-outline badge-xs">{{ cp.piece.title|truncatechars:20 }}</span>
                         {% endfor %}
+                        {% if collection.piece_count > 3 %}
+                        <span class="badge badge-ghost badge-xs">+{{ collection.piece_count|add:"-3" }} more</span>
+                        {% endif %}
                     </div>
                 </div>
                 {% endif %}
 
                 <!-- Actions -->
                 <div class="card-actions justify-end mt-4 pt-4 border-t">
-                    <a href="{% url 'audioplayer:library_piece_player' piece_id=piece.id %}" class="btn btn-sm btn-ghost" title="Test as student sees it">
+                    <a href="{% url 'audioplayer:collection_detail' pk=collection.id %}" class="btn btn-sm btn-ghost" title="View details">
                         <i class="fas fa-eye"></i>
                     </a>
-                    <a href="{% url 'audioplayer:piece_detail' pk=piece.id %}" class="btn btn-sm btn-ghost" title="View details">
-                        <i class="fas fa-info-circle"></i>
+                    <a href="{% url 'audioplayer:collection_edit' pk=collection.id %}" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-edit mr-1"></i>
+                        Edit
+                    </a>
+                    <a href="{% url 'audioplayer:collection_delete' pk=collection.id %}" class="btn btn-sm btn-error btn-outline">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Pieces -->
+        {% for piece in pieces %}
+        <div class="card bg-base-100 shadow-xl border-l-4 border-primary">
+            <div class="card-body">
+                <div class="flex items-start justify-between">
+                    <h2 class="card-title text-lg">{{ piece.title }}</h2>
+                    <span class="badge badge-primary badge-sm">Piece</span>
+                </div>
+
+                <!-- Collection badges -->
+                {% if piece.collection_memberships.exists %}
+                <div class="flex flex-wrap gap-1 mt-1">
+                    {% for cm in piece.collection_memberships.all|slice:":2" %}
+                    <a href="{% url 'audioplayer:collection_edit' pk=cm.collection.pk %}"
+                       class="badge badge-secondary badge-outline badge-xs gap-1 hover:badge-secondary">
+                        <i class="fas fa-folder text-xs"></i>
+                        {{ cm.collection.title|truncatechars:15 }}
+                    </a>
+                    {% endfor %}
+                    {% if piece.collection_memberships.count > 2 %}
+                    <span class="badge badge-ghost badge-xs">+{{ piece.collection_memberships.count|add:"-2" }}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Piece Info -->
+                <div class="text-sm text-base-content/70 space-y-1 mt-2">
+                    <p>
+                        <i class="fas fa-layer-group mr-2"></i>
+                        <strong>{{ piece.stems.count }}</strong> track{{ piece.stems.count|pluralize }}
+                    </p>
+                    {% if piece.svg_image %}
+                    <p>
+                        <i class="fas fa-image mr-2 text-success"></i>
+                        Sheet music included
+                    </p>
+                    {% endif %}
+                    {% if piece.composer %}
+                    <p>
+                        <i class="fas fa-user mr-2"></i>
+                        {{ piece.composer.name }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <!-- Stems List -->
+                {% if piece.stems.all %}
+                <div class="mt-3 pt-3 border-t border-base-200">
+                    <div class="flex flex-wrap gap-1">
+                        {% for stem in piece.stems.all|slice:":4" %}
+                        <span class="badge badge-outline badge-xs">{{ stem.instrument_name }}</span>
+                        {% endfor %}
+                        {% if piece.stems.count > 4 %}
+                        <span class="badge badge-ghost badge-xs">+{{ piece.stems.count|add:"-4" }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Actions -->
+                <div class="card-actions justify-end mt-4 pt-4 border-t">
+                    <a href="{% url 'audioplayer:library_piece_player' piece_id=piece.id %}" class="btn btn-sm btn-ghost" title="Preview">
+                        <i class="fas fa-play"></i>
                     </a>
                     <a href="{% url 'audioplayer:piece_edit' pk=piece.id %}" class="btn btn-sm btn-primary">
-                        <i class="fas fa-edit"></i>
+                        <i class="fas fa-edit mr-1"></i>
+                        Edit
                     </a>
                     <a href="{% url 'audioplayer:piece_delete' pk=piece.id %}" class="btn btn-sm btn-error btn-outline">
                         <i class="fas fa-trash"></i>
@@ -105,12 +208,20 @@
         <div class="mb-6">
             <i class="fas fa-music text-6xl text-base-content/20"></i>
         </div>
-        <h2 class="text-2xl font-bold mb-4">No Playalong Pieces Yet</h2>
-        <p class="text-base-content/70 mb-8">Create your first playalong piece to get started!</p>
-        <a href="{% url 'audioplayer:piece_create' %}" class="btn btn-primary">
-            <i class="fas fa-plus mr-2"></i>
-            Create Your First Piece
-        </a>
+        <h2 class="text-2xl font-bold mb-4">Your Library is Empty</h2>
+        <p class="text-base-content/70 mb-8 max-w-md mx-auto">
+            Create pieces with multi-track audio, or group them into collections for easier assignment.
+        </p>
+        <div class="flex justify-center gap-4">
+            <a href="{% url 'audioplayer:piece_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus mr-2"></i>
+                Create Your First Piece
+            </a>
+            <a href="{% url 'audioplayer:collection_create' %}" class="btn btn-secondary btn-outline">
+                <i class="fas fa-folder-plus mr-2"></i>
+                Create a Collection
+            </a>
+        </div>
     </div>
     {% endif %}
 </div>

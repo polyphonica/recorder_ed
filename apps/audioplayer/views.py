@@ -29,14 +29,23 @@ def teacher_required(view_func):
 
 @teacher_required
 def piece_list(request):
-    """List all pieces created by the logged-in teacher"""
+    """List all pieces and collections created by the logged-in teacher"""
+    # Get filter from query params
+    view_filter = request.GET.get('filter', 'all')  # 'all', 'pieces', 'collections'
+
     pieces = Piece.objects.filter(
         created_by=request.user
-    ).prefetch_related('stems', 'lesson_assignments__lesson')
+    ).prefetch_related('stems', 'lesson_assignments__lesson', 'collection_memberships__collection')
+
+    collections = PieceCollection.objects.filter(
+        created_by=request.user
+    ).prefetch_related('collection_memberships__piece__stems', 'tags')
 
     context = {
-        'pieces': pieces,
-        'title': 'My Playalong Pieces'
+        'pieces': pieces if view_filter in ['all', 'pieces'] else [],
+        'collections': collections if view_filter in ['all', 'collections'] else [],
+        'view_filter': view_filter,
+        'title': 'My Playalong Library'
     }
     return render(request, 'audioplayer/piece_list.html', context)
 
@@ -782,16 +791,8 @@ def composer_delete(request, pk):
 
 @teacher_required
 def collection_list(request):
-    """List all collections created by the logged-in teacher"""
-    collections = PieceCollection.objects.filter(
-        created_by=request.user
-    ).prefetch_related('collection_memberships__piece', 'tags')
-
-    context = {
-        'collections': collections,
-        'title': 'My Collections'
-    }
-    return render(request, 'audioplayer/collection_list.html', context)
+    """Redirect to unified library with collections filter"""
+    return redirect('audioplayer:piece_list')  # Unified library shows both
 
 
 @teacher_required
@@ -873,7 +874,7 @@ def collection_delete(request, pk):
             request,
             f'Collection "{collection_title}" deleted. {pieces_count} piece(s) remain in your library.'
         )
-        return redirect('audioplayer:collection_list')
+        return redirect('audioplayer:piece_list')
 
     context = {
         'collection': collection,
