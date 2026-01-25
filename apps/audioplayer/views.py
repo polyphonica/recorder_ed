@@ -6,8 +6,8 @@ from django.db import transaction
 from django.db.models import Q, Count, Max
 from django.views.generic import TemplateView
 from functools import wraps
-from .models import Piece, Stem, LessonPiece, Composer, Tag, PieceCollection
-from .forms import PieceForm, StemFormSet, PieceCollectionForm, CollectionPieceFormSet, QuickAddPiecesForm
+from .models import Piece, Stem, LessonPiece, Composer, Tag, PieceCollection, CollectionPiece
+from .forms import PieceForm, StemFormSet, PieceCollectionForm
 from apps.courses.models import Lesson
 
 
@@ -324,7 +324,7 @@ def private_lesson_player(request, lesson_id):
     collection_count = lesson.lesson_collections.filter(is_visible=True).count()
     collection_piece_count = 0
     for lc in lesson.lesson_collections.filter(is_visible=True):
-        collection_piece_count += lc.collection.pieces.count()
+        collection_piece_count += lc.collection.collection_memberships.count()
 
     total_piece_count = piece_count + collection_piece_count
 
@@ -405,15 +405,17 @@ def private_lesson_pieces_json(request, lesson_id):
         lesson=lesson,
         is_visible=True
     ).select_related('collection').prefetch_related(
-        'collection__pieces',
-        'collection__pieces__stems'
+        'collection__collection_memberships__piece',
+        'collection__collection_memberships__piece__stems'
     ).order_by('order')
 
     for lc in lesson_collections:
         collection = lc.collection
         collection_pieces = []
 
-        for piece in collection.pieces.all().order_by('order_in_collection'):
+        # Get pieces through the M2M relationship
+        for cp in collection.collection_memberships.all().order_by('order'):
+            piece = cp.piece
             stems_data = [
                 {
                     'audio_file': stem.audio_file.url,
@@ -426,7 +428,7 @@ def private_lesson_pieces_json(request, lesson_id):
                 'title': piece.title,
                 'stems': stems_data,
                 'svg_image': piece.svg_image.url if piece.svg_image else None,
-                'order': piece.order_in_collection,
+                'order': cp.order,
                 'description': piece.description if piece.description else None,
             }
             collection_pieces.append(piece_data)
@@ -779,12 +781,11 @@ def composer_delete(request, pk):
 # ===== COLLECTION MANAGEMENT VIEWS =====
 
 @teacher_required
-@teacher_required
 def collection_list(request):
     """List all collections created by the logged-in teacher"""
     collections = PieceCollection.objects.filter(
         created_by=request.user
-    ).prefetch_related('pieces', 'tags')
+    ).prefetch_related('collection_memberships__piece', 'tags')
 
     context = {
         'collections': collections,
@@ -798,7 +799,7 @@ def collection_list(request):
 def collection_create(request):
     """Create a new collection"""
     if request.method == 'POST':
-        form = PieceCollectionForm(request.POST, request.FILES)
+        form = PieceCollectionForm(request.POST, request.FILES, user=request.user)
 
         if form.is_valid():
             collection = form.save(commit=False)
@@ -812,7 +813,7 @@ def collection_create(request):
                 for error in errors:
                     messages.error(request, f'{field.replace("_", " ").title()}: {error}')
     else:
-        form = PieceCollectionForm()
+        form = PieceCollectionForm(user=request.user)
 
     context = {
         'form': form,
@@ -829,7 +830,7 @@ def collection_edit(request, pk):
     collection = get_object_or_404(PieceCollection, pk=pk, created_by=request.user)
 
     if request.method == 'POST':
-        form = PieceCollectionForm(request.POST, request.FILES, instance=collection)
+        form = PieceCollectionForm(request.POST, request.FILES, instance=collection, user=request.user)
 
         if form.is_valid():
             form.save()
@@ -840,15 +841,17 @@ def collection_edit(request, pk):
                 for error in errors:
                     messages.error(request, f'{field.replace("_", " ").title()}: {error}')
     else:
-        form = PieceCollectionForm(instance=collection)
+        form = PieceCollectionForm(instance=collection, user=request.user)
 
-    # Get pieces in this collection
-    pieces = collection.pieces.prefetch_related('stems').order_by('order_in_collection', 'title')
+    # Get pieces in this collection through the M2M relationship
+    collection_pieces = CollectionPiece.objects.filter(
+        collection=collection
+    ).select_related('piece').prefetch_related('piece__stems').order_by('order')
 
     context = {
         'form': form,
         'collection': collection,
-        'pieces': pieces,
+        'collection_pieces': collection_pieces,
         'title': f'Edit: {collection.title}',
         'submit_text': 'Update Collection'
     }
@@ -857,31 +860,19 @@ def collection_edit(request, pk):
 
 @teacher_required
 def collection_delete(request, pk):
-    """Delete a collection (pieces can optionally be kept as standalone)"""
+    """Delete a collection (pieces remain as standalone - M2M relationship)"""
     collection = get_object_or_404(PieceCollection, pk=pk, created_by=request.user)
 
-    pieces_count = collection.pieces.count()
+    pieces_count = collection.collection_memberships.count()
 
     if request.method == 'POST':
-        action = request.POST.get('action', 'delete_all')
         collection_title = collection.title
-
-        if action == 'keep_pieces':
-            # Detach pieces from collection (they become standalone)
-            collection.pieces.update(collection=None, order_in_collection=0)
-            collection.delete()
-            messages.success(
-                request,
-                f'Collection "{collection_title}" deleted. {pieces_count} piece(s) are now standalone.'
-            )
-        else:
-            # Delete collection and all its pieces
-            collection.delete()  # CASCADE will delete pieces
-            messages.success(
-                request,
-                f'Collection "{collection_title}" and all {pieces_count} piece(s) deleted.'
-            )
-
+        # Delete collection - pieces remain standalone (M2M just removes the link)
+        collection.delete()
+        messages.success(
+            request,
+            f'Collection "{collection_title}" deleted. {pieces_count} piece(s) remain in your library.'
+        )
         return redirect('audioplayer:collection_list')
 
     context = {
@@ -896,102 +887,25 @@ def collection_delete(request, pk):
 def collection_detail(request, pk):
     """View collection details and its pieces"""
     collection = get_object_or_404(
-        PieceCollection.objects.prefetch_related('pieces__stems', 'tags'),
+        PieceCollection.objects.prefetch_related('collection_memberships__piece__stems', 'tags'),
         pk=pk
     )
 
     # Check if user owns this collection or if it's public
     is_owner = collection.created_by == request.user
 
-    pieces = collection.pieces.order_by('order_in_collection', 'title')
+    # Get pieces through the M2M relationship
+    collection_pieces = CollectionPiece.objects.filter(
+        collection=collection
+    ).select_related('piece').prefetch_related('piece__stems').order_by('order')
 
     context = {
         'collection': collection,
-        'pieces': pieces,
+        'collection_pieces': collection_pieces,
         'is_owner': is_owner,
         'title': collection.title
     }
     return render(request, 'audioplayer/collection_detail.html', context)
-
-
-@teacher_required
-@transaction.atomic
-def collection_add_piece(request, pk):
-    """Add a new piece to a collection (with stems)"""
-    collection = get_object_or_404(PieceCollection, pk=pk, created_by=request.user)
-
-    if request.method == 'POST':
-        form = PieceForm(request.POST, request.FILES)
-        formset = StemFormSet(request.POST, request.FILES)
-
-        if form.is_valid() and formset.is_valid():
-            piece = form.save(commit=False)
-            piece.created_by = request.user
-            piece.collection = collection
-            # Set order to be last in collection
-            max_order = collection.pieces.aggregate(
-                max_order=Max('order_in_collection')
-            )['max_order'] or 0
-            piece.order_in_collection = max_order + 1
-            piece.save()
-            form.save_m2m()
-            formset.instance = piece
-            formset.save()
-            messages.success(request, f'Piece "{piece.title}" added to collection!')
-            return redirect('audioplayer:collection_edit', pk=collection.pk)
-        else:
-            if not form.is_valid():
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        messages.error(request, f'{field.replace("_", " ").title()}: {error}')
-            if not formset.is_valid():
-                for i, stem_form in enumerate(formset.forms):
-                    if stem_form.errors and stem_form.has_changed():
-                        for field, errors in stem_form.errors.items():
-                            for error in errors:
-                                messages.error(request, f'Stem {i+1} - {field}: {error}')
-    else:
-        form = PieceForm()
-        formset = StemFormSet()
-
-    context = {
-        'form': form,
-        'formset': formset,
-        'collection': collection,
-        'title': f'Add Piece to: {collection.title}',
-        'submit_text': 'Add Piece'
-    }
-    return render(request, 'audioplayer/collection_add_piece.html', context)
-
-
-@teacher_required
-def collection_remove_piece(request, pk, piece_pk):
-    """Remove a piece from a collection (keeps piece as standalone or deletes)"""
-    collection = get_object_or_404(PieceCollection, pk=pk, created_by=request.user)
-    piece = get_object_or_404(Piece, pk=piece_pk, collection=collection)
-
-    if request.method == 'POST':
-        action = request.POST.get('action', 'remove')
-        piece_title = piece.title
-
-        if action == 'delete':
-            piece.delete()
-            messages.success(request, f'Piece "{piece_title}" deleted.')
-        else:
-            # Make standalone
-            piece.collection = None
-            piece.order_in_collection = 0
-            piece.save()
-            messages.success(request, f'Piece "{piece_title}" removed from collection (now standalone).')
-
-        return redirect('audioplayer:collection_edit', pk=collection.pk)
-
-    context = {
-        'collection': collection,
-        'piece': piece,
-        'title': f'Remove: {piece.title}'
-    }
-    return render(request, 'audioplayer/collection_remove_piece.html', context)
 
 
 @teacher_required
@@ -1008,95 +922,10 @@ def collection_reorder_pieces(request, pk):
         piece_ids = data.get('piece_ids', [])
 
         for index, piece_id in enumerate(piece_ids):
-            Piece.objects.filter(pk=piece_id, collection=collection).update(
-                order_in_collection=index
-            )
+            CollectionPiece.objects.filter(
+                piece_id=piece_id, collection=collection
+            ).update(order=index)
 
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
-
-
-@teacher_required
-def collection_quick_add(request, pk):
-    """
-    Quick add multiple pieces to a collection at once.
-    Creates pieces with auto-generated titles and single audio track each.
-    """
-    collection = get_object_or_404(PieceCollection, pk=pk, created_by=request.user)
-
-    if request.method == 'POST':
-        form = QuickAddPiecesForm(request.POST, request.FILES)
-
-        if form.is_valid():
-            title_prefix = form.cleaned_data['title_prefix']
-            start_number = form.cleaned_data['start_number']
-            track_name = form.cleaned_data['track_name']
-
-            # Get all uploaded audio files
-            audio_files = request.FILES.getlist('audio_files')
-
-            if not audio_files:
-                messages.error(request, 'Please select at least one audio file.')
-                return render(request, 'audioplayer/collection_quick_add.html', {
-                    'form': form,
-                    'collection': collection,
-                    'title': f'Quick Add Pieces to: {collection.title}'
-                })
-
-            # Sort files by name for consistent ordering
-            audio_files_sorted = sorted(audio_files, key=lambda f: f.name.lower())
-
-            # Get current max order in collection
-            max_order = collection.pieces.aggregate(
-                max_order=Max('order_in_collection')
-            )['max_order'] or 0
-
-            created_count = 0
-            with transaction.atomic():
-                for i, audio_file in enumerate(audio_files_sorted):
-                    piece_number = start_number + i
-                    piece_title = f"{title_prefix} {piece_number}"
-
-                    # Create the piece
-                    piece = Piece.objects.create(
-                        title=piece_title,
-                        collection=collection,
-                        order_in_collection=max_order + i + 1,
-                        created_by=request.user
-                    )
-
-                    # Create the stem (audio track)
-                    Stem.objects.create(
-                        piece=piece,
-                        instrument_name=track_name,
-                        audio_file=audio_file,
-                        order=0
-                    )
-
-                    created_count += 1
-
-            messages.success(
-                request,
-                f'Successfully created {created_count} pieces in "{collection.title}"!'
-            )
-            return redirect('audioplayer:collection_edit', pk=collection.pk)
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f'{field.replace("_", " ").title()}: {error}')
-    else:
-        # Pre-populate with sensible defaults
-        # Check existing pieces to suggest next number
-        existing_count = collection.pieces.count()
-        form = QuickAddPiecesForm(initial={
-            'start_number': existing_count + 1,
-            'track_name': 'Backing Track'
-        })
-
-    context = {
-        'form': form,
-        'collection': collection,
-        'title': f'Quick Add Pieces to: {collection.title}'
-    }
-    return render(request, 'audioplayer/collection_quick_add.html', context)

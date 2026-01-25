@@ -1,12 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
-from django.forms.widgets import FileInput
-from .models import Piece, Stem, LessonPiece, Composer, Tag, PieceCollection
-
-
-class MultipleFileInput(FileInput):
-    """Custom widget that allows multiple file selection"""
-    allow_multiple_selected = True
+from .models import Piece, Stem, LessonPiece, Composer, Tag, PieceCollection, CollectionPiece
 
 
 class PieceForm(forms.ModelForm):
@@ -151,7 +145,7 @@ class PieceForm(forms.ModelForm):
                     name=new_composer_name,
                     dates=new_composer_dates,
                     period=new_composer_period,
-                    bio=''  # Can be added later via admin or piece edit
+                    bio=''
                 )
                 cleaned_data['composer'] = new_composer
 
@@ -160,24 +154,19 @@ class PieceForm(forms.ModelForm):
     def save(self, commit=True):
         instance = super().save(commit=commit)
 
-        # Store new tags for later - they'll be added in _save_new_tags
-        # which is called after the instance has a pk
         self._new_tags_to_add = []
         new_tags_str = self.cleaned_data.get('new_tags', '')
         if new_tags_str:
             tag_names = [name.strip() for name in new_tags_str.split(',') if name.strip()]
             for tag_name in tag_names:
-                # Get or create tag (case-insensitive check)
                 tag, created = Tag.objects.get_or_create(
                     name__iexact=tag_name,
                     defaults={'name': tag_name}
                 )
-                # If tag exists but with different case, use the existing one
                 if not created:
                     tag = Tag.objects.filter(name__iexact=tag_name).first()
                 self._new_tags_to_add.append(tag)
 
-        # If commit=True, we can add tags now since instance has pk
         if commit and self._new_tags_to_add:
             for tag in self._new_tags_to_add:
                 instance.tags.add(tag)
@@ -187,7 +176,6 @@ class PieceForm(forms.ModelForm):
     def save_m2m(self):
         """Override to also save new tags after the instance has been saved"""
         super().save_m2m()
-        # Add any new tags that were created
         if hasattr(self, '_new_tags_to_add') and self._new_tags_to_add:
             for tag in self._new_tags_to_add:
                 self.instance.tags.add(tag)
@@ -200,26 +188,20 @@ class BaseStemFormSet(forms.BaseInlineFormSet):
         """Override clean to ignore completely empty forms"""
         super().clean()
 
-        # Check if at least one valid stem exists (not required, but good to know)
         has_filled_form = False
         for form in self.forms:
-            # Skip deleted forms and forms without data
             if self.can_delete and self._should_delete_form(form):
                 continue
 
-            # Check if this form has any meaningful data
             if form.cleaned_data.get('instrument_name') or form.cleaned_data.get('audio_file'):
                 has_filled_form = True
                 break
 
     def is_valid(self):
         """Override is_valid to skip validation on empty forms"""
-        # First check basic validity
         if not super().is_valid():
-            # Filter out errors from completely empty forms
             for i, form in enumerate(self.forms):
                 if not form.instance.pk and not form.has_changed():
-                    # This is an empty new form - clear its errors
                     form._errors = {}
             return not any(form.errors for form in self.forms if form not in self.deleted_forms)
         return True
@@ -229,12 +211,12 @@ class BaseStemFormSet(forms.BaseInlineFormSet):
 StemFormSet = inlineformset_factory(
     Piece,
     Stem,
-    formset=BaseStemFormSet,  # Use custom formset
+    formset=BaseStemFormSet,
     fields=['instrument_name', 'audio_file', 'order'],
-    extra=3,  # Show 3 empty forms by default
+    extra=3,
     can_delete=True,
-    validate_min=False,  # Don't require minimum number of stems
-    validate_max=False,  # Don't enforce maximum
+    validate_min=False,
+    validate_max=False,
     widgets={
         'instrument_name': forms.TextInput(attrs={
             'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
@@ -282,21 +264,19 @@ class LessonPieceForm(forms.ModelForm):
         }
 
 
-# Note: LessonPieceFormSet should be created in the courses app where Lesson model is available
-# This is just a placeholder - actual formset will be created in courses/forms.py if needed
-#
-# from apps.courses.models import Lesson
-# LessonPieceFormSet = inlineformset_factory(
-#     Lesson,
-#     LessonPiece,
-#     form=LessonPieceForm,
-#     extra=1,
-#     can_delete=True
-# )
-
-
 class PieceCollectionForm(forms.ModelForm):
     """Form for creating/editing piece collections"""
+
+    # Field for selecting existing pieces to include in collection
+    pieces = forms.ModelMultipleChoiceField(
+        queryset=Piece.objects.none(),  # Will be set in __init__
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={
+            'class': 'piece-checkbox'
+        }),
+        label='Select Pieces',
+        help_text='Choose pieces to include in this collection'
+    )
 
     # Additional field for creating new tags inline
     new_tags = forms.CharField(
@@ -371,6 +351,20 @@ class PieceCollectionForm(forms.ModelForm):
             'is_public': 'If checked, collection will be visible to all students in the library',
         }
 
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set the queryset for pieces based on the user
+        if user:
+            self.fields['pieces'].queryset = Piece.objects.filter(
+                created_by=user
+            ).order_by('title')
+
+        # If editing, pre-select pieces that are already in the collection
+        if self.instance and self.instance.pk:
+            self.fields['pieces'].initial = Piece.objects.filter(
+                collection_memberships__collection=self.instance
+            )
+
     def save(self, commit=True):
         instance = super().save(commit=commit)
 
@@ -392,7 +386,35 @@ class PieceCollectionForm(forms.ModelForm):
             for tag in self._new_tags_to_add:
                 instance.tags.add(tag)
 
+        # Handle piece selection
+        if commit:
+            self._save_pieces(instance)
+
         return instance
+
+    def _save_pieces(self, collection):
+        """Save the selected pieces to the collection"""
+        selected_pieces = self.cleaned_data.get('pieces', [])
+
+        # Get current pieces in collection
+        current_piece_ids = set(
+            CollectionPiece.objects.filter(collection=collection).values_list('piece_id', flat=True)
+        )
+        selected_piece_ids = set(p.id for p in selected_pieces)
+
+        # Remove pieces no longer selected
+        to_remove = current_piece_ids - selected_piece_ids
+        CollectionPiece.objects.filter(collection=collection, piece_id__in=to_remove).delete()
+
+        # Add newly selected pieces
+        to_add = selected_piece_ids - current_piece_ids
+        for i, piece_id in enumerate(to_add):
+            max_order = CollectionPiece.objects.filter(collection=collection).count()
+            CollectionPiece.objects.create(
+                collection=collection,
+                piece_id=piece_id,
+                order=max_order
+            )
 
     def save_m2m(self):
         """Override to also save new tags after the instance has been saved"""
@@ -400,120 +422,6 @@ class PieceCollectionForm(forms.ModelForm):
         if hasattr(self, '_new_tags_to_add') and self._new_tags_to_add:
             for tag in self._new_tags_to_add:
                 self.instance.tags.add(tag)
-
-
-class CollectionPieceForm(forms.ModelForm):
-    """Simplified form for adding/editing pieces within a collection"""
-
-    class Meta:
-        model = Piece
-        fields = ['title', 'order_in_collection', 'svg_image', 'description']
-        widgets = {
-            'title': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
-                'placeholder': 'e.g., Exercise 1'
-            }),
-            'order_in_collection': forms.NumberInput(attrs={
-                'class': 'w-24 px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
-                'min': '0'
-            }),
-            'svg_image': forms.FileInput(attrs={
-                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100'
-            }),
-            'description': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
-                'rows': 2,
-                'placeholder': 'Optional notes for this piece...'
-            }),
-        }
-        labels = {
-            'title': 'Piece Title',
-            'order_in_collection': 'Order',
-            'svg_image': 'Score Image (Optional)',
-            'description': 'Notes (Optional)',
-        }
-
-
-class BaseCollectionPieceFormSet(forms.BaseInlineFormSet):
-    """Custom formset for pieces in a collection"""
-
-    def clean(self):
-        super().clean()
-        # Could add validation here if needed
-
-    def is_valid(self):
-        if not super().is_valid():
-            for i, form in enumerate(self.forms):
-                if not form.instance.pk and not form.has_changed():
-                    form._errors = {}
-            return not any(form.errors for form in self.forms if form not in self.deleted_forms)
-        return True
-
-
-# Formset for adding/editing pieces within a collection
-CollectionPieceFormSet = inlineformset_factory(
-    PieceCollection,
-    Piece,
-    form=CollectionPieceForm,
-    formset=BaseCollectionPieceFormSet,
-    fk_name='collection',
-    fields=['title', 'order_in_collection', 'svg_image', 'description'],
-    extra=3,
-    can_delete=True,
-    validate_min=False,
-    validate_max=False,
-)
-
-
-class QuickAddPiecesForm(forms.Form):
-    """
-    Form for quickly adding multiple simple pieces to a collection.
-    Allows batch creation with auto-generated titles and single audio track per piece.
-    """
-    title_prefix = forms.CharField(
-        max_length=100,
-        widget=forms.TextInput(attrs={
-            'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
-            'placeholder': 'e.g., Exercise, Pattern, Rhythm'
-        }),
-        label='Title Prefix',
-        help_text='Each piece will be named: "[Prefix] 1", "[Prefix] 2", etc.'
-    )
-
-    start_number = forms.IntegerField(
-        min_value=1,
-        initial=1,
-        widget=forms.NumberInput(attrs={
-            'class': 'w-32 px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
-            'min': '1'
-        }),
-        label='Starting Number',
-        help_text='Number to start counting from'
-    )
-
-    track_name = forms.CharField(
-        max_length=100,
-        initial='Backing Track',
-        widget=forms.TextInput(attrs={
-            'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
-            'placeholder': 'e.g., Backing Track, Piano, Full Mix'
-        }),
-        label='Track Name',
-        help_text='Name for the audio track (same for all pieces)'
-    )
-
-    audio_files = forms.FileField(
-        widget=MultipleFileInput(attrs={
-            'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100',
-            'multiple': True,
-            'accept': 'audio/*'
-        }),
-        label='Audio Files',
-        help_text='Select multiple audio files. They will be assigned to pieces in alphabetical order by filename.',
-        required=False  # We validate in the view since FileField doesn't handle multiple natively
-    )
-
-    def clean_audio_files(self):
-        """Validate that files are audio files"""
-        # This is handled in the view since FileField doesn't support multiple files natively
-        return self.cleaned_data.get('audio_files')
+        # Also save pieces if not already saved
+        if hasattr(self, 'instance') and self.instance.pk:
+            self._save_pieces(self.instance)

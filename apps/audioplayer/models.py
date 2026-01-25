@@ -177,7 +177,38 @@ class PieceCollection(models.Model):
 
     @property
     def piece_count(self):
-        return self.pieces.count()
+        return self.collection_memberships.count()
+
+
+class CollectionPiece(models.Model):
+    """
+    Through model linking pieces to collections.
+    A piece can be in multiple collections.
+    """
+    collection = models.ForeignKey(
+        'PieceCollection',
+        on_delete=models.CASCADE,
+        related_name='collection_memberships'
+    )
+    piece = models.ForeignKey(
+        'Piece',
+        on_delete=models.CASCADE,
+        related_name='collection_memberships'
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Display order within the collection"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order']
+        unique_together = ['collection', 'piece']
+        verbose_name = 'Collection Piece'
+        verbose_name_plural = 'Collection Pieces'
+
+    def __str__(self):
+        return f'{self.piece.title} in {self.collection.title}'
 
 
 class Piece(models.Model):
@@ -214,20 +245,6 @@ class Piece(models.Model):
         ('intermediate', 'Intermediate'),
         ('advanced', 'Advanced'),
     ]
-
-    # Collection membership (optional - null means standalone piece)
-    collection = models.ForeignKey(
-        PieceCollection,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='pieces',
-        help_text="Collection this piece belongs to (leave empty for standalone pieces)"
-    )
-    order_in_collection = models.PositiveIntegerField(
-        default=0,
-        help_text="Display order within the collection"
-    )
 
     # Basic fields
     title = models.CharField(max_length=200)
@@ -315,19 +332,22 @@ class Piece(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['order_in_collection', 'title']
+        ordering = ['title']
         verbose_name = 'Playalong Piece'
         verbose_name_plural = 'Playalong Pieces'
 
     def __str__(self):
-        if self.collection:
-            return f'{self.title} ({self.collection.title})'
         return self.title
 
     @property
-    def is_standalone(self):
-        """Returns True if this piece is not part of a collection"""
-        return self.collection is None
+    def collections(self):
+        """Returns all collections this piece belongs to"""
+        return PieceCollection.objects.filter(collection_memberships__piece=self)
+
+    @property
+    def is_in_collection(self):
+        """Returns True if this piece is part of at least one collection"""
+        return self.collection_memberships.exists()
 
 
 class Stem(models.Model):

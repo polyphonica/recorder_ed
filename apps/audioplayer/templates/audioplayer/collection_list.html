@@ -55,7 +55,7 @@
                 <div class="text-sm text-base-content/70 space-y-1 mt-2">
                     <p>
                         <i class="fas fa-music mr-2"></i>
-                        <strong>{{ collection.pieces.count }}</strong> piece{{ collection.pieces.count|pluralize }}
+                        <strong>{{ collection.piece_count }}</strong> piece{{ collection.piece_count|pluralize }}
                     </p>
                     {% if collection.grade_level and collection.grade_level != 'N/A' %}
                     <p>
@@ -98,20 +98,20 @@
                 {% endif %}
 
                 <!-- Pieces Preview -->
-                {% if collection.pieces.all %}
+                {% if collection.piece_count > 0 %}
                 <div class="mt-4 pt-3 border-t border-base-200">
                     <p class="text-xs font-semibold uppercase text-base-content/50 mb-2">Pieces:</p>
                     <div class="space-y-1">
-                        {% for piece in collection.pieces.all|slice:":3" %}
+                        {% for cp in collection.collection_memberships.all|slice:":3" %}
                         <div class="text-sm flex items-center gap-2">
                             <span class="text-base-content/40">{{ forloop.counter }}.</span>
-                            <span>{{ piece.title }}</span>
-                            <span class="text-xs text-base-content/40">({{ piece.stems.count }} tracks)</span>
+                            <span>{{ cp.piece.title }}</span>
+                            <span class="text-xs text-base-content/40">({{ cp.piece.stems.count }} tracks)</span>
                         </div>
                         {% endfor %}
-                        {% if collection.pieces.count > 3 %}
+                        {% if collection.piece_count > 3 %}
                         <div class="text-sm text-base-content/50 italic">
-                            ...and {{ collection.pieces.count|add:"-3" }} more
+                            ...and {{ collection.piece_count|add:"-3" }} more
                         </div>
                         {% endif %}
                     </div>

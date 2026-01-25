@@ -27,7 +27,7 @@
                         {% if collection.genre %}
                         <span class="badge badge-outline">{{ collection.get_genre_display }}</span>
                         {% endif %}
-                        <span class="text-base-content/60">{{ pieces.count }} piece{{ pieces.count|pluralize }}</span>
+                        <span class="text-base-content/60">{{ collection_pieces.count }} piece{{ collection_pieces.count|pluralize }}</span>
                     </div>
                 </div>
 
@@ -89,9 +89,9 @@
                 </h2>
             </div>
 
-            {% if pieces %}
+            {% if collection_pieces %}
             <div class="divide-y divide-gray-100">
-                {% for piece in pieces %}
+                {% for cp in collection_pieces %}
                 <div class="p-6 hover:bg-gray-50 transition-colors">
                     <div class="flex items-start justify-between">
                         <div class="flex items-start gap-4">
@@ -99,11 +99,11 @@
                                 <span class="font-bold text-primary">{{ forloop.counter }}</span>
                             </div>
                             <div>
-                                <h3 class="font-semibold text-lg text-gray-900">{{ piece.title }}</h3>
+                                <h3 class="font-semibold text-lg text-gray-900">{{ cp.piece.title }}</h3>
 
                                 <!-- Stems/Tracks -->
                                 <div class="flex flex-wrap gap-2 mt-2">
-                                    {% for stem in piece.stems.all %}
+                                    {% for stem in cp.piece.stems.all %}
                                     <span class="badge badge-outline badge-sm">
                                         <i class="fas fa-volume-up mr-1 text-xs"></i>
                                         {{ stem.instrument_name }}
@@ -111,20 +111,20 @@
                                     {% endfor %}
                                 </div>
 
-                                {% if piece.description %}
-                                <p class="text-sm text-gray-600 mt-2">{{ piece.description }}</p>
+                                {% if cp.piece.description %}
+                                <p class="text-sm text-gray-600 mt-2">{{ cp.piece.description }}</p>
                                 {% endif %}
                             </div>
                         </div>
 
                         <div class="flex items-center gap-2">
-                            {% if piece.svg_image %}
+                            {% if cp.piece.svg_image %}
                             <span class="tooltip" data-tip="Has score image">
                                 <i class="fas fa-image text-success"></i>
                             </span>
                             {% endif %}
                             {% if is_owner %}
-                            <a href="{% url 'audioplayer:piece_edit' pk=piece.pk %}" class="btn btn-sm btn-ghost">
+                            <a href="{% url 'audioplayer:piece_edit' pk=cp.piece.pk %}" class="btn btn-sm btn-ghost">
                                 <i class="fas fa-edit"></i>
                             </a>
                             {% endif %}

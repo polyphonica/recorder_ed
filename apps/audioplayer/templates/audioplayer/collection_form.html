@@ -177,6 +177,67 @@
                 </div>
             </div>
 
+            <!-- Piece Selection -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-indigo-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Select Pieces</h2>
+                </div>
+
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
+                    <p class="text-sm text-blue-800">
+                        Select existing pieces from your library to include in this collection.
+                        Pieces can belong to multiple collections.
+                        <a href="{% url 'audioplayer:piece_create' %}" target="_blank" class="underline font-medium">Create new pieces</a> first if needed.
+                    </p>
+                </div>
+
+                {% if form.pieces.field.queryset.count > 0 %}
+                <div class="max-h-96 overflow-y-auto border-2 border-gray-200 rounded-lg p-4">
+                    <div class="space-y-2">
+                        {% for piece in form.pieces.field.queryset %}
+                        <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors border border-transparent hover:border-gray-200">
+                            <input type="checkbox" name="pieces" value="{{ piece.pk }}"
+                                   class="checkbox checkbox-primary piece-checkbox"
+                                   {% if piece in form.pieces.initial %}checked{% endif %}>
+                            <div class="flex-1">
+                                <span class="font-medium text-gray-900">{{ piece.title }}</span>
+                                <div class="flex flex-wrap gap-1 mt-1">
+                                    {% for stem in piece.stems.all %}
+                                    <span class="badge badge-outline badge-xs">{{ stem.instrument_name }}</span>
+                                    {% endfor %}
+                                    {% if piece.composer %}
+                                    <span class="badge badge-ghost badge-xs">{{ piece.composer.name }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if piece.svg_image %}
+                            <span class="tooltip" data-tip="Has score image">
+                                <i class="fas fa-image text-success text-sm"></i>
+                            </span>
+                            {% endif %}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="mt-4 flex items-center gap-4 text-sm text-gray-600">
+                    <span id="pieces-selected-count"></span>
+                    <button type="button" onclick="toggleAllPieces(true)" class="text-blue-600 hover:underline">Select All</button>
+                    <button type="button" onclick="toggleAllPieces(false)" class="text-blue-600 hover:underline">Deselect All</button>
+                </div>
+                {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-music text-4xl text-base-content/20 mb-4"></i>
+                    <p class="text-base-content/60 mb-4">No pieces in your library yet</p>
+                    <a href="{% url 'audioplayer:piece_create' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus mr-2"></i>
+                        Create Your First Piece
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
             <!-- Submit -->
             <div class="flex flex-col sm:flex-row gap-4">
                 <button type="submit" class="flex-1 sm:flex-initial bg-blue-600 text-white px-10 py-4 rounded-xl hover:bg-blue-700 font-bold text-lg shadow-lg inline-flex items-center justify-center gap-2">
@@ -188,104 +249,31 @@
                 </a>
             </div>
         </form>
-
-        {% if collection %}
-        <!-- Pieces Section (only shown when editing) -->
-        <div class="mt-12">
-            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="flex items-center gap-3">
-                        <div class="w-1.5 h-8 bg-indigo-600 rounded-full"></div>
-                        <h2 class="text-2xl font-bold text-gray-900">Pieces in Collection</h2>
-                        <span class="badge badge-primary">{{ pieces.count }}</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <a href="{% url 'audioplayer:collection_quick_add' pk=collection.pk %}" class="btn btn-secondary">
-                            <i class="fas fa-bolt mr-2"></i>
-                            Quick Add Multiple
-                        </a>
-                        <a href="{% url 'audioplayer:collection_add_piece' pk=collection.pk %}" class="btn btn-primary">
-                            <i class="fas fa-plus mr-2"></i>
-                            Add Piece
-                        </a>
-                    </div>
-                </div>
-
-                {% if pieces %}
-                <div class="overflow-x-auto">
-                    <table class="table w-full">
-                        <thead>
-                            <tr>
-                                <th class="w-16">Order</th>
-                                <th>Title</th>
-                                <th>Tracks</th>
-                                <th>Score Image</th>
-                                <th class="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="pieces-sortable">
-                            {% for piece in pieces %}
-                            <tr class="hover" data-piece-id="{{ piece.pk }}">
-                                <td class="font-mono text-base-content/60">{{ piece.order_in_collection }}</td>
-                                <td class="font-medium">{{ piece.title }}</td>
-                                <td>
-                                    <div class="flex flex-wrap gap-1">
-                                        {% for stem in piece.stems.all %}
-                                        <span class="badge badge-outline badge-xs">{{ stem.instrument_name }}</span>
-                                        {% endfor %}
-                                        {% if not piece.stems.all %}
-                                        <span class="text-base-content/40 text-sm">No tracks</span>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td>
-                                    {% if piece.svg_image %}
-                                    <span class="text-success"><i class="fas fa-check"></i></span>
-                                    {% else %}
-                                    <span class="text-base-content/30">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-right">
-                                    <div class="flex justify-end gap-2">
-                                        <a href="{% url 'audioplayer:piece_edit' pk=piece.pk %}" class="btn btn-xs btn-ghost" title="Edit piece">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a href="{% url 'audioplayer:collection_remove_piece' pk=collection.pk piece_pk=piece.pk %}" class="btn btn-xs btn-ghost text-error" title="Remove from collection">
-                                            <i class="fas fa-times"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-r-lg">
-                    <p class="text-sm text-yellow-800">
-                        <i class="fas fa-info-circle mr-2"></i>
-                        To change piece order, edit the "Order" field on each piece. Lower numbers appear first.
-                    </p>
-                </div>
-                {% else %}
-                <div class="text-center py-12">
-                    <i class="fas fa-music text-4xl text-base-content/20 mb-4"></i>
-                    <p class="text-base-content/60 mb-4">No pieces in this collection yet</p>
-                    <div class="flex justify-center gap-3">
-                        <a href="{% url 'audioplayer:collection_quick_add' pk=collection.pk %}" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-bolt mr-2"></i>
-                            Quick Add Multiple
-                        </a>
-                        <a href="{% url 'audioplayer:collection_add_piece' pk=collection.pk %}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-plus mr-2"></i>
-                            Add Piece
-                        </a>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
     </div>
 </div>
+
+<script>
+function toggleAllPieces(checked) {
+    document.querySelectorAll('.piece-checkbox').forEach(cb => {
+        cb.checked = checked;
+    });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const count = document.querySelectorAll('.piece-checkbox:checked').length;
+    const countEl = document.getElementById('pieces-selected-count');
+    if (countEl) {
+        countEl.textContent = count + ' piece' + (count !== 1 ? 's' : '') + ' selected';
+    }
+}
+
+// Update count on page load and when checkboxes change
+document.addEventListener('DOMContentLoaded', function() {
+    updateSelectedCount();
+    document.querySelectorAll('.piece-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateSelectedCount);
+    });
+});
+</script>
 {% endblock %}

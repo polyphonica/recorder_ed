@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Piece, Stem, LessonPiece, Composer, Tag, PieceCollection, LessonCollection
+from .models import Piece, Stem, LessonPiece, Composer, Tag, PieceCollection, LessonCollection, CollectionPiece
 
 
 @admin.register(Composer)
@@ -25,17 +25,13 @@ class TagAdmin(admin.ModelAdmin):
     piece_count.short_description = 'Pieces'
 
 
-class PieceInline(admin.TabularInline):
-    """Inline for viewing/editing pieces within a collection"""
-    model = Piece
-    extra = 0
-    fields = ['title', 'order_in_collection', 'svg_image']
-    readonly_fields = ['title']
-    ordering = ['order_in_collection']
-    show_change_link = True
-
-    def has_add_permission(self, request, obj=None):
-        return False  # Add pieces through the Piece admin instead
+class CollectionPieceInline(admin.TabularInline):
+    """Inline for viewing/editing pieces within a collection via M2M"""
+    model = CollectionPiece
+    extra = 1
+    fields = ['piece', 'order']
+    autocomplete_fields = ['piece']
+    ordering = ['order']
 
 
 @admin.register(PieceCollection)
@@ -44,7 +40,7 @@ class PieceCollectionAdmin(admin.ModelAdmin):
     search_fields = ['title', 'composer__name', 'description', 'created_by__username', 'created_by__email']
     list_filter = ['created_by', 'grade_level', 'genre', 'difficulty', 'is_public', 'tags', 'composer', 'created_at']
     filter_horizontal = ['tags']
-    inlines = [PieceInline]
+    inlines = [CollectionPieceInline]
 
     fieldsets = (
         ('Basic Information', {
@@ -63,7 +59,7 @@ class PieceCollectionAdmin(admin.ModelAdmin):
     )
 
     def piece_count(self, obj):
-        return obj.pieces.count()
+        return obj.collection_memberships.count()
     piece_count.short_description = 'Pieces'
 
 
@@ -74,19 +70,26 @@ class StemInline(admin.TabularInline):
     ordering = ['order']
 
 
+class PieceCollectionMembershipInline(admin.TabularInline):
+    """Inline showing which collections a piece belongs to"""
+    model = CollectionPiece
+    extra = 1
+    fields = ['collection', 'order']
+    autocomplete_fields = ['collection']
+    ordering = ['order']
+    verbose_name = 'Collection Membership'
+    verbose_name_plural = 'Collection Memberships'
+
+
 @admin.register(Piece)
 class PieceAdmin(admin.ModelAdmin):
-    list_display = ['title', 'collection', 'composer', 'created_by', 'grade_level', 'genre', 'difficulty', 'is_public', 'stem_count', 'lesson_count', 'created_at']
-    search_fields = ['title', 'composer__name', 'description', 'created_by__username', 'created_by__email', 'collection__title']
-    list_filter = ['collection', 'created_by', 'grade_level', 'genre', 'difficulty', 'is_public', 'tags', 'composer', 'created_at']
+    list_display = ['title', 'composer', 'created_by', 'grade_level', 'genre', 'difficulty', 'is_public', 'stem_count', 'collection_count', 'lesson_count', 'created_at']
+    search_fields = ['title', 'composer__name', 'description', 'created_by__username', 'created_by__email']
+    list_filter = ['created_by', 'grade_level', 'genre', 'difficulty', 'is_public', 'tags', 'composer', 'created_at']
     filter_horizontal = ['tags']
-    inlines = [StemInline]
+    inlines = [StemInline, PieceCollectionMembershipInline]
 
     fieldsets = (
-        ('Collection', {
-            'fields': ('collection', 'order_in_collection'),
-            'description': 'Leave collection empty for standalone pieces'
-        }),
         ('Basic Information', {
             'fields': ('title', 'composer', 'svg_image', 'pdf_score_title', 'pdf_score')
         }),
@@ -104,6 +107,10 @@ class PieceAdmin(admin.ModelAdmin):
     def stem_count(self, obj):
         return obj.stems.count()
     stem_count.short_description = 'Stems'
+
+    def collection_count(self, obj):
+        return obj.collection_memberships.count()
+    collection_count.short_description = 'Collections'
 
     def lesson_count(self, obj):
         return obj.lesson_assignments.count()
@@ -138,3 +145,12 @@ class LessonCollectionAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('lesson__topic__course', 'collection')
+
+
+@admin.register(CollectionPiece)
+class CollectionPieceAdmin(admin.ModelAdmin):
+    list_display = ['id', 'piece', 'collection', 'order', 'created_at']
+    list_filter = ['collection', 'created_at']
+    search_fields = ['piece__title', 'collection__title']
+    ordering = ['collection', 'order']
+    autocomplete_fields = ['piece', 'collection']

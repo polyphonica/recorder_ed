@@ -1041,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <select name="collections-${formIdx}-collection" id="id_collections-${formIdx}-collection" class="form-control">
                             <option value="">---------</option>
                             {% for collection in collections %}
-                            <option value="{{ collection.id }}">{{ collection.title }} ({{ collection.pieces.count }} pieces)</option>
+                            <option value="{{ collection.id }}">{{ collection.title }} ({{ collection.piece_count }} pieces)</option>
                             {% endfor %}
                         </select>
                     </div>

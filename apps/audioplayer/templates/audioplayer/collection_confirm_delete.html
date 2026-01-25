@@ -29,57 +29,19 @@
                 </div>
             </div>
 
-            {% if pieces_count > 0 %}
-            <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6">
-                <p class="text-amber-800">
-                    <strong>Choose what happens to the pieces:</strong>
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
+                <p class="text-blue-800">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>Note:</strong> Deleting this collection will NOT delete the pieces.
+                    The pieces will remain in your library and can be added to other collections.
                 </p>
             </div>
 
-            <form method="post" class="space-y-4">
-                {% csrf_token %}
-
-                <label class="flex items-start gap-4 p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 transition-colors">
-                    <input type="radio" name="action" value="keep_pieces" class="radio radio-primary mt-1" checked>
-                    <div>
-                        <p class="font-semibold text-gray-900">Keep pieces as standalone</p>
-                        <p class="text-sm text-gray-600">
-                            Delete the collection but keep all {{ pieces_count }} piece{{ pieces_count|pluralize }} in your library.
-                            They will become standalone pieces.
-                        </p>
-                    </div>
-                </label>
-
-                <label class="flex items-start gap-4 p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-red-300 transition-colors">
-                    <input type="radio" name="action" value="delete_all" class="radio radio-error mt-1">
-                    <div>
-                        <p class="font-semibold text-red-700">Delete everything</p>
-                        <p class="text-sm text-gray-600">
-                            Permanently delete the collection AND all {{ pieces_count }} piece{{ pieces_count|pluralize }}.
-                            <span class="text-red-600 font-medium">This cannot be undone.</span>
-                        </p>
-                    </div>
-                </label>
-
-                <div class="flex gap-4 mt-8">
-                    <button type="submit" class="btn btn-error">
-                        <i class="fas fa-trash mr-2"></i>
-                        Delete Collection
-                    </button>
-                    <a href="{% url 'audioplayer:collection_edit' pk=collection.pk %}" class="btn btn-ghost">
-                        Cancel
-                    </a>
-                </div>
-            </form>
-
-            {% else %}
-            <!-- No pieces, simple delete -->
             <form method="post">
                 {% csrf_token %}
-                <input type="hidden" name="action" value="delete_all">
 
                 <p class="text-gray-600 mb-6">
-                    Are you sure you want to delete this empty collection?
+                    Are you sure you want to delete this collection?
                 </p>
 
                 <div class="flex gap-4">
@@ -92,7 +54,6 @@
                     </a>
                 </div>
             </form>
-            {% endif %}
         </div>
     </div>
 </div>
