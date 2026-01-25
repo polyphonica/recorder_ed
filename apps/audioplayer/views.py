@@ -779,6 +779,7 @@ def composer_delete(request, pk):
 # ===== COLLECTION MANAGEMENT VIEWS =====
 
 @teacher_required
+@teacher_required
 def collection_list(request):
     """List all collections created by the logged-in teacher"""
     collections = PieceCollection.objects.filter(
