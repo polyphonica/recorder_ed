@@ -531,8 +531,11 @@ class PlayAlongLibraryView(TemplateView):
                 ).prefetch_related('collection_memberships__piece__stems', 'tags')
 
         elif view_mode == 'browse_all':
-            # Show all public pieces (both teachers and students)
+            # Show all public pieces and collections (both teachers and students)
             pieces = pieces.filter(is_public=True)
+            collections = PieceCollection.objects.filter(
+                is_public=True
+            ).prefetch_related('collection_memberships__piece__stems', 'tags')
         else:
             # Default to empty if not authenticated
             if not self.request.user.is_authenticated:
@@ -561,12 +564,30 @@ class PlayAlongLibraryView(TemplateView):
         if tag_id:
             pieces = pieces.filter(tags__id=tag_id)
 
+        # Apply filters to collections as well (if we have any)
+        if collections.exists():
+            if search_query:
+                collections = collections.filter(
+                    Q(title__icontains=search_query) |
+                    Q(description__icontains=search_query)
+                )
+            if grade_level:
+                collections = collections.filter(grade_level=grade_level)
+            if genre:
+                collections = collections.filter(genre=genre)
+            if difficulty:
+                collections = collections.filter(difficulty=difficulty)
+            if tag_id:
+                collections = collections.filter(tags__id=tag_id)
+
         # Order by title
         pieces = pieces.order_by('title')
+        collections = collections.order_by('title')
 
-        # PERFORMANCE FIX: Limit results to prevent loading thousands of pieces
+        # PERFORMANCE FIX: Limit results to prevent loading thousands of items
         # Apply reasonable limit to prevent performance issues
-        pieces = pieces[:200]  # Show up to 200 pieces (user can use filters to narrow down)
+        pieces = pieces[:200]  # Show up to 200 pieces
+        collections = collections[:50]  # Show up to 50 collections
 
         # Get filter options for dropdowns
         composers = Composer.objects.all().order_by('name')
