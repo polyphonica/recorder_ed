@@ -105,6 +105,15 @@
                 </a>
             </li>
 
+            <li class="menu-title mt-4"><span>Finance</span></li>
+
+            <li>
+                <a href="{% url 'admin_portal:finance:dashboard' %}" class="{% if 'finance' in request.path %}active{% endif %}">
+                    <i class="fas fa-pound-sign"></i>
+                    Platform Finance
+                </a>
+            </li>
+
             {% if user.is_superuser %}
             <li class="menu-title mt-4"><span>System</span></li>
 

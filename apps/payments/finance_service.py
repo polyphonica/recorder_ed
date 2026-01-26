@@ -1065,3 +1065,210 @@ class FinanceService:
         ).order_by('date')
 
         return list(daily_revenue)
+
+    @staticmethod
+    def get_platform_finance_summary(start_date=None, end_date=None):
+        """
+        Get platform-level finance summary (commission income, Stripe fees, etc.)
+        This is different from teacher revenue - it's the platform owner's perspective.
+
+        Args:
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            dict with platform income, Stripe fees, and domain breakdowns
+        """
+        from django.db.models import Sum, Count
+        from django.db.models.functions import TruncMonth
+
+        # Base queryset - only completed payments
+        payments = StripePayment.objects.filter(status='completed')
+
+        if start_date:
+            payments = payments.filter(created_at__gte=start_date)
+        if end_date:
+            payments = payments.filter(created_at__lte=end_date)
+
+        # Aggregate totals
+        totals = payments.aggregate(
+            total_gross=Sum('total_amount'),
+            total_commission=Sum('platform_commission'),
+            total_stripe_fees=Sum('stripe_fee'),
+            transaction_count=Count('id')
+        )
+
+        total_gross = totals['total_gross'] or Decimal('0.00')
+        total_commission = totals['total_commission'] or Decimal('0.00')
+        total_stripe_fees = totals['total_stripe_fees'] or Decimal('0.00')
+        transaction_count = totals['transaction_count'] or 0
+
+        # Net platform income = commission - stripe fees
+        net_platform_income = total_commission - total_stripe_fees
+
+        # Breakdown by domain
+        domain_breakdown = payments.values('domain').annotate(
+            gross=Sum('total_amount'),
+            commission=Sum('platform_commission'),
+            stripe_fees=Sum('stripe_fee'),
+            count=Count('id')
+        ).order_by('domain')
+
+        by_domain = {}
+        for item in domain_breakdown:
+            domain = item['domain']
+            commission = item['commission'] or Decimal('0.00')
+            stripe_fees = item['stripe_fees'] or Decimal('0.00')
+
+            by_domain[domain] = {
+                'gross': item['gross'] or Decimal('0.00'),
+                'commission': commission,
+                'stripe_fees': stripe_fees,
+                'net_income': commission - stripe_fees,
+                'count': item['count'] or 0,
+            }
+
+        # Ensure all domains are present (even if no transactions)
+        for domain in ['workshops', 'courses', 'private_teaching', 'digital_products']:
+            if domain not in by_domain:
+                by_domain[domain] = {
+                    'gross': Decimal('0.00'),
+                    'commission': Decimal('0.00'),
+                    'stripe_fees': Decimal('0.00'),
+                    'net_income': Decimal('0.00'),
+                    'count': 0,
+                }
+
+        # Monthly trend (last 12 months)
+        twelve_months_ago = timezone.now() - timedelta(days=365)
+        monthly_trend = StripePayment.objects.filter(
+            status='completed',
+            created_at__gte=twelve_months_ago
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            commission=Sum('platform_commission'),
+            stripe_fees=Sum('stripe_fee'),
+            count=Count('id')
+        ).order_by('month')
+
+        trend_data = []
+        for item in monthly_trend:
+            commission = item['commission'] or Decimal('0.00')
+            stripe_fees = item['stripe_fees'] or Decimal('0.00')
+            trend_data.append({
+                'month': item['month'],
+                'commission': commission,
+                'stripe_fees': stripe_fees,
+                'net_income': commission - stripe_fees,
+                'count': item['count'] or 0,
+            })
+
+        return {
+            'total_gross': total_gross,
+            'total_commission': total_commission,
+            'total_stripe_fees': total_stripe_fees,
+            'net_platform_income': net_platform_income,
+            'transaction_count': transaction_count,
+            'by_domain': by_domain,
+            'monthly_trend': trend_data,
+        }
+
+    @staticmethod
+    def get_platform_recent_transactions(limit=10):
+        """
+        Get most recent transactions for platform finance view.
+        Shows all transactions with their Stripe fees.
+
+        Returns:
+            list of StripePayment objects
+        """
+        return StripePayment.objects.filter(
+            status='completed'
+        ).select_related(
+            'student', 'teacher'
+        ).order_by('-created_at')[:limit]
+
+    @staticmethod
+    def get_platform_stripe_fees_summary(start_date=None, end_date=None):
+        """
+        Get detailed Stripe fees summary for analysis.
+
+        Returns:
+            dict with fee statistics and breakdown
+        """
+        from django.db.models import Avg, Max, Min
+        from django.db.models.functions import TruncMonth
+
+        payments = StripePayment.objects.filter(
+            status='completed',
+            stripe_fee__isnull=False
+        )
+
+        if start_date:
+            payments = payments.filter(created_at__gte=start_date)
+        if end_date:
+            payments = payments.filter(created_at__lte=end_date)
+
+        # Fee statistics
+        stats = payments.aggregate(
+            total_fees=Sum('stripe_fee'),
+            avg_fee=Avg('stripe_fee'),
+            max_fee=Max('stripe_fee'),
+            min_fee=Min('stripe_fee'),
+            total_gross=Sum('total_amount'),
+            transaction_count=Count('id')
+        )
+
+        total_fees = stats['total_fees'] or Decimal('0.00')
+        total_gross = stats['total_gross'] or Decimal('0.00')
+
+        # Calculate average fee percentage
+        if total_gross > 0:
+            avg_fee_percentage = (total_fees / total_gross) * 100
+        else:
+            avg_fee_percentage = Decimal('0.00')
+
+        # Monthly breakdown
+        monthly_fees = payments.annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            fees=Sum('stripe_fee'),
+            gross=Sum('total_amount'),
+            count=Count('id')
+        ).order_by('-month')
+
+        monthly_data = []
+        for item in monthly_fees:
+            fees = item['fees'] or Decimal('0.00')
+            gross = item['gross'] or Decimal('0.00')
+            if gross > 0:
+                percentage = (fees / gross) * 100
+            else:
+                percentage = Decimal('0.00')
+
+            monthly_data.append({
+                'month': item['month'],
+                'fees': fees,
+                'gross': gross,
+                'percentage': percentage,
+                'count': item['count'] or 0,
+            })
+
+        # Transactions without fee data (not yet synced)
+        unsynced_count = StripePayment.objects.filter(
+            status='completed',
+            stripe_fee__isnull=True
+        ).count()
+
+        return {
+            'total_fees': total_fees,
+            'avg_fee': stats['avg_fee'] or Decimal('0.00'),
+            'max_fee': stats['max_fee'] or Decimal('0.00'),
+            'min_fee': stats['min_fee'] or Decimal('0.00'),
+            'total_gross': total_gross,
+            'avg_fee_percentage': avg_fee_percentage,
+            'transaction_count': stats['transaction_count'] or 0,
+            'unsynced_count': unsynced_count,
+            'monthly_breakdown': monthly_data,
+        }

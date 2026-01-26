@@ -1,0 +1,171 @@
+{% extends 'admin_portal/base.html' %}
+
+{% block page_title %}Revenue Details{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with date filter -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'admin_portal:finance:dashboard' %}?days={{ days }}" class="btn btn-ghost btn-sm">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="text-2xl font-bold">Revenue Details</h1>
+            </div>
+            <p class="text-base-content/60 ml-10">{{ date_label }}</p>
+        </div>
+        <div class="join">
+            <a href="?days=7" class="btn btn-sm join-item {% if days == '7' %}btn-primary{% else %}btn-outline{% endif %}">7 days</a>
+            <a href="?days=30" class="btn btn-sm join-item {% if days == '30' %}btn-primary{% else %}btn-outline{% endif %}">30 days</a>
+            <a href="?days=90" class="btn btn-sm join-item {% if days == '90' %}btn-primary{% else %}btn-outline{% endif %}">90 days</a>
+            <a href="?days=365" class="btn btn-sm join-item {% if days == '365' %}btn-primary{% else %}btn-outline{% endif %}">12 months</a>
+            <a href="?days=all" class="btn btn-sm join-item {% if days == 'all' %}btn-primary{% else %}btn-outline{% endif %}">All time</a>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Gross Revenue</div>
+                <div class="stat-value text-lg">£{{ total_gross|floatformat:2 }}</div>
+                <div class="stat-desc">Total student payments</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Platform Commission</div>
+                <div class="stat-value text-lg text-success">£{{ total_commission|floatformat:2 }}</div>
+                <div class="stat-desc">10% of gross</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Stripe Fees</div>
+                <div class="stat-value text-lg text-error">-£{{ total_stripe_fees|floatformat:2 }}</div>
+                <div class="stat-desc">Processing costs</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Net Income</div>
+                <div class="stat-value text-lg text-info">£{{ net_platform_income|floatformat:2 }}</div>
+                <div class="stat-desc">Commission - Fees</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Breakdown -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-chart-bar text-primary"></i>
+                Revenue Breakdown by Domain
+            </h2>
+
+            {% if domain_details %}
+            <div class="overflow-x-auto mt-4">
+                <table class="table w-full">
+                    <thead>
+                        <tr>
+                            <th>Domain</th>
+                            <th class="text-right">Transactions</th>
+                            <th class="text-right">Gross Revenue</th>
+                            <th class="text-right">Commission (10%)</th>
+                            <th class="text-right">Stripe Fees</th>
+                            <th class="text-right">Fee %</th>
+                            <th class="text-right">Net Income</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for domain in domain_details %}
+                        <tr>
+                            <td>
+                                <div class="flex items-center gap-2">
+                                    <span class="badge
+                                        {% if domain.domain == 'workshops' %}badge-primary
+                                        {% elif domain.domain == 'courses' %}badge-secondary
+                                        {% elif domain.domain == 'private_teaching' %}badge-accent
+                                        {% else %}badge-info{% endif %}">
+                                        {{ domain.display_name }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="text-right">{{ domain.count }}</td>
+                            <td class="text-right">£{{ domain.gross|floatformat:2 }}</td>
+                            <td class="text-right text-success">£{{ domain.commission|floatformat:2 }}</td>
+                            <td class="text-right text-error">
+                                {% if domain.stripe_fees %}-£{{ domain.stripe_fees|floatformat:2 }}{% else %}—{% endif %}
+                            </td>
+                            <td class="text-right text-base-content/60">
+                                {% if domain.fees_pct %}{{ domain.fees_pct|floatformat:1 }}%{% else %}—{% endif %}
+                            </td>
+                            <td class="text-right font-bold">£{{ domain.net_income|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="font-bold bg-base-200">
+                            <td>Total</td>
+                            <td class="text-right">—</td>
+                            <td class="text-right">£{{ total_gross|floatformat:2 }}</td>
+                            <td class="text-right text-success">£{{ total_commission|floatformat:2 }}</td>
+                            <td class="text-right text-error">-£{{ total_stripe_fees|floatformat:2 }}</td>
+                            <td class="text-right">—</td>
+                            <td class="text-right">£{{ net_platform_income|floatformat:2 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Visual Breakdown -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+                {% for domain in domain_details %}
+                <div class="card bg-base-200">
+                    <div class="card-body p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="badge badge-sm
+                                    {% if domain.domain == 'workshops' %}badge-primary
+                                    {% elif domain.domain == 'courses' %}badge-secondary
+                                    {% elif domain.domain == 'private_teaching' %}badge-accent
+                                    {% else %}badge-info{% endif %}">
+                                    {{ domain.display_name }}
+                                </span>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-bold">£{{ domain.net_income|floatformat:2 }}</div>
+                                <div class="text-xs text-base-content/60">net income</div>
+                            </div>
+                        </div>
+                        <div class="mt-2 space-y-1 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-base-content/60">Gross:</span>
+                                <span>£{{ domain.gross|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-base-content/60">Commission:</span>
+                                <span class="text-success">£{{ domain.commission|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-base-content/60">Stripe fee:</span>
+                                <span class="text-error">
+                                    {% if domain.stripe_fees %}-£{{ domain.stripe_fees|floatformat:2 }}{% else %}—{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-base-content/60 py-8">
+                <i class="fas fa-chart-bar text-4xl mb-4"></i>
+                <p>No revenue data for this period</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

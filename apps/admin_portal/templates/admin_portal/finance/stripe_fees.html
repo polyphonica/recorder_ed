@@ -1,0 +1,230 @@
+{% extends 'admin_portal/base.html' %}
+
+{% block page_title %}Stripe Fees{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with date filter -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'admin_portal:finance:dashboard' %}?days={{ days }}" class="btn btn-ghost btn-sm">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="text-2xl font-bold">Stripe Fee Analysis</h1>
+            </div>
+            <p class="text-base-content/60 ml-10">{{ date_label }}</p>
+        </div>
+        <div class="join">
+            <a href="?days=7" class="btn btn-sm join-item {% if days == '7' %}btn-primary{% else %}btn-outline{% endif %}">7 days</a>
+            <a href="?days=30" class="btn btn-sm join-item {% if days == '30' %}btn-primary{% else %}btn-outline{% endif %}">30 days</a>
+            <a href="?days=90" class="btn btn-sm join-item {% if days == '90' %}btn-primary{% else %}btn-outline{% endif %}">90 days</a>
+            <a href="?days=365" class="btn btn-sm join-item {% if days == '365' %}btn-primary{% else %}btn-outline{% endif %}">12 months</a>
+            <a href="?days=all" class="btn btn-sm join-item {% if days == 'all' %}btn-primary{% else %}btn-outline{% endif %}">All time</a>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-error">
+                    <i class="fab fa-stripe-s text-3xl"></i>
+                </div>
+                <div class="stat-title">Total Stripe Fees</div>
+                <div class="stat-value text-error">£{{ fees_summary.total_fees|floatformat:2 }}</div>
+                <div class="stat-desc">{{ fees_summary.transaction_count }} transactions</div>
+            </div>
+        </div>
+
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Average Fee</div>
+                <div class="stat-value text-lg">£{{ fees_summary.avg_fee|floatformat:2 }}</div>
+                <div class="stat-desc">Per transaction</div>
+            </div>
+        </div>
+
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Average Fee Rate</div>
+                <div class="stat-value text-lg">{{ fees_summary.avg_fee_percentage|floatformat:2 }}%</div>
+                <div class="stat-desc">Of gross revenue</div>
+            </div>
+        </div>
+
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure {% if fees_summary.unsynced_count > 0 %}text-warning{% else %}text-success{% endif %}">
+                    <i class="fas fa-sync text-3xl"></i>
+                </div>
+                <div class="stat-title">Sync Status</div>
+                <div class="stat-value text-lg">
+                    {% if fees_summary.unsynced_count > 0 %}
+                        {{ fees_summary.unsynced_count }}
+                    {% else %}
+                        <i class="fas fa-check text-success"></i>
+                    {% endif %}
+                </div>
+                <div class="stat-desc">
+                    {% if fees_summary.unsynced_count > 0 %}
+                        Pending sync
+                    {% else %}
+                        All synced
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Info Alert -->
+    {% if fees_summary.unsynced_count > 0 %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div>
+            <h3 class="font-bold">{{ fees_summary.unsynced_count }} transactions pending fee sync</h3>
+            <div class="text-sm">Run <code class="bg-base-300 px-1 rounded">python manage.py sync_stripe_fees --days=30</code> to fetch latest Stripe fees.</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Monthly Breakdown -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-calendar-alt text-primary"></i>
+                Monthly Fee Breakdown
+            </h2>
+
+            {% if fees_summary.monthly_breakdown %}
+            <div class="overflow-x-auto mt-4">
+                <table class="table w-full">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th class="text-right">Transactions</th>
+                            <th class="text-right">Gross Revenue</th>
+                            <th class="text-right">Stripe Fees</th>
+                            <th class="text-right">Fee Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for month in fees_summary.monthly_breakdown %}
+                        <tr>
+                            <td>{{ month.month|date:"F Y" }}</td>
+                            <td class="text-right">{{ month.count }}</td>
+                            <td class="text-right">£{{ month.gross|floatformat:2 }}</td>
+                            <td class="text-right text-error">-£{{ month.fees|floatformat:2 }}</td>
+                            <td class="text-right">
+                                <span class="badge {% if month.percentage > 3 %}badge-warning{% else %}badge-ghost{% endif %}">
+                                    {{ month.percentage|floatformat:2 }}%
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-base-content/60 py-8">
+                <i class="fab fa-stripe-s text-4xl mb-4"></i>
+                <p>No fee data available yet</p>
+                <p class="text-sm mt-2">Run the sync command to fetch Stripe fees</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Transactions with Fees -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-list text-primary"></i>
+                Recent Transactions with Fees
+            </h2>
+
+            {% if recent_with_fees %}
+            <div class="overflow-x-auto mt-4">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Domain</th>
+                            <th>Student</th>
+                            <th class="text-right">Amount</th>
+                            <th class="text-right">Stripe Fee</th>
+                            <th class="text-right">Fee %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in recent_with_fees %}
+                        <tr>
+                            <td>{{ tx.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <span class="badge badge-xs
+                                    {% if tx.domain == 'workshops' %}badge-primary
+                                    {% elif tx.domain == 'courses' %}badge-secondary
+                                    {% elif tx.domain == 'private_teaching' %}badge-accent
+                                    {% else %}badge-info{% endif %}">
+                                    {{ tx.get_domain_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if tx.student %}
+                                    {{ tx.student.get_full_name|default:tx.student.username|truncatechars:20 }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td class="text-right">£{{ tx.total_amount|floatformat:2 }}</td>
+                            <td class="text-right text-error">-£{{ tx.stripe_fee|floatformat:2 }}</td>
+                            <td class="text-right">
+                                {% widthratio tx.stripe_fee tx.total_amount 100 as fee_pct %}
+                                <span class="badge badge-ghost">{{ fee_pct }}%</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-base-content/60 py-8">
+                <i class="fas fa-inbox text-4xl mb-4"></i>
+                <p>No transactions with fee data</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Fee Insights -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-lightbulb text-warning"></i>
+                Fee Insights
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div class="bg-base-200 rounded-lg p-4">
+                    <div class="text-sm font-medium">Lowest Fee</div>
+                    <div class="text-xl font-bold">£{{ fees_summary.min_fee|floatformat:2 }}</div>
+                </div>
+                <div class="bg-base-200 rounded-lg p-4">
+                    <div class="text-sm font-medium">Average Fee</div>
+                    <div class="text-xl font-bold">£{{ fees_summary.avg_fee|floatformat:2 }}</div>
+                </div>
+                <div class="bg-base-200 rounded-lg p-4">
+                    <div class="text-sm font-medium">Highest Fee</div>
+                    <div class="text-xl font-bold">£{{ fees_summary.max_fee|floatformat:2 }}</div>
+                </div>
+            </div>
+            <div class="alert mt-4">
+                <i class="fas fa-info-circle"></i>
+                <div class="text-sm">
+                    Stripe fees typically range from 1.5% + 20p (UK cards) to 3.25% + 20p (international cards).
+                    Higher average rates may indicate more international payments.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

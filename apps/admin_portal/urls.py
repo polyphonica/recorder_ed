@@ -10,6 +10,7 @@ app_name = 'admin_portal'
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('support/', include('apps.admin_portal.urls_support')),
+    path('finance/', include('apps.admin_portal.urls_finance')),
 
     # Teacher applications admin - inline to avoid namespace issues
     path('applications/', app_views.application_list, name='applications_list'),

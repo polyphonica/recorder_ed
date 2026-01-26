@@ -1,0 +1,194 @@
+{% extends 'admin_portal/base.html' %}
+
+{% block page_title %}Operating Expenses{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with date filter -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'admin_portal:finance:dashboard' %}?days={{ days }}" class="btn btn-ghost btn-sm">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="text-2xl font-bold">Operating Expenses</h1>
+            </div>
+            <p class="text-base-content/60 ml-10">{{ date_label }} - General business expenses</p>
+        </div>
+        <div class="join">
+            <a href="?days=7" class="btn btn-sm join-item {% if days == '7' %}btn-primary{% else %}btn-outline{% endif %}">7 days</a>
+            <a href="?days=30" class="btn btn-sm join-item {% if days == '30' %}btn-primary{% else %}btn-outline{% endif %}">30 days</a>
+            <a href="?days=90" class="btn btn-sm join-item {% if days == '90' %}btn-primary{% else %}btn-outline{% endif %}">90 days</a>
+            <a href="?days=365" class="btn btn-sm join-item {% if days == '365' %}btn-primary{% else %}btn-outline{% endif %}">12 months</a>
+            <a href="?days=all" class="btn btn-sm join-item {% if days == 'all' %}btn-primary{% else %}btn-outline{% endif %}">All time</a>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-error">
+                    <i class="fas fa-receipt text-3xl"></i>
+                </div>
+                <div class="stat-title">Total Expenses</div>
+                <div class="stat-value text-error">£{{ total_expenses|floatformat:2 }}</div>
+                <div class="stat-desc">General business costs</div>
+            </div>
+        </div>
+
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Expense Count</div>
+                <div class="stat-value text-lg">{{ expenses|length }}</div>
+                <div class="stat-desc">In selected period</div>
+            </div>
+        </div>
+
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Categories</div>
+                <div class="stat-value text-lg">{{ expenses_by_category|length }}</div>
+                <div class="stat-desc">Expense categories</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Expenses by Category -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <i class="fas fa-tags text-primary"></i>
+                    Expenses by Category
+                </h2>
+
+                {% if expenses_by_category %}
+                <div class="overflow-x-auto mt-4">
+                    <table class="table w-full">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th class="text-right">Amount</th>
+                                <th class="text-right">% of Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cat in expenses_by_category %}
+                            <tr>
+                                <td>{{ cat.category__name|default:"Uncategorised" }}</td>
+                                <td class="text-right">£{{ cat.total|floatformat:2 }}</td>
+                                <td class="text-right">
+                                    {% if total_expenses > 0 %}
+                                        {% widthratio cat.total total_expenses 100 %}%
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="font-bold">
+                                <td>Total</td>
+                                <td class="text-right">£{{ total_expenses|floatformat:2 }}</td>
+                                <td class="text-right">100%</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-base-content/60 py-8">
+                    <i class="fas fa-tags text-4xl mb-4"></i>
+                    <p>No expenses in this period</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Add Expense Link -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <i class="fas fa-plus-circle text-success"></i>
+                    Manage Expenses
+                </h2>
+                <p class="text-base-content/60">
+                    Operating expenses are tracked in the Expenses section of your teacher dashboard.
+                    Use the "General" business area for platform-wide costs.
+                </p>
+                <div class="card-actions mt-4">
+                    <a href="{% url 'expenses:dashboard' %}" class="btn btn-primary">
+                        <i class="fas fa-external-link-alt mr-2"></i>
+                        Go to Expenses Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Expenses -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-list text-primary"></i>
+                Recent Operating Expenses
+            </h2>
+
+            {% if expenses %}
+            <div class="overflow-x-auto mt-4">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Supplier</th>
+                            <th class="text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr>
+                            <td>{{ expense.date|date:"M d, Y" }}</td>
+                            <td>{{ expense.description|truncatechars:40 }}</td>
+                            <td>
+                                {% if expense.category %}
+                                    <span class="badge badge-ghost">{{ expense.category.name }}</span>
+                                {% else %}
+                                    <span class="text-base-content/40">—</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ expense.supplier|truncatechars:20|default:"—" }}</td>
+                            <td class="text-right font-medium">£{{ expense.amount|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-base-content/60 py-8">
+                <i class="fas fa-inbox text-4xl mb-4"></i>
+                <p>No operating expenses recorded for this period</p>
+                <p class="text-sm mt-2">
+                    Add expenses with "General" business area to track platform costs
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="alert">
+        <i class="fas fa-info-circle"></i>
+        <div>
+            <h3 class="font-bold">About Operating Expenses</h3>
+            <div class="text-sm">
+                This view shows expenses marked as "General" business area.
+                These are platform-wide costs like hosting, software subscriptions, and other operating costs
+                that aren't tied to a specific teaching domain.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,270 @@
+{% extends 'admin_portal/base.html' %}
+
+{% block page_title %}Platform Finance{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with date filter -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">Platform Finance</h1>
+            <p class="text-base-content/60">{{ date_label }}</p>
+        </div>
+        <div class="join">
+            <a href="?days=7" class="btn btn-sm join-item {% if days == '7' %}btn-primary{% else %}btn-outline{% endif %}">7 days</a>
+            <a href="?days=30" class="btn btn-sm join-item {% if days == '30' %}btn-primary{% else %}btn-outline{% endif %}">30 days</a>
+            <a href="?days=90" class="btn btn-sm join-item {% if days == '90' %}btn-primary{% else %}btn-outline{% endif %}">90 days</a>
+            <a href="?days=365" class="btn btn-sm join-item {% if days == '365' %}btn-primary{% else %}btn-outline{% endif %}">12 months</a>
+            <a href="?days=all" class="btn btn-sm join-item {% if days == 'all' %}btn-primary{% else %}btn-outline{% endif %}">All time</a>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Commission Income -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-success">
+                    <i class="fas fa-pound-sign text-3xl"></i>
+                </div>
+                <div class="stat-title">Commission Income</div>
+                <div class="stat-value text-success">£{{ total_commission|floatformat:2 }}</div>
+                <div class="stat-desc">From £{{ total_gross|floatformat:2 }} gross</div>
+            </div>
+        </div>
+
+        <!-- Stripe Fees -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-error">
+                    <i class="fab fa-stripe-s text-3xl"></i>
+                </div>
+                <div class="stat-title">Stripe Fees</div>
+                <div class="stat-value text-error">-£{{ total_stripe_fees|floatformat:2 }}</div>
+                <div class="stat-desc">
+                    <a href="{% url 'admin_portal:finance:stripe_fees' %}?days={{ days }}" class="link link-primary">View details</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Net Platform Income -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-info">
+                    <i class="fas fa-chart-line text-3xl"></i>
+                </div>
+                <div class="stat-title">Net Platform Income</div>
+                <div class="stat-value text-info">£{{ net_platform_income|floatformat:2 }}</div>
+                <div class="stat-desc">Commission - Stripe fees</div>
+            </div>
+        </div>
+
+        <!-- Net Profit -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure {% if net_platform_profit >= 0 %}text-success{% else %}text-error{% endif %}">
+                    <i class="fas fa-wallet text-3xl"></i>
+                </div>
+                <div class="stat-title">Net Platform Profit</div>
+                <div class="stat-value {% if net_platform_profit >= 0 %}text-success{% else %}text-error{% endif %}">
+                    £{{ net_platform_profit|floatformat:2 }}
+                </div>
+                <div class="stat-desc">After £{{ total_expenses|floatformat:2 }} expenses</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Revenue by Domain -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title">
+                        <i class="fas fa-chart-pie text-primary"></i>
+                        Revenue by Domain
+                    </h2>
+                    <a href="{% url 'admin_portal:finance:revenue_detail' %}?days={{ days }}" class="btn btn-sm btn-ghost">
+                        View Details
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+
+                {% if domain_summary %}
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th>Domain</th>
+                                <th class="text-right">Gross</th>
+                                <th class="text-right">Commission</th>
+                                <th class="text-right">Stripe Fee</th>
+                                <th class="text-right">Net</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for domain in domain_summary %}
+                            <tr>
+                                <td>
+                                    <span class="badge
+                                        {% if domain.domain == 'workshops' %}badge-primary
+                                        {% elif domain.domain == 'courses' %}badge-secondary
+                                        {% elif domain.domain == 'private_teaching' %}badge-accent
+                                        {% else %}badge-info{% endif %}">
+                                        {{ domain.display_name }}
+                                    </span>
+                                </td>
+                                <td class="text-right">£{{ domain.gross|floatformat:2 }}</td>
+                                <td class="text-right text-success">£{{ domain.commission|floatformat:2 }}</td>
+                                <td class="text-right text-error">
+                                    {% if domain.stripe_fees %}-£{{ domain.stripe_fees|floatformat:2 }}{% else %}—{% endif %}
+                                </td>
+                                <td class="text-right font-medium">£{{ domain.net_income|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="font-bold">
+                                <td>Total</td>
+                                <td class="text-right">£{{ total_gross|floatformat:2 }}</td>
+                                <td class="text-right text-success">£{{ total_commission|floatformat:2 }}</td>
+                                <td class="text-right text-error">-£{{ total_stripe_fees|floatformat:2 }}</td>
+                                <td class="text-right">£{{ net_platform_income|floatformat:2 }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-base-content/60 py-8">
+                    <i class="fas fa-chart-pie text-4xl mb-4"></i>
+                    <p>No revenue data for this period</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title">
+                        <i class="fas fa-exchange-alt text-primary"></i>
+                        Recent Transactions
+                    </h2>
+                </div>
+
+                {% if recent_transactions %}
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full text-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Domain</th>
+                                <th>Student</th>
+                                <th class="text-right">Amount</th>
+                                <th class="text-right">Commission</th>
+                                <th class="text-right">Fee</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in recent_transactions %}
+                            <tr>
+                                <td>{{ tx.created_at|date:"M d" }}</td>
+                                <td>
+                                    <span class="badge badge-xs
+                                        {% if tx.domain == 'workshops' %}badge-primary
+                                        {% elif tx.domain == 'courses' %}badge-secondary
+                                        {% elif tx.domain == 'private_teaching' %}badge-accent
+                                        {% else %}badge-info{% endif %}">
+                                        {{ tx.get_domain_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if tx.student %}
+                                        {{ tx.student.get_full_name|default:tx.student.username|truncatechars:15 }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td class="text-right">£{{ tx.total_amount|floatformat:2 }}</td>
+                                <td class="text-right text-success">£{{ tx.platform_commission|floatformat:2 }}</td>
+                                <td class="text-right text-error">
+                                    {% if tx.stripe_fee %}-£{{ tx.stripe_fee|floatformat:2 }}{% else %}—{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-base-content/60 py-8">
+                    <i class="fas fa-inbox text-4xl mb-4"></i>
+                    <p>No recent transactions</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Card -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-calculator text-primary"></i>
+                Platform P&L Summary
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div class="bg-success/10 rounded-lg p-4">
+                    <div class="text-sm text-base-content/60">Platform Income</div>
+                    <div class="text-2xl font-bold text-success">+£{{ total_commission|floatformat:2 }}</div>
+                    <div class="text-xs text-base-content/60">Commission from {{ transaction_count }} transactions</div>
+                </div>
+                <div class="bg-error/10 rounded-lg p-4">
+                    <div class="text-sm text-base-content/60">Platform Expenses</div>
+                    <div class="text-2xl font-bold text-error">-£{{ total_stripe_fees|floatformat:2|add:total_expenses|floatformat:2 }}</div>
+                    <div class="text-xs text-base-content/60">
+                        Stripe: £{{ total_stripe_fees|floatformat:2 }} | Other: £{{ total_expenses|floatformat:2 }}
+                    </div>
+                </div>
+                <div class="{% if net_platform_profit >= 0 %}bg-success/10{% else %}bg-error/10{% endif %} rounded-lg p-4">
+                    <div class="text-sm text-base-content/60">Net Profit</div>
+                    <div class="text-2xl font-bold {% if net_platform_profit >= 0 %}text-success{% else %}text-error{% endif %}">
+                        £{{ net_platform_profit|floatformat:2 }}
+                    </div>
+                    <div class="text-xs text-base-content/60">
+                        {% if total_commission > 0 %}
+                            {% widthratio net_platform_profit total_commission 100 %}% margin
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-bolt text-warning"></i>
+                Quick Actions
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <a href="{% url 'admin_portal:finance:revenue_detail' %}?days={{ days }}" class="btn btn-outline">
+                    <i class="fas fa-chart-bar mr-2"></i>
+                    Revenue Details
+                </a>
+                <a href="{% url 'admin_portal:finance:stripe_fees' %}?days={{ days }}" class="btn btn-outline">
+                    <i class="fab fa-stripe-s mr-2"></i>
+                    Stripe Fee Analysis
+                </a>
+                <a href="{% url 'admin_portal:finance:expenses' %}?days={{ days }}" class="btn btn-outline">
+                    <i class="fas fa-receipt mr-2"></i>
+                    Operating Expenses
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

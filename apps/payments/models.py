@@ -51,6 +51,21 @@ class StripePayment(models.Model):
     refunded_at = models.DateTimeField(null=True, blank=True, help_text="When refund was processed")
     stripe_refund_id = models.CharField(max_length=255, blank=True, null=True, help_text="Stripe refund ID")
 
+    # Stripe fee tracking (for platform accounting)
+    stripe_fee = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Stripe's processing fee for this transaction"
+    )
+    stripe_balance_transaction_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Stripe Balance Transaction ID for fee tracking"
+    )
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
