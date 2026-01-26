@@ -6,6 +6,8 @@ let playlists = [];
 let eventEmitters = [];
 let durations = []; // Store duration for each piece
 let isPlaying = []; // Track playback state for each piece
+let lastPositions = []; // Track last known position for end detection
+let endCheckTimers = []; // Timers for checking if playback ended
 
 /**
  * Initialize all audio players for pieces in a lesson (legacy function for backwards compatibility)
@@ -154,11 +156,15 @@ function setupTimeUpdateListener(instance) {
     // Listen for play state changes
     eventEmitters[instance].on('play', () => {
         isPlaying[instance] = true;
+        lastPositions[instance] = -1;
         const pauseBtn = document.getElementById(`pauseButton${instance}`);
         if (pauseBtn) {
             pauseBtn.disabled = false;
             pauseBtn.textContent = 'Pause';
         }
+
+        // Start watchdog timer to detect when playback ends
+        startEndDetectionTimer(instance);
     });
 
     eventEmitters[instance].on('pause', () => {
@@ -170,6 +176,7 @@ function setupTimeUpdateListener(instance) {
 
     eventEmitters[instance].on('stop', () => {
         isPlaying[instance] = false;
+        stopEndDetectionTimer(instance);
 
         const playBtn = document.getElementById(`playButton${instance}`);
         const pauseBtn = document.getElementById(`pauseButton${instance}`);
@@ -220,7 +227,10 @@ function getDuration(instance) {
  * Reset player UI to initial state (for when playback ends)
  */
 function resetPlayerUI(instance) {
+    if (!isPlaying[instance]) return; // Already reset
+
     isPlaying[instance] = false;
+    stopEndDetectionTimer(instance);
 
     const playBtn = document.getElementById(`playButton${instance}`);
     const pauseBtn = document.getElementById(`pauseButton${instance}`);
@@ -249,6 +259,54 @@ function resetPlayerUI(instance) {
             eventEmitters[instance].emit('select', 0, 0);
         }
     }, 100);
+}
+
+/**
+ * Start a timer to periodically check if playback has ended
+ */
+function startEndDetectionTimer(instance) {
+    stopEndDetectionTimer(instance); // Clear any existing timer
+
+    endCheckTimers[instance] = setInterval(() => {
+        if (!isPlaying[instance]) {
+            stopEndDetectionTimer(instance);
+            return;
+        }
+
+        const duration = getDuration(instance);
+        if (duration <= 0) return;
+
+        // Get current position from the seek slider value
+        const seekSlider = document.getElementById(`seekSlider${instance}`);
+        if (!seekSlider) return;
+
+        const currentPosition = (seekSlider.value / 1000) * duration;
+
+        // Check if position has stopped advancing and we're near the end
+        if (lastPositions[instance] !== undefined && lastPositions[instance] >= 0) {
+            const positionDelta = Math.abs(currentPosition - lastPositions[instance]);
+            const nearEnd = currentPosition >= duration - 0.5;
+
+            // If position hasn't changed much and we're near the end, playback finished
+            if (positionDelta < 0.1 && nearEnd) {
+                console.log(`Playback ended for instance ${instance} at position ${currentPosition}/${duration}`);
+                resetPlayerUI(instance);
+                return;
+            }
+        }
+
+        lastPositions[instance] = currentPosition;
+    }, 250); // Check every 250ms
+}
+
+/**
+ * Stop the end detection timer
+ */
+function stopEndDetectionTimer(instance) {
+    if (endCheckTimers[instance]) {
+        clearInterval(endCheckTimers[instance]);
+        endCheckTimers[instance] = null;
+    }
 }
 
 /**
