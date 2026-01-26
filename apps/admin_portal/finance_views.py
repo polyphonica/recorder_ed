@@ -62,6 +62,9 @@ def platform_finance_dashboard(request):
 
     total_expenses = expenses_query.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
+    # Calculate total platform expenses (Stripe fees + operating expenses)
+    total_platform_expenses = summary['total_stripe_fees'] + total_expenses
+
     # Calculate net platform profit
     net_platform_profit = summary['net_platform_income'] - total_expenses
 
@@ -105,6 +108,7 @@ def platform_finance_dashboard(request):
 
         # Expenses and profit
         'total_expenses': total_expenses,
+        'total_platform_expenses': total_platform_expenses,
         'net_platform_profit': net_platform_profit,
 
         # Domain breakdown
