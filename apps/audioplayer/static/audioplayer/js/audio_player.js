@@ -5,6 +5,7 @@
 let playlists = [];
 let eventEmitters = [];
 let durations = []; // Store duration for each piece
+let isPlaying = []; // Track playback state for each piece
 
 /**
  * Initialize all audio players for pieces in a lesson (legacy function for backwards compatibility)
@@ -142,10 +143,17 @@ function setupTimeUpdateListener(instance) {
             const newValue = (position / duration) * 1000;
             seekSlider.value = newValue;
         }
+
+        // Detect when playback reaches the end
+        if (isPlaying[instance] && duration > 0 && position >= duration - 0.1) {
+            // Playback has reached the end - reset UI
+            resetPlayerUI(instance);
+        }
     });
 
     // Listen for play state changes
     eventEmitters[instance].on('play', () => {
+        isPlaying[instance] = true;
         const pauseBtn = document.getElementById(`pauseButton${instance}`);
         if (pauseBtn) {
             pauseBtn.disabled = false;
@@ -161,6 +169,8 @@ function setupTimeUpdateListener(instance) {
     });
 
     eventEmitters[instance].on('stop', () => {
+        isPlaying[instance] = false;
+
         const playBtn = document.getElementById(`playButton${instance}`);
         const pauseBtn = document.getElementById(`pauseButton${instance}`);
         const seekSlider = document.getElementById(`seekSlider${instance}`);
@@ -191,36 +201,11 @@ function setupTimeUpdateListener(instance) {
         }, 100);
     });
 
-    // Handle audio finishing naturally (reaching the end)
+    // Handle audio finishing naturally (backup listener if 'finished' event fires)
     eventEmitters[instance].on('finished', () => {
-        const playBtn = document.getElementById(`playButton${instance}`);
-        const pauseBtn = document.getElementById(`pauseButton${instance}`);
-        const seekSlider = document.getElementById(`seekSlider${instance}`);
-        const currentTimeEl = document.getElementById(`currentTime${instance}`);
-
-        // Reset UI to initial state
-        if (playBtn) {
-            playBtn.textContent = 'Play';
-            playBtn.classList.remove('playing');
+        if (isPlaying[instance]) {
+            resetPlayerUI(instance);
         }
-        if (pauseBtn) {
-            pauseBtn.disabled = true;
-            pauseBtn.textContent = 'Pause';
-        }
-        // Reset seek slider and time to beginning
-        if (seekSlider) {
-            seekSlider.value = 0;
-        }
-        if (currentTimeEl) {
-            currentTimeEl.textContent = '0:00';
-        }
-
-        // Reset playlist position to beginning for replay
-        setTimeout(() => {
-            if (eventEmitters[instance]) {
-                eventEmitters[instance].emit('select', 0, 0);
-            }
-        }, 100);
     });
 }
 
@@ -229,6 +214,41 @@ function setupTimeUpdateListener(instance) {
  */
 function getDuration(instance) {
     return durations[instance] || 0;
+}
+
+/**
+ * Reset player UI to initial state (for when playback ends)
+ */
+function resetPlayerUI(instance) {
+    isPlaying[instance] = false;
+
+    const playBtn = document.getElementById(`playButton${instance}`);
+    const pauseBtn = document.getElementById(`pauseButton${instance}`);
+    const seekSlider = document.getElementById(`seekSlider${instance}`);
+    const currentTimeEl = document.getElementById(`currentTime${instance}`);
+
+    if (playBtn) {
+        playBtn.textContent = 'Play';
+        playBtn.classList.remove('playing');
+    }
+    if (pauseBtn) {
+        pauseBtn.disabled = true;
+        pauseBtn.textContent = 'Pause';
+    }
+    if (seekSlider) {
+        seekSlider.value = 0;
+    }
+    if (currentTimeEl) {
+        currentTimeEl.textContent = '0:00';
+    }
+
+    // Reset playlist position to beginning for replay
+    setTimeout(() => {
+        if (eventEmitters[instance]) {
+            eventEmitters[instance].emit('stop');
+            eventEmitters[instance].emit('select', 0, 0);
+        }
+    }, 100);
 }
 
 /**
