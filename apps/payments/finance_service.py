@@ -1072,6 +1072,9 @@ class FinanceService:
         Get platform-level finance summary (commission income, Stripe fees, etc.)
         This is different from teacher revenue - it's the platform owner's perspective.
 
+        Queries actual transaction tables (like get_teacher_revenue_summary) to ensure
+        all revenue is captured, even if StripePayment records are missing.
+
         Args:
             start_date: Optional start date filter
             end_date: Optional end date filter
@@ -1079,67 +1082,161 @@ class FinanceService:
         Returns:
             dict with platform income, Stripe fees, and domain breakdowns
         """
-        from django.db.models import Sum, Count
+        from django.db.models import Sum, Count, Q
         from django.db.models.functions import TruncMonth
+        from django.conf import settings
 
-        # Base queryset - only completed payments
-        payments = StripePayment.objects.filter(status='completed')
+        commission_rate = settings.PLATFORM_COMMISSION_PERCENTAGE / 100
 
-        if start_date:
-            payments = payments.filter(created_at__gte=start_date)
-        if end_date:
-            payments = payments.filter(created_at__lte=end_date)
+        # ===== WORKSHOPS =====
+        from apps.workshops.models import WorkshopRegistration
 
-        # Aggregate totals
-        totals = payments.aggregate(
-            total_gross=Sum('total_amount'),
-            total_commission=Sum('platform_commission'),
-            total_stripe_fees=Sum('stripe_fee'),
-            transaction_count=Count('id')
+        workshop_regs = WorkshopRegistration.objects.filter(
+            status='registered',
+        ).filter(
+            Q(payment_status='paid') | Q(payment_status='completed') | Q(payment_status='not_required')
         )
 
-        total_gross = totals['total_gross'] or Decimal('0.00')
-        total_commission = totals['total_commission'] or Decimal('0.00')
-        total_stripe_fees = totals['total_stripe_fees'] or Decimal('0.00')
-        transaction_count = totals['transaction_count'] or 0
+        if start_date:
+            workshop_regs = workshop_regs.filter(paid_at__gte=start_date)
+        if end_date:
+            workshop_regs = workshop_regs.filter(paid_at__lte=end_date)
 
-        # Net platform income = commission - stripe fees
+        workshops_gross = workshop_regs.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
+        workshops_count = workshop_regs.count()
+        workshops_commission = workshops_gross * Decimal(str(commission_rate))
+
+        # ===== COURSES =====
+        from apps.courses.models import CourseEnrollment, CourseCancellationRequest
+
+        course_enrollments = CourseEnrollment.objects.filter(
+            is_active=True
+        ).filter(
+            Q(payment_status='completed') | Q(payment_status='not_required')
+        )
+
+        if start_date:
+            course_enrollments = course_enrollments.filter(
+                Q(paid_at__gte=start_date) | Q(paid_at__isnull=True, enrolled_at__gte=start_date)
+            )
+        if end_date:
+            course_enrollments = course_enrollments.filter(
+                Q(paid_at__lte=end_date) | Q(paid_at__isnull=True, enrolled_at__lte=end_date)
+            )
+
+        courses_gross = course_enrollments.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
+        courses_count = course_enrollments.count()
+        courses_commission = courses_gross * Decimal(str(commission_rate))
+
+        # ===== PRIVATE TEACHING =====
+        from apps.private_teaching.models import Order, OrderItem, ExamRegistration
+
+        # Lessons - query OrderItems directly
+        order_items = OrderItem.objects.filter(
+            order__payment_status='completed'
+        )
+
+        if start_date:
+            order_items = order_items.filter(order__created_at__gte=start_date)
+        if end_date:
+            order_items = order_items.filter(order__created_at__lte=end_date)
+
+        lessons_gross = order_items.aggregate(total=Sum('price_paid'))['total'] or Decimal('0.00')
+
+        # Count unique orders
+        orders_query = Order.objects.filter(payment_status='completed')
+        if start_date:
+            orders_query = orders_query.filter(created_at__gte=start_date)
+        if end_date:
+            orders_query = orders_query.filter(created_at__lte=end_date)
+        lessons_count = orders_query.count()
+
+        # Exams
+        exam_regs = ExamRegistration.objects.filter(payment_status='completed')
+
+        if start_date:
+            exam_regs = exam_regs.filter(paid_at__gte=start_date)
+        if end_date:
+            exam_regs = exam_regs.filter(paid_at__lte=end_date)
+
+        exams_gross = exam_regs.aggregate(total=Sum('fee_amount'))['total'] or Decimal('0.00')
+        exams_count = exam_regs.count()
+
+        private_gross = lessons_gross + exams_gross
+        private_count = lessons_count + exams_count
+        private_commission = private_gross * Decimal(str(commission_rate))
+
+        # ===== DIGITAL PRODUCTS =====
+        from apps.digital_products.models import ProductPurchase
+
+        digital_purchases = ProductPurchase.objects.filter(payment_status='completed')
+
+        if start_date:
+            digital_purchases = digital_purchases.filter(paid_at__gte=start_date)
+        if end_date:
+            digital_purchases = digital_purchases.filter(paid_at__lte=end_date)
+
+        digital_gross = digital_purchases.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
+        digital_count = digital_purchases.count()
+        digital_commission = digital_gross * Decimal(str(commission_rate))
+
+        # ===== STRIPE FEES (from StripePayment table) =====
+        stripe_payments = StripePayment.objects.filter(
+            status='completed',
+            stripe_fee__isnull=False
+        )
+
+        if start_date:
+            stripe_payments = stripe_payments.filter(created_at__gte=start_date)
+        if end_date:
+            stripe_payments = stripe_payments.filter(created_at__lte=end_date)
+
+        # Get Stripe fees by domain
+        stripe_fees_by_domain = stripe_payments.values('domain').annotate(
+            fees=Sum('stripe_fee')
+        )
+
+        stripe_fees_map = {item['domain']: item['fees'] or Decimal('0.00') for item in stripe_fees_by_domain}
+        total_stripe_fees = sum(stripe_fees_map.values(), Decimal('0.00'))
+
+        # ===== TOTALS =====
+        total_gross = workshops_gross + courses_gross + private_gross + digital_gross
+        total_commission = workshops_commission + courses_commission + private_commission + digital_commission
+        total_count = workshops_count + courses_count + private_count + digital_count
         net_platform_income = total_commission - total_stripe_fees
 
-        # Breakdown by domain
-        domain_breakdown = payments.values('domain').annotate(
-            gross=Sum('total_amount'),
-            commission=Sum('platform_commission'),
-            stripe_fees=Sum('stripe_fee'),
-            count=Count('id')
-        ).order_by('domain')
+        by_domain = {
+            'workshops': {
+                'gross': workshops_gross,
+                'commission': workshops_commission,
+                'stripe_fees': stripe_fees_map.get('workshops', Decimal('0.00')),
+                'net_income': workshops_commission - stripe_fees_map.get('workshops', Decimal('0.00')),
+                'count': workshops_count,
+            },
+            'courses': {
+                'gross': courses_gross,
+                'commission': courses_commission,
+                'stripe_fees': stripe_fees_map.get('courses', Decimal('0.00')),
+                'net_income': courses_commission - stripe_fees_map.get('courses', Decimal('0.00')),
+                'count': courses_count,
+            },
+            'private_teaching': {
+                'gross': private_gross,
+                'commission': private_commission,
+                'stripe_fees': stripe_fees_map.get('private_teaching', Decimal('0.00')),
+                'net_income': private_commission - stripe_fees_map.get('private_teaching', Decimal('0.00')),
+                'count': private_count,
+            },
+            'digital_products': {
+                'gross': digital_gross,
+                'commission': digital_commission,
+                'stripe_fees': stripe_fees_map.get('digital_products', Decimal('0.00')),
+                'net_income': digital_commission - stripe_fees_map.get('digital_products', Decimal('0.00')),
+                'count': digital_count,
+            },
+        }
 
-        by_domain = {}
-        for item in domain_breakdown:
-            domain = item['domain']
-            commission = item['commission'] or Decimal('0.00')
-            stripe_fees = item['stripe_fees'] or Decimal('0.00')
-
-            by_domain[domain] = {
-                'gross': item['gross'] or Decimal('0.00'),
-                'commission': commission,
-                'stripe_fees': stripe_fees,
-                'net_income': commission - stripe_fees,
-                'count': item['count'] or 0,
-            }
-
-        # Ensure all domains are present (even if no transactions)
-        for domain in ['workshops', 'courses', 'private_teaching', 'digital_products']:
-            if domain not in by_domain:
-                by_domain[domain] = {
-                    'gross': Decimal('0.00'),
-                    'commission': Decimal('0.00'),
-                    'stripe_fees': Decimal('0.00'),
-                    'net_income': Decimal('0.00'),
-                    'count': 0,
-                }
-
-        # Monthly trend (last 12 months)
+        # Monthly trend (from StripePayment for now - could be enhanced)
         twelve_months_ago = timezone.now() - timedelta(days=365)
         monthly_trend = StripePayment.objects.filter(
             status='completed',
@@ -1169,7 +1266,7 @@ class FinanceService:
             'total_commission': total_commission,
             'total_stripe_fees': total_stripe_fees,
             'net_platform_income': net_platform_income,
-            'transaction_count': transaction_count,
+            'transaction_count': total_count,
             'by_domain': by_domain,
             'monthly_trend': trend_data,
         }
