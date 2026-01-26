@@ -5,9 +5,10 @@ Platform-level financial reporting for the platform owner.
 from datetime import timedelta
 from decimal import Decimal
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.db.models import Sum
+from django.contrib import messages
 
 from .decorators import admin_required
 
@@ -330,3 +331,144 @@ def platform_expenses_list(request):
     }
 
     return render(request, 'admin_portal/finance/expenses.html', context)
+
+
+@admin_required
+def platform_expense_add(request):
+    """
+    Add a new platform operating expense.
+    Business area is automatically set to 'general'.
+    """
+    from apps.expenses.models import Expense, ExpenseCategory
+
+    if request.method == 'POST':
+        # Get form data
+        date = request.POST.get('date')
+        category_id = request.POST.get('category')
+        new_category_name = request.POST.get('new_category', '').strip()
+        description = request.POST.get('description')
+        supplier = request.POST.get('supplier')
+        amount = request.POST.get('amount')
+        payment_method = request.POST.get('payment_method')
+        notes = request.POST.get('notes', '')
+        receipt_file = request.FILES.get('receipt_file')
+
+        # Handle category - either existing or create new
+        if new_category_name:
+            category, created = ExpenseCategory.objects.get_or_create(
+                name=new_category_name,
+                defaults={'created_by': request.user}
+            )
+        elif category_id:
+            category = get_object_or_404(ExpenseCategory, pk=category_id)
+        else:
+            messages.error(request, 'Please select a category or create a new one.')
+            return redirect('admin_portal:finance:expense_add')
+
+        # Create expense
+        expense = Expense.objects.create(
+            date=date,
+            business_area='general',  # Always 'general' for admin expenses
+            category=category,
+            description=description,
+            supplier=supplier,
+            amount=amount,
+            payment_method=payment_method,
+            notes=notes,
+            receipt_file=receipt_file,
+            created_by=request.user
+        )
+
+        messages.success(request, f'Expense "{expense.description}" added successfully.')
+        return redirect('admin_portal:finance:expenses')
+
+    # GET request - show form
+    categories = ExpenseCategory.objects.filter(is_active=True).order_by('name')
+    payment_methods = Expense.PAYMENT_METHOD_CHOICES
+
+    context = {
+        'categories': categories,
+        'payment_methods': payment_methods,
+        'today': timezone.now().date(),
+    }
+
+    return render(request, 'admin_portal/finance/expense_form.html', context)
+
+
+@admin_required
+def platform_expense_edit(request, pk):
+    """
+    Edit an existing platform operating expense.
+    """
+    from apps.expenses.models import Expense, ExpenseCategory
+
+    expense = get_object_or_404(Expense, pk=pk, business_area='general')
+
+    if request.method == 'POST':
+        # Get form data
+        expense.date = request.POST.get('date')
+        category_id = request.POST.get('category')
+        new_category_name = request.POST.get('new_category', '').strip()
+        expense.description = request.POST.get('description')
+        expense.supplier = request.POST.get('supplier')
+        expense.amount = request.POST.get('amount')
+        expense.payment_method = request.POST.get('payment_method')
+        expense.notes = request.POST.get('notes', '')
+
+        # Handle receipt file
+        if request.FILES.get('receipt_file'):
+            expense.receipt_file = request.FILES.get('receipt_file')
+        elif request.POST.get('clear_receipt'):
+            expense.receipt_file = None
+
+        # Handle category
+        if new_category_name:
+            category, created = ExpenseCategory.objects.get_or_create(
+                name=new_category_name,
+                defaults={'created_by': request.user}
+            )
+            expense.category = category
+        elif category_id:
+            expense.category = get_object_or_404(ExpenseCategory, pk=category_id)
+        else:
+            messages.error(request, 'Please select a category or create a new one.')
+            return redirect('admin_portal:finance:expense_edit', pk=pk)
+
+        expense.save()
+        messages.success(request, f'Expense "{expense.description}" updated successfully.')
+        return redirect('admin_portal:finance:expenses')
+
+    # GET request - show form with existing data
+    categories = ExpenseCategory.objects.filter(is_active=True).order_by('name')
+    payment_methods = Expense.PAYMENT_METHOD_CHOICES
+
+    context = {
+        'expense': expense,
+        'categories': categories,
+        'payment_methods': payment_methods,
+        'editing': True,
+    }
+
+    return render(request, 'admin_portal/finance/expense_form.html', context)
+
+
+@admin_required
+def platform_expense_delete(request, pk):
+    """
+    Delete a platform operating expense.
+    """
+    from apps.expenses.models import Expense
+
+    expense = get_object_or_404(Expense, pk=pk, business_area='general')
+
+    if request.method == 'POST':
+        description = expense.description
+        expense.delete()
+        messages.success(request, f'Expense "{description}" deleted successfully.')
+        return redirect('admin_portal:finance:expenses')
+
+    context = {
+        'expense': expense,
+    }
+
+    return render(request, 'admin_portal/finance/expense_confirm_delete.html', context)

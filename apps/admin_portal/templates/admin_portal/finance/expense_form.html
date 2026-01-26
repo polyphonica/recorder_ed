@@ -1,0 +1,157 @@
+{% extends 'admin_portal/base.html' %}
+
+{% block page_title %}{% if editing %}Edit{% else %}Add{% endif %} Operating Expense{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center gap-2">
+        <a href="{% url 'admin_portal:finance:expenses' %}" class="btn btn-ghost btn-sm">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 class="text-2xl font-bold">{% if editing %}Edit{% else %}Add{% endif %} Operating Expense</h1>
+            <p class="text-base-content/60">Platform operating costs and general business expenses</p>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Date -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Date <span class="text-error">*</span></span>
+                        </label>
+                        <input type="date" name="date"
+                               value="{% if editing %}{{ expense.date|date:'Y-m-d' }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}"
+                               class="input input-bordered w-full" required>
+                    </div>
+
+                    <!-- Amount -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Amount (£) <span class="text-error">*</span></span>
+                        </label>
+                        <input type="number" name="amount" step="0.01" min="0"
+                               value="{% if editing %}{{ expense.amount }}{% endif %}"
+                               placeholder="0.00" class="input input-bordered w-full" required>
+                    </div>
+
+                    <!-- Category -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Category <span class="text-error">*</span></span>
+                        </label>
+                        <select name="category" class="select select-bordered w-full">
+                            <option value="">Select a category</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}" {% if editing and expense.category_id == category.id %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- New Category -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Or Create New Category</span>
+                        </label>
+                        <input type="text" name="new_category" placeholder="Enter new category name"
+                               class="input input-bordered w-full">
+                        <label class="label">
+                            <span class="label-text-alt">Leave blank to use existing category</span>
+                        </label>
+                    </div>
+
+                    <!-- Supplier -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Supplier <span class="text-error">*</span></span>
+                        </label>
+                        <input type="text" name="supplier"
+                               value="{% if editing %}{{ expense.supplier }}{% endif %}"
+                               placeholder="Vendor or supplier name" class="input input-bordered w-full" required>
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Payment Method <span class="text-error">*</span></span>
+                        </label>
+                        <select name="payment_method" class="select select-bordered w-full" required>
+                            {% for value, label in payment_methods %}
+                            <option value="{{ value }}" {% if editing and expense.payment_method == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Description <span class="text-error">*</span></span>
+                    </label>
+                    <textarea name="description" rows="3"
+                              placeholder="What was purchased?"
+                              class="textarea textarea-bordered w-full" required>{% if editing %}{{ expense.description }}{% endif %}</textarea>
+                </div>
+
+                <!-- Notes -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Notes</span>
+                    </label>
+                    <textarea name="notes" rows="2"
+                              placeholder="Additional notes (optional)"
+                              class="textarea textarea-bordered w-full">{% if editing %}{{ expense.notes }}{% endif %}</textarea>
+                </div>
+
+                <!-- Receipt Upload -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Receipt</span>
+                    </label>
+                    {% if editing and expense.receipt_file %}
+                    <div class="alert alert-info mb-2">
+                        <i class="fas fa-file"></i>
+                        <span>Current file: <a href="{{ expense.receipt_file.url }}" target="_blank" class="link">{{ expense.receipt_file.name }}</a></span>
+                        <label class="label cursor-pointer gap-2">
+                            <input type="checkbox" name="clear_receipt" class="checkbox checkbox-sm">
+                            <span class="label-text">Remove</span>
+                        </label>
+                    </div>
+                    {% endif %}
+                    <input type="file" name="receipt_file" accept=".pdf,.jpg,.jpeg,.png"
+                           class="file-input file-input-bordered w-full">
+                    <label class="label">
+                        <span class="label-text-alt">Accepted formats: PDF, JPG, PNG (max 5MB)</span>
+                    </label>
+                </div>
+
+                <!-- Info about business area -->
+                <div class="alert">
+                    <i class="fas fa-info-circle"></i>
+                    <span>This expense will be categorized as a <strong>General/Platform</strong> operating expense.</span>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex justify-end gap-2">
+                    <a href="{% url 'admin_portal:finance:expenses' %}" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save mr-2"></i>
+                        {% if editing %}Update{% else %}Save{% endif %} Expense
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

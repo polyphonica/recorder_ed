@@ -15,6 +15,13 @@
             </div>
             <p class="text-base-content/60 ml-10">{{ date_label }} - General business expenses</p>
         </div>
+        <div class="flex gap-2 items-center">
+            <a href="{% url 'admin_portal:finance:expense_add' %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus mr-2"></i>Add Expense
+            </a>
+        </div>
+    </div>
+    <div class="flex justify-end">
         <div class="join">
             <a href="?days=7" class="btn btn-sm join-item {% if days == '7' %}btn-primary{% else %}btn-outline{% endif %}">7 days</a>
             <a href="?days=30" class="btn btn-sm join-item {% if days == '30' %}btn-primary{% else %}btn-outline{% endif %}">30 days</a>
@@ -106,21 +113,20 @@
             </div>
         </div>
 
-        <!-- Add Expense Link -->
+        <!-- Quick Actions -->
         <div class="card bg-base-100 shadow-xl">
             <div class="card-body">
                 <h2 class="card-title">
-                    <i class="fas fa-plus-circle text-success"></i>
-                    Manage Expenses
+                    <i class="fas fa-bolt text-warning"></i>
+                    Quick Actions
                 </h2>
                 <p class="text-base-content/60">
-                    Operating expenses are tracked in the Expenses section of your teacher dashboard.
-                    Use the "General" business area for platform-wide costs.
+                    Manage platform operating expenses directly from here. All expenses are automatically categorized as platform costs.
                 </p>
-                <div class="card-actions mt-4">
-                    <a href="{% url 'expenses:dashboard' %}" class="btn btn-primary">
-                        <i class="fas fa-external-link-alt mr-2"></i>
-                        Go to Expenses Dashboard
+                <div class="card-actions mt-4 flex-col gap-2">
+                    <a href="{% url 'admin_portal:finance:expense_add' %}" class="btn btn-primary w-full">
+                        <i class="fas fa-plus mr-2"></i>
+                        Add New Expense
                     </a>
                 </div>
             </div>
@@ -145,6 +151,7 @@
                             <th>Category</th>
                             <th>Supplier</th>
                             <th class="text-right">Amount</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -161,6 +168,18 @@
                             </td>
                             <td>{{ expense.supplier|truncatechars:20|default:"—" }}</td>
                             <td class="text-right font-medium">£{{ expense.amount|floatformat:2 }}</td>
+                            <td class="text-center">
+                                <div class="flex justify-center gap-1">
+                                    <a href="{% url 'admin_portal:finance:expense_edit' expense.pk %}"
+                                       class="btn btn-ghost btn-xs" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'admin_portal:finance:expense_delete' expense.pk %}"
+                                       class="btn btn-ghost btn-xs text-error" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -170,9 +189,9 @@
             <div class="text-center text-base-content/60 py-8">
                 <i class="fas fa-inbox text-4xl mb-4"></i>
                 <p>No operating expenses recorded for this period</p>
-                <p class="text-sm mt-2">
-                    Add expenses with "General" business area to track platform costs
-                </p>
+                <a href="{% url 'admin_portal:finance:expense_add' %}" class="btn btn-primary btn-sm mt-4">
+                    <i class="fas fa-plus mr-2"></i>Add Your First Expense
+                </a>
             </div>
             {% endif %}
         </div>
@@ -184,9 +203,8 @@
         <div>
             <h3 class="font-bold">About Operating Expenses</h3>
             <div class="text-sm">
-                This view shows expenses marked as "General" business area.
-                These are platform-wide costs like hosting, software subscriptions, and other operating costs
-                that aren't tied to a specific teaching domain.
+                Track platform-wide costs like hosting, software subscriptions, and other operating costs.
+                These expenses are factored into the platform's profit calculations on the finance dashboard.
             </div>
         </div>
     </div>
