@@ -190,6 +190,38 @@ function setupTimeUpdateListener(instance) {
             }
         }, 100);
     });
+
+    // Handle audio finishing naturally (reaching the end)
+    eventEmitters[instance].on('finished', () => {
+        const playBtn = document.getElementById(`playButton${instance}`);
+        const pauseBtn = document.getElementById(`pauseButton${instance}`);
+        const seekSlider = document.getElementById(`seekSlider${instance}`);
+        const currentTimeEl = document.getElementById(`currentTime${instance}`);
+
+        // Reset UI to initial state
+        if (playBtn) {
+            playBtn.textContent = 'Play';
+            playBtn.classList.remove('playing');
+        }
+        if (pauseBtn) {
+            pauseBtn.disabled = true;
+            pauseBtn.textContent = 'Pause';
+        }
+        // Reset seek slider and time to beginning
+        if (seekSlider) {
+            seekSlider.value = 0;
+        }
+        if (currentTimeEl) {
+            currentTimeEl.textContent = '0:00';
+        }
+
+        // Reset playlist position to beginning for replay
+        setTimeout(() => {
+            if (eventEmitters[instance]) {
+                eventEmitters[instance].emit('select', 0, 0);
+            }
+        }, 100);
+    });
 }
 
 /**
