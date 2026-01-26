@@ -229,9 +229,10 @@ class StripeWebhookView(View):
                 order.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
                 order.save()
 
-                # Update order reference in StripePayment
+                # Update order reference in StripePayment and mark as completed
                 stripe_payment.order_id = order_id
                 stripe_payment.save()
+                stripe_payment.mark_completed()
 
                 # Mark lessons as paid
                 lesson_ids = metadata.get('lesson_ids', '').split(',')
