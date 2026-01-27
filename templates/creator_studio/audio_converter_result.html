@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Conversion Complete - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm mb-6">
+        <ul>
+            <li><a href="{% url 'creator_studio:home' %}">Creator Studio</a></li>
+            <li><a href="{% url 'creator_studio:audio_converter' %}">Audio Converter</a></li>
+            <li>Result</li>
+        </ul>
+    </div>
+
+    {% if result %}
+    <!-- Success Card -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body text-center">
+            <div class="text-6xl text-success mb-4">
+                <i class="fas fa-check-circle"></i>
+            </div>
+
+            <h1 class="text-2xl font-bold mb-2">Conversion Complete!</h1>
+
+            <p class="text-base-content/70 mb-6">
+                Your audio file has been converted successfully.
+            </p>
+
+            <div class="bg-base-200 rounded-lg p-4 mb-6">
+                <div class="flex justify-between items-center">
+                    <div class="text-left">
+                        <p class="text-sm text-base-content/60">Original file</p>
+                        <p class="font-semibold">{{ result.original_name }}</p>
+                    </div>
+                    <div class="text-2xl text-base-content/40">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-base-content/60">Converted to</p>
+                        <p class="font-semibold uppercase">{{ result.format }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <!-- Primary Actions -->
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <a href="{% url 'creator_studio:audio_download' %}" class="btn btn-primary flex-1">
+                        <i class="fas fa-download mr-2"></i>
+                        Download File
+                    </a>
+                    <button type="button" onclick="openSaveAsStemModal()" class="btn btn-secondary flex-1">
+                        <i class="fas fa-music mr-2"></i>
+                        Save as Stem
+                    </button>
+                </div>
+                <!-- Secondary Action -->
+                <a href="{% url 'creator_studio:audio_converter' %}" class="btn btn-outline btn-sm">
+                    <i class="fas fa-redo mr-2"></i>
+                    Convert Another
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usage Tips -->
+    <div class="alert alert-info mt-6">
+        <i class="fas fa-lightbulb"></i>
+        <div>
+            <p class="font-semibold">What would you like to do?</p>
+            <ul class="text-sm mt-2 space-y-1">
+                <li><strong>Download:</strong> Save the file to your computer</li>
+                <li><strong>Save as Stem:</strong> Add directly to a play-along piece (no re-upload needed!)</li>
+            </ul>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No Result Card -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body text-center">
+            <div class="text-6xl text-warning mb-4">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+
+            <h1 class="text-2xl font-bold mb-2">No File Available</h1>
+
+            <p class="text-base-content/70 mb-6">
+                There's no converted file available. This may happen if the session expired
+                or if you navigated here directly.
+            </p>
+
+            <a href="{% url 'creator_studio:audio_converter' %}" class="btn btn-primary">
+                <i class="fas fa-upload mr-2"></i>
+                Convert a New File
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Back Button -->
+    <div class="mt-8">
+        <a href="{% url 'creator_studio:home' %}" class="btn btn-ghost">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Creator Studio
+        </a>
+    </div>
+</div>
+
+<!-- Save as Stem Modal -->
+<dialog id="saveAsStemModal" class="modal">
+    <div class="modal-box max-w-lg">
+        <form method="dialog">
+            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">X</button>
+        </form>
+
+        <h3 class="font-bold text-lg mb-4">
+            <i class="fas fa-music mr-2"></i>Save as Play-Along Stem
+        </h3>
+
+        <form id="saveAsStemForm">
+            {% csrf_token %}
+
+            <!-- Piece Choice -->
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text font-semibold">Add to piece</span>
+                </label>
+                <div class="flex gap-4">
+                    <label class="label cursor-pointer justify-start gap-2">
+                        <input type="radio" name="piece_choice" value="existing" class="radio radio-primary" checked>
+                        <span class="label-text">Existing piece</span>
+                    </label>
+                    <label class="label cursor-pointer justify-start gap-2">
+                        <input type="radio" name="piece_choice" value="new" class="radio radio-primary">
+                        <span class="label-text">New piece</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Existing Piece Selection -->
+            <div id="existingPieceSection" class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text font-semibold">Search your pieces</span>
+                </label>
+                <input type="text" id="pieceSearch" placeholder="Type to search..."
+                       class="input input-bordered w-full mb-2">
+                <input type="hidden" name="piece_id" id="selectedPieceId">
+                <div id="pieceSearchResults" class="border border-base-300 rounded-lg max-h-40 overflow-y-auto hidden">
+                    <!-- Results populated by JS -->
+                </div>
+                <div id="selectedPieceDisplay" class="hidden bg-base-200 rounded-lg p-3 flex justify-between items-center">
+                    <span id="selectedPieceName" class="font-medium"></span>
+                    <button type="button" onclick="clearPieceSelection()" class="btn btn-xs btn-ghost">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- New Piece Title -->
+            <div id="newPieceSection" class="form-control mb-4 hidden">
+                <label class="label">
+                    <span class="label-text font-semibold">New piece title</span>
+                </label>
+                <input type="text" name="new_piece_title" placeholder="e.g., Hot Cross Buns"
+                       class="input input-bordered w-full">
+            </div>
+
+            <!-- Instrument Name -->
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text font-semibold">Track name</span>
+                </label>
+                <input type="text" name="instrument_name" required placeholder="e.g., Piano, Metronome, Backing Track"
+                       class="input input-bordered w-full">
+                <label class="label">
+                    <span class="label-text-alt">Name shown in the play-along player</span>
+                </label>
+            </div>
+
+            <!-- Display Order -->
+            <div class="form-control mb-6">
+                <label class="label">
+                    <span class="label-text font-semibold">Display order</span>
+                </label>
+                <input type="number" name="stem_order" value="0" min="0"
+                       class="input input-bordered w-24">
+                <label class="label">
+                    <span class="label-text-alt">Lower numbers appear first (0 = top)</span>
+                </label>
+            </div>
+
+            <!-- Error Display -->
+            <div id="saveAsStemError" class="alert alert-error mb-4 hidden">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="saveAsStemErrorText"></span>
+            </div>
+
+            <!-- Actions -->
+            <div class="modal-action">
+                <button type="button" onclick="closeSaveAsStemModal()" class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="saveAsStemSubmit">
+                    <i class="fas fa-save mr-2"></i>Save Stem
+                </button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<!-- Success Toast -->
+<div id="successToast" class="toast toast-end hidden">
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i>
+        <span id="successToastText"></span>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById('saveAsStemModal');
+    const pieceSearch = document.getElementById('pieceSearch');
+    const pieceSearchResults = document.getElementById('pieceSearchResults');
+    const selectedPieceId = document.getElementById('selectedPieceId');
+    const selectedPieceDisplay = document.getElementById('selectedPieceDisplay');
+    const selectedPieceName = document.getElementById('selectedPieceName');
+    const existingPieceSection = document.getElementById('existingPieceSection');
+    const newPieceSection = document.getElementById('newPieceSection');
+    const saveAsStemForm = document.getElementById('saveAsStemForm');
+    const saveAsStemError = document.getElementById('saveAsStemError');
+    const saveAsStemErrorText = document.getElementById('saveAsStemErrorText');
+    const saveAsStemSubmit = document.getElementById('saveAsStemSubmit');
+
+    let searchTimeout = null;
+
+    function openSaveAsStemModal() {
+        modal.showModal();
+        loadInitialPieces();
+    }
+
+    function closeSaveAsStemModal() {
+        modal.close();
+    }
+
+    // Toggle between existing and new piece
+    document.querySelectorAll('input[name="piece_choice"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'existing') {
+                existingPieceSection.classList.remove('hidden');
+                newPieceSection.classList.add('hidden');
+            } else {
+                existingPieceSection.classList.add('hidden');
+                newPieceSection.classList.remove('hidden');
+            }
+        });
+    });
+
+    // Piece search
+    pieceSearch.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+
+        searchTimeout = setTimeout(() => {
+            searchPieces(query);
+        }, 300);
+    });
+
+    function loadInitialPieces() {
+        searchPieces('');
+    }
+
+    function searchPieces(query) {
+        fetch(`{% url 'creator_studio:piece_search_api' %}?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                displayPieceResults(data.pieces);
+            })
+            .catch(err => {
+                console.error('Search failed:', err);
+            });
+    }
+
+    function displayPieceResults(pieces) {
+        pieceSearchResults.innerHTML = '';
+
+        if (pieces.length === 0) {
+            pieceSearchResults.innerHTML = '<div class="p-3 text-base-content/60 text-center">No pieces found</div>';
+            pieceSearchResults.classList.remove('hidden');
+            return;
+        }
+
+        pieces.forEach(piece => {
+            const div = document.createElement('div');
+            div.className = 'p-3 hover:bg-base-200 cursor-pointer border-b border-base-200 last:border-b-0';
+            div.innerHTML = `
+                <div class="font-medium">${piece.title}</div>
+                <div class="text-sm text-base-content/60">${piece.stem_count} stem(s)</div>
+            `;
+            div.onclick = () => selectPiece(piece);
+            pieceSearchResults.appendChild(div);
+        });
+
+        pieceSearchResults.classList.remove('hidden');
+    }
+
+    function selectPiece(piece) {
+        selectedPieceId.value = piece.id;
+        selectedPieceName.textContent = piece.title;
+        selectedPieceDisplay.classList.remove('hidden');
+        pieceSearchResults.classList.add('hidden');
+        pieceSearch.classList.add('hidden');
+    }
+
+    function clearPieceSelection() {
+        selectedPieceId.value = '';
+        selectedPieceName.textContent = '';
+        selectedPieceDisplay.classList.add('hidden');
+        pieceSearch.classList.remove('hidden');
+        pieceSearch.value = '';
+        loadInitialPieces();
+    }
+
+    // Form submission
+    saveAsStemForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Hide previous errors
+        saveAsStemError.classList.add('hidden');
+
+        // Show loading state
+        saveAsStemSubmit.disabled = true;
+        saveAsStemSubmit.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Saving...';
+
+        const formData = new FormData(this);
+
+        fetch('{% url 'creator_studio:audio_save_as_stem' %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeSaveAsStemModal();
+                showSuccessToast(data.message);
+
+                // Redirect to piece edit page or audio converter after delay
+                setTimeout(() => {
+                    if (data.is_new_piece) {
+                        window.location.href = '{% url "audioplayer:piece_edit" 0 %}'.replace('0', data.piece_id);
+                    } else {
+                        window.location.href = '{% url "creator_studio:audio_converter" %}';
+                    }
+                }, 2000);
+            } else {
+                showError(data.error || 'An error occurred');
+            }
+        })
+        .catch(err => {
+            showError('Failed to save. Please try again.');
+        })
+        .finally(() => {
+            saveAsStemSubmit.disabled = false;
+            saveAsStemSubmit.innerHTML = '<i class="fas fa-save mr-2"></i>Save Stem';
+        });
+    });
+
+    function showError(message) {
+        saveAsStemErrorText.textContent = message;
+        saveAsStemError.classList.remove('hidden');
+    }
+
+    function showSuccessToast(message) {
+        const toast = document.getElementById('successToast');
+        const toastText = document.getElementById('successToastText');
+        toastText.textContent = message;
+        toast.classList.remove('hidden');
+
+        setTimeout(() => {
+            toast.classList.add('hidden');
+        }, 5000);
+    }
+</script>
+{% endblock %}

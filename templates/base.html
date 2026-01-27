@@ -112,6 +112,7 @@
                         <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold{% endif %}">Private Lessons</a></li>
                         <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold{% endif %}">Courses</a></li>
                         <li><a href="{% url 'digital_products:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'digital_products' %}font-bold{% endif %}">Digital Products</a></li>
+                        <li><a href="{% url 'creator_studio:home' %}" class="{% if request.resolver_match.namespace == 'creator_studio' %}font-bold{% endif %}"><i class="fas fa-palette mr-1"></i>Creator Studio</a></li>
                         <li><a href="{% url 'payments:finance_dashboard' %}" class="{% if request.resolver_match.namespace == 'payments' %}font-bold{% endif %}"><i class="fas fa-chart-line mr-1"></i>Finance</a></li>
                         <li class="border-t mt-2 pt-2"><a href="{% url 'support:my_tickets' %}"><i class="fas fa-life-ring mr-1"></i>Support</a></li>
                     {% else %}
@@ -144,6 +145,7 @@
                     <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold bg-primary text-primary-content{% endif %}">Private Lessons</a></li>
                     <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold bg-primary text-primary-content{% endif %}">Courses</a></li>
                     <li><a href="{% url 'digital_products:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'digital_products' %}font-bold bg-primary text-primary-content{% endif %}">Digital Products</a></li>
+                    <li><a href="{% url 'creator_studio:home' %}" class="{% if request.resolver_match.namespace == 'creator_studio' %}font-bold bg-primary text-primary-content{% endif %}"><i class="fas fa-palette mr-1"></i>Creator Studio</a></li>
                     <li><a href="{% url 'payments:finance_dashboard' %}" class="{% if request.resolver_match.namespace == 'payments' %}font-bold bg-primary text-primary-content{% endif %}"><i class="fas fa-chart-line mr-2"></i>Finance</a></li>
                 {% else %}
                     {# Student navigation - goes to public/student pages #}

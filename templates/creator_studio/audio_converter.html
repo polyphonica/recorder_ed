@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Audio Converter - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm mb-6">
+        <ul>
+            <li><a href="{% url 'creator_studio:home' %}">Creator Studio</a></li>
+            <li>Audio Converter</li>
+        </ul>
+    </div>
+
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-4">
+            <i class="fas fa-file-audio mr-3"></i>Audio Converter
+        </h1>
+        <p class="text-base-content/70">
+            Convert audio files between formats, adjust playback speed for practice tracks,
+            trim clips, and normalize volume levels.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Left Column - Upload and Settings -->
+        <div class="space-y-6">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">
+                        <i class="fas fa-upload mr-2"></i>Upload Audio
+                    </h2>
+
+                    <form method="post" enctype="multipart/form-data" id="audioForm">
+                        {% csrf_token %}
+
+                        <!-- File Upload -->
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text font-semibold">Audio File</span>
+                            </label>
+                            <input type="file" name="audio_file" accept=".mp3,.wav,.ogg,.m4a,.aac,.aiff,.aif,audio/*"
+                                   class="file-input file-input-bordered w-full" required>
+                            <label class="label">
+                                <span class="label-text-alt">Supported: MP3, WAV, OGG, M4A, AAC, AIFF (max {{ max_file_size_mb }}MB)</span>
+                            </label>
+                        </div>
+
+                        <!-- Output Format -->
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text font-semibold">Output Format</span>
+                            </label>
+                            <select name="output_format" class="select select-bordered w-full">
+                                <option value="mp3">MP3 - Compressed, widely compatible</option>
+                                <option value="wav">WAV - Uncompressed, high quality</option>
+                                <option value="ogg">OGG - Open format, good compression</option>
+                                <option value="m4a">M4A - Apple format, good quality</option>
+                                <option value="aac">AAC - Advanced Audio Coding</option>
+                            </select>
+                        </div>
+
+                        <!-- Playback Speed -->
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text font-semibold">Playback Speed</span>
+                            </label>
+                            <div class="flex items-center gap-4">
+                                <input type="range" name="playback_speed" min="0.5" max="2.0" step="0.1" value="1.0"
+                                       class="range range-primary flex-1" id="speedSlider">
+                                <span class="text-lg font-mono w-16 text-center" id="speedValue">1.0x</span>
+                            </div>
+                            <label class="label">
+                                <span class="label-text-alt">0.5x (slower) to 2.0x (faster)</span>
+                            </label>
+                        </div>
+
+                        <!-- Trim Controls -->
+                        <div class="divider text-sm">Trim Audio (Optional)</div>
+
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Start (seconds)</span>
+                                </label>
+                                <input type="number" name="trim_start" min="0" step="0.1"
+                                       class="input input-bordered w-full" placeholder="0">
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">End (seconds)</span>
+                                </label>
+                                <input type="number" name="trim_end" min="0" step="0.1"
+                                       class="input input-bordered w-full" placeholder="Leave empty for full">
+                            </div>
+                        </div>
+
+                        <!-- Normalize -->
+                        <div class="form-control mb-6">
+                            <label class="label cursor-pointer justify-start gap-4">
+                                <input type="checkbox" name="normalize" class="checkbox checkbox-primary">
+                                <div>
+                                    <span class="label-text font-semibold">Normalize Volume</span>
+                                    <p class="text-xs text-base-content/60">Adjust volume to a consistent level</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Submit -->
+                        <button type="submit" class="btn btn-primary w-full">
+                            <i class="fas fa-cog mr-2"></i>
+                            Convert Audio
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Info and Tips -->
+        <div class="space-y-6">
+            <!-- Format Info -->
+            <div class="card bg-base-200 shadow-md">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">
+                        <i class="fas fa-info-circle mr-2"></i>Format Guide
+                    </h2>
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <span class="font-semibold">MP3</span>
+                            <p class="text-base-content/70">Best for general use. Small file size, plays everywhere.</p>
+                        </div>
+                        <div>
+                            <span class="font-semibold">WAV</span>
+                            <p class="text-base-content/70">Uncompressed audio. Best quality but large files.</p>
+                        </div>
+                        <div>
+                            <span class="font-semibold">OGG</span>
+                            <p class="text-base-content/70">Open format. Good compression, web-friendly.</p>
+                        </div>
+                        <div>
+                            <span class="font-semibold">M4A/AAC</span>
+                            <p class="text-base-content/70">Apple format. Good quality at smaller sizes.</p>
+                        </div>
+                        <div>
+                            <span class="font-semibold">AIFF</span>
+                            <p class="text-base-content/70">Apple uncompressed. High quality, large files.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Use Cases -->
+            <div class="alert alert-info">
+                <i class="fas fa-lightbulb"></i>
+                <div>
+                    <p class="font-semibold">Common Use Cases:</p>
+                    <ul class="text-sm mt-2 space-y-1">
+                        <li><strong>Practice tracks:</strong> Slow down to 0.7x or 0.8x for learners</li>
+                        <li><strong>Accompaniment:</strong> Speed up to 1.2x for advanced students</li>
+                        <li><strong>Trim intros:</strong> Remove count-ins or silence at the start</li>
+                        <li><strong>Normalize:</strong> Make quiet recordings louder</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Limitations -->
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <p class="font-semibold">Limitations:</p>
+                    <ul class="text-sm mt-2 space-y-1">
+                        <li>Maximum file size: {{ max_file_size_mb }}MB</li>
+                        <li>Maximum duration: 10 minutes</li>
+                        <li>Speed range: 0.5x to 2.0x</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-8">
+        <a href="{% url 'creator_studio:home' %}" class="btn btn-ghost">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Creator Studio
+        </a>
+    </div>
+</div>
+
+<script>
+    // Update speed display
+    const speedSlider = document.getElementById('speedSlider');
+    const speedValue = document.getElementById('speedValue');
+
+    speedSlider.addEventListener('input', function() {
+        speedValue.textContent = this.value + 'x';
+    });
+
+    // Form submission feedback
+    document.getElementById('audioForm').addEventListener('submit', function() {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading loading-spinner"></span> Processing...';
+    });
+</script>
+{% endblock %}

@@ -1,6 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 from .models import Piece, Stem, LessonPiece, Composer, Tag, PieceCollection, CollectionPiece
+from .fields import AutoConvertAudioFileField
 
 
 class PieceForm(forms.ModelForm):
@@ -212,34 +213,52 @@ class BaseStemFormSet(forms.BaseInlineFormSet):
         return True
 
 
+class StemForm(forms.ModelForm):
+    """
+    Form for individual stem uploads with auto-AIFF conversion.
+
+    Uses AutoConvertAudioFileField to automatically convert AIFF files to MP3.
+    """
+
+    audio_file = AutoConvertAudioFileField(
+        required=False,
+        widget=forms.FileInput(attrs={
+            'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100',
+            'accept': '.mp3,.wav,.aiff,.aif,audio/*'
+        }),
+        label='Audio File (MP3, WAV, AIFF)',
+        help_text='AIFF files will be automatically converted to MP3'
+    )
+
+    class Meta:
+        model = Stem
+        fields = ['instrument_name', 'audio_file', 'order']
+        widgets = {
+            'instrument_name': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
+                'placeholder': 'e.g., Piano, Metronome, Backing Track'
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
+                'min': '0'
+            }),
+        }
+        labels = {
+            'instrument_name': 'Instrument/Track Name',
+            'order': 'Display Order'
+        }
+
+
 # Formset for adding multiple stems to a piece
 StemFormSet = inlineformset_factory(
     Piece,
     Stem,
+    form=StemForm,
     formset=BaseStemFormSet,
-    fields=['instrument_name', 'audio_file', 'order'],
     extra=0,  # Don't show empty forms by default - use "Add Another Stem" button
     can_delete=True,
     validate_min=False,
     validate_max=False,
-    widgets={
-        'instrument_name': forms.TextInput(attrs={
-            'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
-            'placeholder': 'e.g., Piano, Metronome, Backing Track'
-        }),
-        'audio_file': forms.FileInput(attrs={
-            'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100'
-        }),
-        'order': forms.NumberInput(attrs={
-            'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all',
-            'min': '0'
-        }),
-    },
-    labels={
-        'instrument_name': 'Instrument/Track Name',
-        'audio_file': 'Audio File (MP3)',
-        'order': 'Display Order'
-    }
 )
 
 

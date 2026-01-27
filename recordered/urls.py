@@ -49,6 +49,7 @@ urlpatterns = [
     path('lesson-templates/', include('apps.lesson_templates.urls')),
     path('expenses/', include('apps.expenses.urls')),
     path('courses/', include('apps.courses.urls')),
+    path('creator-studio/', include('apps.creator_studio.urls')),  # Creator Studio tools
     path('products/', include('apps.digital_products.urls')),
     path('audioplayer/', include('apps.audioplayer.urls')),
     path('messages/', include('apps.messaging.urls')),

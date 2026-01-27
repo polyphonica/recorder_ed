@@ -7,6 +7,9 @@ whitenoise==6.8.2
 # Payment processing
 stripe==11.2.0
 
+# Audio processing (requires FFmpeg installed on system)
+pydub==0.25.1
+
 # Core dependencies
 arrow==1.4.0
 djangorestframework==3.15.2

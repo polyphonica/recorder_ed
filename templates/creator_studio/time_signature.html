@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Time Signature Generator - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm mb-6">
+        <ul>
+            <li><a href="{% url 'creator_studio:home' %}">Creator Studio</a></li>
+            <li>Time Signature Generator</li>
+        </ul>
+    </div>
+
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-4">
+            <i class="fas fa-music mr-3"></i>Time Signature Generator
+        </h1>
+        <p class="text-base-content/70">
+            Generate customizable time signature notation. Adjust size, spacing, and positioning to match your lesson content perfectly.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column - Controls -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- Time Signature Form -->
+            <div class="card bg-base-200 shadow-md">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">
+                        <i class="fas fa-sliders-h mr-2"></i>Time Signature
+                    </h2>
+                    <form method="post" id="timeSigForm">
+                        {% csrf_token %}
+
+                        <!-- Main Numbers -->
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text font-semibold">Top Number</span>
+                            </label>
+                            <input type="text" name="top" value="{{ top }}"
+                                   class="input input-bordered w-full" placeholder="4">
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text font-semibold">Bottom Number</span>
+                            </label>
+                            <input type="text" name="bottom" value="{{ bottom }}"
+                                   class="input input-bordered w-full" placeholder="4">
+                        </div>
+
+                        <!-- Optional Subscripts -->
+                        <div class="divider text-sm">Optional Subscripts</div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Top Right Subscript</span>
+                            </label>
+                            <input type="text" name="top_right" value="{{ top_right }}"
+                                   class="input input-bordered w-full" placeholder="e.g., +2">
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Bottom Right Subscript</span>
+                            </label>
+                            <input type="text" name="bottom_right" value="{{ bottom_right }}"
+                                   class="input input-bordered w-full" placeholder="e.g., +1">
+                        </div>
+
+                        <!-- Advanced Settings -->
+                        <div class="divider text-sm">Advanced Settings</div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Font Size</span>
+                            </label>
+                            <input type="number" name="font_size" value="{{ font_size }}"
+                                   class="input input-bordered w-full" min="24" max="96">
+                            <label class="label">
+                                <span class="label-text-alt">Default: 48</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Vertical Spacing</span>
+                            </label>
+                            <input type="number" name="spacing" value="{{ spacing }}"
+                                   class="input input-bordered w-full" min="10" max="50">
+                            <label class="label">
+                                <span class="label-text-alt">Default: 24</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">ViewBox Width</span>
+                            </label>
+                            <input type="number" name="viewbox_w" value="{{ viewbox_w }}"
+                                   class="input input-bordered w-full" min="30" max="200">
+                            <label class="label">
+                                <span class="label-text-alt">Default: 60</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">ViewBox Height</span>
+                            </label>
+                            <input type="number" name="viewbox_h" value="{{ viewbox_h }}"
+                                   class="input input-bordered w-full" min="60" max="300">
+                            <label class="label">
+                                <span class="label-text-alt">Default: 120</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Display Width (px)</span>
+                            </label>
+                            <input type="number" name="display_w" value="{{ display_w }}"
+                                   class="input input-bordered w-full" min="45" max="300">
+                            <label class="label">
+                                <span class="label-text-alt">Default: 90</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Display Height (px)</span>
+                            </label>
+                            <input type="number" name="display_h" value="{{ display_h }}"
+                                   class="input input-bordered w-full" min="70" max="350">
+                            <label class="label">
+                                <span class="label-text-alt">Default: 140</span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-full">
+                            <i class="fas fa-sync-alt mr-2"></i>
+                            Update Preview
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <p class="font-semibold text-sm">Tips:</p>
+                    <ul class="text-sm mt-2 space-y-1">
+                        <li>Adjust font size and spacing to match your lesson style</li>
+                        <li>Use subscripts for additive time signatures</li>
+                        <li>ViewBox controls the SVG coordinate system</li>
+                        <li>Display size controls actual rendered size</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Preview and Export -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Preview -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <i class="fas fa-eye mr-2"></i>Preview
+                    </h2>
+                    <div class="border-2 border-base-300 rounded-lg p-8 min-h-[200px] flex justify-center items-center bg-white">
+                        <div id="svgPreview">
+                            {{ svg_code|safe }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export -->
+            <div class="card bg-base-200 shadow-md">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">
+                        <i class="fas fa-code mr-2"></i>SVG Code
+                    </h2>
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">Copy this code to paste into CKEditor source view:</span>
+                        </label>
+                        <textarea id="svgCode" readonly class="textarea textarea-bordered font-mono text-xs h-32 w-full">{{ svg_code }}</textarea>
+                    </div>
+                    <div class="flex gap-3">
+                        <button class="btn btn-primary flex-1" onclick="copySVG()">
+                            <i class="fas fa-copy mr-2"></i>
+                            Copy SVG to Clipboard
+                        </button>
+                        <button class="btn btn-secondary flex-1" onclick="downloadPNG()">
+                            <i class="fas fa-download mr-2"></i>
+                            Download as PNG
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usage Instructions -->
+            <div class="alert alert-success">
+                <i class="fas fa-lightbulb"></i>
+                <div>
+                    <p class="font-semibold">How to use in your lesson:</p>
+                    <p class="text-sm mt-2 mb-3"><strong>Option 1: SVG (Recommended for web)</strong></p>
+                    <ol class="list-decimal list-inside ml-4 space-y-1 text-sm">
+                        <li>Adjust the time signature and styling above</li>
+                        <li>Click "Copy SVG to Clipboard"</li>
+                        <li>In your lesson editor, click the "Source" button in CKEditor</li>
+                        <li>Paste the SVG code at the desired location</li>
+                        <li>Click "Source" again to return to visual editing</li>
+                    </ol>
+                    <p class="text-sm mt-3 mb-3"><strong>Option 2: PNG (For downloads or printing)</strong></p>
+                    <ol class="list-decimal list-inside ml-4 space-y-1 text-sm">
+                        <li>Adjust the time signature and styling above</li>
+                        <li>Click "Download as PNG"</li>
+                        <li>The image will be saved to your downloads folder</li>
+                        <li>Insert the PNG image into your lesson using the image upload button</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-8">
+        <a href="{% url 'creator_studio:home' %}" class="btn btn-ghost">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Creator Studio
+        </a>
+    </div>
+</div>
+
+<script>
+    async function copySVG() {
+        const svgCode = document.getElementById('svgCode').value;
+        try {
+            await navigator.clipboard.writeText(svgCode);
+            alert('SVG copied to clipboard! Paste it into CKEditor source view.');
+        } catch (err) {
+            console.error('Failed to copy SVG:', err);
+            alert('Failed to copy SVG. Please try manually selecting and copying the code.');
+        }
+    }
+
+    async function downloadPNG() {
+        try {
+            // Get the SVG element from the preview
+            const svgElement = document.querySelector('#svgPreview svg');
+            if (!svgElement) {
+                alert('No time signature to download. Please generate one first.');
+                return;
+            }
+
+            // Clone the SVG to avoid modifying the original
+            const svgClone = svgElement.cloneNode(true);
+
+            // Get dimensions
+            const width = parseInt(svgClone.getAttribute('width')) || 90;
+            const height = parseInt(svgClone.getAttribute('height')) || 140;
+
+            // Create a higher resolution for better quality (3x)
+            const scale = 3;
+            const canvas = document.createElement('canvas');
+            canvas.width = width * scale;
+            canvas.height = height * scale;
+            const ctx = canvas.getContext('2d');
+
+            // Set white background
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Convert SVG to data URL
+            const svgData = new XMLSerializer().serializeToString(svgClone);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+
+            // Load SVG into an image
+            const img = new Image();
+            img.onload = function() {
+                // Draw the image on canvas with scaling
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                // Convert canvas to PNG blob
+                canvas.toBlob(function(blob) {
+                    // Create download link
+                    const downloadUrl = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = 'time-signature.png';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    // Clean up URLs
+                    URL.revokeObjectURL(url);
+                    URL.revokeObjectURL(downloadUrl);
+                }, 'image/png');
+            };
+
+            img.onerror = function() {
+                alert('Failed to convert SVG to PNG. Please try again.');
+                URL.revokeObjectURL(url);
+            };
+
+            img.src = url;
+
+        } catch (err) {
+            console.error('Failed to download PNG:', err);
+            alert('Failed to download PNG. Please try again.');
+        }
+    }
+</script>
+{% endblock %}
