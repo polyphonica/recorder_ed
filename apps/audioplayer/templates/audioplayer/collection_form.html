@@ -425,17 +425,20 @@ function renderSelectedPieces() {
                     ${piece.hasImage ? ' &bull; <i class="fas fa-image text-success"></i>' : ''}
                 </div>
             </div>
-            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div class="flex items-center gap-1">
                 <button type="button" onclick="movePiece(${piece.id}, 'up')"
-                        class="btn btn-xs btn-ghost" ${index === 0 ? 'disabled' : ''}>
+                        class="btn btn-xs btn-ghost" ${index === 0 ? 'disabled' : ''}
+                        title="Move up">
                     <i class="fas fa-chevron-up"></i>
                 </button>
                 <button type="button" onclick="movePiece(${piece.id}, 'down')"
-                        class="btn btn-xs btn-ghost" ${index === selectedPieces.length - 1 ? 'disabled' : ''}>
+                        class="btn btn-xs btn-ghost" ${index === selectedPieces.length - 1 ? 'disabled' : ''}
+                        title="Move down">
                     <i class="fas fa-chevron-down"></i>
                 </button>
                 <button type="button" onclick="removePiece(${piece.id})"
-                        class="btn btn-xs btn-ghost text-error">
+                        class="btn btn-xs btn-ghost text-error"
+                        title="Remove">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
