@@ -31,14 +31,18 @@
                     </div>
                 </div>
 
-                {% if is_owner %}
                 <div class="flex gap-2">
+                    <a href="{% url 'audioplayer:library_collection_player' collection_id=collection.pk %}" class="btn btn-success">
+                        <i class="fas fa-play mr-2"></i>
+                        Play Collection
+                    </a>
+                    {% if is_owner %}
                     <a href="{% url 'audioplayer:collection_edit' pk=collection.pk %}" class="btn btn-primary">
                         <i class="fas fa-edit mr-2"></i>
                         Edit
                     </a>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
         </div>
 
@@ -96,7 +100,7 @@
                     <div class="flex items-start justify-between">
                         <div class="flex items-start gap-4">
                             <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                <span class="font-bold text-primary">{{ forloop.counter }}</span>
+                                <span class="font-bold text-primary">{{ cp.order }}</span>
                             </div>
                             <div>
                                 <h3 class="font-semibold text-lg text-gray-900">{{ cp.piece.title }}</h3>

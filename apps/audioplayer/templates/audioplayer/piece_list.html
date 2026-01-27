@@ -97,6 +97,9 @@
 
                 <!-- Actions -->
                 <div class="card-actions justify-end mt-4">
+                    <a href="{% url 'audioplayer:library_collection_player' collection_id=collection.id %}" class="btn btn-sm btn-ghost" title="Preview player">
+                        <i class="fas fa-play"></i>
+                    </a>
                     <a href="{% url 'audioplayer:collection_detail' pk=collection.id %}" class="btn btn-sm btn-ghost" title="View details">
                         <i class="fas fa-eye"></i>
                     </a>
