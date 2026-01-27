@@ -692,15 +692,16 @@ def library_collection_json(request, collection_id):
     Returns JSON data for a collection from the library.
     Used by the audio player JavaScript.
     """
-    collection = get_object_or_404(
-        PieceCollection.objects.prefetch_related('collection_memberships__piece__stems'),
-        pk=collection_id
-    )
+    collection = get_object_or_404(PieceCollection, pk=collection_id)
 
     collection_pieces = []
 
-    # Get pieces through the M2M relationship, ordered by their order in the collection
-    for cp in collection.collection_memberships.all().order_by('order'):
+    # Get pieces through direct query with proper ordering (matches collection_edit)
+    collection_pieces_qs = CollectionPiece.objects.filter(
+        collection=collection
+    ).select_related('piece').prefetch_related('piece__stems').order_by('order')
+
+    for cp in collection_pieces_qs:
         piece = cp.piece
         stems_data = [
             {
