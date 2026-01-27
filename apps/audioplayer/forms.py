@@ -383,11 +383,23 @@ class PieceCollectionForm(forms.ModelForm):
                 created_by=user
             ).order_by('title')
 
-        # If editing, pre-select pieces that are already in the collection
+        # If editing, pre-select pieces that are already in the collection (ordered correctly)
         if self.instance and self.instance.pk:
-            self.fields['pieces'].initial = Piece.objects.filter(
-                collection_memberships__collection=self.instance
+            # Get pieces in correct order via CollectionPiece
+            ordered_piece_ids = list(
+                CollectionPiece.objects.filter(collection=self.instance)
+                .order_by('order')
+                .values_list('piece_id', flat=True)
             )
+            # Preserve order using Case/When
+            from django.db.models import Case, When
+            if ordered_piece_ids:
+                preserved_order = Case(*[When(pk=pk, then=pos) for pos, pk in enumerate(ordered_piece_ids)])
+                self.fields['pieces'].initial = Piece.objects.filter(
+                    pk__in=ordered_piece_ids
+                ).order_by(preserved_order)
+            else:
+                self.fields['pieces'].initial = Piece.objects.none()
 
     def save(self, commit=True):
         instance = super().save(commit=commit)
