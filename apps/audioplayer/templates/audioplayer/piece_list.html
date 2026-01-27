@@ -100,9 +100,6 @@
                     <a href="{% url 'audioplayer:library_collection_player' collection_id=collection.id %}" class="btn btn-sm btn-ghost" title="Preview player">
                         <i class="fas fa-play"></i>
                     </a>
-                    <a href="{% url 'audioplayer:collection_detail' pk=collection.id %}" class="btn btn-sm btn-ghost" title="View details">
-                        <i class="fas fa-eye"></i>
-                    </a>
                     <a href="{% url 'audioplayer:collection_edit' pk=collection.id %}" class="btn btn-sm btn-secondary">
                         <i class="fas fa-edit mr-1"></i>
                         Edit
