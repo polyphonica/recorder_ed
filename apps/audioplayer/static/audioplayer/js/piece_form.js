@@ -237,6 +237,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Form validation
     const form = document.querySelector('form');
+    const conversionOverlay = document.getElementById('conversion-overlay');
+
     if (form) {
         form.addEventListener('submit', function(e) {
             let isValid = true;
@@ -264,8 +266,48 @@ document.addEventListener('DOMContentLoaded', function() {
                 showFileSizeErrors(fileSizeErrors);
                 return;
             }
+
+            // Check if there are any AIFF files being uploaded
+            const audioInputs = form.querySelectorAll('input[type="file"][name*="audio_file"]');
+            let hasAiffFiles = false;
+            audioInputs.forEach(input => {
+                if (input.files && input.files[0]) {
+                    const fileName = input.files[0].name.toLowerCase();
+                    if (fileName.endsWith('.aiff') || fileName.endsWith('.aif')) {
+                        hasAiffFiles = true;
+                    }
+                }
+            });
+
+            // Show conversion overlay if there are AIFF files or any audio files (to be safe)
+            let hasAnyAudioFiles = false;
+            audioInputs.forEach(input => {
+                if (input.files && input.files[0]) {
+                    hasAnyAudioFiles = true;
+                }
+            });
+
+            if (conversionOverlay && hasAnyAudioFiles) {
+                conversionOverlay.classList.remove('hidden');
+                conversionOverlay.classList.add('flex');
+            }
         });
     }
+
+    // Handle dismissible message alerts
+    const messageCloseButtons = document.querySelectorAll('.message-close');
+    messageCloseButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const alert = this.closest('.message-alert');
+            if (alert) {
+                alert.style.transition = 'opacity 0.3s ease-out';
+                alert.style.opacity = '0';
+                setTimeout(() => {
+                    alert.remove();
+                }, 300);
+            }
+        });
+    });
 
     // Real-time file size validation on file input change
     const allFileInputs = document.querySelectorAll('input[type="file"]');
