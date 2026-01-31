@@ -430,10 +430,19 @@ class PieceCollectionForm(forms.ModelForm):
 
     def _save_pieces(self, collection):
         """Save the selected pieces to the collection, preserving order from form"""
-        selected_pieces = self.cleaned_data.get('pieces', [])
-
-        # Convert QuerySet to list to preserve order from form submission
-        selected_piece_ids = [p.id for p in selected_pieces]
+        # IMPORTANT: Use raw form data to preserve the order of submitted hidden inputs.
+        # Django's ModelMultipleChoiceField.clean() returns a QuerySet ordered by the
+        # queryset's ordering (title), not the order the values were submitted.
+        # The hidden inputs are created in order by JavaScript, so we use self.data.getlist()
+        # to get the piece IDs in their submitted order.
+        raw_piece_ids = self.data.getlist('pieces')
+        # Convert to integers and filter out any invalid values
+        selected_piece_ids = []
+        for pid in raw_piece_ids:
+            try:
+                selected_piece_ids.append(int(pid))
+            except (ValueError, TypeError):
+                pass
 
         # Get current pieces in collection
         current_piece_ids = set(
