@@ -150,8 +150,11 @@
                 <h2 class="text-2xl font-bold">
                     <i class="fas fa-file-alt mr-2 text-primary"></i>Assignments
                 </h2>
-                <div class="text-base-content/70 text-lg">
-                    {{ total_assignments }} total
+                <div class="flex items-center gap-3">
+                    <span class="text-base-content/70 text-lg">{{ total_assignments }} total</span>
+                    <a href="{% url 'assignments:teacher_library' %}?student={{ student.id }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus mr-1"></i>Assign Homework
+                    </a>
                 </div>
             </div>
 
@@ -288,6 +291,7 @@
                             <tr>
                                 <th class="text-lg">Date & Time</th>
                                 <th class="text-lg">Subject</th>
+                                <th class="text-lg">Content</th>
                                 <th class="text-lg">Duration</th>
                                 <th class="text-lg">Location</th>
                                 <th class="text-lg">Payment Status</th>
@@ -305,6 +309,28 @@
                                     </td>
                                     <td class="text-lg">
                                         <span class="badge badge-primary badge-lg">{{ lesson.subject.subject }}</span>
+                                    </td>
+                                    <td class="text-lg">
+                                        <div class="flex flex-wrap gap-1">
+                                            {% if lesson.pieces_count > 0 %}
+                                                <span class="badge badge-success badge-sm" title="{{ lesson.pieces_count }} piece{{ lesson.pieces_count|pluralize }}">
+                                                    <i class="fas fa-music mr-1"></i>{{ lesson.pieces_count }}
+                                                </span>
+                                            {% endif %}
+                                            {% if lesson.collections_count > 0 %}
+                                                <span class="badge badge-primary badge-sm" title="{{ lesson.collections_count }} collection{{ lesson.collections_count|pluralize }}">
+                                                    <i class="fas fa-folder mr-1"></i>{{ lesson.collections_count }}
+                                                </span>
+                                            {% endif %}
+                                            {% if lesson.assignments_count > 0 %}
+                                                <span class="badge badge-warning badge-sm" title="{{ lesson.assignments_count }} assignment{{ lesson.assignments_count|pluralize }}">
+                                                    <i class="fas fa-file-alt mr-1"></i>{{ lesson.assignments_count }}
+                                                </span>
+                                            {% endif %}
+                                            {% if lesson.pieces_count == 0 and lesson.collections_count == 0 and lesson.assignments_count == 0 %}
+                                                <span class="text-base-content/40 text-sm">—</span>
+                                            {% endif %}
+                                        </div>
                                     </td>
                                     <td class="text-lg">{{ lesson.duration_in_minutes }} min</td>
                                     <td class="text-lg">
@@ -383,8 +409,11 @@
                 <h2 class="text-2xl font-bold">
                     <i class="fas fa-question-circle mr-2 text-success"></i>Quizzes
                 </h2>
-                <div class="text-base-content/70 text-lg">
-                    {{ total_quizzes }} total
+                <div class="flex items-center gap-3">
+                    <span class="text-base-content/70 text-lg">{{ total_quizzes }} total</span>
+                    <a href="{% url 'private_teaching:quiz_library' %}?student={{ student.id }}" class="btn btn-sm btn-success">
+                        <i class="fas fa-plus mr-1"></i>Assign Quiz
+                    </a>
                 </div>
             </div>
 
@@ -477,9 +506,14 @@
                 <h2 class="text-2xl font-bold">
                     <i class="fas fa-music mr-2 text-success"></i>Playalongs
                 </h2>
-                <div class="text-base-content/70 text-lg">
-                    {{ total_playalong_pieces }} piece{{ total_playalong_pieces|pluralize }} &bull;
-                    {{ total_playalong_collections }} collection{{ total_playalong_collections|pluralize }}
+                <div class="flex items-center gap-3">
+                    <span class="text-base-content/70 text-lg">
+                        {{ total_playalong_pieces }} piece{{ total_playalong_pieces|pluralize }} &bull;
+                        {{ total_playalong_collections }} collection{{ total_playalong_collections|pluralize }}
+                    </span>
+                    <a href="?filter=lessons" class="btn btn-sm btn-outline btn-info" title="Playalongs are assigned through lessons">
+                        <i class="fas fa-calendar-plus mr-1"></i>Add via Lesson
+                    </a>
                 </div>
             </div>
 

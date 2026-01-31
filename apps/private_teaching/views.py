@@ -2005,14 +2005,19 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
 
             # ===== LESSONS SECTION =====
             from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+            from django.db.models import Count
 
-            # Get all lessons for this student
+            # Get all lessons for this student with content counts
             lessons_queryset = Lesson.objects.filter(
                 teacher=self.request.user,
                 student=student,
                 approved_status='Accepted',
                 is_deleted=False
-            ).select_related('subject', 'lesson_request').order_by('-lesson_date', '-lesson_time')
+            ).select_related('subject', 'lesson_request').annotate(
+                pieces_count=Count('lesson_pieces', distinct=True),
+                collections_count=Count('lesson_collections', distinct=True),
+                assignments_count=Count('lesson_assignments', distinct=True)
+            ).order_by('-lesson_date', '-lesson_time')
 
             # Apply filters
             subject_filter = self.request.GET.get('subject')
