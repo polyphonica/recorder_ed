@@ -140,10 +140,13 @@
             Lessons
             <span class="ml-2 badge badge-sm badge-info">{{ total_lessons }}</span>
         </a>
+        <a href="?filter=timeline" class="tab {% if filter_status == 'timeline' %}tab-active{% endif %}">
+            <i class="fas fa-stream mr-1"></i>Timeline
+        </a>
     </div>
 
     <!-- Assignments Section -->
-    {% if filter_status != 'lessons' and filter_status != 'playalongs' %}
+    {% if filter_status != 'lessons' and filter_status != 'playalongs' and filter_status != 'timeline' %}
     <div class="card card-section shadow-xl mb-6">
         <div class="card-body">
             <div class="flex items-center justify-between mb-4">
@@ -401,8 +404,138 @@
     </div>
     {% endif %}
 
+    <!-- Timeline Section -->
+    {% if filter_status == 'timeline' %}
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-bold">
+                    <i class="fas fa-stream mr-2 text-secondary"></i>Content Timeline
+                </h2>
+                <div class="text-base-content/70 text-lg">
+                    All assigned content organized by lesson
+                </div>
+            </div>
+
+            {% if timeline_data or standalone_quizzes %}
+                <!-- Standalone Quizzes (not linked to lessons) -->
+                {% if standalone_quizzes %}
+                <div class="mb-6">
+                    <h3 class="font-bold text-lg mb-3 flex items-center">
+                        <i class="fas fa-question-circle text-info mr-2"></i>
+                        Assigned Quizzes
+                        <span class="badge badge-info ml-2">{{ standalone_quizzes|length }}</span>
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {% for quiz in standalone_quizzes %}
+                        <div class="bg-base-200 rounded-lg p-4 border-l-4 border-info">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <h4 class="font-semibold text-lg">{{ quiz.title }}</h4>
+                                    <div class="text-sm text-base-content/70 mt-1">
+                                        {% if quiz.status == 'passed' %}
+                                            <span class="badge badge-success badge-sm">Passed {{ quiz.score }}</span>
+                                        {% elif quiz.status == 'completed' %}
+                                            <span class="badge badge-warning badge-sm">Not Passed {{ quiz.score }}</span>
+                                        {% else %}
+                                            <span class="badge badge-ghost badge-sm">Pending</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if quiz.due_date %}
+                                    <div class="text-xs text-base-content/60 mt-1">
+                                        <i class="fas fa-calendar-alt mr-1"></i>Due: {{ quiz.due_date|date:"M d, Y" }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Timeline by Lesson -->
+                <div class="relative">
+                    <!-- Timeline line -->
+                    <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-base-300"></div>
+
+                    {% for entry in timeline_data %}
+                    <div class="relative pl-12 pb-8">
+                        <!-- Timeline dot -->
+                        <div class="absolute left-2 w-5 h-5 rounded-full bg-secondary border-4 border-base-100 shadow"></div>
+
+                        <!-- Lesson header -->
+                        <div class="bg-secondary/10 rounded-lg p-4 mb-3 border border-secondary/20">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-bold text-lg">
+                                        <i class="fas fa-calendar-day mr-2"></i>
+                                        {{ entry.date|date:"l, F j, Y" }}
+                                    </h3>
+                                    <span class="badge badge-secondary mt-1">{{ entry.subject }}</span>
+                                </div>
+                                <a href="{% url 'private_teaching:teacher_lesson_detail' entry.lesson.id %}" class="btn btn-sm btn-outline btn-secondary">
+                                    <i class="fas fa-external-link-alt mr-1"></i>View Lesson
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Content items for this lesson -->
+                        <div class="space-y-2 ml-2">
+                            {% for item in entry.items %}
+                            <div class="flex items-center gap-3 p-3 bg-base-200 rounded-lg border-l-4 border-{{ item.color }}">
+                                <div class="w-8 h-8 rounded-full bg-{{ item.color }}/20 flex items-center justify-center flex-shrink-0">
+                                    <i class="fas {{ item.icon }} text-{{ item.color }}"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium">{{ item.title }}</div>
+                                    <div class="text-sm text-base-content/60">{{ item.subtitle }}</div>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    {% if item.type == 'piece' or item.type == 'collection' %}
+                                        {% if item.is_visible %}
+                                            <span class="badge badge-success badge-sm"><i class="fas fa-eye mr-1"></i>Visible</span>
+                                        {% else %}
+                                            <span class="badge badge-ghost badge-sm"><i class="fas fa-eye-slash mr-1"></i>Hidden</span>
+                                        {% endif %}
+                                    {% elif item.type == 'assignment' %}
+                                        {% if item.status == 'graded' %}
+                                            <span class="badge badge-success badge-sm">{{ item.grade }}</span>
+                                        {% elif item.status == 'submitted' %}
+                                            <span class="badge badge-warning badge-sm">Submitted</span>
+                                        {% else %}
+                                            <span class="badge badge-ghost badge-sm">Pending</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% if not timeline_data %}
+                <div class="text-center py-8 text-base-content/70">
+                    <i class="fas fa-calendar-times text-4xl mb-4 opacity-30"></i>
+                    <p class="text-lg">No lessons with content yet.</p>
+                    <p class="text-sm">Playalongs and assignments appear here when added to lessons.</p>
+                </div>
+                {% endif %}
+
+            {% else %}
+                <div class="text-center py-12 text-base-content/70">
+                    <i class="fas fa-stream text-5xl mb-4 opacity-30"></i>
+                    <p class="text-xl mb-2">No content assigned yet</p>
+                    <p class="text-base">Assign playalongs through lessons, quizzes from the quiz library, and homework from assignments.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Quizzes Section -->
-    {% if filter_status != 'lessons' and filter_status != 'playalongs' %}
+    {% if filter_status != 'lessons' and filter_status != 'playalongs' and filter_status != 'timeline' %}
     <div class="card card-section shadow-xl mb-6">
         <div class="card-body">
             <div class="flex items-center justify-between mb-4">
@@ -591,7 +724,7 @@
     {% endif %}
 
     <!-- Exams Section -->
-    {% if filter_status != 'lessons' and filter_status != 'playalongs' %}
+    {% if filter_status != 'lessons' and filter_status != 'playalongs' and filter_status != 'timeline' %}
     <div class="card card-section shadow-xl mb-6">
         <div class="card-body">
             <div class="flex items-center justify-between mb-4">

@@ -2060,6 +2060,117 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             context['date_from'] = date_from
             context['date_to'] = date_to
 
+            # ===== TIMELINE SECTION =====
+            # Build a unified timeline of all content organized by lesson
+            timeline_data = []
+
+            # Get all lessons with their content for this student (most recent first)
+            timeline_lessons = Lesson.objects.filter(
+                teacher=self.request.user,
+                student=student,
+                approved_status='Accepted',
+                is_deleted=False
+            ).select_related('subject').prefetch_related(
+                'lesson_pieces__piece',
+                'lesson_collections__collection__collection_memberships',
+                'lesson_assignments__assignment'
+            ).order_by('-lesson_date', '-lesson_time')[:20]  # Limit to recent 20 lessons
+
+            for lesson in timeline_lessons:
+                lesson_entry = {
+                    'lesson': lesson,
+                    'date': lesson.lesson_date,
+                    'subject': lesson.subject.subject if lesson.subject else 'No Subject',
+                    'items': []
+                }
+
+                # Add playalong pieces
+                for lp in lesson.lesson_pieces.all():
+                    lesson_entry['items'].append({
+                        'type': 'piece',
+                        'icon': 'fa-music',
+                        'color': 'success',
+                        'title': lp.piece.title,
+                        'subtitle': 'Playalong Piece',
+                        'is_visible': lp.is_visible,
+                        'is_optional': lp.is_optional,
+                    })
+
+                # Add playalong collections
+                for lc in lesson.lesson_collections.all():
+                    piece_count = lc.collection.collection_memberships.count()
+                    lesson_entry['items'].append({
+                        'type': 'collection',
+                        'icon': 'fa-folder',
+                        'color': 'primary',
+                        'title': lc.collection.title,
+                        'subtitle': f'Collection ({piece_count} pieces)',
+                        'is_visible': lc.is_visible,
+                        'is_optional': False,
+                    })
+
+                # Add assignments from this lesson
+                for la in lesson.lesson_assignments.all():
+                    # Find submission status
+                    submission = None
+                    status = 'not_started'
+                    grade_display = '—'
+
+                    # Check if there's a PrivateLessonAssignment linking to this assignment
+                    pla = PrivateLessonAssignment.objects.filter(
+                        assignment=la.assignment,
+                        student=student,
+                        teacher=self.request.user
+                    ).first()
+
+                    if pla:
+                        submission = pla.submission
+                        if submission:
+                            if submission.status == 'graded':
+                                status = 'graded'
+                                grade_display = la.assignment.format_grade(submission.grade) if submission.grade else '—'
+                            elif submission.status == 'submitted':
+                                status = 'submitted'
+                            else:
+                                status = 'in_progress'
+
+                    lesson_entry['items'].append({
+                        'type': 'assignment',
+                        'icon': 'fa-file-alt',
+                        'color': 'warning',
+                        'title': la.assignment.title,
+                        'subtitle': f'Assignment - {status.replace("_", " ").title()}',
+                        'status': status,
+                        'grade': grade_display,
+                        'due_date': pla.due_date if pla else None,
+                    })
+
+                # Only add lesson to timeline if it has content
+                if lesson_entry['items']:
+                    timeline_data.append(lesson_entry)
+
+            # Also add quizzes (not lesson-scoped, so add separately with their due dates)
+            standalone_quizzes = []
+            for quiz_assign in quiz_assignments:
+                best_attempt = quiz_assign.best_attempt
+                score_display = f"{best_attempt.score}%" if best_attempt and best_attempt.score is not None else '—'
+                status = 'passed' if quiz_assign.passed else ('completed' if quiz_assign.status == 'completed' else 'pending')
+
+                standalone_quizzes.append({
+                    'type': 'quiz',
+                    'icon': 'fa-question-circle',
+                    'color': 'info',
+                    'title': quiz_assign.quiz.title,
+                    'subtitle': f'Quiz - {status.title()}',
+                    'status': status,
+                    'score': score_display,
+                    'due_date': quiz_assign.due_date,
+                    'assigned_date': quiz_assign.assigned_date,
+                })
+
+            context['timeline_data'] = timeline_data
+            context['standalone_quizzes'] = standalone_quizzes
+
             # ===== NAVIGATION =====
             # Get all students for this teacher (for next/previous navigation)
             all_student_ids = list(Lesson.objects.filter(
