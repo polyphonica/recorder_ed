@@ -1938,6 +1938,71 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             context['week_practice_minutes'] = week_practice
             context['month_practice_minutes'] = month_practice
 
+            # ===== PLAYALONGS SECTION =====
+            from lessons.models import PrivateLessonPiece, PrivateLessonCollection
+
+            # Get all lessons for this student (for playalong queries)
+            student_lessons = Lesson.objects.filter(
+                teacher=self.request.user,
+                student=student,
+                approved_status='Accepted',
+                is_deleted=False
+            )
+
+            # Get individual pieces assigned across all lessons
+            playalong_pieces = PrivateLessonPiece.objects.filter(
+                lesson__in=student_lessons
+            ).select_related('piece', 'lesson').order_by('-lesson__lesson_date', 'order')
+
+            # Get collections assigned across all lessons
+            playalong_collections = PrivateLessonCollection.objects.filter(
+                lesson__in=student_lessons
+            ).select_related('collection', 'lesson').prefetch_related(
+                'collection__collection_memberships'
+            ).order_by('-lesson__lesson_date', 'order')
+
+            # Build playalong data for template
+            playalong_data = []
+
+            # Add individual pieces
+            for lp in playalong_pieces:
+                playalong_data.append({
+                    'type': 'piece',
+                    'title': lp.piece.title,
+                    'lesson': lp.lesson,
+                    'lesson_date': lp.lesson.lesson_date,
+                    'is_visible': lp.is_visible,
+                    'is_optional': lp.is_optional,
+                    'instructions': lp.instructions,
+                    'piece': lp.piece,
+                    'collection': None,
+                    'piece_count': 1,
+                })
+
+            # Add collections
+            for lc in playalong_collections:
+                piece_count = lc.collection.collection_memberships.count()
+                playalong_data.append({
+                    'type': 'collection',
+                    'title': lc.collection.title,
+                    'lesson': lc.lesson,
+                    'lesson_date': lc.lesson.lesson_date,
+                    'is_visible': lc.is_visible,
+                    'is_optional': False,
+                    'instructions': lc.instructions,
+                    'piece': None,
+                    'collection': lc.collection,
+                    'piece_count': piece_count,
+                })
+
+            # Sort by lesson date descending
+            playalong_data.sort(key=lambda x: x['lesson_date'], reverse=True)
+
+            context['playalong_data'] = playalong_data
+            context['total_playalongs'] = len(playalong_data)
+            context['total_playalong_pieces'] = playalong_pieces.count()
+            context['total_playalong_collections'] = playalong_collections.count()
+
             # ===== LESSONS SECTION =====
             from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
