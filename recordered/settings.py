@@ -94,6 +94,7 @@ INSTALLED_APPS = [
     'apps.lesson_templates',
     'apps.creator_studio',  # Creator Studio - teaching tools for all instructors
     'ckeditor_poc',  # POC app for testing CKEditor in isolation
+    'apps.aural_training',  # Aural training for interval recognition
 ]
 
 MIDDLEWARE = [
