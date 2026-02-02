@@ -1105,22 +1105,9 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
         user = self.request.user
         
         # Workshop statistics with prefetched sessions
-        # Use Subquery to avoid join multiplication when counting across multiple relations
-        from django.db.models import Prefetch, Count, Q, OuterRef, Subquery
-        from django.db.models.functions import Coalesce
-
-        # Subqueries to count sessions and registrations independently (avoids join multiplication)
-        sessions_count_subquery = WorkshopSession.objects.filter(
-            workshop=OuterRef('pk')
-        ).values('workshop').annotate(count=Count('id')).values('count')
-
-        registrations_count_subquery = WorkshopRegistration.objects.filter(
-            session__workshop=OuterRef('pk')
-        ).values('session__workshop').annotate(count=Count('id', distinct=True)).values('count')
+        from django.db.models import Prefetch, Count, Q
 
         workshops = Workshop.objects.filter(instructor=user).annotate(
-            total_sessions_count=Coalesce(Subquery(sessions_count_subquery), 0),
-            registration_count=Coalesce(Subquery(registrations_count_subquery), 0),
             interest_count=Count('interest_requests', filter=Q(interest_requests__is_active=True), distinct=True)
         ).prefetch_related(
             Prefetch('sessions',
@@ -1157,6 +1144,10 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
             waiting_notification=Count('id', filter=Q(has_been_notified=False))
         ).order_by('-waiting_notification', '-total_interested')[:5]
 
+        # Simple direct counts - no annotation complexity
+        total_sessions = WorkshopSession.objects.filter(workshop__instructor=user).count()
+        total_registrations = WorkshopRegistration.objects.filter(session__workshop__instructor=user).count()
+
         context.update({
             'workshops': workshops,
             'upcoming_sessions': upcoming_sessions,
@@ -1166,9 +1157,8 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
             'stats': {
                 'total_workshops': len(workshops),
                 'published_workshops': len([w for w in workshops if w.status == 'published']),
-                # PERFORMANCE FIX: These are already calculated efficiently via annotations above
-                'total_sessions': sum(w.total_sessions_count for w in workshops),
-                'total_registrations': sum(getattr(w, 'registration_count', 0) for w in workshops),
+                'total_sessions': total_sessions,
+                'total_registrations': total_registrations,
                 'total_interest_requests': sum(getattr(w, 'interest_count', 0) for w in workshops),
             }
         })
