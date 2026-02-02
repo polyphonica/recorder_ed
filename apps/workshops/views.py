@@ -1105,11 +1105,22 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
         user = self.request.user
         
         # Workshop statistics with prefetched sessions
-        # PERFORMANCE FIX: Use Prefetch object to preload upcoming sessions and counts
-        from django.db.models import Prefetch, Count, Q
+        # Use Subquery to avoid join multiplication when counting across multiple relations
+        from django.db.models import Prefetch, Count, Q, OuterRef, Subquery
+        from django.db.models.functions import Coalesce
+
+        # Subqueries to count sessions and registrations independently (avoids join multiplication)
+        sessions_count_subquery = WorkshopSession.objects.filter(
+            workshop=OuterRef('pk')
+        ).values('workshop').annotate(count=Count('id')).values('count')
+
+        registrations_count_subquery = WorkshopRegistration.objects.filter(
+            session__workshop=OuterRef('pk')
+        ).values('session__workshop').annotate(count=Count('id', distinct=True)).values('count')
+
         workshops = Workshop.objects.filter(instructor=user).annotate(
-            total_sessions_count=Count('sessions', distinct=True),
-            registration_count=Count('sessions__registrations', distinct=True),
+            total_sessions_count=Coalesce(Subquery(sessions_count_subquery), 0),
+            registration_count=Coalesce(Subquery(registrations_count_subquery), 0),
             interest_count=Count('interest_requests', filter=Q(interest_requests__is_active=True), distinct=True)
         ).prefetch_related(
             Prefetch('sessions',
