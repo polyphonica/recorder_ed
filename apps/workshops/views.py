@@ -1144,8 +1144,8 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
             waiting_notification=Count('id', filter=Q(has_been_notified=False))
         ).order_by('-waiting_notification', '-total_interested')[:5]
 
-        # Simple direct counts - no annotation complexity
-        total_sessions = WorkshopSession.objects.filter(workshop__instructor=user).count()
+        # Simple direct counts - only count active sessions
+        total_sessions = WorkshopSession.objects.filter(workshop__instructor=user, is_active=True).count()
         total_registrations = WorkshopRegistration.objects.filter(session__workshop__instructor=user).count()
 
         context.update({
