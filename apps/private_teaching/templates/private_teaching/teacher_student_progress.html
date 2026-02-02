@@ -143,10 +143,16 @@
         <a href="?filter=timeline" class="tab {% if filter_status == 'timeline' %}tab-active{% endif %}">
             <i class="fas fa-stream mr-1"></i>Timeline
         </a>
+        <a href="?filter=aural" class="tab {% if filter_status == 'aural' %}tab-active{% endif %}">
+            <i class="fas fa-headphones mr-1"></i>Aural Training
+            {% if aural_intervals_mastered > 0 %}
+                <span class="ml-2 badge badge-sm badge-success">{{ aural_intervals_mastered }}</span>
+            {% endif %}
+        </a>
     </div>
 
     <!-- Assignments Section -->
-    {% if filter_status != 'lessons' and filter_status != 'playalongs' and filter_status != 'timeline' %}
+    {% if filter_status != 'lessons' and filter_status != 'playalongs' and filter_status != 'timeline' and filter_status != 'aural' %}
     <div class="card card-section shadow-xl mb-6">
         <div class="card-body">
             <div class="flex items-center justify-between mb-4">
@@ -534,8 +540,131 @@
     </div>
     {% endif %}
 
+    <!-- Aural Training Section -->
+    {% if filter_status == 'aural' %}
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-bold">
+                    <i class="fas fa-headphones mr-2 text-purple-500"></i>Aural Training Progress
+                </h2>
+                <div class="flex items-center gap-3">
+                    {% if last_aural_practice %}
+                        <span class="text-base-content/70 text-lg">Last practiced: {{ last_aural_practice|date:"M d, Y" }}</span>
+                    {% else %}
+                        <span class="text-base-content/70 text-lg">Not started yet</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Overall Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-base-200 rounded-lg p-4 text-center">
+                    <div class="text-3xl font-bold text-purple-500">{{ aural_total_attempts }}</div>
+                    <div class="text-base text-base-content/70">Total Attempts</div>
+                </div>
+                <div class="bg-base-200 rounded-lg p-4 text-center">
+                    <div class="text-3xl font-bold text-success">{{ aural_accuracy }}%</div>
+                    <div class="text-base text-base-content/70">Overall Accuracy</div>
+                </div>
+                <div class="bg-base-200 rounded-lg p-4 text-center">
+                    <div class="text-3xl font-bold text-info">{{ aural_intervals_unlocked }}</div>
+                    <div class="text-base text-base-content/70">Intervals Unlocked</div>
+                </div>
+                <div class="bg-base-200 rounded-lg p-4 text-center">
+                    <div class="text-3xl font-bold text-warning">{{ aural_intervals_mastered }}</div>
+                    <div class="text-base text-base-content/70">Intervals Mastered</div>
+                </div>
+            </div>
+
+            {% if aural_progress %}
+                <!-- Interval Progress Grid -->
+                <h3 class="font-bold text-lg mb-3">Interval Progress</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6">
+                    {% for progress in aural_progress %}
+                        <div class="bg-base-200 rounded-lg p-3 {% if progress.is_mastered %}ring-2 ring-success{% elif progress.unlocked %}{% else %}opacity-50{% endif %}">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-bold text-lg">{{ progress.interval }}</span>
+                                {% if progress.is_mastered %}
+                                    <span class="badge badge-success badge-sm">Mastered</span>
+                                {% elif progress.unlocked %}
+                                    <span class="badge badge-info badge-sm">Active</span>
+                                {% else %}
+                                    <span class="badge badge-ghost badge-sm">Locked</span>
+                                {% endif %}
+                            </div>
+                            <div class="text-sm text-base-content/70">
+                                {{ progress.correct }}/{{ progress.attempts }} correct
+                            </div>
+                            {% if progress.attempts > 0 %}
+                                <div class="w-full bg-base-300 rounded-full h-2 mt-2">
+                                    <div class="{% if progress.accuracy >= 80 %}bg-success{% elif progress.accuracy >= 60 %}bg-warning{% else %}bg-error{% endif %} h-2 rounded-full" style="width: {{ progress.accuracy }}%"></div>
+                                </div>
+                                <div class="text-xs text-base-content/60 mt-1">{{ progress.accuracy|floatformat:0 }}%</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Recent Sessions -->
+                {% if recent_aural_sessions %}
+                    <h3 class="font-bold text-lg mb-3">Recent Sessions</h3>
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra w-full text-base">
+                            <thead>
+                                <tr>
+                                    <th class="text-lg">Date</th>
+                                    <th class="text-lg">Mode</th>
+                                    <th class="text-lg">Questions</th>
+                                    <th class="text-lg">Accuracy</th>
+                                    <th class="text-lg">Streak</th>
+                                    <th class="text-lg">Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in recent_aural_sessions %}
+                                    <tr>
+                                        <td class="text-lg">{{ session.started_at|date:"M d, Y" }}</td>
+                                        <td class="text-lg">
+                                            <span class="badge badge-outline">{{ session.mode|title }}</span>
+                                        </td>
+                                        <td class="text-lg">{{ session.questions_correct }}/{{ session.questions_attempted }}</td>
+                                        <td class="text-lg">
+                                            {% if session.questions_attempted > 0 %}
+                                                <span class="{% if session.accuracy >= 80 %}text-success{% elif session.accuracy >= 60 %}text-warning{% else %}text-error{% endif %} font-semibold">
+                                                    {{ session.accuracy|floatformat:0 }}%
+                                                </span>
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-lg">{{ session.highest_streak }}</td>
+                                        <td class="text-lg">
+                                            {% if session.duration_minutes %}
+                                                {{ session.duration_minutes }} min
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-12 text-base-content/70">
+                    <i class="fas fa-headphones text-5xl mb-4 opacity-30"></i>
+                    <p class="text-xl mb-2">No aural training activity yet</p>
+                    <p class="text-base">This student hasn't started the aural training exercises.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Quizzes Section -->
-    {% if filter_status != 'lessons' and filter_status != 'playalongs' and filter_status != 'timeline' %}
+    {% if filter_status != 'lessons' and filter_status != 'playalongs' and filter_status != 'timeline' and filter_status != 'aural' %}
     <div class="card card-section shadow-xl mb-6">
         <div class="card-body">
             <div class="flex items-center justify-between mb-4">

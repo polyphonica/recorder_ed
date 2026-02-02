@@ -1,0 +1,872 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Aural Training - Interval Recognition{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vexflow/4.2.2/vexflow-min.js"></script>
+<style>
+    /* Minimal custom styles - mostly using DaisyUI */
+    .aural-training-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .interval-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+    }
+
+    .answer-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+    }
+
+    .explore-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+    }
+
+    @keyframes streak-pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    .streak-bonus {
+        animation: streak-pulse 0.5s ease;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid currentColor;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Aural Training</h1>
+                <p class="text-base-content/70">Master intervals step-by-step with structured learning</p>
+            </div>
+            <a href="{% url 'private_teaching:student_dashboard' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-base-100/90 flex items-center justify-center z-50">
+        <div class="loading-spinner text-primary"></div>
+    </div>
+
+    <div class="aural-training-container">
+        <!-- Mode Selection Card -->
+        <div class="card card-section shadow-xl mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-2">Progressive Interval Training</h2>
+                <p class="text-base-content/70 mb-4">Choose a mode to begin practicing</p>
+
+                <!-- Mode Selector -->
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button class="btn btn-primary" data-mode="training">Training Mode</button>
+                    <button class="btn btn-outline btn-primary" data-mode="drill">Drill Mode</button>
+                    <button class="btn btn-outline btn-primary" data-mode="explore">Explore Mode</button>
+                </div>
+
+                <!-- Level Info (Training mode only) -->
+                <div class="alert alert-info" id="level-info">
+                    <div class="flex-1">
+                        <h3 class="font-bold text-xl" id="level-title">Level 1: Perfect Intervals</h3>
+                        <p class="text-base mt-1" id="level-description">Start with the easiest intervals to recognize</p>
+                        <p class="text-sm mt-2 opacity-80" id="level-progress-text">Unlocked intervals: 2 of 11</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="btn btn-outline" id="reset-level-btn" title="Restart current level">
+                            <i class="fas fa-redo mr-2"></i>Restart Level
+                        </button>
+                        <button class="btn btn-outline btn-error" id="reset-all-btn" title="Reset all progress">
+                            <i class="fas fa-trash-alt mr-2"></i>Reset All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="card card-section shadow-xl mb-6" id="progress-section">
+            <div class="card-body">
+                <h3 class="card-title text-lg mb-4">Your Progress</h3>
+                <div class="interval-grid" id="interval-progress"></div>
+            </div>
+        </div>
+
+        <!-- Training Section -->
+        <div class="card card-section shadow-xl mb-6" id="training-section">
+            <div class="card-body">
+                <!-- Stats -->
+                <div class="stats stats-horizontal bg-base-200 w-full mb-6">
+                    <div class="stat">
+                        <div class="stat-title">Session Score</div>
+                        <div class="stat-value text-primary" id="session-score">0/0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-title">Streak</div>
+                        <div class="stat-value text-secondary" id="streak">0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-title">Accuracy</div>
+                        <div class="stat-value text-accent" id="accuracy">0%</div>
+                    </div>
+                </div>
+
+                <!-- Play Controls -->
+                <div class="flex flex-wrap justify-center gap-4 mb-6 p-6 bg-primary/10 rounded-box">
+                    <button class="btn btn-primary btn-lg" id="play-btn">
+                        <i class="fas fa-play mr-2"></i>Play Interval
+                    </button>
+                    <button class="btn btn-warning" id="hint-btn">
+                        <i class="fas fa-lightbulb mr-2"></i>Show Hint
+                    </button>
+                </div>
+
+                <!-- Pre-answer Hint -->
+                <div id="pre-hint-section" class="alert alert-warning mb-4 hidden">
+                    <i class="fas fa-lightbulb"></i>
+                    <div>
+                        <h4 class="font-bold">Hint</h4>
+                        <p id="pre-hint-text"></p>
+                    </div>
+                </div>
+
+                <!-- Feedback -->
+                <div id="feedback" class="alert mb-4 hidden"></div>
+
+                <!-- Notation Display -->
+                <div id="notation-section" class="bg-base-200 rounded-box p-4 mb-4 text-center hidden">
+                    <h4 class="text-sm uppercase tracking-wider text-base-content/60 mb-2">Notation</h4>
+                    <div id="notation-output"></div>
+                </div>
+
+                <!-- Post-answer Hint -->
+                <div id="hint-section" class="alert alert-info mb-4 hidden">
+                    <i class="fas fa-music"></i>
+                    <div>
+                        <h4 class="font-bold">Memory Hint</h4>
+                        <p id="hint-text"></p>
+                    </div>
+                </div>
+
+                <!-- Answer Buttons -->
+                <div class="answer-buttons mb-4" id="answer-buttons"></div>
+
+                <!-- Next Button -->
+                <button class="btn btn-primary btn-block hidden" id="next-btn">
+                    Next Interval <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Explore Section -->
+        <div class="card card-section shadow-xl mb-6 hidden" id="explore-section">
+            <div class="card-body">
+                <h3 class="card-title text-lg mb-2">Explore Intervals</h3>
+                <p class="text-base-content/70 mb-4">Click any interval to hear it. No scoring, just learning!</p>
+
+                <div class="explore-grid mb-6" id="explore-grid"></div>
+
+                <div class="bg-base-200 rounded-box p-4 mb-4" id="explore-info">
+                    <h3 class="font-bold text-lg" id="explore-interval-name">Select an interval</h3>
+                    <p class="text-base-content/70" id="explore-interval-description">Click any interval above to learn about it and hear how it sounds.</p>
+                    <div class="flex flex-wrap gap-2 mt-4 hidden" id="explore-controls">
+                        <button class="btn btn-primary btn-sm" id="explore-play-asc">
+                            <i class="fas fa-arrow-up mr-1"></i>Ascending
+                        </button>
+                        <button class="btn btn-primary btn-sm" id="explore-play-desc">
+                            <i class="fas fa-arrow-down mr-1"></i>Descending
+                        </button>
+                        <button class="btn btn-outline btn-sm" id="explore-play-harmonic">
+                            <i class="fas fa-layer-group mr-1"></i>Together
+                        </button>
+                    </div>
+                </div>
+
+                <div id="explore-notation" class="bg-base-200 rounded-box p-4 text-center hidden">
+                    <h4 class="text-sm uppercase tracking-wider text-base-content/60 mb-2">Notation</h4>
+                    <div id="explore-notation-output"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Drill Section -->
+        <div class="card card-section shadow-xl mb-6 hidden" id="drill-section">
+            <div class="card-body">
+                <h3 class="card-title text-lg mb-2">Drill Mode</h3>
+                <p class="text-base-content/70 mb-4">Practice the intervals from your current level. Advance in Training mode to unlock more.</p>
+
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-bold">Choose interval to drill:</span>
+                    </label>
+                    <select id="drill-interval" class="select select-bordered w-full"></select>
+                </div>
+
+                <!-- Interval Info -->
+                <div class="bg-base-200 rounded-box p-6 mb-6">
+                    <h3 class="font-bold text-2xl mb-2" id="drill-interval-name">Perfect 5th</h3>
+                    <p class="text-lg mb-2"><span id="drill-semitones">7</span> semitones</p>
+                    <p class="text-base-content/70 mb-4" id="drill-hint"></p>
+                    <p class="text-sm italic" id="drill-songs"></p>
+                </div>
+
+                <!-- Drill Play Controls -->
+                <div class="flex flex-wrap justify-center gap-4 mb-6 p-6 bg-primary/10 rounded-box">
+                    <button class="btn btn-primary btn-lg" id="drill-play-asc">
+                        <i class="fas fa-arrow-up mr-2"></i>Ascending
+                    </button>
+                    <button class="btn btn-primary btn-lg" id="drill-play-desc">
+                        <i class="fas fa-arrow-down mr-2"></i>Descending
+                    </button>
+                    <button class="btn btn-outline btn-lg" id="drill-play-harmonic">
+                        <i class="fas fa-layer-group mr-2"></i>Together
+                    </button>
+                </div>
+
+                <!-- Drill Notation -->
+                <div id="drill-notation" class="bg-base-200 rounded-box p-4 text-center">
+                    <h4 class="text-sm uppercase tracking-wider text-base-content/60 mb-2">Notation</h4>
+                    <div id="drill-notation-output"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+    // API Configuration
+    const API_CONFIG = {
+        baseUrl: '{{ api_base_url }}',
+        csrfToken: '{{ csrf_token }}',
+    };
+
+    // Current session ID
+    let currentSessionId = null;
+
+    // API Helper Functions
+    async function apiRequest(endpoint, method = 'GET', data = null) {
+        const options = {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': API_CONFIG.csrfToken,
+            },
+        };
+        if (data) {
+            options.body = JSON.stringify(data);
+        }
+        const response = await fetch(API_CONFIG.baseUrl + endpoint, options);
+        return response.json();
+    }
+
+    async function loadProgressFromAPI() {
+        try {
+            const data = await apiRequest('progress/');
+            data.interval_progress.forEach(p => {
+                intervalProgress[p.interval] = {
+                    attempts: p.attempts,
+                    correct: p.correct,
+                    unlocked: p.unlocked,
+                };
+            });
+            currentLevel = data.current_level;
+            return data;
+        } catch (error) {
+            console.error('Failed to load progress:', error);
+            return null;
+        }
+    }
+
+    async function startSession(mode) {
+        try {
+            const data = await apiRequest('session/start/', 'POST', { mode });
+            currentSessionId = data.id;
+            return data;
+        } catch (error) {
+            console.error('Failed to start session:', error);
+            return null;
+        }
+    }
+
+    async function recordAnswer(interval, correct, streak, level) {
+        if (!currentSessionId) return;
+        try {
+            await apiRequest('session/answer/', 'POST', {
+                session_id: currentSessionId,
+                interval,
+                correct,
+                current_streak: streak,
+                current_level: level,
+            });
+        } catch (error) {
+            console.error('Failed to record answer:', error);
+        }
+    }
+
+    async function unlockIntervals(intervals) {
+        try {
+            await apiRequest('session/unlock/', 'POST', { intervals });
+        } catch (error) {
+            console.error('Failed to unlock intervals:', error);
+        }
+    }
+
+    async function endSession() {
+        if (!currentSessionId) return;
+        try {
+            navigator.sendBeacon(
+                API_CONFIG.baseUrl + 'session/end/',
+                JSON.stringify({ session_id: currentSessionId })
+            );
+        } catch (error) {
+            console.error('Failed to end session:', error);
+        }
+    }
+
+    window.addEventListener('beforeunload', endSession);
+
+    // Intervals data - ordered by semitones (scale degree)
+    const intervals = {
+        'm2': { name: 'Minor 2nd', semitones: 1, quality: 'minor', hint: 'Jaws theme - tense, dissonant', songs: ['Jaws theme', 'Pink Panther'] },
+        'M2': { name: 'Major 2nd', semitones: 2, quality: 'major', hint: 'Happy Birthday (Hap-py)', songs: ['Happy Birthday', 'Frère Jacques'] },
+        'm3': { name: 'Minor 3rd', semitones: 3, quality: 'minor', hint: 'Greensleeves - sad, minor feel', songs: ['Greensleeves', 'Hey Jude (verse)'] },
+        'M3': { name: 'Major 3rd', semitones: 4, quality: 'major', hint: 'Kumbaya - warm and bright', songs: ['Kumbaya', 'Oh When the Saints'] },
+        'P4': { name: 'Perfect 4th', semitones: 5, quality: 'perfect', hint: 'Here Comes the Bride', songs: ['Here Comes the Bride', 'Amazing Grace'] },
+        'P5': { name: 'Perfect 5th', semitones: 7, quality: 'perfect', hint: 'Twinkle Twinkle - open and strong', songs: ['Twinkle Twinkle', 'Star Wars'] },
+        'm6': { name: 'Minor 6th', semitones: 8, quality: 'minor', hint: 'The Entertainer - quirky jump', songs: ['The Entertainer', 'Close Encounters (desc)'] },
+        'M6': { name: 'Major 6th', semitones: 9, quality: 'major', hint: 'My Bonnie Lies Over the Ocean', songs: ['My Bonnie', 'NBC chimes'] },
+        'm7': { name: 'Minor 7th', semitones: 10, quality: 'minor', hint: 'Star Trek theme - spacey, wide', songs: ['Star Trek theme', 'Somewhere (WSS)'] },
+        'M7': { name: 'Major 7th', semitones: 11, quality: 'major', hint: 'Take On Me (chorus) - very wide, bright', songs: ['Take On Me', 'Superman theme'] },
+        'P8': { name: 'Octave', semitones: 12, quality: 'perfect', hint: 'Somewhere Over the Rainbow', songs: ['Over the Rainbow', 'Singing in the Rain'] }
+    };
+
+    // Level progression
+    const levels = [
+        { name: 'Level 1: Perfect Intervals', intervals: ['P5', 'P8'], description: 'Start with the easiest intervals', unlockThreshold: 5 },
+        { name: 'Level 2: Add Perfect 4th', intervals: ['P5', 'P8', 'P4'], description: 'Add the Perfect 4th', unlockThreshold: 5 },
+        { name: 'Level 3: Major Third', intervals: ['P5', 'P8', 'P4', 'M3'], description: 'Add the bright Major 3rd', unlockThreshold: 5 },
+        { name: 'Level 4: Minor Third', intervals: ['P5', 'P8', 'P4', 'M3', 'm3'], description: 'Add the sad Minor 3rd', unlockThreshold: 5 },
+        { name: 'Level 5: Major 6th', intervals: ['P5', 'P8', 'P4', 'M3', 'm3', 'M6'], description: 'Add the Major 6th', unlockThreshold: 5 },
+        { name: 'Level 6: Major 2nd', intervals: ['P5', 'P8', 'P4', 'M3', 'm3', 'M6', 'M2'], description: 'Add the step-wise Major 2nd', unlockThreshold: 5 },
+        { name: 'Level 7: Minor Intervals', intervals: ['P5', 'P8', 'P4', 'M3', 'm3', 'M6', 'M2', 'm6', 'm2'], description: 'Add Minor 6th and Minor 2nd', unlockThreshold: 5 },
+        { name: 'Level 8: Sevenths', intervals: ['P5', 'P8', 'P4', 'M3', 'm3', 'M6', 'M2', 'm6', 'm2', 'M7', 'm7'], description: 'Master all intervals!', unlockThreshold: 5 }
+    ];
+
+    // State
+    let currentLevel = 0;
+    let currentInterval = null;
+    let sessionCorrect = 0;
+    let sessionTotal = 0;
+    let currentStreak = 0;
+    let consecutiveCorrect = 0;
+    let hasAnswered = false;
+    let hintUsed = false;
+    let currentMode = 'training';
+
+    // Drill mode state
+    let drillInterval = 'P5';
+
+    // Explore mode state
+    let exploreSelectedInterval = null;
+
+    // Progress tracking
+    let intervalProgress = {};
+    Object.keys(intervals).forEach(key => {
+        intervalProgress[key] = { attempts: 0, correct: 0, unlocked: levels[0].intervals.includes(key) };
+    });
+
+    // Audio setup - clean piano-like sound
+    let synth;
+    let audioReadyPromise;
+
+    function initAudio() {
+        audioReadyPromise = new Promise((resolve) => {
+            // Try loading real piano samples first
+            try {
+                synth = new Tone.Sampler({
+                    urls: {
+                        A1: "A1.mp3", A2: "A2.mp3", A3: "A3.mp3", A4: "A4.mp3", A5: "A5.mp3",
+                        C2: "C2.mp3", C3: "C3.mp3", C4: "C4.mp3", C5: "C5.mp3", C6: "C6.mp3",
+                        "D#2": "Ds2.mp3", "D#3": "Ds3.mp3", "D#4": "Ds4.mp3", "D#5": "Ds5.mp3",
+                        "F#2": "Fs2.mp3", "F#3": "Fs3.mp3", "F#4": "Fs4.mp3", "F#5": "Fs5.mp3"
+                    },
+                    release: 1,
+                    baseUrl: "https://tonejs.github.io/audio/salamander/",
+                    onload: () => {
+                        console.log('Piano samples loaded');
+                        resolve();
+                    },
+                    onerror: () => {
+                        console.log('Sample load failed, using fallback');
+                        useFallbackSynth();
+                        resolve();
+                    }
+                }).toDestination();
+
+                // Fallback after timeout
+                setTimeout(() => {
+                    if (!synth.loaded) {
+                        console.log('Sample timeout, using fallback');
+                        useFallbackSynth();
+                        resolve();
+                    }
+                }, 8000);
+            } catch (e) {
+                useFallbackSynth();
+                resolve();
+            }
+
+            function useFallbackSynth() {
+                synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                synth.set({
+                    oscillator: { type: 'triangle8' },
+                    envelope: { attack: 0.005, decay: 0.3, sustain: 0.1, release: 1.2 }
+                });
+            }
+        });
+    }
+    initAudio();
+
+    function midiToNoteName(midi) {
+        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const octave = Math.floor(midi / 12) - 1;
+        const note = notes[midi % 12];
+        return note + octave;
+    }
+
+    async function playIntervalSound(intervalKey, direction = 'ascending', harmonic = false) {
+        await Tone.start();
+        await audioReadyPromise; // Wait for audio to be ready
+        synth.releaseAll();
+        const rootMidi = 60; // C4
+        const semitones = intervals[intervalKey].semitones;
+        const lowNote = midiToNoteName(rootMidi);
+        const highNote = midiToNoteName(rootMidi + semitones);
+        const now = Tone.now();
+
+        if (harmonic) {
+            synth.triggerAttackRelease([lowNote, highNote], '1n', now);
+        } else if (direction === 'ascending') {
+            synth.triggerAttackRelease(lowNote, '2n', now);
+            synth.triggerAttackRelease(highNote, '2n', now + 1.2);
+        } else {
+            synth.triggerAttackRelease(highNote, '2n', now);
+            synth.triggerAttackRelease(lowNote, '2n', now + 1.2);
+        }
+    }
+
+    function showNotation(container, intervalKey, direction) {
+        container.innerHTML = '';
+        const div = document.createElement('div');
+        div.id = 'notation-' + Date.now();
+        container.appendChild(div);
+
+        const VF = Vex.Flow;
+        const renderer = new VF.Renderer(div, VF.Renderer.Backends.SVG);
+        renderer.resize(280, 150);
+        const context = renderer.getContext();
+        context.setFont('Arial', 10);
+
+        const stave = new VF.Stave(10, 30, 260);
+        stave.addClef('treble');
+        stave.setContext(context).draw();
+
+        const rootMidi = 60;
+        const semitones = intervals[intervalKey].semitones;
+
+        const noteMap = { 0: 'c/4', 1: 'd/4', 2: 'd/4', 3: 'e/4', 4: 'e/4', 5: 'f/4', 6: 'f#/4', 7: 'g/4', 8: 'a/4', 9: 'a/4', 10: 'b/4', 11: 'b/4', 12: 'c/5', 13: 'd/5', 14: 'd/5', 15: 'e/5', 16: 'e/5', 17: 'f/5', 18: 'f#/5', 19: 'g/5' };
+        const accidentalMap = { 1: 'b', 3: 'b', 6: '#', 8: 'b', 10: 'b', 13: 'b', 15: 'b', 18: '#' };
+
+        const lowKey = noteMap[0] || 'c/4';
+        const highKey = noteMap[semitones] || 'c/5';
+
+        let note1Key, note2Key, note1Semi, note2Semi;
+        if (direction === 'ascending') {
+            note1Key = lowKey; note2Key = highKey; note1Semi = 0; note2Semi = semitones;
+        } else {
+            note1Key = highKey; note2Key = lowKey; note1Semi = semitones; note2Semi = 0;
+        }
+
+        const note1 = new VF.StaveNote({ keys: [note1Key], duration: 'h' });
+        const note2 = new VF.StaveNote({ keys: [note2Key], duration: 'h' });
+
+        if (accidentalMap[note1Semi]) note1.addAccidental(0, new VF.Accidental(accidentalMap[note1Semi]));
+        if (accidentalMap[note2Semi]) note2.addAccidental(0, new VF.Accidental(accidentalMap[note2Semi]));
+
+        const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+        voice.addTickables([note1, note2]);
+        new VF.Formatter().joinVoices([voice]).format([voice], 200);
+        voice.draw(context, stave);
+    }
+
+    function switchMode(mode) {
+        currentMode = mode;
+        document.querySelectorAll('[data-mode]').forEach(btn => {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline', 'btn-primary');
+        });
+        document.querySelector(`[data-mode="${mode}"]`).classList.remove('btn-outline');
+        document.querySelector(`[data-mode="${mode}"]`).classList.add('btn-primary');
+
+        document.getElementById('training-section').classList.toggle('hidden', mode !== 'training');
+        document.getElementById('progress-section').classList.toggle('hidden', mode !== 'training');
+        document.getElementById('level-info').classList.toggle('hidden', mode !== 'training');
+        document.getElementById('explore-section').classList.toggle('hidden', mode !== 'explore');
+        document.getElementById('drill-section').classList.toggle('hidden', mode !== 'drill');
+
+        if (mode === 'explore') initExploreMode();
+        else if (mode === 'drill') initDrillMode();
+        else if (mode === 'training') {
+            startSession('training');
+            newQuestion();
+        }
+    }
+
+    function initExploreMode() {
+        startSession('explore');
+        const grid = document.getElementById('explore-grid');
+        grid.innerHTML = '';
+        Object.keys(intervals).forEach(key => {
+            const info = intervals[key];
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-outline h-auto py-4 flex-col';
+            btn.innerHTML = `<span class="font-bold">${info.name}</span><span class="text-xs opacity-70">${info.semitones} semitones</span>`;
+            btn.addEventListener('click', () => selectExploreInterval(key, btn));
+            grid.appendChild(btn);
+        });
+    }
+
+    function selectExploreInterval(key, btn) {
+        exploreSelectedInterval = key;
+        document.querySelectorAll('#explore-grid .btn').forEach(b => b.classList.remove('btn-primary'));
+        btn.classList.add('btn-primary');
+        const info = intervals[key];
+        document.getElementById('explore-interval-name').textContent = info.name;
+        document.getElementById('explore-interval-description').innerHTML = `<strong>${info.semitones} semitones</strong> - ${info.hint}<br><em>Songs: ${info.songs.join(', ')}</em>`;
+        document.getElementById('explore-controls').classList.remove('hidden');
+        document.getElementById('explore-notation').classList.remove('hidden');
+        showNotation(document.getElementById('explore-notation-output'), key, 'ascending');
+        playIntervalSound(key, 'ascending');
+    }
+
+    function initDrillMode() {
+        startSession('drill');
+        const select = document.getElementById('drill-interval');
+        select.innerHTML = '';
+        // Only show intervals from the current level
+        levels[currentLevel].intervals.forEach(key => {
+            const opt = document.createElement('option');
+            opt.value = key; opt.textContent = intervals[key].name;
+            select.appendChild(opt);
+        });
+        // Sync drillInterval with the dropdown's actual selected value
+        drillInterval = select.value;
+        updateDrillDisplay();
+    }
+
+    function updateDrillDisplay() {
+        const info = intervals[drillInterval];
+        document.getElementById('drill-interval-name').textContent = info.name;
+        document.getElementById('drill-semitones').textContent = info.semitones;
+        document.getElementById('drill-hint').textContent = info.hint;
+        document.getElementById('drill-songs').textContent = 'Songs: ' + info.songs.join(', ');
+        showNotation(document.getElementById('drill-notation-output'), drillInterval, 'ascending');
+    }
+
+    function updateLevelInfo() {
+        document.getElementById('level-title').textContent = levels[currentLevel].name;
+        document.getElementById('level-description').textContent = levels[currentLevel].description;
+        const unlockedCount = levels[currentLevel].intervals.length;
+        document.getElementById('level-progress-text').textContent = `Unlocked intervals: ${unlockedCount} of 11 | Need ${levels[currentLevel].unlockThreshold} correct in a row to advance`;
+    }
+
+    // Sync unlock status to match current level (ensures consistency)
+    function syncUnlockStatusWithLevel() {
+        // Reset all to locked first
+        Object.keys(intervals).forEach(key => {
+            intervalProgress[key].unlocked = false;
+        });
+        // Unlock all intervals up to and including current level
+        levels[currentLevel].intervals.forEach(key => {
+            intervalProgress[key].unlocked = true;
+        });
+    }
+
+    async function resetToLevel(level) {
+        currentLevel = level;
+        consecutiveCorrect = 0;
+        sessionCorrect = 0;
+        sessionTotal = 0;
+        currentStreak = 0;
+        syncUnlockStatusWithLevel();
+        updateLevelInfo();
+        updateProgressDisplay();
+        updateStats();
+        renderAnswerButtons();
+        newQuestion();
+    }
+
+    async function resetAllProgress() {
+        if (!confirm('This will reset all your aural training progress. Are you sure?')) return;
+        currentLevel = 0;
+        consecutiveCorrect = 0;
+        sessionCorrect = 0;
+        sessionTotal = 0;
+        currentStreak = 0;
+        // Reset all interval progress
+        Object.keys(intervals).forEach(key => {
+            intervalProgress[key] = { attempts: 0, correct: 0, unlocked: levels[0].intervals.includes(key) };
+        });
+        // TODO: Call API to reset progress on server
+        updateLevelInfo();
+        updateProgressDisplay();
+        updateStats();
+        renderAnswerButtons();
+        newQuestion();
+    }
+
+    function updateProgressDisplay() {
+        const container = document.getElementById('interval-progress');
+        container.innerHTML = '';
+        Object.keys(intervals).forEach(key => {
+            const p = intervalProgress[key];
+            const acc = p.attempts > 0 ? Math.round((p.correct / p.attempts) * 100) : 0;
+            let status = 'locked';
+            if (p.unlocked) status = acc >= 80 && p.attempts >= 5 ? 'mastered' : 'learning';
+
+            const card = document.createElement('div');
+            let badgeClass = status === 'mastered' ? 'badge-success' : (status === 'learning' ? 'badge-warning' : 'badge-ghost');
+            let cardClass = status === 'locked' ? 'opacity-50' : '';
+            card.className = `bg-base-200 rounded-box p-3 text-center ${cardClass}`;
+            card.innerHTML = `
+                <div class="font-bold">${intervals[key].name}</div>
+                <div class="badge ${badgeClass} badge-sm mt-1">${status === 'mastered' ? 'Mastered' : (status === 'learning' ? 'Learning' : 'Locked')}</div>
+                ${p.unlocked ? `<div class="text-xl font-bold mt-1">${acc}%</div>` : ''}
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function renderAnswerButtons() {
+        const container = document.getElementById('answer-buttons');
+        container.innerHTML = '';
+        levels[currentLevel].intervals.forEach(key => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-outline';
+            btn.dataset.interval = key;
+            btn.textContent = intervals[key].name;
+            btn.addEventListener('click', () => checkAnswer(key));
+            container.appendChild(btn);
+        });
+    }
+
+    function generateInterval() {
+        const avail = levels[currentLevel].intervals;
+        const rand = avail[Math.floor(Math.random() * avail.length)];
+        return { interval: rand, direction: Math.random() > 0.5 ? 'ascending' : 'descending' };
+    }
+
+    async function playInterval() {
+        if (!currentInterval) return;
+        document.getElementById('play-btn').disabled = true;
+        await playIntervalSound(currentInterval.interval, currentInterval.direction);
+        setTimeout(() => document.getElementById('play-btn').disabled = false, 3000);
+    }
+
+    function showHint() {
+        if (hasAnswered || !currentInterval) return;
+        hintUsed = true;
+        const info = intervals[currentInterval.interval];
+        document.getElementById('pre-hint-text').innerHTML = `<strong>Song reference:</strong> ${info.hint}<br><strong>${info.semitones} semitones</strong>`;
+        document.getElementById('pre-hint-section').classList.remove('hidden');
+        document.getElementById('hint-btn').disabled = true;
+    }
+
+    async function checkAnswer(selectedInterval) {
+        if (hasAnswered) return;
+        hasAnswered = true; sessionTotal++;
+        intervalProgress[currentInterval.interval].attempts++;
+
+        const isCorrect = selectedInterval === currentInterval.interval;
+        const feedbackEl = document.getElementById('feedback');
+        const correctInfo = intervals[currentInterval.interval];
+        const selectedInfo = intervals[selectedInterval];
+
+        if (isCorrect) {
+            sessionCorrect++; currentStreak++; consecutiveCorrect++;
+            intervalProgress[currentInterval.interval].correct++;
+            feedbackEl.className = 'alert alert-success mb-4';
+            let html = `<i class="fas fa-check-circle"></i><div><strong>Correct!</strong> That was the ${correctInfo.name} (${currentInterval.direction}).`;
+            if (currentStreak >= 3) {
+                html += ` <span class="badge badge-warning">Streak: ${currentStreak}</span>`;
+                document.getElementById('streak').classList.add('streak-bonus');
+                setTimeout(() => document.getElementById('streak').classList.remove('streak-bonus'), 500);
+            }
+            html += `</div>`;
+            feedbackEl.innerHTML = html;
+
+            if (consecutiveCorrect >= levels[currentLevel].unlockThreshold && currentLevel < levels.length - 1) {
+                currentLevel++; consecutiveCorrect = 0;
+                const newIntervals = levels[currentLevel].intervals;
+                newIntervals.forEach(int => intervalProgress[int].unlocked = true);
+                await unlockIntervals(newIntervals);
+
+                const unlockAlert = document.createElement('div');
+                unlockAlert.className = 'alert alert-warning mt-2';
+                unlockAlert.innerHTML = `<i class="fas fa-trophy"></i><span><strong>Level Up!</strong> ${levels[currentLevel].name} unlocked!</span>`;
+                feedbackEl.appendChild(unlockAlert);
+                updateLevelInfo(); renderAnswerButtons();
+            }
+        } else {
+            currentStreak = 0; consecutiveCorrect = 0;
+            feedbackEl.className = 'alert alert-error mb-4';
+            feedbackEl.innerHTML = `<i class="fas fa-times-circle"></i><div><strong>Not quite.</strong> That was the <strong>${correctInfo.name}</strong>, not ${selectedInfo.name}.<br><span class="text-sm">${correctInfo.name}: ${correctInfo.semitones} semitones | ${selectedInfo.name}: ${selectedInfo.semitones} semitones</span></div>`;
+        }
+
+        feedbackEl.classList.remove('hidden');
+        document.getElementById('notation-section').classList.remove('hidden');
+        showNotation(document.getElementById('notation-output'), currentInterval.interval, currentInterval.direction);
+        document.getElementById('hint-text').innerHTML = `${correctInfo.hint}<br><em>Songs: ${correctInfo.songs.join(', ')}</em>`;
+        document.getElementById('hint-section').classList.remove('hidden');
+        document.getElementById('pre-hint-section').classList.add('hidden');
+
+        document.querySelectorAll('#answer-buttons .btn').forEach(btn => {
+            btn.disabled = true;
+            if (btn.dataset.interval === currentInterval.interval) btn.classList.add('btn-success');
+            else if (btn.dataset.interval === selectedInterval && !isCorrect) btn.classList.add('btn-error');
+        });
+
+        await recordAnswer(currentInterval.interval, isCorrect, currentStreak, currentLevel);
+        updateStats(); updateProgressDisplay();
+        document.getElementById('next-btn').classList.remove('hidden');
+    }
+
+    function updateStats() {
+        document.getElementById('session-score').textContent = `${sessionCorrect}/${sessionTotal}`;
+        document.getElementById('streak').textContent = currentStreak;
+        const acc = sessionTotal > 0 ? Math.round((sessionCorrect / sessionTotal) * 100) : 0;
+        document.getElementById('accuracy').textContent = acc + '%';
+    }
+
+    function newQuestion() {
+        currentInterval = generateInterval();
+        hasAnswered = false; hintUsed = false;
+        document.getElementById('feedback').classList.add('hidden');
+        document.getElementById('notation-section').classList.add('hidden');
+        document.getElementById('hint-section').classList.add('hidden');
+        document.getElementById('pre-hint-section').classList.add('hidden');
+        document.getElementById('next-btn').classList.add('hidden');
+        document.getElementById('hint-btn').disabled = false;
+        renderAnswerButtons();
+        document.querySelectorAll('#answer-buttons .btn').forEach(btn => {
+            btn.disabled = false;
+            btn.classList.remove('btn-success', 'btn-error');
+        });
+    }
+
+    // Event listeners
+    document.getElementById('play-btn').addEventListener('click', playInterval);
+    document.getElementById('hint-btn').addEventListener('click', showHint);
+    document.getElementById('next-btn').addEventListener('click', newQuestion);
+
+    document.getElementById('drill-play-asc').addEventListener('click', async () => {
+        document.getElementById('drill-play-asc').disabled = true;
+        await playIntervalSound(drillInterval, 'ascending');
+        showNotation(document.getElementById('drill-notation-output'), drillInterval, 'ascending');
+        setTimeout(() => document.getElementById('drill-play-asc').disabled = false, 3000);
+    });
+
+    document.getElementById('drill-play-desc').addEventListener('click', async () => {
+        document.getElementById('drill-play-desc').disabled = true;
+        await playIntervalSound(drillInterval, 'descending');
+        showNotation(document.getElementById('drill-notation-output'), drillInterval, 'descending');
+        setTimeout(() => document.getElementById('drill-play-desc').disabled = false, 3000);
+    });
+
+    document.getElementById('drill-play-harmonic').addEventListener('click', async () => {
+        document.getElementById('drill-play-harmonic').disabled = true;
+        await playIntervalSound(drillInterval, 'ascending', true);
+        setTimeout(() => document.getElementById('drill-play-harmonic').disabled = false, 3000);
+    });
+
+    document.getElementById('drill-interval').addEventListener('change', (e) => {
+        drillInterval = e.target.value;
+        updateDrillDisplay();
+    });
+
+    document.getElementById('explore-play-asc').addEventListener('click', () => {
+        if (exploreSelectedInterval) {
+            playIntervalSound(exploreSelectedInterval, 'ascending');
+            showNotation(document.getElementById('explore-notation-output'), exploreSelectedInterval, 'ascending');
+        }
+    });
+    document.getElementById('explore-play-desc').addEventListener('click', () => {
+        if (exploreSelectedInterval) {
+            playIntervalSound(exploreSelectedInterval, 'descending');
+            showNotation(document.getElementById('explore-notation-output'), exploreSelectedInterval, 'descending');
+        }
+    });
+    document.getElementById('explore-play-harmonic').addEventListener('click', () => {
+        if (exploreSelectedInterval) playIntervalSound(exploreSelectedInterval, 'ascending', true);
+    });
+
+    document.querySelectorAll('[data-mode]').forEach(btn => {
+        btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+    });
+
+    document.getElementById('reset-level-btn').addEventListener('click', () => {
+        if (confirm('Restart current level? Your session stats will reset but your overall progress remains.')) {
+            resetToLevel(currentLevel);
+        }
+    });
+
+    document.getElementById('reset-all-btn').addEventListener('click', resetAllProgress);
+
+    // Initialize
+    async function init() {
+        await loadProgressFromAPI();
+        // Ensure unlock status is consistent with current level
+        syncUnlockStatusWithLevel();
+        updateLevelInfo();
+        updateProgressDisplay();
+        renderAnswerButtons();
+        await startSession('training');
+        newQuestion();
+        document.getElementById('loading-overlay').classList.add('hidden');
+    }
+
+    init();
+</script>
+{% endblock %}

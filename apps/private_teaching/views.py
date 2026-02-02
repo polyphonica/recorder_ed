@@ -2171,6 +2171,46 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             context['timeline_data'] = timeline_data
             context['standalone_quizzes'] = standalone_quizzes
 
+            # ===== AURAL TRAINING SECTION =====
+            # Wrapped in try/except to gracefully handle if app not installed or migrations not run
+            try:
+                from apps.aural_training.models import StudentIntervalProgress, AuralTrainingSession
+
+                # Get aural training progress for this student
+                aural_progress = StudentIntervalProgress.objects.filter(
+                    student=student
+                ).order_by('interval')
+
+                aural_total_attempts = sum(p.attempts for p in aural_progress)
+                aural_total_correct = sum(p.correct for p in aural_progress)
+                aural_accuracy = round((aural_total_correct / aural_total_attempts * 100), 1) if aural_total_attempts > 0 else 0
+                aural_intervals_mastered = sum(1 for p in aural_progress if p.is_mastered)
+                aural_intervals_unlocked = sum(1 for p in aural_progress if p.unlocked)
+
+                # Get recent sessions
+                recent_aural_sessions = AuralTrainingSession.objects.filter(
+                    student=student
+                ).order_by('-started_at')[:5]
+
+                last_aural_practice = recent_aural_sessions.first().started_at if recent_aural_sessions.exists() else None
+
+                context['aural_progress'] = aural_progress
+                context['aural_total_attempts'] = aural_total_attempts
+                context['aural_accuracy'] = aural_accuracy
+                context['aural_intervals_mastered'] = aural_intervals_mastered
+                context['aural_intervals_unlocked'] = aural_intervals_unlocked
+                context['recent_aural_sessions'] = recent_aural_sessions
+                context['last_aural_practice'] = last_aural_practice
+            except Exception:
+                # Aural training app not available or not migrated - set defaults
+                context['aural_progress'] = []
+                context['aural_total_attempts'] = 0
+                context['aural_accuracy'] = 0
+                context['aural_intervals_mastered'] = 0
+                context['aural_intervals_unlocked'] = 0
+                context['recent_aural_sessions'] = []
+                context['last_aural_practice'] = None
+
             # ===== NAVIGATION =====
             # Get all students for this teacher (for next/previous navigation)
             all_student_ids = list(Lesson.objects.filter(
