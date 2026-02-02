@@ -1108,7 +1108,7 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
         # PERFORMANCE FIX: Use Prefetch object to preload upcoming sessions and counts
         from django.db.models import Prefetch, Count, Q
         workshops = Workshop.objects.filter(instructor=user).annotate(
-            total_sessions_count=Count('sessions'),
+            total_sessions_count=Count('sessions', distinct=True),
             registration_count=Count('sessions__registrations', distinct=True),
             interest_count=Count('interest_requests', filter=Q(interest_requests__is_active=True), distinct=True)
         ).prefetch_related(
