@@ -373,7 +373,7 @@
     </nav>
 
     <!-- Tier 2: Domain-Specific Navigation -->
-    {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace in 'private_teaching,lessons,expenses,audioplayer,assignments,aural_training' %}
+    {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace in 'private_teaching,lessons,expenses,audioplayer,assignments' %}
         <div class="bg-base-300 shadow-sm">
             <div class="container mx-auto">
                 <div class="navbar justify-center py-2">
@@ -417,7 +417,6 @@
                             <li><a href="{% url 'assignments:student_library' %}" class="{% if request.resolver_match.namespace == 'assignments' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-tasks mr-1"></i>Assignments</a></li>
                             <li><a href="{% url 'private_teaching:calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}bg-primary text-primary-content{% endif %}">Calendar</a></li>
                             <li><a href="{% url 'audioplayer:library' %}" class="{% if request.resolver_match.namespace == 'audioplayer' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-music mr-1"></i>Play-Along Library</a></li>
-                            <li><a href="{% url 'aural_training:student_training' %}" class="{% if request.resolver_match.namespace == 'aural_training' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-headphones mr-1"></i>Aural Training</a></li>
                         {% endif %}
                     </ul>
                 </div>

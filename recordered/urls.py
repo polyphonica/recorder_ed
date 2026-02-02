@@ -22,7 +22,7 @@ from django.contrib.sitemaps.views import sitemap
 from django.contrib.auth import views as auth_views
 
 # Import views
-from views import DomainSelectorView, robots_txt, aural_training_poc
+from views import DomainSelectorView, robots_txt
 
 # Import sitemaps
 from .sitemaps import sitemaps
@@ -60,8 +60,6 @@ urlpatterns = [
     path('ckeditor-poc/', include('ckeditor_poc.urls')),  # CKEditor POC for isolated testing
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('robots.txt', robots_txt, name='robots_txt'),
-    path('aural-training/poc/', aural_training_poc, name='aural_training_poc'),
-    path('aural-training/', include('apps.aural_training.urls')),  # Aural training app
     path('', DomainSelectorView.as_view(), name='domain_selector'),  # Landing page at root
 ]
 
