@@ -1147,6 +1147,7 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
         # Simple direct counts - only count active sessions
         total_sessions = WorkshopSession.objects.filter(workshop__instructor=user, is_active=True).count()
         total_registrations = WorkshopRegistration.objects.filter(session__workshop__instructor=user).count()
+        print(f"DEBUG: total_sessions={total_sessions}, total_registrations={total_registrations}")
 
         context.update({
             'workshops': workshops,
