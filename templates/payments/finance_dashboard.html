@@ -41,16 +41,16 @@
                 <div class="stat-figure text-primary">
                     <i class="fas fa-pound-sign text-3xl"></i>
                 </div>
-                <div class="stat-title">Total Revenue</div>
+                <div class="stat-title">Your Revenue</div>
                 <div class="stat-value text-primary">£{{ summary.total_revenue|floatformat:2 }}</div>
-                <div class="stat-desc">Your earnings after commission</div>
+                <div class="stat-desc">After platform fee deducted</div>
             </div>
 
             <div class="stat bg-base-200 rounded-lg shadow">
                 <div class="stat-figure text-error">
                     <i class="fas fa-money-bill-wave text-3xl"></i>
                 </div>
-                <div class="stat-title">Total Expenses</div>
+                <div class="stat-title">Your Expenses</div>
                 <div class="stat-value text-error">£{{ total_expenses|floatformat:2 }}</div>
                 <div class="stat-desc">{{ expense_count }} expense{{ expense_count|pluralize }}</div>
             </div>
@@ -61,7 +61,7 @@
                 </div>
                 <div class="stat-title text-white">Net Profit</div>
                 <div class="stat-value text-white">£{{ net_profit|floatformat:2 }}</div>
-                <div class="stat-desc text-white">Revenue - Expenses</div>
+                <div class="stat-desc text-white">Your Revenue - Your Expenses</div>
             </div>
 
             <div class="stat bg-base-200 rounded-lg shadow">
@@ -70,7 +70,7 @@
                 </div>
                 <div class="stat-title">Platform Fee</div>
                 <div class="stat-value text-accent">£{{ summary.total_commission|floatformat:2 }}</div>
-                <div class="stat-desc">Commission paid</div>
+                <div class="stat-desc">Already deducted from revenue</div>
             </div>
 
             <div class="stat bg-base-200 rounded-lg shadow">
