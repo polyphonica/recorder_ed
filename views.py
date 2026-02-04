@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.views.generic import TemplateView
 from django.http import HttpResponse
 from django.template.loader import render_to_string
+from pathlib import Path
 
 
 def robots_txt(request):
@@ -45,5 +46,13 @@ class DomainSelectorView(TemplateView):
                 'coming_soon': False
             }
         ]
-        
+
         return context
+
+
+def aural_training_poc(request):
+    """Serve the aural training POC HTML file"""
+    poc_file = Path(__file__).parent / 'aural_training_progressive_poc.html'
+    with open(poc_file, 'r') as f:
+        content = f.read()
+    return HttpResponse(content, content_type='text/html')
