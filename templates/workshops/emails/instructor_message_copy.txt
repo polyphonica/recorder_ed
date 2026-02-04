@@ -1,0 +1,22 @@
+Subject: [Copy] {{ subject }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+COPY FOR YOUR RECORDS
+
+This is a copy of the message you sent to {{ sent_count }} participant{{ sent_count|pluralize }}.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WORKSHOP: {{ workshop.title }}
+SESSION: {{ session.start_datetime|date:"l, d F Y" }} at {{ session.start_datetime|time:"H:i" }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+YOUR MESSAGE:
+
+{{ message }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This email was sent automatically by {{ site_name }} for your records.

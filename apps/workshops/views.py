@@ -2559,6 +2559,31 @@ class EmailParticipantsView(LoginRequiredMixin, TemplateView):
                 logger.error(f"Failed to send email to {registration.student.username}: {e}")
                 failed_count += 1
 
+        # Send a copy to the instructor for their records
+        if sent_count > 0 and request.user.email:
+            try:
+                copy_context = {
+                    'subject': subject,
+                    'message': message_body,
+                    'student_name': 'Participant',  # Generic for the copy
+                    'workshop': session.workshop,
+                    'session': session,
+                    'instructor': request.user,
+                    'instructor_name': request.user.get_full_name() or request.user.username,
+                    'unsubscribe_url': '',  # No unsubscribe for instructor copy
+                    'is_instructor_copy': True,
+                    'sent_count': sent_count,
+                }
+                BaseNotificationService.send_templated_email(
+                    template_path='workshops/emails/instructor_message_copy.txt',
+                    context=copy_context,
+                    recipient_list=[request.user.email],
+                    default_subject=f'[Copy] {subject}',
+                    fail_silently=True  # Don't fail the whole operation if copy fails
+                )
+            except Exception:
+                pass  # Silently ignore copy failures
+
         # Show success message
         if sent_count > 0:
             messages.success(
