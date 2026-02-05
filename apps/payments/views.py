@@ -268,6 +268,32 @@ class StripeWebhookView(View):
                     except Exception as e:
                         logger.error(f"sending teacher payment notification: {e}")
 
+                # Handle voucher redemption if a voucher was used
+                voucher_id = metadata.get('voucher_id')
+                if voucher_id:
+                    try:
+                        from .models import Voucher
+                        from .voucher_service import VoucherService
+                        from decimal import Decimal
+
+                        voucher = Voucher.objects.get(id=voucher_id)
+                        original_amount = Decimal(metadata.get('original_amount', '0'))
+                        discount_amount = Decimal(metadata.get('discount_amount', '0'))
+
+                        VoucherService.create_redemption(
+                            voucher=voucher,
+                            student=order.student,
+                            domain='private_teaching',
+                            original_amount=original_amount,
+                            discount_amount=discount_amount,
+                            final_amount=order.total_amount,
+                            private_lesson_order=order,
+                            stripe_payment=stripe_payment
+                        )
+                        logger.info(f"Created VoucherRedemption for voucher {voucher.code}")
+                    except Exception as e:
+                        logger.error(f"creating voucher redemption: {e}")
+
                 logger.info(f"Private teaching order {order_id} marked as completed")
             except Order.DoesNotExist:
                 logger.warning(f"Order {order_id} not found")
@@ -353,6 +379,7 @@ class StripeWebhookView(View):
         from django.contrib.auth.models import User
         from django.core.mail import send_mail
         from django.utils import timezone
+        from decimal import Decimal
         import uuid
 
         logger.info(f"\n=== WORKSHOP CART PAYMENT WEBHOOK ===")
@@ -364,6 +391,16 @@ class StripeWebhookView(View):
         user_id = metadata.get('student_id')
 
         logger.info(f"Processing {len(item_ids)} cart items for user {user_id}")
+
+        # Calculate discount ratio for proportional pricing when voucher is applied
+        total_amount = Decimal(metadata.get('total_amount', '0'))
+        original_amount = Decimal(metadata.get('original_amount', '0')) or total_amount
+        if original_amount > 0:
+            discount_ratio = total_amount / original_amount
+        else:
+            discount_ratio = Decimal('1')
+
+        logger.info(f"Discount ratio: {discount_ratio} (total: {total_amount}, original: {original_amount})")
 
         try:
             user = User.objects.get(id=user_id)
@@ -404,7 +441,11 @@ class StripeWebhookView(View):
 
                     logger.info(f"  Found cart item: {cart_item.session.workshop.title}")
                     logger.info(f"  Session: {cart_item.session.start_datetime}")
-                    logger.info(f"  Price: £{cart_item.price}")
+                    logger.info(f"  Original Price: £{cart_item.price}")
+
+                    # Calculate proportional discounted price for this item
+                    discounted_price = (cart_item.price * discount_ratio).quantize(Decimal('0.01'))
+                    logger.info(f"  Discounted Price: £{discounted_price}")
 
                     # Create registration with data from cart item
                     registration = WorkshopRegistration.objects.create(
@@ -419,7 +460,7 @@ class StripeWebhookView(View):
                         child_profile=cart_item.child_profile,
                         status='registered',
                         payment_status='completed',
-                        payment_amount=cart_item.price,
+                        payment_amount=discounted_price,
                         stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
                         stripe_checkout_session_id=stripe_payment.stripe_checkout_session_id,
                         paid_at=timezone.now(),
@@ -488,6 +529,35 @@ class StripeWebhookView(View):
             logger.info(f"Successfully created {len(created_registrations)} registrations:")
             for reg in created_registrations:
                 logger.info(f"  - {reg.session.workshop.title} (ID: {reg.id}, Status: {reg.status}, Payment: {reg.payment_status})")
+
+            # Handle voucher redemption if a voucher was used
+            voucher_id = metadata.get('voucher_id')
+            if voucher_id and created_registrations:
+                try:
+                    from .models import Voucher
+                    from .voucher_service import VoucherService
+                    from decimal import Decimal
+
+                    voucher = Voucher.objects.get(id=voucher_id)
+                    original_amount = Decimal(metadata.get('original_amount', '0'))
+                    discount_amount = Decimal(metadata.get('discount_amount', '0'))
+
+                    # Determine domain based on series purchase
+                    voucher_domain = 'workshop_series' if is_mandatory_series else 'workshops'
+
+                    VoucherService.create_redemption(
+                        voucher=voucher,
+                        student=user,
+                        domain=voucher_domain,
+                        original_amount=original_amount,
+                        discount_amount=discount_amount,
+                        final_amount=stripe_payment.total_amount,
+                        workshop_registration=created_registrations[0],  # Link to first registration
+                        stripe_payment=stripe_payment
+                    )
+                    logger.info(f"✓ Created VoucherRedemption for voucher {voucher.code}")
+                except Exception as e:
+                    logger.error(f"creating voucher redemption: {e}")
 
             # Mark payment as completed
             stripe_payment.mark_completed()
@@ -1254,4 +1324,67 @@ class ProfitLossCSVExportView(LoginRequiredMixin, TeacherOnlyMixin, View):
         writer.writerow(["Net Profit", f"£{float(net_profit):.2f}"])
 
         return response
+
+
+class ValidateVoucherAPIView(View):
+    """AJAX endpoint to validate voucher code before checkout"""
+
+    def post(self, request):
+        from django.contrib.auth.decorators import login_required
+        from .voucher_service import VoucherService, VoucherValidationError
+
+        # Check if user is authenticated
+        if not request.user.is_authenticated:
+            return JsonResponse({
+                'valid': False,
+                'message': 'Please log in to use voucher codes.'
+            }, status=401)
+
+        code = request.POST.get('code', '').strip()
+        domain = request.POST.get('domain', 'private_teaching')
+        cart_total = request.POST.get('cart_total', '0')
+
+        if not code:
+            return JsonResponse({
+                'valid': False,
+                'message': 'Please enter a voucher code.'
+            })
+
+        try:
+            cart_total = Decimal(cart_total)
+        except:
+            cart_total = Decimal('0')
+
+        try:
+            voucher = VoucherService.validate_voucher(
+                code=code,
+                student=request.user,
+                domain=domain,
+                cart_total=cart_total
+            )
+
+            discount, final = VoucherService.calculate_discount(voucher, cart_total)
+
+            # Build success message
+            if voucher.discount_type == 'free':
+                message = 'Voucher applied! This purchase is now free.'
+            elif voucher.discount_type == 'percentage':
+                message = f'Voucher applied! You save {voucher.discount_value}%'
+            else:
+                message = f'Voucher applied! You save £{discount:.2f}'
+
+            return JsonResponse({
+                'valid': True,
+                'code': voucher.code,
+                'discount_type': voucher.discount_type,
+                'discount_amount': str(discount),
+                'final_total': str(final),
+                'message': message
+            })
+
+        except VoucherValidationError as e:
+            return JsonResponse({
+                'valid': False,
+                'message': str(e)
+            })
 

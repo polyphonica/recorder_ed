@@ -33,6 +33,15 @@ urlpatterns = [
     path('teacher/subjects/<int:subject_id>/update/', views.SubjectUpdateView.as_view(), name='subject_update'),
     path('teacher/subjects/<int:subject_id>/delete/', views.SubjectDeleteView.as_view(), name='subject_delete'),
     path('teacher/subjects/reorder/', views.SubjectReorderView.as_view(), name='subject_reorder'),
+
+    # Voucher Management
+    path('teacher/vouchers/', views.VoucherListView.as_view(), name='voucher_list'),
+    path('teacher/vouchers/create/', views.VoucherCreateView.as_view(), name='voucher_create'),
+    path('teacher/vouchers/<uuid:pk>/', views.VoucherDetailView.as_view(), name='voucher_detail'),
+    path('teacher/vouchers/<uuid:pk>/update/', views.VoucherUpdateView.as_view(), name='voucher_update'),
+    path('teacher/vouchers/<uuid:pk>/delete/', views.VoucherDeleteView.as_view(), name='voucher_delete'),
+    path('teacher/vouchers/<uuid:pk>/toggle/', views.VoucherToggleStatusView.as_view(), name='voucher_toggle'),
+
     path('teacher/incoming-requests/', views.IncomingRequestsView.as_view(), name='incoming_requests'),
     path('teacher/request/<int:request_id>/', views.LessonRequestDetailView.as_view(), name='lesson_request_detail'),
     path('teacher/schedule/', views.TeacherScheduleView.as_view(), name='teacher_schedule'),

@@ -31,6 +31,7 @@ from .quiz_forms import (
     PrivateLessonQuizAssignmentForm, PrivateLessonQuizAnswerForm
 )
 from .cart import CartManager
+from apps.payments.voucher_service import VoucherService, VoucherValidationError
 from .mixins import (
     StudentProfileCompletedMixin,
     StudentProfileNotCompletedMixin,
@@ -834,10 +835,11 @@ class MyLessonsView(UserFilterMixin, StudentProfileCompletedMixin, StudentOnlyMi
 
     def get_queryset(self):
         # UserFilterMixin automatically filters by student=self.request.user
+        # Prefetch order_item to access price_paid for discount display
         return super().get_queryset().filter(
             approved_status='Accepted',
             is_deleted=False
-        ).select_related('subject', 'teacher').order_by('lesson_date', 'lesson_time')
+        ).select_related('subject', 'teacher', 'order_item').order_by('lesson_date', 'lesson_time')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1088,6 +1090,140 @@ class SubjectDeleteView(PrivateTeachingDeleteView):
         return f'Subject "{obj.subject}"'
 
 
+# ============================================================================
+# VOUCHER MANAGEMENT VIEWS
+# ============================================================================
+
+class VoucherListView(TeacherProfileCompletedMixin, TemplateView):
+    """List all vouchers created by the teacher"""
+    template_name = 'private_teaching/voucher_list.html'
+
+    def get_context_data(self, **kwargs):
+        from apps.payments.models import Voucher
+        from .forms import VoucherForm
+
+        context = super().get_context_data(**kwargs)
+        vouchers = Voucher.objects.filter(created_by=self.request.user).order_by('-created_at')
+
+        # Calculate stats
+        active_vouchers = vouchers.filter(status='active')
+        total_redemptions = sum(v.times_used for v in vouchers)
+
+        context['vouchers'] = vouchers
+        context['active_count'] = active_vouchers.count()
+        context['total_redemptions'] = total_redemptions
+        context['voucher_form'] = VoucherForm(teacher=self.request.user)
+        return context
+
+
+class VoucherCreateView(TeacherProfileCompletedMixin, View):
+    """Create a new voucher (POST-only)"""
+
+    def post(self, request, *args, **kwargs):
+        from .forms import VoucherForm
+
+        form = VoucherForm(request.POST, teacher=request.user)
+        if form.is_valid():
+            voucher = form.save()
+            messages.success(request, f'Voucher "{voucher.code}" created successfully!')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{error}')
+
+        return redirect('private_teaching:voucher_list')
+
+
+class VoucherDetailView(TeacherProfileCompletedMixin, TemplateView):
+    """View voucher details and redemption history"""
+    template_name = 'private_teaching/voucher_detail.html'
+
+    def get_context_data(self, **kwargs):
+        from apps.payments.models import Voucher, VoucherRedemption
+        from .forms import VoucherForm
+
+        context = super().get_context_data(**kwargs)
+        voucher_id = self.kwargs.get('pk')
+        voucher = get_object_or_404(Voucher, id=voucher_id, created_by=self.request.user)
+
+        redemptions = VoucherRedemption.objects.filter(voucher=voucher).select_related(
+            'student', 'private_lesson_order', 'workshop_registration'
+        ).order_by('-redeemed_at')
+
+        # Calculate stats
+        total_discount_given = sum(r.discount_amount for r in redemptions)
+
+        context['voucher'] = voucher
+        context['redemptions'] = redemptions
+        context['total_discount_given'] = total_discount_given
+        context['voucher_form'] = VoucherForm(instance=voucher, teacher=self.request.user)
+        return context
+
+
+class VoucherUpdateView(TeacherProfileCompletedMixin, View):
+    """Update voucher (POST-only)"""
+
+    def post(self, request, *args, **kwargs):
+        from apps.payments.models import Voucher
+        from .forms import VoucherForm
+
+        voucher_id = kwargs.get('pk')
+        voucher = get_object_or_404(Voucher, id=voucher_id, created_by=request.user)
+
+        form = VoucherForm(request.POST, instance=voucher, teacher=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Voucher "{voucher.code}" updated successfully!')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{error}')
+
+        return redirect('private_teaching:voucher_detail', pk=voucher_id)
+
+
+class VoucherDeleteView(TeacherProfileCompletedMixin, View):
+    """Delete voucher (POST-only)"""
+
+    def post(self, request, *args, **kwargs):
+        from apps.payments.models import Voucher
+
+        voucher_id = kwargs.get('pk')
+        voucher = get_object_or_404(Voucher, id=voucher_id, created_by=request.user)
+
+        # Check if voucher has redemptions
+        if voucher.redemptions.exists():
+            messages.error(request, f'Cannot delete voucher "{voucher.code}" - it has been used. You can pause it instead.')
+            return redirect('private_teaching:voucher_list')
+
+        code = voucher.code
+        voucher.delete()
+        messages.success(request, f'Voucher "{code}" deleted successfully!')
+        return redirect('private_teaching:voucher_list')
+
+
+class VoucherToggleStatusView(TeacherProfileCompletedMixin, View):
+    """Toggle voucher status between active and paused"""
+
+    def post(self, request, *args, **kwargs):
+        from apps.payments.models import Voucher
+
+        voucher_id = kwargs.get('pk')
+        voucher = get_object_or_404(Voucher, id=voucher_id, created_by=request.user)
+
+        if voucher.status == 'active':
+            voucher.status = 'paused'
+            messages.success(request, f'Voucher "{voucher.code}" has been paused.')
+        elif voucher.status == 'paused':
+            voucher.status = 'active'
+            messages.success(request, f'Voucher "{voucher.code}" is now active.')
+        else:
+            messages.warning(request, f'Voucher "{voucher.code}" cannot be toggled (status: {voucher.status}).')
+
+        voucher.save()
+        return redirect('private_teaching:voucher_list')
+
+
 class UpdateZoomLinkView(TeacherProfileCompletedMixin, View):
     """Update teacher's default Zoom link"""
 
@@ -1201,11 +1337,12 @@ class ClearCartView(StudentProfileCompletedMixin, View):
 
 
 class ProcessPaymentView(StudentProfileCompletedMixin, View):
-    """Create Stripe checkout session and redirect to payment"""
+    """Create Stripe checkout session and redirect to payment, with voucher support"""
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         from apps.payments.stripe_service import create_checkout_session
+        from decimal import Decimal
 
         cart_manager = CartManager(request)
         cart_context = cart_manager.get_cart_context()
@@ -1214,11 +1351,39 @@ class ProcessPaymentView(StudentProfileCompletedMixin, View):
             messages.error(request, "Your cart is empty. Add lessons before checkout.")
             return redirect('private_teaching:cart')
 
+        # Get teacher from cart items
+        teacher = None
+        for cart_item in cart_context['cart_items']:
+            if cart_item.lesson.teacher:
+                teacher = cart_item.lesson.teacher
+                break
+
+        # Handle voucher code if provided
+        voucher_code = request.POST.get('voucher_code', '').strip()
+        applied_voucher = None
+        discount_amount = Decimal('0.00')
+        final_total = cart_context['cart_total']
+
+        if voucher_code:
+            try:
+                applied_voucher = VoucherService.validate_voucher(
+                    code=voucher_code,
+                    student=request.user,
+                    domain='private_teaching',
+                    cart_total=cart_context['cart_total'],
+                    teacher=teacher
+                )
+                discount_amount, final_total = VoucherService.calculate_discount(
+                    applied_voucher, cart_context['cart_total']
+                )
+            except VoucherValidationError as e:
+                messages.error(request, str(e))
+                return redirect('private_teaching:cart')
+
         # Clean up ANY existing OrderItems for these lessons first
         lesson_ids_to_checkout = [cart_item.lesson.id for cart_item in cart_context['cart_items']]
 
         # Find ALL OrderItems for these lessons (regardless of order status)
-        # This handles cases where orders are marked complete but lessons aren't paid
         orphaned_order_items = OrderItem.objects.filter(
             lesson_id__in=lesson_ids_to_checkout
         )
@@ -1229,17 +1394,66 @@ class ProcessPaymentView(StudentProfileCompletedMixin, View):
             deleted_count = Order.objects.filter(id__in=orphaned_order_ids).delete()
             print(f"Cleaned up {deleted_count[0]} existing orders for these lessons")
 
-        # Create order with pending status
+        # Collect lesson IDs and create order items
+        lesson_ids = []
+
+        # Handle 100% FREE voucher - bypass Stripe entirely
+        if final_total == Decimal('0.00') and applied_voucher:
+            # Create order with completed status
+            order = Order.objects.create(
+                student=request.user,
+                total_amount=Decimal('0.00'),
+                payment_status='completed',
+                payment_method='voucher_free'
+            )
+
+            # Create order items and mark lessons as paid
+            for cart_item in cart_context['cart_items']:
+                OrderItem.objects.create(
+                    order=order,
+                    lesson=cart_item.lesson,
+                    price_paid=Decimal('0.00')
+                )
+                lesson_ids.append(str(cart_item.lesson.id))
+
+                # Mark lesson as paid
+                cart_item.lesson.payment_status = 'Paid'
+                cart_item.lesson.in_cart = False
+                cart_item.lesson.save()
+
+            # Create voucher redemption record
+            VoucherService.create_redemption(
+                voucher=applied_voucher,
+                student=request.user,
+                domain='private_teaching',
+                original_amount=cart_context['cart_total'],
+                discount_amount=discount_amount,
+                final_amount=final_total,
+                request=request,
+                private_lesson_order=order
+            )
+
+            # Clear the cart
+            cart_manager.clear_cart()
+
+            # Send notifications
+            StudentNotificationService.send_payment_confirmation(order)
+            if teacher:
+                from .notifications import TeacherPaymentNotificationService
+                TeacherPaymentNotificationService.send_lesson_payment_notification(order, teacher)
+
+            messages.success(request, f"Voucher {applied_voucher.code} applied! Your lessons are now booked.")
+            return redirect('private_teaching:checkout_success', order_id=order.id)
+
+        # Create order with pending status for paid checkout
         order = Order.objects.create(
             student=request.user,
-            total_amount=cart_context['cart_total'],
+            total_amount=final_total,
             payment_status='pending',
             payment_method='stripe'
         )
 
         # Create order items (but don't mark lessons as paid yet)
-        lesson_ids = []
-        teacher = None
         for cart_item in cart_context['cart_items']:
             OrderItem.objects.create(
                 order=order,
@@ -1247,8 +1461,6 @@ class ProcessPaymentView(StudentProfileCompletedMixin, View):
                 price_paid=cart_item.price
             )
             lesson_ids.append(str(cart_item.lesson.id))
-            if not teacher and cart_item.lesson.teacher:
-                teacher = cart_item.lesson.teacher
 
         # Prepare success and cancel URLs
         success_url = request.build_absolute_uri(
@@ -1258,19 +1470,42 @@ class ProcessPaymentView(StudentProfileCompletedMixin, View):
             reverse('private_teaching:checkout_cancel', kwargs={'order_id': order.id})
         )
 
+        # Prepare metadata
+        metadata = {
+            'order_id': str(order.id),
+            'lesson_ids': ','.join(lesson_ids),
+        }
+
+        # Add voucher info to metadata if applied
+        if applied_voucher:
+            metadata['voucher_id'] = str(applied_voucher.id)
+            metadata['voucher_code'] = applied_voucher.code
+            metadata['original_amount'] = str(cart_context['cart_total'])
+            metadata['discount_amount'] = str(discount_amount)
+            # Override total_amount with discounted amount for correct finance reporting
+            metadata['total_amount'] = str(final_total)
+            # Recalculate commission on discounted amount
+            from apps.payments.utils import calculate_commission
+            platform_commission, teacher_share = calculate_commission(final_total)
+            metadata['platform_commission'] = str(platform_commission)
+            metadata['teacher_share'] = str(teacher_share)
+
+        # Get Stripe coupon ID if voucher provides partial discount
+        coupon_id = None
+        if applied_voucher and final_total > Decimal('0.00'):
+            coupon_id = VoucherService.create_or_get_stripe_coupon(applied_voucher)
+
         # Create Stripe checkout session
         try:
             session = create_checkout_session(
-                amount=order.total_amount,
+                amount=cart_context['cart_total'],  # Use original amount, Stripe coupon will apply discount
                 student=request.user,
                 teacher=teacher,
                 domain='private_teaching',
                 success_url=success_url,
                 cancel_url=cancel_url,
-                metadata={
-                    'order_id': str(order.id),
-                    'lesson_ids': ','.join(lesson_ids),
-                }
+                metadata=metadata,
+                coupon_id=coupon_id
             )
 
             # Save session ID to order
@@ -1288,7 +1523,11 @@ class ProcessPaymentView(StudentProfileCompletedMixin, View):
 
 
 class CheckoutSuccessView(StudentProfileCompletedMixin, BaseCheckoutSuccessView):
-    """Handle return from Stripe after successful checkout"""
+    """Handle return from Stripe after successful checkout.
+
+    Includes fallback processing if webhook hasn't processed the payment yet.
+    This handles race conditions and local development without webhook forwarding.
+    """
     template_name = 'private_teaching/payment_success.html'
 
     def get_object_model(self):
@@ -1301,9 +1540,113 @@ class CheckoutSuccessView(StudentProfileCompletedMixin, BaseCheckoutSuccessView)
         return 'private_teaching:home'
 
     def perform_post_checkout_actions(self, obj):
-        """Clear the cart after successful checkout"""
+        """Clear the cart and process payment fallback if needed"""
+        # Check if webhook has already processed this payment
+        if obj.payment_status == 'pending' and obj.stripe_checkout_session_id:
+            self._process_payment_fallback(obj)
+
         cart_manager = CartManager(self.request)
         cart_manager.clear_cart()
+
+    def _process_payment_fallback(self, order):
+        """Process payment if webhook hasn't done so yet."""
+        import stripe
+        from decimal import Decimal
+        from django.conf import settings
+        from django.utils import timezone
+        from apps.payments.models import StripePayment
+        from apps.payments.voucher_service import VoucherService
+        import logging
+
+        logger = logging.getLogger(__name__)
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+
+        try:
+            # Check if StripePayment already exists
+            existing_payment = StripePayment.objects.filter(
+                stripe_checkout_session_id=order.stripe_checkout_session_id
+            ).first()
+
+            if existing_payment:
+                logger.info(f"StripePayment already exists for order {order.id}")
+                return
+
+            # Retrieve the Stripe session
+            session = stripe.checkout.Session.retrieve(order.stripe_checkout_session_id)
+
+            # Only process if payment succeeded
+            if session.payment_status != 'paid':
+                logger.warning(f"Checkout session {order.stripe_checkout_session_id} not paid: {session.payment_status}")
+                return
+
+            metadata = session.get('metadata', {})
+            logger.info(f"Processing payment fallback for order {order.id}")
+
+            # Get amounts from metadata
+            total_amount = Decimal(metadata.get('total_amount', str(order.total_amount)))
+            platform_commission = Decimal(metadata.get('platform_commission', '0'))
+            teacher_share = Decimal(metadata.get('teacher_share', '0'))
+
+            # Get teacher from first order item
+            first_item = order.items.select_related('lesson__teacher').first()
+            teacher = first_item.lesson.teacher if first_item else None
+
+            # Create StripePayment record
+            stripe_payment = StripePayment.objects.create(
+                stripe_checkout_session_id=order.stripe_checkout_session_id,
+                stripe_payment_intent_id=session.payment_intent,
+                domain='private_teaching',
+                student=order.student,
+                teacher=teacher,
+                total_amount=total_amount,
+                platform_commission=platform_commission,
+                teacher_share=teacher_share,
+                currency='gbp',
+                status='completed',
+                metadata=metadata,
+            )
+
+            # Update order status
+            order.payment_status = 'completed'
+            order.stripe_payment_intent_id = session.payment_intent
+            order.total_amount = total_amount
+            order.save()
+
+            # Mark all lessons in this order as Paid
+            for order_item in order.items.select_related('lesson'):
+                lesson = order_item.lesson
+                lesson.payment_status = 'Paid'
+                lesson.save(update_fields=['payment_status'])
+
+            # Handle voucher redemption if applicable
+            voucher_id = metadata.get('voucher_id')
+            if voucher_id:
+                try:
+                    from apps.payments.models import Voucher
+                    voucher = Voucher.objects.get(id=voucher_id)
+                    original_amount = Decimal(metadata.get('original_amount', '0'))
+                    discount_amount = Decimal(metadata.get('discount_amount', '0'))
+
+                    VoucherService.create_redemption(
+                        voucher=voucher,
+                        student=order.student,
+                        domain='private_teaching',
+                        original_amount=original_amount,
+                        discount_amount=discount_amount,
+                        final_amount=total_amount,
+                        private_lesson_order=order,
+                        stripe_payment=stripe_payment
+                    )
+                    logger.info(f"Created VoucherRedemption for voucher {voucher.code}")
+                except Exception as e:
+                    logger.error(f"Error creating voucher redemption: {e}")
+
+            logger.info(f"Successfully processed payment fallback for order {order.id}")
+
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe error in payment fallback: {e}")
+        except Exception as e:
+            logger.error(f"Error in payment fallback processing: {e}")
 
     def get_context_extras(self, obj):
         order_items = obj.items.select_related(

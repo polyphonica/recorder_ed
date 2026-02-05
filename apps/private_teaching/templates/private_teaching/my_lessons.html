@@ -93,7 +93,18 @@
                                             <div class="text-2xl font-bold text-primary">{{ lesson.lesson_time|time:"g:i A" }}</div>
                                             <div class="text-sm text-base-content/70">{{ lesson.duration_in_minutes }} minutes</div>
                                             {% if lesson.fee %}
-                                                <div class="text-success font-semibold mt-2">£{{ lesson.fee|floatformat:2 }}</div>
+                                                <div class="font-semibold mt-2">
+                                                    {% if lesson.order_item and lesson.order_item.price_paid != lesson.fee %}
+                                                        <span class="text-base-content/50 line-through">£{{ lesson.fee|floatformat:2 }}</span>
+                                                        {% if lesson.order_item.price_paid == 0 %}
+                                                            <span class="text-success ml-1">FREE</span>
+                                                        {% else %}
+                                                            <span class="text-success ml-1">£{{ lesson.order_item.price_paid|floatformat:2 }}</span>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <span class="text-success">£{{ lesson.fee|floatformat:2 }}</span>
+                                                    {% endif %}
+                                                </div>
                                             {% endif %}
                                             {% if lesson.location == 'Online' %}
                                                 <div class="mt-2">
@@ -184,7 +195,16 @@
                                 <td>{{ lesson.duration_in_minutes }} min</td>
                                 <td>
                                     {% if lesson.fee %}
-                                        £{{ lesson.fee|floatformat:2 }}
+                                        {% if lesson.order_item and lesson.order_item.price_paid != lesson.fee %}
+                                            <span class="text-base-content/50 line-through">£{{ lesson.fee|floatformat:2 }}</span>
+                                            {% if lesson.order_item.price_paid == 0 %}
+                                                <span class="text-success ml-1">FREE</span>
+                                            {% else %}
+                                                <span class="text-success ml-1">£{{ lesson.order_item.price_paid|floatformat:2 }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            £{{ lesson.fee|floatformat:2 }}
+                                        {% endif %}
                                     {% endif %}
                                 </td>
                                 <td>

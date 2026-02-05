@@ -54,6 +54,43 @@
         </div>
     </div>
 
+    <!-- Promotional Vouchers -->
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <h2 class="card-title text-2xl mb-2">
+                        <i class="fas fa-ticket-alt text-success mr-2"></i>
+                        Promotional Vouchers
+                    </h2>
+                    <p class="text-base-content/70 mb-4">
+                        Create discount codes and free lesson vouchers for students (competition winners, promotions, etc.)
+                    </p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <div class="badge badge-lg gap-2">
+                            <i class="fas fa-percent"></i>
+                            Percentage Discounts
+                        </div>
+                        <div class="badge badge-lg gap-2">
+                            <i class="fas fa-pound-sign"></i>
+                            Fixed Amount Off
+                        </div>
+                        <div class="badge badge-lg gap-2">
+                            <i class="fas fa-gift"></i>
+                            Free Lessons
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <a href="{% url 'private_teaching:voucher_list' %}" class="btn btn-success btn-lg">
+                        <i class="fas fa-ticket-alt mr-2"></i>
+                        Manage Vouchers
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Default Zoom Link -->
     <div class="card card-section shadow-xl mb-6">
         <div class="card-body">

@@ -28,6 +28,74 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 {% endif %}
+
+// Voucher validation
+var originalTotal = {{ cart_total|default:0 }};
+var appliedVoucher = null;
+
+function applyVoucher() {
+    var codeInput = document.getElementById('voucher_code_input');
+    var code = codeInput.value.trim().toUpperCase();
+    var feedback = document.getElementById('voucher_feedback');
+    var applyBtn = document.getElementById('apply_voucher_btn');
+
+    if (!code) {
+        feedback.innerHTML = '<span class="text-error">Please enter a voucher code</span>';
+        return;
+    }
+
+    // Show loading state
+    applyBtn.disabled = true;
+    applyBtn.innerHTML = '<span class="loading loading-spinner loading-sm"></span>';
+    feedback.innerHTML = '';
+
+    // Call validation API
+    fetch('{% url "payments:validate_voucher" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: 'code=' + encodeURIComponent(code) + '&domain=private_teaching&cart_total=' + originalTotal
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        applyBtn.disabled = false;
+        applyBtn.innerHTML = 'Apply';
+
+        if (data.valid) {
+            appliedVoucher = data;
+            // Update UI to show discount
+            document.getElementById('discount_row').classList.remove('hidden');
+            document.getElementById('voucher_code_display').textContent = data.code;
+            document.getElementById('discount_amount').textContent = parseFloat(data.discount_amount).toFixed(2);
+            document.getElementById('final_total').textContent = '£' + parseFloat(data.final_total).toFixed(2);
+            document.getElementById('voucher_code_hidden').value = code;
+
+            feedback.innerHTML = '<span class="text-success"><i class="fas fa-check-circle mr-1"></i>' + data.message + '</span>';
+            codeInput.disabled = true;
+            applyBtn.textContent = 'Applied';
+            applyBtn.classList.remove('btn-primary');
+            applyBtn.classList.add('btn-success');
+            applyBtn.disabled = true;
+        } else {
+            feedback.innerHTML = '<span class="text-error"><i class="fas fa-times-circle mr-1"></i>' + data.message + '</span>';
+        }
+    })
+    .catch(function(error) {
+        applyBtn.disabled = false;
+        applyBtn.innerHTML = 'Apply';
+        feedback.innerHTML = '<span class="text-error">Error validating voucher. Please try again.</span>';
+    });
+}
+
+// Allow Enter key to apply voucher
+document.getElementById('voucher_code_input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        applyVoucher();
+    }
+});
 </script>
 {% endblock %}
 
@@ -123,18 +191,48 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <span>Items ({{ cart_count }})</span>
                                 <span>£{{ cart_total|floatformat:2 }}</span>
                             </div>
-                            
+
+                            <!-- Discount Row (hidden by default, shown when voucher applied) -->
+                            <div id="discount_row" class="hidden">
+                                <div class="flex justify-between text-success">
+                                    <span>Discount (<span id="voucher_code_display"></span>)</span>
+                                    <span>-£<span id="discount_amount">0.00</span></span>
+                                </div>
+                            </div>
+
                             <div class="divider my-2"></div>
-                            
+
                             <div class="flex justify-between text-lg font-bold">
                                 <span>Total</span>
-                                <span class="text-green-600">£{{ cart_total|floatformat:2 }}</span>
+                                <span class="text-green-600" id="final_total">£{{ cart_total|floatformat:2 }}</span>
                             </div>
                         </div>
-                        
+
+                        <!-- Voucher Code Input -->
+                        <div class="form-control mt-4 p-4 bg-base-200 rounded-lg">
+                            <label class="label">
+                                <span class="label-text font-medium">Have a voucher code?</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="text"
+                                       id="voucher_code_input"
+                                       class="input input-bordered flex-1 uppercase"
+                                       placeholder="Enter code"
+                                       style="text-transform: uppercase;">
+                                <button type="button"
+                                        id="apply_voucher_btn"
+                                        class="btn btn-outline btn-primary"
+                                        onclick="applyVoucher()">
+                                    Apply
+                                </button>
+                            </div>
+                            <div id="voucher_feedback" class="text-sm mt-2"></div>
+                        </div>
+
                         <div class="mt-6">
-                            <form method="post" action="{% url 'private_teaching:process_payment' %}">
+                            <form method="post" action="{% url 'private_teaching:process_payment' %}" id="checkout_form">
                                 {% csrf_token %}
+                                <input type="hidden" name="voucher_code" id="voucher_code_hidden" value="">
                                 <button type="submit" class="btn btn-section-primary w-full">
                                     <i class="fas fa-credit-card mr-2"></i>Complete Payment
                                 </button>

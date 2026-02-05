@@ -6,6 +6,9 @@ app_name = 'payments'
 urlpatterns = [
     path('webhook/', views.StripeWebhookView.as_view(), name='stripe_webhook'),
 
+    # Voucher Validation API
+    path('api/voucher/validate/', views.ValidateVoucherAPIView.as_view(), name='validate_voucher'),
+
     # Finance Dashboard
     path('finance/', views.FinanceDashboardView.as_view(), name='finance_dashboard'),
     path('finance/profit-loss/', views.ProfitLossView.as_view(), name='profit_loss'),

@@ -16,7 +16,8 @@ def create_checkout_session(
     cancel_url,
     metadata=None,
     item_name=None,
-    item_description=None
+    item_description=None,
+    coupon_id=None
 ):
     """
     Create a Stripe Checkout Session
@@ -31,6 +32,7 @@ def create_checkout_session(
         metadata: Additional metadata dict
         item_name: Custom item name (optional, defaults to domain name)
         item_description: Custom item description (optional)
+        coupon_id: Optional Stripe coupon ID for discounts
 
     Returns:
         stripe.checkout.Session object
@@ -60,9 +62,9 @@ def create_checkout_session(
         product_name = item_name or f'{domain.replace("_", " ").title()} Payment'
         product_description = item_description or f'Payment for {domain.replace("_", " ")} on RECORDERED'
 
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
+        session_params = {
+            'payment_method_types': ['card'],
+            'line_items': [{
                 'price_data': {
                     'currency': 'gbp',
                     'unit_amount': format_stripe_amount(amount),
@@ -73,12 +75,18 @@ def create_checkout_session(
                 },
                 'quantity': 1,
             }],
-            mode='payment',
-            success_url=success_url,
-            cancel_url=cancel_url,
-            customer_email=student.email,
-            metadata=session_metadata,
-        )
+            'mode': 'payment',
+            'success_url': success_url,
+            'cancel_url': cancel_url,
+            'customer_email': student.email,
+            'metadata': session_metadata,
+        }
+
+        # Add discount coupon if provided
+        if coupon_id:
+            session_params['discounts'] = [{'coupon': coupon_id}]
+
+        session = stripe.checkout.Session.create(**session_params)
         return session
     except stripe.error.StripeError as e:
         # Log the error
@@ -102,7 +110,8 @@ def create_checkout_session_with_items(
     domain,
     success_url,
     cancel_url,
-    metadata=None
+    metadata=None,
+    coupon_id=None
 ):
     """
     Create a Stripe Checkout Session with multiple line items
@@ -116,6 +125,7 @@ def create_checkout_session_with_items(
         success_url: URL to redirect after successful payment
         cancel_url: URL to redirect if payment is cancelled
         metadata: Additional metadata dict
+        coupon_id: Optional Stripe coupon ID for discounts
 
     Returns:
         stripe.checkout.Session object
@@ -158,15 +168,21 @@ def create_checkout_session_with_items(
 
     # Create Checkout Session
     try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=stripe_line_items,
-            mode='payment',
-            success_url=success_url,
-            cancel_url=cancel_url,
-            customer_email=student.email,
-            metadata=session_metadata,
-        )
+        session_params = {
+            'payment_method_types': ['card'],
+            'line_items': stripe_line_items,
+            'mode': 'payment',
+            'success_url': success_url,
+            'cancel_url': cancel_url,
+            'customer_email': student.email,
+            'metadata': session_metadata,
+        }
+
+        # Add discount coupon if provided
+        if coupon_id:
+            session_params['discounts'] = [{'coupon': coupon_id}]
+
+        session = stripe.checkout.Session.create(**session_params)
         return session
     except stripe.error.StripeError as e:
         print(f"Stripe error: {str(e)}")

@@ -114,6 +114,29 @@
                 {% endfor %}
             </div>
 
+            <!-- Voucher Code Input -->
+            {% if workshop_cart_total > 0 %}
+            <div class="card bg-base-200 shadow-md mb-4">
+                <div class="card-body">
+                    <h3 class="font-semibold mb-3">Have a voucher code?</h3>
+                    <div class="flex gap-2">
+                        <input type="text"
+                               id="voucher_code_input"
+                               class="input input-bordered flex-1 uppercase"
+                               placeholder="Enter voucher code"
+                               style="text-transform: uppercase;">
+                        <button type="button"
+                                id="apply_voucher_btn"
+                                class="btn btn-outline btn-primary"
+                                onclick="applyVoucher()">
+                            Apply
+                        </button>
+                    </div>
+                    <div id="voucher_feedback" class="text-sm mt-2"></div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Cart Summary -->
             <div class="card bg-primary text-primary-content shadow-xl">
                 <div class="card-body">
@@ -122,12 +145,18 @@
                             <h3 class="text-2xl font-bold">Cart Total</h3>
                             <p class="text-sm opacity-80">{{ workshop_cart_count }} session{{ workshop_cart_count|pluralize }}</p>
                         </div>
-                        <div class="text-4xl font-bold">
-                            {% if workshop_cart_total > 0 %}
-                                £{{ workshop_cart_total }}
-                            {% else %}
-                                FREE
-                            {% endif %}
+                        <div class="text-right">
+                            <div id="original_total_display" class="hidden text-xl line-through opacity-60">£{{ workshop_cart_total }}</div>
+                            <div id="discount_display" class="hidden text-sm">
+                                Discount: -£<span id="discount_amount">0.00</span>
+                            </div>
+                            <div class="text-4xl font-bold" id="final_total_display">
+                                {% if workshop_cart_total > 0 %}
+                                    £{{ workshop_cart_total }}
+                                {% else %}
+                                    FREE
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                     <div class="card-actions justify-end mt-4">
@@ -138,8 +167,9 @@
                                 Clear Cart
                             </button>
                         </form>
-                        <form method="post" action="{% url 'workshops:process_cart_payment' %}">
+                        <form method="post" action="{% url 'workshops:process_cart_payment' %}" id="checkout_form">
                             {% csrf_token %}
+                            <input type="hidden" name="voucher_code" id="voucher_code_hidden" value="">
                             <button type="submit" class="btn btn-secondary">
                                 <i class="fas fa-credit-card mr-2"></i>
                                 {% if workshop_cart_total > 0 %}
@@ -206,6 +236,96 @@ function confirmRemoveSeries(sessionId, workshopTitle, sessionCount) {
 
     // Open modal
     document.getElementById('removeSeriesModal').checked = true;
+}
+
+// Voucher validation
+var originalTotal = {{ workshop_cart_total|default:0 }};
+var appliedVoucher = null;
+
+function applyVoucher() {
+    var codeInput = document.getElementById('voucher_code_input');
+    var code = codeInput.value.trim().toUpperCase();
+    var feedback = document.getElementById('voucher_feedback');
+    var applyBtn = document.getElementById('apply_voucher_btn');
+
+    if (!code) {
+        feedback.innerHTML = '<span class="text-error">Please enter a voucher code</span>';
+        return;
+    }
+
+    // Show loading state
+    applyBtn.disabled = true;
+    applyBtn.innerHTML = '<span class="loading loading-spinner loading-sm"></span>';
+    feedback.innerHTML = '';
+
+    // Determine domain based on whether this looks like a series purchase
+    var domain = 'workshops';
+    {% if workshop_cart_items %}
+        {% with first_item=workshop_cart_items.0 %}
+            {% if first_item.session.workshop.is_series %}
+    domain = 'workshop_series';
+            {% endif %}
+        {% endwith %}
+    {% endif %}
+
+    // Call validation API
+    fetch('{% url "payments:validate_voucher" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: 'code=' + encodeURIComponent(code) + '&domain=' + domain + '&cart_total=' + originalTotal
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        applyBtn.disabled = false;
+        applyBtn.innerHTML = 'Apply';
+
+        if (data.valid) {
+            appliedVoucher = data;
+            // Update UI to show discount
+            var finalTotal = parseFloat(data.final_total);
+            var discountAmount = parseFloat(data.discount_amount);
+
+            document.getElementById('original_total_display').classList.remove('hidden');
+            document.getElementById('discount_display').classList.remove('hidden');
+            document.getElementById('discount_amount').textContent = discountAmount.toFixed(2);
+
+            if (finalTotal === 0) {
+                document.getElementById('final_total_display').textContent = 'FREE';
+            } else {
+                document.getElementById('final_total_display').textContent = '£' + finalTotal.toFixed(2);
+            }
+
+            document.getElementById('voucher_code_hidden').value = code;
+
+            feedback.innerHTML = '<span class="text-success"><i class="fas fa-check-circle mr-1"></i>' + data.message + '</span>';
+            codeInput.disabled = true;
+            applyBtn.textContent = 'Applied';
+            applyBtn.classList.remove('btn-primary');
+            applyBtn.classList.add('btn-success');
+            applyBtn.disabled = true;
+        } else {
+            feedback.innerHTML = '<span class="text-error"><i class="fas fa-times-circle mr-1"></i>' + data.message + '</span>';
+        }
+    })
+    .catch(function(error) {
+        applyBtn.disabled = false;
+        applyBtn.innerHTML = 'Apply';
+        feedback.innerHTML = '<span class="text-error">Error validating voucher. Please try again.</span>';
+    });
+}
+
+// Allow Enter key to apply voucher
+var voucherInput = document.getElementById('voucher_code_input');
+if (voucherInput) {
+    voucherInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            applyVoucher();
+        }
+    });
 }
 </script>
 

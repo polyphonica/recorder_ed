@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Voucher: {{ voucher.code }} - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">
+                    <span class="font-mono">{{ voucher.code }}</span>
+                </h1>
+                <p class="text-base-content/70">Voucher details and redemption history</p>
+            </div>
+            <a href="{% url 'private_teaching:voucher_list' %}" class="btn btn-outline">
+                Back to Vouchers
+            </a>
+        </div>
+    </div>
+
+    <!-- Voucher Summary -->
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex justify-between items-start">
+                <h2 class="card-title text-2xl mb-4">Voucher Summary</h2>
+                <div class="flex gap-2">
+                    {% if voucher.status == 'active' %}
+                        <span class="badge badge-success badge-lg">Active</span>
+                    {% elif voucher.status == 'paused' %}
+                        <span class="badge badge-warning badge-lg">Paused</span>
+                    {% elif voucher.status == 'expired' %}
+                        <span class="badge badge-error badge-lg">Expired</span>
+                    {% elif voucher.status == 'exhausted' %}
+                        <span class="badge badge-neutral badge-lg">Exhausted</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div>
+                    <div class="text-sm text-base-content/60 mb-1">Discount</div>
+                    <div class="text-lg font-semibold">
+                        {% if voucher.discount_type == 'free' %}
+                            100% Free
+                        {% elif voucher.discount_type == 'percentage' %}
+                            {{ voucher.discount_value }}% off
+                        {% elif voucher.discount_type == 'fixed' %}
+                            £{{ voucher.discount_value }} off
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-sm text-base-content/60 mb-1">Uses</div>
+                    <div class="text-lg font-semibold">
+                        {{ voucher.times_used }}{% if voucher.max_uses_total %} / {{ voucher.max_uses_total }}{% else %} (unlimited){% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-sm text-base-content/60 mb-1">Valid From</div>
+                    <div class="text-lg font-semibold">{{ voucher.valid_from|date:"M d, Y" }}</div>
+                </div>
+
+                <div>
+                    <div class="text-sm text-base-content/60 mb-1">Valid Until</div>
+                    <div class="text-lg font-semibold">
+                        {% if voucher.valid_until %}
+                            {{ voucher.valid_until|date:"M d, Y" }}
+                        {% else %}
+                            No expiration
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-sm text-base-content/60 mb-1">Valid For</div>
+                    <div class="flex flex-wrap gap-1">
+                        {% for domain in voucher.applicable_domains %}
+                            {% if domain == 'private_teaching' %}
+                                <span class="badge badge-outline">Private Lessons</span>
+                            {% elif domain == 'workshops' %}
+                                <span class="badge badge-outline">Workshops</span>
+                            {% elif domain == 'workshop_series' %}
+                                <span class="badge badge-outline">Workshop Series</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-sm text-base-content/60 mb-1">Max Uses Per Student</div>
+                    <div class="text-lg font-semibold">{{ voucher.max_uses_per_student }}</div>
+                </div>
+
+                <div>
+                    <div class="text-sm text-base-content/60 mb-1">Minimum Purchase</div>
+                    <div class="text-lg font-semibold">
+                        {% if voucher.minimum_purchase_amount %}
+                            £{{ voucher.minimum_purchase_amount }}
+                        {% else %}
+                            None
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-sm text-base-content/60 mb-1">Total Discount Given</div>
+                    <div class="text-lg font-semibold text-success">£{{ total_discount_given|floatformat:2 }}</div>
+                </div>
+            </div>
+
+            {% if voucher.description %}
+            <div class="mt-4">
+                <div class="text-sm text-base-content/60 mb-1">Description</div>
+                <div class="bg-base-200 rounded-lg p-3">{{ voucher.description }}</div>
+            </div>
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="flex gap-2 mt-6">
+                <form method="post" action="{% url 'private_teaching:voucher_toggle' pk=voucher.id %}">
+                    {% csrf_token %}
+                    {% if voucher.status == 'active' %}
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-pause mr-2"></i>Pause Voucher
+                        </button>
+                    {% elif voucher.status == 'paused' %}
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-play mr-2"></i>Activate Voucher
+                        </button>
+                    {% endif %}
+                </form>
+
+                <button class="btn btn-outline" onclick="editVoucherModal.showModal()">
+                    <i class="fas fa-edit mr-2"></i>Edit Voucher
+                </button>
+
+                {% if not voucher.times_used %}
+                <button class="btn btn-outline btn-error" onclick="deleteVoucherModal.showModal()">
+                    <i class="fas fa-trash mr-2"></i>Delete
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Redemption History -->
+    <div class="card card-section shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-2xl mb-4">Redemption History</h2>
+
+            {% if redemptions %}
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Student</th>
+                            <th>Type</th>
+                            <th class="text-right">Original</th>
+                            <th class="text-right">Discount</th>
+                            <th class="text-right">Paid</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for redemption in redemptions %}
+                        <tr>
+                            <td>{{ redemption.redeemed_at|date:"M d, Y H:i" }}</td>
+                            <td>
+                                {{ redemption.student.get_full_name|default:redemption.student.email }}
+                            </td>
+                            <td>
+                                {% if redemption.domain == 'private_teaching' %}
+                                    <span class="badge badge-outline">Private Lesson</span>
+                                {% elif redemption.domain == 'workshops' %}
+                                    <span class="badge badge-outline">Workshop</span>
+                                {% elif redemption.domain == 'workshop_series' %}
+                                    <span class="badge badge-outline">Workshop Series</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right">£{{ redemption.original_amount|floatformat:2 }}</td>
+                            <td class="text-right text-success">-£{{ redemption.discount_amount|floatformat:2 }}</td>
+                            <td class="text-right font-semibold">
+                                {% if redemption.payment_bypassed %}
+                                    <span class="badge badge-success">Free</span>
+                                {% else %}
+                                    £{{ redemption.final_amount|floatformat:2 }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12 text-base-content/60">
+                <i class="fas fa-history text-4xl mb-4"></i>
+                <p class="text-lg">No redemptions yet</p>
+                <p class="text-sm">Share the code <span class="font-mono font-bold">{{ voucher.code }}</span> with your students</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<dialog id="editVoucherModal" class="modal">
+    <div class="modal-box max-w-3xl">
+        <h3 class="font-bold text-lg mb-4">Edit Voucher: {{ voucher.code }}</h3>
+
+        <form method="post" action="{% url 'private_teaching:voucher_update' pk=voucher.id %}">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Code (read-only) -->
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-medium">Voucher Code</span></label>
+                    <input type="text" value="{{ voucher.code }}" class="input input-bordered w-full" disabled>
+                    <input type="hidden" name="code" value="{{ voucher.code }}">
+                </div>
+
+                <!-- Discount Type -->
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-medium">Discount Type</span></label>
+                    {{ voucher_form.discount_type }}
+                </div>
+
+                <!-- Discount Value -->
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-medium">Discount Value</span></label>
+                    {{ voucher_form.discount_value }}
+                </div>
+
+                <!-- Max Uses Total -->
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-medium">Max Total Uses</span></label>
+                    {{ voucher_form.max_uses_total }}
+                </div>
+
+                <!-- Valid Until -->
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-medium">Valid Until</span></label>
+                    {{ voucher_form.valid_until }}
+                </div>
+
+                <!-- Max Uses Per Student -->
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-medium">Max Uses Per Student</span></label>
+                    {{ voucher_form.max_uses_per_student }}
+                </div>
+
+                <!-- Description -->
+                <div class="form-control md:col-span-2">
+                    <label class="label"><span class="label-text font-medium">Description</span></label>
+                    {{ voucher_form.description }}
+                </div>
+
+                <!-- Applicable Domains -->
+                <div class="form-control md:col-span-2">
+                    <label class="label"><span class="label-text font-medium">Valid For</span></label>
+                    <div class="flex flex-wrap gap-4">
+                        {% for choice in voucher_form.applicable_domains %}
+                            <label class="label cursor-pointer gap-2">
+                                {{ choice.tag }}
+                                <span class="label-text">{{ choice.choice_label }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Hidden fields to preserve values -->
+                <input type="hidden" name="valid_from" value="{{ voucher.valid_from|date:'Y-m-d\TH:i' }}">
+                <input type="hidden" name="minimum_purchase_amount" value="{{ voucher.minimum_purchase_amount }}">
+            </div>
+
+            <div class="modal-action">
+                <button type="button" class="btn btn-outline" onclick="editVoucherModal.close()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<!-- Delete Modal -->
+{% if not voucher.times_used %}
+<dialog id="deleteVoucherModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Delete Voucher</h3>
+        <p class="mb-4">Are you sure you want to delete voucher "<strong>{{ voucher.code }}</strong>"?</p>
+        <p class="text-sm text-base-content/60 mb-4">This action cannot be undone.</p>
+
+        <div class="modal-action">
+            <button type="button" class="btn btn-outline" onclick="deleteVoucherModal.close()">Cancel</button>
+            <form method="post" action="{% url 'private_teaching:voucher_delete' pk=voucher.id %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-error">Delete Voucher</button>
+            </form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+{% endif %}
+{% endblock %}

@@ -840,3 +840,143 @@ class RescheduleForm(forms.Form):
             self.fields['lesson_date'].initial = proposed_date
         if proposed_time and not self.is_bound:
             self.fields['lesson_time'].initial = proposed_time
+
+
+class VoucherForm(forms.ModelForm):
+    """Form for teachers to create and edit vouchers/promo codes"""
+
+    DOMAIN_CHOICES = [
+        ('private_teaching', 'Private Lessons'),
+        ('workshops', 'Workshops'),
+        ('workshop_series', 'Workshop Series'),
+    ]
+
+    applicable_domains = forms.MultipleChoiceField(
+        choices=DOMAIN_CHOICES,
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'checkbox checkbox-primary'}),
+        required=True,
+        label="Valid For",
+        help_text="Select which types of purchases this voucher can be used for"
+    )
+
+    class Meta:
+        from apps.payments.models import Voucher
+        model = Voucher
+        fields = [
+            'code', 'description', 'discount_type', 'discount_value',
+            'applicable_domains', 'valid_from', 'valid_until',
+            'max_uses_total', 'max_uses_per_student', 'minimum_purchase_amount'
+        ]
+        widgets = {
+            'code': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full uppercase',
+                'placeholder': 'e.g., SUMMER25, FREECLASS',
+                'style': 'text-transform: uppercase;'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 2,
+                'placeholder': 'Internal description (e.g., "Competition winner prize")'
+            }),
+            'discount_type': forms.Select(attrs={
+                'class': 'select select-bordered w-full'
+            }),
+            'discount_value': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00'
+            }),
+            'valid_from': forms.DateTimeInput(attrs={
+                'class': 'input input-bordered w-full',
+                'type': 'datetime-local'
+            }),
+            'valid_until': forms.DateTimeInput(attrs={
+                'class': 'input input-bordered w-full',
+                'type': 'datetime-local'
+            }),
+            'max_uses_total': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full',
+                'min': '1',
+                'placeholder': 'Leave blank for unlimited'
+            }),
+            'max_uses_per_student': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full',
+                'min': '1'
+            }),
+            'minimum_purchase_amount': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00'
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.teacher = kwargs.pop('teacher', None)
+        super().__init__(*args, **kwargs)
+
+        # Set labels
+        self.fields['code'].label = "Voucher Code"
+        self.fields['description'].label = "Description (internal)"
+        self.fields['discount_type'].label = "Discount Type"
+        self.fields['discount_value'].label = "Discount Value"
+        self.fields['valid_from'].label = "Valid From"
+        self.fields['valid_until'].label = "Valid Until (optional)"
+        self.fields['max_uses_total'].label = "Max Total Uses (optional)"
+        self.fields['max_uses_per_student'].label = "Max Uses Per Student"
+        self.fields['minimum_purchase_amount'].label = "Minimum Purchase (£)"
+
+        # Set help texts
+        self.fields['discount_value'].help_text = "Enter percentage (0-100) or fixed amount in £ depending on type. Not needed for '100% Free'."
+        self.fields['max_uses_total'].help_text = "Leave blank for unlimited uses"
+        self.fields['valid_until'].help_text = "Leave blank for no expiration"
+
+        # If editing, convert JSONField list to form values
+        if self.instance and self.instance.pk:
+            if self.instance.applicable_domains:
+                self.initial['applicable_domains'] = self.instance.applicable_domains
+
+    def clean_code(self):
+        code = self.cleaned_data.get('code', '').strip().upper()
+        if not code:
+            raise forms.ValidationError("Voucher code is required.")
+
+        # Check uniqueness (excluding current instance if editing)
+        from apps.payments.models import Voucher
+        existing = Voucher.objects.filter(code__iexact=code)
+        if self.instance and self.instance.pk:
+            existing = existing.exclude(pk=self.instance.pk)
+        if existing.exists():
+            raise forms.ValidationError("This voucher code already exists.")
+
+        return code
+
+    def clean(self):
+        cleaned_data = super().clean()
+        discount_type = cleaned_data.get('discount_type')
+        discount_value = cleaned_data.get('discount_value')
+
+        # Validate discount value based on type
+        if discount_type == 'free':
+            cleaned_data['discount_value'] = 0
+        elif discount_type == 'percentage':
+            if discount_value is None or discount_value <= 0 or discount_value > 100:
+                self.add_error('discount_value', 'Percentage must be between 1 and 100.')
+        elif discount_type == 'fixed':
+            if discount_value is None or discount_value <= 0:
+                self.add_error('discount_value', 'Fixed amount must be greater than 0.')
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        voucher = super().save(commit=False)
+        if self.teacher:
+            voucher.created_by = self.teacher
+
+        # Convert form list to JSON list for applicable_domains
+        voucher.applicable_domains = self.cleaned_data.get('applicable_domains', [])
+
+        if commit:
+            voucher.save()
+        return voucher

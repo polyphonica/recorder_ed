@@ -21,6 +21,7 @@ from .models import (
 from .forms import WorkshopRegistrationForm, WorkshopForm, WorkshopSessionForm, WorkshopFilterForm, WorkshopInterestForm, WorkshopMaterialForm
 from .mixins import InstructorRequiredMixin
 from .notifications import WorkshopInterestNotificationService
+from apps.payments.voucher_service import VoucherService, VoucherValidationError
 
 
 def create_terms_acceptance(registration, request_or_session_data):
@@ -2280,8 +2281,185 @@ class ClearWorkshopCartView(LoginRequiredMixin, View):
 
 
 class CheckoutSuccessView(LoginRequiredMixin, TemplateView):
-    """Stripe payment successful for cart checkout"""
+    """Stripe payment successful for cart checkout.
+
+    Includes fallback processing if webhook hasn't processed the payment yet.
+    This handles race conditions and local development without webhook forwarding.
+    """
     template_name = 'workshops/cart_checkout_success.html'
+
+    def get(self, request, *args, **kwargs):
+        session_id = request.GET.get('session_id')
+
+        if session_id:
+            # Check if webhook has already processed this payment
+            from apps.payments.models import StripePayment
+            existing_payment = StripePayment.objects.filter(
+                stripe_checkout_session_id=session_id
+            ).first()
+
+            if not existing_payment:
+                # Webhook hasn't processed yet - do it here as fallback
+                self._process_payment_fallback(request, session_id)
+
+        return super().get(request, *args, **kwargs)
+
+    def _process_payment_fallback(self, request, session_id):
+        """Process payment if webhook hasn't done so yet."""
+        import stripe
+        from decimal import Decimal
+        from django.conf import settings
+        from apps.payments.models import StripePayment
+        from .models import WorkshopCartItem
+        from .cart import WorkshopCartManager
+        import uuid
+        import logging
+
+        logger = logging.getLogger(__name__)
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+
+        try:
+            # Retrieve the Stripe session
+            session = stripe.checkout.Session.retrieve(session_id)
+
+            # Only process if payment succeeded
+            if session.payment_status != 'paid':
+                logger.warning(f"Checkout session {session_id} not paid: {session.payment_status}")
+                return
+
+            metadata = session.get('metadata', {})
+            cart_item_ids = metadata.get('cart_item_ids', '')
+
+            if not cart_item_ids:
+                logger.warning(f"No cart_item_ids in session {session_id} metadata")
+                return
+
+            item_ids = [id.strip() for id in cart_item_ids.split(',')]
+
+            # Check if cart items still exist (not yet processed)
+            cart_items = WorkshopCartItem.objects.filter(id__in=item_ids)
+            if not cart_items.exists():
+                logger.info(f"Cart items already processed for session {session_id}")
+                return
+
+            logger.info(f"Processing payment fallback for session {session_id}")
+
+            # Calculate totals - use discounted amount if voucher was applied
+            total_amount = Decimal(metadata.get('total_amount', '0'))
+            original_amount = Decimal(metadata.get('original_amount', '0')) or total_amount
+            platform_commission = Decimal(metadata.get('platform_commission', '0'))
+            teacher_share = Decimal(metadata.get('teacher_share', '0'))
+
+            # Calculate discount ratio for proportional pricing
+            if original_amount > 0:
+                discount_ratio = total_amount / original_amount
+            else:
+                discount_ratio = Decimal('1')
+
+            # Create StripePayment record
+            stripe_payment = StripePayment.objects.create(
+                stripe_checkout_session_id=session_id,
+                stripe_payment_intent_id=session.payment_intent,
+                domain='workshops',
+                student=request.user,
+                teacher_id=metadata.get('teacher_id'),
+                total_amount=total_amount,
+                platform_commission=platform_commission,
+                teacher_share=teacher_share,
+                currency='gbp',
+                status='completed',
+                metadata=metadata,
+            )
+
+            # Detect mandatory series purchase
+            is_mandatory_series = False
+            series_registration_id = None
+
+            if len(item_ids) > 1:
+                workshops = set(item.session.workshop for item in cart_items)
+                if len(workshops) == 1:
+                    workshop = list(workshops)[0]
+                    if workshop.is_series and workshop.require_full_series_registration:
+                        is_mandatory_series = True
+                        series_registration_id = uuid.uuid4()
+
+            # Process each cart item
+            created_registrations = []
+            for cart_item in cart_items:
+                # Calculate proportional discounted price for this item
+                discounted_price = (cart_item.price * discount_ratio).quantize(Decimal('0.01'))
+
+                registration = WorkshopRegistration.objects.create(
+                    session=cart_item.session,
+                    student=request.user,
+                    email=cart_item.email or request.user.email,
+                    phone=cart_item.phone or '',
+                    emergency_contact=cart_item.emergency_contact or '',
+                    experience_level=cart_item.experience_level or '',
+                    expectations=cart_item.expectations or '',
+                    special_requirements=cart_item.special_requirements or '',
+                    child_profile=cart_item.child_profile,
+                    status='registered',
+                    payment_status='completed',
+                    payment_amount=discounted_price,
+                    stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                    stripe_checkout_session_id=session_id,
+                    paid_at=timezone.now(),
+                    series_registration_id=series_registration_id
+                )
+
+                # Update session registration count
+                session_obj = cart_item.session
+                session_obj.current_registrations = session_obj.registrations.filter(
+                    status__in=['registered', 'promoted', 'attended']
+                ).count()
+                session_obj.save(update_fields=['current_registrations'])
+
+                created_registrations.append(registration)
+
+                # Delete cart item
+                cart_item.delete()
+
+            # Handle voucher redemption if applicable
+            voucher_id = metadata.get('voucher_id')
+            if voucher_id and created_registrations:
+                try:
+                    from apps.payments.models import Voucher
+                    voucher = Voucher.objects.get(id=voucher_id)
+                    original_amount = Decimal(metadata.get('original_amount', '0'))
+                    discount_amount = Decimal(metadata.get('discount_amount', '0'))
+                    voucher_domain = 'workshop_series' if is_mandatory_series else 'workshops'
+
+                    VoucherService.create_redemption(
+                        voucher=voucher,
+                        student=request.user,
+                        domain=voucher_domain,
+                        original_amount=original_amount,
+                        discount_amount=discount_amount,
+                        final_amount=stripe_payment.total_amount,
+                        workshop_registration=created_registrations[0],
+                        stripe_payment=stripe_payment
+                    )
+                    logger.info(f"Created VoucherRedemption for voucher {voucher.code}")
+                except Exception as e:
+                    logger.error(f"Error creating voucher redemption: {e}")
+
+            # Send confirmation email
+            if created_registrations and request.user.email:
+                try:
+                    from .notifications import StudentNotificationService
+                    StudentNotificationService.send_cart_registration_confirmation(
+                        request.user, created_registrations, stripe_payment.total_amount
+                    )
+                except Exception as e:
+                    logger.error(f"Error sending confirmation email: {e}")
+
+            logger.info(f"Successfully processed {len(created_registrations)} registrations via fallback")
+
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe error in payment fallback: {e}")
+        except Exception as e:
+            logger.error(f"Error in payment fallback processing: {e}")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2289,7 +2467,6 @@ class CheckoutSuccessView(LoginRequiredMixin, TemplateView):
         context['session_id'] = session_id
 
         # Get recent registrations for this user
-        # (webhook may have already created them)
         recent_registrations = WorkshopRegistration.objects.filter(
             student=self.request.user,
             payment_status='completed'
@@ -2308,12 +2485,13 @@ class CheckoutCancelView(LoginRequiredMixin, View):
 
 
 class ProcessCartPaymentView(LoginRequiredMixin, View):
-    """Process workshop cart payment - create Stripe checkout session"""
+    """Process workshop cart payment - create Stripe checkout session, with voucher support"""
 
     def post(self, request, *args, **kwargs):
         """Handle checkout submission - create Stripe checkout session"""
         from apps.payments.stripe_service import create_checkout_session
         from decimal import Decimal
+        import uuid
 
         cart_manager = WorkshopCartManager(request)
         cart = cart_manager.get_cart()
@@ -2327,27 +2505,66 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
             'session__workshop__instructor'
         ).all()
 
-        # Calculate total
-        total_amount = sum(item.total_price for item in workshop_items)
+        # Calculate original total
+        original_total = sum(item.total_price for item in workshop_items)
 
-        if total_amount == 0:
-            # REFACTORING NOTE: This free workshop logic duplicates series detection from webhook.
-            # Consider extracting to a shared utility function.
+        # Get first instructor (for voucher validation and commission)
+        first_teacher = workshop_items[0].session.workshop.instructor if workshop_items else None
 
-            # Check if this is a mandatory series purchase
-            import uuid
-            is_mandatory_series = False
-            series_registration_id = None
+        # Get first workshop (for voucher restriction check)
+        first_workshop = workshop_items[0].session.workshop if workshop_items else None
 
-            if workshop_items.count() > 1:
-                workshops = set(item.session.workshop for item in workshop_items)
-                if len(workshops) == 1:
-                    workshop = list(workshops)[0]
-                    if workshop.is_series and workshop.require_full_series_registration:
-                        is_mandatory_series = True
-                        series_registration_id = uuid.uuid4()
+        # Handle voucher code if provided
+        voucher_code = request.POST.get('voucher_code', '').strip()
+        applied_voucher = None
+        discount_amount = Decimal('0.00')
+        final_total = original_total
+
+        if voucher_code:
+            try:
+                # Determine domain - workshop_series if all items are from same series
+                domain = 'workshops'
+                if workshop_items.count() > 1:
+                    workshops = set(item.session.workshop for item in workshop_items)
+                    if len(workshops) == 1 and first_workshop.is_series:
+                        domain = 'workshop_series'
+
+                applied_voucher = VoucherService.validate_voucher(
+                    code=voucher_code,
+                    student=request.user,
+                    domain=domain,
+                    cart_total=original_total,
+                    workshop=first_workshop,
+                    teacher=first_teacher
+                )
+                discount_amount, final_total = VoucherService.calculate_discount(
+                    applied_voucher, original_total
+                )
+            except VoucherValidationError as e:
+                messages.error(request, str(e))
+                return redirect('workshops:cart')
+
+        # Check if this is a mandatory series purchase
+        is_mandatory_series = False
+        series_registration_id = None
+
+        if workshop_items.count() > 1:
+            workshops = set(item.session.workshop for item in workshop_items)
+            if len(workshops) == 1:
+                workshop = list(workshops)[0]
+                if workshop.is_series and workshop.require_full_series_registration:
+                    is_mandatory_series = True
+                    series_registration_id = uuid.uuid4()
+
+        # Handle FREE checkout (either naturally free or 100% voucher discount)
+        if final_total == Decimal('0.00'):
+            # Determine voucher domain for redemption
+            voucher_domain = 'workshops'
+            if is_mandatory_series or (first_workshop and first_workshop.is_series):
+                voucher_domain = 'workshop_series'
 
             # Free workshops - create registrations directly
+            first_registration = None
             for item in workshop_items:
                 registration = WorkshopRegistration.objects.create(
                     session=item.session,
@@ -2355,18 +2572,36 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
                     email=request.user.email,
                     child_profile=item.child_profile,
                     status='registered',
-                    payment_status='not_required',
+                    payment_status='not_required' if not applied_voucher else 'completed',
                     payment_amount=0,
-                    series_registration_id=series_registration_id  # Link series registrations
+                    series_registration_id=series_registration_id
                 )
 
                 # Create terms acceptance record
                 create_terms_acceptance(registration, request)
 
+                if not first_registration:
+                    first_registration = registration
+
+            # Create voucher redemption if voucher was used
+            if applied_voucher:
+                VoucherService.create_redemption(
+                    voucher=applied_voucher,
+                    student=request.user,
+                    domain=voucher_domain,
+                    original_amount=original_total,
+                    discount_amount=discount_amount,
+                    final_amount=final_total,
+                    request=request,
+                    workshop_registration=first_registration
+                )
+                messages.success(request, f'Voucher {applied_voucher.code} applied! Successfully registered for workshop sessions.')
+            else:
+                messages.success(request, 'Successfully registered for workshop sessions!')
+
             # Clear cart
             cart.workshop_items.all().delete()
 
-            messages.success(request, 'Successfully registered for workshop sessions!')
             return redirect('workshops:student_dashboard')
 
         # Paid workshops - use Stripe checkout
@@ -2383,14 +2618,25 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
             # Store cart item IDs in metadata for webhook processing
             cart_item_ids = [str(item.id) for item in workshop_items]
 
-            # Get first instructor (for commission calculation)
-            first_teacher = workshop_items[0].session.workshop.instructor if workshop_items else None
-
             # Prepare metadata including terms acceptance
             metadata = {
                 'cart_item_ids': ','.join(cart_item_ids),
                 'item_count': len(cart_item_ids),
             }
+
+            # Add voucher info to metadata if applied
+            if applied_voucher:
+                metadata['voucher_id'] = str(applied_voucher.id)
+                metadata['voucher_code'] = applied_voucher.code
+                metadata['original_amount'] = str(original_total)
+                metadata['discount_amount'] = str(discount_amount)
+                # Override total_amount with discounted amount for correct finance reporting
+                metadata['total_amount'] = str(final_total)
+                # Recalculate commission on discounted amount
+                from apps.payments.utils import calculate_commission
+                platform_commission, teacher_share = calculate_commission(final_total)
+                metadata['platform_commission'] = str(platform_commission)
+                metadata['teacher_share'] = str(teacher_share)
 
             # Include terms acceptance data if available
             terms_data = request.session.get('terms_accepted')
@@ -2398,6 +2644,11 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
                 metadata['terms_version'] = terms_data.get('version')
                 metadata['terms_ip_address'] = terms_data.get('ip_address', '')
                 metadata['terms_user_agent'] = terms_data.get('user_agent', '')
+
+            # Get Stripe coupon ID if voucher provides partial discount
+            coupon_id = None
+            if applied_voucher and final_total > Decimal('0.00'):
+                coupon_id = VoucherService.create_or_get_stripe_coupon(applied_voucher)
 
             # Create Stripe checkout session with multiple line items
             from apps.payments.stripe_service import create_checkout_session_with_items
@@ -2412,7 +2663,8 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
                 cancel_url=request.build_absolute_uri(
                     reverse('workshops:cart_checkout_cancel')
                 ),
-                metadata=metadata
+                metadata=metadata,
+                coupon_id=coupon_id
             )
 
             # Redirect to Stripe
