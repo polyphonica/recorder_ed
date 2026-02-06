@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}All Participants - Instructor Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="breadcrumbs text-sm">
+            <ul>
+                <li><a href="{% url 'workshops:instructor_dashboard' %}">Dashboard</a></li>
+                <li>All Participants</li>
+            </ul>
+        </div>
+
+        <div class="flex flex-col md:flex-row justify-between items-start gap-4 mt-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">All Participants</h1>
+                <p class="text-lg text-gray-600 mt-2">
+                    View and contact all students who have attended your workshops
+                </p>
+            </div>
+            <button onclick="document.getElementById('email-modal').showModal()" class="btn btn-primary">
+                <i class="fas fa-envelope mr-2"></i>Email Filtered Participants
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-figure text-primary">
+                <i class="fas fa-users text-2xl"></i>
+            </div>
+            <div class="stat-title">Total Unique Participants</div>
+            <div class="stat-value text-primary">{{ stats.total_unique_participants|default:0 }}</div>
+            <div class="stat-desc">across all workshops</div>
+        </div>
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-figure text-secondary">
+                <i class="fas fa-calendar-check text-2xl"></i>
+            </div>
+            <div class="stat-title">Total Registrations</div>
+            <div class="stat-value text-secondary">{{ stats.total_sessions|default:0 }}</div>
+            <div class="stat-desc">all-time session registrations</div>
+        </div>
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-figure text-success">
+                <i class="fas fa-pound-sign text-2xl"></i>
+            </div>
+            <div class="stat-title">Total Revenue</div>
+            <div class="stat-value text-success">{{ stats.total_revenue|floatformat:0 }}</div>
+            <div class="stat-desc">from workshop payments</div>
+        </div>
+        <div class="stat bg-base-100 shadow rounded-lg">
+            <div class="stat-figure text-info">
+                <i class="fas fa-filter text-2xl"></i>
+            </div>
+            <div class="stat-title">Filtered Results</div>
+            <div class="stat-value text-info">{{ page_obj.paginator.count|default:0 }}</div>
+            <div class="stat-desc">matching current filters</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-base-100 p-6 rounded-lg shadow mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-7 gap-4 items-end">
+            <!-- Workshop Filter -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Workshop</span>
+                </label>
+                <select name="workshop" class="select select-bordered select-sm">
+                    <option value="">All Workshops</option>
+                    {% for workshop in workshops %}
+                    <option value="{{ workshop.id }}" {% if current_workshop == workshop.id|slugify %}selected{% endif %}>
+                        {{ workshop.title|truncatechars:30 }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Min Sessions Filter -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Min Sessions</span>
+                </label>
+                <select name="min_sessions" class="select select-bordered select-sm">
+                    <option value="">Any</option>
+                    {% for count in session_count_options %}
+                    <option value="{{ count }}" {% if current_min_sessions == count|stringformat:"s" %}selected{% endif %}>
+                        {{ count }}+ sessions
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Date From -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">From Date</span>
+                </label>
+                <input type="date" name="date_from" value="{{ current_date_from }}" class="input input-bordered input-sm">
+            </div>
+
+            <!-- Date To -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">To Date</span>
+                </label>
+                <input type="date" name="date_to" value="{{ current_date_to }}" class="input input-bordered input-sm">
+            </div>
+
+            <!-- Voucher Usage -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Voucher Usage</span>
+                </label>
+                <select name="voucher_usage" class="select select-bordered select-sm">
+                    <option value="">Any</option>
+                    <option value="yes" {% if current_voucher_usage == 'yes' %}selected{% endif %}>Used Voucher</option>
+                    <option value="no" {% if current_voucher_usage == 'no' %}selected{% endif %}>No Voucher</option>
+                </select>
+            </div>
+
+            <!-- Search -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Search</span>
+                </label>
+                <input type="text" name="search" value="{{ current_search }}"
+                       placeholder="Name or email..." class="input input-bordered input-sm">
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-filter mr-1"></i>Filter
+                </button>
+                <a href="{% url 'workshops:instructor_participants' %}" class="btn btn-ghost btn-sm">Clear</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Participants Table -->
+    <div class="bg-base-100 rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>Participant</th>
+                        <th class="text-center">Sessions</th>
+                        <th class="text-center">Workshops</th>
+                        <th class="text-right">Total Spent</th>
+                        <th>Last Session</th>
+                        <th class="text-center">Voucher</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for participant in participants %}
+                    <tr>
+                        <td>
+                            <div class="font-semibold">
+                                {% if participant.student__first_name or participant.student__last_name %}
+                                    {{ participant.student__first_name }} {{ participant.student__last_name }}
+                                {% else %}
+                                    {{ participant.student__username }}
+                                {% endif %}
+                            </div>
+                            <div class="text-sm text-base-content/70">{{ participant.student__email }}</div>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge badge-primary badge-outline">{{ participant.total_sessions }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge badge-secondary badge-outline">{{ participant.unique_workshops }}</span>
+                        </td>
+                        <td class="text-right font-mono">
+                            {% if participant.total_spent > 0 %}
+                                {{ participant.total_spent|floatformat:2 }}
+                            {% else %}
+                                <span class="text-base-content/50">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if participant.last_session_date %}
+                                {{ participant.last_session_date|date:"M j, Y" }}
+                            {% else %}
+                                <span class="text-base-content/50">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if participant.has_used_voucher %}
+                                <span class="badge badge-success badge-sm">Yes</span>
+                            {% else %}
+                                <span class="badge badge-ghost badge-sm">No</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-12">
+                            <div class="text-base-content/50">
+                                <i class="fas fa-users text-4xl mb-4"></i>
+                                <p class="text-lg">No participants found</p>
+                                {% if current_workshop or current_min_sessions or current_date_from or current_date_to or current_voucher_usage or current_search %}
+                                <p class="text-sm mt-2">Try adjusting your filters</p>
+                                <a href="{% url 'workshops:instructor_participants' %}" class="btn btn-ghost btn-sm mt-4">Clear Filters</a>
+                                {% else %}
+                                <p class="text-sm mt-2">Participants will appear here once students register for your workshops</p>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="flex justify-center py-4 border-t">
+            <div class="join">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1{% if current_workshop %}&workshop={{ current_workshop }}{% endif %}{% if current_min_sessions %}&min_sessions={{ current_min_sessions }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to }}{% endif %}{% if current_voucher_usage %}&voucher_usage={{ current_voucher_usage }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
+                       class="join-item btn btn-sm">First</a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if current_workshop %}&workshop={{ current_workshop }}{% endif %}{% if current_min_sessions %}&min_sessions={{ current_min_sessions }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to }}{% endif %}{% if current_voucher_usage %}&voucher_usage={{ current_voucher_usage }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
+                       class="join-item btn btn-sm">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                {% endif %}
+
+                <span class="join-item btn btn-sm btn-active">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if current_workshop %}&workshop={{ current_workshop }}{% endif %}{% if current_min_sessions %}&min_sessions={{ current_min_sessions }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to }}{% endif %}{% if current_voucher_usage %}&voucher_usage={{ current_voucher_usage }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
+                       class="join-item btn btn-sm">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if current_workshop %}&workshop={{ current_workshop }}{% endif %}{% if current_min_sessions %}&min_sessions={{ current_min_sessions }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to }}{% endif %}{% if current_voucher_usage %}&voucher_usage={{ current_voucher_usage }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
+                       class="join-item btn btn-sm">Last</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Email Modal -->
+<dialog id="email-modal" class="modal">
+    <div class="modal-box max-w-2xl">
+        <form method="dialog">
+            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">X</button>
+        </form>
+        <h3 class="font-bold text-lg mb-4">
+            <i class="fas fa-envelope text-primary mr-2"></i>
+            Email Filtered Participants
+        </h3>
+
+        <div class="alert alert-info mb-4">
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <p class="font-semibold">{{ page_obj.paginator.count|default:0 }} participant{{ page_obj.paginator.count|pluralize }} match your current filters</p>
+                <p class="text-sm">Email will only be sent to those who have opted in to workshop notifications.</p>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text font-semibold">Subject <span class="text-error">*</span></span>
+                </label>
+                <input type="text" name="subject" class="input input-bordered w-full"
+                       placeholder="e.g., Special offer for workshop participants" required>
+            </div>
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text font-semibold">Message <span class="text-error">*</span></span>
+                </label>
+                <textarea name="message" class="textarea textarea-bordered h-48"
+                          placeholder="Write your message here..." required></textarea>
+                <label class="label">
+                    <span class="label-text-alt text-base-content/60">
+                        <i class="fas fa-lightbulb mr-1"></i>
+                        Tip: Include your voucher code and any relevant details
+                    </span>
+                </label>
+            </div>
+            <div class="modal-action">
+                <button type="button" onclick="document.getElementById('email-modal').close()" class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane mr-2"></i>Send Email
+                </button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+{% endblock %}

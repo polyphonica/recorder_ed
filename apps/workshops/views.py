@@ -3,7 +3,9 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, T
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.conf import settings
-from django.db.models import Q, Count, Avg, F, Min
+from django.db.models import Q, Count, Avg, F, Min, Max, Sum, Exists, OuterRef, Value
+from django.db.models.functions import Coalesce
+from decimal import Decimal
 from django.utils import timezone
 from django.urls import reverse_lazy, reverse
 from django.http import JsonResponse
@@ -2849,3 +2851,268 @@ class EmailParticipantsView(LoginRequiredMixin, TemplateView):
             )
 
         return redirect('workshops:session_registrations', session_id=session.id)
+
+
+class InstructorParticipantsView(LoginRequiredMixin, ListView):
+    """
+    Unified view of ALL participants across ALL instructor's workshops.
+    Shows aggregated stats per participant with filtering and bulk email capabilities.
+    """
+    template_name = 'workshops/instructor_participants.html'
+    context_object_name = 'participants'
+    paginate_by = 50
+
+    def get_queryset(self):
+        """
+        Aggregate participant data by unique student email.
+        Returns dict-like objects with participant stats.
+        """
+        from apps.payments.models import VoucherRedemption
+
+        # Base queryset: all registrations for instructor's workshops with active statuses
+        base_qs = WorkshopRegistration.objects.filter(
+            session__workshop__instructor=self.request.user,
+            status__in=['registered', 'waitlisted', 'promoted', 'attended']
+        )
+
+        # Subquery to check if student has any voucher redemptions for this instructor's workshops
+        voucher_subquery = VoucherRedemption.objects.filter(
+            student_id=OuterRef('student__id'),
+            workshop_registration__session__workshop__instructor=self.request.user
+        )
+
+        # Aggregate by student
+        queryset = base_qs.values(
+            'student__id',
+            'student__email',
+            'student__first_name',
+            'student__last_name',
+            'student__username',
+        ).annotate(
+            total_sessions=Count('id', distinct=True),
+            unique_workshops=Count('session__workshop', distinct=True),
+            total_spent=Coalesce(
+                Sum('payment_amount', filter=Q(payment_status='completed')),
+                Value(Decimal('0.00'))
+            ),
+            last_session_date=Max('session__start_datetime'),
+            first_registration_date=Min('registration_date'),
+            has_used_voucher=Exists(voucher_subquery),
+        ).order_by('-last_session_date')
+
+        # Apply filters
+        queryset = self._apply_filters(queryset)
+
+        return queryset
+
+    def _apply_filters(self, queryset):
+        """Apply GET parameter filters to the queryset."""
+        # Filter by specific workshop
+        workshop_id = self.request.GET.get('workshop')
+        if workshop_id:
+            queryset = queryset.filter(session__workshop__id=workshop_id)
+
+        # Filter by minimum session count
+        min_sessions = self.request.GET.get('min_sessions')
+        if min_sessions:
+            try:
+                queryset = queryset.filter(total_sessions__gte=int(min_sessions))
+            except ValueError:
+                pass
+
+        # Filter by date range
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        if date_from:
+            queryset = queryset.filter(first_registration_date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(last_session_date__lte=date_to)
+
+        # Filter by voucher usage
+        voucher_filter = self.request.GET.get('voucher_usage')
+        if voucher_filter == 'yes':
+            queryset = queryset.filter(has_used_voucher=True)
+        elif voucher_filter == 'no':
+            queryset = queryset.filter(has_used_voucher=False)
+
+        # Search by name or email
+        search = self.request.GET.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(student__first_name__icontains=search) |
+                Q(student__last_name__icontains=search) |
+                Q(student__email__icontains=search) |
+                Q(student__username__icontains=search)
+            )
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get all instructor's workshops for filter dropdown
+        workshops = Workshop.objects.filter(
+            instructor=self.request.user
+        ).order_by('title')
+
+        # Summary statistics (before filters)
+        all_registrations = WorkshopRegistration.objects.filter(
+            session__workshop__instructor=self.request.user,
+            status__in=['registered', 'waitlisted', 'promoted', 'attended']
+        )
+
+        stats = all_registrations.aggregate(
+            total_unique_participants=Count('student', distinct=True),
+            total_sessions=Count('id'),
+            total_revenue=Coalesce(
+                Sum('payment_amount', filter=Q(payment_status='completed')),
+                Value(Decimal('0.00'))
+            ),
+        )
+
+        # Count opted-in participants for email
+        # This requires checking each participant's profile, done separately
+        context.update({
+            'workshops': workshops,
+            'stats': stats,
+            # Preserve filter values for UI
+            'current_workshop': self.request.GET.get('workshop', ''),
+            'current_min_sessions': self.request.GET.get('min_sessions', ''),
+            'current_date_from': self.request.GET.get('date_from', ''),
+            'current_date_to': self.request.GET.get('date_to', ''),
+            'current_voucher_usage': self.request.GET.get('voucher_usage', ''),
+            'current_search': self.request.GET.get('search', ''),
+            # Session count options for dropdown
+            'session_count_options': [1, 2, 3, 5, 10],
+        })
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """Send bulk email to filtered participants (de-duplicated by email)."""
+        from apps.core.notifications import BaseNotificationService
+        from apps.accounts.email_utils import generate_unsubscribe_url
+        from django.contrib.auth import get_user_model
+        import logging
+
+        logger = logging.getLogger(__name__)
+        User = get_user_model()
+
+        # Get form data
+        subject = request.POST.get('subject', '').strip()
+        message_body = request.POST.get('message', '').strip()
+
+        if not subject or not message_body:
+            messages.error(request, 'Please provide both a subject and message.')
+            return redirect('workshops:instructor_participants')
+
+        # Get filtered participant queryset
+        participants = self.get_queryset()
+
+        # De-duplicate by email and check opt-in status
+        seen_emails = set()
+        recipients = []
+        opted_out_count = 0
+
+        for participant in participants:
+            email = participant.get('student__email')
+            student_id = participant.get('student__id')
+
+            if not email or email in seen_emails:
+                continue
+
+            seen_emails.add(email)
+
+            # Get student object to check opt-in
+            try:
+                student = User.objects.select_related('profile').get(id=student_id)
+                if hasattr(student, 'profile') and student.profile.workshop_email_notifications:
+                    name = student.get_full_name() or student.username
+                    recipients.append({
+                        'email': email,
+                        'student': student,
+                        'name': name,
+                    })
+                else:
+                    opted_out_count += 1
+            except User.DoesNotExist:
+                continue
+
+        if not recipients:
+            if opted_out_count > 0:
+                messages.warning(request, f'No participants are opted in to receive emails. {opted_out_count} participant(s) have opted out.')
+            else:
+                messages.warning(request, 'No participants found matching your filters.')
+            return redirect('workshops:instructor_participants')
+
+        # Send emails
+        sent_count = 0
+        failed_count = 0
+
+        for recipient in recipients:
+            try:
+                # Generate unsubscribe URL
+                unsubscribe_url = generate_unsubscribe_url(recipient['student'], request)
+
+                # Prepare context
+                context = {
+                    'subject': subject,
+                    'message': message_body,
+                    'student_name': recipient['name'],
+                    'instructor': request.user,
+                    'instructor_name': request.user.get_full_name() or request.user.username,
+                    'unsubscribe_url': unsubscribe_url,
+                }
+
+                # Send email using bulk message template
+                success = BaseNotificationService.send_templated_email(
+                    template_path='workshops/emails/instructor_bulk_message.txt',
+                    context=context,
+                    recipient_list=[recipient['email']],
+                    default_subject=subject,
+                    fail_silently=False
+                )
+
+                if success:
+                    sent_count += 1
+                else:
+                    failed_count += 1
+
+            except Exception as e:
+                logger.error(f"Failed to send email to {recipient['email']}: {e}")
+                failed_count += 1
+
+        # Send copy to instructor
+        if sent_count > 0 and request.user.email:
+            try:
+                copy_context = {
+                    'subject': subject,
+                    'message': message_body,
+                    'instructor_name': request.user.get_full_name() or request.user.username,
+                    'is_instructor_copy': True,
+                    'sent_count': sent_count,
+                    'opted_out_count': opted_out_count,
+                }
+                BaseNotificationService.send_templated_email(
+                    template_path='workshops/emails/instructor_bulk_message_copy.txt',
+                    context=copy_context,
+                    recipient_list=[request.user.email],
+                    default_subject=f'[Copy] {subject}',
+                    fail_silently=True
+                )
+            except Exception:
+                pass  # Silently ignore copy failures
+
+        # Show success message
+        if sent_count > 0:
+            msg = f'Email sent to {sent_count} participant{"s" if sent_count != 1 else ""}.'
+            if opted_out_count > 0:
+                msg += f' ({opted_out_count} opted out)'
+            messages.success(request, msg)
+        if failed_count > 0:
+            messages.warning(
+                request,
+                f'Failed to send to {failed_count} participant{"s" if failed_count != 1 else ""}.'
+            )
+
+        return redirect('workshops:instructor_participants')

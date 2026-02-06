@@ -1,0 +1,27 @@
+Subject: {{ subject }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ student_name }},
+
+{{ instructor_name }} has sent you a message:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MESSAGE FROM INSTRUCTOR:
+
+{{ message }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Questions or want to learn more?
+Visit our workshops page or message your instructor through the platform.
+
+Best regards,
+{{ instructor_name }}
+{{ site_name }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+To unsubscribe from workshop email notifications, visit:
+{{ unsubscribe_url }}

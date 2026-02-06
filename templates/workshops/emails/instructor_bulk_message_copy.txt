@@ -1,0 +1,26 @@
+Subject: [Copy] {{ subject }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+COPY OF YOUR BULK MESSAGE
+
+This is a copy of the message you just sent to your workshop participants.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DELIVERY SUMMARY:
+
+Sent to: {{ sent_count }} participant{% if sent_count != 1 %}s{% endif %}
+{% if opted_out_count %}Opted out: {{ opted_out_count }} participant{% if opted_out_count != 1 %}s{% endif %}{% endif %}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+YOUR MESSAGE:
+
+Subject: {{ subject }}
+
+{{ message }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This is an automated copy for your records.
+{{ site_name }}
