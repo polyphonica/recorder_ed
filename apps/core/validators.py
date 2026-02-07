@@ -103,7 +103,7 @@ MATERIAL_VALIDATORS = [
 # Playalong audio player validators
 AUDIO_VALIDATORS = [
     FileExtensionValidator(['mp3', 'wav']),
-    FileSizeValidator(max_size_mb=10),
+    FileSizeValidator(max_size_mb=15),
 ]
 
 SHEET_MUSIC_IMAGE_VALIDATORS = [

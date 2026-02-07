@@ -372,7 +372,7 @@ class Stem(models.Model):
     audio_file = models.FileField(
         upload_to='audioplayer/stems/',
         validators=AUDIO_VALIDATORS,
-        help_text="MP3 or WAV audio file (max 10MB)"
+        help_text="MP3 or WAV audio file (max 15MB)"
     )
     order = models.PositiveIntegerField(
         default=0,
