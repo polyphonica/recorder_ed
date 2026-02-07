@@ -209,7 +209,7 @@ class BaseStemFormSet(forms.BaseInlineFormSet):
             for i, form in enumerate(self.forms):
                 if not form.instance.pk and not form.has_changed():
                     form._errors = {}
-            return not any(form.errors for form in self.forms if form not in self.deleted_forms)
+            return not any(form.errors for form in self.forms if not self._should_delete_form(form))
         return True
 
 
