@@ -3,10 +3,10 @@
 
 // File size limits (in bytes) - must match server limits
 const FILE_SIZE_LIMITS = {
-    audio: 10 * 1024 * 1024,      // 10MB per audio file
+    audio: 15 * 1024 * 1024,      // 15MB per audio file
     image: 5 * 1024 * 1024,       // 5MB for sheet music image
     pdf: 5 * 1024 * 1024,         // 5MB for PDF score
-    totalUpload: 14 * 1024 * 1024 // 14MB total (nginx limit is 15MB)
+    totalUpload: 50 * 1024 * 1024 // 50MB total (nginx limit is 50MB)
 };
 
 // Format bytes to human-readable size

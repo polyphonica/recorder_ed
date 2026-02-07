@@ -16,7 +16,7 @@ class AutoConvertAudioFileField(forms.FileField):
     """
 
     ALLOWED_EXTENSIONS = ['.mp3', '.wav', '.aiff', '.aif']
-    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB per stem
+    MAX_FILE_SIZE = 15 * 1024 * 1024  # 15MB per stem
 
     def clean(self, data, initial=None):
         """
