@@ -330,6 +330,15 @@
                     {% endfor %}
                 </div>
 
+                <!-- Add Another File Button -->
+                <button type="button" id="add-file-btn"
+                        class="w-full border-2 border-dashed border-indigo-300 rounded-xl p-6 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-400 transition-all font-semibold text-lg flex items-center justify-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Add Another File
+                </button>
+
                 <div class="mt-6 p-4 bg-gray-100 border border-gray-300 rounded-lg">
                     <p class="text-base text-gray-700">
                         <strong>Note:</strong> Use "Main" for the primary product content, "Preview" for sample/demo
@@ -379,19 +388,17 @@
 
 {% block extra_js %}
 <script>
-// Prevent double form submission
 document.addEventListener('DOMContentLoaded', function() {
+    // === Prevent double form submission ===
     const form = document.querySelector('form');
     const submitBtn = document.getElementById('submitBtn');
 
     if (form && submitBtn) {
         form.addEventListener('submit', function(e) {
-            // Disable submit button to prevent double-clicks
             submitBtn.disabled = true;
             submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
             submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 inline mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Saving...';
 
-            // Re-enable after 3 seconds in case of validation errors
             setTimeout(function() {
                 if (submitBtn.disabled) {
                     submitBtn.disabled = false;
@@ -400,6 +407,107 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }, 3000);
         });
+    }
+
+    // === Dynamic file formset ===
+    const addFileBtn = document.getElementById('add-file-btn');
+    const formsetContainer = document.querySelector('#add-file-btn').previousElementSibling;
+    const totalFormsInput = document.getElementById('id_files-TOTAL_FORMS');
+
+    if (addFileBtn && totalFormsInput) {
+        const inputClass = 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all';
+        const fileInputClass = 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100';
+        const selectClass = 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all bg-white cursor-pointer';
+
+        addFileBtn.addEventListener('click', function() {
+            const idx = parseInt(totalFormsInput.value);
+            const prefix = 'files-' + idx + '-';
+
+            const newForm = document.createElement('div');
+            newForm.className = 'border-2 border-gray-200 rounded-xl p-6 bg-gray-50 hover:border-indigo-300 transition-all';
+
+            newForm.innerHTML = `
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-sm font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">New File</span>
+                    <button type="button" class="remove-file-btn text-sm text-red-600 hover:text-red-800 font-medium">Remove</button>
+                </div>
+                <input type="hidden" name="${prefix}id" id="id_${prefix}id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label class="block text-base font-semibold text-gray-900 mb-3">
+                            File Title <span class="text-red-600 text-lg">*</span>
+                        </label>
+                        <input type="text" name="${prefix}title" id="id_${prefix}title"
+                               class="${inputClass}" placeholder="e.g., Main PDF, Video Tutorial" maxlength="200">
+                    </div>
+                    <div>
+                        <label class="block text-base font-semibold text-gray-900 mb-3">
+                            Upload File <span class="text-gray-600 font-normal text-sm">(max 50MB)</span>
+                        </label>
+                        <input type="file" name="${prefix}file" id="id_${prefix}file"
+                               class="${fileInputClass}" accept=".pdf,.zip,.mp3,.mp4,.wav,.flac,.avi,.mov">
+                    </div>
+                    <div>
+                        <label class="block text-base font-semibold text-gray-900 mb-3">
+                            OR Provide URL <span class="text-gray-600 font-normal text-sm">(YouTube, Vimeo, etc.)</span>
+                        </label>
+                        <input type="url" name="${prefix}content_url" id="id_${prefix}content_url"
+                               class="${inputClass}" placeholder="https://youtube.com/watch?v=... or https://vimeo.com/...">
+                    </div>
+                    <div class="md:col-span-2 text-sm text-gray-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <strong>💡 Tip:</strong> You can provide a file, a URL, or both! For example: a YouTube video tutorial + a PDF worksheet.
+                    </div>
+                    <div>
+                        <label class="block text-base font-semibold text-gray-900 mb-3">
+                            File Role <span class="text-red-600 text-lg">*</span>
+                        </label>
+                        <select name="${prefix}file_role" id="id_${prefix}file_role" class="${selectClass}">
+                            <option value="main">Main Product File</option>
+                            <option value="preview">Preview/Sample File</option>
+                            <option value="bonus">Bonus Content</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-base font-semibold text-gray-900 mb-3">Display Order</label>
+                        <input type="number" name="${prefix}order" id="id_${prefix}order" value="0"
+                               class="${inputClass}" min="0">
+                    </div>
+                </div>
+            `;
+
+            formsetContainer.appendChild(newForm);
+            totalFormsInput.value = idx + 1;
+
+            // Wire up remove button
+            newForm.querySelector('.remove-file-btn').addEventListener('click', function() {
+                newForm.remove();
+                // Renumber all forms and update TOTAL_FORMS
+                renumberForms();
+            });
+        });
+
+        function renumberForms() {
+            const forms = formsetContainer.querySelectorAll(':scope > div');
+            let newIdx = 0;
+            forms.forEach(function(formDiv) {
+                // Only renumber dynamically added forms (those without existing instance data)
+                const inputs = formDiv.querySelectorAll('input, select, textarea');
+                inputs.forEach(function(input) {
+                    if (input.name) {
+                        input.name = input.name.replace(/files-\d+-/, 'files-' + newIdx + '-');
+                    }
+                    if (input.id) {
+                        input.id = input.id.replace(/files-\d+-/, 'files-' + newIdx + '-');
+                    }
+                });
+                const labels = formDiv.querySelectorAll('label[for]');
+                labels.forEach(function(label) {
+                    label.setAttribute('for', label.getAttribute('for').replace(/files-\d+-/, 'files-' + newIdx + '-'));
+                });
+                newIdx++;
+            });
+            totalFormsInput.value = newIdx;
+        }
     }
 });
 </script>

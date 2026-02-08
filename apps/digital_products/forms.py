@@ -107,6 +107,11 @@ class ProductFileForm(forms.ModelForm):
     def clean(self):
         """Validate that at least file or URL is provided (can have both)"""
         cleaned_data = super().clean()
+
+        # Skip validation for completely empty extra forms
+        if not any(cleaned_data.get(f) for f in ('title', 'file', 'content_url')):
+            return cleaned_data
+
         file = cleaned_data.get('file')
         content_url = cleaned_data.get('content_url')
 
