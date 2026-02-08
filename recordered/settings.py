@@ -257,7 +257,7 @@ PRIVATE_LESSON_REFUND_REQUEST_DAYS = config('PRIVATE_LESSON_REFUND_REQUEST_DAYS'
 # Site configuration
 SITE_ID = 1
 SITE_NAME = 'Recorder-ed'
-SITE_URL = config('SITE_URL', default='http://localhost:8000')
+SITE_URL = config('SITE_URL', default='http://localhost:8000' if DEBUG else 'https://www.recorder-ed.com')
 
 # Tailwind CSS Settings
 TAILWIND_APP_NAME = 'theme'
