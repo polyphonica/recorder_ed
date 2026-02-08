@@ -287,14 +287,14 @@ class CheckoutSuccessView(LoginRequiredMixin, View):
         recent_purchases = ProductPurchase.objects.filter(
             student=request.user,
             payment_status='completed'
-        ).select_related('product__category').order_by('-paid_at')[:10]
+        ).select_related('product__category').order_by('-paid_at')
 
         # Calculate total from recent purchases (last 5 minutes to capture this transaction)
         from django.utils import timezone
         from datetime import timedelta
         five_minutes_ago = timezone.now() - timedelta(minutes=5)
 
-        current_purchases = recent_purchases.filter(paid_at__gte=five_minutes_ago)
+        current_purchases = recent_purchases.filter(paid_at__gte=five_minutes_ago)[:10]
         total_amount = sum(p.payment_amount or 0 for p in current_purchases)
 
         context = {
