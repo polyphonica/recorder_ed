@@ -87,13 +87,19 @@ class ProductDetailView(DetailView):
     slug_url_kwarg = 'slug'
 
     def get_queryset(self):
-        return DigitalProduct.objects.filter(status='published').select_related(
+        qs = DigitalProduct.objects.select_related(
             'teacher',
             'category'
         ).prefetch_related(
             'files',
             'reviews__student'
         )
+        # Teachers can view their own products regardless of status
+        if self.request.user.is_authenticated:
+            return qs.filter(
+                Q(status='published') | Q(teacher=self.request.user)
+            )
+        return qs.filter(status='published')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
