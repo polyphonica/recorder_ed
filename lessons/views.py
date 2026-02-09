@@ -22,6 +22,13 @@ from .models import Lesson, LessonOrder
 from .forms import LessonForm, DocumentFormSet, LessonUrlsFormSet, PrivateLessonPieceFormSet, LessonAssignmentFormSet, PrivateLessonCollectionFormSet
 
 
+class LessonAccessBlocked(Exception):
+    """Raised when a student cannot access a lesson but should see a friendly message."""
+    def __init__(self, message, lesson):
+        self.message = message
+        self.lesson = lesson
+
+
 class CalendarView(LoginRequiredMixin, TemplateView):
     """Enhanced calendar view that shows lessons and integrates with lesson creation"""
     template_name = 'lessons/calendar.html'
@@ -161,6 +168,15 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'lesson'
     login_url = 'private_teaching:login'
 
+    def get(self, request, *args, **kwargs):
+        try:
+            return super().get(request, *args, **kwargs)
+        except LessonAccessBlocked as e:
+            return render(request, 'lessons/lesson_access_blocked.html', {
+                'message': e.message,
+                'lesson': e.lesson,
+            })
+
     def get_object(self):
         lesson = get_object_or_404(
             Lesson.objects.select_related(
@@ -194,7 +210,10 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
                     if lesson.approved_status != 'Accepted':
                         error_message = "This lesson is still awaiting teacher approval."
                     elif lesson.payment_status != 'Paid':
-                        error_message = "This lesson needs to be paid for before you can access it."
+                        raise LessonAccessBlocked(
+                            "Please submit payment for this lesson.",
+                            lesson,
+                        )
                     elif lesson.status != 'Assigned':
                         error_message = "Your teacher is still preparing the lesson content. You will be notified when it's ready."
                     else:
