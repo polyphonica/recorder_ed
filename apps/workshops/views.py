@@ -168,9 +168,14 @@ class WorkshopDetailView(DetailView):
     context_object_name = 'workshop'
     
     def get_queryset(self):
-        return Workshop.objects.filter(status='published').select_related(
+        qs = Workshop.objects.select_related(
             'instructor', 'category'
         ).prefetch_related('sessions', 'materials')
+        if self.request.user.is_authenticated:
+            return qs.filter(
+                Q(status='published') | Q(instructor=self.request.user)
+            )
+        return qs.filter(status='published')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
