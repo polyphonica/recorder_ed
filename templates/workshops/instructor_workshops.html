@@ -163,6 +163,10 @@
                                    class="btn btn-outline btn-sm w-full">
                                     <i class="fas fa-calendar-alt mr-2"></i>Manage Sessions
                                 </a>
+                                <a href="{% url 'workshops:manage_testimonials' workshop.slug %}"
+                                   class="btn btn-outline btn-sm w-full">
+                                    <i class="fas fa-quote-left mr-2"></i>Testimonials
+                                </a>
                                 <a href="{% url 'workshops:detail' workshop.slug %}"
                                    class="btn btn-ghost btn-sm w-full"
                                    target="_blank">

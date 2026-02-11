@@ -127,6 +127,21 @@
                     {{ workshop.description|linebreaks }}
                 </div>
 
+                <!-- Testimonials -->
+                {% if testimonials %}
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold mb-4">What Participants Say</h3>
+                    <div class="space-y-4">
+                        {% for testimonial in testimonials %}
+                        <div class="border-l-4 border-primary pl-4 py-1">
+                            <p class="italic text-base-content/80">"{{ testimonial.quote }}"</p>
+                            <div class="mt-2 text-sm text-base-content/60">&mdash; {{ testimonial.display_name }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Learning Objectives -->
                 {% if workshop.learning_objectives %}
                     <div class="card bg-base-200 mb-6">

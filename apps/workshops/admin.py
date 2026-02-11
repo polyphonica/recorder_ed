@@ -9,7 +9,8 @@ from apps.core.admin import UserDisplayMixin, InstructorQuerysetMixin, PriceDisp
 from .models import (
     WorkshopCategory, Workshop, WorkshopSession,
     WorkshopRegistration, WorkshopMaterial, WorkshopInterest,
-    WorkshopCartItem, WorkshopTermsAndConditions, TermsAcceptance
+    WorkshopCartItem, WorkshopTermsAndConditions, TermsAcceptance,
+    WorkshopTestimonial,
 )
 
 
@@ -452,6 +453,16 @@ class TermsAcceptanceAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Allow deletion only for superusers (for database maintenance)"""
         return request.user.is_superuser
+
+
+@admin.register(WorkshopTestimonial)
+class WorkshopTestimonialAdmin(admin.ModelAdmin):
+    list_display = ['display_name', 'workshop', 'rating', 'is_published', 'created_at']
+    list_filter = ['is_published', 'workshop']
+    search_fields = ['display_name', 'quote', 'workshop__title']
+    list_editable = ['is_published', 'display_order']
+    list_display += ['display_order']
+    ordering = ['workshop', 'display_order']
 
 
 # Customize admin site

@@ -324,6 +324,48 @@
         </div>
     </div>
 
+    <!-- Recent Feedback Section -->
+    {% if recent_feedback %}
+    <div class="mt-12">
+        <h2 class="text-2xl font-semibold text-gray-900 mb-6">Recent Participant Feedback</h2>
+        <div class="bg-base-100 rounded-lg shadow p-6">
+            <div class="space-y-3">
+                {% for reg in recent_feedback %}
+                <div class="flex items-start gap-4 py-3 {% if not forloop.last %}border-b border-base-200{% endif %}">
+                    <div class="flex-shrink-0 text-sm text-accent">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= reg.rating %}
+                                <i class="fas fa-star"></i>
+                            {% else %}
+                                <i class="far fa-star text-base-content/20"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="flex-grow min-w-0">
+                        {% if reg.feedback %}
+                            <p class="text-sm text-base-content/80">"{{ reg.feedback|truncatewords:30 }}"</p>
+                        {% else %}
+                            <p class="text-sm text-base-content/40 italic">Rating only</p>
+                        {% endif %}
+                        <div class="text-xs text-base-content/50 mt-1">
+                            {{ reg.student.get_full_name|default:reg.student.username }}
+                            &middot; {{ reg.session.workshop.title|truncatewords:5 }}
+                            &middot; {{ reg.registration_date|naturaltime }}
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <a href="{% url 'workshops:manage_testimonials' reg.session.workshop.slug %}"
+                           class="btn btn-ghost btn-xs">
+                            <i class="fas fa-quote-left mr-1"></i>Manage
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Interest Requests Section -->
     {% if workshop_interest_summary or interest_requests %}
     <div class="mt-12">

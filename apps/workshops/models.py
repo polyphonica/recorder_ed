@@ -1143,3 +1143,33 @@ class SessionEmailLog(models.Model):
 
     def __str__(self):
         return f'"{self.subject}" to {self.recipient_count} recipients ({self.sent_at.strftime("%Y-%m-%d %H:%M")})'
+
+
+class WorkshopTestimonial(models.Model):
+    """Curated testimonial for public display on a workshop page."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    workshop = models.ForeignKey(Workshop, on_delete=models.CASCADE, related_name='testimonials')
+    registration = models.OneToOneField(
+        WorkshopRegistration, on_delete=models.SET_NULL, null=True, blank=True,
+        help_text="Linked feedback entry, if created from a student submission"
+    )
+    display_name = models.CharField(max_length=100, help_text="Public attribution, e.g. 'Sarah T.'")
+    quote = models.TextField()
+    rating = models.PositiveIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text="Internal reference only — not displayed publicly"
+    )
+    is_published = models.BooleanField(default=False)
+    display_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['display_order', '-created_at']
+        indexes = [
+            models.Index(fields=['workshop', 'is_published']),
+        ]
+
+    def __str__(self):
+        status = "Published" if self.is_published else "Draft"
+        return f'{self.display_name} on {self.workshop.title} ({status})'

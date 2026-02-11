@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from django import forms
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .models import Workshop, WorkshopSession, WorkshopRegistration, WorkshopCategory, WorkshopInterest, WorkshopMaterial
+from .models import Workshop, WorkshopSession, WorkshopRegistration, WorkshopCategory, WorkshopInterest, WorkshopMaterial, WorkshopTestimonial
 
 
 TIMEZONE_CHOICES = [
@@ -769,3 +769,38 @@ class WorkshopInterestForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+class FeedbackForm(forms.Form):
+    """Form for students to submit private feedback after attending a workshop."""
+    rating = forms.IntegerField(min_value=1, max_value=5)
+    feedback = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'textarea textarea-bordered w-full',
+            'rows': 3,
+            'placeholder': 'Share your thoughts on the workshop (optional)...',
+        }),
+    )
+
+
+class TestimonialForm(forms.ModelForm):
+    """Form for instructors to create or edit a testimonial."""
+    class Meta:
+        model = WorkshopTestimonial
+        fields = ['display_name', 'quote', 'rating']
+        widgets = {
+            'display_name': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'e.g. Sarah T.',
+            }),
+            'quote': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 3,
+                'placeholder': 'The testimonial quote...',
+            }),
+            'rating': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-20',
+                'min': 1, 'max': 5,
+            }),
+        }

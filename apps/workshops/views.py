@@ -19,8 +19,13 @@ from .models import (
     Workshop, WorkshopCategory, WorkshopSession,
     WorkshopRegistration, WorkshopMaterial, WorkshopInterest,
     WorkshopTermsAndConditions, TermsAcceptance, SessionEmailLog,
+    WorkshopTestimonial,
 )
-from .forms import WorkshopRegistrationForm, WorkshopForm, WorkshopSessionForm, BatchSessionForm, WorkshopFilterForm, WorkshopInterestForm, WorkshopMaterialForm
+from .forms import (
+    WorkshopRegistrationForm, WorkshopForm, WorkshopSessionForm,
+    BatchSessionForm, WorkshopFilterForm, WorkshopInterestForm,
+    WorkshopMaterialForm, FeedbackForm, TestimonialForm,
+)
 from .mixins import InstructorRequiredMixin
 from .notifications import WorkshopInterestNotificationService
 from apps.payments.voucher_service import VoucherService, VoucherValidationError
@@ -284,6 +289,9 @@ class WorkshopDetailView(DetailView):
         from .models import WorkshopTermsAndConditions
         current_terms = WorkshopTermsAndConditions.objects.filter(is_current=True).first()
 
+        # Published testimonials
+        testimonials = workshop.testimonials.filter(is_published=True)
+
         context.update({
             'upcoming_sessions': upcoming_sessions,
             'pre_materials': pre_materials,
@@ -292,6 +300,7 @@ class WorkshopDetailView(DetailView):
             'similar_workshops_with_sessions': similar_workshops_with_sessions,
             'user_is_registered': user_is_registered,
             'current_terms': current_terms,
+            'testimonials': testimonials,
         })
 
         # Add cart session IDs for logged-in users
@@ -668,6 +677,44 @@ class WorkshopCheckoutCancelView(BaseCheckoutCancelView):
             'workshop': obj.session.workshop,
             'session': obj.session,
         }
+
+
+class SubmitFeedbackView(LoginRequiredMixin, View):
+    """Allow students to submit private ratings and feedback after attending a session."""
+
+    def post(self, request, registration_id):
+        registration = get_object_or_404(
+            WorkshopRegistration.objects.select_related('session__workshop'),
+            id=registration_id,
+            student=request.user,
+        )
+
+        if not registration.attended:
+            messages.error(request, 'You can only leave feedback for sessions you have attended.')
+            return redirect('workshops:my_registrations')
+
+        form = FeedbackForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, 'Please select a rating (1-5 stars).')
+            return redirect('workshops:my_registrations')
+
+        registration.rating = form.cleaned_data['rating']
+        registration.feedback = form.cleaned_data['feedback']
+        registration.save(update_fields=['rating', 'feedback'])
+
+        # Recalculate workshop average rating
+        workshop = registration.session.workshop
+        avg = WorkshopRegistration.objects.filter(
+            session__workshop=workshop, rating__isnull=False
+        ).aggregate(avg=Avg('rating'))['avg'] or 0
+        workshop.average_rating = round(avg, 2)
+        workshop.save(update_fields=['average_rating'])
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'ok': True, 'rating': registration.rating})
+
+        messages.success(request, 'Thank you for your feedback!')
+        return redirect('workshops:my_registrations')
 
 
 class RegistrationCancelView(LoginRequiredMixin, View):
@@ -1200,10 +1247,17 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
             total=Sum('payment_amount')
         )['total'] or Decimal('0.00')
 
+        # Recent feedback from students
+        recent_feedback = WorkshopRegistration.objects.filter(
+            session__workshop__instructor=user,
+            rating__isnull=False,
+        ).select_related('student', 'session__workshop').order_by('-registration_date')[:10]
+
         context.update({
             'workshops': workshops,
             'upcoming_sessions': upcoming_sessions,
             'recent_registrations': recent_registrations,
+            'recent_feedback': recent_feedback,
             'interest_requests': interest_requests,
             'workshop_interest_summary': workshop_interest_summary,
             'stats': {
@@ -3353,6 +3407,104 @@ class EmailInterestedView(LoginRequiredMixin, TemplateView):
             messages.warning(request, f'Failed to send to {failed_count} student{"s" if failed_count != 1 else ""}.')
 
         return redirect('workshops:email_interested', slug=workshop.slug)
+
+
+class ManageTestimonialsView(LoginRequiredMixin, TemplateView):
+    """Instructor page to manage testimonials and view private feedback for a workshop."""
+    template_name = 'workshops/manage_testimonials.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        workshop = get_object_or_404(Workshop, slug=self.kwargs['slug'], instructor=self.request.user)
+
+        # All feedback (rated registrations) for this workshop
+        feedback = WorkshopRegistration.objects.filter(
+            session__workshop=workshop,
+            rating__isnull=False,
+        ).select_related('student', 'session').order_by('-registration_date')
+
+        # Existing testimonials
+        testimonials = WorkshopTestimonial.objects.filter(workshop=workshop)
+
+        # IDs of registrations already linked to testimonials
+        linked_reg_ids = set(
+            testimonials.filter(registration__isnull=False).values_list('registration_id', flat=True)
+        )
+
+        context.update({
+            'workshop': workshop,
+            'feedback': feedback,
+            'testimonials': testimonials,
+            'linked_reg_ids': linked_reg_ids,
+            'testimonial_form': TestimonialForm(),
+        })
+        return context
+
+    def post(self, request, *args, **kwargs):
+        workshop = get_object_or_404(Workshop, slug=self.kwargs['slug'], instructor=request.user)
+        action = request.POST.get('action')
+
+        if action == 'create_from_feedback':
+            reg_id = request.POST.get('registration_id')
+            registration = get_object_or_404(
+                WorkshopRegistration, id=reg_id, session__workshop=workshop, rating__isnull=False
+            )
+            # Check if already linked
+            if WorkshopTestimonial.objects.filter(registration=registration).exists():
+                messages.info(request, 'A testimonial already exists for this feedback.')
+            else:
+                display_name = request.POST.get('display_name', '').strip()
+                if not display_name:
+                    name = registration.student.get_full_name() or registration.student.username
+                    parts = name.split()
+                    display_name = f'{parts[0]} {parts[-1][0]}.' if len(parts) > 1 else parts[0]
+
+                WorkshopTestimonial.objects.create(
+                    workshop=workshop,
+                    registration=registration,
+                    display_name=display_name,
+                    quote=registration.feedback,
+                    rating=registration.rating,
+                )
+                messages.success(request, 'Testimonial created. You can now edit and publish it.')
+
+        elif action == 'create_manual':
+            form = TestimonialForm(request.POST)
+            if form.is_valid():
+                testimonial = form.save(commit=False)
+                testimonial.workshop = workshop
+                testimonial.save()
+                messages.success(request, 'Testimonial created.')
+            else:
+                messages.error(request, 'Please fill in all required fields.')
+                return self.render_to_response(self.get_context_data(testimonial_form=form, **kwargs))
+
+        elif action == 'delete':
+            testimonial_id = request.POST.get('testimonial_id')
+            testimonial = get_object_or_404(WorkshopTestimonial, id=testimonial_id, workshop=workshop)
+            testimonial.delete()
+            messages.success(request, 'Testimonial deleted.')
+
+        return redirect('workshops:manage_testimonials', slug=workshop.slug)
+
+
+class ToggleTestimonialView(LoginRequiredMixin, View):
+    """Toggle a testimonial's published status."""
+
+    def post(self, request, testimonial_id):
+        testimonial = get_object_or_404(
+            WorkshopTestimonial.objects.select_related('workshop'),
+            id=testimonial_id,
+            workshop__instructor=request.user,
+        )
+        testimonial.is_published = not testimonial.is_published
+        if testimonial.is_published and not testimonial.published_at:
+            testimonial.published_at = timezone.now()
+        testimonial.save(update_fields=['is_published', 'published_at'])
+
+        status = 'published' if testimonial.is_published else 'unpublished'
+        messages.success(request, f'Testimonial {status}.')
+        return redirect('workshops:manage_testimonials', slug=testimonial.workshop.slug)
 
 
 class InstructorParticipantsView(LoginRequiredMixin, ListView):

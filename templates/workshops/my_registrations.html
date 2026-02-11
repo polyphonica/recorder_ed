@@ -255,10 +255,21 @@
                                     {% endif %}
 
                                     {% if registration.attended and not registration.rating %}
-                                        <button class="btn btn-sm btn-accent">
+                                        <button class="btn btn-sm btn-accent"
+                                                onclick="openFeedbackModal('{{ registration.id }}', '{{ registration.session.workshop.title|escapejs }}')">
                                             <i class="fas fa-star"></i>
                                             Rate
                                         </button>
+                                    {% elif registration.rating %}
+                                        <span class="text-sm tooltip" data-tip="You rated this {{ registration.rating }}/5">
+                                            {% for i in "12345" %}
+                                                {% if forloop.counter <= registration.rating %}
+                                                    <i class="fas fa-star text-accent"></i>
+                                                {% else %}
+                                                    <i class="far fa-star text-base-content/20"></i>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -527,6 +538,78 @@ function confirmCancelSeries(registrationId, workshopTitle, sessionCount, earlie
     };
     // Open modal by checking the checkbox
     document.getElementById('cancelModal').checked = true;
+}
+</script>
+
+<!-- Feedback Modal -->
+<input type="checkbox" id="feedbackModal" class="modal-toggle" />
+<div class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-1" id="feedbackModalTitle">Share Your Feedback</h3>
+        <p class="text-sm text-base-content/60 mb-4">Your feedback is private and only visible to the instructor.</p>
+
+        <form id="feedbackForm" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="rating" id="feedbackRating" value="0">
+
+            <!-- Star Rating -->
+            <div class="mb-4">
+                <label class="label"><span class="label-text font-semibold">Rating</span></label>
+                <div class="flex gap-2" id="starContainer">
+                    {% for i in "12345" %}
+                    <button type="button" class="text-2xl cursor-pointer transition-colors feedback-star"
+                            data-value="{{ forloop.counter }}"
+                            onclick="setRating({{ forloop.counter }})">
+                        <i class="far fa-star text-base-content/20"></i>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Feedback Text -->
+            <div class="form-control mb-4">
+                <label class="label"><span class="label-text font-semibold">Comments (optional)</span></label>
+                <textarea name="feedback" class="textarea textarea-bordered" rows="3"
+                          placeholder="What did you enjoy? Any suggestions for improvement?"></textarea>
+            </div>
+
+            <div class="modal-action">
+                <label for="feedbackModal" class="btn btn-ghost">Cancel</label>
+                <button type="submit" class="btn btn-accent" id="feedbackSubmitBtn" disabled>
+                    <i class="fas fa-paper-plane mr-2"></i>Submit Feedback
+                </button>
+            </div>
+        </form>
+    </div>
+    <label class="modal-backdrop" for="feedbackModal"></label>
+</div>
+
+<script>
+function openFeedbackModal(registrationId, workshopTitle) {
+    document.getElementById('feedbackModalTitle').textContent = 'Feedback: ' + workshopTitle;
+    document.getElementById('feedbackForm').action = '/workshops/registration/' + registrationId + '/feedback/';
+    document.getElementById('feedbackRating').value = '0';
+    document.getElementById('feedbackSubmitBtn').disabled = true;
+    document.getElementById('feedbackForm').querySelector('textarea[name=feedback]').value = '';
+    // Reset stars
+    document.querySelectorAll('.feedback-star i').forEach(function(star) {
+        star.className = 'far fa-star text-base-content/20';
+    });
+    document.getElementById('feedbackModal').checked = true;
+}
+
+function setRating(value) {
+    document.getElementById('feedbackRating').value = value;
+    document.getElementById('feedbackSubmitBtn').disabled = false;
+    document.querySelectorAll('.feedback-star').forEach(function(btn) {
+        var starValue = parseInt(btn.dataset.value);
+        var icon = btn.querySelector('i');
+        if (starValue <= value) {
+            icon.className = 'fas fa-star text-accent';
+        } else {
+            icon.className = 'far fa-star text-base-content/20';
+        }
+    });
 }
 </script>
 

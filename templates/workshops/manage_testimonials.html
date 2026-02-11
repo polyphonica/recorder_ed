@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Manage Testimonials - {{ workshop.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="breadcrumbs text-sm">
+            <ul>
+                <li><a href="{% url 'workshops:instructor_dashboard' %}">Dashboard</a></li>
+                <li><a href="{% url 'workshops:detail' workshop.slug %}">{{ workshop.title }}</a></li>
+                <li>Testimonials</li>
+            </ul>
+        </div>
+
+        <h1 class="text-3xl font-bold mt-4">Manage Testimonials</h1>
+        <p class="text-lg text-base-content/70 mt-2">{{ workshop.title }}</p>
+    </div>
+
+    <!-- Published Testimonials -->
+    <div class="card bg-base-100 shadow-xl mb-8">
+        <div class="card-body">
+            <h2 class="card-title text-xl mb-4">
+                <i class="fas fa-quote-left text-primary mr-2"></i>Testimonials ({{ testimonials|length }})
+            </h2>
+
+            {% if testimonials %}
+            <div class="space-y-4">
+                {% for testimonial in testimonials %}
+                <div class="bg-base-200 rounded-lg p-4">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-grow min-w-0">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="font-semibold">{{ testimonial.display_name }}</span>
+                                <span class="text-sm text-base-content/40">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= testimonial.rating %}
+                                            <i class="fas fa-star text-accent text-xs"></i>
+                                        {% else %}
+                                            <i class="far fa-star text-base-content/20 text-xs"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </span>
+                                {% if testimonial.is_published %}
+                                    <span class="badge badge-success badge-sm">Published</span>
+                                {% else %}
+                                    <span class="badge badge-ghost badge-sm">Draft</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-base-content/80 italic">"{{ testimonial.quote }}"</p>
+                        </div>
+                        <div class="flex gap-1 ml-3 flex-shrink-0">
+                            <form method="post" action="{% url 'workshops:toggle_testimonial' testimonial.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-xs {% if testimonial.is_published %}btn-ghost{% else %}btn-success{% endif %}">
+                                    {% if testimonial.is_published %}
+                                        <i class="fas fa-eye-slash mr-1"></i>Unpublish
+                                    {% else %}
+                                        <i class="fas fa-globe mr-1"></i>Publish
+                                    {% endif %}
+                                </button>
+                            </form>
+                            <form method="post" onsubmit="return confirm('Delete this testimonial?')">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="testimonial_id" value="{{ testimonial.id }}">
+                                <button type="submit" class="btn btn-ghost btn-xs text-error">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-base-content/60 text-center py-6">No testimonials yet. Create one from participant feedback below, or add one manually.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Add Manual Testimonial -->
+    <div class="card bg-base-100 shadow-xl mb-8" x-data="{ open: false }">
+        <div class="card-body">
+            <button type="button" class="flex items-center justify-between w-full text-left" @click="open = !open">
+                <h2 class="card-title text-xl">
+                    <i class="fas fa-plus-circle text-secondary mr-2"></i>Add Testimonial Manually
+                </h2>
+                <i class="fas fa-chevron-down transition-transform" :class="open && 'rotate-180'"></i>
+            </button>
+            <div x-show="open" x-transition class="mt-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create_manual">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">Display Name</span></label>
+                            {{ testimonial_form.display_name }}
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">Rating (internal only)</span></label>
+                            {{ testimonial_form.rating }}
+                        </div>
+                    </div>
+                    <div class="form-control mb-4">
+                        <label class="label"><span class="label-text font-semibold">Quote</span></label>
+                        {{ testimonial_form.quote }}
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus mr-2"></i>Create Testimonial
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Participant Feedback -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-xl mb-4">
+                <i class="fas fa-comments text-info mr-2"></i>Participant Feedback ({{ feedback|length }})
+            </h2>
+            <p class="text-sm text-base-content/60 mb-4">Private feedback from students who attended your sessions. Click "Add as Testimonial" to create a public quote.</p>
+
+            {% if feedback %}
+            <div class="space-y-3">
+                {% for reg in feedback %}
+                <div class="bg-base-200 rounded-lg p-4">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-grow min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-semibold text-sm">{{ reg.student.get_full_name|default:reg.student.username }}</span>
+                                <span class="text-xs text-base-content/40">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= reg.rating %}
+                                            <i class="fas fa-star text-accent"></i>
+                                        {% else %}
+                                            <i class="far fa-star text-base-content/20"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </span>
+                                <span class="text-xs text-base-content/40">{{ reg.session.start_datetime|date:"M j, Y" }}</span>
+                            </div>
+                            {% if reg.feedback %}
+                                <p class="text-sm text-base-content/80">"{{ reg.feedback }}"</p>
+                            {% else %}
+                                <p class="text-sm text-base-content/40 italic">Rating only, no written feedback</p>
+                            {% endif %}
+                        </div>
+                        <div class="flex-shrink-0 ml-3">
+                            {% if reg.id in linked_reg_ids %}
+                                <span class="badge badge-ghost badge-sm">
+                                    <i class="fas fa-check mr-1"></i>Added
+                                </span>
+                            {% elif reg.feedback %}
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="create_from_feedback">
+                                    <input type="hidden" name="registration_id" value="{{ reg.id }}">
+                                    <button type="submit" class="btn btn-outline btn-xs btn-primary">
+                                        <i class="fas fa-quote-left mr-1"></i>Add as Testimonial
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-base-content/60 text-center py-6">No feedback received yet. Students can leave feedback after attending a session.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

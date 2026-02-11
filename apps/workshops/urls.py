@@ -36,6 +36,10 @@ urlpatterns = [
          views.TakeAttendanceView.as_view(), name='take_attendance'),
     path('instructor/workshop/<slug:slug>/email-interested/',
          views.EmailInterestedView.as_view(), name='email_interested'),
+    path('instructor/workshop/<slug:slug>/testimonials/',
+         views.ManageTestimonialsView.as_view(), name='manage_testimonials'),
+    path('instructor/testimonial/<uuid:testimonial_id>/toggle/',
+         views.ToggleTestimonialView.as_view(), name='toggle_testimonial'),
     path('instructor/session/<uuid:session_id>/materials/',
          views.SessionMaterialsView.as_view(), name='session_materials'),
     path('instructor/session/<uuid:session_id>/materials/create/', 
@@ -54,6 +58,8 @@ urlpatterns = [
          views.ParticipantMaterialsView.as_view(), name='participant_materials'),
     
     # Registration (also before workshop detail to avoid conflicts)
+    path('registration/<uuid:registration_id>/feedback/',
+         views.SubmitFeedbackView.as_view(), name='submit_feedback'),
     path('registration/<uuid:registration_id>/confirm/',
          views.RegistrationConfirmView.as_view(), name='registration_confirm'),
     path('registration/<uuid:registration_id>/cancel/',
