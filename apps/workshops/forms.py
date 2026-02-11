@@ -1,7 +1,23 @@
+from datetime import timedelta
+
+from dateutil.relativedelta import relativedelta
 from django import forms
 from django.contrib.auth.models import User
 from django.utils import timezone
 from .models import Workshop, WorkshopSession, WorkshopRegistration, WorkshopCategory, WorkshopInterest, WorkshopMaterial
+
+
+TIMEZONE_CHOICES = [
+    ('UTC', 'UTC'),
+    ('US/Eastern', 'Eastern Time'),
+    ('US/Central', 'Central Time'),
+    ('US/Mountain', 'Mountain Time'),
+    ('US/Pacific', 'Pacific Time'),
+    ('Europe/London', 'London Time'),
+    ('Europe/Paris', 'Central European Time'),
+    ('Asia/Tokyo', 'Tokyo Time'),
+    ('Australia/Sydney', 'Sydney Time'),
+]
 
 
 class WorkshopRegistrationForm(forms.ModelForm):
@@ -131,7 +147,8 @@ class WorkshopForm(forms.ModelForm):
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'input input-bordered w-full',
-                'placeholder': 'Enter workshop title...'
+                'placeholder': 'Enter workshop title...',
+                'x-on:input': "if (!isEditMode || !$root.querySelector('[name=slug]').value) { $root.querySelector('[name=slug]').value = generateSlug($event.target.value) }",
             }),
             'slug': forms.TextInput(attrs={
                 'class': 'input input-bordered w-full',
@@ -189,7 +206,8 @@ class WorkshopForm(forms.ModelForm):
                 'placeholder': 'https://www.youtube.com/watch?v=...'
             }),
             'delivery_method': forms.Select(attrs={
-                'class': 'select select-bordered w-full'
+                'class': 'select select-bordered w-full',
+                'x-on:change': 'deliveryMethod = $event.target.value',
             }),
             'venue_name': forms.TextInput(attrs={
                 'class': 'input input-bordered w-full',
@@ -230,11 +248,13 @@ class WorkshopForm(forms.ModelForm):
                 'required': False  # We'll handle this in clean() method
             }),
             'is_free': forms.CheckboxInput(attrs={
-                'class': 'checkbox checkbox-primary'
+                'class': 'checkbox checkbox-primary',
+                'x-on:change': 'isFree = $event.target.checked',
             }),
             # Series Configuration
             'is_series': forms.CheckboxInput(attrs={
-                'class': 'checkbox checkbox-primary'
+                'class': 'checkbox checkbox-primary',
+                'x-on:change': 'isSeries = $event.target.checked',
             }),
             'series_price': forms.NumberInput(attrs={
                 'class': 'input input-bordered w-full',
@@ -330,17 +350,7 @@ class WorkshopSessionForm(forms.ModelForm):
                 'class': 'input input-bordered w-full',
                 'type': 'datetime-local'
             }),
-            'timezone_name': forms.Select(choices=[
-                ('UTC', 'UTC'),
-                ('US/Eastern', 'Eastern Time'),
-                ('US/Central', 'Central Time'),
-                ('US/Mountain', 'Mountain Time'),
-                ('US/Pacific', 'Pacific Time'),
-                ('Europe/London', 'London Time'),
-                ('Europe/Paris', 'Central European Time'),
-                ('Asia/Tokyo', 'Tokyo Time'),
-                ('Australia/Sydney', 'Sydney Time'),
-            ], attrs={
+            'timezone_name': forms.Select(choices=TIMEZONE_CHOICES, attrs={
                 'class': 'select select-bordered w-full'
             }),
             'max_participants': forms.NumberInput(attrs={
@@ -407,6 +417,171 @@ class WorkshopSessionForm(forms.ModelForm):
                 )
         
         return cleaned_data
+
+
+class BatchSessionForm(forms.Form):
+    """Form for creating multiple recurring sessions at once"""
+
+    FREQUENCY_CHOICES = [
+        ('weekly', 'Weekly'),
+        ('biweekly', 'Every 2 Weeks'),
+        ('monthly', 'Monthly'),
+    ]
+
+    start_date = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'class': 'input input-bordered w-full',
+            'type': 'date',
+        }),
+        help_text='Date of the first session',
+    )
+    start_time = forms.TimeField(
+        widget=forms.TimeInput(attrs={
+            'class': 'input input-bordered w-full',
+            'type': 'time',
+        }),
+        help_text='Start time (same for all sessions)',
+    )
+    duration_minutes = forms.IntegerField(
+        min_value=15,
+        max_value=480,
+        widget=forms.NumberInput(attrs={
+            'class': 'input input-bordered w-full',
+            'min': '15',
+            'max': '480',
+        }),
+        help_text='Duration in minutes per session',
+    )
+    timezone_name = forms.ChoiceField(
+        choices=TIMEZONE_CHOICES,
+        widget=forms.Select(attrs={
+            'class': 'select select-bordered w-full',
+        }),
+    )
+    frequency = forms.ChoiceField(
+        choices=FREQUENCY_CHOICES,
+        widget=forms.Select(attrs={
+            'class': 'select select-bordered w-full',
+        }),
+    )
+    number_of_sessions = forms.IntegerField(
+        min_value=2,
+        max_value=52,
+        widget=forms.NumberInput(attrs={
+            'class': 'input input-bordered w-full',
+            'min': '2',
+            'max': '52',
+            'placeholder': 'e.g. 6',
+        }),
+        help_text='Number of sessions to create (2–52)',
+    )
+    max_participants = forms.IntegerField(
+        min_value=1,
+        initial=20,
+        widget=forms.NumberInput(attrs={
+            'class': 'input input-bordered w-full',
+            'min': '1',
+            'placeholder': '20',
+        }),
+    )
+    waitlist_enabled = forms.BooleanField(
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={'class': 'checkbox'}),
+    )
+    meeting_url = forms.URLField(
+        required=False,
+        widget=forms.URLInput(attrs={
+            'class': 'input input-bordered w-full',
+            'placeholder': 'https://zoom.us/j/...',
+        }),
+    )
+    title_pattern = forms.CharField(
+        required=False,
+        max_length=200,
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered w-full',
+            'placeholder': 'Session {n}: Topic',
+        }),
+        help_text='Use {n} for session number. e.g. "Week {n}" → "Week 1", "Week 2"...',
+    )
+    session_notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'textarea textarea-bordered w-full',
+            'rows': 2,
+            'placeholder': 'Notes shared across all sessions (optional)',
+        }),
+    )
+
+    def __init__(self, *args, workshop=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if workshop:
+            self.fields['duration_minutes'].initial = workshop.estimated_duration
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        start_time = cleaned_data.get('start_time')
+        number_of_sessions = cleaned_data.get('number_of_sessions')
+        frequency = cleaned_data.get('frequency')
+
+        if start_date and start_time:
+            from datetime import datetime
+            first_start = datetime.combine(start_date, start_time)
+            if timezone.make_aware(first_start, timezone.get_current_timezone()) <= timezone.now():
+                raise forms.ValidationError('The first session must be in the future.')
+
+            # Check that the series doesn't span more than 1 year
+            if number_of_sessions and frequency:
+                last_date = self._calculate_date(start_date, frequency, number_of_sessions - 1)
+                if (last_date - start_date).days > 365:
+                    raise forms.ValidationError(
+                        'The series spans more than 1 year. Reduce the number of sessions or frequency.'
+                    )
+
+        return cleaned_data
+
+    def _calculate_date(self, start_date, frequency, offset):
+        """Calculate the date for session at the given offset from start."""
+        if frequency == 'weekly':
+            return start_date + timedelta(weeks=offset)
+        elif frequency == 'biweekly':
+            return start_date + timedelta(weeks=offset * 2)
+        elif frequency == 'monthly':
+            return start_date + relativedelta(months=offset)
+        return start_date
+
+    def generate_sessions(self):
+        """Generate a list of session dicts from the cleaned form data."""
+        data = self.cleaned_data
+        start_date = data['start_date']
+        start_time = data['start_time']
+        duration = timedelta(minutes=data['duration_minutes'])
+        sessions = []
+
+        for i in range(data['number_of_sessions']):
+            session_date = self._calculate_date(start_date, data['frequency'], i)
+            from datetime import datetime
+            start_dt = datetime.combine(session_date, start_time)
+            end_dt = start_dt + duration
+
+            title = ''
+            if data.get('title_pattern'):
+                title = data['title_pattern'].replace('{n}', str(i + 1))
+
+            sessions.append({
+                'session_title': title,
+                'start_datetime': start_dt,
+                'end_datetime': end_dt,
+                'timezone_name': data['timezone_name'],
+                'max_participants': data['max_participants'],
+                'waitlist_enabled': data['waitlist_enabled'],
+                'meeting_url': data.get('meeting_url') or '',
+                'session_notes': data.get('session_notes') or '',
+            })
+
+        return sessions
 
 
 class WorkshopMaterialForm(forms.ModelForm):

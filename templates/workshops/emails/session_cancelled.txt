@@ -1,0 +1,38 @@
+Subject: Session Cancelled - {{ workshop.title }} - {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ student_name }},
+
+We're writing to let you know that the following workshop session has been cancelled by the instructor:
+
+SESSION DETAILS:
+Workshop: {{ workshop.title }}
+{% if session.session_title %}Session: {{ session.session_title }}
+{% endif %}Date: {{ session.start_datetime|date:"l, d F Y" }}
+Time: {{ session.start_datetime|time:"H:i" }} - {{ session.end_datetime|time:"H:i" }}
+
+{% if workshop.delivery_method == 'online' %}Delivery: Online
+{% elif workshop.delivery_method == 'in_person' %}Delivery: In-Person
+{% if workshop.venue_name %}Venue: {{ workshop.venue_name }}
+{% endif %}{% elif workshop.delivery_method == 'hybrid' %}Delivery: Hybrid
+{% endif %}
+{% if cancellation_reason %}REASON:
+{{ cancellation_reason }}
+
+{% endif %}{% if has_refund %}REFUND INFORMATION:
+A full refund of £{{ refund_amount|floatformat:2 }} will be processed automatically. Please allow 5-10 business days for the refund to appear on your statement.
+
+{% endif %}Your registration has been cancelled. We apologise for any inconvenience.
+
+Browse other workshops:
+{{ browse_workshops_url }}
+
+View your registrations:
+{{ my_registrations_url }}
+
+If you have any questions, please don't hesitate to contact us.
+
+Best regards,
+The {{ site_name }} Team

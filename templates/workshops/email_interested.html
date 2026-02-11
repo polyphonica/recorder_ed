@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Email Interested Students - {{ workshop.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="breadcrumbs text-sm">
+            <ul>
+                <li><a href="{% url 'workshops:instructor_dashboard' %}">Dashboard</a></li>
+                <li><a href="{% url 'workshops:detail' workshop.slug %}">{{ workshop.title }}</a></li>
+                <li>Email Interested Students</li>
+            </ul>
+        </div>
+
+        <h1 class="text-3xl font-bold mt-4">Email Interested Students</h1>
+        <p class="text-lg text-base-content/70 mt-2">{{ workshop.title }}</p>
+    </div>
+
+    <!-- Recipient Info -->
+    <div class="alert alert-info mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div>
+            <div class="font-semibold">{{ total_count }} student{{ total_count|pluralize }} expressed interest in this workshop</div>
+            <div class="text-sm">These students asked to be notified when sessions become available.</div>
+        </div>
+    </div>
+
+    {% if timing_summary %}
+    <!-- Timing Preferences Summary -->
+    <div class="card bg-base-200 mb-6">
+        <div class="card-body">
+            <h3 class="font-semibold text-lg mb-3">
+                <i class="fas fa-clock mr-2 text-secondary"></i>Preferred Times
+            </h3>
+            <p class="text-sm text-base-content/60 mb-3">Use this data to schedule sessions when most students can attend.</p>
+            <div class="flex flex-wrap gap-3">
+                {% for t in timing_summary %}
+                <div class="bg-base-100 rounded-lg px-4 py-2 text-center">
+                    <div class="text-lg font-bold text-primary">{{ t.count }}</div>
+                    <div class="text-xs text-base-content/60">{{ t.label }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Templates -->
+    <div class="card bg-base-100 shadow-xl mb-6" x-data="{ open: false }">
+        <div class="card-body">
+            <button type="button" class="flex items-center justify-between w-full text-left" @click="open = !open">
+                <h3 class="font-semibold text-lg">
+                    <i class="fas fa-magic mr-2 text-secondary"></i>Quick Templates
+                </h3>
+                <i class="fas fa-chevron-down transition-transform" :class="open && 'rotate-180'"></i>
+            </button>
+            <div x-show="open" x-transition class="mt-4">
+                <p class="text-sm text-base-content/60 mb-3">Click a template to pre-fill the subject and message.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button type="button" class="btn btn-outline btn-sm justify-start"
+                            onclick="fillTemplate('New Sessions Available - {{ workshop.title }}', 'Hi everyone,\n\nGreat news! We are scheduling new sessions for {{ workshop.title }} based on your interest.\n\nHere are the details:\n\n- Dates: \n- Time: \n- Location: \n\nPlaces are limited, so register soon to secure your spot.\n\nLooking forward to seeing you!\n\nBest regards')">
+                        <i class="fas fa-calendar-plus mr-2"></i>New Sessions Available
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm justify-start"
+                            onclick="fillTemplate('Scheduling Survey - {{ workshop.title }}', 'Hi everyone,\n\nThank you for your interest in {{ workshop.title }}!\n\nBefore we finalise the schedule, we would like to confirm the best times for everyone. Could you let us know your availability by replying to this email?\n\nWe are considering:\n- \n- \n\nThank you for your patience!\n\nBest regards')">
+                        <i class="fas fa-poll mr-2"></i>Scheduling Survey
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm justify-start"
+                            onclick="fillTemplate('Update on {{ workshop.title }}', 'Hi everyone,\n\nThank you for expressing interest in {{ workshop.title }}. We wanted to give you a quick update:\n\n\n\nWe will be in touch again soon with more details.\n\nBest regards')">
+                        <i class="fas fa-info-circle mr-2"></i>General Update
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm justify-start"
+                            onclick="fillTemplate('{{ workshop.title }} - Coming Soon!', 'Hi everyone,\n\nWe are excited to let you know that {{ workshop.title }} is coming soon!\n\nWe are putting the finishing touches on the schedule and will share registration details shortly. As someone who expressed interest early, you will get first access.\n\nStay tuned!\n\nBest regards')">
+                        <i class="fas fa-rocket mr-2"></i>Coming Soon
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Form -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text font-semibold">Subject</span>
+                        <span class="label-text-alt text-error">*Required</span>
+                    </label>
+                    <input
+                        type="text"
+                        name="subject"
+                        id="email-subject"
+                        class="input input-bordered w-full"
+                        placeholder="e.g., New Sessions Available!"
+                        required
+                        maxlength="200"
+                    >
+                </div>
+
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold">Message</span>
+                        <span class="label-text-alt text-error">*Required</span>
+                    </label>
+                    <textarea
+                        name="message"
+                        id="email-message"
+                        class="textarea textarea-bordered h-64"
+                        placeholder="Write your message to interested students..."
+                        required
+                    ></textarea>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="card-actions justify-between">
+                    <a href="{% url 'workshops:instructor_dashboard' %}" class="btn btn-ghost">
+                        <i class="fas fa-arrow-left mr-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        Send Email to {{ total_count }} Student{{ total_count|pluralize }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recipient List -->
+    {% if interests %}
+    <div class="card bg-base-100 shadow-xl mt-6">
+        <div class="card-body">
+            <h3 class="font-semibold text-lg mb-4">Recipients ({{ total_count }})</h3>
+            <div class="overflow-x-auto">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Preferred Timing</th>
+                            <th>Requested</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for interest in interests %}
+                        <tr>
+                            <td>{{ interest.user.get_full_name|default:interest.user.username }}</td>
+                            <td>{{ interest.email }}</td>
+                            <td><span class="badge badge-ghost badge-sm">{{ interest.formatted_timing }}</span></td>
+                            <td class="text-sm text-base-content/60">{{ interest.created_at|date:"M j, Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function fillTemplate(subject, message) {
+    document.getElementById('email-subject').value = subject;
+    document.getElementById('email-message').value = message;
+    document.getElementById('email-subject').focus();
+}
+</script>
+{% endblock %}

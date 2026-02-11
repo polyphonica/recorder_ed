@@ -1122,3 +1122,24 @@ class TermsAcceptance(models.Model):
 
     def __str__(self):
         return f"{self.student.username} accepted v{self.terms_version.version} on {self.accepted_at.strftime('%Y-%m-%d %H:%M')}"
+
+
+class SessionEmailLog(models.Model):
+    """Tracks emails sent by instructors to session participants."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.ForeignKey(WorkshopSession, on_delete=models.CASCADE, related_name='email_logs')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    recipient_count = models.PositiveIntegerField(default=0)
+    failed_count = models.PositiveIntegerField(default=0)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-sent_at']
+        indexes = [
+            models.Index(fields=['session', '-sent_at']),
+        ]
+
+    def __str__(self):
+        return f'"{self.subject}" to {self.recipient_count} recipients ({self.sent_at.strftime("%Y-%m-%d %H:%M")})'

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Take Attendance - {{ session.workshop.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-2xl"
+     x-data="attendanceManager()"
+     x-cloak>
+
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="breadcrumbs text-sm">
+            <ul>
+                <li><a href="{% url 'workshops:instructor_dashboard' %}">Dashboard</a></li>
+                <li><a href="{% url 'workshops:manage_sessions' workshop.slug %}">Sessions</a></li>
+                <li>Take Attendance</li>
+            </ul>
+        </div>
+
+        <h1 class="text-2xl font-bold text-gray-900 mt-3">{{ workshop.title }}</h1>
+        {% if session.session_title %}
+            <p class="text-lg text-gray-600">{{ session.session_title }}</p>
+        {% endif %}
+        <div class="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
+            <span><i class="fas fa-calendar mr-1"></i>{{ session.start_datetime|date:"l, M j, Y" }}</span>
+            <span><i class="fas fa-clock mr-1"></i>{{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}</span>
+        </div>
+    </div>
+
+    <!-- Attendance Counter -->
+    <div class="stats shadow w-full mb-6 bg-base-100">
+        <div class="stat">
+            <div class="stat-title">Checked In</div>
+            <div class="stat-value text-success" x-text="attendedCount">{{ attended_count }}</div>
+            <div class="stat-desc">of <span x-text="totalCount">{{ total_count }}</span> participants</div>
+        </div>
+        <div class="stat">
+            <div class="stat-title">Remaining</div>
+            <div class="stat-value" x-text="totalCount - attendedCount">{{ total_count|add:"-"|add:attended_count }}</div>
+            <div class="stat-desc">not yet checked in</div>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="w-full bg-base-200 rounded-full h-3 mb-6">
+        <div class="bg-success rounded-full h-3 transition-all duration-300"
+             :style="'width: ' + (totalCount > 0 ? Math.round(attendedCount / totalCount * 100) : 0) + '%'">
+        </div>
+    </div>
+
+    <!-- Participant List -->
+    <div class="space-y-2">
+        {% for reg in registrations %}
+        <div class="flex items-center gap-3 bg-base-100 rounded-lg shadow-sm px-4 py-3 cursor-pointer select-none transition-colors"
+             :class="statuses['{{ reg.id }}'] === 'attended' ? 'border-l-4 border-success bg-success/5' : 'border-l-4 border-base-300'"
+             @click="toggle('{{ reg.id }}')">
+
+            <!-- Check indicator -->
+            <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg transition-colors"
+                 :class="statuses['{{ reg.id }}'] === 'attended' ? 'bg-success text-success-content' : 'bg-base-200 text-base-content/30'">
+                <i class="fas" :class="statuses['{{ reg.id }}'] === 'attended' ? 'fa-check' : 'fa-minus'"></i>
+            </div>
+
+            <!-- Name -->
+            <div class="flex-grow min-w-0">
+                <div class="font-semibold text-base truncate">
+                    {{ reg.student_name }}
+                </div>
+                {% if reg.child_profile %}
+                    <div class="text-xs text-gray-500">Child (Age {{ reg.child_profile.age }}) &middot; Guardian: {{ reg.student.get_full_name }}</div>
+                {% endif %}
+                {% if reg.special_requirements %}
+                    <div class="text-xs text-warning"><i class="fas fa-exclamation-circle mr-1"></i>{{ reg.special_requirements|truncatewords:8 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Status badge -->
+            <div class="flex-shrink-0">
+                <span class="badge badge-sm transition-colors"
+                      :class="statuses['{{ reg.id }}'] === 'attended' ? 'badge-success' : 'badge-ghost'"
+                      x-text="statuses['{{ reg.id }}'] === 'attended' ? 'Present' : 'Absent'">
+                </span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-12 text-gray-400">
+            <i class="fas fa-users text-4xl mb-3"></i>
+            <p>No registered participants for this session.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Bottom Actions -->
+    {% if registrations %}
+    <div class="flex flex-wrap gap-3 mt-8 justify-center">
+        <a href="{% url 'workshops:session_registrations' session.id %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-list mr-2"></i>Full Registrations
+        </a>
+        <a href="{% url 'workshops:attendance_sheet' session.id %}" class="btn btn-outline btn-sm" target="_blank">
+            <i class="fas fa-print mr-2"></i>Print Sheet
+        </a>
+        <a href="{% url 'workshops:manage_sessions' workshop.slug %}" class="btn btn-ghost btn-sm">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Sessions
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>[x-cloak] { display: none !important; }</style>
+<script>
+function attendanceManager() {
+    return {
+        attendedCount: {{ attended_count }},
+        totalCount: {{ total_count }},
+        statuses: {
+            {% for reg in registrations %}
+            '{{ reg.id }}': '{{ reg.status }}',
+            {% endfor %}
+        },
+        pending: {},
+
+        toggle(regId) {
+            if (this.pending[regId]) return; // debounce
+            const current = this.statuses[regId];
+            const newStatus = current === 'attended' ? 'registered' : 'attended';
+
+            // Optimistic UI update
+            this.statuses[regId] = newStatus;
+            this.attendedCount += (newStatus === 'attended') ? 1 : -1;
+            this.pending[regId] = true;
+
+            // Send to server
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                || '{{ csrf_token }}';
+
+            fetch('', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: `registration_id=${regId}&new_status=${newStatus}`,
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    this.attendedCount = data.attended_count;
+                    this.totalCount = data.total_count;
+                }
+            })
+            .catch(() => {
+                // Revert on failure
+                this.statuses[regId] = current;
+                this.attendedCount += (current === 'attended') ? 1 : -1;
+            })
+            .finally(() => {
+                delete this.pending[regId];
+            });
+        }
+    };
+}
+</script>
+
+{% csrf_token %}
+{% endblock %}

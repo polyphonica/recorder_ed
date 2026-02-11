@@ -151,6 +151,12 @@
                                    target="_blank">
                                     <i class="fas fa-eye mr-2"></i>Preview
                                 </a>
+                                <form method="post" action="{% url 'workshops:duplicate_workshop' workshop.slug %}" class="w-full">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline btn-sm w-full">
+                                        <i class="fas fa-copy mr-2"></i>Duplicate
+                                    </button>
+                                </form>
                                 <a href="{% url 'workshops:delete_workshop' workshop.slug %}"
                                    class="btn btn-error btn-outline btn-sm w-full">
                                     <i class="fas fa-trash mr-2"></i>Delete

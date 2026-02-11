@@ -4,6 +4,12 @@
     {% if object %}Edit Workshop{% else %}Create New Workshop{% endif %}
 {% endblock %}
 
+{% block extra_head %}
+<style>
+    [x-cloak] { display: none !important; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Header -->
@@ -15,7 +21,7 @@
                 <li>{% if object %}Edit Workshop{% else %}Create Workshop{% endif %}</li>
             </ul>
         </div>
-        
+
         <h1 class="text-3xl font-bold text-gray-900 mt-4">
             {% if object %}
                 Edit Workshop: {{ object.title }}
@@ -32,136 +38,329 @@
         </p>
     </div>
 
-    <!-- Form -->
-    <div class="bg-base-100 rounded-lg shadow p-6">
-        <form method="post" enctype="multipart/form-data" class="space-y-6">
+    <!-- Wizard Container -->
+    <div class="bg-base-100 rounded-lg shadow p-6"
+         x-data="workshopWizard()"
+         x-cloak
+         x-init="init()">
+
+        <!-- Progress Bar -->
+        <ul class="steps steps-horizontal w-full mb-8">
+            <template x-for="step in effectiveSteps" :key="step">
+                <li class="step text-xs cursor-pointer transition-colors"
+                    :class="{
+                        'step-primary': currentStep === step || stepsValidated[step],
+                        'step-error': stepErrors[step] && stepErrors[step].length > 0,
+                        'cursor-not-allowed opacity-50': !isEditMode && !stepsValidated[step] && step > currentStep
+                    }"
+                    @click="goToStep(step)"
+                    :data-content="currentStep === step ? '\u25CF' : (stepsValidated[step] ? '\u2713' : '')">
+                    <span class="hidden sm:inline" :class="{ 'font-bold': currentStep === step }"
+                          x-text="stepLabels[step]"></span>
+                    <span class="sm:hidden" :class="{ 'font-bold': currentStep === step }"
+                          x-text="stepLabelsShort[step]"></span>
+                </li>
+            </template>
+        </ul>
+
+        <!-- Server-side non-field errors -->
+        {% if form.non_field_errors %}
+        <div class="alert alert-error mb-6">
+            <i class="fas fa-exclamation-circle"></i>
+            <div>
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            
-            <!-- Basic Information -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="lg:col-span-2">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Basic Information</h2>
-                </div>
-                
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text font-medium">Workshop Title *</span>
-                    </label>
-                    {{ form.title }}
-                    {% if form.title.errors %}
-                        <div class="text-error text-sm mt-1">{{ form.title.errors.0 }}</div>
-                    {% endif %}
-                </div>
-                
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text font-medium">URL Slug *</span>
-                        <span class="label-text-alt">Used in workshop URL</span>
-                    </label>
-                    {{ form.slug }}
-                    {% if form.slug.errors %}
-                        <div class="text-error text-sm mt-1">{{ form.slug.errors.0 }}</div>
-                    {% endif %}
-                </div>
-                
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text font-medium">Category *</span>
-                    </label>
-                    {{ form.category }}
-                    {% if form.category.errors %}
-                        <div class="text-error text-sm mt-1">{{ form.category.errors.0 }}</div>
-                    {% endif %}
-                </div>
-                
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text font-medium">Difficulty Level</span>
-                    </label>
-                    {{ form.difficulty_level }}
-                    {% if form.difficulty_level.errors %}
-                        <div class="text-error text-sm mt-1">{{ form.difficulty_level.errors.0 }}</div>
-                    {% endif %}
-                </div>
-                
-                <div class="lg:col-span-2">
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text font-medium">Short Description *</span>
-                            <span class="label-text-alt">Brief summary for workshop cards</span>
-                        </label>
-                        {{ form.short_description }}
-                        {% if form.short_description.errors %}
-                            <div class="text-error text-sm mt-1">{{ form.short_description.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Detailed Description -->
-            <div>
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">Workshop Details</h2>
-                
-                <div class="form-control mb-6">
-                    <label class="label">
-                        <span class="label-text font-medium">Full Description *</span>
-                        <span class="label-text-alt">Detailed workshop information</span>
-                    </label>
-                    {{ form.description }}
-                    {% if form.description.errors %}
-                        <div class="text-error text-sm mt-1">{{ form.description.errors.0 }}</div>
-                    {% endif %}
-                </div>
-                
-                <div class="form-control mb-6">
-                    <label class="label">
-                        <span class="label-text font-medium">Learning Objectives</span>
-                        <span class="label-text-alt">What will participants learn?</span>
-                    </label>
-                    {{ form.learning_objectives }}
-                    {% if form.learning_objectives.errors %}
-                        <div class="text-error text-sm mt-1">{{ form.learning_objectives.errors.0 }}</div>
-                    {% endif %}
-                </div>
-                
+
+            <!-- ============================================ -->
+            <!-- STEP 1: Essentials                           -->
+            <!-- ============================================ -->
+            <div x-show="currentStep === 1" x-transition:enter>
+                <h2 class="text-xl font-semibold text-gray-900 mb-2">Essentials</h2>
+                <p class="text-sm text-gray-500 mb-6">The basic details about your workshop.</p>
+
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="lg:col-span-2">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Workshop Title *</span>
+                            </label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                            <template x-if="stepErrors[1] && stepErrors[1].includes('title')">
+                                <div class="text-error text-sm mt-1">This field is required.</div>
+                            </template>
+                        </div>
+
+                        <!-- Slug toggle -->
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-ghost btn-xs text-gray-400" @click="showSlug = !showSlug">
+                                <i class="fas fa-cog mr-1"></i>
+                                <span x-text="showSlug ? 'Hide URL slug' : 'Customise URL slug'"></span>
+                            </button>
+                            <div x-show="showSlug" x-transition class="mt-2">
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text font-medium">URL Slug</span>
+                                        <span class="label-text-alt">Used in workshop URL</span>
+                                    </label>
+                                    {{ form.slug }}
+                                    {% if form.slug.errors %}
+                                        <div class="text-error text-sm mt-1">{{ form.slug.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-control">
                         <label class="label">
-                            <span class="label-text font-medium">Prerequisites</span>
+                            <span class="label-text font-medium">Category</span>
                         </label>
-                        {{ form.prerequisites }}
-                        {% if form.prerequisites.errors %}
-                            <div class="text-error text-sm mt-1">{{ form.prerequisites.errors.0 }}</div>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.category.errors.0 }}</div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="form-control">
                         <label class="label">
-                            <span class="label-text font-medium">Materials Needed</span>
+                            <span class="label-text font-medium">Difficulty Level</span>
                         </label>
-                        {{ form.materials_needed }}
-                        {% if form.materials_needed.errors %}
-                            <div class="text-error text-sm mt-1">{{ form.materials_needed.errors.0 }}</div>
+                        {{ form.difficulty_level }}
+                        {% if form.difficulty_level.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.difficulty_level.errors.0 }}</div>
                         {% endif %}
+                    </div>
+
+                    <div class="lg:col-span-2">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Short Description *</span>
+                                <span class="label-text-alt">Brief summary for workshop cards</span>
+                            </label>
+                            {{ form.short_description }}
+                            {% if form.short_description.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.short_description.errors.0 }}</div>
+                            {% endif %}
+                            <template x-if="stepErrors[1] && stepErrors[1].includes('short_description')">
+                                <div class="text-error text-sm mt-1">This field is required.</div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-2">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Delivery Method *</span>
+                                <span class="label-text-alt">How will this workshop be delivered?</span>
+                            </label>
+                            {{ form.delivery_method }}
+                            {% if form.delivery_method.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.delivery_method.errors.0 }}</div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Media & Pricing -->
-            <div>
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">Media & Pricing</h2>
-                
+
+            <!-- ============================================ -->
+            <!-- STEP 2: Content                              -->
+            <!-- ============================================ -->
+            <div x-show="currentStep === 2" x-transition:enter>
+                <h2 class="text-xl font-semibold text-gray-900 mb-2">Workshop Content</h2>
+                <p class="text-sm text-gray-500 mb-6">Describe what participants will learn and need.</p>
+
+                <div class="space-y-6">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Full Description *</span>
+                            <span class="label-text-alt">Detailed workshop information</span>
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.description.errors.0 }}</div>
+                        {% endif %}
+                        <template x-if="stepErrors[2] && stepErrors[2].includes('description')">
+                            <div class="text-error text-sm mt-1">This field is required.</div>
+                        </template>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">Learning Objectives *</span>
+                            <span class="label-text-alt">What will participants learn?</span>
+                        </label>
+                        {{ form.learning_objectives }}
+                        {% if form.learning_objectives.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.learning_objectives.errors.0 }}</div>
+                        {% endif %}
+                        <template x-if="stepErrors[2] && stepErrors[2].includes('learning_objectives')">
+                            <div class="text-error text-sm mt-1">This field is required.</div>
+                        </template>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Prerequisites</span>
+                            </label>
+                            {{ form.prerequisites }}
+                            {% if form.prerequisites.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.prerequisites.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Materials Needed</span>
+                            </label>
+                            {{ form.materials_needed }}
+                            {% if form.materials_needed.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.materials_needed.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- STEP 3: Pricing                              -->
+            <!-- ============================================ -->
+            <div x-show="currentStep === 3" x-transition:enter>
+                <h2 class="text-xl font-semibold text-gray-900 mb-2">Pricing</h2>
+                <p class="text-sm text-gray-500 mb-6">Set pricing for your workshop sessions.</p>
+
+                <div class="space-y-6">
+                    <!-- Free / Price -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="form-control">
+                            <label class="label cursor-pointer justify-start gap-4">
+                                {{ form.is_free }}
+                                <span class="label-text font-medium">Free Workshop</span>
+                            </label>
+                            {% if form.is_free.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.is_free.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control" x-show="!isFree" x-transition>
+                            <label class="label">
+                                <span class="label-text font-medium">Price Per Session *</span>
+                            </label>
+                            {{ form.price }}
+                            {% if form.price.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.price.errors.0 }}</div>
+                            {% endif %}
+                            <template x-if="stepErrors[3] && stepErrors[3].includes('price')">
+                                <div class="text-error text-sm mt-1">Please enter a valid price.</div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Series Configuration -->
+                    <div class="bg-base-200 p-6 rounded-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Series Configuration</h3>
+                            <span class="badge badge-secondary">Optional</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-6">
+                            Configure this workshop as a multi-session series. Students can register for all sessions at once with optional discounted pricing.
+                        </p>
+
+                        <div class="form-control mb-4">
+                            <label class="label cursor-pointer justify-start gap-4">
+                                {{ form.is_series }}
+                                <div>
+                                    <span class="label-text font-medium text-base">This is a multi-session series</span>
+                                    <p class="text-sm text-gray-500 mt-1">Students will be able to register for all sessions together</p>
+                                </div>
+                            </label>
+                            {% if form.is_series.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.is_series.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div x-show="isSeries" x-transition class="space-y-6 pl-8 border-l-4 border-primary">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text font-medium">Series Price</span>
+                                        <span class="label-text-alt">Total price for all sessions</span>
+                                    </label>
+                                    {{ form.series_price }}
+                                    {% if form.series_price.errors %}
+                                        <div class="text-error text-sm mt-1">{{ form.series_price.errors.0 }}</div>
+                                    {% endif %}
+                                    <template x-if="stepErrors[3] && stepErrors[3].includes('series_price')">
+                                        <div class="text-error text-sm mt-1">Please enter a series price.</div>
+                                    </template>
+                                    <label class="label">
+                                        <span class="label-text-alt">Example: 5 sessions @ &pound;50 each = &pound;250 individual, or &pound;200 series price</span>
+                                    </label>
+                                </div>
+
+                                <div class="form-control">
+                                    <label class="label cursor-pointer justify-start gap-4">
+                                        {{ form.require_full_series_registration }}
+                                        <div>
+                                            <span class="label-text font-medium">Require Full Series Registration</span>
+                                            <p class="text-sm text-gray-500 mt-1">Students must register for ALL sessions</p>
+                                        </div>
+                                    </label>
+                                    {% if form.require_full_series_registration.errors %}
+                                        <div class="text-error text-sm mt-1">{{ form.require_full_series_registration.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-medium">Series Description</span>
+                                    <span class="label-text-alt">Describe what each session covers</span>
+                                </label>
+                                {{ form.series_description }}
+                                {% if form.series_description.errors %}
+                                    <div class="text-error text-sm mt-1">{{ form.series_description.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- STEP 4: Media & Details                      -->
+            <!-- ============================================ -->
+            <div x-show="currentStep === 4" x-transition:enter>
+                <h2 class="text-xl font-semibold text-gray-900 mb-2">Media & Details</h2>
+                <p class="text-sm text-gray-500 mb-6">Add images, videos, and additional details.</p>
+
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text font-medium">Featured Image</span>
                         </label>
+                        {% if object and object.featured_image %}
+                            <div class="mb-2">
+                                <img src="{{ object.featured_image.url }}" alt="Current image" class="h-32 w-auto rounded-lg object-cover">
+                                <p class="text-xs text-gray-500 mt-1">Current image. Upload a new one to replace it.</p>
+                            </div>
+                        {% endif %}
                         {{ form.featured_image }}
                         {% if form.featured_image.errors %}
                             <div class="text-error text-sm mt-1">{{ form.featured_image.errors.0 }}</div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text font-medium">Promo Video URL</span>
@@ -171,7 +370,7 @@
                             <div class="text-error text-sm mt-1">{{ form.promo_video_url.errors.0 }}</div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text font-medium">Workshop Duration</span>
@@ -192,7 +391,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text font-medium">Tags</span>
@@ -204,135 +403,27 @@
                         {% endif %}
                     </div>
                 </div>
-                
-                <!-- Pricing -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-                    <div class="form-control">
-                        <label class="label cursor-pointer">
-                            {{ form.is_free }}
-                            <span class="label-text font-medium">Free Workshop</span>
-                        </label>
-                        {% if form.is_free.errors %}
-                            <div class="text-error text-sm mt-1">{{ form.is_free.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text font-medium">Price Per Session</span>
-                            <span class="label-text-alt">Individual session price</span>
-                        </label>
-                        {{ form.price }}
-                        {% if form.price.errors %}
-                            <div class="text-error text-sm mt-1">{{ form.price.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                </div>
             </div>
 
-            <!-- Series Configuration -->
-            <div class="bg-base-200 p-6 rounded-lg">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-gray-900">Workshop Series Configuration</h2>
-                    <span class="badge badge-secondary">Optional</span>
-                </div>
-                <p class="text-sm text-gray-600 mb-6">
-                    Configure this workshop as a multi-session series (e.g., "Interpretation for Beginners" with 5 weekly sessions).
-                    Students can register for all sessions at once with optional discounted pricing.
-                </p>
+            <!-- ============================================ -->
+            <!-- STEP 5: Venue (conditional)                  -->
+            <!-- ============================================ -->
+            <div x-show="currentStep === 5" x-transition:enter>
+                <h2 class="text-xl font-semibold text-gray-900 mb-2">Venue Details</h2>
+                <p class="text-sm text-gray-500 mb-6">Where will your in-person or hybrid sessions take place?</p>
 
                 <div class="space-y-6">
-                    <!-- Is Series Checkbox -->
-                    <div class="form-control">
-                        <label class="label cursor-pointer justify-start gap-4">
-                            {{ form.is_series }}
-                            <div>
-                                <span class="label-text font-medium text-base">This is a multi-session series</span>
-                                <p class="text-sm text-gray-500 mt-1">Students will be able to register for all sessions together</p>
-                            </div>
-                        </label>
-                        {% if form.is_series.errors %}
-                            <div class="text-error text-sm mt-1">{{ form.is_series.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Series fields (shown when is_series is checked) -->
-                    <div id="series-fields" class="space-y-6 pl-8 border-l-4 border-primary">
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div class="form-control">
-                                <label class="label">
-                                    <span class="label-text font-medium">Series Price</span>
-                                    <span class="label-text-alt">Total price for all sessions</span>
-                                </label>
-                                {{ form.series_price }}
-                                {% if form.series_price.errors %}
-                                    <div class="text-error text-sm mt-1">{{ form.series_price.errors.0 }}</div>
-                                {% endif %}
-                                <label class="label">
-                                    <span class="label-text-alt">Example: 5 sessions @ £50 each = £250 individual, or £200 series price (save £50)</span>
-                                </label>
-                            </div>
-
-                            <div class="form-control">
-                                <label class="label cursor-pointer justify-start gap-4">
-                                    {{ form.require_full_series_registration }}
-                                    <div>
-                                        <span class="label-text font-medium">Require Full Series Registration</span>
-                                        <p class="text-sm text-gray-500 mt-1">Students must register for ALL sessions (cannot pick individual sessions)</p>
-                                    </div>
-                                </label>
-                                {% if form.require_full_series_registration.errors %}
-                                    <div class="text-error text-sm mt-1">{{ form.require_full_series_registration.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text font-medium">Series Description</span>
-                                <span class="label-text-alt">Describe what each session covers</span>
-                            </label>
-                            {{ form.series_description }}
-                            {% if form.series_description.errors %}
-                                <div class="text-error text-sm mt-1">{{ form.series_description.errors.0 }}</div>
-                            {% endif %}
-                            <label class="label">
-                                <span class="label-text-alt">This helps students understand the series structure and progression</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Delivery Method and Venue -->
-            <div>
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">Delivery Method and Venue</h2>
-                
-                <div class="form-control mb-6">
-                    <label class="label">
-                        <span class="label-text font-medium">Delivery Method *</span>
-                        <span class="label-text-alt">How will this workshop be delivered?</span>
-                    </label>
-                    {{ form.delivery_method }}
-                    {% if form.delivery_method.errors %}
-                        <div class="text-error text-sm mt-1">{{ form.delivery_method.errors.0 }}</div>
-                    {% endif %}
-                </div>
-                
-                <!-- Venue Information (shown for in-person and hybrid) -->
-                <div id="venue-fields" class="space-y-6">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div class="form-control">
                             <label class="label">
                                 <span class="label-text font-medium">Venue Name</span>
-                                <span class="label-text-alt">Required for in-person workshops</span>
                             </label>
                             {{ form.venue_name }}
                             {% if form.venue_name.errors %}
                                 <div class="text-error text-sm mt-1">{{ form.venue_name.errors.0 }}</div>
                             {% endif %}
                         </div>
-                        
+
                         <div class="form-control">
                             <label class="label">
                                 <span class="label-text font-medium">City</span>
@@ -343,7 +434,7 @@
                             {% endif %}
                         </div>
                     </div>
-                    
+
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text font-medium">Address</span>
@@ -353,7 +444,7 @@
                             <div class="text-error text-sm mt-1">{{ form.venue_address.errors.0 }}</div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div class="form-control">
                             <label class="label">
@@ -364,11 +455,10 @@
                                 <div class="text-error text-sm mt-1">{{ form.venue_postcode.errors.0 }}</div>
                             {% endif %}
                         </div>
-                        
+
                         <div class="form-control">
                             <label class="label">
                                 <span class="label-text font-medium">Max Venue Capacity</span>
-                                <span class="label-text-alt">Maximum in-person participants</span>
                             </label>
                             {{ form.max_venue_capacity }}
                             {% if form.max_venue_capacity.errors %}
@@ -376,7 +466,7 @@
                             {% endif %}
                         </div>
                     </div>
-                    
+
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text font-medium">Map Link</span>
@@ -387,7 +477,7 @@
                             <div class="text-error text-sm mt-1">{{ form.venue_map_link.errors.0 }}</div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text font-medium">Venue Notes</span>
@@ -400,72 +490,215 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Settings -->
-            <div>
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">Workshop Settings</h2>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text font-medium">Status</span>
-                        </label>
-                        {{ form.status }}
-                        {% if form.status.errors %}
-                            <div class="text-error text-sm mt-1">{{ form.status.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="form-control">
-                        <label class="label cursor-pointer">
-                            {{ form.is_featured }}
-                            <span class="label-text font-medium">Feature this workshop</span>
-                        </label>
-                        {% if form.is_featured.errors %}
-                            <div class="text-error text-sm mt-1">{{ form.is_featured.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Form Actions -->
-            <div class="flex flex-wrap gap-4 pt-6 border-t">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save mr-2"></i>
-                    {% if object %}Update Workshop{% else %}Create Workshop{% endif %}
-                </button>
-                
-                <a href="{% url 'workshops:instructor_workshops' %}" class="btn btn-outline">
-                    <i class="fas fa-times mr-2"></i>Cancel
-                </a>
-                
-                {% if object %}
-                    <a href="{% url 'workshops:detail' object.slug %}" class="btn btn-ghost">
-                        <i class="fas fa-eye mr-2"></i>Preview Workshop
-                    </a>
-                    <a href="{% url 'workshops:manage_sessions' object.slug %}" class="btn btn-secondary">
-                        <i class="fas fa-calendar mr-2"></i>Manage Sessions
-                    </a>
-                {% endif %}
-            </div>
-            
-            <!-- Next Steps Info for New Workshops -->
-            {% if not object %}
-            <div class="bg-info/10 border border-info/20 rounded-lg p-4 mt-4">
-                <div class="flex items-start space-x-3">
-                    <i class="fas fa-lightbulb text-info text-lg mt-1"></i>
+
+            <!-- ============================================ -->
+            <!-- STEP 6: Review & Publish                     -->
+            <!-- ============================================ -->
+            <div x-show="currentStep === 6" x-transition:enter>
+                <h2 class="text-xl font-semibold text-gray-900 mb-2">Review & Publish</h2>
+                <p class="text-sm text-gray-500 mb-6">Review your workshop details before publishing.</p>
+
+                {% if form.errors %}
+                <div class="alert alert-error mb-6">
+                    <i class="fas fa-exclamation-circle"></i>
                     <div>
-                        <h4 class="font-semibold text-info-content">Next Steps</h4>
-                        <p class="text-sm text-info-content/80 mt-1">
-                            After creating your workshop, you'll be taken to session management where you can:
-                        </p>
-                        <ul class="text-sm text-info-content/80 mt-2 space-y-1">
-                            <li>• Schedule when your workshop will run</li>
-                            <li>• Set participant limits and locations</li>
-                            <li>• Configure meeting links and materials</li>
+                        <h3 class="font-bold">Please fix the following errors:</h3>
+                        <ul class="list-disc list-inside text-sm mt-1">
+                        {% for field, errors in form.errors.items %}
+                            <li><strong>{{ field }}:</strong> {{ errors.0 }}</li>
+                        {% endfor %}
                         </ul>
                     </div>
                 </div>
+                {% endif %}
+
+                <!-- Summary Cards -->
+                <div class="space-y-4 mb-8">
+                    <!-- Essentials -->
+                    <div class="bg-base-200 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-semibold">Essentials</h3>
+                            <button type="button" class="btn btn-ghost btn-xs" @click="goToStep(1)">
+                                <i class="fas fa-edit mr-1"></i> Edit
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            <div><span class="text-gray-500">Title:</span> <span class="font-medium" x-text="review.title"></span></div>
+                            <div><span class="text-gray-500">Category:</span> <span class="font-medium" x-text="review.category"></span></div>
+                            <div><span class="text-gray-500">Difficulty:</span> <span class="font-medium" x-text="review.difficulty_level"></span></div>
+                            <div><span class="text-gray-500">Delivery:</span> <span class="font-medium" x-text="review.delivery_method"></span></div>
+                            <div class="md:col-span-2"><span class="text-gray-500">Summary:</span> <span class="font-medium" x-text="truncate(review.short_description, 120)"></span></div>
+                        </div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="bg-base-200 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-semibold">Content</h3>
+                            <button type="button" class="btn btn-ghost btn-xs" @click="goToStep(2)">
+                                <i class="fas fa-edit mr-1"></i> Edit
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 gap-2 text-sm">
+                            <div><span class="text-gray-500">Description:</span> <span class="font-medium" x-text="truncate(review.description, 120)"></span></div>
+                            <div><span class="text-gray-500">Learning Objectives:</span> <span class="font-medium" x-text="truncate(review.learning_objectives, 120)"></span></div>
+                        </div>
+                    </div>
+
+                    <!-- Pricing -->
+                    <div class="bg-base-200 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-semibold">Pricing</h3>
+                            <button type="button" class="btn btn-ghost btn-xs" @click="goToStep(3)">
+                                <i class="fas fa-edit mr-1"></i> Edit
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            <div>
+                                <span class="text-gray-500">Pricing:</span>
+                                <span class="font-medium" x-text="isFree ? 'Free' : ('\u00A3' + (review.price || '0.00'))"></span>
+                            </div>
+                            <div x-show="isSeries">
+                                <span class="text-gray-500">Series Price:</span>
+                                <span class="font-medium" x-text="'\u00A3' + (review.series_price || '0.00')"></span>
+                            </div>
+                            <div x-show="isSeries">
+                                <span class="text-gray-500">Series:</span>
+                                <span class="font-medium">Yes</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Media & Details -->
+                    <div class="bg-base-200 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-semibold">Media & Details</h3>
+                            <button type="button" class="btn btn-ghost btn-xs" @click="goToStep(4)">
+                                <i class="fas fa-edit mr-1"></i> Edit
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            <div>
+                                <span class="text-gray-500">Duration:</span>
+                                <span class="font-medium" x-text="review.duration_value + ' ' + review.duration_unit"></span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Image:</span>
+                                <span class="font-medium" x-text="review.featured_image"></span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Tags:</span>
+                                <span class="font-medium" x-text="review.tags || 'None'"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Venue (conditional) -->
+                    <div class="bg-base-200 rounded-lg p-4" x-show="needsVenue">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-semibold">Venue</h3>
+                            <button type="button" class="btn btn-ghost btn-xs" @click="goToStep(5)">
+                                <i class="fas fa-edit mr-1"></i> Edit
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            <div><span class="text-gray-500">Venue:</span> <span class="font-medium" x-text="review.venue_name || 'Not set'"></span></div>
+                            <div><span class="text-gray-500">City:</span> <span class="font-medium" x-text="review.venue_city || 'Not set'"></span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Publishing Settings -->
+                <div class="border rounded-lg p-4">
+                    <h3 class="font-semibold mb-4">Publishing Settings</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Status</span>
+                            </label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.status.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label cursor-pointer justify-start gap-4">
+                                {{ form.is_featured }}
+                                <span class="label-text font-medium">Feature this workshop</span>
+                            </label>
+                            {% if form.is_featured.errors %}
+                                <div class="text-error text-sm mt-1">{{ form.is_featured.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next Steps Info for New Workshops -->
+                {% if not object %}
+                <div class="bg-info/10 border border-info/20 rounded-lg p-4 mt-6">
+                    <div class="flex items-start space-x-3">
+                        <i class="fas fa-lightbulb text-info text-lg mt-1"></i>
+                        <div>
+                            <h4 class="font-semibold text-info-content">Next Steps</h4>
+                            <p class="text-sm text-info-content/80 mt-1">
+                                After creating your workshop, you'll be taken to session management where you can:
+                            </p>
+                            <ul class="text-sm text-info-content/80 mt-2 space-y-1">
+                                <li>Schedule when your workshop will run</li>
+                                <li>Set participant limits and locations</li>
+                                <li>Configure meeting links and materials</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- ============================================ -->
+            <!-- Navigation Bar (shared across all steps)     -->
+            <!-- ============================================ -->
+            <div class="flex flex-wrap items-center justify-between pt-6 border-t mt-8 gap-4">
+                <!-- Back button -->
+                <button type="button"
+                        class="btn btn-outline"
+                        x-show="effectiveSteps.indexOf(currentStep) > 0"
+                        @click="goBack()">
+                    <i class="fas fa-arrow-left mr-2"></i> Back
+                </button>
+                <div x-show="effectiveSteps.indexOf(currentStep) === 0"></div>
+
+                <div class="flex gap-2">
+                    <!-- Cancel -->
+                    <a href="{% url 'workshops:instructor_workshops' %}" class="btn btn-ghost">Cancel</a>
+
+                    <!-- Next -->
+                    <button type="button"
+                            class="btn btn-primary"
+                            x-show="currentStep !== 6"
+                            @click="goNext()">
+                        Next <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+
+                    <!-- Submit (step 6 only) -->
+                    <button type="submit"
+                            class="btn btn-primary btn-lg"
+                            x-show="currentStep === 6">
+                        <i class="fas fa-save mr-2"></i>
+                        <span x-text="isEditMode ? 'Update Workshop' : 'Create Workshop'"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Edit mode extra links -->
+            {% if object %}
+            <div class="flex gap-4 mt-4">
+                <a href="{% url 'workshops:detail' object.slug %}" class="btn btn-ghost btn-sm">
+                    <i class="fas fa-eye mr-2"></i>Preview Workshop
+                </a>
+                <a href="{% url 'workshops:manage_sessions' object.slug %}" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-calendar mr-2"></i>Manage Sessions
+                </a>
             </div>
             {% endif %}
         </form>
@@ -473,76 +706,240 @@
 </div>
 
 <script>
-// Auto-generate slug from title
-document.addEventListener('DOMContentLoaded', function() {
-    const titleInput = document.querySelector('input[name="title"]');
-    const slugInput = document.querySelector('input[name="slug"]');
-    
-    if (titleInput && slugInput && !slugInput.value) {
-        titleInput.addEventListener('input', function() {
-            const title = this.value;
-            const slug = title
-                .toLowerCase()
+function workshopWizard() {
+    return {
+        currentStep: 1,
+        isEditMode: {{ object|yesno:'true,false' }},
+        showSlug: false,
+
+        deliveryMethod: '{{ form.delivery_method.value|default:"online" }}',
+        isFree: {{ form.is_free.value|yesno:'true,false' }},
+        isSeries: {{ form.is_series.value|yesno:'true,false' }},
+
+        stepsValidated: {
+            1: {{ object|yesno:'true,false' }},
+            2: {{ object|yesno:'true,false' }},
+            3: {{ object|yesno:'true,false' }},
+            4: {{ object|yesno:'true,false' }},
+            5: {{ object|yesno:'true,false' }},
+            6: {{ object|yesno:'true,false' }}
+        },
+
+        stepErrors: { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
+
+        review: {},
+
+        stepLabels: {
+            1: 'Essentials',
+            2: 'Content',
+            3: 'Pricing',
+            4: 'Media & Details',
+            5: 'Venue',
+            6: 'Review & Publish'
+        },
+        stepLabelsShort: {
+            1: 'Basics',
+            2: 'Content',
+            3: 'Price',
+            4: 'Media',
+            5: 'Venue',
+            6: 'Review'
+        },
+
+        get needsVenue() {
+            return this.deliveryMethod === 'in_person' || this.deliveryMethod === 'hybrid';
+        },
+
+        get effectiveSteps() {
+            if (this.needsVenue) {
+                return [1, 2, 3, 4, 5, 6];
+            }
+            return [1, 2, 3, 4, 6];
+        },
+
+        nextStepNumber() {
+            const steps = this.effectiveSteps;
+            const idx = steps.indexOf(this.currentStep);
+            return idx < steps.length - 1 ? steps[idx + 1] : this.currentStep;
+        },
+
+        prevStepNumber() {
+            const steps = this.effectiveSteps;
+            const idx = steps.indexOf(this.currentStep);
+            return idx > 0 ? steps[idx - 1] : this.currentStep;
+        },
+
+        validateStep(stepNumber) {
+            this.stepErrors[stepNumber] = [];
+            let valid = true;
+
+            const requiredByStep = {
+                1: ['title', 'short_description'],
+                2: ['description', 'learning_objectives'],
+                3: [],
+                4: [],
+                5: [],
+                6: []
+            };
+
+            const fields = requiredByStep[stepNumber] || [];
+            for (const name of fields) {
+                const el = this.$root.querySelector('[name="' + name + '"]');
+                if (el && !el.value.trim()) {
+                    this.stepErrors[stepNumber].push(name);
+                    valid = false;
+                }
+            }
+
+            // Conditional pricing validation
+            if (stepNumber === 3 && !this.isFree) {
+                const priceEl = this.$root.querySelector('[name="price"]');
+                if (priceEl && (!priceEl.value || parseFloat(priceEl.value) <= 0)) {
+                    this.stepErrors[3].push('price');
+                    valid = false;
+                }
+            }
+            if (stepNumber === 3 && this.isSeries) {
+                const spEl = this.$root.querySelector('[name="series_price"]');
+                if (spEl && (!spEl.value || parseFloat(spEl.value) <= 0)) {
+                    this.stepErrors[3].push('series_price');
+                    valid = false;
+                }
+            }
+
+            return valid;
+        },
+
+        goNext() {
+            if (this.validateStep(this.currentStep)) {
+                this.stepsValidated[this.currentStep] = true;
+                const next = this.nextStepNumber();
+                this.currentStep = next;
+                if (next === 6) this.refreshReview();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        },
+
+        goBack() {
+            const prev = this.prevStepNumber();
+            this.currentStep = prev;
+            if (prev === 6) this.refreshReview();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        goToStep(stepNumber) {
+            if (this.isEditMode || this.stepsValidated[stepNumber] || stepNumber <= this.currentStep) {
+                this.currentStep = stepNumber;
+                if (stepNumber === 6) this.refreshReview();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        },
+
+        refreshReview() {
+            this.review = {
+                title: this.getFieldValue('title'),
+                category: this.getFieldValue('category'),
+                difficulty_level: this.getFieldValue('difficulty_level'),
+                delivery_method: this.getFieldValue('delivery_method'),
+                short_description: this.getFieldValue('short_description'),
+                description: this.getFieldValue('description'),
+                learning_objectives: this.getFieldValue('learning_objectives'),
+                price: this.getFieldValue('price'),
+                series_price: this.getFieldValue('series_price'),
+                duration_value: this.getFieldValue('duration_value'),
+                duration_unit: this.getFieldValue('duration_unit'),
+                tags: this.getFieldValue('tags'),
+                venue_name: this.getFieldValue('venue_name'),
+                venue_city: this.getFieldValue('venue_city'),
+                featured_image: this.getFileFieldValue('featured_image'),
+                promo_video_url: this.getFieldValue('promo_video_url'),
+            };
+        },
+
+        truncate(text, maxLen) {
+            if (!text) return '\u2014';
+            if (text.length > maxLen) return text.substring(0, maxLen) + '...';
+            return text;
+        },
+
+        getFieldValue(name) {
+            const el = this.$root.querySelector('[name="' + name + '"]');
+            if (!el) return '';
+            if (el.tagName === 'SELECT') {
+                return el.options[el.selectedIndex]?.text || '';
+            }
+            if (el.type === 'checkbox') {
+                return el.checked ? 'Yes' : 'No';
+            }
+            return el.value || '';
+        },
+
+        getFieldValueTruncated(name, maxLen) {
+            const val = this.getFieldValue(name);
+            if (val.length > maxLen) return val.substring(0, maxLen) + '...';
+            return val || '\u2014';
+        },
+
+        getFileFieldValue(name) {
+            const el = this.$root.querySelector('[name="' + name + '"]');
+            if (el && el.files && el.files.length) {
+                return el.files[0].name;
+            }
+            {% if object and object.featured_image %}
+            if (name === 'featured_image') return 'Current image';
+            {% endif %}
+            return 'None';
+        },
+
+        generateSlug(title) {
+            return title.toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/^-+|-+$/g, '');
-            slugInput.value = slug;
-        });
-    }
-    
-    // Toggle price field based on is_free checkbox
-    const isFreeCheckbox = document.querySelector('input[name="is_free"]');
-    const priceField = document.querySelector('input[name="price"]');
-    
-    if (isFreeCheckbox && priceField) {
-        function togglePriceField() {
-            if (isFreeCheckbox.checked) {
-                priceField.value = '0.00';
-                priceField.readOnly = true;
-                priceField.closest('.form-control').style.opacity = '0.5';
-            } else {
-                priceField.readOnly = false;
-                priceField.closest('.form-control').style.opacity = '1';
+        },
+
+        init() {
+            {% if form.errors %}
+            // Navigate to the first step that has server-side errors
+            const fieldToStep = {
+                'title': 1, 'slug': 1, 'category': 1, 'difficulty_level': 1,
+                'short_description': 1, 'delivery_method': 1,
+                'description': 2, 'learning_objectives': 2, 'prerequisites': 2,
+                'materials_needed': 2,
+                'is_free': 3, 'price': 3, 'is_series': 3, 'series_price': 3,
+                'require_full_series_registration': 3, 'series_description': 3,
+                'featured_image': 4, 'promo_video_url': 4, 'duration_value': 4,
+                'duration_unit': 4, 'tags': 4,
+                'venue_name': 5, 'venue_address': 5, 'venue_city': 5,
+                'venue_postcode': 5, 'venue_map_link': 5, 'venue_notes': 5,
+                'max_venue_capacity': 5,
+                'status': 6, 'is_featured': 6
+            };
+            const errorFields = [{% for field in form.errors %}'{{ field }}',{% endfor %}];
+            let firstErrorStep = 6;
+            for (const f of errorFields) {
+                if (fieldToStep[f] !== undefined && fieldToStep[f] < firstErrorStep) {
+                    firstErrorStep = fieldToStep[f];
+                }
+            }
+            this.currentStep = firstErrorStep;
+            // Mark all steps as validated since we got past client-side validation
+            for (let i = 1; i <= 6; i++) {
+                this.stepsValidated[i] = true;
+            }
+
+            // If slug has an error, auto-show the slug field
+            if (errorFields.includes('slug')) {
+                this.showSlug = true;
+            }
+            if (firstErrorStep === 6) this.$nextTick(() => this.refreshReview());
+            {% endif %}
+
+            // In edit mode, populate review data immediately
+            if (this.isEditMode) {
+                this.$nextTick(() => this.refreshReview());
             }
         }
-
-        isFreeCheckbox.addEventListener('change', togglePriceField);
-        togglePriceField(); // Initial state
-    }
-    
-    // Toggle series fields based on is_series checkbox
-    const isSeriesCheckbox = document.querySelector('input[name="is_series"]');
-    const seriesFields = document.getElementById('series-fields');
-
-    if (isSeriesCheckbox && seriesFields) {
-        function toggleSeriesFields() {
-            if (isSeriesCheckbox.checked) {
-                seriesFields.style.display = 'block';
-            } else {
-                seriesFields.style.display = 'none';
-            }
-        }
-
-        isSeriesCheckbox.addEventListener('change', toggleSeriesFields);
-        toggleSeriesFields(); // Initial state
-    }
-
-    // Toggle venue fields based on delivery method
-    const deliveryMethodSelect = document.querySelector('select[name="delivery_method"]');
-    const venueFields = document.getElementById('venue-fields');
-
-    if (deliveryMethodSelect && venueFields) {
-        function toggleVenueFields() {
-            const isOnlineOnly = deliveryMethodSelect.value === 'online';
-            if (isOnlineOnly) {
-                venueFields.style.display = 'none';
-            } else {
-                venueFields.style.display = 'block';
-            }
-        }
-        
-        deliveryMethodSelect.addEventListener('change', toggleVenueFields);
-        toggleVenueFields(); // Initial state
-    }
-});
+    };
+}
 </script>
 {% endblock %}

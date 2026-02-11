@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Cancel Session - {{ workshop.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm mb-6">
+        <ul>
+            <li><a href="{% url 'workshops:instructor_dashboard' %}">Instructor Dashboard</a></li>
+            <li><a href="{% url 'workshops:instructor_workshops' %}">My Workshops</a></li>
+            <li><a href="{% url 'workshops:manage_sessions' workshop.slug %}">{{ workshop.title }}</a></li>
+            <li>Cancel Session</li>
+        </ul>
+    </div>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-error mb-4">
+                <i class="fas fa-ban mr-2"></i>
+                Cancel Session
+            </h2>
+
+            <!-- Session Details -->
+            <div class="bg-base-200 rounded-lg p-4 mb-6">
+                <h3 class="font-semibold text-lg mb-2">{{ workshop.title }}</h3>
+                {% if session.session_title %}
+                    <p class="text-primary font-medium mb-1">{{ session.session_title }}</p>
+                {% endif %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    <div class="flex items-center">
+                        <i class="fas fa-calendar mr-2 text-base-content/60"></i>
+                        {{ session.start_datetime|date:"l, F j, Y" }}
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-clock mr-2 text-base-content/60"></i>
+                        {{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-users mr-2 text-base-content/60"></i>
+                        {{ session.current_registrations }}/{{ session.max_participants }} participants
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-map-marker-alt mr-2 text-base-content/60"></i>
+                        {{ workshop.get_delivery_method_display }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Impact Summary -->
+            {% if active_registration_count > 0 %}
+            <div class="alert alert-warning mb-4">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <h3 class="font-bold">This will affect {{ active_registration_count }} participant{{ active_registration_count|pluralize }}</h3>
+                    <div class="text-sm mt-1">
+                        All active registrations will be cancelled and participants will be notified by email.
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if paid_registration_count > 0 %}
+            <div class="alert alert-info mb-4">
+                <i class="fas fa-credit-card"></i>
+                <div>
+                    <h3 class="font-bold">Refunds will be processed</h3>
+                    <div class="text-sm mt-1">
+                        {{ paid_registration_count }} paid registration{{ paid_registration_count|pluralize }} will receive a full refund
+                        totalling <strong>&pound;{{ total_refund_amount|floatformat:2 }}</strong>.
+                        Refunds typically take 5-10 business days to appear.
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if active_registration_count == 0 %}
+            <div class="alert alert-info mb-4">
+                <i class="fas fa-info-circle"></i>
+                <span>No participants are registered for this session. It can be cancelled with no impact.</span>
+            </div>
+            {% endif %}
+
+            <!-- Cancellation Form -->
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-medium">Reason for cancellation</span>
+                        <span class="label-text-alt">Optional - shared with participants</span>
+                    </label>
+                    <textarea name="cancellation_reason" rows="3"
+                              class="textarea textarea-bordered"
+                              placeholder="e.g., Instructor unavailable, venue issue, insufficient registrations..."></textarea>
+                </div>
+
+                <div class="flex gap-4 justify-end">
+                    <a href="{% url 'workshops:manage_sessions' workshop.slug %}" class="btn btn-ghost">
+                        Go Back
+                    </a>
+                    <button type="submit" class="btn btn-error">
+                        <i class="fas fa-ban mr-2"></i>
+                        Cancel This Session
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

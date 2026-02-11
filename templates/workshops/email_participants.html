@@ -54,6 +54,39 @@
         </div>
     </div>
 
+    <!-- Quick Templates -->
+    <div class="card bg-base-100 shadow-xl mb-6" x-data="{ open: false }">
+        <div class="card-body">
+            <button type="button" class="flex items-center justify-between w-full text-left" @click="open = !open">
+                <h3 class="font-semibold text-lg">
+                    <i class="fas fa-magic mr-2 text-secondary"></i>Quick Templates
+                </h3>
+                <i class="fas fa-chevron-down transition-transform" :class="open && 'rotate-180'"></i>
+            </button>
+            <div x-show="open" x-transition class="mt-4">
+                <p class="text-sm text-base-content/60 mb-3">Click a template to pre-fill the subject and message. You can edit before sending.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button type="button" class="btn btn-outline btn-sm justify-start"
+                            onclick="fillTemplate('Reminder: {{ session.workshop.title }} Tomorrow', 'Hi everyone,\n\nThis is a friendly reminder that our workshop session is tomorrow.\n\nPlease remember to bring:\n- Your instrument(s)\n- Any materials mentioned in the session notes\n\nIf you can no longer attend, please let us know as soon as possible so we can offer your place to someone on the waitlist.\n\nLooking forward to seeing you!\n\nBest regards')">
+                        <i class="fas fa-bell mr-2"></i>Session Reminder
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm justify-start"
+                            onclick="fillTemplate('What to Bring - {{ session.workshop.title }}', 'Hi everyone,\n\nHere is what you will need for our upcoming session:\n\n- \n- \n- \n\nIf you have any questions about materials, please reply to this email.\n\nSee you soon!')">
+                        <i class="fas fa-list-check mr-2"></i>What to Bring
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm justify-start"
+                            onclick="fillTemplate('Thank You - {{ session.workshop.title }}', 'Hi everyone,\n\nThank you for attending today\'s session! I hope you found it useful and enjoyable.\n\nHere are some follow-up resources:\n\n- \n\nIf you have any questions or feedback, please don\'t hesitate to reach out.\n\nBest regards')">
+                        <i class="fas fa-heart mr-2"></i>Post-Session Thank You
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm justify-start"
+                            onclick="fillTemplate('Important Update - {{ session.workshop.title }}', 'Hi everyone,\n\nI wanted to let you know about an update regarding our session:\n\n\n\nPlease let me know if you have any questions.\n\nBest regards')">
+                        <i class="fas fa-exclamation-circle mr-2"></i>Session Update
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Email Form -->
     <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
@@ -68,6 +101,7 @@
                     <input
                         type="text"
                         name="subject"
+                        id="email-subject"
                         class="input input-bordered w-full"
                         placeholder="e.g., Reminder: Workshop Tomorrow"
                         required
@@ -85,14 +119,9 @@
                     </label>
                     <textarea
                         name="message"
+                        id="email-message"
                         class="textarea textarea-bordered h-64"
-                        placeholder="Write your message to participants here...
-
-Examples:
-- Remind students what to bring
-- Share prep materials or links
-- Announce changes to the session
-- Send follow-up resources"
+                        placeholder="Write your message to participants here..."
                         required
                     ></textarea>
                     <label class="label">
@@ -104,15 +133,10 @@ Examples:
 
                 <div class="card-actions justify-between">
                     <a href="{% url 'workshops:session_registrations' session_id=session.id %}" class="btn btn-ghost">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        Cancel
+                        <i class="fas fa-arrow-left mr-2"></i>Cancel
                     </a>
                     <button type="submit" class="btn btn-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
+                        <i class="fas fa-paper-plane mr-2"></i>
                         Send Email to {{ opted_in_count }} Participant{{ opted_in_count|pluralize }}
                     </button>
                 </div>
@@ -150,5 +174,46 @@ Examples:
         </div>
     </div>
     {% endif %}
+
+    <!-- Sent Email History -->
+    {% if email_history %}
+    <div class="card bg-base-100 shadow-xl mt-6">
+        <div class="card-body">
+            <h3 class="font-semibold text-lg mb-4">
+                <i class="fas fa-history mr-2 text-secondary"></i>Sent Emails ({{ email_history|length }})
+            </h3>
+            <div class="space-y-3">
+                {% for log in email_history %}
+                <div class="bg-base-200 rounded-lg p-4" x-data="{ expanded: false }">
+                    <div class="flex items-start justify-between cursor-pointer" @click="expanded = !expanded">
+                        <div class="flex-grow min-w-0">
+                            <div class="font-medium truncate">{{ log.subject }}</div>
+                            <div class="text-xs text-base-content/60 mt-1">
+                                {{ log.sent_at|date:"M j, Y g:i A" }}
+                                &middot; {{ log.recipient_count }} recipient{{ log.recipient_count|pluralize }}
+                                {% if log.failed_count > 0 %}
+                                    &middot; <span class="text-error">{{ log.failed_count }} failed</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-down text-xs ml-2 mt-1 transition-transform" :class="expanded && 'rotate-180'"></i>
+                    </div>
+                    <div x-show="expanded" x-transition class="mt-3 pt-3 border-t border-base-300">
+                        <pre class="text-sm whitespace-pre-wrap font-sans">{{ log.message }}</pre>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
+
+<script>
+function fillTemplate(subject, message) {
+    document.getElementById('email-subject').value = subject;
+    document.getElementById('email-message').value = message;
+    document.getElementById('email-subject').focus();
+}
+</script>
 {% endblock %}

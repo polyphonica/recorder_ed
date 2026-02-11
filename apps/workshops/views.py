@@ -18,9 +18,9 @@ from apps.core.views import (
 from .models import (
     Workshop, WorkshopCategory, WorkshopSession,
     WorkshopRegistration, WorkshopMaterial, WorkshopInterest,
-    WorkshopTermsAndConditions, TermsAcceptance
+    WorkshopTermsAndConditions, TermsAcceptance, SessionEmailLog,
 )
-from .forms import WorkshopRegistrationForm, WorkshopForm, WorkshopSessionForm, WorkshopFilterForm, WorkshopInterestForm, WorkshopMaterialForm
+from .forms import WorkshopRegistrationForm, WorkshopForm, WorkshopSessionForm, BatchSessionForm, WorkshopFilterForm, WorkshopInterestForm, WorkshopMaterialForm
 from .mixins import InstructorRequiredMixin
 from .notifications import WorkshopInterestNotificationService
 from apps.payments.voucher_service import VoucherService, VoucherValidationError
@@ -1144,7 +1144,7 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
 
         # Get workshop interest summary (count per workshop)
         from django.db.models import Count
-        workshop_interest_summary = WorkshopInterest.objects.filter(
+        workshop_interest_summary_qs = WorkshopInterest.objects.filter(
             workshop__instructor=user,
             is_active=True
         ).values('workshop__id', 'workshop__title', 'workshop__slug').annotate(
@@ -1152,9 +1152,53 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
             waiting_notification=Count('id', filter=Q(has_been_notified=False))
         ).order_by('-waiting_notification', '-total_interested')[:5]
 
+        # Convert to list and attach timing preferences per workshop
+        workshop_interest_summary = list(workshop_interest_summary_qs)
+        if workshop_interest_summary:
+            workshop_ids = [s['workshop__id'] for s in workshop_interest_summary]
+            timing_qs = WorkshopInterest.objects.filter(
+                workshop_id__in=workshop_ids,
+                is_active=True
+            ).values('workshop_id', 'preferred_timing').annotate(
+                count=Count('id')
+            ).order_by('workshop_id', '-count')
+            timing_map = {}
+            timing_labels = dict(WorkshopInterest.TIMING_PREFERENCES)
+            for row in timing_qs:
+                wid = row['workshop_id']
+                if wid not in timing_map:
+                    timing_map[wid] = []
+                timing_map[wid].append({
+                    'label': timing_labels.get(row['preferred_timing'], row['preferred_timing']),
+                    'count': row['count'],
+                })
+            for summary in workshop_interest_summary:
+                summary['timing_preferences'] = timing_map.get(summary['workshop__id'], [])
+
         # Simple direct counts - only count active sessions
         total_sessions = WorkshopSession.objects.filter(workshop__instructor=user, is_active=True).count()
         total_registrations = WorkshopRegistration.objects.filter(session__workshop__instructor=user).count()
+
+        # Revenue summary
+        from django.db.models import Sum
+        from decimal import Decimal
+        paid_registrations = WorkshopRegistration.objects.filter(
+            session__workshop__instructor=user,
+            payment_amount__gt=0,
+        ).filter(
+            Q(payment_status='paid') | Q(payment_status='completed')
+        )
+        total_revenue = paid_registrations.aggregate(
+            total=Sum('payment_amount')
+        )['total'] or Decimal('0.00')
+
+        # This month's revenue
+        month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        month_revenue = paid_registrations.filter(
+            paid_at__gte=month_start
+        ).aggregate(
+            total=Sum('payment_amount')
+        )['total'] or Decimal('0.00')
 
         context.update({
             'workshops': workshops,
@@ -1168,6 +1212,8 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
                 'total_sessions': total_sessions,
                 'total_registrations': total_registrations,
                 'total_interest_requests': sum(getattr(w, 'interest_count', 0) for w in workshops),
+                'total_revenue': total_revenue,
+                'month_revenue': month_revenue,
             }
         })
         return context
@@ -1229,6 +1275,47 @@ class EditWorkshopView(SuccessMessageMixin, UserFilterMixin, LoginRequiredMixin,
 
     def get_success_url(self):
         return reverse('workshops:instructor_workshops')
+
+
+class DuplicateWorkshopView(LoginRequiredMixin, View):
+    """Duplicate an existing workshop as a new draft."""
+
+    # Fields to copy from the original workshop
+    COPY_FIELDS = [
+        'title', 'description', 'short_description',
+        'learning_objectives', 'prerequisites', 'materials_needed',
+        'category_id', 'tags', 'difficulty_level',
+        'duration_value', 'duration_unit',
+        'promo_video_url',
+        'is_free', 'price',
+        'is_series', 'series_price', 'series_description',
+        'require_full_series_registration',
+        'delivery_method',
+        'venue_name', 'venue_address', 'venue_city', 'venue_postcode',
+        'venue_map_link', 'venue_notes', 'max_venue_capacity',
+    ]
+
+    def post(self, request, slug):
+        original = get_object_or_404(Workshop, slug=slug, instructor=request.user)
+
+        # Build new workshop from original's fields
+        new_workshop = Workshop(instructor=request.user, status='draft', is_featured=False)
+        for field in self.COPY_FIELDS:
+            setattr(new_workshop, field, getattr(original, field))
+
+        # Make title and slug unique
+        new_workshop.title = f'{original.title} (Copy)'
+        base_slug = original.slug + '-copy'
+        slug_candidate = base_slug
+        counter = 1
+        while Workshop.objects.filter(slug=slug_candidate).exists():
+            slug_candidate = f'{base_slug}-{counter}'
+            counter += 1
+        new_workshop.slug = slug_candidate
+
+        new_workshop.save()
+        messages.success(request, f'Workshop duplicated as "{new_workshop.title}". You can now edit it and add sessions.')
+        return redirect('workshops:edit_workshop', slug=new_workshop.slug)
 
 
 class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
@@ -1410,21 +1497,29 @@ class ManageSessionsView(LoginRequiredMixin, TemplateView):
         
         # Use provided form with errors, or create a new one
         session_form = kwargs.get('session_form', WorkshopSessionForm())
-        
+        batch_form = kwargs.get('batch_form', BatchSessionForm(workshop=self.workshop))
+
         context.update({
             'workshop': self.workshop,
             'sessions': sessions,
             'session_form': session_form,
+            'batch_form': batch_form,
         })
         return context
-    
+
     def post(self, request, *args, **kwargs):
         workshop = get_object_or_404(
-            Workshop, 
+            Workshop,
             slug=kwargs['slug'],
             instructor=request.user
         )
-        
+
+        action = request.POST.get('action')
+
+        if action == 'create_batch':
+            return self._handle_batch_create(request, workshop, **kwargs)
+
+        # Default: single session creation
         form = WorkshopSessionForm(request.POST)
         if form.is_valid():
             session = form.save(commit=False)
@@ -1434,8 +1529,22 @@ class ManageSessionsView(LoginRequiredMixin, TemplateView):
             return redirect('workshops:manage_sessions', slug=workshop.slug)
         else:
             messages.error(request, 'Please correct the errors below.')
-            # Re-render the page with form errors instead of redirecting
             return self.render_to_response(self.get_context_data(session_form=form, **kwargs))
+
+    def _handle_batch_create(self, request, workshop, **kwargs):
+        form = BatchSessionForm(request.POST, workshop=workshop)
+        if not form.is_valid():
+            messages.error(request, 'Please correct the errors below.')
+            return self.render_to_response(self.get_context_data(batch_form=form, **kwargs))
+
+        session_dicts = form.generate_sessions()
+        sessions = [
+            WorkshopSession(workshop=workshop, **s)
+            for s in session_dicts
+        ]
+        WorkshopSession.objects.bulk_create(sessions)
+        messages.success(request, f'{len(sessions)} sessions created successfully!')
+        return redirect('workshops:manage_sessions', slug=workshop.slug)
 
 
 class EditSessionView(SuccessMessageMixin, LoginRequiredMixin, UpdateView):
@@ -1478,6 +1587,174 @@ class EditSessionView(SuccessMessageMixin, LoginRequiredMixin, UpdateView):
     
     def get_success_url(self):
         return reverse('workshops:manage_sessions', kwargs={'slug': self.object.workshop.slug})
+
+
+class CancelSessionView(LoginRequiredMixin, View):
+    """Cancel a workshop session with refund processing and participant notifications."""
+
+    def get_session(self, session_id, user):
+        return get_object_or_404(
+            WorkshopSession.objects.select_related('workshop'),
+            id=session_id,
+            workshop__instructor=user,
+        )
+
+    def _check_cancellable(self, session):
+        if session.is_cancelled:
+            messages.info(self.request, 'This session has already been cancelled.')
+            return redirect('workshops:manage_sessions', slug=session.workshop.slug)
+        if session.is_past:
+            messages.error(self.request, 'Past sessions cannot be cancelled.')
+            return redirect('workshops:manage_sessions', slug=session.workshop.slug)
+        return None
+
+    def get(self, request, session_id):
+        session = self.get_session(session_id, request.user)
+
+        redirect_response = self._check_cancellable(session)
+        if redirect_response:
+            return redirect_response
+
+        active_registrations = session.registrations.filter(
+            status__in=['registered', 'waitlisted', 'promoted']
+        ).select_related('student', 'child_profile')
+
+        paid_registrations = active_registrations.filter(payment_status='completed')
+        total_refund = paid_registrations.aggregate(
+            total=Coalesce(Sum('payment_amount'), Decimal('0.00'))
+        )['total']
+
+        return render(request, 'workshops/session_cancel_confirm.html', {
+            'session': session,
+            'workshop': session.workshop,
+            'active_registration_count': active_registrations.count(),
+            'paid_registration_count': paid_registrations.count(),
+            'total_refund_amount': total_refund,
+        })
+
+    def post(self, request, session_id):
+        session = self.get_session(session_id, request.user)
+
+        redirect_response = self._check_cancellable(session)
+        if redirect_response:
+            return redirect_response
+
+        cancellation_reason = request.POST.get('cancellation_reason', '').strip()
+        workshop = session.workshop
+
+        # Fetch active registrations before updating anything
+        active_registrations = list(
+            session.registrations.filter(
+                status__in=['registered', 'waitlisted', 'promoted']
+            ).select_related('student', 'session__workshop', 'child_profile')
+        )
+
+        # Process refunds for paid registrations
+        refund_count = 0
+        refund_failed_count = 0
+        total_refunded = Decimal('0.00')
+
+        for registration in active_registrations:
+            if registration.payment_status in ['paid', 'completed'] and registration.payment_amount and registration.payment_amount > 0:
+                try:
+                    from apps.payments.models import StripePayment
+                    from apps.payments.stripe_service import create_refund
+
+                    stripe_payment = None
+                    if registration.stripe_payment_intent_id:
+                        stripe_payment = StripePayment.objects.filter(
+                            stripe_payment_intent_id=registration.stripe_payment_intent_id,
+                            status='completed'
+                        ).first()
+
+                    if stripe_payment:
+                        refund = create_refund(
+                            payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                            amount=registration.payment_amount,
+                            reason='requested_by_customer'
+                        )
+                        stripe_payment.mark_refunded(
+                            refund_amount=registration.payment_amount,
+                            stripe_refund_id=refund.id
+                        )
+                        total_refunded += registration.payment_amount
+                        refund_count += 1
+                    else:
+                        refund_failed_count += 1
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Failed to refund registration {registration.id}: {e}")
+                    refund_failed_count += 1
+
+        # Cancel all active registrations
+        for registration in active_registrations:
+            registration.status = 'cancelled'
+            registration.save(update_fields=['status'])
+
+        # Mark session as cancelled
+        session.is_cancelled = True
+        session.is_active = False
+        session.cancellation_reason = cancellation_reason
+        session.save(update_fields=['is_cancelled', 'is_active', 'cancellation_reason'])
+
+        # Send notification emails to all affected participants
+        from .notifications import StudentNotificationService
+        notification_count = 0
+        notification_failed = 0
+
+        for registration in active_registrations:
+            try:
+                recipient_email = registration.email or registration.student.email
+                if not recipient_email:
+                    notification_failed += 1
+                    continue
+
+                browse_url = StudentNotificationService.build_absolute_url('workshops:list')
+                my_registrations_url = StudentNotificationService.build_absolute_url('workshops:my_registrations')
+
+                context = {
+                    'registration': registration,
+                    'session': session,
+                    'workshop': workshop,
+                    'student_name': registration.student_name,
+                    'cancellation_reason': cancellation_reason,
+                    'has_refund': registration.payment_status in ['paid', 'completed'] and registration.payment_amount and registration.payment_amount > 0,
+                    'refund_amount': registration.payment_amount if registration.payment_status in ['paid', 'completed'] else Decimal('0.00'),
+                    'browse_workshops_url': browse_url,
+                    'my_registrations_url': my_registrations_url,
+                }
+
+                success = StudentNotificationService.send_templated_email(
+                    template_path='workshops/emails/session_cancelled.txt',
+                    context=context,
+                    recipient_list=[recipient_email],
+                    default_subject=f'Session Cancelled - {workshop.title}',
+                    fail_silently=True,
+                    log_description=f"Session cancellation notification to {registration.student.username}"
+                )
+
+                if success:
+                    notification_count += 1
+                else:
+                    notification_failed += 1
+            except Exception:
+                notification_failed += 1
+
+        # Build user-facing messages
+        session_label = session.session_title or session.start_datetime.strftime('%B %d, %Y')
+        messages.success(request, f'Session "{session_label}" has been cancelled.')
+
+        if notification_count > 0:
+            messages.info(request, f'Sent cancellation notifications to {notification_count} participant(s).')
+        if notification_failed > 0:
+            messages.warning(request, f'Failed to notify {notification_failed} participant(s). Check logs for details.')
+        if refund_count > 0:
+            messages.info(request, f'Processed {refund_count} refund(s) totalling £{total_refunded:.2f}.')
+        if refund_failed_count > 0:
+            messages.warning(request, f'Failed to process {refund_failed_count} refund(s). These may need manual processing.')
+
+        return redirect('workshops:manage_sessions', slug=workshop.slug)
 
 
 class SessionRegistrationsView(LoginRequiredMixin, ListView):
@@ -1801,6 +2078,65 @@ class AttendanceSheetView(LoginRequiredMixin, TemplateView):
         context['registrations'] = registrations
 
         return context
+
+
+class TakeAttendanceView(LoginRequiredMixin, View):
+    """Interactive attendance check-in optimised for mobile/tablet use."""
+
+    def _get_session(self, session_id, user):
+        return get_object_or_404(
+            WorkshopSession.objects.select_related('workshop'),
+            id=session_id,
+            workshop__instructor=user,
+        )
+
+    def _get_registrations(self, session):
+        return WorkshopRegistration.objects.filter(
+            session=session,
+            status__in=['registered', 'attended', 'promoted'],
+        ).select_related(
+            'student', 'student__profile', 'child_profile',
+        ).order_by('student__last_name', 'student__first_name')
+
+    def get(self, request, session_id):
+        session = self._get_session(session_id, request.user)
+        registrations = self._get_registrations(session)
+        attended_count = registrations.filter(status='attended').count()
+        return render(request, 'workshops/take_attendance.html', {
+            'session': session,
+            'workshop': session.workshop,
+            'registrations': registrations,
+            'attended_count': attended_count,
+            'total_count': registrations.count(),
+        })
+
+    def post(self, request, session_id):
+        session = self._get_session(session_id, request.user)
+        registration_id = request.POST.get('registration_id')
+        new_status = request.POST.get('new_status')
+
+        if registration_id and new_status in ('attended', 'registered'):
+            reg = get_object_or_404(
+                WorkshopRegistration,
+                id=registration_id,
+                session=session,
+            )
+            reg.status = new_status
+            reg.attended = (new_status == 'attended')
+            reg.save(update_fields=['status', 'attended', 'updated_at'])
+
+        # For AJAX calls return a minimal JSON response
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            from django.http import JsonResponse
+            registrations = self._get_registrations(session)
+            attended_count = registrations.filter(status='attended').count()
+            return JsonResponse({
+                'ok': True,
+                'attended_count': attended_count,
+                'total_count': registrations.count(),
+            })
+
+        return redirect('workshops:take_attendance', session_id=session_id)
 
 
 class WorkshopInterestView(CreateView):
@@ -2723,6 +3059,8 @@ class EmailParticipantsView(LoginRequiredMixin, TemplateView):
             if reg.student.profile.workshop_email_notifications
         ]
 
+        email_history = SessionEmailLog.objects.filter(session=session).order_by('-sent_at')[:20]
+
         context.update({
             'session': session,
             'workshop': session.workshop,
@@ -2730,6 +3068,7 @@ class EmailParticipantsView(LoginRequiredMixin, TemplateView):
             'total_participants': len(registrations),
             'opted_in_count': len(opted_in_registrations),
             'opted_out_count': len(registrations) - len(opted_in_registrations),
+            'email_history': email_history,
         })
 
         return context
@@ -2843,6 +3182,17 @@ class EmailParticipantsView(LoginRequiredMixin, TemplateView):
             except Exception:
                 pass  # Silently ignore copy failures
 
+        # Log the sent email
+        if sent_count > 0:
+            SessionEmailLog.objects.create(
+                session=session,
+                sender=request.user,
+                subject=subject,
+                message=message_body,
+                recipient_count=sent_count,
+                failed_count=failed_count,
+            )
+
         # Show success message
         if sent_count > 0:
             messages.success(
@@ -2856,6 +3206,103 @@ class EmailParticipantsView(LoginRequiredMixin, TemplateView):
             )
 
         return redirect('workshops:session_registrations', session_id=session.id)
+
+
+class EmailInterestedView(LoginRequiredMixin, TemplateView):
+    """Allow instructors to email students who expressed interest in a workshop"""
+    template_name = 'workshops/email_interested.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        workshop = get_object_or_404(
+            Workshop, slug=self.kwargs['slug'], instructor=self.request.user
+        )
+        interests = WorkshopInterest.objects.filter(
+            workshop=workshop, is_active=True
+        ).select_related('user').order_by('-created_at')
+
+        # Timing preference breakdown
+        from django.db.models import Count
+        timing_breakdown = interests.values('preferred_timing').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        timing_labels = dict(WorkshopInterest.TIMING_PREFERENCES)
+        timing_summary = [
+            {'label': timing_labels.get(t['preferred_timing'], t['preferred_timing']), 'count': t['count']}
+            for t in timing_breakdown
+        ]
+
+        context.update({
+            'workshop': workshop,
+            'interests': interests,
+            'total_count': interests.count(),
+            'timing_summary': timing_summary,
+        })
+        return context
+
+    def post(self, request, *args, **kwargs):
+        from apps.core.notifications import BaseNotificationService
+
+        workshop = get_object_or_404(
+            Workshop, slug=self.kwargs['slug'], instructor=request.user
+        )
+        subject = request.POST.get('subject', '').strip()
+        message_body = request.POST.get('message', '').strip()
+
+        if not subject or not message_body:
+            messages.error(request, 'Please provide both a subject and message.')
+            return redirect('workshops:email_interested', slug=workshop.slug)
+
+        interests = WorkshopInterest.objects.filter(
+            workshop=workshop, is_active=True
+        ).select_related('user')
+
+        if not interests.exists():
+            messages.warning(request, 'No interested students to email.')
+            return redirect('workshops:email_interested', slug=workshop.slug)
+
+        sent_count = 0
+        failed_count = 0
+        seen_emails = set()
+
+        for interest in interests:
+            email = interest.email
+            if not email or email in seen_emails:
+                continue
+            seen_emails.add(email)
+
+            try:
+                context = {
+                    'subject': subject,
+                    'message': message_body,
+                    'student_name': interest.user.get_full_name() or interest.user.username,
+                    'workshop': workshop,
+                    'instructor': request.user,
+                    'instructor_name': request.user.get_full_name() or request.user.username,
+                    'unsubscribe_url': '',
+                }
+                success = BaseNotificationService.send_templated_email(
+                    template_path='workshops/emails/instructor_message.txt',
+                    context=context,
+                    recipient_list=[email],
+                    default_subject=subject,
+                    fail_silently=False
+                )
+                if success:
+                    sent_count += 1
+                else:
+                    failed_count += 1
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Failed to email interested user {interest.user.username}: {e}")
+                failed_count += 1
+
+        if sent_count > 0:
+            messages.success(request, f'Email sent to {sent_count} interested student{"s" if sent_count != 1 else ""}.')
+        if failed_count > 0:
+            messages.warning(request, f'Failed to send to {failed_count} student{"s" if failed_count != 1 else ""}.')
+
+        return redirect('workshops:email_interested', slug=workshop.slug)
 
 
 class InstructorParticipantsView(LoginRequiredMixin, ListView):
