@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Instructor Overview - RECORDER-ED{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Welcome Header -->
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-bold mb-1">Welcome back, {{ user.get_full_name|default:user.username }}</h1>
+                <p class="text-base-content/70">Here's your activity overview across all domains</p>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <a href="{% url 'payments:finance_dashboard' %}" class="btn btn-outline btn-sm">
+                    <i class="fas fa-chart-line mr-2"></i>Total Revenue: &pound;{{ revenue.total|floatformat:2 }}
+                </a>
+            </div>
+        </div>
+
+        <!-- Domain Cards Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+            <!-- Workshops Card -->
+            <div class="card bg-base-100 shadow-lg border-l-4 border-blue-500">
+                <div class="card-body">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="card-title">
+                            <i class="fas fa-chalkboard-teacher text-blue-500 mr-2"></i>Workshops
+                        </h2>
+                        <a href="{% url 'workshops:instructor_dashboard' %}" class="btn btn-sm btn-ghost">
+                            Dashboard <i class="fas fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-500">{{ workshops.published }}</div>
+                            <div class="text-xs text-base-content/60">Published</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold">{{ workshops.upcoming_sessions }}</div>
+                            <div class="text-xs text-base-content/60">Upcoming Sessions</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold">{{ workshops.registrations }}</div>
+                            <div class="text-xs text-base-content/60">Registrations</div>
+                        </div>
+                    </div>
+
+                    {% if workshops.interest_requests > 0 %}
+                    <div class="alert alert-info py-2 text-sm">
+                        <i class="fas fa-bell"></i>
+                        <span>{{ workshops.interest_requests }} interest request{{ workshops.interest_requests|pluralize }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Private Lessons Card -->
+            <div class="card bg-base-100 shadow-lg border-l-4 border-green-500">
+                <div class="card-body">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="card-title">
+                            <i class="fas fa-user-graduate text-green-500 mr-2"></i>Private Lessons
+                        </h2>
+                        <a href="{% url 'private_teaching:teacher_dashboard' %}" class="btn btn-sm btn-ghost">
+                            Dashboard <i class="fas fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-500">{{ private_lessons.today_lessons }}</div>
+                            <div class="text-xs text-base-content/60">Lessons Today</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold">{{ private_lessons.pending_requests }}</div>
+                            <div class="text-xs text-base-content/60">Pending Requests</div>
+                        </div>
+                    </div>
+
+                    {% if private_lessons.pending_applications > 0 or private_lessons.pending_cancellations > 0 %}
+                    <div class="flex flex-wrap gap-2">
+                        {% if private_lessons.pending_applications > 0 %}
+                        <a href="{% url 'private_teaching:teacher_applications' %}" class="badge badge-warning gap-1">
+                            <i class="fas fa-clipboard-list text-xs"></i>
+                            {{ private_lessons.pending_applications }} application{{ private_lessons.pending_applications|pluralize }}
+                        </a>
+                        {% endif %}
+                        {% if private_lessons.pending_cancellations > 0 %}
+                        <a href="{% url 'private_teaching:teacher_cancellation_requests' %}" class="badge badge-error gap-1">
+                            <i class="fas fa-times-circle text-xs"></i>
+                            {{ private_lessons.pending_cancellations }} cancellation{{ private_lessons.pending_cancellations|pluralize }}
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Courses Card -->
+            <div class="card bg-base-100 shadow-lg border-l-4 border-orange-500">
+                <div class="card-body">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="card-title">
+                            <i class="fas fa-graduation-cap text-orange-500 mr-2"></i>Courses
+                        </h2>
+                        <a href="{% url 'courses:instructor_dashboard' %}" class="btn btn-sm btn-ghost">
+                            Dashboard <i class="fas fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-orange-500">{{ courses.published }}</div>
+                            <div class="text-xs text-base-content/60">Published Courses</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold">{{ courses.total_students }}</div>
+                            <div class="text-xs text-base-content/60">Active Students</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Digital Products Card -->
+            <div class="card bg-base-100 shadow-lg border-l-4 border-purple-500">
+                <div class="card-body">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="card-title">
+                            <i class="fas fa-box text-purple-500 mr-2"></i>Digital Products
+                        </h2>
+                        <a href="{% url 'digital_products:teacher_dashboard' %}" class="btn btn-sm btn-ghost">
+                            Dashboard <i class="fas fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-purple-500">{{ digital_products.published }}</div>
+                            <div class="text-xs text-base-content/60">Published Products</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold">{{ digital_products.total_sales }}</div>
+                            <div class="text-xs text-base-content/60">Total Sales</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-base-200 rounded-lg p-6">
+            <h3 class="text-sm font-semibold text-base-content/60 uppercase tracking-wider mb-4">Quick Actions</h3>
+            <div class="flex flex-wrap gap-3">
+                <a href="{% url 'workshops:create_workshop' %}" class="btn btn-sm btn-outline">
+                    <i class="fas fa-plus mr-1"></i>New Workshop
+                </a>
+                <a href="{% url 'courses:create' %}" class="btn btn-sm btn-outline">
+                    <i class="fas fa-plus mr-1"></i>New Course
+                </a>
+                <a href="{% url 'digital_products:create_product' %}" class="btn btn-sm btn-outline">
+                    <i class="fas fa-plus mr-1"></i>New Product
+                </a>
+                <a href="{% url 'payments:finance_dashboard' %}" class="btn btn-sm btn-outline">
+                    <i class="fas fa-chart-line mr-1"></i>Finance
+                </a>
+                <a href="{% url 'creator_studio:home' %}" class="btn btn-sm btn-outline">
+                    <i class="fas fa-palette mr-1"></i>Creator Studio
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

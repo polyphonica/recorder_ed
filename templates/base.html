@@ -381,29 +381,30 @@
                         {% if user.profile.is_teacher %}
                             <!-- Teacher Navigation -->
                             <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.url_name == 'teacher_dashboard' %}bg-primary text-primary-content{% endif %}">Dashboard</a></li>
-                            <li><a href="{% url 'private_teaching:incoming_requests' %}" class="{% if request.resolver_match.url_name == 'incoming_requests' %}bg-primary text-primary-content{% endif %}">Incoming Requests</a></li>
-                            <li><a href="{% url 'private_teaching:teacher_schedule' %}" class="{% if request.resolver_match.url_name == 'teacher_schedule' %}bg-primary text-primary-content{% endif %}">My Schedule</a></li>
+                            <li><a href="{% url 'private_teaching:incoming_requests' %}" class="{% if request.resolver_match.url_name == 'incoming_requests' %}bg-primary text-primary-content{% endif %}">Requests</a></li>
+                            <li><a href="{% url 'private_teaching:teacher_students' %}" class="{% if request.resolver_match.url_name == 'teacher_students' %}bg-primary text-primary-content{% endif %}">My Students</a></li>
+                            <li><a href="{% url 'private_teaching:teacher_schedule' %}" class="{% if request.resolver_match.url_name == 'teacher_schedule' %}bg-primary text-primary-content{% endif %}">Schedule</a></li>
                             <li><a href="{% url 'private_teaching:calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}bg-primary text-primary-content{% endif %}">Calendar</a></li>
                             <li class="dropdown dropdown-end">
-                                <label tabindex="0" class="btn btn-ghost btn-sm"><i class="fas fa-ellipsis-h mr-1"></i>More</label>
-                                <ul tabindex="0" class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-56">
-                                    <li class="menu-title"><span>Student Management</span></li>
+                                <label tabindex="0" class="btn btn-ghost btn-sm"><i class="fas fa-chalkboard-teacher mr-1"></i>Teaching</label>
+                                <ul tabindex="0" class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-52">
                                     <li><a href="{% url 'private_teaching:teacher_applications' %}"><i class="fas fa-clipboard-list mr-2"></i>Applications</a></li>
-                                    <li><a href="{% url 'private_teaching:teacher_students' %}"><i class="fas fa-users mr-2"></i>My Students</a></li>
                                     <li><a href="{% url 'private_teaching:teacher_cancellation_requests' %}"><i class="fas fa-times-circle mr-2"></i>Cancellations</a></li>
-                                    <li class="menu-title"><span>Planning</span></li>
-                                    <li><a href="{% url 'private_teaching:exam_list' %}"><i class="fas fa-graduation-cap mr-2"></i>Exam Registrations</a></li>
-                                    <li class="menu-title"><span>Assignments</span></li>
-                                    <li><a href="{% url 'assignments:teacher_library' %}"><i class="fas fa-clipboard mr-2"></i>My Assignments</a></li>
-                                    <li><a href="{% url 'assignments:teacher_create' %}"><i class="fas fa-plus mr-2"></i>Create Assignment</a></li>
+                                    <li><a href="{% url 'private_teaching:exam_list' %}"><i class="fas fa-graduation-cap mr-2"></i>Exams</a></li>
+                                    <li class="divider"></li>
+                                    <li><a href="{% url 'assignments:teacher_library' %}"><i class="fas fa-clipboard mr-2"></i>Assignments</a></li>
                                     <li><a href="{% url 'assignments:teacher_submissions' %}"><i class="fas fa-inbox mr-2"></i>Grade Submissions</a></li>
-                                    <li class="menu-title"><span>Resources</span></li>
+                                </ul>
+                            </li>
+                            <li class="dropdown dropdown-end">
+                                <label tabindex="0" class="btn btn-ghost btn-sm"><i class="fas fa-folder-open mr-1"></i>Resources</label>
+                                <ul tabindex="0" class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-52">
                                     <li><a href="{% url 'audioplayer:library' %}"><i class="fas fa-music mr-2"></i>Play-Along Library</a></li>
-                                    <li><a href="{% url 'audioplayer:composer_list' %}"><i class="fas fa-user-music mr-2"></i>Manage Composers</a></li>
-                                    <li><a href="{% url 'audioplayer:piece_list' %}"><i class="fas fa-guitar mr-2"></i>Manage Pieces</a></li>
-                                    <li><a href="{% url 'private_teaching:teacher_library' %}"><i class="fas fa-book mr-2"></i>Document Library</a></li>
+                                    <li><a href="{% url 'audioplayer:composer_list' %}"><i class="fas fa-user mr-2"></i>Composers</a></li>
+                                    <li><a href="{% url 'audioplayer:piece_list' %}"><i class="fas fa-guitar mr-2"></i>Pieces</a></li>
+                                    <li><a href="{% url 'private_teaching:teacher_library' %}"><i class="fas fa-book mr-2"></i>Documents</a></li>
                                     <li><a href="{% url 'lesson_templates:library' %}"><i class="fas fa-book-open mr-2"></i>Lesson Templates</a></li>
-                                    <li class="menu-title"><span>Administration</span></li>
+                                    <li class="divider"></li>
                                     <li><a href="{% url 'payments:finance_dashboard' %}"><i class="fas fa-chart-line mr-2"></i>Finance</a></li>
                                     <li><a href="{% url 'private_teaching:teacher_settings' %}"><i class="fas fa-cog mr-2"></i>Settings</a></li>
                                 </ul>
