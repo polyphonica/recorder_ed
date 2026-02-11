@@ -16,11 +16,11 @@
             </ul>
         </div>
         
-        <div class="flex justify-between items-start mt-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start gap-4 mt-4">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">Manage Sessions</h1>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Manage Sessions</h1>
                 <p class="text-lg text-gray-600 mt-2">{{ workshop.title }}</p>
-                <div class="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
+                <div class="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
                     <span><i class="fas fa-tag mr-1"></i>{{ workshop.category.name }}</span>
                     <span><i class="fas fa-clock mr-1"></i>{{ workshop.duration_display }}</span>
                     <span class="badge {% if workshop.status == 'published' %}badge-success{% else %}badge-warning{% endif %} badge-sm">
@@ -28,7 +28,7 @@
                     </span>
                 </div>
             </div>
-            
+
             <!-- Quick Actions -->
             <div class="flex gap-2">
                 <a href="{% url 'workshops:detail' workshop.slug %}" class="btn btn-outline btn-sm">
@@ -352,7 +352,8 @@
         </div>
         
         {% if sessions %}
-            <div class="overflow-x-auto">
+            <!-- Desktop Table (hidden on mobile) -->
+            <div class="overflow-x-auto hidden md:block">
                 <table class="table table-zebra w-full">
                     <thead>
                         <tr>
@@ -387,7 +388,7 @@
                                     {% endif %}
                                 </div>
                             </td>
-                            
+
                             <td>
                                 <div class="text-center">
                                     <div class="text-lg font-semibold">
@@ -402,7 +403,7 @@
                                     </div>
                                 </div>
                             </td>
-                            
+
                             <td>
                                 {% if session.is_cancelled %}
                                     <div class="badge badge-error">Cancelled</div>
@@ -414,7 +415,7 @@
                                     <div class="badge badge-success">Upcoming</div>
                                 {% endif %}
                             </td>
-                            
+
                             <td>
                                 <div class="text-xs space-y-1">
                                     <div>
@@ -435,10 +436,9 @@
                                     {% endif %}
                                 </div>
                             </td>
-                            
+
                             <td>
                                 <div class="flex gap-1">
-                                    <!-- Always visible action buttons -->
                                     <a href="{% url 'workshops:take_attendance' session.id %}"
                                        class="btn btn-success btn-xs" title="Take Attendance">
                                         <i class="fas fa-clipboard-check"></i>
@@ -447,11 +447,12 @@
                                        class="btn btn-ghost btn-xs" title="View Participants">
                                         <i class="fas fa-users"></i>
                                     </a>
-                                    <a href="{% url 'workshops:session_materials' session.id %}" 
-                                       class="btn btn-info btn-xs" title="Manage Materials">
+                                    <a href="{% url 'workshops:session_materials' session.id %}"
+                                       class="btn btn-info btn-xs {% if not session.materials_count %}btn-outline{% endif %}" title="Manage Materials ({{ session.materials_count }})">
                                         <i class="fas fa-file-alt"></i>
+                                        {% if session.materials_count %}<span class="ml-1">{{ session.materials_count }}</span>{% endif %}
                                     </a>
-                                    <a href="{% url 'workshops:edit_session' session.id %}" 
+                                    <a href="{% url 'workshops:edit_session' session.id %}"
                                        class="btn btn-primary btn-xs" title="Edit Session">
                                         <i class="fas fa-edit"></i>
                                     </a>
@@ -461,12 +462,91 @@
                                         <i class="fas fa-ban"></i>
                                     </a>
                                     {% endif %}
+                                    {% if session.registration_stats.total == 0 %}
+                                    <form method="post" action="{% url 'workshops:delete_session' session.id %}"
+                                          onsubmit="return confirm('Delete this session permanently? This cannot be undone.')">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-ghost btn-xs text-error" title="Delete Session">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Mobile Cards (hidden on desktop) -->
+            <div class="space-y-3 md:hidden">
+                {% for session in sessions %}
+                <div class="card bg-base-100 shadow-sm border border-base-200">
+                    <div class="card-body p-4">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                {% if session.session_title %}
+                                    <div class="font-bold text-primary">{{ session.session_title }}</div>
+                                {% endif %}
+                                <div class="font-semibold">{{ session.start_datetime|date:"D, M j, Y" }}</div>
+                                <div class="text-sm text-gray-500">
+                                    {{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}
+                                </div>
+                            </div>
+                            <div>
+                                {% if session.is_cancelled %}
+                                    <span class="badge badge-error badge-sm">Cancelled</span>
+                                {% elif session.is_past %}
+                                    <span class="badge badge-ghost badge-sm">Completed</span>
+                                {% elif session.is_ongoing %}
+                                    <span class="badge badge-warning badge-sm">In Progress</span>
+                                {% else %}
+                                    <span class="badge badge-success badge-sm">Upcoming</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3 mt-2 text-sm">
+                            <span><i class="fas fa-users mr-1 text-primary"></i>{{ session.current_registrations }}/{{ session.max_participants }}</span>
+                            <span><i class="fas fa-user-check mr-1 text-success"></i>{{ session.registration_stats.attended }} attended</span>
+                            {% if session.registration_stats.waitlisted > 0 %}
+                            <span><i class="fas fa-clock mr-1 text-warning"></i>{{ session.registration_stats.waitlisted }} waitlisted</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="flex flex-wrap gap-1 mt-3">
+                            <a href="{% url 'workshops:take_attendance' session.id %}" class="btn btn-success btn-xs">
+                                <i class="fas fa-clipboard-check mr-1"></i>Attendance
+                            </a>
+                            <a href="{% url 'workshops:session_registrations' session.id %}" class="btn btn-ghost btn-xs">
+                                <i class="fas fa-users mr-1"></i>Participants
+                            </a>
+                            <a href="{% url 'workshops:session_materials' session.id %}"
+                               class="btn btn-info btn-xs {% if not session.materials_count %}btn-outline{% endif %}">
+                                <i class="fas fa-file-alt mr-1"></i>Materials{% if session.materials_count %} ({{ session.materials_count }}){% endif %}
+                            </a>
+                            <a href="{% url 'workshops:edit_session' session.id %}" class="btn btn-primary btn-xs">
+                                <i class="fas fa-edit mr-1"></i>Edit
+                            </a>
+                            {% if not session.is_past and not session.is_cancelled %}
+                            <a href="{% url 'workshops:cancel_session' session.id %}" class="btn btn-error btn-xs">
+                                <i class="fas fa-ban mr-1"></i>Cancel
+                            </a>
+                            {% endif %}
+                            {% if session.registration_stats.total == 0 %}
+                            <form method="post" action="{% url 'workshops:delete_session' session.id %}"
+                                  onsubmit="return confirm('Delete this session permanently?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-ghost btn-xs text-error">
+                                    <i class="fas fa-trash mr-1"></i>Delete
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         {% else %}
             <div class="text-center py-12">

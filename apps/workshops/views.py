@@ -1318,6 +1318,26 @@ class DuplicateWorkshopView(LoginRequiredMixin, View):
         return redirect('workshops:edit_workshop', slug=new_workshop.slug)
 
 
+class TogglePublishView(LoginRequiredMixin, View):
+    """Toggle a workshop between draft and published status."""
+
+    def post(self, request, slug):
+        workshop = get_object_or_404(Workshop, slug=slug, instructor=request.user)
+
+        if workshop.status == 'published':
+            workshop.status = 'draft'
+            workshop.save(update_fields=['status'])
+            messages.success(request, f'"{workshop.title}" has been unpublished.')
+        else:
+            workshop.status = 'published'
+            if not workshop.published_at:
+                workshop.published_at = timezone.now()
+            workshop.save(update_fields=['status', 'published_at'])
+            messages.success(request, f'"{workshop.title}" is now published and visible to students.')
+
+        return redirect('workshops:instructor_workshops')
+
+
 class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
     """
     Delete a workshop. Uses UserFilterMixin for ownership verification.
@@ -1483,7 +1503,8 @@ class ManageSessionsView(LoginRequiredMixin, TemplateView):
             total_registrations=Count('registrations'),
             registered_count=Count('registrations', filter=Q(registrations__status='registered')),
             waitlisted_count=Count('registrations', filter=Q(registrations__status='waitlisted')),
-            attended_count=Count('registrations', filter=Q(registrations__status='attended'))
+            attended_count=Count('registrations', filter=Q(registrations__status='attended')),
+            materials_count=Count('materials', distinct=True),
         ).order_by('start_datetime')
 
         # Add registration statistics for each session using annotated values
@@ -1544,6 +1565,35 @@ class ManageSessionsView(LoginRequiredMixin, TemplateView):
         ]
         WorkshopSession.objects.bulk_create(sessions)
         messages.success(request, f'{len(sessions)} sessions created successfully!')
+        return redirect('workshops:manage_sessions', slug=workshop.slug)
+
+
+class DeleteSessionView(LoginRequiredMixin, View):
+    """Delete a workshop session permanently. Only allowed if no registrations exist."""
+
+    def post(self, request, session_id):
+        session = get_object_or_404(
+            WorkshopSession.objects.select_related('workshop'),
+            id=session_id,
+            workshop__instructor=request.user,
+        )
+        workshop = session.workshop
+
+        # Block deletion if there are any registrations
+        reg_count = session.registrations.filter(
+            status__in=['registered', 'waitlisted', 'promoted', 'attended']
+        ).count()
+        if reg_count > 0:
+            messages.error(
+                request,
+                f'Cannot delete this session — it has {reg_count} registration(s). '
+                'Cancel the session instead to notify participants and process refunds.'
+            )
+            return redirect('workshops:manage_sessions', slug=workshop.slug)
+
+        session_label = session.session_title or session.start_datetime.strftime('%b %d, %Y')
+        session.delete()
+        messages.success(request, f'Session "{session_label}" has been deleted.')
         return redirect('workshops:manage_sessions', slug=workshop.slug)
 
 

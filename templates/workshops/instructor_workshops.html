@@ -136,8 +136,25 @@
                                 </div>
                             </div>
 
+                            <!-- Status + Publish Toggle -->
+                            <div class="flex items-center justify-between mt-3 mb-1">
+                                <span class="badge {% if workshop.status == 'published' %}badge-success{% elif workshop.status == 'draft' %}badge-warning{% else %}badge-ghost{% endif %}">
+                                    {{ workshop.get_status_display }}
+                                </span>
+                                <form method="post" action="{% url 'workshops:toggle_publish' workshop.slug %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-xs {% if workshop.status == 'published' %}btn-ghost{% else %}btn-success{% endif %}">
+                                        {% if workshop.status == 'published' %}
+                                            <i class="fas fa-eye-slash mr-1"></i>Unpublish
+                                        {% else %}
+                                            <i class="fas fa-globe mr-1"></i>Publish
+                                        {% endif %}
+                                    </button>
+                                </form>
+                            </div>
+
                             <!-- Action Buttons -->
-                            <div class="card-actions flex-col gap-2 mt-4">
+                            <div class="card-actions flex-col gap-2 mt-2">
                                 <a href="{% url 'workshops:edit_workshop' workshop.slug %}"
                                    class="btn btn-primary btn-sm w-full">
                                     <i class="fas fa-edit mr-2"></i>Edit Workshop

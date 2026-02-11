@@ -21,6 +21,23 @@
     </div>
 
     <div class="container mx-auto px-4 py-8">
+        {% if user == workshop.instructor and workshop.status != 'published' %}
+        <div class="alert {% if workshop.status == 'draft' %}alert-warning{% else %}alert-info{% endif %} mb-6">
+            <i class="fas {% if workshop.status == 'draft' %}fa-eye-slash{% else %}fa-archive{% endif %} text-lg"></i>
+            <div>
+                <div class="font-semibold">
+                    {% if workshop.status == 'draft' %}This workshop is a draft — only you can see this page.{% else %}This workshop is archived and hidden from students.{% endif %}
+                </div>
+                <div class="text-sm">
+                    {% if workshop.status == 'draft' %}Publish it when you're ready for students to find and register.{% else %}Change the status to Published to make it visible again.{% endif %}
+                </div>
+            </div>
+            <a href="{% url 'workshops:edit_workshop' workshop.slug %}" class="btn btn-sm">
+                <i class="fas fa-edit mr-1"></i>Edit Workshop
+            </a>
+        </div>
+        {% endif %}
+
         <!-- Workshop Header -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
             <!-- Main Content -->

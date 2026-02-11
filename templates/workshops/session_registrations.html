@@ -196,7 +196,8 @@
         <!-- Participants Table -->
         <div class="bg-base-100 rounded-lg shadow">
         {% if registrations %}
-            <div class="overflow-x-auto overflow-y-visible">
+            <!-- Desktop Table (hidden on mobile) -->
+            <div class="overflow-x-auto overflow-y-visible hidden md:block">
                 <table class="table table-zebra w-full">
                     <thead>
                         <tr>
@@ -213,7 +214,7 @@
                         {% for registration in registrations %}
                         <tr>
                             <td>
-                                <input type="checkbox" name="registration_ids" value="{{ registration.id }}" 
+                                <input type="checkbox" name="registration_ids" value="{{ registration.id }}"
                                        class="checkbox checkbox-primary participant-checkbox">
                             </td>
                             <td>
@@ -260,7 +261,7 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="badge 
+                                <span class="badge
                                     {% if registration.status == 'registered' %}badge-success
                                     {% elif registration.status == 'promoted' %}badge-info
                                     {% elif registration.status == 'waitlisted' %}badge-warning
@@ -296,6 +297,55 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Mobile Cards (hidden on desktop) -->
+            <div class="space-y-2 p-3 md:hidden">
+                {% for registration in registrations %}
+                <div class="card bg-base-100 border border-base-200 shadow-sm cursor-pointer"
+                     onclick="viewRegistrationDetails('{{ registration.id }}')">
+                    <div class="card-body p-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="avatar">
+                                    <div class="w-9 h-9 rounded-full bg-primary text-primary-content flex items-center justify-center text-sm">
+                                        {% if registration.child_profile %}
+                                            {{ registration.child_profile.first_name|first }}
+                                        {% else %}
+                                            {{ registration.student.first_name|first|default:registration.student.username|first }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-sm">
+                                        {% if registration.child_profile %}
+                                            {{ registration.child_profile.full_name }}
+                                        {% else %}
+                                            {{ registration.student.get_full_name|default:registration.student.username }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-xs text-gray-500">{{ registration.registration_date|naturaltime }}</div>
+                                </div>
+                            </div>
+                            <span class="badge badge-sm
+                                {% if registration.status == 'registered' %}badge-success
+                                {% elif registration.status == 'promoted' %}badge-info
+                                {% elif registration.status == 'waitlisted' %}badge-warning
+                                {% elif registration.status == 'attended' %}badge-success
+                                {% elif registration.status == 'cancelled' %}badge-error
+                                {% else %}badge-ghost{% endif %}">
+                                {{ registration.get_status_display }}
+                            </span>
+                        </div>
+                        {% if registration.child_profile %}
+                        <div class="text-xs text-gray-500 mt-1">
+                            <span class="badge badge-info badge-xs mr-1">Under 18</span>
+                            Age {{ registration.child_profile.age }} &middot; Guardian: {{ registration.student.get_full_name|default:registration.student.username }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
             </div>
             
             <!-- Pagination -->
