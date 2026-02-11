@@ -449,6 +449,26 @@
         </div>
     {% endif %}
 
+    <!-- Digital Products Domain-Specific Navigation -->
+    {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace == 'digital_products' %}
+        <div class="bg-base-300 shadow-sm">
+            <div class="container mx-auto">
+                <div class="navbar justify-center py-2">
+                    <ul class="menu menu-horizontal px-1 text-sm">
+                        {% if user.is_instructor %}
+                            <li><a href="{% url 'digital_products:teacher_dashboard' %}" class="{% if request.resolver_match.url_name == 'teacher_dashboard' %}bg-primary text-primary-content{% endif %}">Dashboard</a></li>
+                            <li><a href="{% url 'digital_products:create_product' %}" class="{% if request.resolver_match.url_name == 'create_product' or request.resolver_match.url_name == 'edit_product' %}bg-primary text-primary-content{% endif %}">Create Product</a></li>
+                            <li><a href="{% url 'digital_products:catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}bg-primary text-primary-content{% endif %}">Browse Catalog</a></li>
+                        {% else %}
+                            <li><a href="{% url 'digital_products:catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}bg-primary text-primary-content{% endif %}">Browse Products</a></li>
+                            <li><a href="{% url 'digital_products:my_purchases' %}" class="{% if request.resolver_match.url_name == 'my_purchases' %}bg-primary text-primary-content{% endif %}">My Purchases</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
     <!-- Workshops Domain-Specific Navigation -->
     {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace == 'workshops' %}
         <div class="bg-base-300 shadow-sm">

@@ -36,21 +36,7 @@
                 by <span class="font-semibold">{{ product.teacher.get_full_name|default:product.teacher.username }}</span>
             </p>
 
-            <!-- Rating -->
-            {% if product.review_count > 0 %}
-            <div class="flex items-center gap-2 mb-6">
-                <div class="flex text-yellow-400 text-xl">
-                    {% for i in "12345" %}
-                        {% if forloop.counter <= product.average_rating|floatformat:0 %}
-                        <span>★</span>
-                        {% else %}
-                        <span class="text-gray-300">★</span>
-                        {% endif %}
-                    {% endfor %}
-                </div>
-                <span class="text-gray-700">{{ product.average_rating|floatformat:1 }} ({{ product.review_count }} review{{ product.review_count|pluralize }})</span>
-            </div>
-            {% endif %}
+            {% comment %}Rating hidden — not displayed publicly{% endcomment %}
 
             <!-- Description -->
             <div class="prose max-w-none mb-8">
@@ -119,40 +105,7 @@
             </div>
             {% endif %}
 
-            <!-- Reviews -->
-            <div class="mb-8">
-                <h2 class="text-2xl font-bold mb-4">Reviews</h2>
-
-                {% if reviews %}
-                <div class="space-y-4">
-                    {% for review in reviews %}
-                    <div class="bg-white border rounded-lg p-4">
-                        <div class="flex items-start justify-between mb-2">
-                            <div>
-                                <div class="flex text-yellow-400 mb-1">
-                                    {% for i in "12345" %}
-                                        {% if forloop.counter <= review.rating %}
-                                        <span>★</span>
-                                        {% else %}
-                                        <span class="text-gray-300">★</span>
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
-                                <h4 class="font-semibold">{{ review.title }}</h4>
-                                <p class="text-sm text-gray-600">by {{ review.student.get_full_name|default:review.student.username }} • {{ review.created_at|date:"M d, Y" }}</p>
-                            </div>
-                        </div>
-                        <p class="text-gray-700">{{ review.comment }}</p>
-                        {% if review.is_verified_purchase %}
-                        <span class="inline-block mt-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Verified Purchase</span>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p class="text-gray-600">No reviews yet. Be the first to review this product!</p>
-                {% endif %}
-            </div>
+            {% comment %}Reviews section hidden — not displayed publicly{% endcomment %}
         </div>
 
         <!-- Sidebar -->

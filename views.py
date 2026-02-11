@@ -44,6 +44,14 @@ class DomainSelectorView(TemplateView):
                 'color': 'bg-orange-500',
                 'features': ['Comprehensive Curriculum', 'Progressive Learning', 'Certification', 'Self-Paced'],
                 'coming_soon': False
+            },
+            {
+                'name': 'Digital Products',
+                'url': 'digital_products:catalog',
+                'description': 'Sheet music, practice materials and educational resources',
+                'icon': '📦',
+                'color': 'bg-purple-500',
+                'features': ['Sheet Music & Scores', 'Practice Materials', 'Instant Download'],
             }
         ]
 

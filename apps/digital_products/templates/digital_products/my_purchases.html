@@ -106,17 +106,7 @@
                     </div>
                 </div>
 
-                <!-- Actions -->
-                <div class="border-t pt-4 mt-4">
-                    {% if not purchase.review %}
-                    <a href="{% url 'digital_products:submit_review' purchase.product.id %}"
-                       class="text-blue-600 hover:underline">
-                        Write a Review
-                    </a>
-                    {% else %}
-                    <span class="text-green-600">✓ Reviewed</span>
-                    {% endif %}
-                </div>
+                {% comment %}Review link hidden — reviews not publicly displayed{% endcomment %}
             </div>
         </div>
         {% endfor %}
