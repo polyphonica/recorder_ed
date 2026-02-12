@@ -201,7 +201,7 @@
                 <table class="table table-zebra w-full">
                     <thead>
                         <tr>
-                            <th><input type="checkbox" class="checkbox checkbox-primary" disabled></th>
+                            <th><input type="checkbox" class="checkbox checkbox-primary" id="selectAllTable"></th>
                             <th>Participant</th>
                             <th>Contact</th>
                             <th>Status</th>
@@ -212,7 +212,7 @@
                     </thead>
                     <tbody>
                         {% for registration in registrations %}
-                        <tr>
+                        <tr class="cursor-pointer hover:bg-base-200 transition-colors participant-row">
                             <td>
                                 <input type="checkbox" name="registration_ids" value="{{ registration.id }}"
                                        class="checkbox checkbox-primary participant-checkbox">
@@ -270,7 +270,7 @@
                                     {% elif registration.status == 'cancelled' %}badge-error
                                     {% else %}badge-ghost{% endif %}">
                                     {{ registration.get_status_display }}
-                                </div>
+                                </span>
                             </td>
                             <td>
                                 {% if registration.status == 'waitlisted' and registration.waitlist_position %}
@@ -302,29 +302,34 @@
             <!-- Mobile Cards (hidden on desktop) -->
             <div class="space-y-2 p-3 md:hidden">
                 {% for registration in registrations %}
-                <div class="card bg-base-100 border border-base-200 shadow-sm cursor-pointer"
-                     onclick="viewRegistrationDetails('{{ registration.id }}')">
+                <div class="card bg-base-100 border border-base-200 shadow-sm">
                     <div class="card-body p-3">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-3">
-                                <div class="avatar">
-                                    <div class="w-9 h-9 rounded-full bg-primary text-primary-content flex items-center justify-center text-sm">
-                                        {% if registration.child_profile %}
-                                            {{ registration.child_profile.first_name|first }}
-                                        {% else %}
-                                            {{ registration.student.first_name|first|default:registration.student.username|first }}
-                                        {% endif %}
+                                <input type="checkbox" name="registration_ids" value="{{ registration.id }}"
+                                       class="checkbox checkbox-primary checkbox-sm participant-checkbox"
+                                       onclick="event.stopPropagation()">
+                                <div class="flex items-center gap-3 cursor-pointer flex-1"
+                                     onclick="viewRegistrationDetails('{{ registration.id }}')">
+                                    <div class="avatar">
+                                        <div class="w-9 h-9 rounded-full bg-primary text-primary-content flex items-center justify-center text-sm">
+                                            {% if registration.child_profile %}
+                                                {{ registration.child_profile.first_name|first }}
+                                            {% else %}
+                                                {{ registration.student.first_name|first|default:registration.student.username|first }}
+                                            {% endif %}
+                                        </div>
                                     </div>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-sm">
-                                        {% if registration.child_profile %}
-                                            {{ registration.child_profile.full_name }}
-                                        {% else %}
-                                            {{ registration.student.get_full_name|default:registration.student.username }}
-                                        {% endif %}
+                                    <div>
+                                        <div class="font-semibold text-sm">
+                                            {% if registration.child_profile %}
+                                                {{ registration.child_profile.full_name }}
+                                            {% else %}
+                                                {{ registration.student.get_full_name|default:registration.student.username }}
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-xs text-gray-500">{{ registration.registration_date|naturaltime }}</div>
                                     </div>
-                                    <div class="text-xs text-gray-500">{{ registration.registration_date|naturaltime }}</div>
                                 </div>
                             </div>
                             <span class="badge badge-sm
@@ -449,25 +454,74 @@
 </script>
 
 <script>
-// Select all functionality
-document.getElementById('selectAll').addEventListener('change', function() {
+// Sync all select-all checkboxes
+function toggleAll(checked) {
     const checkboxes = document.querySelectorAll('.participant-checkbox');
     checkboxes.forEach(checkbox => {
-        checkbox.checked = this.checked;
+        checkbox.checked = checked;
+        highlightRow(checkbox);
     });
+    syncSelectAllCheckboxes();
     updateSelectedCount();
+}
+
+document.getElementById('selectAll').addEventListener('change', function() {
+    toggleAll(this.checked);
 });
 
-// Update selected count
+const selectAllTable = document.getElementById('selectAllTable');
+if (selectAllTable) {
+    selectAllTable.addEventListener('change', function() {
+        toggleAll(this.checked);
+    });
+}
+
+// Update selected count and row highlights
 function updateSelectedCount() {
     const checked = document.querySelectorAll('.participant-checkbox:checked');
     const countElement = document.getElementById('selectedCount');
     countElement.textContent = checked.length + ' selected';
 }
 
+function syncSelectAllCheckboxes() {
+    const all = document.querySelectorAll('.participant-checkbox');
+    const checked = document.querySelectorAll('.participant-checkbox:checked');
+    const isAllChecked = all.length > 0 && all.length === checked.length;
+    document.getElementById('selectAll').checked = isAllChecked;
+    if (selectAllTable) selectAllTable.checked = isAllChecked;
+}
+
+function highlightRow(checkbox) {
+    const row = checkbox.closest('tr') || checkbox.closest('.card');
+    if (row) {
+        if (checkbox.checked) {
+            row.classList.add('bg-primary/10');
+        } else {
+            row.classList.remove('bg-primary/10');
+        }
+    }
+}
+
 // Add event listeners to participant checkboxes
 document.querySelectorAll('.participant-checkbox').forEach(checkbox => {
-    checkbox.addEventListener('change', updateSelectedCount);
+    checkbox.addEventListener('change', function() {
+        highlightRow(this);
+        syncSelectAllCheckboxes();
+        updateSelectedCount();
+    });
+});
+
+// Click anywhere on a desktop table row to toggle its checkbox
+document.querySelectorAll('.participant-row').forEach(row => {
+    row.addEventListener('click', function(e) {
+        // Don't toggle if clicking the checkbox itself, a button, or a link
+        if (e.target.closest('input[type="checkbox"]') || e.target.closest('button') || e.target.closest('a')) return;
+        const checkbox = this.querySelector('.participant-checkbox');
+        if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+            checkbox.dispatchEvent(new Event('change'));
+        }
+    });
 });
 
 // Update individual registration status
