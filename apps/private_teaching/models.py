@@ -2172,3 +2172,109 @@ class PrivateLessonQuizAttempt(models.Model):
             })
         
         return results
+
+
+class StudentPieceAssignment(models.Model):
+    """
+    Assigns a playalong piece directly to a student (independent of any lesson).
+    Teachers manage these from the student progress page.
+    """
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('completed', 'Completed'),
+        ('archived', 'Archived'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    piece = models.ForeignKey(
+        'audioplayer.Piece',
+        on_delete=models.CASCADE,
+        related_name='student_assignments'
+    )
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='assigned_pieces'
+    )
+    child_profile = models.ForeignKey(
+        'accounts.ChildProfile',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='assigned_pieces',
+        help_text="Optional: Specific child this piece is for"
+    )
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='piece_assignments_given'
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    instructions = models.TextField(blank=True, help_text="Practice instructions for this piece")
+    assigned_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-assigned_at']
+        unique_together = ['student', 'piece', 'teacher']
+        indexes = [
+            models.Index(fields=['student', 'status']),
+            models.Index(fields=['teacher', '-assigned_at']),
+        ]
+
+    def __str__(self):
+        student_name = self.student.get_full_name() or self.student.username
+        return f"{self.piece.title} → {student_name}"
+
+
+class StudentCollectionAssignment(models.Model):
+    """
+    Assigns a playalong collection directly to a student (independent of any lesson).
+    Teachers manage these from the student progress page.
+    """
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('completed', 'Completed'),
+        ('archived', 'Archived'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    collection = models.ForeignKey(
+        'audioplayer.PieceCollection',
+        on_delete=models.CASCADE,
+        related_name='student_assignments'
+    )
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='assigned_collections'
+    )
+    child_profile = models.ForeignKey(
+        'accounts.ChildProfile',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='assigned_collections',
+        help_text="Optional: Specific child this collection is for"
+    )
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='collection_assignments_given'
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    instructions = models.TextField(blank=True, help_text="Practice instructions for this collection")
+    assigned_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-assigned_at']
+        unique_together = ['student', 'collection', 'teacher']
+        indexes = [
+            models.Index(fields=['student', 'status']),
+            models.Index(fields=['teacher', '-assigned_at']),
+        ]
+
+    def __str__(self):
+        student_name = self.student.get_full_name() or self.student.username
+        return f"{self.collection.title} → {student_name}"

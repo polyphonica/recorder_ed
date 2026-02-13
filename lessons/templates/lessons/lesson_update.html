@@ -403,7 +403,11 @@
         <!-- Playalong Pieces -->
         <div class="form-section">
             <h3>🎵 Playalong Pieces</h3>
-            <p class="text-sm text-gray-600 mb-4">Add interactive rhythm exercises and playalong content for this lesson. Students can access these when the lesson status is "Assigned".</p>
+            {% if has_student_assignments %}
+            <p class="text-sm text-gray-600 mb-4">Showing pieces assigned to this student. <a href="{% url 'private_teaching:teacher_student_progress' object.student.id %}?filter=playalongs" class="text-blue-600 hover:underline">Manage assignments on the Student Progress page</a>.</p>
+            {% else %}
+            <p class="text-sm text-gray-600 mb-4">No playalongs assigned to this student yet. <a href="{% url 'private_teaching:teacher_student_progress' object.student.id %}?filter=playalongs" class="text-blue-600 hover:underline">Assign playalongs from the Student Progress page</a>.</p>
+            {% endif %}
             {{ named_formsets.pieces.management_form }}
             <div id="piece-forms">
                 {% for form in named_formsets.pieces %}
@@ -462,7 +466,11 @@
         <!-- Playalong Collections -->
         <div class="form-section">
             <h3>📚 Playalong Collections</h3>
-            <p class="text-sm text-gray-600 mb-4">Assign entire collections of pieces (e.g., "Syncopation Exercises") to this lesson. All pieces in the collection will be available to the student.</p>
+            {% if has_student_assignments %}
+            <p class="text-sm text-gray-600 mb-4">Showing collections assigned to this student. <a href="{% url 'private_teaching:teacher_student_progress' object.student.id %}?filter=playalongs" class="text-blue-600 hover:underline">Manage assignments on the Student Progress page</a>.</p>
+            {% else %}
+            <p class="text-sm text-gray-600 mb-4">No collections assigned to this student yet. <a href="{% url 'private_teaching:teacher_student_progress' object.student.id %}?filter=playalongs" class="text-blue-600 hover:underline">Assign from the Student Progress page</a>.</p>
+            {% endif %}
             {{ named_formsets.collections.management_form }}
             <div id="collection-forms">
                 {% for form in named_formsets.collections %}

@@ -254,14 +254,32 @@ class LessonUpdateView(LoginRequiredMixin, LessonInline, UpdateView):
 
     def get_context_data(self, **kwargs):
         from apps.audioplayer.models import Piece, PieceCollection
+        from apps.private_teaching.models import StudentPieceAssignment, StudentCollectionAssignment
         ctx = super().get_context_data(**kwargs)
         ctx['named_formsets'] = self.get_named_formsets()
-        ctx['pieces'] = Piece.objects.all().order_by('title')  # For piece dropdown in JavaScript
 
-        # Add available collections for dropdown
+        # Filter pieces/collections to those assigned to this student
+        student = self.object.student
+        assigned_piece_ids = StudentPieceAssignment.objects.filter(
+            teacher=self.request.user, student=student
+        ).values_list('piece_id', flat=True)
+        assigned_collection_ids = StudentCollectionAssignment.objects.filter(
+            teacher=self.request.user, student=student
+        ).values_list('collection_id', flat=True)
+
+        # Also include any pieces/collections already on this lesson (backward compat)
+        lesson_piece_ids = self.object.lesson_pieces.values_list('piece_id', flat=True)
+        lesson_collection_ids = self.object.lesson_collections.values_list('collection_id', flat=True)
+
+        ctx['pieces'] = Piece.objects.filter(
+            Q(id__in=assigned_piece_ids) | Q(id__in=lesson_piece_ids)
+        ).distinct().order_by('title')
+
         ctx['collections'] = PieceCollection.objects.filter(
-            created_by=self.request.user
-        ).order_by('title')
+            Q(id__in=assigned_collection_ids) | Q(id__in=lesson_collection_ids)
+        ).distinct().order_by('title')
+
+        ctx['has_student_assignments'] = assigned_piece_ids.exists() or assigned_collection_ids.exists()
 
         # Add available assignments for dropdown
         from assignments.models import Assignment

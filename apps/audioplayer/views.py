@@ -506,8 +506,17 @@ class PlayAlongLibraryView(TemplateView):
                     is_public=True
                 ).prefetch_related('collection_memberships__piece__stems', 'tags')
             else:
-                # Students see pieces and collections assigned to them in lessons
+                # Students see pieces and collections assigned to them
                 from lessons.models import Lesson as PrivateLesson, PrivateLessonPiece, PrivateLessonCollection
+                from apps.private_teaching.models import StudentPieceAssignment, StudentCollectionAssignment
+
+                # Get piece IDs from student-level assignments (active + completed)
+                student_piece_ids = StudentPieceAssignment.objects.filter(
+                    student=self.request.user,
+                    status__in=['active', 'completed']
+                ).values_list('piece_id', flat=True).distinct()
+
+                # Also include pieces from lesson-level assignments (backward compat)
                 student_lessons = PrivateLesson.objects.filter(
                     student=self.request.user,
                     approved_status='Accepted',
@@ -516,23 +525,29 @@ class PlayAlongLibraryView(TemplateView):
                     is_deleted=False
                 ).values_list('id', flat=True)
 
-                # Get individual pieces assigned to lessons
-                piece_ids_from_lessons = PrivateLessonPiece.objects.filter(
+                lesson_piece_ids = PrivateLessonPiece.objects.filter(
                     lesson_id__in=student_lessons
                 ).values_list('piece_id', flat=True).distinct()
 
-                # Students see only their assigned pieces
-                pieces = pieces.filter(id__in=piece_ids_from_lessons)
+                pieces = pieces.filter(
+                    Q(id__in=student_piece_ids) | Q(id__in=lesson_piece_ids)
+                ).distinct()
 
-                # Get collections assigned to lessons
-                collection_ids = PrivateLessonCollection.objects.filter(
+                # Get collection IDs from student-level assignments
+                student_collection_ids = StudentCollectionAssignment.objects.filter(
+                    student=self.request.user,
+                    status__in=['active', 'completed']
+                ).values_list('collection_id', flat=True).distinct()
+
+                # Also include collections from lesson-level assignments
+                lesson_collection_ids = PrivateLessonCollection.objects.filter(
                     lesson_id__in=student_lessons,
                     is_visible=True
                 ).values_list('collection_id', flat=True).distinct()
 
                 collections = PieceCollection.objects.filter(
-                    id__in=collection_ids
-                ).prefetch_related('collection_memberships__piece__stems', 'tags')
+                    Q(id__in=student_collection_ids) | Q(id__in=lesson_collection_ids)
+                ).distinct().prefetch_related('collection_memberships__piece__stems', 'tags')
 
         elif view_mode == 'browse_all':
             # Show all public pieces and collections (both teachers and students)

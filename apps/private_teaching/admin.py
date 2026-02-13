@@ -7,7 +7,8 @@ from .models import (
     TeacherStudentApplication, ApplicationMessage, ExamBoard, ExamRegistration, ExamPiece,
     PrivateLessonTermsAndConditions, PrivateLessonTermsAcceptance, LessonCancellationRequest,
     PrivateLessonQuiz, PrivateLessonQuizQuestion, PrivateLessonQuizAnswer,
-    PrivateLessonQuizAssignment, PrivateLessonQuizAttempt
+    PrivateLessonQuizAssignment, PrivateLessonQuizAttempt,
+    StudentPieceAssignment, StudentCollectionAssignment
 )
 from lessons.models import Lesson
 
@@ -537,3 +538,19 @@ class PrivateLessonQuizAttemptAdmin(admin.ModelAdmin):
             return format_html('<span style="color: green;">✓ Passed</span>')
         return format_html('<span style="color: red;">✗ Failed</span>')
     passed_indicator.short_description = 'Result'
+
+
+@admin.register(StudentPieceAssignment)
+class StudentPieceAssignmentAdmin(admin.ModelAdmin):
+    list_display = ('piece', 'student', 'teacher', 'status', 'assigned_at')
+    list_filter = ('status', 'teacher')
+    search_fields = ('piece__title', 'student__username', 'student__first_name', 'student__last_name')
+    raw_id_fields = ('piece', 'student', 'teacher', 'child_profile')
+
+
+@admin.register(StudentCollectionAssignment)
+class StudentCollectionAssignmentAdmin(admin.ModelAdmin):
+    list_display = ('collection', 'student', 'teacher', 'status', 'assigned_at')
+    list_filter = ('status', 'teacher')
+    search_fields = ('collection__title', 'student__username', 'student__first_name', 'student__last_name')
+    raw_id_fields = ('collection', 'student', 'teacher', 'child_profile')

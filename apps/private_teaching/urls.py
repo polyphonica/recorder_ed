@@ -51,6 +51,9 @@ urlpatterns = [
     path('teacher/students/', views.TeacherStudentsListView.as_view(), name='teacher_students'),
     path('teacher/students/<int:student_id>/progress/', views.TeacherStudentProgressView.as_view(), name='teacher_student_progress'),
     path('teacher/students/<int:student_id>/contact/', views.StudentContactDetailView.as_view(), name='student_contact_detail'),
+    path('teacher/students/<int:student_id>/assign-playalong/', views.AssignPlayalongView.as_view(), name='assign_playalong'),
+    path('teacher/students/<int:student_id>/remove-playalong/<uuid:assignment_id>/', views.RemovePlayalongAssignmentView.as_view(), name='remove_playalong'),
+    path('teacher/students/<int:student_id>/playalong-status/<uuid:assignment_id>/', views.UpdatePlayalongStatusView.as_view(), name='update_playalong_status'),
     path('teacher/lessons/<uuid:lesson_id>/', views.TeacherLessonDetailView.as_view(), name='teacher_lesson_detail'),
 
     # Cart Views

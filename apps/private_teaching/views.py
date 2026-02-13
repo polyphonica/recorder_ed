@@ -20,7 +20,8 @@ from .models import (
     TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard,
     LessonCancellationRequest, PracticeEntry, PrivateLessonAssignment,
     PrivateLessonQuiz, PrivateLessonQuizQuestion, PrivateLessonQuizAnswer,
-    PrivateLessonQuizAssignment, PrivateLessonQuizAttempt
+    PrivateLessonQuizAssignment, PrivateLessonQuizAttempt,
+    StudentPieceAssignment, StudentCollectionAssignment
 )
 from .notifications import TeacherNotificationService, StudentNotificationService
 from .availability_engine import check_slot_availability
@@ -2282,69 +2283,56 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             context['month_practice_minutes'] = month_practice
 
             # ===== PLAYALONGS SECTION =====
-            from lessons.models import PrivateLessonPiece, PrivateLessonCollection
+            from apps.audioplayer.models import Piece, PieceCollection
 
-            # Get all lessons for this student (for playalong queries)
-            student_lessons = Lesson.objects.filter(
-                teacher=self.request.user,
-                student=student,
-                approved_status='Accepted',
-                is_deleted=False
-            )
+            # Get student-level assignments
+            piece_assignments = StudentPieceAssignment.objects.filter(
+                teacher=self.request.user, student=student
+            ).select_related('piece', 'piece__composer').order_by('status', '-assigned_at')
 
-            # Get individual pieces assigned across all lessons
-            playalong_pieces = PrivateLessonPiece.objects.filter(
-                lesson__in=student_lessons
-            ).select_related('piece', 'lesson').order_by('-lesson__lesson_date', 'order')
-
-            # Get collections assigned across all lessons
-            playalong_collections = PrivateLessonCollection.objects.filter(
-                lesson__in=student_lessons
-            ).select_related('collection', 'lesson').prefetch_related(
+            collection_assignments = StudentCollectionAssignment.objects.filter(
+                teacher=self.request.user, student=student
+            ).select_related('collection').prefetch_related(
                 'collection__collection_memberships'
-            ).order_by('-lesson__lesson_date', 'order')
+            ).order_by('status', '-assigned_at')
 
             # Build playalong data for template
             playalong_data = []
 
-            # Add individual pieces
-            for lp in playalong_pieces:
+            for pa in piece_assignments:
                 playalong_data.append({
                     'type': 'piece',
-                    'title': lp.piece.title,
-                    'lesson': lp.lesson,
-                    'lesson_date': lp.lesson.lesson_date,
-                    'is_visible': lp.is_visible,
-                    'is_optional': lp.is_optional,
-                    'instructions': lp.instructions,
-                    'piece': lp.piece,
-                    'collection': None,
+                    'id': pa.id,
+                    'title': pa.piece.title,
+                    'status': pa.status,
+                    'instructions': pa.instructions,
+                    'assigned_at': pa.assigned_at,
                     'piece_count': 1,
                 })
 
-            # Add collections
-            for lc in playalong_collections:
-                piece_count = lc.collection.collection_memberships.count()
+            for ca in collection_assignments:
                 playalong_data.append({
                     'type': 'collection',
-                    'title': lc.collection.title,
-                    'lesson': lc.lesson,
-                    'lesson_date': lc.lesson.lesson_date,
-                    'is_visible': lc.is_visible,
-                    'is_optional': False,
-                    'instructions': lc.instructions,
-                    'piece': None,
-                    'collection': lc.collection,
-                    'piece_count': piece_count,
+                    'id': ca.id,
+                    'title': ca.collection.title,
+                    'status': ca.status,
+                    'instructions': ca.instructions,
+                    'assigned_at': ca.assigned_at,
+                    'piece_count': ca.collection.collection_memberships.count(),
                 })
-
-            # Sort by lesson date descending
-            playalong_data.sort(key=lambda x: x['lesson_date'], reverse=True)
 
             context['playalong_data'] = playalong_data
             context['total_playalongs'] = len(playalong_data)
-            context['total_playalong_pieces'] = playalong_pieces.count()
-            context['total_playalong_collections'] = playalong_collections.count()
+            context['total_playalong_pieces'] = piece_assignments.count()
+            context['total_playalong_collections'] = collection_assignments.count()
+
+            # Available pieces and collections for assign modal
+            context['available_pieces'] = Piece.objects.filter(
+                created_by=self.request.user
+            ).select_related('composer').order_by('title')
+            context['available_collections'] = PieceCollection.objects.filter(
+                created_by=self.request.user
+            ).select_related('composer').prefetch_related('collection_memberships').order_by('title')
 
             # ===== LESSONS SECTION =====
             from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -5462,3 +5450,121 @@ class TeacherQuizAttemptResultsView(TeacherProfileCompletedMixin, TemplateView):
         context['can_retake'] = False  # Teachers viewing, no retake option
 
         return context
+
+
+# ============================================================================
+# STUDENT PLAYALONG ASSIGNMENT VIEWS
+# ============================================================================
+
+class AssignPlayalongView(TeacherProfileCompletedMixin, View):
+    """Assign pieces and/or collections to a student."""
+
+    def post(self, request, student_id):
+        student = get_object_or_404(User, id=student_id)
+
+        # Verify teacher has lessons with this student
+        if not Lesson.objects.filter(
+            teacher=request.user, student=student,
+            approved_status='Accepted', is_deleted=False
+        ).exists():
+            raise PermissionDenied()
+
+        piece_ids = request.POST.getlist('piece_ids')
+        collection_ids = request.POST.getlist('collection_ids')
+
+        # Get child_profile if this is a child student
+        child_profile = None
+        lesson_with_child = Lesson.objects.filter(
+            teacher=request.user, student=student,
+            approved_status='Accepted', is_deleted=False
+        ).select_related('lesson_request__child_profile').first()
+        if lesson_with_child and lesson_with_child.lesson_request:
+            child_profile = lesson_with_child.lesson_request.child_profile
+
+        created_count = 0
+
+        for piece_id in piece_ids:
+            _, created = StudentPieceAssignment.objects.get_or_create(
+                student=student, piece_id=piece_id, teacher=request.user,
+                defaults={'child_profile': child_profile}
+            )
+            if created:
+                created_count += 1
+
+        for collection_id in collection_ids:
+            _, created = StudentCollectionAssignment.objects.get_or_create(
+                student=student, collection_id=collection_id, teacher=request.user,
+                defaults={'child_profile': child_profile}
+            )
+            if created:
+                created_count += 1
+
+        if created_count:
+            messages.success(request, f"Assigned {created_count} item{'s' if created_count != 1 else ''} to student.")
+        else:
+            messages.info(request, "All selected items were already assigned.")
+
+        return redirect(
+            reverse('private_teaching:teacher_student_progress', kwargs={'student_id': student_id})
+            + '?filter=playalongs'
+        )
+
+
+class RemovePlayalongAssignmentView(TeacherProfileCompletedMixin, View):
+    """Remove a piece or collection assignment from a student."""
+
+    def post(self, request, student_id, assignment_id):
+        assignment_type = request.POST.get('type', 'piece')
+
+        if assignment_type == 'collection':
+            assignment = get_object_or_404(
+                StudentCollectionAssignment, id=assignment_id, teacher=request.user
+            )
+        else:
+            assignment = get_object_or_404(
+                StudentPieceAssignment, id=assignment_id, teacher=request.user
+            )
+
+        assignment.delete()
+        messages.success(request, "Assignment removed.")
+
+        return redirect(
+            reverse('private_teaching:teacher_student_progress', kwargs={'student_id': student_id})
+            + '?filter=playalongs'
+        )
+
+
+class UpdatePlayalongStatusView(TeacherProfileCompletedMixin, View):
+    """Update the status of a student's playalong assignment."""
+
+    def post(self, request, student_id, assignment_id):
+        assignment_type = request.POST.get('type', 'piece')
+        new_status = request.POST.get('status', 'active')
+
+        if new_status not in ('active', 'completed', 'archived'):
+            messages.error(request, "Invalid status.")
+            return redirect(
+                reverse('private_teaching:teacher_student_progress', kwargs={'student_id': student_id})
+                + '?filter=playalongs'
+            )
+
+        if assignment_type == 'collection':
+            assignment = get_object_or_404(
+                StudentCollectionAssignment, id=assignment_id, teacher=request.user
+            )
+        else:
+            assignment = get_object_or_404(
+                StudentPieceAssignment, id=assignment_id, teacher=request.user
+            )
+
+        assignment.status = new_status
+        if new_status == 'completed' and not assignment.completed_at:
+            assignment.completed_at = timezone.now()
+        elif new_status == 'active':
+            assignment.completed_at = None
+        assignment.save()
+
+        return redirect(
+            reverse('private_teaching:teacher_student_progress', kwargs={'student_id': student_id})
+            + '?filter=playalongs'
+        )

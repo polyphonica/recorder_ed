@@ -773,9 +773,9 @@
                         {{ total_playalong_pieces }} piece{{ total_playalong_pieces|pluralize }} &bull;
                         {{ total_playalong_collections }} collection{{ total_playalong_collections|pluralize }}
                     </span>
-                    <a href="?filter=lessons" class="btn btn-sm btn-outline btn-info" title="Playalongs are assigned through lessons">
-                        <i class="fas fa-calendar-plus mr-1"></i>Add via Lesson
-                    </a>
+                    <label for="assign-playalong-modal" class="btn btn-sm btn-success">
+                        <i class="fas fa-plus mr-1"></i>Assign Playalong
+                    </label>
                 </div>
             </div>
 
@@ -786,14 +786,14 @@
                             <tr>
                                 <th class="text-lg">Type</th>
                                 <th class="text-lg">Title</th>
-                                <th class="text-lg">Lesson Date</th>
-                                <th class="text-lg">Visibility</th>
+                                <th class="text-lg">Status</th>
+                                <th class="text-lg">Assigned</th>
                                 <th class="text-lg text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in playalong_data %}
-                                <tr>
+                                <tr class="{% if item.status == 'archived' %}opacity-50{% endif %}">
                                     <td class="text-lg">
                                         {% if item.type == 'piece' %}
                                             <span class="badge badge-success badge-lg">
@@ -807,9 +807,6 @@
                                     </td>
                                     <td class="font-medium text-lg">
                                         {{ item.title }}
-                                        {% if item.is_optional %}
-                                            <span class="badge badge-ghost ml-2">Optional</span>
-                                        {% endif %}
                                         {% if item.instructions %}
                                             <div class="text-sm text-base-content/60 mt-1 truncate max-w-xs" title="{{ item.instructions }}">
                                                 <i class="fas fa-comment-alt mr-1"></i>{{ item.instructions|truncatewords:8 }}
@@ -817,23 +814,63 @@
                                         {% endif %}
                                     </td>
                                     <td class="text-lg">
-                                        {{ item.lesson_date|date:"M d, Y" }}
-                                    </td>
-                                    <td class="text-lg">
-                                        {% if item.is_visible %}
-                                            <span class="badge badge-success badge-lg">
-                                                <i class="fas fa-eye mr-1"></i>Visible
-                                            </span>
+                                        {% if item.status == 'active' %}
+                                            <span class="badge badge-success badge-lg">Active</span>
+                                        {% elif item.status == 'completed' %}
+                                            <span class="badge badge-info badge-lg">Completed</span>
                                         {% else %}
-                                            <span class="badge badge-ghost badge-lg">
-                                                <i class="fas fa-eye-slash mr-1"></i>Hidden
-                                            </span>
+                                            <span class="badge badge-ghost badge-lg">Archived</span>
                                         {% endif %}
                                     </td>
-                                    <td class="text-center text-lg">
-                                        <a href="{% url 'private_teaching:teacher_lesson_detail' item.lesson.id %}" class="btn btn-sm btn-outline">
-                                            <i class="fas fa-external-link-alt mr-1"></i>View Lesson
-                                        </a>
+                                    <td class="text-lg">
+                                        {{ item.assigned_at|date:"M d, Y" }}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="flex items-center justify-center gap-1">
+                                            {% if item.status == 'active' %}
+                                                <form method="post" action="{% url 'private_teaching:update_playalong_status' student.id item.id %}">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="type" value="{{ item.type }}">
+                                                    <input type="hidden" name="status" value="completed">
+                                                    <button type="submit" class="btn btn-xs btn-outline btn-info" title="Mark completed">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                </form>
+                                                <form method="post" action="{% url 'private_teaching:update_playalong_status' student.id item.id %}">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="type" value="{{ item.type }}">
+                                                    <input type="hidden" name="status" value="archived">
+                                                    <button type="submit" class="btn btn-xs btn-outline btn-ghost" title="Archive">
+                                                        <i class="fas fa-archive"></i>
+                                                    </button>
+                                                </form>
+                                            {% elif item.status == 'completed' %}
+                                                <form method="post" action="{% url 'private_teaching:update_playalong_status' student.id item.id %}">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="type" value="{{ item.type }}">
+                                                    <input type="hidden" name="status" value="active">
+                                                    <button type="submit" class="btn btn-xs btn-outline btn-success" title="Reactivate">
+                                                        <i class="fas fa-redo"></i>
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <form method="post" action="{% url 'private_teaching:update_playalong_status' student.id item.id %}">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="type" value="{{ item.type }}">
+                                                    <input type="hidden" name="status" value="active">
+                                                    <button type="submit" class="btn btn-xs btn-outline btn-success" title="Reactivate">
+                                                        <i class="fas fa-redo"></i>
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                            <form method="post" action="{% url 'private_teaching:remove_playalong' student.id item.id %}" onsubmit="return confirm('Remove this assignment?')">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="type" value="{{ item.type }}">
+                                                <button type="submit" class="btn btn-xs btn-outline btn-error" title="Remove">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -844,12 +881,95 @@
                 <div class="text-center py-8 text-base-content/70 text-lg">
                     No playalongs assigned to this student yet.
                     <div class="mt-2">
-                        <span class="text-sm">Playalongs are assigned through individual lessons.</span>
+                        <label for="assign-playalong-modal" class="btn btn-sm btn-success mt-2">
+                            <i class="fas fa-plus mr-1"></i>Assign Playalong
+                        </label>
                     </div>
                 </div>
             {% endif %}
         </div>
     </div>
+
+    <!-- Assign Playalong Modal -->
+    <input type="checkbox" id="assign-playalong-modal" class="modal-toggle" />
+    <div class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box max-w-3xl">
+            <label for="assign-playalong-modal" class="btn btn-sm btn-circle absolute right-2 top-2">X</label>
+            <h3 class="font-bold text-2xl mb-4">
+                <i class="fas fa-music mr-2 text-success"></i>Assign Playalongs
+            </h3>
+
+            <form method="post" action="{% url 'private_teaching:assign_playalong' student.id %}">
+                {% csrf_token %}
+
+                <!-- Search filter -->
+                <div class="form-control mb-4">
+                    <input type="text" id="playalong-search" placeholder="Search pieces and collections..."
+                           class="input input-bordered w-full" oninput="filterPlayalongs(this.value)">
+                </div>
+
+                <!-- Pieces -->
+                {% if available_pieces %}
+                <div class="mb-4">
+                    <h4 class="font-semibold text-lg mb-2"><i class="fas fa-music mr-1 text-success"></i>Pieces</h4>
+                    <div class="max-h-48 overflow-y-auto border border-base-300 rounded-lg p-2 space-y-1" id="pieces-list">
+                        {% for piece in available_pieces %}
+                        <label class="flex items-center gap-3 p-2 rounded hover:bg-base-200 cursor-pointer playalong-item" data-title="{{ piece.title|lower }}">
+                            <input type="checkbox" name="piece_ids" value="{{ piece.id }}" class="checkbox checkbox-success checkbox-sm">
+                            <span class="flex-1">
+                                {{ piece.title }}
+                                {% if piece.composer %}<span class="text-base-content/60 text-sm">- {{ piece.composer.name }}</span>{% endif %}
+                            </span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Collections -->
+                {% if available_collections %}
+                <div class="mb-4">
+                    <h4 class="font-semibold text-lg mb-2"><i class="fas fa-folder mr-1 text-primary"></i>Collections</h4>
+                    <div class="max-h-48 overflow-y-auto border border-base-300 rounded-lg p-2 space-y-1" id="collections-list">
+                        {% for collection in available_collections %}
+                        <label class="flex items-center gap-3 p-2 rounded hover:bg-base-200 cursor-pointer playalong-item" data-title="{{ collection.title|lower }}">
+                            <input type="checkbox" name="collection_ids" value="{{ collection.id }}" class="checkbox checkbox-primary checkbox-sm">
+                            <span class="flex-1">
+                                {{ collection.title }}
+                                <span class="text-base-content/60 text-sm">({{ collection.piece_count }} pieces)</span>
+                            </span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if not available_pieces and not available_collections %}
+                <div class="text-center py-4 text-base-content/60">
+                    No pieces or collections found. Create some in the Play-Along manager first.
+                </div>
+                {% endif %}
+
+                <div class="modal-action">
+                    <label for="assign-playalong-modal" class="btn">Cancel</label>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-plus mr-1"></i>Assign Selected
+                    </button>
+                </div>
+            </form>
+        </div>
+        <label class="modal-backdrop" for="assign-playalong-modal"></label>
+    </div>
+
+    <script>
+    function filterPlayalongs(query) {
+        query = query.toLowerCase();
+        document.querySelectorAll('.playalong-item').forEach(function(item) {
+            var title = item.getAttribute('data-title');
+            item.style.display = title.includes(query) ? '' : 'none';
+        });
+    }
+    </script>
     {% endif %}
 
     <!-- Exams Section -->
