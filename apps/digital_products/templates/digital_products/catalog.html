@@ -95,8 +95,13 @@
                     </a>
                 </h3>
 
+                <!-- Short Description -->
+                {% if product.short_description %}
+                <p class="text-sm text-gray-600 mb-2 line-clamp-2">{{ product.short_description }}</p>
+                {% endif %}
+
                 <!-- Teacher -->
-                <p class="text-sm text-gray-600 mb-2">
+                <p class="text-sm text-gray-500 mb-2">
                     by {{ product.teacher.get_full_name|default:product.teacher.username }}
                 </p>
 

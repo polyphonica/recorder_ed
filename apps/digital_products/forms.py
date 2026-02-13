@@ -29,11 +29,6 @@ class ProductForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': 'Brief summary that will appear in product listings'
             }),
-            'description': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
-                'rows': 6,
-                'placeholder': 'Detailed description of your product, including what students will learn and receive'
-            }),
             'category': forms.Select(attrs={
                 'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white cursor-pointer'
             }),
