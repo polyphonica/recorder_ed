@@ -2354,7 +2354,17 @@ class MaterialDownloadView(LoginRequiredMixin, RedirectView):
     
     def get_redirect_url(self, *args, **kwargs):
         material = get_object_or_404(WorkshopMaterial, id=kwargs['material_id'])
-        
+
+        # Instructors always have access to their own materials
+        if material.workshop.instructor == self.request.user:
+            if material.file:
+                return material.file.url
+            elif material.external_url:
+                return material.external_url
+            else:
+                messages.error(self.request, 'Material file not found.')
+                return reverse('workshops:detail', kwargs={'slug': material.workshop.slug})
+
         # Check if user has access to this material
         if material.session:
             # Session-specific material - check registration
