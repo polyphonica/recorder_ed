@@ -186,9 +186,13 @@ class AudioConverterResultView(InstructorRequiredMixin, TemplateView):
     template_name = 'creator_studio/audio_converter_result.html'
 
     def get_context_data(self, **kwargs):
+        import os
         context = super().get_context_data(**kwargs)
         result = self.request.session.get('audio_result', {})
         context['result'] = result
+        if result:
+            base_name = os.path.splitext(result.get('original_name', ''))[0]
+            context['download_filename'] = f"{base_name}_converted.{result.get('format', '')}"
         context['title'] = 'Audio Conversion Complete'
         return context
 

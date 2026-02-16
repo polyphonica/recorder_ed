@@ -113,6 +113,11 @@
                             <i class="fas fa-cog mr-2"></i>
                             Convert Audio
                         </button>
+
+                        <p class="text-xs text-base-content/60 mt-3 text-center">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            The converted file will be available to download to your computer.
+                        </p>
                     </form>
                 </div>
             </div>
@@ -189,6 +194,22 @@
     </div>
 </div>
 
+<!-- Processing Overlay -->
+<div id="processingOverlay" class="fixed inset-0 bg-base-300/80 z-50 flex items-center justify-center hidden">
+    <div class="card bg-base-100 shadow-2xl max-w-sm w-full mx-4">
+        <div class="card-body items-center text-center">
+            <span class="loading loading-spinner loading-lg text-primary mb-4"></span>
+            <h3 class="text-lg font-bold">Converting Audio</h3>
+            <p class="text-base-content/70 text-sm" id="processingStatus">
+                Uploading and processing your file...
+            </p>
+            <p class="text-base-content/50 text-xs mt-2">
+                This may take a moment depending on file size and settings.
+            </p>
+        </div>
+    </div>
+</div>
+
 <script>
     // Update speed display
     const speedSlider = document.getElementById('speedSlider');
@@ -198,11 +219,11 @@
         speedValue.textContent = this.value + 'x';
     });
 
-    // Form submission feedback
+    // Form submission - show processing overlay
     document.getElementById('audioForm').addEventListener('submit', function() {
         const btn = this.querySelector('button[type="submit"]');
         btn.disabled = true;
-        btn.innerHTML = '<span class="loading loading-spinner"></span> Processing...';
+        document.getElementById('processingOverlay').classList.remove('hidden');
     });
 </script>
 {% endblock %}
