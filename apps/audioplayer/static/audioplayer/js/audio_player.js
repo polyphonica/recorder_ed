@@ -9,6 +9,11 @@ let isPlaying = []; // Track playback state for each piece
 let lastPositions = []; // Track last known position for end detection
 let endCheckTimers = []; // Timers for checking if playback ended
 
+// Lazy-loading state: playlists are only initialized when the user clicks Play
+let stemsData = [];          // Stores stem definitions per instance for deferred loading
+let activeInstance = null;    // Which instance currently has a loaded playlist (or null)
+let isInitializing = false;  // Guard against double-init during async load
+
 /**
  * Initialize all audio players for pieces in a lesson (legacy function for backwards compatibility)
  */
@@ -72,35 +77,31 @@ async function initPlaylist(instance, stems) {
     try {
         await playlists[instance].load(tracks);
 
-        // Get duration from the playlist
-        // The playlist stores duration in seconds - we need to access it from the internal state
-        // Let's try to get it from the playlist object
-        if (playlists[instance].duration) {
-            durations[instance] = playlists[instance].duration;
-        } else {
-            // Fallback: wait for first timeupdate to capture duration
-            durations[instance] = 0;
+        // Get duration from the actual audio buffers (most accurate).
+        // The playlist-level .duration includes timeline padding, so we
+        // prefer the longest track's buffer duration instead.
+        durations[instance] = 0;
+        if (playlists[instance].tracks && playlists[instance].tracks.length > 0) {
+            let maxBufferDuration = 0;
+            playlists[instance].tracks.forEach(track => {
+                if (track.buffer && track.buffer.duration) {
+                    maxBufferDuration = Math.max(maxBufferDuration, track.buffer.duration);
+                }
+            });
+            if (maxBufferDuration > 0) {
+                durations[instance] = maxBufferDuration;
+            }
         }
 
-        // Listen for audio sources loaded event to get duration
-        eventEmitters[instance].on('audiosourcesloaded', () => {
-            // Try to get duration from the playlist tracks
-            if (playlists[instance] && playlists[instance].tracks && playlists[instance].tracks.length > 0) {
-                const track = playlists[instance].tracks[0];
-                if (track && track.duration) {
-                    durations[instance] = track.duration;
-                    const totalTimeEl = document.getElementById(`totalTime${instance}`);
-                    if (totalTimeEl) {
-                        totalTimeEl.textContent = formatTime(durations[instance]);
-                    }
-                }
-            }
-        });
+        // Fallback to playlist-level duration if buffers weren't available
+        if (!durations[instance] && playlists[instance].duration) {
+            durations[instance] = playlists[instance].duration;
+        }
 
         // Setup event listeners for time updates
         setupTimeUpdateListener(instance);
 
-        // Update total duration display - will be updated on first timeupdate if not available now
+        // Update total duration display
         const totalTimeEl = document.getElementById(`totalTime${instance}`);
         if (totalTimeEl && durations[instance]) {
             totalTimeEl.textContent = formatTime(durations[instance]);
@@ -120,13 +121,17 @@ function setupTimeUpdateListener(instance) {
         const currentTimeEl = document.getElementById(`currentTime${instance}`);
         const seekSlider = document.getElementById(`seekSlider${instance}`);
 
-        // If duration not yet set, try to get it from the playlist
+        // If duration not yet set, get it from the audio buffers
         if (!durations[instance] || durations[instance] === 0) {
-            // Try to access playlist internal state to get duration
-            if (playlists[instance] && playlists[instance].tracks && playlists[instance].tracks[0]) {
-                const track = playlists[instance].tracks[0];
-                if (track.buffer && track.buffer.duration) {
-                    durations[instance] = track.buffer.duration;
+            if (playlists[instance] && playlists[instance].tracks) {
+                let maxBufferDuration = 0;
+                playlists[instance].tracks.forEach(track => {
+                    if (track.buffer && track.buffer.duration) {
+                        maxBufferDuration = Math.max(maxBufferDuration, track.buffer.duration);
+                    }
+                });
+                if (maxBufferDuration > 0) {
+                    durations[instance] = maxBufferDuration;
                     const totalTimeEl = document.getElementById(`totalTime${instance}`);
                     if (totalTimeEl) {
                         totalTimeEl.textContent = formatTime(durations[instance]);
@@ -310,20 +315,140 @@ function stopEndDetectionTimer(instance) {
 }
 
 /**
- * Toggle play/stop
+ * Destroy a playlist instance to free AudioContext and memory.
+ * Only one playlist should be loaded at a time to avoid browser limits.
  */
-function togglePlay(instance, button) {
-    if (!eventEmitters[instance]) return;
+function destroyPlaylist(instance) {
+    if (!playlists[instance]) return;
 
-    if (button.textContent === 'Play') {
-        button.textContent = 'Stop';
-        button.classList.add('playing');
-        eventEmitters[instance].emit('play');
-    } else {
+    // Stop any active playback
+    if (isPlaying[instance] && eventEmitters[instance]) {
+        try {
+            eventEmitters[instance].emit('stop');
+        } catch (e) {
+            console.warn(`Error stopping playlist ${instance}:`, e);
+        }
+    }
+
+    // Stop end detection timer
+    stopEndDetectionTimer(instance);
+
+    // Disconnect audio nodes from each track's playout
+    if (playlists[instance].tracks) {
+        playlists[instance].tracks.forEach(track => {
+            if (track.playout) {
+                try {
+                    if (track.playout.masterGain) track.playout.masterGain.disconnect();
+                    if (track.playout.volumeGain) track.playout.volumeGain.disconnect();
+                } catch (e) { /* already disconnected */ }
+            }
+        });
+    }
+
+    // Close the AudioContext (library stores it as .ac)
+    if (playlists[instance].ac && playlists[instance].ac.state !== 'closed') {
+        try {
+            playlists[instance].ac.close();
+        } catch (e) {
+            console.warn(`Error closing AudioContext for instance ${instance}:`, e);
+        }
+    }
+
+    // Clear the hidden playlist container DOM
+    const container = document.getElementById(`playlist${instance}`);
+    if (container) {
+        container.innerHTML = '';
+    }
+
+    // Null out state for this instance to allow garbage collection
+    playlists[instance] = null;
+    eventEmitters[instance] = null;
+    durations[instance] = 0;
+    isPlaying[instance] = false;
+    lastPositions[instance] = 0;
+
+    // Reset UI to initial state
+    const playBtn = document.getElementById(`playButton${instance}`);
+    const pauseBtn = document.getElementById(`pauseButton${instance}`);
+    const seekSlider = document.getElementById(`seekSlider${instance}`);
+    const currentTimeEl = document.getElementById(`currentTime${instance}`);
+    const totalTimeEl = document.getElementById(`totalTime${instance}`);
+
+    if (playBtn) {
+        playBtn.textContent = 'Play';
+        playBtn.classList.remove('playing');
+    }
+    if (pauseBtn) {
+        pauseBtn.disabled = true;
+        pauseBtn.textContent = 'Pause';
+    }
+    if (seekSlider) seekSlider.value = 0;
+    if (currentTimeEl) currentTimeEl.textContent = '0:00';
+    if (totalTimeEl) totalTimeEl.textContent = '0:00';
+
+    // Reset mute/solo/volume buttons for all tracks
+    let trackIdx = 0;
+    while (true) {
+        const muteBtn = document.getElementById(`muteButton${instance}-${trackIdx}`);
+        const soloBtn = document.getElementById(`soloButton${instance}-${trackIdx}`);
+        if (!muteBtn) break;
+        muteBtn.textContent = 'Mute';
+        if (soloBtn) soloBtn.textContent = 'Solo';
+        trackIdx++;
+    }
+}
+
+/**
+ * Toggle play/stop (lazy-loads the playlist on first play)
+ */
+async function togglePlay(instance, button) {
+    // If this instance is currently playing, stop it
+    if (isPlaying[instance] && eventEmitters[instance]) {
         button.textContent = 'Play';
         button.classList.remove('playing');
         eventEmitters[instance].emit('stop');
+        return;
     }
+
+    // Guard against double-clicks during async init
+    if (isInitializing) return;
+
+    // Stop and destroy any OTHER active playlist to free resources
+    if (activeInstance !== null && activeInstance !== instance) {
+        destroyPlaylist(activeInstance);
+        activeInstance = null;
+    }
+
+    // Lazy-init: if playlist not yet loaded, initialize it now
+    if (!playlists[instance]) {
+        if (!stemsData[instance] || stemsData[instance].length === 0) {
+            console.error(`No stems data for instance ${instance}`);
+            return;
+        }
+
+        isInitializing = true;
+        button.textContent = 'Loading...';
+        button.disabled = true;
+
+        try {
+            await initPlaylist(instance, stemsData[instance]);
+        } catch (error) {
+            console.error(`Error initializing playlist ${instance}:`, error);
+            button.textContent = 'Play';
+            button.disabled = false;
+            isInitializing = false;
+            return;
+        }
+
+        button.disabled = false;
+        isInitializing = false;
+    }
+
+    // Play
+    activeInstance = instance;
+    button.textContent = 'Stop';
+    button.classList.add('playing');
+    eventEmitters[instance].emit('play');
 }
 
 /**
@@ -773,8 +898,8 @@ async function createPiecePlayer(piece, pieceIndex, container, isInCollection = 
 
     container.appendChild(playerContainer);
 
-    // Initialize waveform-playlist for this piece
-    await initPlaylist(pieceIndex + 1, piece.stems);
+    // Store stems data for lazy loading (playlist will be initialized on first Play click)
+    stemsData[pieceIndex + 1] = piece.stems;
 }
 
 /**
