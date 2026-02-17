@@ -10,7 +10,6 @@ from django.core.mail import send_mail, EmailMessage
 from django.template.loader import render_to_string
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Q
 from django.views.generic.edit import UpdateView, CreateView, DeleteView
 from django.views import View
 from django.views.generic import ListView, DetailView
@@ -19,7 +18,7 @@ from django.core.exceptions import PermissionDenied
 from apps.private_teaching.models import LessonRequest
 
 from .models import Lesson, LessonOrder
-from .forms import LessonForm, DocumentFormSet, LessonUrlsFormSet, PrivateLessonPieceFormSet, LessonAssignmentFormSet, PrivateLessonCollectionFormSet
+from .forms import LessonForm, DocumentFormSet, LessonUrlsFormSet, LessonAssignmentFormSet
 
 
 class LessonAccessBlocked(Exception):
@@ -253,33 +252,8 @@ class LessonUpdateView(LoginRequiredMixin, LessonInline, UpdateView):
         return lesson
 
     def get_context_data(self, **kwargs):
-        from apps.audioplayer.models import Piece, PieceCollection
-        from apps.private_teaching.models import StudentPieceAssignment, StudentCollectionAssignment
         ctx = super().get_context_data(**kwargs)
         ctx['named_formsets'] = self.get_named_formsets()
-
-        # Filter pieces/collections to those assigned to this student
-        student = self.object.student
-        assigned_piece_ids = StudentPieceAssignment.objects.filter(
-            teacher=self.request.user, student=student
-        ).values_list('piece_id', flat=True)
-        assigned_collection_ids = StudentCollectionAssignment.objects.filter(
-            teacher=self.request.user, student=student
-        ).values_list('collection_id', flat=True)
-
-        # Also include any pieces/collections already on this lesson (backward compat)
-        lesson_piece_ids = self.object.lesson_pieces.values_list('piece_id', flat=True)
-        lesson_collection_ids = self.object.lesson_collections.values_list('collection_id', flat=True)
-
-        ctx['pieces'] = Piece.objects.filter(
-            Q(id__in=assigned_piece_ids) | Q(id__in=lesson_piece_ids)
-        ).distinct().order_by('title')
-
-        ctx['collections'] = PieceCollection.objects.filter(
-            Q(id__in=assigned_collection_ids) | Q(id__in=lesson_collection_ids)
-        ).distinct().order_by('title')
-
-        ctx['has_student_assignments'] = assigned_piece_ids.exists() or assigned_collection_ids.exists()
 
         # Add available assignments for dropdown
         from assignments.models import Assignment
@@ -303,16 +277,6 @@ class LessonUpdateView(LoginRequiredMixin, LessonInline, UpdateView):
                 self.request.FILES or None,
                 instance=self.object,
                 prefix='lesson_attached_urls'
-            ),
-            'pieces': PrivateLessonPieceFormSet(
-                self.request.POST or None,
-                instance=self.object,
-                prefix='pieces'
-            ),
-            'collections': PrivateLessonCollectionFormSet(
-                self.request.POST or None,
-                instance=self.object,
-                prefix='collections'
             ),
             'assignments': LessonAssignmentFormSet(
                 self.request.POST or None,
