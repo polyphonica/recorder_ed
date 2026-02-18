@@ -6,7 +6,7 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'full_name', 'phone', 'is_student', 'is_teacher', 'is_guardian', 'email_verified', 'profile_completed', 'created_at']
     list_filter = ['email_verified', 'profile_completed', 'is_student', 'is_teacher', 'is_guardian', 'country', 'created_at']
     search_fields = ['user__email', 'first_name', 'last_name', 'phone']
-    readonly_fields = ['id', 'email_verified_at', 'created_at', 'updated_at']
+    readonly_fields = ['id', 'created_at', 'updated_at']
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
