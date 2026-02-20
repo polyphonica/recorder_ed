@@ -94,13 +94,13 @@
     <!-- Navigation -->
     <nav class="navbar bg-base-200 shadow-lg" role="navigation" aria-label="Main navigation">
         <div class="navbar-start">
-            <div class="dropdown lg:hidden">
-                <button class="btn btn-ghost" aria-label="Open mobile menu" aria-expanded="false" aria-haspopup="true">
+            <div class="dropdown lg:hidden" x-data="{open: false}" :class="{'dropdown-open': open}">
+                <button class="btn btn-ghost" @click="open = !open" @click.outside="open = false" aria-label="Open mobile menu" :aria-expanded="open" aria-haspopup="true">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                     </svg>
                 </button>
-                <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+                <ul class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
                     <li><a href="{% url 'core:about' %}"><i class="fas fa-info-circle mr-1"></i>About</a></li>
                     <li class="border-t mt-2 pt-2"></li>
                     {% if user.is_authenticated and user.is_staff %}
@@ -160,11 +160,11 @@
         
         <div class="navbar-end">
             <!-- Support Icon -->
-            <div class="dropdown dropdown-end mr-2">
-                <button tabindex="0" class="btn btn-ghost btn-circle" aria-label="Help and Support menu" aria-haspopup="true" aria-expanded="false">
+            <div class="dropdown dropdown-end mr-2" x-data="{open: false}" :class="{'dropdown-open': open}">
+                <button class="btn btn-ghost btn-circle" @click="open = !open" @click.outside="open = false" aria-label="Help and Support menu" aria-haspopup="true" :aria-expanded="open">
                     <i class="fas fa-life-ring text-lg" aria-hidden="true"></i>
                 </button>
-                <div tabindex="0" class="dropdown-content z-[1] card shadow-xl bg-base-100 text-base-content mt-3" style="min-width: 320px; max-width: 400px;">
+                <div class="dropdown-content z-[1] card shadow-xl bg-base-100 text-base-content mt-3" style="min-width: 320px; max-width: 400px;">
                     <div class="card-body">
                         <h3 class="font-bold text-base mb-2">Help & Support</h3>
                         <div class="space-y-2">
@@ -255,8 +255,8 @@
 
             <!-- User Authentication -->
             {% if user.is_authenticated %}
-                <div class="dropdown dropdown-end mr-4">
-                    <button tabindex="0" class="btn btn-ghost btn-circle avatar" aria-label="User menu for {{ user.profile.full_name|default:user.username }}" aria-haspopup="true" aria-expanded="false">
+                <div class="dropdown dropdown-end mr-4" x-data="{open: false}" :class="{'dropdown-open': open}">
+                    <button class="btn btn-ghost btn-circle avatar" @click="open = !open" @click.outside="open = false" aria-label="User menu for {{ user.profile.full_name|default:user.username }}" aria-haspopup="true" :aria-expanded="open">
                         {% if user.profile.profile_image %}
                             <div class="w-8 rounded-full" aria-hidden="true">
                                 <img src="{{ user.profile.profile_image.url }}" alt="{{ user.profile.full_name|default:user.username }}" class="rounded-full">
@@ -267,7 +267,7 @@
                             </div>
                         {% endif %}
                     </button>
-                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-64">
+                    <ul class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-64">
                         <li class="menu-title">
                             <span>{{ user.profile.full_name|default:user.username }}</span>
                         </li>
