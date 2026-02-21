@@ -203,14 +203,6 @@ function setupTimeUpdateListener(instance) {
         if (currentTimeEl) {
             currentTimeEl.textContent = '0:00';
         }
-
-        // Reset playlist position to beginning after stopping
-        // Use setTimeout to ensure stop has completed before seeking
-        setTimeout(() => {
-            if (eventEmitters[instance]) {
-                eventEmitters[instance].emit('select', 0, 0);
-            }
-        }, 100);
     });
 
     // Handle audio finishing naturally (backup listener if 'finished' event fires)
@@ -257,10 +249,14 @@ function resetPlayerUI(instance) {
         currentTimeEl.textContent = '0:00';
     }
 
-    // Reset playlist position to beginning for replay
+    // Stop immediately to prevent the library from looping
+    if (eventEmitters[instance]) {
+        eventEmitters[instance].emit('stop');
+    }
+
+    // Reset cursor to beginning after stop has been processed
     setTimeout(() => {
-        if (eventEmitters[instance]) {
-            eventEmitters[instance].emit('stop');
+        if (eventEmitters[instance] && !isPlaying[instance]) {
             eventEmitters[instance].emit('select', 0, 0);
         }
     }, 100);
@@ -448,6 +444,7 @@ async function togglePlay(instance, button) {
     activeInstance = instance;
     button.textContent = 'Stop';
     button.classList.add('playing');
+    eventEmitters[instance].emit('select', 0, 0); // Ensure playback always starts from the beginning
     eventEmitters[instance].emit('play');
 }
 
