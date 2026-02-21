@@ -1,0 +1,85 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%){% endblock %}
+{% block header_subtitle %}PRIVATE LESSONS - New Quiz Assigned{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ student_name }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    <strong>{{ teacher_name }}</strong> has assigned you a new quiz to complete.
+</p>
+
+<!-- Quiz Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0; background-color: #f5f3ff; border-left: 4px solid #7c3aed; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #6d28d9;">
+                {{ quiz.title }}
+            </h2>
+            {% if quiz.description %}
+            <p style="margin: 0 0 15px 0; font-size: 14px; line-height: 1.6; color: #374151;">
+                {{ quiz.description }}
+            </p>
+            {% endif %}
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 4px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 110px;">Pass mark:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 600;">{{ quiz.pass_percentage }}%</span>
+                    </td>
+                </tr>
+                {% if quiz.time_limit_minutes %}
+                <tr>
+                    <td style="padding: 4px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 110px;">Time limit:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ quiz.time_limit_minutes }} minutes</span>
+                    </td>
+                </tr>
+                {% endif %}
+                {% if assignment.due_date %}
+                <tr>
+                    <td style="padding: 4px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 110px;">Due:</span>
+                        <span style="font-size: 14px; color: #dc2626; font-weight: 600;">{{ assignment.due_date|date:"l, F j, Y \a\t H:i" }}</span>
+                    </td>
+                </tr>
+                {% endif %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+{% if assignment.notes %}
+<!-- Teacher Notes Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0; background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 10px 0; font-size: 15px; font-weight: 600; color: #d97706;">
+                Notes from {{ teacher_name }}
+            </h2>
+            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #374151;">
+                {{ assignment.notes }}
+            </p>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- Action Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ quiz_url }}" style="display: inline-block; padding: 14px 28px; background-color: #7c3aed; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);">
+                Start Quiz
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    Good luck!
+</p>
+{% endblock %}

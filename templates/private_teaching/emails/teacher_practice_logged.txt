@@ -1,0 +1,27 @@
+Subject: {{ student_name }} logged a practice session
+
+Hello {{ teacher.get_full_name|default:teacher.username }},
+
+{{ student_name }} has logged a practice session.
+
+PRACTICE SESSION:
+Date: {{ practice_entry.practice_date|date:"l, F j, Y" }}
+Duration: {{ practice_entry.duration_minutes }} minute{{ practice_entry.duration_minutes|pluralize }}{% if practice_entry.pieces_practiced %}
+Pieces: {{ practice_entry.pieces_practiced }}{% endif %}{% if practice_entry.exercises_practiced %}
+Exercises: {{ practice_entry.exercises_practiced }}{% endif %}{% if practice_entry.focus_areas %}
+Focus areas: {{ practice_entry.focus_areas }}{% endif %}{% if practice_entry.preparing_for_exam %}
+Exam preparation: Yes{% endif %}{% if practice_entry.preparing_for_performance %}
+Performance preparation: Yes{% endif %}{% if practice_entry.enjoyment_rating %}
+Enjoyment: {{ practice_entry.enjoyment_rating }}/5{% endif %}{% if practice_entry.struggles %}
+
+Struggles noted:
+{{ practice_entry.struggles }}{% endif %}{% if practice_entry.achievements %}
+
+Achievements:
+{{ practice_entry.achievements }}{% endif %}
+
+View {{ student_name }}'s practice log and leave feedback:
+{{ practice_url }}
+
+Best regards,
+The {{ site_name }} Team

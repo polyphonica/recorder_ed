@@ -1,0 +1,22 @@
+Subject: New Quiz Assigned: {{ quiz.title }}
+
+Hello {{ student_name }},
+
+{{ teacher_name }} has assigned you a new quiz to complete.
+
+QUIZ DETAILS:
+Title: {{ quiz.title }}
+{% if quiz.description %}Description: {{ quiz.description }}
+{% endif %}{% if quiz.time_limit_minutes %}Time Limit: {{ quiz.time_limit_minutes }} minutes
+{% endif %}Pass Mark: {{ quiz.pass_percentage }}%{% if assignment.due_date %}
+Due Date: {{ assignment.due_date|date:"l, F j, Y \a\t H:i" }}{% endif %}{% if assignment.notes %}
+
+Notes from {{ teacher_name }}:
+{{ assignment.notes }}
+{% endif %}
+
+Start the quiz here:
+{{ quiz_url }}
+
+Best regards,
+The {{ site_name }} Team

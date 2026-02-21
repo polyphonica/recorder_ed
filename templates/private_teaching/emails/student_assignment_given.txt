@@ -1,0 +1,18 @@
+Subject: New Assignment from {{ teacher_name }}: {{ assignment.title }}
+
+Hello {{ student_name }},
+
+{{ teacher_name }} has assigned you a new assignment.
+
+ASSIGNMENT:
+{{ assignment.title }}{% if assignment.difficulty %}
+Difficulty: {{ assignment.get_difficulty_display }}{% endif %}{% if assignment_link.due_date %}
+Due: {{ assignment_link.due_date|date:"l, F j, Y \a\t H:i" }}{% endif %}
+
+{% if assignment.instructions %}{{ assignment.instructions }}
+
+{% endif %}View and complete your assignment:
+{{ library_url }}
+
+Best regards,
+The {{ site_name }} Team

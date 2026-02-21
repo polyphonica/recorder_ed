@@ -1,0 +1,60 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #0891b2 0%, #0e7490 100%){% endblock %}
+{% block header_subtitle %}PRIVATE LESSONS - Practice Feedback{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ student_name }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    <strong>{{ teacher_name }}</strong> has left feedback on your practice session from
+    <strong>{{ practice_entry.practice_date|date:"l, F j, Y" }}</strong>.
+</p>
+
+{% if practice_entry.pieces_practiced %}
+<!-- Practice Summary Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0; background-color: #f0f9ff; border-left: 4px solid #0891b2; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 10px 0; font-size: 15px; font-weight: 600; color: #0e7490;">
+                What you practised
+            </h2>
+            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #374151;">
+                {{ practice_entry.pieces_practiced }}
+            </p>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- Feedback Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0; background-color: #f0fdf4; border-left: 4px solid #059669; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 600; color: #047857;">
+                Feedback from {{ teacher_name }}
+            </h2>
+            <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #1f2937;">
+                {{ practice_entry.teacher_comment }}
+            </p>
+        </td>
+    </tr>
+</table>
+
+<!-- Action Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ practice_log_url }}" style="display: inline-block; padding: 14px 28px; background-color: #0891b2; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(8, 145, 178, 0.3);">
+                View Practice Log
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    Keep up the great work!
+</p>
+{% endblock %}

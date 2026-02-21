@@ -1,0 +1,111 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #0891b2 0%, #0e7490 100%){% endblock %}
+{% block header_subtitle %}PRIVATE LESSONS - Practice Session Logged{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ teacher.get_full_name|default:teacher.username }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    <strong>{{ student_name }}</strong> has logged a practice session.
+</p>
+
+<!-- Practice Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0; background-color: #f0f9ff; border-left: 4px solid #0891b2; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #0e7490;">
+                Practice Session
+            </h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding: 4px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 90px;">Date:</span>
+                        <span style="font-size: 14px; color: #333333; font-weight: 600;">{{ practice_entry.practice_date|date:"l, F j, Y" }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 4px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 90px;">Duration:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ practice_entry.duration_minutes }} minute{{ practice_entry.duration_minutes|pluralize }}</span>
+                    </td>
+                </tr>
+                {% if practice_entry.pieces_practiced %}
+                <tr>
+                    <td style="padding: 4px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 90px; vertical-align: top;">Pieces:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ practice_entry.pieces_practiced }}</span>
+                    </td>
+                </tr>
+                {% endif %}
+                {% if practice_entry.exercises_practiced %}
+                <tr>
+                    <td style="padding: 4px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 90px; vertical-align: top;">Exercises:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ practice_entry.exercises_practiced }}</span>
+                    </td>
+                </tr>
+                {% endif %}
+                {% if practice_entry.focus_areas %}
+                <tr>
+                    <td style="padding: 4px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 90px; vertical-align: top;">Focus:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ practice_entry.focus_areas }}</span>
+                    </td>
+                </tr>
+                {% endif %}
+                {% if practice_entry.enjoyment_rating %}
+                <tr>
+                    <td style="padding: 4px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 90px;">Enjoyment:</span>
+                        <span style="font-size: 14px; color: #333333;">{{ practice_entry.enjoyment_rating }}/5</span>
+                    </td>
+                </tr>
+                {% endif %}
+                {% if practice_entry.preparing_for_exam or practice_entry.preparing_for_performance %}
+                <tr>
+                    <td style="padding: 4px 0;">
+                        <span style="font-size: 14px; color: #6b7280; display: inline-block; width: 90px;">Preparing:</span>
+                        <span style="font-size: 14px; color: #0891b2; font-weight: 600;">{% if practice_entry.preparing_for_exam %}Exam{% endif %}{% if practice_entry.preparing_for_exam and practice_entry.preparing_for_performance %} &amp; {% endif %}{% if practice_entry.preparing_for_performance %}Performance{% endif %}</span>
+                    </td>
+                </tr>
+                {% endif %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+{% if practice_entry.struggles or practice_entry.achievements %}
+<!-- Reflections Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0; background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 600; color: #d97706;">
+                Student Reflections
+            </h2>
+            {% if practice_entry.struggles %}
+            <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Struggles</p>
+            <p style="margin: 0 0 14px 0; font-size: 14px; line-height: 1.6; color: #374151;">{{ practice_entry.struggles }}</p>
+            {% endif %}
+            {% if practice_entry.achievements %}
+            <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Achievements</p>
+            <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #374151;">{{ practice_entry.achievements }}</p>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- Action Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ practice_url }}" style="display: inline-block; padding: 14px 28px; background-color: #0891b2; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(8, 145, 178, 0.3);">
+                View Practice Log &amp; Leave Feedback
+            </a>
+        </td>
+    </tr>
+</table>
+{% endblock %}

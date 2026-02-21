@@ -136,6 +136,78 @@ class TeacherNotificationService(BaseNotificationService):
             logger.error(f"Failed to send cancellation request notification to teacher: {str(e)}")
             return False
 
+    @staticmethod
+    def send_practice_logged_notification(practice_entry):
+        """Send notification to teacher when a student logs a practice session"""
+        try:
+            teacher = practice_entry.teacher
+            is_valid, email = TeacherNotificationService.validate_email(teacher, 'Teacher')
+            if not is_valid:
+                return False
+
+            practice_url = TeacherNotificationService.build_absolute_url(
+                'private_teaching:teacher_student_practice',
+                kwargs={'student_id': practice_entry.student.id}
+            )
+
+            context = {
+                'practice_entry': practice_entry,
+                'teacher': teacher,
+                'student': practice_entry.student,
+                'student_name': TeacherNotificationService.get_display_name(practice_entry.student),
+                'practice_url': practice_url,
+            }
+
+            return TeacherNotificationService.send_templated_email(
+                template_path='private_teaching/emails/teacher_practice_logged.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject='Student Practice Session Logged',
+                fail_silently=False,
+                log_description=f"Practice logged notification to teacher {teacher.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send practice logged notification to teacher: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_quiz_submission_notification(attempt):
+        """Send notification to teacher when a student submits a quiz"""
+        try:
+            teacher = attempt.assignment.teacher
+            is_valid, email = TeacherNotificationService.validate_email(teacher, 'Teacher')
+            if not is_valid:
+                return False
+
+            results_url = TeacherNotificationService.build_absolute_url(
+                'private_teaching:teacher_quiz_attempt_results',
+                kwargs={'pk': attempt.pk}
+            )
+
+            context = {
+                'attempt': attempt,
+                'assignment': attempt.assignment,
+                'quiz': attempt.assignment.quiz,
+                'teacher': teacher,
+                'student': attempt.assignment.student,
+                'student_name': TeacherNotificationService.get_display_name(attempt.assignment.student),
+                'results_url': results_url,
+            }
+
+            return TeacherNotificationService.send_templated_email(
+                template_path='private_teaching/emails/teacher_quiz_submission.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject='Student Quiz Submitted',
+                fail_silently=False,
+                log_description=f"Quiz submission notification to teacher {teacher.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send quiz submission notification to teacher: {str(e)}")
+            return False
+
 
 class StudentNotificationService(BaseNotificationService):
     """Service for sending private teaching email notifications to students"""
@@ -465,6 +537,150 @@ class StudentNotificationService(BaseNotificationService):
 
         except Exception as e:
             logger.error(f"Failed to send cancellation rejected notification to student: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_assignment_given_notification(assignment_link):
+        """Send notification to student when teacher assigns them an assignment"""
+        try:
+            is_valid, email = StudentNotificationService.validate_email(assignment_link.student, 'Student')
+            if not is_valid:
+                return False
+
+            library_url = StudentNotificationService.build_absolute_url(
+                'assignments:student_library'
+            )
+
+            context = {
+                'assignment_link': assignment_link,
+                'assignment': assignment_link.assignment,
+                'student': assignment_link.student,
+                'student_name': StudentNotificationService.get_display_name(assignment_link.student),
+                'teacher': assignment_link.teacher,
+                'teacher_name': StudentNotificationService.get_display_name(assignment_link.teacher),
+                'library_url': library_url,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_assignment_given.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject='New Assignment',
+                fail_silently=False,
+                log_description=f"Assignment given notification to student {assignment_link.student.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send assignment given notification to student: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_practice_comment_notification(practice_entry):
+        """Send notification to student when teacher comments on a practice entry"""
+        try:
+            is_valid, email = StudentNotificationService.validate_email(practice_entry.student, 'Student')
+            if not is_valid:
+                return False
+
+            practice_log_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:practice_log'
+            )
+
+            context = {
+                'practice_entry': practice_entry,
+                'student': practice_entry.student,
+                'student_name': StudentNotificationService.get_display_name(practice_entry.student),
+                'teacher': practice_entry.teacher,
+                'teacher_name': StudentNotificationService.get_display_name(practice_entry.teacher),
+                'practice_log_url': practice_log_url,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_practice_comment.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject='Feedback on Your Practice Entry',
+                fail_silently=False,
+                log_description=f"Practice comment notification to student {practice_entry.student.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send practice comment notification to student: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_playalong_assignment_notification(student, teacher, new_pieces, new_collections):
+        """Send notification to student when teacher assigns playalong pieces or collections"""
+        try:
+            if not new_pieces and not new_collections:
+                return False
+
+            is_valid, email = StudentNotificationService.validate_email(student, 'Student')
+            if not is_valid:
+                return False
+
+            dashboard_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:student_dashboard'
+            )
+
+            context = {
+                'student': student,
+                'student_name': StudentNotificationService.get_display_name(student),
+                'teacher': teacher,
+                'teacher_name': StudentNotificationService.get_display_name(teacher),
+                'new_pieces': new_pieces,
+                'new_collections': new_collections,
+                'total_count': len(new_pieces) + len(new_collections),
+                'dashboard_url': dashboard_url,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_playalong_assigned.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject='New Practice Materials Assigned',
+                fail_silently=False,
+                log_description=f"Playalong assignment notification to student {student.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send playalong assignment notification to student: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_quiz_assignment_notification(assignment):
+        """Send notification to student when teacher assigns a quiz"""
+        try:
+            is_valid, email = StudentNotificationService.validate_email(assignment.student, 'Student')
+            if not is_valid:
+                return False
+
+            quiz_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:quiz_take',
+                kwargs={'assignment_id': assignment.pk}
+            )
+
+            context = {
+                'assignment': assignment,
+                'quiz': assignment.quiz,
+                'student': assignment.student,
+                'student_name': StudentNotificationService.get_display_name(assignment.student),
+                'teacher': assignment.teacher,
+                'teacher_name': StudentNotificationService.get_display_name(assignment.teacher),
+                'quiz_url': quiz_url,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_quiz_assigned.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject='New Quiz Assigned',
+                fail_silently=False,
+                log_description=f"Quiz assignment notification to student {assignment.student.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send quiz assignment notification to student: {str(e)}")
             return False
 
 

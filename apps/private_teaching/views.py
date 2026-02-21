@@ -3590,6 +3590,9 @@ class LogPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateVi
 
             practice_entry.save()
 
+            if practice_entry.teacher:
+                TeacherNotificationService.send_practice_logged_notification(practice_entry)
+
             # Show success message emphasizing exam/performance prep if applicable
             success_msg = 'Practice session logged successfully!'
             if practice_entry.preparing_for_exam:
@@ -4003,6 +4006,7 @@ class AddPracticeCommentView(TeacherProfileCompletedMixin, View):
             practice_entry.teacher_viewed_at = timezone.now()
             practice_entry.save(update_fields=['teacher_comment', 'teacher_viewed_at'])
             messages.success(request, 'Comment added successfully!')
+            StudentNotificationService.send_practice_comment_notification(practice_entry)
         else:
             messages.error(request, 'Comment cannot be empty.')
 
@@ -4964,6 +4968,7 @@ class QuizAssignView(TeacherProfileCompletedMixin, CreateView):
                 self.request,
                 f'Quiz assigned to {student_name} successfully!'
             )
+            StudentNotificationService.send_quiz_assignment_notification(self.object)
             return response
         except Exception as e:
             messages.error(
@@ -5234,12 +5239,14 @@ class QuizSubmitView(AcceptedStudentRequiredMixin, View):
                 assignment.status = 'completed'
                 assignment.save()
 
-                return JsonResponse({
-                    'success': True,
-                    'score': float(attempt.score),
-                    'passed': attempt.passed,
-                    'redirect_url': reverse('private_teaching:quiz_attempt_results', kwargs={'pk': attempt.pk})
-                })
+            TeacherNotificationService.send_quiz_submission_notification(attempt)
+
+            return JsonResponse({
+                'success': True,
+                'score': float(attempt.score),
+                'passed': attempt.passed,
+                'redirect_url': reverse('private_teaching:quiz_attempt_results', kwargs={'pk': attempt.pk})
+            })
 
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
@@ -5481,7 +5488,8 @@ class AssignPlayalongView(TeacherProfileCompletedMixin, View):
         if lesson_with_child and lesson_with_child.lesson_request:
             child_profile = lesson_with_child.lesson_request.child_profile
 
-        created_count = 0
+        created_piece_ids = []
+        created_collection_ids = []
 
         for piece_id in piece_ids:
             _, created = StudentPieceAssignment.objects.get_or_create(
@@ -5489,7 +5497,7 @@ class AssignPlayalongView(TeacherProfileCompletedMixin, View):
                 defaults={'child_profile': child_profile}
             )
             if created:
-                created_count += 1
+                created_piece_ids.append(piece_id)
 
         for collection_id in collection_ids:
             _, created = StudentCollectionAssignment.objects.get_or_create(
@@ -5497,10 +5505,21 @@ class AssignPlayalongView(TeacherProfileCompletedMixin, View):
                 defaults={'child_profile': child_profile}
             )
             if created:
-                created_count += 1
+                created_collection_ids.append(collection_id)
+
+        created_count = len(created_piece_ids) + len(created_collection_ids)
 
         if created_count:
             messages.success(request, f"Assigned {created_count} item{'s' if created_count != 1 else ''} to student.")
+            from apps.audioplayer.models import Piece, PieceCollection
+            new_pieces = list(Piece.objects.filter(id__in=created_piece_ids)) if created_piece_ids else []
+            new_collections = list(PieceCollection.objects.filter(id__in=created_collection_ids)) if created_collection_ids else []
+            StudentNotificationService.send_playalong_assignment_notification(
+                student=student,
+                teacher=request.user,
+                new_pieces=new_pieces,
+                new_collections=new_collections,
+            )
         else:
             messages.info(request, "All selected items were already assigned.")
 

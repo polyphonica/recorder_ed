@@ -8,6 +8,7 @@ import json
 from .models import Assignment, AssignmentSubmission
 from apps.private_teaching.models import PrivateLessonAssignment
 from .forms import AssignmentForm, AssignToStudentForm, GradeSubmissionForm, SubmissionForm
+from apps.private_teaching.notifications import StudentNotificationService
 
 
 # ============= TEACHER VIEWS =============
@@ -171,6 +172,8 @@ def assign_to_student(request, pk):
                 student=assignment_link.student,
                 assignment=assignment
             )
+
+            StudentNotificationService.send_assignment_given_notification(assignment_link)
 
             messages.success(
                 request,

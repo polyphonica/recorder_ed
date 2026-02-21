@@ -1,0 +1,17 @@
+Subject: Feedback from {{ teacher_name }} on your practice session
+
+Hello {{ student_name }},
+
+{{ teacher_name }} has left feedback on your practice entry from {{ practice_entry.practice_date|date:"l, F j, Y" }}.
+
+{% if practice_entry.pieces_practiced %}WHAT YOU PRACTISED:
+{{ practice_entry.pieces_practiced }}
+
+{% endif %}FEEDBACK FROM {{ teacher_name|upper }}:
+{{ practice_entry.teacher_comment }}
+
+View your practice log:
+{{ practice_log_url }}
+
+Best regards,
+The {{ site_name }} Team

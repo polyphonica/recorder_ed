@@ -1,0 +1,17 @@
+Subject: New Practice Materials Assigned by {{ teacher_name }}
+
+Hello {{ student_name }},
+
+{{ teacher_name }} has assigned you {{ total_count }} new practice item{{ total_count|pluralize }} to work on.
+{% if new_pieces %}
+PIECES:
+{% for piece in new_pieces %}- {{ piece.title }}{% if piece.composer %} — {{ piece.composer }}{% endif %}{% if piece.grade_level %} (Grade {{ piece.grade_level }}){% endif %}
+{% endfor %}{% endif %}{% if new_collections %}
+COLLECTIONS:
+{% for collection in new_collections %}- {{ collection.title }}{% if collection.grade_level %} (Grade {{ collection.grade_level }}){% endif %}
+{% endfor %}{% endif %}
+Log in to your dashboard to start practising:
+{{ dashboard_url }}
+
+Best regards,
+The {{ site_name }} Team
