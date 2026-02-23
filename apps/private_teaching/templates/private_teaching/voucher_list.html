@@ -203,7 +203,7 @@
                                 </div>
                             </td>
                             <td>
-                                {{ voucher.times_used }}{% if voucher.max_uses_total %}/{{ voucher.max_uses_total }}{% endif %}
+                                {{ voucher.redemption_count }}{% if voucher.max_uses_total %}/{{ voucher.max_uses_total }}{% endif %}
                             </td>
                             <td>
                                 {% if voucher.status == 'active' %}
@@ -234,7 +234,7 @@
                                             </button>
                                         {% endif %}
                                     </form>
-                                    {% if not voucher.times_used %}
+                                    {% if not voucher.redemption_count %}
                                         <button class="btn btn-outline btn-error btn-sm"
                                                 onclick="deleteVoucher{{ forloop.counter }}.showModal()"
                                                 title="Delete">
@@ -246,7 +246,7 @@
                         </tr>
 
                         <!-- Delete Modal -->
-                        {% if not voucher.times_used %}
+                        {% if not voucher.redemption_count %}
                         <dialog id="deleteVoucher{{ forloop.counter }}" class="modal">
                             <div class="modal-box">
                                 <h3 class="font-bold text-lg mb-4">Delete Voucher</h3>

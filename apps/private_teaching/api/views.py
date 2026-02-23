@@ -342,7 +342,7 @@ class SubmitBookingAPIView(APIView):
                 hasattr(teacher, 'availability_settings') and
                 teacher.availability_settings.auto_approve_bookings
             )
-            approved_status = 'Accepted' if auto_approve else 'Pending'
+            approved_status = Lesson.ApprovalStatus.ACCEPTED if auto_approve else Lesson.ApprovalStatus.PENDING
 
             # Second pass: Create all lessons (only after all validations pass)
             created_lessons = []
@@ -358,7 +358,7 @@ class SubmitBookingAPIView(APIView):
                     location=request.data.get('location', 'Online'),
                     approved_status=approved_status,
                     payment_status='pending',
-                    status='Draft'
+                    status=Lesson.Status.DRAFT
                 )
                 created_lessons.append(lesson)
 

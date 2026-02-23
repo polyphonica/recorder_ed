@@ -19,7 +19,16 @@ class Lesson(models.Model):
     NOSHOW = 'No-show'
     LEGALCANCEL = 'Legal-Cancel'
     ILLEGALCANCEL = 'Illegal-Cancel'
-    
+
+    class Status(models.TextChoices):
+        DRAFT    = 'Draft',    'Draft'
+        ASSIGNED = 'Assigned', 'Assigned'
+
+    class ApprovalStatus(models.TextChoices):
+        ACCEPTED = 'Accepted', 'Accepted'
+        REJECTED = 'Rejected', 'Rejected'
+        PENDING  = 'Pending',  'Pending'
+
     Location = [
         (ONLINE, 'Online'),
         (ONSITE, 'Onsite'),
@@ -29,15 +38,6 @@ class Lesson(models.Model):
         (NOSHOW, 'No-show'),
         (LEGALCANCEL, 'Legal-Cancel'),
         (ILLEGALCANCEL, 'Illegal-Cancel'),
-    ]
-    status = [
-        ('Draft', 'Draft'),
-        ('Assigned', 'Assigned'),
-    ]
-    approved_status = [
-        ('Accepted', 'Accepted'),
-        ('Rejected', 'Rejected'),
-        ('Pending', 'Pending'),
     ]
     DURATION = [
         ('30', '30'),
@@ -104,8 +104,8 @@ class Lesson(models.Model):
     )
     
     # Status fields
-    status = models.CharField(max_length=20, choices=status, default='Draft')
-    approved_status = models.CharField(max_length=20, choices=approved_status, default='Pending')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    approved_status = models.CharField(max_length=20, choices=ApprovalStatus.choices, default=ApprovalStatus.PENDING)
     payment_status = models.CharField(
         choices=PAYMENT_STATUS, max_length=20, default='pending')
     in_cart = models.BooleanField(default=False)
@@ -182,13 +182,13 @@ class Lesson(models.Model):
     @property
     def calendar_color(self):
         """Return color code for calendar display based on lesson status"""
-        if self.status == 'Assigned':
+        if self.status == Lesson.Status.ASSIGNED:
             return '#1e40af'  # Dark blue for assigned
         elif self.payment_status == 'completed':
             return '#3b82f6'  # Blue for paid
-        elif self.approved_status == 'Accepted':
+        elif self.approved_status == Lesson.ApprovalStatus.ACCEPTED:
             return '#10b981'  # Green for accepted but not paid
-        elif self.approved_status == 'Rejected':
+        elif self.approved_status == Lesson.ApprovalStatus.REJECTED:
             return '#ef4444'  # Red for rejected
         else:
             return '#f59e0b'  # Yellow/orange for pending

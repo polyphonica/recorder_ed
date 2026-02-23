@@ -219,8 +219,8 @@ class WorkshopSessionAdmin(admin.ModelAdmin):
     capacity_display.short_description = 'Capacity'
     
     def registration_count(self, obj):
-        registered = obj.registrations.filter(status='registered').count()
-        waitlisted = obj.registrations.filter(status='waitlisted').count()
+        registered = obj.registrations.filter(status=WorkshopRegistration.Status.REGISTERED).count()
+        waitlisted = obj.registrations.filter(status=WorkshopRegistration.Status.WAITLISTED).count()
         if waitlisted > 0:
             return f"{registered} (+{waitlisted} waitlisted)"
         return str(registered)

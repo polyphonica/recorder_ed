@@ -27,7 +27,7 @@ class CartManager(BaseCartManager):
             return False, "Lesson not found"
 
         # Verify lesson is approved and unpaid
-        if lesson.approved_status != 'Accepted':
+        if lesson.approved_status != Lesson.ApprovalStatus.ACCEPTED:
             return False, f"Only accepted lessons can be added to cart (status: {lesson.approved_status})"
 
         if lesson.payment_status == 'completed':
@@ -72,7 +72,7 @@ class CartManager(BaseCartManager):
 
         # Get all accepted, unpaid lessons from the request
         eligible_lessons = lesson_request.lessons.filter(
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             payment_status='pending'
         )
 

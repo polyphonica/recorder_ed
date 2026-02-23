@@ -328,7 +328,7 @@ class StripeWebhookView(View):
 
                 # Update payment status
                 registration.payment_status = 'completed'
-                registration.status = 'registered'
+                registration.status = WorkshopRegistration.Status.REGISTERED
                 registration.paid_at = timezone.now()
                 registration.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
                 registration.save()
@@ -339,7 +339,11 @@ class StripeWebhookView(View):
                 # Update session registration count
                 session = registration.session
                 session.current_registrations = session.registrations.filter(
-                    status__in=['registered', 'promoted', 'attended']
+                    status__in=[
+                        WorkshopRegistration.Status.REGISTERED,
+                        WorkshopRegistration.Status.PROMOTED,
+                        WorkshopRegistration.Status.ATTENDED,
+                    ]
                 ).count()
                 session.save(update_fields=['current_registrations'])
 
@@ -354,7 +358,7 @@ class StripeWebhookView(View):
                 workshop = session.workshop
                 workshop.total_registrations = WorkshopRegistration.objects.filter(
                     session__workshop=workshop,
-                    status__in=['registered', 'attended']
+                    status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.ATTENDED]
                 ).count()
                 workshop.save(update_fields=['total_registrations'])
 
@@ -458,7 +462,7 @@ class StripeWebhookView(View):
                         expectations=cart_item.expectations or '',
                         special_requirements=cart_item.special_requirements or '',
                         child_profile=cart_item.child_profile,
-                        status='registered',
+                        status=WorkshopRegistration.Status.REGISTERED,
                         payment_status='completed',
                         payment_amount=discounted_price,
                         stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
@@ -479,7 +483,11 @@ class StripeWebhookView(View):
                     # Update session registration count
                     session = cart_item.session
                     session.current_registrations = session.registrations.filter(
-                        status__in=['registered', 'promoted', 'attended']
+                        status__in=[
+                        WorkshopRegistration.Status.REGISTERED,
+                        WorkshopRegistration.Status.PROMOTED,
+                        WorkshopRegistration.Status.ATTENDED,
+                    ]
                     ).count()
                     session.save(update_fields=['current_registrations'])
 
@@ -487,7 +495,7 @@ class StripeWebhookView(View):
                     workshop = session.workshop
                     workshop.total_registrations = WorkshopRegistration.objects.filter(
                         session__workshop=workshop,
-                        status__in=['registered', 'attended']
+                        status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.ATTENDED]
                     ).count()
                     workshop.save(update_fields=['total_registrations'])
 

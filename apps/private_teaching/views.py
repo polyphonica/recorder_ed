@@ -8,7 +8,7 @@ from django.urls import reverse_lazy, reverse
 from django.http import JsonResponse, Http404
 from django.utils import timezone
 from django.db import transaction, models
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.core.mail import send_mail
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
@@ -363,7 +363,7 @@ class MyLessonRequestsView(UserFilterMixin, StudentProfileCompletedMixin, Studen
             eligible_lessons_count=Count(
                 'lessons',
                 filter=Q(
-                    lessons__approved_status='Accepted',
+                    lessons__approved_status=Lesson.ApprovalStatus.ACCEPTED,
                     lessons__payment_status='pending',
                     lessons__is_deleted=False
                 )
@@ -397,7 +397,7 @@ class StudentLessonRequestDetailView(StudentProfileCompletedMixin, StudentOnlyMi
 
         # Count eligible lessons (accepted and unpaid)
         eligible_lessons_count = lessons.filter(
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             payment_status='pending'
         ).count()
 
@@ -503,10 +503,10 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
         from django.db.models import Prefetch, Q
         pending_requests = LessonRequest.objects.filter(
             lessons__subject__teacher=self.request.user,
-            lessons__approved_status='Pending'
+            lessons__approved_status=Lesson.ApprovalStatus.PENDING
         ).distinct().select_related('student', 'child_profile').prefetch_related(
             Prefetch('lessons',
-                     queryset=Lesson.objects.select_related('subject').filter(approved_status='Pending'))
+                     queryset=Lesson.objects.select_related('subject').filter(approved_status=Lesson.ApprovalStatus.PENDING))
         )
 
         # Get today's lessons for this teacher
@@ -525,12 +525,12 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             is_deleted=False
         ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('lesson_date', 'lesson_time')[:10]
 
-        # Get paid lessons waiting to be assigned (payment_status='Paid' and status='Draft')
+        # Get paid lessons waiting to be assigned (payment_status='Paid' and status=Lesson.Status.DRAFT)
         # These are lessons that have been paid for but the teacher hasn't scheduled them yet
         paid_unassigned_lessons = Lesson.objects.filter(
             teacher=self.request.user,
             payment_status='completed',
-            status='Draft',
+            status=Lesson.Status.DRAFT,
             is_deleted=False
         ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('created_at')
 
@@ -613,14 +613,14 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
         upcoming_lessons = Lesson.objects.filter(
             student=self.request.user,
             lesson_date__gte=today,
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             is_deleted=False
         ).select_related('subject', 'teacher').order_by('lesson_date', 'lesson_time')[:5]
 
         # Get lessons awaiting payment (approved but not paid)
         awaiting_payment = Lesson.objects.filter(
             student=self.request.user,
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             payment_status='pending',
             is_deleted=False
         ).select_related('subject', 'teacher').order_by('lesson_date', 'lesson_time')[:5]
@@ -641,7 +641,7 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
         # Get all lessons for this student
         student_lessons = Lesson.objects.filter(
             student=self.request.user,
-            status='Assigned'
+            status=Lesson.Status.ASSIGNED
         )
 
         # Get all assignment links from these lessons
@@ -754,10 +754,10 @@ class LessonRequestDetailView(TeacherProfileCompletedMixin, TemplateView):
 
             for lesson in lessons:
                 # Mark rejected lessons as deleted (soft delete)
-                if lesson.approved_status == 'Rejected':
+                if lesson.approved_status == Lesson.ApprovalStatus.REJECTED:
                     lesson.is_deleted = True
                     rejected_lessons.append(lesson)
-                elif lesson.approved_status == 'Accepted':
+                elif lesson.approved_status == Lesson.ApprovalStatus.ACCEPTED:
                     accepted_lessons.append(lesson)
                 lesson.save()
 
@@ -838,7 +838,7 @@ class MyLessonsView(UserFilterMixin, StudentProfileCompletedMixin, StudentOnlyMi
         # UserFilterMixin automatically filters by student=self.request.user
         # Prefetch order_item to access price_paid for discount display
         return super().get_queryset().filter(
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             is_deleted=False
         ).select_related('subject', 'teacher', 'order_item').order_by('lesson_date', 'lesson_time')
 
@@ -899,9 +899,9 @@ class CalendarView(PrivateTeachingLoginRequiredMixin, TemplateView):
             # Determine color based on status hierarchy
             if lesson.payment_status == 'completed':
                 color = '#10b981'  # Green for paid lessons
-            elif lesson.approved_status == 'Accepted':
+            elif lesson.approved_status == Lesson.ApprovalStatus.ACCEPTED:
                 color = '#f59e0b'  # Yellow/amber for approved but not paid
-            elif lesson.approved_status == 'Rejected':
+            elif lesson.approved_status == Lesson.ApprovalStatus.REJECTED:
                 color = '#ef4444'  # Red for rejected
             else:
                 color = '#9ca3af'  # Gray for pending/draft
@@ -1104,11 +1104,16 @@ class VoucherListView(TeacherProfileCompletedMixin, TemplateView):
         from .forms import VoucherForm
 
         context = super().get_context_data(**kwargs)
-        vouchers = Voucher.objects.filter(created_by=self.request.user).order_by('-created_at')
+        vouchers = (
+            Voucher.objects
+            .filter(created_by=self.request.user)
+            .annotate(redemption_count=Count('redemptions'))
+            .order_by('-created_at')
+        )
 
         # Calculate stats
         active_vouchers = vouchers.filter(status='active')
-        total_redemptions = sum(v.times_used for v in vouchers)
+        total_redemptions = sum(v.redemption_count for v in vouchers)
 
         context['vouchers'] = vouchers
         context['active_count'] = active_vouchers.count()
@@ -1710,7 +1715,7 @@ class LessonDetailView(PrivateTeachingLoginRequiredMixin, View):
                 ).get(
                     id=lesson_id,
                     teacher=request.user,
-                    approved_status='Accepted'
+                    approved_status=Lesson.ApprovalStatus.ACCEPTED
                 )
             else:
                 lesson = Lesson.objects.select_related(
@@ -1718,7 +1723,7 @@ class LessonDetailView(PrivateTeachingLoginRequiredMixin, View):
                 ).get(
                     id=lesson_id,
                     student=request.user,
-                    approved_status='Accepted'
+                    approved_status=Lesson.ApprovalStatus.ACCEPTED
                 )
 
             # Get student name - use child's name if lesson is for a child
@@ -1765,9 +1770,9 @@ class StudentDocumentLibraryView(StudentProfileCompletedMixin, TemplateView):
         # Get student's lessons that are paid AND assigned (published)
         student_lessons = Lesson.objects.filter(
             student=self.request.user,
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             payment_status='completed',
-            status='Assigned',
+            status=Lesson.Status.ASSIGNED,
             is_deleted=False
         ).select_related('subject', 'teacher')
 
@@ -1817,7 +1822,7 @@ class TeacherDocumentLibraryView(TeacherProfileCompletedMixin, TemplateView):
         # Get teacher's lessons (all approved lessons they teach)
         teacher_lessons = Lesson.objects.filter(
             teacher=self.request.user,
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             is_deleted=False
         ).select_related('subject', 'student', 'teacher')
 
@@ -1858,7 +1863,7 @@ class TeacherDocumentLibraryView(TeacherProfileCompletedMixin, TemplateView):
         # Build list of students with proper display names (showing child names, not guardian names)
         lessons_for_students = Lesson.objects.filter(
             teacher=self.request.user,
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             is_deleted=False
         ).select_related('student__profile', 'lesson_request__child_profile').order_by('student').distinct('student')
 
@@ -1915,7 +1920,7 @@ class TeacherStudentsListView(TeacherProfileCompletedMixin, ListView):
         from lessons.models import Lesson
         student_ids = Lesson.objects.filter(
             teacher=self.request.user,
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             is_deleted=False
         ).values_list('student__id', flat=True).distinct()
 
@@ -1951,7 +1956,7 @@ class TeacherStudentsListView(TeacherProfileCompletedMixin, ListView):
             lessons = Lesson.objects.filter(
                 teacher=self.request.user,
                 student=student,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).select_related('subject', 'lesson_request', 'lesson_request__child_profile')
 
@@ -1959,7 +1964,7 @@ class TeacherStudentsListView(TeacherProfileCompletedMixin, ListView):
             subjects = Subject.objects.filter(
                 teacher=self.request.user,
                 lesson__student=student,
-                lesson__approved_status='Accepted',
+                lesson__approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 lesson__is_deleted=False
             ).distinct()
 
@@ -1996,7 +2001,7 @@ class StudentContactDetailView(TeacherProfileCompletedMixin, View):
             lesson_exists = Lesson.objects.filter(
                 teacher=request.user,
                 student_id=student_id,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).exists()
 
@@ -2064,7 +2069,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             lesson_exists = Lesson.objects.filter(
                 teacher=self.request.user,
                 student_id=student_id,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).exists()
 
@@ -2079,7 +2084,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             subjects = Subject.objects.filter(
                 teacher=self.request.user,
                 lesson__student=student,
-                lesson__approved_status='Accepted',
+                lesson__approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 lesson__is_deleted=False
             ).distinct()
             context['subjects'] = subjects
@@ -2088,7 +2093,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             total_lessons = Lesson.objects.filter(
                 teacher=self.request.user,
                 student=student,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).count()
             context['total_lessons'] = total_lessons
@@ -2098,7 +2103,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             lessons = Lesson.objects.filter(
                 teacher=self.request.user,
                 student=student,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).select_related('lesson_request__child_profile')
 
@@ -2342,7 +2347,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             lessons_queryset = Lesson.objects.filter(
                 teacher=self.request.user,
                 student=student,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).select_related('subject', 'lesson_request').annotate(
                 pieces_count=Count('lesson_pieces', distinct=True),
@@ -2399,7 +2404,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             timeline_lessons = Lesson.objects.filter(
                 teacher=self.request.user,
                 student=student,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).select_related('subject').prefetch_related(
                 'lesson_pieces__piece',
@@ -2546,7 +2551,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             # Get all students for this teacher (for next/previous navigation)
             all_student_ids = list(Lesson.objects.filter(
                 teacher=self.request.user,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).order_by('student__profile__last_name', 'student__profile__first_name').values_list('student__id', flat=True).distinct())
 
@@ -3533,7 +3538,7 @@ class LogPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateVi
         # Find teachers student has lessons with
         teacher_ids = Lesson.objects.filter(
             student=self.request.user,
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             is_deleted=False
         ).values_list('teacher__id', flat=True).distinct()
 
@@ -3557,7 +3562,7 @@ class LogPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateVi
                     has_lessons = Lesson.objects.filter(
                         student=request.user,
                         teacher=teacher,
-                        approved_status='Accepted',
+                        approved_status=Lesson.ApprovalStatus.ACCEPTED,
                         is_deleted=False
                     ).exists()
 
@@ -3570,7 +3575,7 @@ class LogPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateVi
                             'teachers': User.objects.filter(
                                 id__in=Lesson.objects.filter(
                                     student=request.user,
-                                    approved_status='Accepted',
+                                    approved_status=Lesson.ApprovalStatus.ACCEPTED,
                                     is_deleted=False
                                 ).values_list('teacher__id', flat=True).distinct()
                             ).select_related('profile')
@@ -3582,7 +3587,7 @@ class LogPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateVi
                         'teachers': User.objects.filter(
                             id__in=Lesson.objects.filter(
                                 student=request.user,
-                                approved_status='Accepted',
+                                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                                 is_deleted=False
                             ).values_list('teacher__id', flat=True).distinct()
                         ).select_related('profile')
@@ -3608,7 +3613,7 @@ class LogPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateVi
             'teachers': User.objects.filter(
                 id__in=Lesson.objects.filter(
                     student=request.user,
-                    approved_status='Accepted',
+                    approved_status=Lesson.ApprovalStatus.ACCEPTED,
                     is_deleted=False
                 ).values_list('teacher__id', flat=True).distinct()
             ).select_related('profile')
@@ -3863,7 +3868,7 @@ class TeacherStudentPracticeView(TeacherProfileCompletedMixin, ListView):
         has_lessons = Lesson.objects.filter(
             teacher=self.request.user,
             student=student,
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             is_deleted=False
         ).exists()
 
@@ -4036,7 +4041,7 @@ class EditPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, UpdateVie
         # Get teacher options (same as create)
         teacher_ids = Lesson.objects.filter(
             student=self.request.user,
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             is_deleted=False
         ).values_list('teacher__id', flat=True).distinct()
 
@@ -4050,7 +4055,7 @@ class EditPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, UpdateVie
             has_lessons = Lesson.objects.filter(
                 student=self.request.user,
                 teacher=teacher,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).exists()
 
@@ -5472,7 +5477,7 @@ class AssignPlayalongView(TeacherProfileCompletedMixin, View):
         # Verify teacher has lessons with this student
         if not Lesson.objects.filter(
             teacher=request.user, student=student,
-            approved_status='Accepted', is_deleted=False
+            approved_status=Lesson.ApprovalStatus.ACCEPTED, is_deleted=False
         ).exists():
             raise PermissionDenied()
 
@@ -5483,7 +5488,7 @@ class AssignPlayalongView(TeacherProfileCompletedMixin, View):
         child_profile = None
         lesson_with_child = Lesson.objects.filter(
             teacher=request.user, student=student,
-            approved_status='Accepted', is_deleted=False
+            approved_status=Lesson.ApprovalStatus.ACCEPTED, is_deleted=False
         ).select_related('lesson_request__child_profile').first()
         if lesson_with_child and lesson_with_child.lesson_request:
             child_profile = lesson_with_child.lesson_request.child_profile

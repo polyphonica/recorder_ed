@@ -322,7 +322,7 @@ def private_lesson_player(request, lesson_id):
         return redirect('lessons:lesson_list')
 
     # Check lesson status - only accessible when status is 'Assigned'
-    if lesson.status != 'Assigned' and not is_teacher:
+    if lesson.status != PrivateLesson.Status.ASSIGNED and not is_teacher:
         messages.error(request, 'This lesson is not yet available. Playalong content will be accessible when the teacher assigns the lesson.')
         return redirect('lessons:lesson_detail', pk=lesson_id)
 
@@ -369,7 +369,7 @@ def private_lesson_pieces_json(request, lesson_id):
         return JsonResponse({'error': 'Permission denied'}, status=403)
 
     # For students, only show when lesson status is 'Assigned'
-    if not is_teacher and lesson.status != 'Assigned':
+    if not is_teacher and lesson.status != PrivateLesson.Status.ASSIGNED:
         return JsonResponse({'error': 'Lesson not assigned yet'}, status=403)
 
     pieces_data = []
@@ -519,9 +519,9 @@ class PlayAlongLibraryView(TemplateView):
                 # Also include pieces from lesson-level assignments (backward compat)
                 student_lessons = PrivateLesson.objects.filter(
                     student=self.request.user,
-                    approved_status='Accepted',
+                    approved_status=PrivateLesson.ApprovalStatus.ACCEPTED,
                     payment_status='completed',
-                    status='Assigned',
+                    status=PrivateLesson.Status.ASSIGNED,
                     is_deleted=False
                 ).values_list('id', flat=True)
 

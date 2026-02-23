@@ -157,7 +157,7 @@ class AssignToStudentForm(forms.ModelForm):
             # Get all accepted lessons for this teacher with child profile info
             lessons = Lesson.objects.filter(
                 teacher=teacher,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).select_related('student', 'lesson_request', 'lesson_request__child_profile').distinct()
 
@@ -172,7 +172,7 @@ class AssignToStudentForm(forms.ModelForm):
                     has_completed_lesson = Lesson.objects.filter(
                         teacher=teacher,
                         student=lesson.student,
-                        approved_status='Accepted',
+                        approved_status=Lesson.ApprovalStatus.ACCEPTED,
                         lesson_date__lt=date.today()
                     ).exists()
 
@@ -213,7 +213,7 @@ class AssignToStudentForm(forms.ModelForm):
             # Filter lessons to only this teacher's accepted lessons
             self.fields['lesson'].queryset = Lesson.objects.filter(
                 teacher=teacher,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).select_related('lesson_request', 'lesson_request__child_profile', 'student').order_by('-lesson_date')
 

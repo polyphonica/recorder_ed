@@ -232,7 +232,7 @@ def teacher_submissions(request):
     # Get all lessons where this user is the teacher
     teacher_lessons = Lesson.objects.filter(
         subject__teacher=request.user,
-        status='Assigned'
+        status=Lesson.Status.ASSIGNED
     )
 
     # Get all assignment links from these lessons
@@ -353,7 +353,7 @@ def student_assignment_library(request):
     # Get all course lesson assignments
     student_lessons = Lesson.objects.filter(
         student=request.user,
-        status='Assigned'  # Only show assignments from assigned (published) lessons
+        status=Lesson.Status.ASSIGNED  # Only show assignments from assigned (published) lessons
     ).select_related('lesson_request', 'lesson_request__child_profile', 'subject', 'subject__teacher')
 
     lesson_ids = student_lessons.values_list('id', flat=True)

@@ -132,7 +132,7 @@ class LessonInline:
 
         # Send email if lesson was just published (Draft -> Assigned)
         new_status = self.object.status
-        if old_status == 'Draft' and new_status == 'Assigned':
+        if old_status == Lesson.Status.DRAFT and new_status == Lesson.Status.ASSIGNED:
             from lessons.notifications import LessonNotificationService
             teacher_name = self.request.user.get_full_name() or self.request.user.username
             LessonNotificationService.send_lesson_assigned_notification(
@@ -199,21 +199,21 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
             if self.request.user.profile.is_teacher:
                 # Teacher can view lessons for their subjects if approved
                 if lesson.teacher == self.request.user:
-                    if lesson.approved_status == 'Accepted':
+                    if lesson.approved_status == Lesson.ApprovalStatus.ACCEPTED:
                         user_can_view = True
                     else:
                         error_message = "This lesson has not been approved yet."
             elif self.request.user.profile.is_student or getattr(self.request.user.profile, 'is_guardian', False):
                 # Students and guardians can only view their own lessons if approved, paid, and assigned
                 if lesson.student == self.request.user:
-                    if lesson.approved_status != 'Accepted':
+                    if lesson.approved_status != Lesson.ApprovalStatus.ACCEPTED:
                         error_message = "This lesson is still awaiting teacher approval."
                     elif lesson.payment_status != 'completed':
                         raise LessonAccessBlocked(
                             "Please submit payment for this lesson.",
                             lesson,
                         )
-                    elif lesson.status != 'Assigned':
+                    elif lesson.status != Lesson.Status.ASSIGNED:
                         error_message = "Your teacher is still preparing the lesson content. You will be notified when it's ready."
                     else:
                         user_can_view = True

@@ -153,12 +153,13 @@ class LessonRequest(PayableModel):
         if not lessons:
             return 'draft'
 
+        from lessons.models import Lesson  # local import to avoid circular import
         statuses = lessons.values_list('approved_status', flat=True)
-        if all(s == 'Accepted' for s in statuses):
+        if all(s == Lesson.ApprovalStatus.ACCEPTED for s in statuses):
             return 'accepted'
-        elif all(s == 'Rejected' for s in statuses):
+        elif all(s == Lesson.ApprovalStatus.REJECTED for s in statuses):
             return 'rejected'
-        elif any(s == 'Pending' for s in statuses):
+        elif any(s == Lesson.ApprovalStatus.PENDING for s in statuses):
             return 'pending'
         return 'mixed'
 
@@ -1523,6 +1524,9 @@ class PrivateLessonAssignment(models.Model):
     Links assignments to private teaching context
     Can be linked to a specific lesson or standalone
     """
+    # Stage 3: Retire this model. Replace with LessonAssignment (lessons.Lesson.assignments M2M).
+    # Blockers: standalone assignments and child_profile targeting not yet in LessonAssignment;
+    # a data migration is required before removal.
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     assignment = models.ForeignKey(
         'assignments.Assignment',
