@@ -354,9 +354,9 @@
                                         {% endif %}
                                     </td>
                                     <td class="text-lg">
-                                        {% if lesson.payment_status == 'Paid' %}
+                                        {% if lesson.payment_status == 'completed' %}
                                             <span class="badge badge-success badge-lg">Paid</span>
-                                        {% elif lesson.payment_status == 'Not Paid' %}
+                                        {% elif lesson.payment_status == 'pending' %}
                                             <span class="badge badge-warning badge-lg">Not Paid</span>
                                         {% elif lesson.payment_status == 'Payment In Process' %}
                                             <span class="badge badge-info badge-lg">Processing</span>

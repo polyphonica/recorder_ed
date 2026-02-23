@@ -36,8 +36,8 @@
             <div class="flex flex-wrap gap-4 items-center">
                 <div class="flex gap-2">
                     <button class="btn btn-sm btn-outline" onclick="filterLessons('all')">All</button>
-                    <button class="btn btn-sm btn-outline" onclick="filterLessons('Paid')">Paid</button>
-                    <button class="btn btn-sm btn-outline" onclick="filterLessons('Not Paid')">Unpaid</button>
+                    <button class="btn btn-sm btn-outline" onclick="filterLessons('completed')">Paid</button>
+                    <button class="btn btn-sm btn-outline" onclick="filterLessons('pending')">Unpaid</button>
                 </div>
                 <div class="flex gap-2">
                     <button class="btn btn-sm btn-outline" onclick="filterLocation('all')">All Locations</button>
@@ -75,7 +75,7 @@
                                             <h3 class="card-title text-lg">
                                                 {{ lesson.subject.subject }}
                                                 <span class="badge badge-outline badge-sm">{{ lesson.get_location_display }}</span>
-                                                {% if lesson.payment_status == 'Paid' %}
+                                                {% if lesson.payment_status == 'completed' %}
                                                     <span class="badge badge-success badge-sm">Paid</span>
                                                 {% else %}
                                                     <span class="badge badge-warning badge-sm">Unpaid</span>
@@ -132,7 +132,7 @@
                                                 <i class="fas fa-hourglass-half mr-2"></i>In Preparation
                                             </button>
                                         {% endif %}
-                                        {% if lesson.payment_status == 'Not Paid' %}
+                                        {% if lesson.payment_status == 'pending' %}
                                             <form method="post" action="{% url 'private_teaching:add_to_cart' lesson.id %}" class="inline">
                                                 {% csrf_token %}
                                                 <button type="submit" class="btn btn-warning btn-sm">
@@ -209,7 +209,7 @@
                                 </td>
                                 <td>
                                     <div class="flex flex-col gap-1">
-                                        {% if lesson.payment_status == 'Paid' %}
+                                        {% if lesson.payment_status == 'completed' %}
                                             <span class="badge badge-success badge-sm">Paid</span>
                                         {% else %}
                                             <span class="badge badge-warning badge-sm">Unpaid</span>
@@ -230,7 +230,7 @@
                                                 <i class="fas fa-hourglass-half"></i>
                                             </button>
                                         {% endif %}
-                                        {% if lesson.payment_status == 'Not Paid' %}
+                                        {% if lesson.payment_status == 'pending' %}
                                             <form method="post" action="{% url 'private_teaching:add_to_cart' lesson.id %}" class="inline">
                                                 {% csrf_token %}
                                                 <button type="submit" class="btn btn-xs btn-warning" title="Add to Cart">
@@ -419,7 +419,7 @@ function openLessonModal(lessonId) {
         .then(response => response.json())
         .then(data => {
             // Format the lesson details
-            const paymentStatusBadge = data.payment_status === 'Paid'
+            const paymentStatusBadge = data.payment_status === 'completed'
                 ? '<span class="badge badge-success">Paid</span>'
                 : '<span class="badge badge-warning">Unpaid</span>';
 
@@ -477,7 +477,7 @@ function openLessonModal(lessonId) {
             `;
 
             // Show "Add to Cart" button only for unpaid lessons
-            if (data.payment_status === 'Not Paid') {
+            if (data.payment_status === 'pending') {
                 modalPayButton.style.display = 'inline-flex';
                 modalPayButton.onclick = function() {
                     // Create and submit a form to add to cart

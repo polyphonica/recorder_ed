@@ -77,7 +77,7 @@
                 <div class="text-sm">
                     {% if is_within_policy %}
                         <p>✓ This request is within our 48-hour cancellation policy.</p>
-                        {% if lesson.payment_status == 'Paid' %}
+                        {% if lesson.payment_status == 'completed' %}
                             <p>✓ Eligible for refund: £{{ refund_amount|floatformat:2 }} (lesson fee minus £{{ platform_fee|floatformat:2 }} non-refundable platform fee)</p>
                         {% endif %}
                     {% else %}
