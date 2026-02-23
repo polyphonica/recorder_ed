@@ -10,7 +10,7 @@
         <ul>
             <li><a href="{% url 'private_teaching:home' %}">Private Teaching</a></li>
             <li><a href="{% url 'private_teaching:student_dashboard' %}">Dashboard</a></li>
-            <li><a href="{% url 'private_teaching:practice_log' %}">Practice Log</a></li>
+            <li><a href="{% url 'practice:practice_log' %}">Practice Log</a></li>
             <li>{% if entry %}Edit Entry{% else %}Log Session{% endif %}</li>
         </ul>
     </div>
@@ -211,7 +211,7 @@
 
             <!-- Submit Buttons -->
             <div class="flex gap-4 justify-end">
-                <a href="{% url 'private_teaching:practice_log' %}" class="btn btn-ghost">Cancel</a>
+                <a href="{% url 'practice:practice_log' %}" class="btn btn-ghost">Cancel</a>
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save mr-2"></i>
                     {% if entry %}Update Entry{% else %}Log Practice Session{% endif %}
