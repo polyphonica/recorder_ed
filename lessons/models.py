@@ -36,17 +36,17 @@ class Lesson(models.Model):
         (LEGALCANCEL, 'Legal-Cancel'),
         (ILLEGALCANCEL, 'Illegal-Cancel'),
     ]
+    class PaymentStatus(models.TextChoices):
+        NOT_REQUIRED = 'not_required', 'Not Required'
+        PENDING      = 'pending',      'Pending Payment'
+        COMPLETED    = 'completed',    'Payment Completed'
+        FAILED       = 'failed',       'Payment Failed'
+
     DURATION = [
         ('30', '30'),
         ('60', '60'),
         ('90', '90'),
     ]
-    PAYMENT_STATUS = (
-        ('not_required', 'Not Required'),
-        ('pending', 'Pending Payment'),
-        ('completed', 'Payment Completed'),
-        ('failed', 'Payment Failed'),
-    )
     
     # Primary key
     id = models.UUIDField(
@@ -104,7 +104,7 @@ class Lesson(models.Model):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     approved_status = models.CharField(max_length=20, choices=ApprovalStatus.choices, default=ApprovalStatus.PENDING)
     payment_status = models.CharField(
-        choices=PAYMENT_STATUS, max_length=20, default='pending')
+        choices=PaymentStatus.choices, max_length=20, default=PaymentStatus.PENDING)
     in_cart = models.BooleanField(default=False)
     is_deleted = models.BooleanField(
         default=False,
@@ -181,7 +181,7 @@ class Lesson(models.Model):
         """Return color code for calendar display based on lesson status"""
         if self.status == Lesson.Status.ASSIGNED:
             return '#1e40af'  # Dark blue for assigned
-        elif self.payment_status == 'completed':
+        elif self.payment_status == Lesson.PaymentStatus.COMPLETED:
             return '#3b82f6'  # Blue for paid
         elif self.approved_status == Lesson.ApprovalStatus.ACCEPTED:
             return '#10b981'  # Green for accepted but not paid
@@ -484,17 +484,11 @@ class LessonAttachedUrl(models.Model):
 
 # Keep the LessonOrder model for backward compatibility with existing payment system
 class LessonOrder(models.Model):
-    PAYMENT_STATUS = (
-        ('not_required', 'Not Required'),
-        ('pending', 'Pending Payment'),
-        ('completed', 'Payment Completed'),
-        ('failed', 'Payment Failed'),
-    )
     # Will need to reference student profile from private_teaching app
     # student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE)
     lessons = models.ManyToManyField(Lesson)
     payment_status = models.CharField(
-        choices=PAYMENT_STATUS, max_length=20, default='not_required')
+        choices=Lesson.PaymentStatus.choices, max_length=20, default=Lesson.PaymentStatus.NOT_REQUIRED)
     transaction_id = models.CharField(max_length=100, null=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
