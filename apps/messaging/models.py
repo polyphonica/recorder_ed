@@ -58,7 +58,7 @@ class Conversation(models.Model):
         'accounts.ChildProfile',
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='teaching_conversations',
         help_text="Child this conversation is about (if applicable)"
     )

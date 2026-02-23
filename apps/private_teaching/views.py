@@ -364,7 +364,7 @@ class MyLessonRequestsView(UserFilterMixin, StudentProfileCompletedMixin, Studen
                 'lessons',
                 filter=Q(
                     lessons__approved_status='Accepted',
-                    lessons__payment_status='Not Paid',
+                    lessons__payment_status='pending',
                     lessons__is_deleted=False
                 )
             ),
@@ -398,7 +398,7 @@ class StudentLessonRequestDetailView(StudentProfileCompletedMixin, StudentOnlyMi
         # Count eligible lessons (accepted and unpaid)
         eligible_lessons_count = lessons.filter(
             approved_status='Accepted',
-            payment_status='Not Paid'
+            payment_status='pending'
         ).count()
 
         context.update({
@@ -437,7 +437,7 @@ def delete_lesson_from_request(request, lesson_id):
     )
 
     # Only allow deleting lessons that haven't been paid
-    if lesson.payment_status == 'Paid':
+    if lesson.payment_status == 'completed':
         messages.error(request, 'Cannot delete a lesson that has already been paid for.')
         return redirect('private_teaching:student_request_detail', request_id=lesson.lesson_request.id)
 
@@ -529,7 +529,7 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
         # These are lessons that have been paid for but the teacher hasn't scheduled them yet
         paid_unassigned_lessons = Lesson.objects.filter(
             teacher=self.request.user,
-            payment_status='Paid',
+            payment_status='completed',
             status='Draft',
             is_deleted=False
         ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('created_at')
@@ -621,7 +621,7 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
         awaiting_payment = Lesson.objects.filter(
             student=self.request.user,
             approved_status='Accepted',
-            payment_status='Not Paid',
+            payment_status='pending',
             is_deleted=False
         ).select_related('subject', 'teacher').order_by('lesson_date', 'lesson_time')[:5]
 
@@ -847,8 +847,8 @@ class MyLessonsView(UserFilterMixin, StudentProfileCompletedMixin, StudentOnlyMi
 
         # Separate paid and unpaid lessons
         lessons = self.get_queryset()
-        context['paid_lessons'] = lessons.filter(payment_status='Paid')
-        context['unpaid_lessons'] = lessons.filter(payment_status='Not Paid')
+        context['paid_lessons'] = lessons.filter(payment_status='completed')
+        context['unpaid_lessons'] = lessons.filter(payment_status='pending')
 
         return context
 
@@ -897,7 +897,7 @@ class CalendarView(PrivateTeachingLoginRequiredMixin, TemplateView):
             end_datetime = lesson_datetime + timedelta(minutes=duration_minutes)
 
             # Determine color based on status hierarchy
-            if lesson.payment_status == 'Paid':
+            if lesson.payment_status == 'completed':
                 color = '#10b981'  # Green for paid lessons
             elif lesson.approved_status == 'Accepted':
                 color = '#f59e0b'  # Yellow/amber for approved but not paid
@@ -1418,7 +1418,7 @@ class ProcessPaymentView(StudentProfileCompletedMixin, View):
                 lesson_ids.append(str(cart_item.lesson.id))
 
                 # Mark lesson as paid
-                cart_item.lesson.payment_status = 'Paid'
+                cart_item.lesson.payment_status = 'completed'
                 cart_item.lesson.in_cart = False
                 cart_item.lesson.save()
 
@@ -1616,7 +1616,7 @@ class CheckoutSuccessView(StudentProfileCompletedMixin, BaseCheckoutSuccessView)
             # Mark all lessons in this order as Paid
             for order_item in order.items.select_related('lesson'):
                 lesson = order_item.lesson
-                lesson.payment_status = 'Paid'
+                lesson.payment_status = 'completed'
                 lesson.save(update_fields=['payment_status'])
 
             # Handle voucher redemption if applicable
@@ -1766,7 +1766,7 @@ class StudentDocumentLibraryView(StudentProfileCompletedMixin, TemplateView):
         student_lessons = Lesson.objects.filter(
             student=self.request.user,
             approved_status='Accepted',
-            payment_status='Paid',
+            payment_status='completed',
             status='Assigned',
             is_deleted=False
         ).select_related('subject', 'teacher')
@@ -4114,7 +4114,7 @@ class RequestLessonCancellationView(StudentProfileCompletedMixin, StudentOnlyMix
         # Calculate potential refund amount (lesson fee minus platform fee)
         # Platform fee is typically 10% - adjust as needed
         PLATFORM_FEE_PERCENTAGE = 0.10
-        if lesson.fee and lesson.payment_status == 'Paid':
+        if lesson.fee and lesson.payment_status == 'completed':
             platform_fee = lesson.fee * PLATFORM_FEE_PERCENTAGE
             refund_amount = lesson.fee - platform_fee
         else:

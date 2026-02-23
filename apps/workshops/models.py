@@ -985,7 +985,7 @@ class WorkshopCartItem(models.Model):
     )
     child_profile = models.ForeignKey(
         'accounts.ChildProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='workshop_cart_items',
         null=True,
         blank=True,

@@ -208,7 +208,7 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
                 if lesson.student == self.request.user:
                     if lesson.approved_status != 'Accepted':
                         error_message = "This lesson is still awaiting teacher approval."
-                    elif lesson.payment_status != 'Paid':
+                    elif lesson.payment_status != 'completed':
                         raise LessonAccessBlocked(
                             "Please submit payment for this lesson.",
                             lesson,

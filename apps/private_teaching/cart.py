@@ -30,7 +30,7 @@ class CartManager(BaseCartManager):
         if lesson.approved_status != 'Accepted':
             return False, f"Only accepted lessons can be added to cart (status: {lesson.approved_status})"
 
-        if lesson.payment_status == 'Paid':
+        if lesson.payment_status == 'completed':
             return False, "This lesson has already been paid for"
 
         cart, error_tuple = self._get_cart_or_error()
@@ -73,7 +73,7 @@ class CartManager(BaseCartManager):
         # Get all accepted, unpaid lessons from the request
         eligible_lessons = lesson_request.lessons.filter(
             approved_status='Accepted',
-            payment_status='Not Paid'
+            payment_status='pending'
         )
 
         if not eligible_lessons.exists():

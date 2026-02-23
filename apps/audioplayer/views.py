@@ -520,7 +520,7 @@ class PlayAlongLibraryView(TemplateView):
                 student_lessons = PrivateLesson.objects.filter(
                     student=self.request.user,
                     approved_status='Accepted',
-                    payment_status='Paid',
+                    payment_status='completed',
                     status='Assigned',
                     is_deleted=False
                 ).values_list('id', flat=True)

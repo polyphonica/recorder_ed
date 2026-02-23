@@ -287,7 +287,7 @@ class AvailabilityEngineTestCase(TestCase):
             duration_in_minutes=60,
             location='Online',
             approved_status='Accepted',
-            payment_status='Not Paid',
+            payment_status='pending',
             status='Draft'
         )
 
@@ -333,7 +333,7 @@ class AvailabilityEngineTestCase(TestCase):
             duration_in_minutes=60,
             location='Online',
             approved_status='Accepted',
-            payment_status='Not Paid',
+            payment_status='pending',
             status='Draft'
         )
 

@@ -30,7 +30,7 @@ class PayableModel(models.Model):
     # Note: Use related_name='%(class)s_set' to avoid clashes between models
     child_profile = models.ForeignKey(
         'accounts.ChildProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='%(app_label)s_%(class)s_set',
         null=True,
         blank=True,

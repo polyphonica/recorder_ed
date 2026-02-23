@@ -241,9 +241,9 @@ class StripeWebhookView(View):
                         try:
                             # Lesson IDs are UUIDs, not integers - don't convert
                             lesson = Lesson.objects.get(id=lesson_id.strip())
-                            lesson.payment_status = 'Paid'
+                            lesson.payment_status = 'completed'
                             lesson.save()
-                            logger.info(f"Marked lesson {lesson_id} as Paid")
+                            logger.info(f"Marked lesson {lesson_id} as completed")
                         except (Lesson.DoesNotExist, ValueError) as e:
                             logger.error(f"updating lesson {lesson_id}: {e}")
 

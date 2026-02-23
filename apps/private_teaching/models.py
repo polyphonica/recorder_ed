@@ -423,7 +423,7 @@ class TeacherStudentApplication(models.Model):
     # If applying for a child
     child_profile = models.ForeignKey(
         'accounts.ChildProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='private_teaching_applications',
         null=True,
         blank=True,
@@ -1064,7 +1064,7 @@ class LessonCancellationRequest(BaseCancellationRequest):
             eligible = False
 
         # Lesson must have been paid
-        if self.lesson.payment_status != 'Paid':
+        if self.lesson.payment_status != 'completed':
             eligible = False
 
         # Must be requesting a cancellation (not just reschedule)
@@ -1123,7 +1123,7 @@ class PracticeEntry(models.Model):
     )
     child_profile = models.ForeignKey(
         'accounts.ChildProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='practice_entries',
@@ -1544,7 +1544,7 @@ class PrivateLessonAssignment(models.Model):
     )
     child_profile = models.ForeignKey(
         'accounts.ChildProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='assignments_received',
@@ -1878,7 +1878,7 @@ class PrivateLessonQuizAssignment(models.Model):
     )
     child_profile = models.ForeignKey(
         'accounts.ChildProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='assigned_quizzes',
@@ -2198,7 +2198,7 @@ class StudentPieceAssignment(models.Model):
     )
     child_profile = models.ForeignKey(
         'accounts.ChildProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='assigned_pieces',
@@ -2251,7 +2251,7 @@ class StudentCollectionAssignment(models.Model):
     )
     child_profile = models.ForeignKey(
         'accounts.ChildProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='assigned_collections',

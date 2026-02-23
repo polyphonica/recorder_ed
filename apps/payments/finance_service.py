@@ -595,7 +595,7 @@ class FinanceService:
         # Get paid lessons and group by student and subject
         lessons_query = Lesson.objects.filter(
             teacher=teacher,
-            payment_status='Paid',
+            payment_status='completed',
             is_deleted=False
         ).select_related('student', 'subject', 'order_item__order')
 
@@ -729,7 +729,7 @@ class FinanceService:
         # Get all paid lessons for this teacher
         lessons_query = Lesson.objects.filter(
             teacher=teacher,
-            payment_status='Paid',
+            payment_status='completed',
             is_deleted=False
         ).select_related('subject', 'student')
 

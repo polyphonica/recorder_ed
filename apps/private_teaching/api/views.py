@@ -357,7 +357,7 @@ class SubmitBookingAPIView(APIView):
                     duration_in_minutes=validated_lesson['duration'],
                     location=request.data.get('location', 'Online'),
                     approved_status=approved_status,
-                    payment_status='Not Paid',
+                    payment_status='pending',
                     status='Draft'
                 )
                 created_lessons.append(lesson)
