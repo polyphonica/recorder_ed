@@ -22,6 +22,8 @@ from .models import (
     StudentPieceAssignment, StudentCollectionAssignment
 )
 from .notifications import TeacherNotificationService, StudentNotificationService
+from apps.exams.models import ExamRegistration
+from apps.practice.models import PracticeEntry
 from apps.scheduling.availability_engine import check_slot_availability
 from lessons.models import Lesson, Document, LessonAttachedUrl, LessonAssignment
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, RescheduleForm, TeacherInitiateCancellationForm
