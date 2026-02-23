@@ -4,9 +4,6 @@ from django_ckeditor_5.fields import CKEditor5Field
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
-# Import models from other apps
-from apps.private_teaching.models import Subject, LessonRequest
-
 import uuid
 
 User = get_user_model()
@@ -59,12 +56,12 @@ class Lesson(models.Model):
 
     # Relationships
     lesson_request = models.ForeignKey(
-        LessonRequest,
+        'private_teaching.LessonRequest',
         on_delete=models.CASCADE,
         related_name='lessons',
         help_text="The lesson request this lesson belongs to"
     )
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    subject = models.ForeignKey('private_teaching.Subject', on_delete=models.CASCADE)
     student = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

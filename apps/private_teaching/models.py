@@ -10,11 +10,9 @@ from decimal import Decimal
 import uuid
 
 from apps.core.models import PayableModel, BaseCancellationRequest
+from lessons.models import Lesson
 
 User = get_user_model()
-
-# NOTE: Lesson model is imported at runtime to avoid circular import
-# from lessons.models import Lesson
 
 
 class Subject(models.Model):
@@ -153,7 +151,6 @@ class LessonRequest(PayableModel):
         if not lessons:
             return 'draft'
 
-        from lessons.models import Lesson  # local import to avoid circular import
         statuses = lessons.values_list('approved_status', flat=True)
         if all(s == Lesson.ApprovalStatus.ACCEPTED for s in statuses):
             return 'accepted'
