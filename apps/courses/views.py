@@ -996,6 +996,20 @@ class CourseCheckoutSuccessView(BaseCheckoutSuccessView):
     def get_object_queryset(self):
         return CourseEnrollment.objects.select_related('course', 'student', 'child_profile')
 
+    def perform_post_checkout_actions(self, obj):
+        """Confirm payment status via Stripe session as fallback if webhook hasn't fired yet"""
+        if obj.payment_status == 'pending' and obj.stripe_checkout_session_id:
+            try:
+                from apps.payments.stripe_service import retrieve_session
+                from django.utils import timezone
+                session = retrieve_session(obj.stripe_checkout_session_id)
+                if session and session.payment_status == 'paid':
+                    obj.payment_status = 'completed'
+                    obj.paid_at = timezone.now()
+                    obj.save(update_fields=['payment_status', 'paid_at'])
+            except Exception:
+                pass  # Webhook will handle it
+
     def get_context_extras(self, obj):
         return {
             'enrollment': obj,
