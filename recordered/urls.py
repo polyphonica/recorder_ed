@@ -46,6 +46,7 @@ urlpatterns = [
     path('private-teaching/', include('apps.private_teaching.urls')),
     path('private-teaching/', include('apps.practice.urls')),
     path('private-teaching/', include('apps.exams.urls')),
+    path('private-teaching/', include('apps.scheduling.urls')),
     path('lessons/', include('lessons.urls')),
     path('assignments/', include('assignments.urls')),
     path('lesson-templates/', include('apps.lesson_templates.urls')),

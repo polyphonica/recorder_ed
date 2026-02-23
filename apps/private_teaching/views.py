@@ -24,7 +24,7 @@ from .models import (
     StudentPieceAssignment, StudentCollectionAssignment
 )
 from .notifications import TeacherNotificationService, StudentNotificationService
-from .availability_engine import check_slot_availability
+from apps.scheduling.availability_engine import check_slot_availability
 from lessons.models import Lesson, Document, LessonAttachedUrl, LessonAssignment
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, RescheduleForm, TeacherInitiateCancellationForm
 from .quiz_forms import (
@@ -1270,17 +1270,6 @@ class UpdateZoomLinkView(TeacherProfileCompletedMixin, View):
             messages.success(request, 'Default Zoom link cleared successfully!')
 
         return redirect('private_teaching:teacher_settings')
-
-
-class TeacherAvailabilityEditorView(TeacherProfileCompletedMixin, TemplateView):
-    """Teacher availability calendar editor"""
-    template_name = 'private_teaching/teacher_availability_editor.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # All data will be loaded via API, but we pass the user ID for API calls
-        context['teacher_id'] = self.request.user.id
-        return context
 
 
 # Cart Views
