@@ -1,7 +1,7 @@
 from django import forms
 from django_ckeditor_5.widgets import CKEditor5Widget
 from .models import Assignment, AssignmentSubmission, Tag
-from apps.private_teaching.models import PrivateLessonAssignment
+from lessons.models import LessonAssignment
 from django.contrib.auth.models import User
 
 
@@ -121,7 +121,7 @@ class AssignToStudentForm(forms.ModelForm):
     """Form for assigning an assignment to a student"""
 
     class Meta:
-        model = PrivateLessonAssignment
+        model = LessonAssignment
         fields = ['student', 'lesson', 'due_date']
         widgets = {
             'student': forms.Select(attrs={

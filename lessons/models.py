@@ -335,7 +335,12 @@ class PrivateLessonCollection(models.Model):
 
 
 class LessonAssignment(models.Model):
-    """Through model for associating homework assignments with lessons"""
+    """
+    Links homework assignments to lessons or directly to students (standalone).
+    Replaces PrivateLessonAssignment as the single canonical assignment-link model.
+    Lesson-linked: lesson is set, student/teacher derived from lesson.
+    Standalone: lesson is null, student/teacher/child_profile set explicitly.
+    """
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -345,13 +350,40 @@ class LessonAssignment(models.Model):
         Lesson,
         on_delete=models.CASCADE,
         related_name='lesson_assignments',
-        help_text="The lesson this assignment is homework for"
+        null=True,
+        blank=True,
+        help_text="The lesson this assignment is homework for (null for standalone)"
     )
     assignment = models.ForeignKey(
         'assignments.Assignment',
         on_delete=models.CASCADE,
         related_name='lesson_assignments',
         help_text="The homework assignment"
+    )
+    # For standalone assignments (lesson=null): explicit student/teacher/child_profile
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='standalone_assignments_received',
+        help_text="Student (standalone only; lesson-linked derive from lesson.student)"
+    )
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='standalone_assignments_given',
+        help_text="Teacher (standalone only; lesson-linked derive from lesson.subject.teacher)"
+    )
+    child_profile = models.ForeignKey(
+        'accounts.ChildProfile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lesson_assignments_received',
+        help_text="Optional: specific child this assignment is for"
     )
     due_date = models.DateTimeField(
         null=True,
@@ -372,10 +404,53 @@ class LessonAssignment(models.Model):
         ordering = ['order', 'assigned_at']
         verbose_name = 'Lesson Assignment'
         verbose_name_plural = 'Lesson Assignments'
-        unique_together = ['lesson', 'assignment']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['lesson', 'assignment'],
+                condition=models.Q(lesson__isnull=False),
+                name='unique_lesson_assignment_per_lesson'
+            )
+        ]
 
     def __str__(self):
-        return f"{self.assignment.title} for {self.lesson}"
+        student = self.effective_student
+        student_name = (student.get_full_name() or student.username) if student else 'Unknown'
+        lesson_info = f" (Lesson: {self.lesson.lesson_date})" if self.lesson else " (Standalone)"
+        return f"{self.assignment.title} → {student_name}{lesson_info}"
+
+    @property
+    def effective_student(self):
+        """Student for this assignment — explicit for standalone, derived for lesson-linked"""
+        return self.student if self.student_id else (self.lesson.student if self.lesson_id else None)
+
+    @property
+    def effective_teacher(self):
+        """Teacher for this assignment — explicit for standalone, derived for lesson-linked"""
+        return self.teacher if self.teacher_id else (self.lesson.subject.teacher if self.lesson_id else None)
+
+    @property
+    def submission(self):
+        """Get the submission for this assignment (if exists)"""
+        from assignments.models import AssignmentSubmission
+        student = self.effective_student
+        if not student:
+            return None
+        try:
+            return AssignmentSubmission.objects.get(student=student, assignment=self.assignment)
+        except AssignmentSubmission.DoesNotExist:
+            return None
+
+    @property
+    def is_submitted(self):
+        """Check if student has submitted"""
+        sub = self.submission
+        return sub is not None and sub.status in ['submitted', 'graded']
+
+    @property
+    def is_graded(self):
+        """Check if submission is graded"""
+        sub = self.submission
+        return sub is not None and sub.status == 'graded'
 
     @property
     def is_overdue(self):
@@ -383,7 +458,7 @@ class LessonAssignment(models.Model):
         if not self.due_date:
             return False
         from django.utils import timezone
-        return timezone.now() > self.due_date
+        return timezone.now() > self.due_date and not self.is_submitted
 
 
 class Document(models.Model):

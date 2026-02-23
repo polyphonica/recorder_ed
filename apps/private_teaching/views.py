@@ -18,7 +18,7 @@ from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, Use
 from .models import (
     LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem,
     TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard,
-    LessonCancellationRequest, PracticeEntry, PrivateLessonAssignment,
+    LessonCancellationRequest, PracticeEntry,
     PrivateLessonQuiz, PrivateLessonQuizQuestion, PrivateLessonQuizAnswer,
     PrivateLessonQuizAssignment, PrivateLessonQuizAttempt,
     StudentPieceAssignment, StudentCollectionAssignment
@@ -2145,11 +2145,13 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
 
             # ===== ASSIGNMENTS SECTION =====
             from assignments.models import AssignmentSubmission
+            from lessons.models import LessonAssignment
+            from django.db.models import Q as DQ
 
-            assignments = PrivateLessonAssignment.objects.filter(
-                teacher=self.request.user,
-                student=student
-            ).select_related('assignment').prefetch_related('assignment__submissions')
+            assignments = LessonAssignment.objects.filter(
+                DQ(lesson__student=student, lesson__subject__teacher=self.request.user) |
+                DQ(student=student, teacher=self.request.user, lesson__isnull=True)
+            ).select_related('assignment')
 
             # Annotate assignments with status
             assignment_data = []
@@ -2469,28 +2471,19 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
 
                 # Add assignments from this lesson
                 for la in lesson.lesson_assignments.all():
-                    # Find submission status
-                    submission = None
+                    # Use submission property (effective_student = lesson.student for lesson-linked)
+                    submission = la.submission
                     status = 'not_started'
                     grade_display = '—'
 
-                    # Check if there's a PrivateLessonAssignment linking to this assignment
-                    pla = PrivateLessonAssignment.objects.filter(
-                        assignment=la.assignment,
-                        student=student,
-                        teacher=self.request.user
-                    ).first()
-
-                    if pla:
-                        submission = pla.submission
-                        if submission:
-                            if submission.status == 'graded':
-                                status = 'graded'
-                                grade_display = la.assignment.format_grade(submission.grade) if submission.grade else '—'
-                            elif submission.status == 'submitted':
-                                status = 'submitted'
-                            else:
-                                status = 'in_progress'
+                    if submission:
+                        if submission.status == 'graded':
+                            status = 'graded'
+                            grade_display = la.assignment.format_grade(submission.grade) if submission.grade else '—'
+                        elif submission.status == 'submitted':
+                            status = 'submitted'
+                        else:
+                            status = 'in_progress'
 
                     lesson_entry['items'].append({
                         'type': 'assignment',
@@ -2500,7 +2493,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
                         'subtitle': f'Assignment - {status.replace("_", " ").title()}',
                         'status': status,
                         'grade': grade_display,
-                        'due_date': pla.due_date if pla else None,
+                        'due_date': la.due_date,
                     })
 
                 # Only add lesson to timeline if it has content
