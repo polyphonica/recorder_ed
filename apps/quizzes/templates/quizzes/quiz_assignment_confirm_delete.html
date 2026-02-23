@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delete Assignment - Recorder-ed{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="card card-section shadow-lg">
+        <div class="card-body">
+            <h2 class="card-title text-error mb-4">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                Confirm Assignment Deletion
+            </h2>
+
+            <div class="alert alert-warning mb-6">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <h3 class="font-bold">Warning: This action cannot be undone!</h3>
+                    <p class="text-sm">Deleting this assignment will also delete all student attempts and scores.</p>
+                </div>
+            </div>
+
+            <div class="space-y-3 mb-6">
+                <div>
+                    <span class="text-base-content/60">Quiz:</span>
+                    <span class="font-bold ml-2">{{ object.quiz.title }}</span>
+                </div>
+                <div>
+                    <span class="text-base-content/60">Student:</span>
+                    <span class="font-bold ml-2">
+                        {{ object.student.get_full_name|default:object.student.username }}
+                        {% if object.child_profile %}({{ object.child_profile.full_name }}){% endif %}
+                    </span>
+                </div>
+                <div>
+                    <span class="text-base-content/60">Attempts:</span>
+                    <span class="font-bold ml-2">{{ object.attempts.count }}</span>
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="flex gap-3 justify-end">
+                    <a href="{% url 'quizzes:quiz_assignment_detail' object.pk %}" class="btn btn-ghost">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-error">
+                        <i class="fas fa-trash mr-2"></i>Yes, Delete Assignment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

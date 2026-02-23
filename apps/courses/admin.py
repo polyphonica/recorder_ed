@@ -7,7 +7,6 @@ from django.utils.html import format_html
 from .models import (
     Course, Topic, Lesson, LessonAttachment,
     CourseEnrollment, LessonProgress,
-    Quiz, QuizQuestion, QuizAnswer, QuizAttempt,
     CourseMessage, CourseCertificate,
     CourseTermsAndConditions, CourseTermsAcceptance,
     CourseCancellationRequest
@@ -41,22 +40,6 @@ class LessonAttachmentInline(admin.TabularInline):
     model = LessonAttachment
     extra = 0
     fields = ['title', 'file', 'file_type', 'order']
-    ordering = ['order']
-
-
-class QuizQuestionInline(admin.TabularInline):
-    """Inline admin for Questions within Quiz admin"""
-    model = QuizQuestion
-    extra = 0
-    fields = ['order', 'text', 'points']
-    ordering = ['order']
-
-
-class QuizAnswerInline(admin.TabularInline):
-    """Inline admin for Answers within QuizQuestion admin"""
-    model = QuizAnswer
-    extra = 0
-    fields = ['order', 'text', 'is_correct']
     ordering = ['order']
 
 
@@ -289,141 +272,7 @@ class LessonProgressAdmin(admin.ModelAdmin):
         )
 
 
-@admin.register(Quiz)
-class QuizAdmin(admin.ModelAdmin):
-    """Admin interface for Quiz model"""
-    list_display = [
-        'title', 'lesson', 'status', 'pass_percentage',
-        'get_question_count', 'created_at'
-    ]
-    list_filter = ['status', 'created_at', 'lesson__topic__course']
-    search_fields = ['title', 'description', 'lesson__lesson_title']
-    readonly_fields = ['id', 'created_at', 'updated_at', 'get_question_count']
-    fieldsets = (
-        ('Quiz Information', {
-            'fields': ('lesson', 'title', 'description', 'pass_percentage', 'status')
-        }),
-        ('Statistics', {
-            'fields': ('get_question_count',)
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-        ('IDs', {
-            'fields': ('id',),
-            'classes': ('collapse',)
-        }),
-    )
-    inlines = [QuizQuestionInline]
-
-    def get_question_count(self, obj):
-        """Display number of questions"""
-        return obj.questions.count()
-    get_question_count.short_description = 'Questions'
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('lesson', 'lesson__topic', 'lesson__topic__course')
-
-
-@admin.register(QuizQuestion)
-class QuizQuestionAdmin(admin.ModelAdmin):
-    """Admin interface for QuizQuestion model"""
-    list_display = ['get_text_preview', 'quiz', 'order', 'points', 'created_at']
-    list_filter = ['quiz', 'created_at']
-    search_fields = ['text', 'quiz__title']
-    readonly_fields = ['id', 'created_at']
-    inlines = [QuizAnswerInline]
-
-    def get_text_preview(self, obj):
-        """Display preview of question text"""
-        from django.utils.html import strip_tags
-        text = strip_tags(obj.text)
-        return text[:75] + '...' if len(text) > 75 else text
-    get_text_preview.short_description = 'Question'
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('quiz', 'quiz__lesson')
-
-
-@admin.register(QuizAnswer)
-class QuizAnswerAdmin(admin.ModelAdmin):
-    """Admin interface for QuizAnswer model"""
-    list_display = ['text', 'question', 'is_correct_display', 'order', 'created_at']
-    list_filter = ['is_correct', 'created_at']
-    search_fields = ['text', 'question__text']
-    readonly_fields = ['id', 'created_at']
-
-    def is_correct_display(self, obj):
-        """Display correct/incorrect with icon"""
-        if obj.is_correct:
-            return format_html('<span style="color: green;">✓ Correct</span>')
-        return format_html('<span style="color: red;">✗ Incorrect</span>')
-    is_correct_display.short_description = 'Correct?'
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('question', 'question__quiz')
-
-
-@admin.register(QuizAttempt)
-class QuizAttemptAdmin(admin.ModelAdmin):
-    """Admin interface for QuizAttempt model"""
-    list_display = [
-        'enrollment', 'quiz', 'score_display',
-        'passed_display', 'started_at', 'submitted_at'
-    ]
-    list_filter = ['passed', 'started_at', 'quiz']
-    search_fields = [
-        'enrollment__student__username',
-        'enrollment__student__email',
-        'quiz__title'
-    ]
-    readonly_fields = [
-        'id', 'started_at', 'submitted_at',
-        'score', 'passed', 'answers_data'
-    ]
-    fieldsets = (
-        ('Attempt Information', {
-            'fields': ('enrollment', 'quiz')
-        }),
-        ('Results', {
-            'fields': ('score', 'passed', 'started_at', 'submitted_at')
-        }),
-        ('Answers', {
-            'fields': ('answers_data',),
-            'classes': ('collapse',)
-        }),
-        ('IDs', {
-            'fields': ('id',),
-            'classes': ('collapse',)
-        }),
-    )
-
-    def score_display(self, obj):
-        """Display score with color"""
-        color = 'green' if obj.passed else 'red'
-        return format_html(
-            '<span style="color: {};">{:.2f}%</span>',
-            color, obj.score
-        )
-    score_display.short_description = 'Score'
-
-    def passed_display(self, obj):
-        """Display pass/fail status with icon"""
-        if obj.passed:
-            return format_html('<span style="color: green;">✓ Passed</span>')
-        return format_html('<span style="color: red;">✗ Failed</span>')
-    passed_display.short_description = 'Status'
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related(
-            'enrollment', 'enrollment__student', 'enrollment__course',
-            'quiz', 'quiz__lesson'
-        )
+# Quiz admin moved to apps.quizzes.admin
 
 
 @admin.register(CourseMessage)

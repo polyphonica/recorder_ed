@@ -275,6 +275,7 @@ class Topic(models.Model):
             ).values_list('lesson_id', flat=True)
         )
 
+        from apps.quizzes.models import Quiz, QuizAttempt
         quiz_ids = [
             lesson.quiz.pk
             for lesson in published_lessons
@@ -282,10 +283,10 @@ class Topic(models.Model):
         ]
         passed_quiz_ids = set(
             QuizAttempt.objects.filter(
-                enrollment=enrollment,
-                quiz_id__in=quiz_ids,
+                assignment__course_enrollment=enrollment,
+                assignment__quiz_id__in=quiz_ids,
                 passed=True,
-            ).values_list('quiz_id', flat=True)
+            ).values_list('assignment__quiz_id', flat=True)
         ) if quiz_ids else set()
 
         for lesson in published_lessons:
@@ -615,191 +616,7 @@ class LessonProgress(models.Model):
             self.enrollment.check_and_mark_complete()
 
 
-# ============================================================================
-# QUIZ MODELS
-# ============================================================================
-
-class Quiz(models.Model):
-    """
-    Quiz associated with a lesson (one-to-one relationship).
-    """
-
-    class Status(models.TextChoices):
-        DRAFT     = 'draft',     'Draft'
-        PUBLISHED = 'published', 'Published'
-
-    STATUS_CHOICES = Status.choices  # kept for backwards-compat with migrations
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name='quiz')
-
-    title = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
-    pass_percentage = models.PositiveIntegerField(
-        default=70,
-        help_text='Minimum percentage required to pass (0-100)'
-    )
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        verbose_name_plural = 'Quizzes'
-
-    def __str__(self):
-        return f"Quiz: {self.lesson.lesson_title}"
-
-    def get_questions(self):
-        """Get all questions ordered by order field"""
-        return self.questions.all().order_by('order')
-
-    @property
-    def total_points(self):
-        """Calculate total possible points"""
-        return sum(q.points for q in self.questions.all())
-
-
-class QuizQuestion(models.Model):
-    """
-    Individual question within a quiz.
-    Uses CKEditor for rich content (images, formatting, etc.)
-    """
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='questions')
-
-    text = CKEditor5Field('question', config_name='default')
-    order = models.PositiveIntegerField(default=0, help_text='Display order')
-    points = models.PositiveIntegerField(default=1, help_text='Points for correct answer')
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['order']
-
-    def __str__(self):
-        # Strip HTML tags for display
-        from django.utils.html import strip_tags
-        text = strip_tags(self.text)
-        return text[:75] + '...' if len(text) > 75 else text
-
-    def get_answers(self):
-        """Get all answers ordered by order field"""
-        return self.answers.all().order_by('order')
-
-    def get_correct_answer(self):
-        """Get the correct answer for this question"""
-        return self.answers.filter(is_correct=True).first()
-
-
-class QuizAnswer(models.Model):
-    """
-    Multiple choice answer for a quiz question.
-    Only one answer should be marked as correct per question.
-    """
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    question = models.ForeignKey(QuizQuestion, on_delete=models.CASCADE, related_name='answers')
-
-    text = models.CharField(max_length=200)
-    is_correct = models.BooleanField(default=False)
-    order = models.PositiveIntegerField(default=0)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['order']
-
-    def __str__(self):
-        correct_marker = " ✓" if self.is_correct else ""
-        return f"{self.text}{correct_marker}"
-
-
-class QuizAttempt(models.Model):
-    """
-    Records each attempt a student makes at a quiz.
-    Students can retake quizzes unlimited times.
-    """
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    enrollment = models.ForeignKey(
-        CourseEnrollment,
-        on_delete=models.CASCADE,
-        related_name='quiz_attempts'
-    )
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='attempts')
-
-    started_at = models.DateTimeField(auto_now_add=True)
-    submitted_at = models.DateTimeField(null=True, blank=True)
-
-    score = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        default=0,
-        help_text='Score as a percentage (0-100)'
-    )
-    passed = models.BooleanField(default=False)
-
-    # Store student's answers as JSON: {question_id: answer_id}
-    answers_data = models.JSONField(default=dict, blank=True)
-
-    class Meta:
-        ordering = ['-started_at']
-        indexes = [
-            models.Index(fields=['enrollment', 'quiz']),
-            models.Index(fields=['quiz', 'passed']),
-        ]
-
-    def __str__(self):
-        student_name = self.enrollment.student.get_full_name() or self.enrollment.student.username
-        status = "✓" if self.passed else "✗"
-        return f"{status} {student_name} - {self.quiz.title} ({self.score}%)"
-
-    def calculate_score(self):
-        """
-        Calculate score based on answers_data.
-        Returns percentage score.
-        """
-        if not self.answers_data:
-            return 0
-
-        questions = list(self.quiz.questions.prefetch_related('answers').all())
-
-        answer_correctness = {
-            str(answer.id): answer.is_correct
-            for question in questions
-            for answer in question.answers.all()
-        }
-
-        total_points = 0
-        earned_points = 0
-
-        for question in questions:
-            total_points += question.points
-            student_answer_id = self.answers_data.get(str(question.id))
-            if student_answer_id and answer_correctness.get(str(student_answer_id)):
-                earned_points += question.points
-
-        if total_points == 0:
-            return 0
-        return round((earned_points / total_points) * 100, 2)
-
-    def grade(self):
-        """
-        Grade the quiz attempt and update score and passed status.
-        """
-        self.score = self.calculate_score()
-        self.passed = self.score >= self.quiz.pass_percentage
-        self.submitted_at = timezone.now()
-        self.save()
-
-        return {
-            'score': self.score,
-            'passed': self.passed,
-            'pass_percentage': self.quiz.pass_percentage
-        }
-
+# Quiz models moved to apps.quizzes
 
 # ============================================================================
 # MESSAGING MODELS

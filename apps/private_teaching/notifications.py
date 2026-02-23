@@ -146,7 +146,7 @@ class TeacherNotificationService(BaseNotificationService):
                 return False
 
             results_url = TeacherNotificationService.build_absolute_url(
-                'private_teaching:teacher_quiz_attempt_results',
+                'quizzes:teacher_quiz_attempt_results',
                 kwargs={'pk': attempt.pk}
             )
 
@@ -711,7 +711,7 @@ class StudentNotificationService(BaseNotificationService):
                 return False
 
             quiz_url = StudentNotificationService.build_absolute_url(
-                'private_teaching:quiz_take',
+                'quizzes:quiz_take',
                 kwargs={'assignment_id': assignment.pk}
             )
 

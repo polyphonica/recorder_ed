@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Quizzes - Recorder-ed{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold mb-2">My Quizzes</h1>
+        <p class="text-base-content/70">Quizzes assigned to you by your teachers</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="card card-section shadow-lg mb-6">
+        <div class="card-body">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Status Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Status</span>
+                    </label>
+                    <select name="status" class="select select-bordered w-full">
+                        <option value="">All Statuses</option>
+                        <option value="assigned" {% if selected_status == "assigned" %}selected{% endif %}>Not Started</option>
+                        <option value="in_progress" {% if selected_status == "in_progress" %}selected{% endif %}>In Progress</option>
+                        <option value="completed" {% if selected_status == "completed" %}selected{% endif %}>Completed</option>
+                    </select>
+                </div>
+
+                <!-- Child Filter (if guardian) -->
+                {% if child_profiles %}
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Child</span>
+                        </label>
+                        <select name="child" class="select select-bordered w-full">
+                            <option value="">All Children</option>
+                            {% for child in child_profiles %}
+                                <option value="{{ child.id }}" {% if selected_child == child.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ child.full_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+
+                <div class="md:col-span-2 flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter mr-2"></i>Filter
+                    </button>
+                    <a href="{% url 'quizzes:student_quiz_list' %}" class="btn btn-ghost">
+                        <i class="fas fa-times mr-2"></i>Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quiz Cards -->
+    {% if assignments %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for assignment in assignments %}
+                <div class="card card-section shadow-xl hover:shadow-2xl transition-shadow">
+                    <div class="card-body">
+                        <!-- Status Badge -->
+                        <div class="flex justify-between items-start mb-3">
+                            <h2 class="card-title text-lg">{{ assignment.quiz.title }}</h2>
+                            {% if assignment.status == 'completed' %}
+                                <div class="badge badge-success">Completed</div>
+                            {% elif assignment.status == 'in_progress' %}
+                                <div class="badge badge-warning">In Progress</div>
+                            {% else %}
+                                <div class="badge badge-ghost">Assigned</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Teacher Info -->
+                        <div class="flex items-center gap-2 mb-3 text-sm">
+                            <i class="fas fa-chalkboard-teacher text-primary"></i>
+                            <span>{{ assignment.teacher.get_full_name|default:assignment.teacher.username }}</span>
+                        </div>
+
+                        <!-- Quiz Info -->
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center gap-2 text-sm">
+                                <i class="fas fa-question-circle text-primary"></i>
+                                <span>{{ assignment.quiz.questions.count }} question{{ assignment.quiz.questions.count|pluralize }}</span>
+                            </div>
+
+                            {% if assignment.quiz.time_limit_minutes %}
+                                <div class="flex items-center gap-2 text-sm">
+                                    <i class="fas fa-clock text-primary"></i>
+                                    <span>{{ assignment.quiz.time_limit_minutes }} minutes</span>
+                                </div>
+                            {% endif %}
+
+                            <div class="flex items-center gap-2 text-sm">
+                                <i class="fas fa-trophy text-primary"></i>
+                                <span>Pass: {{ assignment.quiz.pass_percentage }}%</span>
+                            </div>
+
+                            {% if assignment.due_date %}
+                                <div class="flex items-center gap-2 text-sm">
+                                    <i class="fas fa-calendar text-primary"></i>
+                                    <span>Due: {{ assignment.due_date|date:"M j, Y" }}</span>
+                                    {% if assignment.due_date < now and assignment.status != 'completed' %}
+                                        <div class="badge badge-error badge-xs">Overdue</div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Attempts Info -->
+                        {% if assignment.attempts.count > 0 %}
+                            <div class="divider my-2"></div>
+                            <div class="space-y-1">
+                                <div class="text-sm">
+                                    <span class="text-base-content/60">Attempts:</span>
+                                    <span class="font-semibold">{{ assignment.attempts.count }}</span>
+                                    {% if assignment.quiz.max_attempts %}
+                                        / {{ assignment.quiz.max_attempts }}
+                                    {% endif %}
+                                </div>
+
+                                {% with assignment.attempts.all|dictsort:"score"|last as best_attempt %}
+                                    {% if best_attempt.submitted_at %}
+                                        <div class="text-sm">
+                                            <span class="text-base-content/60">Best Score:</span>
+                                            <span class="font-semibold {% if best_attempt.passed %}text-success{% else %}text-error{% endif %}">
+                                                {{ best_attempt.score|floatformat:1 }}%
+                                            </span>
+                                            {% if best_attempt.passed %}
+                                                <i class="fas fa-check-circle text-success ml-1"></i>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                        {% endif %}
+
+                        <!-- Teacher Notes -->
+                        {% if assignment.notes %}
+                            <div class="alert alert-info py-2 mt-3">
+                                <i class="fas fa-comment text-sm"></i>
+                                <p class="text-xs line-clamp-2">{{ assignment.notes }}</p>
+                            </div>
+                        {% endif %}
+
+                        <!-- Actions -->
+                        <div class="card-actions justify-end mt-auto pt-4 border-t border-base-300">
+                            {% if assignment.status == 'completed' and assignment.quiz.allow_retakes %}
+                                {% if assignment.quiz.max_attempts %}
+                                    {% if assignment.attempts.count < assignment.quiz.max_attempts %}
+                                        <a href="{% url 'quizzes:quiz_take' assignment.pk %}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-redo mr-1"></i>Retake Quiz
+                                        </a>
+                                    {% else %}
+                                        <span class="text-sm text-base-content/60">Max attempts reached</span>
+                                    {% endif %}
+                                {% else %}
+                                    <a href="{% url 'quizzes:quiz_take' assignment.pk %}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-redo mr-1"></i>Retake Quiz
+                                    </a>
+                                {% endif %}
+                                {% with assignment.attempts.all.0 as last_attempt %}
+                                    {% if last_attempt and last_attempt.submitted_at %}
+                                        <a href="{% url 'quizzes:quiz_attempt_results' last_attempt.pk %}" class="btn btn-ghost btn-sm">
+                                            <i class="fas fa-eye mr-1"></i>View Results
+                                        </a>
+                                    {% endif %}
+                                {% endwith %}
+                            {% else %}
+                                {% with assignment.attempts.all|first as latest_attempt %}
+                                    {% if latest_attempt and not latest_attempt.submitted_at %}
+                                        {# Has incomplete attempt - show Continue #}
+                                        <a href="{% url 'quizzes:quiz_take' assignment.pk %}" class="btn btn-warning btn-sm">
+                                            <i class="fas fa-play-circle mr-1"></i>Continue Quiz
+                                        </a>
+                                    {% else %}
+                                        {# No incomplete attempt - show Start #}
+                                        <a href="{% url 'quizzes:quiz_take' assignment.pk %}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-play mr-1"></i>Start Quiz
+                                        </a>
+                                    {% endif %}
+                                {% endwith %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <div class="flex justify-center mt-8">
+                <div class="btn-group">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_child %}&child={{ selected_child }}{% endif %}"
+                           class="btn btn-sm">«</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_child %}&child={{ selected_child }}{% endif %}"
+                           class="btn btn-sm">‹</a>
+                    {% endif %}
+                    <button class="btn btn-sm btn-active">Page {{ page_obj.number }}</button>
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_child %}&child={{ selected_child }}{% endif %}"
+                           class="btn btn-sm">›</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_child %}&child={{ selected_child }}{% endif %}"
+                           class="btn btn-sm">»</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-16">
+            <i class="fas fa-clipboard-question text-6xl text-base-content/20 mb-4"></i>
+            <h3 class="text-2xl font-bold mb-2">No Quizzes Yet</h3>
+            {% if selected_status or selected_child %}
+                <p class="text-base-content/70 mb-4">Try adjusting your filters</p>
+                <a href="{% url 'quizzes:student_quiz_list' %}" class="btn btn-ghost">
+                    <i class="fas fa-times mr-2"></i>Clear Filters
+                </a>
+            {% else %}
+                <p class="text-base-content/70">Your teacher will assign quizzes to you</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+</div>
+{% endblock %}

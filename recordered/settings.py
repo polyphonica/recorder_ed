@@ -84,6 +84,7 @@ INSTALLED_APPS = [
     'apps.practice',
     'apps.exams',
     'apps.scheduling',
+    'apps.quizzes',
     'apps.expenses',
     'apps.courses',
     'apps.digital_products',

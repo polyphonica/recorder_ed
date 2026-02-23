@@ -24,9 +24,9 @@ from apps.core.views import (
 from .models import (
     Course, Topic, Lesson, LessonAttachment,
     CourseEnrollment, LessonProgress,
-    Quiz, QuizQuestion, QuizAnswer, QuizAttempt,
     CourseMessage, CourseCancellationRequest
 )
+from apps.quizzes.models import Quiz, QuizQuestion, QuizAttempt, QuizAssignment
 from .mixins import InstructorRequiredMixin, CourseInstructorMixin, EnrollmentRequiredMixin
 from .forms import (
     CourseAdminForm, QuizAnswerFormSet, CourseMessageForm, MessageReplyForm,
@@ -443,7 +443,7 @@ class QuizManageView(CourseOwnershipMixin, CourseContextMixin, InstructorRequire
 
         # Get or create quiz for this lesson
         quiz, created = Quiz.objects.get_or_create(
-            lesson=self.object,
+            course_lesson=self.object,
             defaults={
                 'title': f'Quiz: {self.object.lesson_title}',
                 'status': Quiz.Status.DRAFT
@@ -466,7 +466,7 @@ class QuizUpdateView(InstructorRequiredMixin, View):
     """
     def post(self, request, quiz_id):
         quiz = get_object_or_404(Quiz, id=quiz_id)
-        lesson = quiz.lesson
+        lesson = quiz.course_lesson
 
         # Verify ownership
         if not lesson.topic.course.is_owned_by(request.user):
@@ -522,9 +522,8 @@ class QuizQuestionCreateView(InstructorRequiredMixin, CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         # Get quiz and verify ownership
-        from .models import Quiz
         self.quiz = get_object_or_404(Quiz, id=kwargs['quiz_id'])
-        lesson = self.quiz.lesson
+        lesson = self.quiz.course_lesson
 
         if not lesson.topic.course.is_owned_by(request.user):
             messages.error(request, 'Permission denied')
@@ -543,9 +542,9 @@ class QuizQuestionCreateView(InstructorRequiredMixin, CreateView):
 
         # Set context vars based on self.quiz
         context['quiz'] = self.quiz
-        context['lesson'] = self.quiz.lesson
-        context['course'] = self.quiz.lesson.topic.course
-        context['topic'] = self.quiz.lesson.topic
+        context['lesson'] = self.quiz.course_lesson
+        context['course'] = self.quiz.course_lesson.topic.course
+        context['topic'] = self.quiz.course_lesson.topic
 
         return context
 
@@ -581,7 +580,7 @@ class QuizQuestionCreateView(InstructorRequiredMixin, CreateView):
             return self.form_invalid(form)
 
     def get_success_url(self):
-        return reverse('courses:manage_quiz', kwargs={'lesson_id': self.quiz.lesson.id})
+        return reverse('courses:manage_quiz', kwargs={'lesson_id': self.quiz.course_lesson.id})
 
 
 class QuizQuestionUpdateView(CourseOwnershipMixin, CourseContextMixin, InstructorRequiredMixin, UpdateView):
@@ -629,7 +628,7 @@ class QuizQuestionUpdateView(CourseOwnershipMixin, CourseContextMixin, Instructo
             return self.form_invalid(form)
 
     def get_success_url(self):
-        return reverse('courses:manage_quiz', kwargs={'lesson_id': self.object.quiz.lesson.id})
+        return reverse('courses:manage_quiz', kwargs={'lesson_id': self.object.quiz.course_lesson.id})
 
 
 class QuizQuestionDeleteView(CourseOwnershipMixin, CourseContextMixin, InstructorRequiredMixin, DeleteView):
@@ -641,7 +640,7 @@ class QuizQuestionDeleteView(CourseOwnershipMixin, CourseContextMixin, Instructo
     pk_url_kwarg = 'question_id'
 
     def get_success_url(self):
-        return reverse('courses:manage_quiz', kwargs={'lesson_id': self.object.quiz.lesson.id})
+        return reverse('courses:manage_quiz', kwargs={'lesson_id': self.object.quiz.course_lesson.id})
 
     def delete(self, request, *args, **kwargs):
         # Add success message before deleting
@@ -1197,10 +1196,9 @@ class LessonViewView(LoginRequiredMixin, DetailView):
 
         if has_quiz and enrollment:
             # Get best passing attempt for this quiz
-            from .models import QuizAttempt
             best_attempt = QuizAttempt.objects.filter(
-                enrollment=enrollment,
-                quiz=self.object.quiz,
+                assignment__course_enrollment=enrollment,
+                assignment__quiz=self.object.quiz,
                 passed=True
             ).order_by('-score').first()
             quiz_passed = best_attempt is not None
@@ -1301,10 +1299,9 @@ class MarkLessonCompleteView(LoginRequiredMixin, View):
 
         if has_quiz:
             # Check if student has passed the quiz
-            from .models import QuizAttempt
             quiz_passed = QuizAttempt.objects.filter(
-                enrollment=enrollment,
-                quiz=lesson.quiz,
+                assignment__course_enrollment=enrollment,
+                assignment__quiz=lesson.quiz,
                 passed=True
             ).exists()
 
@@ -1371,10 +1368,9 @@ class QuizTakeView(LoginRequiredMixin, DetailView):
         questions = quiz.get_questions()
 
         # Get previous attempts
-        from .models import QuizAttempt
         previous_attempts = QuizAttempt.objects.filter(
-            enrollment=self.enrollment,
-            quiz=quiz,
+            assignment__course_enrollment=self.enrollment,
+            assignment__quiz=quiz,
             submitted_at__isnull=False
         ).order_by('-submitted_at')
 
@@ -1423,11 +1419,13 @@ class QuizSubmitView(LoginRequiredMixin, View):
         except json.JSONDecodeError:
             return JsonResponse({'success': False, 'error': 'Invalid data'}, status=400)
 
-        # Create quiz attempt
-        from .models import QuizAttempt
-        attempt = QuizAttempt.objects.create(
-            enrollment=enrollment,
+        # Get or create quiz assignment, then create attempt
+        assignment, _ = QuizAssignment.objects.get_or_create(
             quiz=quiz,
+            course_enrollment=enrollment,
+        )
+        attempt = QuizAttempt.objects.create(
+            assignment=assignment,
             answers_data=answers
         )
 
@@ -1494,7 +1492,7 @@ class CourseAnalyticsView(LoginRequiredMixin, TemplateView):
 
             # Calculate average quiz score for this course
             quiz_attempts = QuizAttempt.objects.filter(
-                quiz__lesson__topic__course=course,
+                assignment__quiz__course_lesson__topic__course=course,
                 submitted_at__isnull=False
             )
             avg_quiz_score = quiz_attempts.aggregate(Avg('score'))['score__avg'] or 0
@@ -1552,10 +1550,10 @@ class CourseStudentListView(LoginRequiredMixin, InstructorRequiredMixin, DetailV
                 distinct=True
             ),
             quizzes_passed=Count(
-                'quiz_attempts__quiz',
+                'quiz_assignments__quiz',
                 filter=Q(
-                    quiz_attempts__passed=True,
-                    quiz_attempts__quiz__lesson__topic__course=course
+                    quiz_assignments__attempts__passed=True,
+                    quiz_assignments__quiz__course_lesson__topic__course=course
                 ),
                 distinct=True
             )
@@ -1568,8 +1566,8 @@ class CourseStudentListView(LoginRequiredMixin, InstructorRequiredMixin, DetailV
         ).count()
 
         total_quizzes = Quiz.objects.filter(
-            lesson__topic__course=course,
-            lesson__status=Lesson.Status.PUBLISHED,
+            course_lesson__topic__course=course,
+            course_lesson__status=Lesson.Status.PUBLISHED,
             status=Quiz.Status.PUBLISHED
         ).count()
 
@@ -1578,9 +1576,9 @@ class CourseStudentListView(LoginRequiredMixin, InstructorRequiredMixin, DetailV
         for enrollment in enrollments:
             # Get best quiz scores
             quiz_attempts = QuizAttempt.objects.filter(
-                enrollment=enrollment,
+                assignment__course_enrollment=enrollment,
                 submitted_at__isnull=False
-            ).values('quiz').annotate(
+            ).values('assignment__quiz').annotate(
                 best_score=Max('score')
             )
 
@@ -1672,8 +1670,8 @@ class StudentProgressDetailView(LoginRequiredMixin, InstructorRequiredMixin, Tem
 
                     # Get all attempts for this quiz
                     attempts = QuizAttempt.objects.filter(
-                        enrollment=enrollment,
-                        quiz=quiz,
+                        assignment__course_enrollment=enrollment,
+                        assignment__quiz=quiz,
                         submitted_at__isnull=False
                     ).order_by('-submitted_at')
 
@@ -1770,8 +1768,8 @@ class StudentCourseProgressView(LoginRequiredMixin, TemplateView):
 
                     # Get all attempts for this quiz
                     attempts = QuizAttempt.objects.filter(
-                        enrollment=enrollment,
-                        quiz=quiz,
+                        assignment__course_enrollment=enrollment,
+                        assignment__quiz=quiz,
                         submitted_at__isnull=False
                     ).order_by('-submitted_at')
 
@@ -1807,9 +1805,9 @@ class StudentCourseProgressView(LoginRequiredMixin, TemplateView):
 
         # Calculate overall quiz performance
         all_quiz_attempts = QuizAttempt.objects.filter(
-            enrollment=enrollment,
+            assignment__course_enrollment=enrollment,
             submitted_at__isnull=False
-        ).values('quiz').annotate(
+        ).values('assignment__quiz').annotate(
             best_score=Max('score')
         )
 

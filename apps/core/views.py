@@ -706,7 +706,8 @@ class CourseOwnershipMixin:
         Extract the Course object from various model types.
         Override this if you have custom model relationships.
         """
-        from apps.courses.models import Course, Topic, Lesson, Quiz, QuizQuestion
+        from apps.courses.models import Course, Topic, Lesson
+        from apps.quizzes.models import Quiz, QuizQuestion
 
         if isinstance(obj, Course):
             return obj
@@ -715,9 +716,9 @@ class CourseOwnershipMixin:
         elif isinstance(obj, Lesson):
             return obj.topic.course
         elif isinstance(obj, Quiz):
-            return obj.lesson.topic.course
+            return obj.course_lesson.topic.course if obj.course_lesson else None
         elif isinstance(obj, QuizQuestion):
-            return obj.quiz.lesson.topic.course
+            return obj.quiz.course_lesson.topic.course if obj.quiz.course_lesson else None
         else:
             # Try generic attribute access
             if hasattr(obj, 'course'):
@@ -766,7 +767,8 @@ class CourseContextMixin:
         context = super().get_context_data(**kwargs)
 
         if hasattr(self, 'object') and self.object:
-            from apps.courses.models import Course, Topic, Lesson, Quiz, QuizQuestion
+            from apps.courses.models import Course, Topic, Lesson
+            from apps.quizzes.models import Quiz, QuizQuestion
 
             obj = self.object
 
@@ -780,17 +782,17 @@ class CourseContextMixin:
                 context['course'] = obj.course
             elif isinstance(obj, Course):
                 context['course'] = obj
-            elif isinstance(obj, Quiz):
+            elif isinstance(obj, Quiz) and obj.course_lesson:
                 context['quiz'] = obj
-                context['lesson'] = obj.lesson
-                context['topic'] = obj.lesson.topic
-                context['course'] = obj.lesson.topic.course
-            elif isinstance(obj, QuizQuestion):
+                context['lesson'] = obj.course_lesson
+                context['topic'] = obj.course_lesson.topic
+                context['course'] = obj.course_lesson.topic.course
+            elif isinstance(obj, QuizQuestion) and obj.quiz.course_lesson:
                 context['question'] = obj
                 context['quiz'] = obj.quiz
-                context['lesson'] = obj.quiz.lesson
-                context['topic'] = obj.quiz.lesson.topic
-                context['course'] = obj.quiz.lesson.topic.course
+                context['lesson'] = obj.quiz.course_lesson
+                context['topic'] = obj.quiz.course_lesson.topic
+                context['course'] = obj.quiz.course_lesson.topic.course
 
         # Also check for course/topic set in dispatch
         if hasattr(self, 'course') and 'course' not in context:
