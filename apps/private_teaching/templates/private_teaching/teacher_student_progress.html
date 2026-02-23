@@ -673,7 +673,7 @@
                 </h2>
                 <div class="flex items-center gap-3">
                     <span class="text-base-content/70 text-lg">{{ total_quizzes }} total</span>
-                    <a href="{% url 'private_teaching:quiz_library' %}?student={{ student.id }}" class="btn btn-sm btn-success">
+                    <a href="{% url 'quizzes:quiz_library' %}?student={{ student.id }}" class="btn btn-sm btn-success">
                         <i class="fas fa-plus mr-1"></i>Assign Quiz
                     </a>
                 </div>
@@ -980,7 +980,7 @@
                 <h2 class="text-2xl font-bold">
                     <i class="fas fa-graduation-cap mr-2 text-accent"></i>Exams
                 </h2>
-                <a href="{% url 'private_teaching:exam_create' %}?student={{ student.id }}" class="btn btn-sm btn-accent">
+                <a href="{% url 'exams:exam_create' %}?student={{ student.id }}" class="btn btn-sm btn-accent">
                     <i class="fas fa-plus mr-2"></i>Register for Exam
                 </a>
             </div>
@@ -1003,7 +1003,7 @@
                                             </div>
                                         {% endif %}
                                     </div>
-                                    <a href="{% url 'private_teaching:exam_detail' exam.id %}" class="btn btn-sm btn-outline">
+                                    <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-sm btn-outline">
                                         View Details
                                     </a>
                                 </div>
@@ -1039,7 +1039,7 @@
                                             {% endif %}
                                         </td>
                                         <td class="text-center text-lg">
-                                            <a href="{% url 'private_teaching:exam_detail' exam.id %}" class="btn btn-sm btn-outline">
+                                            <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-sm btn-outline">
                                                 View
                                             </a>
                                         </td>

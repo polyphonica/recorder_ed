@@ -305,7 +305,7 @@
                 {% if lesson.exam_registration %}
                 <div>
                     <span class="font-semibold">Exam Preparation:</span>
-                    <a href="{% url 'private_teaching:exam_detail' lesson.exam_registration.id %}" class="link link-primary">
+                    <a href="{% url 'exams:exam_detail' lesson.exam_registration.id %}" class="link link-primary">
                         {{ lesson.exam_registration.exam_type }}
                     </a>
                 </div>
