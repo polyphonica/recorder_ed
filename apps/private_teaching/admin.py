@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from django.db.models import Count
+from django.db.models import Count, Sum, DecimalField
+from django.db.models.functions import Coalesce
 from apps.core.models import Cart
 from .models import (
     Subject, LessonRequest, LessonRequestMessage, CartItem, Order, OrderItem,
