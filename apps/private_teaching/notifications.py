@@ -344,89 +344,173 @@ class StudentNotificationService(BaseNotificationService):
             return False
 
     @staticmethod
-    def send_exam_registration_notification(exam):
-        """Send notification to student/parent when registered for an exam"""
+    def send_student_reschedule_response_notification(cancellation_request, lesson, accepted):
+        """Send notification to teacher when student accepts or declines a reschedule proposal"""
         try:
-            # Validate recipient email (student or guardian)
-            is_valid, recipient_email = StudentNotificationService.validate_email(
-                exam.student,
+            teacher = cancellation_request.teacher
+            is_valid, email = TeacherNotificationService.validate_email(teacher, 'Teacher')
+            if not is_valid:
+                return False
+
+            request_detail_url = TeacherNotificationService.build_absolute_url(
+                'private_teaching:cancellation_request_detail',
+                kwargs={'request_id': cancellation_request.id}
+            )
+
+            context = {
+                'cancellation_request': cancellation_request,
+                'lesson': lesson,
+                'teacher': teacher,
+                'student_name': TeacherNotificationService.get_display_name(cancellation_request.student),
+                'accepted': accepted,
+                'proposed_new_date': cancellation_request.proposed_new_date,
+                'proposed_new_time': cancellation_request.proposed_new_time,
+                'request_detail_url': request_detail_url,
+            }
+
+            subject = 'Student accepted your reschedule proposal' if accepted else 'Student declined your reschedule proposal'
+
+            return TeacherNotificationService.send_templated_email(
+                template_path='private_teaching/emails/teacher_student_reschedule_response.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject=subject,
+                fail_silently=False,
+                log_description=f"Reschedule response notification to teacher {teacher.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send reschedule response notification to teacher: {str(e)}")
+            return False
+
+
+class StudentNotificationService(BaseNotificationService):
+    """Service for sending private teaching email notifications to students"""
+
+    @staticmethod
+    def send_lesson_request_response_notification(lesson_request, teacher, accepted_lessons, rejected_lessons, message_text=None):
+        """Send notification to student when teacher responds to their lesson request"""
+        try:
+            # Validate student email
+            is_valid, email = StudentNotificationService.validate_email(
+                lesson_request.student,
                 'Student'
             )
             if not is_valid:
                 return False
 
-            recipient_name = StudentNotificationService.get_display_name(exam.student)
-
-            # Build URLs
-            exam_detail_url = StudentNotificationService.build_action_url(
-                'private_teaching:exam_detail',
-                exam,
-                'pk'
+            # Build URL for my requests page
+            my_requests_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:my_requests'
             )
 
             context = {
-                'exam': exam,
-                'student_name': exam.student_name,
-                'recipient_name': recipient_name,
-                'teacher': exam.teacher,
-                'exam_detail_url': exam_detail_url,
-                'requires_payment': exam.requires_payment and not exam.is_paid,
+                'lesson_request': lesson_request,
+                'student': lesson_request.student,
+                'teacher': teacher,
+                'teacher_name': StudentNotificationService.get_display_name(teacher),
+                'accepted_lessons': accepted_lessons,
+                'rejected_lessons': rejected_lessons,
+                'message_text': message_text,
+                'my_requests_url': my_requests_url,
             }
 
             return StudentNotificationService.send_templated_email(
-                template_path='private_teaching/emails/student_exam_registration.txt',
+                template_path='private_teaching/emails/student_lesson_request_response.txt',
                 context=context,
-                recipient_list=[recipient_email],
-                default_subject=f'Exam Registration: {exam.display_name}',
-                fail_silently=True,
-                log_description=f"Exam registration notification to {recipient_name}"
+                recipient_list=[email],
+                default_subject='Lesson Request Update',
+                fail_silently=False,
+                log_description=f"Lesson request response notification to student {lesson_request.student.username}"
             )
 
         except Exception as e:
-            logger.error(f"Failed to send exam registration notification: {str(e)}")
+            logger.error(f"Failed to send lesson request response notification to student: {str(e)}")
             return False
 
     @staticmethod
-    def send_exam_results_notification(exam):
-        """Send notification to student/parent when exam results are available"""
+    def send_application_status_notification(application, teacher, new_status, teacher_notes=None):
+        """Send notification to student when their application status changes"""
         try:
-            # Validate recipient email (student or guardian)
-            is_valid, recipient_email = StudentNotificationService.validate_email(
-                exam.student,
-                'Student'
+            # Validate applicant email
+            is_valid, email = StudentNotificationService.validate_email(
+                application.applicant,
+                'Applicant'
             )
             if not is_valid:
                 return False
 
-            recipient_name = StudentNotificationService.get_display_name(exam.student)
-
-            # Build URLs
-            exam_detail_url = StudentNotificationService.build_action_url(
-                'private_teaching:exam_detail',
-                exam,
-                'pk'
-            )
+            # Build URLs based on status
+            if new_status == 'accepted':
+                action_url = StudentNotificationService.build_absolute_url(
+                    'private_teaching:request_lesson'
+                )
+            else:
+                action_url = StudentNotificationService.build_absolute_url(
+                    'private_teaching:student_applications'
+                )
 
             context = {
-                'exam': exam,
-                'student_name': exam.student_name,
-                'recipient_name': recipient_name,
-                'teacher': exam.teacher,
-                'exam_detail_url': exam_detail_url,
-                'has_results': exam.has_results,
+                'application': application,
+                'student_name': application.student_name,
+                'teacher': teacher,
+                'teacher_name': StudentNotificationService.get_display_name(teacher),
+                'new_status': new_status,
+                'teacher_notes': teacher_notes,
+                'action_url': action_url,
             }
 
             return StudentNotificationService.send_templated_email(
-                template_path='private_teaching/emails/student_exam_results.txt',
+                template_path='private_teaching/emails/student_application_status.txt',
                 context=context,
-                recipient_list=[recipient_email],
-                default_subject=f'Exam Results: {exam.display_name}',
-                fail_silently=True,
-                log_description=f"Exam results notification to {recipient_name}"
+                recipient_list=[email],
+                default_subject='Application Status Update',
+                fail_silently=False,
+                log_description=f"Application status notification to student {application.applicant.username}"
             )
 
         except Exception as e:
-            logger.error(f"Failed to send exam results notification: {str(e)}")
+            logger.error(f"Failed to send application status notification to student: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_payment_confirmation(order):
+        """Send payment confirmation email to student"""
+        try:
+            # Validate student email
+            is_valid, email = StudentNotificationService.validate_email(order.student, 'Student')
+            if not is_valid:
+                return False
+
+            # Build URL for lessons page
+            lessons_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:home'
+            )
+
+            # Get order items
+            from apps.private_teaching.models import OrderItem
+            order_items = OrderItem.objects.filter(order=order).select_related(
+                'lesson__teacher', 'lesson__subject'
+            )
+
+            context = {
+                'order': order,
+                'student': order.student,
+                'order_items': order_items,
+                'lessons_url': lessons_url,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_payment_confirmation.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject='Payment Confirmation',
+                fail_silently=False,
+                log_description=f"Payment confirmation to student {order.student.username} for order {order.id}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send payment confirmation to student: {str(e)}")
             return False
 
     @staticmethod

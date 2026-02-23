@@ -162,7 +162,7 @@ class FinanceService:
         private_lessons_gross = private_lessons_gross - total_refunds
 
         # ===== PRIVATE TEACHING - EXAM REGISTRATIONS =====
-        from apps.private_teaching.models import ExamRegistration
+        from apps.exams.models import ExamRegistration
 
         exam_registrations = ExamRegistration.objects.filter(
             teacher=teacher,
@@ -331,7 +331,8 @@ class FinanceService:
             transactions = query.select_related('course', 'student').order_by('-paid_at')
 
         elif domain == 'private_teaching':
-            from apps.private_teaching.models import Order, OrderItem, ExamRegistration
+            from apps.private_teaching.models import Order, OrderItem
+            from apps.exams.models import ExamRegistration
 
             # Query OrderItems directly to only sum items for this teacher
             # (An order can contain lessons from multiple teachers)
@@ -584,7 +585,8 @@ class FinanceService:
         Returns:
             list of dicts with student, subject, and revenue info
         """
-        from apps.private_teaching.models import Order, OrderItem, ExamRegistration, Subject, LessonCancellationRequest
+        from apps.private_teaching.models import Order, OrderItem, Subject, LessonCancellationRequest
+        from apps.exams.models import ExamRegistration
         from django.contrib.auth.models import User
         from lessons.models import Lesson
         from django.conf import settings
@@ -985,7 +987,7 @@ class FinanceService:
             })
 
         # Get exam registrations
-        from apps.private_teaching.models import ExamRegistration
+        from apps.exams.models import ExamRegistration
 
         exam_registrations = ExamRegistration.objects.filter(
             teacher=teacher,
@@ -1129,7 +1131,8 @@ class FinanceService:
         courses_commission = courses_gross * Decimal(str(commission_rate))
 
         # ===== PRIVATE TEACHING =====
-        from apps.private_teaching.models import Order, OrderItem, ExamRegistration
+        from apps.private_teaching.models import Order, OrderItem
+        from apps.exams.models import ExamRegistration
 
         # Lessons - query OrderItems directly
         order_items = OrderItem.objects.filter(

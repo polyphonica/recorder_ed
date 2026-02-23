@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'apps.payments',
     'apps.private_teaching',
     'apps.practice',
+    'apps.exams',
     'apps.expenses',
     'apps.courses',
     'apps.digital_products',

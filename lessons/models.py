@@ -135,7 +135,7 @@ class Lesson(models.Model):
 
     # Exam preparation link
     exam_registration = models.ForeignKey(
-        'private_teaching.ExamRegistration',
+        'exams.ExamRegistration',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
