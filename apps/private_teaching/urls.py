@@ -100,7 +100,9 @@ urlpatterns = [
 
     # Lesson Cancellation Views
     path('lesson/<uuid:lesson_id>/cancel/', views.RequestLessonCancellationView.as_view(), name='request_cancellation'),
+    path('lesson/<uuid:lesson_id>/teacher-cancel/', views.TeacherInitiateCancellationView.as_view(), name='teacher_initiate_cancellation'),
     path('cancellation-request/<int:request_id>/', views.CancellationRequestDetailView.as_view(), name='cancellation_request_detail'),
+    path('cancellation-request/<int:request_id>/student-respond/', views.StudentRespondToTeacherRescheduleView.as_view(), name='student_respond_to_cancellation'),
     path('teacher/cancellation-requests/', views.TeacherCancellationRequestsView.as_view(), name='teacher_cancellation_requests'),
     path('teacher/cancellation-requests/<int:request_id>/respond/', views.TeacherRespondToCancellationView.as_view(), name='teacher_respond_cancellation'),
 

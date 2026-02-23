@@ -842,6 +842,38 @@ class RescheduleForm(forms.Form):
             self.fields['lesson_time'].initial = proposed_time
 
 
+class TeacherInitiateCancellationForm(forms.Form):
+    """Form for teachers to cancel or propose a reschedule on an auto-accepted lesson"""
+    action = forms.ChoiceField(
+        choices=[('cancel', 'Cancel lesson'), ('reschedule', 'Propose new time')],
+        widget=forms.RadioSelect,
+        label='What would you like to do?'
+    )
+    reason = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 3, 'class': 'textarea textarea-bordered w-full'}),
+        label='Reason (required — visible to student)'
+    )
+    proposed_new_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'input input-bordered w-full'}),
+        label='Proposed new date'
+    )
+    proposed_new_time = forms.TimeField(
+        required=False,
+        widget=forms.TimeInput(attrs={'type': 'time', 'class': 'input input-bordered w-full'}),
+        label='Proposed new time'
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('action') == 'reschedule':
+            if not cleaned.get('proposed_new_date') or not cleaned.get('proposed_new_time'):
+                raise forms.ValidationError(
+                    'A proposed date and time are required when proposing a reschedule.'
+                )
+        return cleaned
+
+
 class VoucherForm(forms.ModelForm):
     """Form for teachers to create and edit vouchers/promo codes"""
 

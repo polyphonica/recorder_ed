@@ -208,6 +208,46 @@ class TeacherNotificationService(BaseNotificationService):
             logger.error(f"Failed to send quiz submission notification to teacher: {str(e)}")
             return False
 
+    @staticmethod
+    def send_student_reschedule_response_notification(cancellation_request, lesson, accepted):
+        """Send notification to teacher when student accepts or declines a reschedule proposal"""
+        try:
+            teacher = cancellation_request.teacher
+            is_valid, email = TeacherNotificationService.validate_email(teacher, 'Teacher')
+            if not is_valid:
+                return False
+
+            request_detail_url = TeacherNotificationService.build_absolute_url(
+                'private_teaching:cancellation_request_detail',
+                kwargs={'request_id': cancellation_request.id}
+            )
+
+            context = {
+                'cancellation_request': cancellation_request,
+                'lesson': lesson,
+                'teacher': teacher,
+                'student_name': TeacherNotificationService.get_display_name(cancellation_request.student),
+                'accepted': accepted,
+                'proposed_new_date': cancellation_request.proposed_new_date,
+                'proposed_new_time': cancellation_request.proposed_new_time,
+                'request_detail_url': request_detail_url,
+            }
+
+            subject = 'Student accepted your reschedule proposal' if accepted else 'Student declined your reschedule proposal'
+
+            return TeacherNotificationService.send_templated_email(
+                template_path='private_teaching/emails/teacher_student_reschedule_response.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject=subject,
+                fail_silently=False,
+                log_description=f"Reschedule response notification to teacher {teacher.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send reschedule response notification to teacher: {str(e)}")
+            return False
+
 
 class StudentNotificationService(BaseNotificationService):
     """Service for sending private teaching email notifications to students"""
@@ -681,6 +721,81 @@ class StudentNotificationService(BaseNotificationService):
 
         except Exception as e:
             logger.error(f"Failed to send quiz assignment notification to student: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_teacher_initiated_cancellation_notification(cancellation_request, lesson):
+        """Send notification to student when teacher cancels an accepted lesson"""
+        try:
+            is_valid, email = StudentNotificationService.validate_email(
+                cancellation_request.student, 'Student'
+            )
+            if not is_valid:
+                return False
+
+            my_lessons_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:my_lessons'
+            )
+
+            context = {
+                'cancellation_request': cancellation_request,
+                'lesson': lesson,
+                'student': cancellation_request.student,
+                'teacher_name': StudentNotificationService.get_display_name(cancellation_request.teacher),
+                'my_lessons_url': my_lessons_url,
+                'has_refund': lesson.payment_status == 'completed' and bool(lesson.fee),
+                'refund_amount': lesson.fee,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_teacher_cancelled.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject='Your lesson has been cancelled by your teacher',
+                fail_silently=False,
+                log_description=f"Teacher-initiated cancellation notification to student {cancellation_request.student.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send teacher-initiated cancellation notification to student: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_teacher_reschedule_proposal_notification(cancellation_request, lesson):
+        """Send notification to student when teacher proposes a new lesson time"""
+        try:
+            is_valid, email = StudentNotificationService.validate_email(
+                cancellation_request.student, 'Student'
+            )
+            if not is_valid:
+                return False
+
+            respond_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:cancellation_request_detail',
+                kwargs={'request_id': cancellation_request.id}
+            )
+
+            context = {
+                'cancellation_request': cancellation_request,
+                'lesson': lesson,
+                'student': cancellation_request.student,
+                'teacher_name': StudentNotificationService.get_display_name(cancellation_request.teacher),
+                'proposed_new_date': cancellation_request.proposed_new_date,
+                'proposed_new_time': cancellation_request.proposed_new_time,
+                'respond_url': respond_url,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_teacher_reschedule_proposal.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject='Your teacher has proposed a new time for your lesson',
+                fail_silently=False,
+                log_description=f"Teacher reschedule proposal notification to student {cancellation_request.student.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send teacher reschedule proposal notification to student: {str(e)}")
             return False
 
 

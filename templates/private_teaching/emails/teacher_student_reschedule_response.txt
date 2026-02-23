@@ -1,0 +1,29 @@
+Subject: {% if accepted %}Student accepted your reschedule proposal{% else %}Student declined your reschedule proposal{% endif %} - {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ teacher.get_full_name|default:teacher.username }},
+
+{% if accepted %}{{ student_name }} has accepted your proposed reschedule.
+
+The lesson has been updated to the new date and time:
+Date: {{ proposed_new_date|date:"d F Y" }}
+Time: {{ proposed_new_time|time:"H:i" }}{% else %}{{ student_name }} has declined your proposed reschedule.
+
+The original lesson date and time will be kept unchanged:
+Date: {{ lesson.lesson_date|date:"d F Y" }}
+Time: {{ lesson.lesson_time|time:"H:i" }}
+
+If you still need to make a change to this lesson, you can use the Change/Cancel
+option on your schedule.{% endif %}
+
+LESSON DETAILS:
+Subject: {{ lesson.subject.subject }}
+Student: {{ student_name }}
+
+View request details:
+{{ request_detail_url }}
+
+Best regards,
+The {{ site_name }} Team

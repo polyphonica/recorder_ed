@@ -1,0 +1,30 @@
+Subject: Your teacher has proposed a new time for your lesson - {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ student.get_full_name|default:student.username }},
+
+{{ teacher_name }} has proposed a new date and time for your upcoming lesson.
+
+ORIGINAL LESSON:
+Subject: {{ lesson.subject.subject }}
+Date: {{ lesson.lesson_date|date:"d F Y" }} at {{ lesson.lesson_time|time:"H:i" }}
+Duration: {{ lesson.duration_in_minutes }} minutes
+
+PROPOSED NEW TIME:
+Date: {{ proposed_new_date|date:"d F Y" }}
+Time: {{ proposed_new_time|time:"H:i" }}
+
+REASON FROM {{ teacher_name|upper }}:
+{{ cancellation_request.reason }}
+
+NEXT STEPS:
+Please log in to accept or decline this proposal. If you decline, your original
+lesson time will be kept unchanged.
+
+Respond to this proposal:
+{{ respond_url }}
+
+Best regards,
+The {{ site_name }} Team

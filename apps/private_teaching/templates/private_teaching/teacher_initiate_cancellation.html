@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Change or Cancel Lesson - Private Teaching{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <a href="{% url 'private_teaching:teacher_schedule' %}" class="btn btn-ghost btn-sm mb-4">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Schedule
+        </a>
+        <h1 class="text-4xl font-bold mb-2">Change or Cancel Lesson</h1>
+        <p class="text-base-content/70">Propose a new time or cancel this confirmed lesson.</p>
+    </div>
+
+    {% if existing_request %}
+    <div class="alert alert-warning shadow-lg mb-6">
+        <i class="fas fa-clock"></i>
+        <div>
+            <h3 class="font-bold">Reschedule proposal already pending</h3>
+            <p class="text-sm">
+                You have already proposed a new time for this lesson. The student has not yet responded.
+            </p>
+        </div>
+        <a href="{% url 'private_teaching:cancellation_request_detail' existing_request.id %}" class="btn btn-sm btn-outline">
+            View Proposal
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Form -->
+        <div class="lg:col-span-2">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+
+                    {% if existing_request %}
+                    <p class="text-base-content/60 italic">You cannot submit a new request while a reschedule proposal is outstanding.</p>
+                    {% else %}
+
+                    <div class="alert alert-warning shadow-sm mb-6">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>The student will be notified immediately. This action cannot be undone.</span>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-error mb-4">
+                            {% for error in form.non_field_errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Action Selection -->
+                        <div class="form-control mb-6">
+                            <label class="label">
+                                <span class="label-text font-semibold text-lg">What would you like to do?</span>
+                            </label>
+                            <div class="space-y-3 mt-2">
+                                {% for choice in form.action %}
+                                <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg border border-base-300 hover:bg-base-200 transition-colors">
+                                    {{ choice.tag }}
+                                    <div>
+                                        <span class="font-medium">{{ choice.choice_label }}</span>
+                                        {% if choice.data.value == 'cancel' %}
+                                            <p class="text-sm text-base-content/60">The lesson will be removed immediately. If already paid, a full refund will be processed.</p>
+                                        {% else %}
+                                            <p class="text-sm text-base-content/60">The student will be asked to accept or decline your proposed new date and time.</p>
+                                        {% endif %}
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            {% if form.action.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.action.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- Reason -->
+                        <div class="form-control mb-6">
+                            <label class="label" for="{{ form.reason.id_for_label }}">
+                                <span class="label-text font-semibold">{{ form.reason.label }}</span>
+                            </label>
+                            {{ form.reason }}
+                            {% if form.reason.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.reason.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- Proposed New Date/Time (shown only when "Propose new time" is selected) -->
+                        <div id="reschedule-fields" class="hidden">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div class="form-control">
+                                    <label class="label" for="{{ form.proposed_new_date.id_for_label }}">
+                                        <span class="label-text font-semibold">{{ form.proposed_new_date.label }}</span>
+                                    </label>
+                                    {{ form.proposed_new_date }}
+                                    {% if form.proposed_new_date.errors %}
+                                    <label class="label">
+                                        <span class="label-text-alt text-error">{{ form.proposed_new_date.errors.0 }}</span>
+                                    </label>
+                                    {% endif %}
+                                </div>
+                                <div class="form-control">
+                                    <label class="label" for="{{ form.proposed_new_time.id_for_label }}">
+                                        <span class="label-text font-semibold">{{ form.proposed_new_time.label }}</span>
+                                    </label>
+                                    {{ form.proposed_new_time }}
+                                    {% if form.proposed_new_time.errors %}
+                                    <label class="label">
+                                        <span class="label-text-alt text-error">{{ form.proposed_new_time.errors.0 }}</span>
+                                    </label>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-actions justify-end mt-4">
+                            <a href="{% url 'private_teaching:teacher_schedule' %}" class="btn btn-ghost">Cancel</a>
+                            <button type="submit" class="btn btn-warning" id="submit-btn">
+                                <i class="fas fa-paper-plane mr-2"></i>
+                                <span id="submit-label">Submit</span>
+                            </button>
+                        </div>
+                    </form>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Lesson Summary Sidebar -->
+        <div class="lg:col-span-1">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">Lesson Details</h2>
+                    <div class="space-y-3 mt-2">
+                        <div>
+                            <p class="text-sm text-base-content/70">Student</p>
+                            <p class="font-semibold">
+                                {% if lesson.lesson_request.child_profile %}
+                                    {{ lesson.lesson_request.child_profile.full_name }}
+                                    <span class="block text-xs text-base-content/60">Guardian: {{ lesson.student.get_full_name|default:lesson.student.username }}</span>
+                                {% else %}
+                                    {{ lesson.student.get_full_name|default:lesson.student.username }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Subject</p>
+                            <p class="font-semibold">{{ lesson.subject.subject }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Date & Time</p>
+                            <p class="font-semibold">
+                                {{ lesson.lesson_date|date:"l, F j, Y" }}<br>
+                                {{ lesson.lesson_time|time:"g:i A" }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Duration</p>
+                            <p class="font-semibold">{{ lesson.duration_in_minutes }} minutes</p>
+                        </div>
+                        {% if lesson.fee %}
+                        <div>
+                            <p class="text-sm text-base-content/70">Fee</p>
+                            <p class="font-semibold text-success">£{{ lesson.fee|floatformat:2 }}</p>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <p class="text-sm text-base-content/70">Payment</p>
+                            <p>
+                                {% if lesson.payment_status == 'completed' %}
+                                    <span class="badge badge-success">Paid</span>
+                                    {% if lesson.fee %}
+                                    <span class="block text-xs text-base-content/60 mt-1">A full refund of £{{ lesson.fee|floatformat:2 }} will be processed if cancelled.</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge badge-warning">Not paid</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+</div>
+
+<script>
+(function () {
+    const radios = document.querySelectorAll('input[name="action"]');
+    const rescheduleFields = document.getElementById('reschedule-fields');
+    const submitLabel = document.getElementById('submit-label');
+
+    function updateUI() {
+        const selected = document.querySelector('input[name="action"]:checked');
+        if (!selected) return;
+        if (selected.value === 'reschedule') {
+            rescheduleFields.classList.remove('hidden');
+            submitLabel.textContent = 'Send Proposal';
+        } else {
+            rescheduleFields.classList.add('hidden');
+            submitLabel.textContent = 'Cancel Lesson';
+        }
+    }
+
+    radios.forEach(r => r.addEventListener('change', updateUI));
+
+    // Run on load in case form was re-rendered with errors
+    updateUI();
+})();
+</script>
+{% endblock %}

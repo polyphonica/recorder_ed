@@ -26,7 +26,7 @@ from .models import (
 from .notifications import TeacherNotificationService, StudentNotificationService
 from .availability_engine import check_slot_availability
 from lessons.models import Lesson, Document, LessonAttachedUrl, LessonAssignment
-from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, ExamRegistrationForm, ExamPieceFormSet, ExamResultsForm, PracticeEntryForm, RescheduleForm
+from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, ExamRegistrationForm, ExamPieceFormSet, ExamResultsForm, PracticeEntryForm, RescheduleForm, TeacherInitiateCancellationForm
 from .quiz_forms import (
     PrivateLessonQuizForm, PrivateLessonQuizQuestionForm, PrivateLessonQuizAnswerFormSet,
     PrivateLessonQuizAssignmentForm, PrivateLessonQuizAnswerForm
@@ -830,10 +830,20 @@ class TeacherScheduleView(TeacherProfileCompletedMixin, TemplateView):
             is_deleted=False
         ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('lesson_date', 'lesson_time')
 
+        # Lesson IDs that already have a pending teacher-initiated request (disable button)
+        pending_teacher_cancel_ids = set(
+            LessonCancellationRequest.objects.filter(
+                teacher=self.request.user,
+                initiated_by=LessonCancellationRequest.INITIATED_BY_TEACHER,
+                status=LessonCancellationRequest.PENDING
+            ).values_list('lesson_id', flat=True)
+        )
+
         context.update({
             'scheduled_lessons': scheduled_lessons,
             'today': today,
             'end_date': end_date,
+            'pending_teacher_cancel_ids': pending_teacher_cancel_ids,
         })
         return context
 
@@ -4252,11 +4262,23 @@ class CancellationRequestDetailView(PrivateTeachingLoginRequiredMixin, View):
                 proposed_time=cancellation_request.proposed_new_time
             )
 
+        is_teacher_initiated = (
+            cancellation_request.initiated_by == LessonCancellationRequest.INITIATED_BY_TEACHER
+        )
+        is_pending_reschedule = (
+            is_teacher_initiated
+            and cancellation_request.request_type == LessonCancellationRequest.RESCHEDULE
+            and is_pending
+        )
+
         context = {
             'cancellation_request': cancellation_request,
             'lesson': cancellation_request.lesson,
             'is_teacher': is_teacher,
             'is_student': request.user == cancellation_request.student,
+            'is_teacher_initiated': is_teacher_initiated,
+            'is_pending_reschedule': is_pending_reschedule,
+            'is_student_view': (request.user == cancellation_request.student),
             'reschedule_form': reschedule_form,
         }
 
@@ -4485,6 +4507,219 @@ class TeacherRespondToCancellationView(TeacherProfileCompletedMixin, View):
             messages.error(request, 'Invalid action.')
 
         return redirect('private_teaching:teacher_cancellation_requests')
+
+
+class TeacherInitiateCancellationView(TeacherProfileCompletedMixin, View):
+    """
+    Teacher cancels or proposes a reschedule for an auto-accepted lesson.
+
+    Cancel:    Immediate — lesson soft-deleted, full refund if paid. No student approval.
+    Reschedule: Proposal — student is notified and must Accept or Decline.
+    """
+    template_name = 'private_teaching/teacher_initiate_cancellation.html'
+
+    def get_lesson(self, lesson_id, teacher):
+        lesson = get_object_or_404(Lesson, id=lesson_id, is_deleted=False)
+        if lesson.teacher != teacher:
+            raise PermissionDenied("You can only cancel your own lessons.")
+        from lessons.models import Lesson as LessonModel
+        if lesson.approved_status != LessonModel.ApprovalStatus.ACCEPTED:
+            messages.error(self.request, "Only accepted lessons can be cancelled or rescheduled here.")
+            return None
+        return lesson
+
+    def get(self, request, *args, **kwargs):
+        lesson = self.get_lesson(kwargs['lesson_id'], request.user)
+        if lesson is None:
+            return redirect('private_teaching:teacher_schedule')
+        # Check for already-pending teacher request
+        existing = LessonCancellationRequest.objects.filter(
+            lesson=lesson,
+            initiated_by=LessonCancellationRequest.INITIATED_BY_TEACHER,
+            status=LessonCancellationRequest.PENDING
+        ).first()
+        return render(request, self.template_name, {
+            'form': TeacherInitiateCancellationForm(),
+            'lesson': lesson,
+            'existing_request': existing,
+        })
+
+    def post(self, request, *args, **kwargs):
+        lesson = self.get_lesson(kwargs['lesson_id'], request.user)
+        if lesson is None:
+            return redirect('private_teaching:teacher_schedule')
+
+        # Block if a pending teacher-initiated request already exists
+        if LessonCancellationRequest.objects.filter(
+            lesson=lesson,
+            initiated_by=LessonCancellationRequest.INITIATED_BY_TEACHER,
+            status=LessonCancellationRequest.PENDING
+        ).exists():
+            messages.error(request, "A pending reschedule proposal already exists for this lesson.")
+            return redirect('private_teaching:teacher_schedule')
+
+        form = TeacherInitiateCancellationForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {'form': form, 'lesson': lesson})
+
+        action = form.cleaned_data['action']
+        reason = form.cleaned_data['reason']
+
+        if action == 'cancel':
+            cancellation_request = LessonCancellationRequest.objects.create(
+                lesson=lesson,
+                student=lesson.student,
+                teacher=request.user,
+                initiated_by=LessonCancellationRequest.INITIATED_BY_TEACHER,
+                request_type=LessonCancellationRequest.CANCEL_WITH_REFUND,
+                reason=reason,
+                status=LessonCancellationRequest.COMPLETED,
+                completed_at=timezone.now(),
+            )
+
+            # Process full refund if lesson was paid (teacher fault = no platform fee retained)
+            if lesson.payment_status == 'completed' and lesson.fee:
+                from apps.payments.models import StripePayment
+                from apps.payments.stripe_service import create_refund
+                try:
+                    order_item = OrderItem.objects.filter(lesson=lesson).select_related('order').first()
+                    if order_item and order_item.order.stripe_payment_intent_id:
+                        stripe_payment = StripePayment.objects.get(
+                            stripe_payment_intent_id=order_item.order.stripe_payment_intent_id
+                        )
+                        create_refund(
+                            payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                            amount=lesson.fee,
+                            reason='requested_by_customer',
+                            metadata={
+                                'cancellation_request_id': str(cancellation_request.id),
+                                'lesson_id': str(lesson.id),
+                                'refund_type': 'teacher_initiated_cancellation',
+                            }
+                        )
+                        cancellation_request.refund_amount = lesson.fee
+                        cancellation_request.platform_fee_retained = 0
+                        cancellation_request.refund_processed_at = timezone.now()
+                        cancellation_request.save(update_fields=[
+                            'refund_amount', 'platform_fee_retained', 'refund_processed_at'
+                        ])
+                        messages.success(
+                            request,
+                            f'Lesson cancelled and full refund of £{lesson.fee} processed.'
+                        )
+                    else:
+                        messages.warning(request, 'Lesson cancelled. No payment record found — please process any refund manually.')
+                except StripePayment.DoesNotExist:
+                    messages.warning(request, 'Lesson cancelled. Payment record not found — please process any refund manually.')
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).error(f"Refund error on teacher cancel: {e}")
+                    messages.error(request, f'Lesson cancelled but refund failed: {e}. Please process manually in Stripe.')
+            else:
+                messages.success(request, 'Lesson cancelled and student notified.')
+
+            lesson.is_deleted = True
+            lesson.save()
+
+            try:
+                StudentNotificationService.send_teacher_initiated_cancellation_notification(
+                    cancellation_request, lesson
+                )
+            except Exception as e:
+                print(f"Error sending teacher cancellation email: {e}")
+
+            return redirect('private_teaching:teacher_cancellation_requests')
+
+        else:  # reschedule
+            cancellation_request = LessonCancellationRequest.objects.create(
+                lesson=lesson,
+                student=lesson.student,
+                teacher=request.user,
+                initiated_by=LessonCancellationRequest.INITIATED_BY_TEACHER,
+                request_type=LessonCancellationRequest.RESCHEDULE,
+                reason=reason,
+                proposed_new_date=form.cleaned_data['proposed_new_date'],
+                proposed_new_time=form.cleaned_data['proposed_new_time'],
+                status=LessonCancellationRequest.PENDING,
+            )
+
+            try:
+                StudentNotificationService.send_teacher_reschedule_proposal_notification(
+                    cancellation_request, lesson
+                )
+            except Exception as e:
+                print(f"Error sending reschedule proposal email: {e}")
+
+            messages.success(
+                request,
+                f'Reschedule proposal sent to {lesson.student.get_full_name() or lesson.student.username}. '
+                f'They will be asked to accept or decline.'
+            )
+            return redirect(
+                'private_teaching:cancellation_request_detail',
+                request_id=cancellation_request.id
+            )
+
+
+class StudentRespondToTeacherRescheduleView(StudentProfileCompletedMixin, StudentOnlyMixin, View):
+    """
+    Student accepts or declines a teacher-proposed reschedule.
+    Accept  → lesson date/time updated, request completed, teacher notified.
+    Decline → request rejected, original lesson time kept, teacher notified.
+    """
+
+    def post(self, request, *args, **kwargs):
+        cancellation_request = get_object_or_404(
+            LessonCancellationRequest,
+            id=kwargs['request_id'],
+            student=request.user,
+            initiated_by=LessonCancellationRequest.INITIATED_BY_TEACHER,
+            request_type=LessonCancellationRequest.RESCHEDULE,
+            status=LessonCancellationRequest.PENDING,
+        )
+
+        action = request.POST.get('action')
+        lesson = cancellation_request.lesson
+
+        if action == 'accept':
+            lesson.lesson_date = cancellation_request.proposed_new_date
+            lesson.lesson_time = cancellation_request.proposed_new_time
+            lesson.save()
+
+            cancellation_request.status = LessonCancellationRequest.COMPLETED
+            cancellation_request.completed_at = timezone.now()
+            cancellation_request.save()
+
+            try:
+                TeacherNotificationService.send_student_reschedule_response_notification(
+                    cancellation_request, lesson, accepted=True
+                )
+            except Exception as e:
+                print(f"Error sending reschedule response email: {e}")
+
+            messages.success(
+                request,
+                f'Lesson rescheduled to {lesson.lesson_date.strftime("%B %d, %Y")} '
+                f'at {lesson.lesson_time.strftime("%I:%M %p")}.'
+            )
+
+        elif action == 'decline':
+            cancellation_request.status = LessonCancellationRequest.REJECTED
+            cancellation_request.save()
+
+            try:
+                TeacherNotificationService.send_student_reschedule_response_notification(
+                    cancellation_request, lesson, accepted=False
+                )
+            except Exception as e:
+                print(f"Error sending reschedule response email: {e}")
+
+            messages.info(request, 'Reschedule declined. Your original lesson time is kept.')
+
+        else:
+            messages.error(request, 'Invalid action.')
+
+        return redirect('private_teaching:cancellation_request_detail', request_id=cancellation_request.id)
 
 
 # ============================================================================

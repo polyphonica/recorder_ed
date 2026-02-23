@@ -109,10 +109,20 @@
                                         <button class="btn btn-primary btn-sm" onclick="window.location.href='/lessons/{{ lesson.id }}/edit/'">
                                             <i class="fas fa-folder-open mr-2"></i>Open Lesson
                                         </button>
-                                        {% if lesson.lesson_request %}
-                                            <button class="btn btn-outline btn-sm" onclick="window.location.href='/private-teaching/teacher/request/{{ lesson.lesson_request.id }}/'">
-                                                <i class="fas fa-calendar-alt mr-2"></i>Reschedule
-                                            </button>
+                                        {% if lesson.lesson_request and lesson.approved_status == 'Pending' %}
+                                            <a href="/private-teaching/teacher/request/{{ lesson.lesson_request.id }}/" class="btn btn-outline btn-sm">
+                                                <i class="fas fa-inbox mr-1"></i>View Request
+                                            </a>
+                                        {% elif lesson.approved_status == 'Accepted' %}
+                                            {% if lesson.id in pending_teacher_cancel_ids %}
+                                                <button class="btn btn-sm btn-disabled" disabled>
+                                                    <i class="fas fa-clock mr-1"></i>Awaiting Student Response
+                                                </button>
+                                            {% else %}
+                                                <a href="{% url 'private_teaching:teacher_initiate_cancellation' lesson.id %}" class="btn btn-warning btn-sm">
+                                                    <i class="fas fa-exclamation-triangle mr-1"></i>Change/Cancel
+                                                </a>
+                                            {% endif %}
                                         {% endif %}
                                         <button class="btn btn-outline btn-sm" onclick="openContactModal({{ lesson.student.id }})">
                                             <i class="fas fa-address-book mr-2"></i>Contact Student
@@ -186,10 +196,20 @@
                                         <button class="btn btn-xs btn-primary" onclick="window.location.href='/lessons/{{ lesson.id }}/edit/'" title="Open Lesson">
                                             <i class="fas fa-folder-open"></i>
                                         </button>
-                                        {% if lesson.lesson_request %}
-                                            <button class="btn btn-xs btn-outline" onclick="window.location.href='/private-teaching/teacher/request/{{ lesson.lesson_request.id }}/'" title="Reschedule">
-                                                <i class="fas fa-calendar-alt"></i>
-                                            </button>
+                                        {% if lesson.lesson_request and lesson.approved_status == 'Pending' %}
+                                            <a href="/private-teaching/teacher/request/{{ lesson.lesson_request.id }}/" class="btn btn-xs btn-outline" title="View Request">
+                                                <i class="fas fa-inbox"></i>
+                                            </a>
+                                        {% elif lesson.approved_status == 'Accepted' %}
+                                            {% if lesson.id in pending_teacher_cancel_ids %}
+                                                <button class="btn btn-xs btn-disabled" disabled title="Awaiting student response">
+                                                    <i class="fas fa-clock"></i>
+                                                </button>
+                                            {% else %}
+                                                <a href="{% url 'private_teaching:teacher_initiate_cancellation' lesson.id %}" class="btn btn-xs btn-warning" title="Change or Cancel">
+                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                </a>
+                                            {% endif %}
                                         {% endif %}
                                         <button class="btn btn-xs btn-outline" onclick="openContactModal({{ lesson.student.id }})" title="Contact Student">
                                             <i class="fas fa-address-book"></i>

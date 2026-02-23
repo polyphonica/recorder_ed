@@ -945,9 +945,21 @@ class LessonCancellationRequest(BaseCancellationRequest):
         (OTHER, 'Other'),
     ]
 
+    # Who initiated this request
+    INITIATED_BY_STUDENT = 'student'
+    INITIATED_BY_TEACHER = 'teacher'
+    INITIATED_BY_CHOICES = [
+        (INITIATED_BY_STUDENT, 'Student'),
+        (INITIATED_BY_TEACHER, 'Teacher'),
+    ]
+
     # Core Fields (domain-specific)
     lesson = models.ForeignKey('lessons.Lesson', on_delete=models.CASCADE, related_name='cancellation_requests')
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_cancellation_requests')
+    initiated_by = models.CharField(
+        max_length=10, choices=INITIATED_BY_CHOICES, default=INITIATED_BY_STUDENT,
+        help_text="Who initiated this request"
+    )
 
     # Request Details (domain-specific)
     request_type = models.CharField(max_length=20, choices=REQUEST_TYPE_CHOICES, default=CANCEL_WITH_REFUND)
