@@ -113,7 +113,7 @@
                             <span class="font-semibold text-lg">{{ month_practice_minutes }} min</span>
                         </div>
                     </div>
-                    <a href="{% url 'private_teaching:teacher_student_practice' student.id %}" class="btn btn-sm btn-success mt-3 w-full">
+                    <a href="{% url 'practice:teacher_student_practice' student.id %}" class="btn btn-sm btn-success mt-3 w-full">
                         <i class="fas fa-clipboard-list mr-1"></i>View Practice Log
                     </a>
                 </div>
@@ -1066,7 +1066,7 @@
                 <h2 class="text-2xl font-bold">
                     <i class="fas fa-music mr-2 text-success"></i>Recent Practice
                 </h2>
-                <a href="{% url 'private_teaching:teacher_student_practice' student.id %}" class="btn btn-sm btn-success">
+                <a href="{% url 'practice:teacher_student_practice' student.id %}" class="btn btn-sm btn-success">
                     <i class="fas fa-clipboard-list mr-2"></i>Full Practice Log
                 </a>
             </div>
