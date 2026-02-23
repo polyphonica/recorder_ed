@@ -3,6 +3,7 @@ Django admin configuration for courses app.
 """
 
 from django.contrib import admin
+from simple_history.admin import SimpleHistoryAdmin
 from django.utils.html import format_html
 from .models import (
     Course, Topic, Lesson, LessonAttachment,
@@ -190,7 +191,7 @@ class LessonAttachmentAdmin(admin.ModelAdmin):
 
 
 @admin.register(CourseEnrollment)
-class CourseEnrollmentAdmin(admin.ModelAdmin):
+class CourseEnrollmentAdmin(SimpleHistoryAdmin):
     """Admin interface for CourseEnrollment model"""
     list_display = [
         'student', 'course', 'is_active', 'payment_status', 'payment_amount',

@@ -1,4 +1,5 @@
 from django.contrib import admin
+from simple_history.admin import SimpleHistoryAdmin
 
 from .models import ExamBoard, ExamRegistration, ExamPiece
 
@@ -18,7 +19,7 @@ class ExamPieceInline(admin.TabularInline):
 
 
 @admin.register(ExamRegistration)
-class ExamRegistrationAdmin(admin.ModelAdmin):
+class ExamRegistrationAdmin(SimpleHistoryAdmin):
     list_display = [
         'student_name', 'teacher', 'exam_board', 'grade_type', 'grade_level',
         'exam_date', 'status', 'payment_status', 'created_at'

@@ -21,6 +21,7 @@ from django.utils import timezone
 from django_ckeditor_5.fields import CKEditor5Field
 
 from apps.core.models import PayableModel, BaseCancellationRequest, BaseAttachment
+from simple_history.models import HistoricalRecords
 
 
 # ============================================================================
@@ -497,6 +498,8 @@ class CourseEnrollment(PayableModel):
     # - stripe_payment_intent_id
     # - stripe_checkout_session_id
     # - paid_at
+
+    history = HistoricalRecords()
 
     class Meta:
         ordering = ['-enrolled_at']

@@ -49,6 +49,11 @@ DATABASES = {
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # ------------------------------------------------------------------
+# Celery — run tasks synchronously on staging (no Redis/worker needed)
+# ------------------------------------------------------------------
+CELERY_TASK_ALWAYS_EAGER = True
+
+# ------------------------------------------------------------------
 # Stripe — use test-mode keys in the staging server's .env
 # (set STRIPE_PUBLISHABLE_KEY / STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET
 #  to pk_test_..., sk_test_..., whsec_test_... values)

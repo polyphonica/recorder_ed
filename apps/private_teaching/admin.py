@@ -1,4 +1,5 @@
 from django.contrib import admin
+from simple_history.admin import SimpleHistoryAdmin
 from django.utils.html import format_html
 from django.db.models import Count, Sum, DecimalField
 from django.db.models.functions import Coalesce
@@ -118,7 +119,7 @@ class OrderItemInline(admin.TabularInline):
 
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(SimpleHistoryAdmin):
     list_display = ['order_number', 'student', 'total_amount', 'payment_status', 'created_at']
     list_filter = ['payment_status', 'created_at']
     search_fields = ['order_number', 'student__first_name', 'student__last_name']
@@ -142,7 +143,7 @@ class ApplicationMessageInline(admin.TabularInline):
 
 
 @admin.register(TeacherStudentApplication)
-class TeacherStudentApplicationAdmin(admin.ModelAdmin):
+class TeacherStudentApplicationAdmin(SimpleHistoryAdmin):
     list_display = ['student_name', 'teacher', 'status', 'created_at', 'status_changed_at']
     list_filter = ['status', 'created_at', 'status_changed_at']
     search_fields = [
@@ -233,7 +234,7 @@ class PrivateLessonTermsAcceptanceAdmin(admin.ModelAdmin):
 
 
 @admin.register(LessonCancellationRequest)
-class LessonCancellationRequestAdmin(admin.ModelAdmin):
+class LessonCancellationRequestAdmin(SimpleHistoryAdmin):
     list_display = ['lesson', 'student', 'teacher', 'request_type', 'status', 'is_within_policy', 'hours_before_lesson', 'created_at']
     list_filter = ['status', 'request_type', 'is_within_policy', 'cancellation_reason', 'created_at']
     search_fields = ['student__username', 'teacher__username', 'lesson__subject__subject', 'reason']

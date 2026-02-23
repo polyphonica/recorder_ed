@@ -1,5 +1,8 @@
 # Production dependencies
 gunicorn==23.0.0
+celery[redis]>=5.3
+redis>=5.0
+django-simple-history>=3.7
 psycopg2-binary==2.9.10
 python-decouple==3.8
 whitenoise==6.8.2

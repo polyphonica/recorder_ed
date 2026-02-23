@@ -1,4 +1,5 @@
 from django.contrib import admin
+from simple_history.admin import SimpleHistoryAdmin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils import timezone
@@ -240,7 +241,7 @@ class WorkshopSessionAdmin(admin.ModelAdmin):
 
 
 @admin.register(WorkshopRegistration)
-class WorkshopRegistrationAdmin(UserDisplayMixin, admin.ModelAdmin):
+class WorkshopRegistrationAdmin(UserDisplayMixin, SimpleHistoryAdmin):
     list_display = [
         'student_name', 'workshop_title', 'session_date', 
         'status', 'registration_date', 'attended'

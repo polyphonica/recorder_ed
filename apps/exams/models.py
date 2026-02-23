@@ -5,6 +5,7 @@ from django.urls import reverse
 import uuid
 
 from apps.core.models import PayableModel
+from simple_history.models import HistoricalRecords
 
 User = get_user_model()
 
@@ -200,6 +201,8 @@ class ExamRegistration(PayableModel):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    history = HistoricalRecords()
 
     class Meta:
         ordering = ['-exam_date', '-created_at']

@@ -3,6 +3,7 @@ from django.db import models
 from django_ckeditor_5.fields import CKEditor5Field
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from simple_history.models import HistoricalRecords
 
 import uuid
 
@@ -114,6 +115,8 @@ class Lesson(models.Model):
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    history = HistoricalRecords()
 
     # Playalong pieces
     pieces = models.ManyToManyField(

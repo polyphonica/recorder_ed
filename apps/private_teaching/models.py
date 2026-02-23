@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 import uuid
+from simple_history.models import HistoricalRecords
 
 from apps.core.models import PayableModel, BaseCancellationRequest
 from lessons.models import Lesson
@@ -293,7 +294,9 @@ class Order(models.Model):
         blank=True,
         help_text="When payment was completed"
     )
-    
+
+    history = HistoricalRecords()
+
     class Meta:
         ordering = ['-created_at']
         verbose_name = 'Order'
@@ -415,6 +418,8 @@ class TeacherStudentApplication(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     status_changed_at = models.DateTimeField(null=True, blank=True)
+
+    history = HistoricalRecords()
 
     class Meta:
         ordering = ['created_at']
@@ -627,6 +632,8 @@ class LessonCancellationRequest(BaseCancellationRequest):
     # Reschedule Details (domain-specific)
     proposed_new_date = models.DateField(null=True, blank=True)
     proposed_new_time = models.TimeField(null=True, blank=True)
+
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = 'Lesson Cancellation Request'

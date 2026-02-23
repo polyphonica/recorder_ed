@@ -2,7 +2,6 @@
 Email notifications for teacher applications.
 Handles approval emails with signup tokens for applicants without accounts.
 """
-from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
@@ -96,17 +95,11 @@ def send_approval_email(request, application):
         message = render_to_string('teacher_applications/emails/approval_email.txt', context)
         html_message = render_to_string('teacher_applications/emails/approval_email.html', context)
 
-        # Send email
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[application.email],
-            html_message=html_message,
-            fail_silently=False,
-        )
+        # Send email asynchronously
+        from apps.core.tasks import send_email_task
+        send_email_task.delay(subject, message, html_message, [application.email], settings.DEFAULT_FROM_EMAIL)
 
-        logger.info(f"Approval email sent to {application.email} for application {application.id}")
+        logger.info(f"Approval email enqueued for {application.email} (application {application.id})")
         return True
 
     except Exception as e:

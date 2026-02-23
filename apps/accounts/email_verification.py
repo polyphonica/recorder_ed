@@ -5,7 +5,6 @@ Uses Django's built-in token generation for security.
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
-from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
@@ -61,15 +60,9 @@ def send_verification_email(request, user):
     message = render_to_string('accounts/emails/verification_email.txt', context)
     html_message = render_to_string('accounts/emails/verification_email.html', context)
 
-    # Send email
-    send_mail(
-        subject=subject,
-        message=message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        html_message=html_message,
-        fail_silently=False,
-    )
+    # Send email asynchronously
+    from apps.core.tasks import send_email_task
+    send_email_task.delay(subject, message, html_message, [user.email], settings.DEFAULT_FROM_EMAIL)
 
 
 def verify_token(uidb64, token):

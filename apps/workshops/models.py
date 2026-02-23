@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 import uuid
 
 from apps.core.models import PayableModel
+from simple_history.models import HistoricalRecords
 
 
 def validate_workshop_image_size(image):
@@ -685,7 +686,9 @@ class WorkshopRegistration(PayableModel):
 
     # Metadata
     updated_at = models.DateTimeField(auto_now=True)
-    
+
+    history = HistoricalRecords()
+
     class Meta:
         ordering = ['registration_date']
         indexes = [

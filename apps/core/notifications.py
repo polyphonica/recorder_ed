@@ -326,32 +326,19 @@ class BaseNotificationService:
                 # HTML template doesn't exist, that's OK - we'll send plain text only
                 pass
 
-            # Send multipart email if we have HTML, otherwise plain text only
-            if html_message:
-                # Create multipart email
-                email = EmailMultiAlternatives(
-                    subject=subject,
-                    body=text_message,
-                    from_email=from_email or settings.DEFAULT_FROM_EMAIL,
-                    to=recipient_list
-                )
-                email.attach_alternative(html_message, "text/html")
-                email.send(fail_silently=fail_silently)
+            # Enqueue email task asynchronously (runs synchronously on staging
+            # via CELERY_TASK_ALWAYS_EAGER=True)
+            from apps.core.tasks import send_email_task
+            send_email_task.delay(
+                subject,
+                text_message,
+                html_message,   # None if no HTML template found
+                recipient_list,
+                from_email or settings.DEFAULT_FROM_EMAIL,
+            )
 
-                if log_description:
-                    logger.info(f"Multipart email sent: {log_description}")
-            else:
-                # Send plain text only
-                send_mail(
-                    subject=subject,
-                    message=text_message,
-                    from_email=from_email or settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=recipient_list,
-                    fail_silently=fail_silently,
-                )
-
-                if log_description:
-                    logger.info(f"Plain text email sent: {log_description}")
+            if log_description:
+                logger.info(f"Email enqueued: {log_description}")
 
             return True
 
@@ -385,17 +372,17 @@ class BaseNotificationService:
             True if email sent successfully, False otherwise
         """
         try:
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=from_email or settings.DEFAULT_FROM_EMAIL,
-                recipient_list=recipient_list,
-                fail_silently=fail_silently,
+            from apps.core.tasks import send_email_task
+            send_email_task.delay(
+                subject,
+                message,
+                None,
+                recipient_list,
+                from_email or settings.DEFAULT_FROM_EMAIL,
             )
 
-            # Log success
             if log_description:
-                logger.info(f"Email sent: {log_description}")
+                logger.info(f"Email enqueued: {log_description}")
 
             return True
 

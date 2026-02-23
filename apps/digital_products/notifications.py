@@ -1,4 +1,3 @@
-from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.urls import reverse
@@ -50,15 +49,9 @@ def send_purchase_confirmation(purchase):
     html_message = render_to_string('digital_products/emails/purchase_confirmation.html', context)
     plain_message = render_to_string('digital_products/emails/purchase_confirmation.txt', context)
 
-    # Send email
-    send_mail(
-        subject=subject,
-        message=plain_message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[student.email],
-        html_message=html_message,
-        fail_silently=False,
-    )
+    # Send email asynchronously
+    from apps.core.tasks import send_email_task
+    send_email_task.delay(subject, plain_message, html_message, [student.email], settings.DEFAULT_FROM_EMAIL)
 
 
 def send_cart_purchase_confirmation(student, purchases):
@@ -114,15 +107,9 @@ def send_cart_purchase_confirmation(student, purchases):
     html_message = render_to_string('digital_products/emails/cart_purchase_confirmation.html', context)
     plain_message = render_to_string('digital_products/emails/cart_purchase_confirmation.txt', context)
 
-    # Send email
-    send_mail(
-        subject=subject,
-        message=plain_message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[student.email],
-        html_message=html_message,
-        fail_silently=False,
-    )
+    # Send email asynchronously
+    from apps.core.tasks import send_email_task
+    send_email_task.delay(subject, plain_message, html_message, [student.email], settings.DEFAULT_FROM_EMAIL)
 
 
 def send_review_notification(review):
@@ -148,11 +135,5 @@ def send_review_notification(review):
     html_message = render_to_string('digital_products/emails/review_notification.html', context)
     plain_message = render_to_string('digital_products/emails/review_notification.txt', context)
 
-    send_mail(
-        subject=subject,
-        message=plain_message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[teacher.email],
-        html_message=html_message,
-        fail_silently=False,
-    )
+    from apps.core.tasks import send_email_task
+    send_email_task.delay(subject, plain_message, html_message, [teacher.email], settings.DEFAULT_FROM_EMAIL)
