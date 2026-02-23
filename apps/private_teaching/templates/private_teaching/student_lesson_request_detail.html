@@ -105,6 +105,40 @@
         </div>
     </div>
 
+    <!-- Rejected Lessons -->
+    {% if rejected_lessons %}
+    <div class="card card-section shadow-xl mb-6 border border-error/30">
+        <div class="card-body">
+            <h2 class="card-title text-2xl mb-1 text-error">Lessons Not Accepted</h2>
+            <p class="text-sm text-base-content/70 mb-4">The teacher was unable to take the following lessons. See the conversation below for more details.</p>
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lesson in rejected_lessons %}
+                        <tr>
+                            <td>{{ lesson.subject.subject }}</td>
+                            <td>{{ lesson.lesson_date|date:"M d, Y" }}</td>
+                            <td>{{ lesson.lesson_time|time:"g:i A" }}</td>
+                            <td>{{ lesson.duration_in_minutes }} min</td>
+                            <td><span class="badge badge-error">Not Accepted</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Message Thread -->
     <div class="card card-section shadow-xl mb-6">
         <div class="card-body">

@@ -371,11 +371,18 @@ class MyLessonRequestsView(UserFilterMixin, StudentProfileCompletedMixin, Studen
             total_active_lessons=Count(
                 'lessons',
                 filter=Q(lessons__is_deleted=False)
+            ),
+            rejected_lessons_count=Count(
+                'lessons',
+                filter=Q(
+                    lessons__is_deleted=True,
+                    lessons__approved_status=Lesson.ApprovalStatus.REJECTED
+                )
             )
         ).order_by('-created_at')
 
-        # Exclude requests with no active lessons
-        return queryset.exclude(total_active_lessons=0)
+        # Exclude requests with no lessons at all (neither active nor rejected)
+        return queryset.exclude(total_active_lessons=0, rejected_lessons_count=0)
 
 
 class StudentLessonRequestDetailView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
@@ -394,6 +401,10 @@ class StudentLessonRequestDetailView(StudentProfileCompletedMixin, StudentOnlyMi
         context = super().get_context_data(**kwargs)
         lesson_request = self.get_lesson_request()
         lessons = lesson_request.lessons.filter(is_deleted=False).select_related('subject')
+        rejected_lessons = lesson_request.lessons.filter(
+            is_deleted=True,
+            approved_status=Lesson.ApprovalStatus.REJECTED
+        ).select_related('subject')
 
         # Count eligible lessons (accepted and unpaid)
         eligible_lessons_count = lessons.filter(
@@ -404,6 +415,7 @@ class StudentLessonRequestDetailView(StudentProfileCompletedMixin, StudentOnlyMi
         context.update({
             'lesson_request': lesson_request,
             'lessons': lessons,
+            'rejected_lessons': rejected_lessons,
             'conversation_messages': lesson_request.messages.select_related('author').order_by('created_at'),
             'eligible_lessons_count': eligible_lessons_count,
         })

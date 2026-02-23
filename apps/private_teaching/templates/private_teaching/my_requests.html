@@ -56,7 +56,21 @@
 
                                 <div class="space-y-3">
                                     {% for lesson in request.lessons.all %}
-                                        {% if not lesson.is_deleted %}
+                                        {% if lesson.is_deleted and lesson.approved_status == 'Rejected' %}
+                                        <div class="bg-error/10 border border-error/30 p-4 rounded-lg">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex-1">
+                                                    <div class="flex items-center gap-3 text-sm">
+                                                        <span class="font-medium">{{ lesson.subject.subject }}</span>
+                                                        <span>📅 {{ lesson.lesson_date|date:"M d, Y" }}</span>
+                                                        <span>🕐 {{ lesson.lesson_time|time:"g:i A" }}</span>
+                                                        <span class="badge badge-outline">{{ lesson.duration_in_minutes }}min</span>
+                                                    </div>
+                                                </div>
+                                                <span class="badge badge-error">Not Accepted</span>
+                                            </div>
+                                        </div>
+                                        {% elif not lesson.is_deleted %}
                                         <div class="bg-base-200 p-4 rounded-lg">
                                             <div class="flex items-center justify-between">
                                                 <div class="flex-1">
