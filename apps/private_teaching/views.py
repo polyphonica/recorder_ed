@@ -15,8 +15,9 @@ from django.conf import settings
 from django import forms
 
 from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, UserFilterMixin
+from apps.core.models import Cart
 from .models import (
-    LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem,
+    LessonRequest, Subject, LessonRequestMessage, CartItem, Order, OrderItem,
     TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard,
     LessonCancellationRequest, PracticeEntry,
     PrivateLessonQuiz, PrivateLessonQuizQuestion, PrivateLessonQuizAnswer,

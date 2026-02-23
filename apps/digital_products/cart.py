@@ -1,5 +1,5 @@
 from apps.core.cart import BaseCartManager
-from apps.private_teaching.models import Cart
+from apps.core.models import Cart
 from .models import DigitalProduct, DigitalProductCartItem, ProductPurchase
 
 

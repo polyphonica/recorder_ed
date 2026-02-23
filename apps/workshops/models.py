@@ -981,10 +981,10 @@ class WorkshopInterest(models.Model):
 class WorkshopCartItem(models.Model):
     """
     Workshop session in shopping cart.
-    Uses the unified Cart model from private_teaching app.
+    Uses the unified Cart model from core app.
     """
     cart = models.ForeignKey(
-        'private_teaching.Cart',
+        'core.Cart',
         on_delete=models.CASCADE,
         related_name='workshop_items',
         help_text="Cart this workshop session belongs to"

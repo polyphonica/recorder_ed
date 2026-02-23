@@ -202,46 +202,10 @@ class LessonRequestMessage(models.Model):
             self.save(update_fields=['is_read', 'read_at'])
 
 
-class Cart(models.Model):
-    """Shopping cart for lesson purchases"""
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name='lesson_cart',
-        help_text="User who owns this cart"
-    )
-    session_key = models.CharField(
-        max_length=40,
-        blank=True,
-        null=True,
-        help_text="Session key for anonymous users"
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['-updated_at']
-        verbose_name = 'Shopping Cart'
-        verbose_name_plural = 'Shopping Carts'
-
-    def __str__(self):
-        return f"Cart for {self.user.get_full_name() if self.user else 'Anonymous'}"
-
-    @property
-    def total_amount(self):
-        """Calculate total cart amount"""
-        return sum(item.total_price for item in self.items.all())
-
-    @property
-    def item_count(self):
-        """Get total number of items in cart"""
-        return self.items.count()
-
-
 class CartItem(models.Model):
     """Individual lesson in shopping cart"""
     cart = models.ForeignKey(
-        Cart,
+        'core.Cart',
         on_delete=models.CASCADE,
         related_name='items',
         help_text="Cart this item belongs to"

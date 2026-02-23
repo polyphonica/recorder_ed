@@ -4,7 +4,8 @@ Shopping cart utilities for private teaching lessons
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
 from apps.core.cart import BaseCartManager
-from .models import Cart, CartItem
+from apps.core.models import Cart
+from .models import CartItem
 from lessons.models import Lesson
 
 

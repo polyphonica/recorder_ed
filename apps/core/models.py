@@ -355,3 +355,40 @@ class BaseCancellationRequest(models.Model):
         self.status = self.COMPLETED
         self.refund_processed_at = timezone.now()
         self.save()
+
+
+class Cart(models.Model):
+    """Shopping cart container shared across lessons, workshops, and digital products."""
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='lesson_cart',
+        help_text="User who owns this cart"
+    )
+    session_key = models.CharField(
+        max_length=40,
+        blank=True,
+        null=True,
+        help_text="Session key for anonymous users"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'Shopping Cart'
+        verbose_name_plural = 'Shopping Carts'
+        db_table = 'private_teaching_cart'
+
+    def __str__(self):
+        return f"Cart for {self.user.get_full_name() if self.user else 'Anonymous'}"
+
+    @property
+    def total_amount(self):
+        """Calculate total cart amount"""
+        return sum(item.total_price for item in self.items.all())
+
+    @property
+    def item_count(self):
+        """Get total number of items in cart"""
+        return self.items.count()

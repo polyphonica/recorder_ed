@@ -2,8 +2,9 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.db.models import Count, Sum, Max, Subquery, OuterRef, DecimalField
 from django.db.models.functions import Coalesce
+from apps.core.models import Cart
 from .models import (
-    Subject, LessonRequest, LessonRequestMessage, Cart, CartItem, Order, OrderItem,
+    Subject, LessonRequest, LessonRequestMessage, CartItem, Order, OrderItem,
     TeacherStudentApplication, ApplicationMessage, ExamBoard, ExamRegistration, ExamPiece,
     PrivateLessonTermsAndConditions, PrivateLessonTermsAcceptance, LessonCancellationRequest,
     PrivateLessonQuiz, PrivateLessonQuizQuestion, PrivateLessonQuizAnswer,
