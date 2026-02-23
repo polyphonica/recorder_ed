@@ -30,17 +30,32 @@ def update_session_registrations_on_save(sender, instance, created, **kwargs):
 def update_session_registrations_on_delete(sender, instance, **kwargs):
     """Update session registration count when registration is deleted"""
     session = instance.session
-    
+
     # Count active registrations (including promoted students who hold places)
     active_count = WorkshopRegistration.objects.filter(
         session=session,
         status__in=['registered', 'promoted', 'promoted', 'attended', 'waitlisted']
     ).count()
-    
+
     # Update the session's current_registrations count
     if session.current_registrations != active_count:
         session.current_registrations = active_count
         session.save(update_fields=['current_registrations'])
+
+
+@receiver(post_save, sender=WorkshopSession)
+@receiver(post_delete, sender=WorkshopSession)
+def update_workshop_on_session_change(sender, instance, **kwargs):
+    """Keep Workshop.total_sessions in sync when sessions are added or removed."""
+    if instance.workshop_id:
+        instance.workshop.update_counts()
+
+
+@receiver(post_save, sender=WorkshopRegistration)
+@receiver(post_delete, sender=WorkshopRegistration)
+def update_workshop_on_registration_change(sender, instance, **kwargs):
+    """Keep Workshop.total_registrations and average_rating in sync."""
+    instance.session.workshop.update_counts()
 
 
 @receiver(post_save, sender=WorkshopSession)

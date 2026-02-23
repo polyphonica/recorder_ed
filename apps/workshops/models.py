@@ -372,6 +372,26 @@ class Workshop(models.Model):
         """Count of active sessions in the series"""
         return self.series_sessions.count()
 
+    def update_counts(self):
+        """Update denormalized count fields. Called by signals on session/registration changes."""
+        from decimal import Decimal
+        from django.db.models import Avg
+
+        self.total_sessions = self.sessions.filter(is_active=True).count()
+
+        self.total_registrations = WorkshopRegistration.objects.filter(
+            session__workshop=self,
+            status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.ATTENDED]
+        ).count()
+
+        avg = WorkshopRegistration.objects.filter(
+            session__workshop=self,
+            rating__isnull=False
+        ).aggregate(avg=Avg('rating'))['avg']
+        self.average_rating = Decimal(str(round(avg, 2))) if avg else Decimal('0.00')
+
+        self.save(update_fields=['total_sessions', 'total_registrations', 'average_rating'])
+
 
 class WorkshopSession(models.Model):
     """Scheduled instances of workshops"""
