@@ -166,7 +166,8 @@ class Course(models.Model):
     @property
     def has_quiz(self):
         """Check if any lesson in the course has a quiz"""
-        return Quiz.objects.filter(lesson__topic__course=self).exists()
+        from apps.quizzes.models import Quiz
+        return Quiz.objects.filter(course_lesson__topic__course=self).exists()
 
     def requires_age_acknowledgment(self, child_age):
         """
