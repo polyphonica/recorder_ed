@@ -362,12 +362,13 @@ class TeacherStudentApplication(models.Model):
     Application for students to study with a specific teacher.
     Students must be accepted before they can request lessons.
     """
-    APPLICATION_STATUS_CHOICES = [
-        ('pending', 'Pending Review'),
-        ('accepted', 'Accepted'),
-        ('waitlist', 'On Waiting List'),
-        ('declined', 'Declined'),
-    ]
+    class Status(models.TextChoices):
+        PENDING  = 'pending',  'Pending Review'
+        ACCEPTED = 'accepted', 'Accepted'
+        WAITLIST = 'waitlist', 'On Waiting List'
+        DECLINED = 'declined', 'Declined'
+
+    APPLICATION_STATUS_CHOICES = Status.choices  # kept for backwards-compat
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
@@ -400,8 +401,8 @@ class TeacherStudentApplication(models.Model):
     # Status and notes
     status = models.CharField(
         max_length=20,
-        choices=APPLICATION_STATUS_CHOICES,
-        default='pending',
+        choices=Status.choices,
+        default=Status.PENDING,
         help_text="Current status of the application"
     )
 

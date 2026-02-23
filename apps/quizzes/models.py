@@ -180,7 +180,7 @@ class Quiz(models.Model):
         return self.questions.count()
 
     def get_questions(self, randomize=False):
-        questions = self.questions.all()
+        questions = self.questions.prefetch_related('answers')
         if randomize and self.randomize_questions:
             return questions.order_by('?')
         return questions.order_by('order')
@@ -224,13 +224,19 @@ class QuizQuestion(models.Model):
         return self.answers.all().order_by('order')
 
     def get_correct_answer(self):
-        return self.answers.filter(is_correct=True).first()
+        """Returns first correct answer. Uses prefetch cache when available."""
+        for answer in self.answers.all():
+            if answer.is_correct:
+                return answer
+        return None
 
     def get_correct_answers(self):
-        return self.answers.filter(is_correct=True)
+        """Returns all correct answers. Uses prefetch cache when available."""
+        return [a for a in self.answers.all() if a.is_correct]
 
     def has_multiple_correct_answers(self):
-        return self.answers.filter(is_correct=True).count() > 1
+        """Uses prefetch cache when available."""
+        return sum(1 for a in self.answers.all() if a.is_correct) > 1
 
 
 class QuizAnswer(models.Model):
@@ -534,7 +540,10 @@ class QuizAttempt(models.Model):
 
             student_answer = None
             if student_answer_id:
-                student_answer = question.answers.filter(id=student_answer_id).first()
+                student_answer = next(
+                    (a for a in question.answers.all() if str(a.id) == str(student_answer_id)),
+                    None
+                )
 
             is_correct = (
                 student_answer is not None and
@@ -547,7 +556,7 @@ class QuizAttempt(models.Model):
                 'student_answer': student_answer,
                 'correct_answer': correct_answer,
                 'is_correct': is_correct,
-                'answers': question.answers.order_by('order'),
+                'answers': list(question.answers.all()),
             })
 
         return results

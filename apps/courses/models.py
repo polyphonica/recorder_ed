@@ -552,16 +552,70 @@ class CourseEnrollment(PayableModel):
         Check if all lessons and quizzes are complete.
         If yes, mark course as complete and create certificate.
         Returns True if marked complete, False otherwise.
+
+        Batches all DB queries upfront to avoid N+1 (2 queries regardless of topic count).
         """
         if self.completed_at:
             return True  # Already complete
 
-        # Check all topics
-        for topic in self.course.topics.all():
-            if not topic.is_completed(self):
-                return False
+        from apps.quizzes.models import Quiz, QuizAttempt
 
-        # All topics complete - mark course complete
+        # Prefetch all published lessons + their quizzes across all topics in two queries
+        topics = list(
+            self.course.topics.prefetch_related(
+                models.Prefetch(
+                    'lessons',
+                    queryset=Lesson.objects.filter(
+                        status=Lesson.Status.PUBLISHED
+                    ).select_related('quiz'),
+                )
+            ).order_by('topic_number')
+        )
+
+        all_lesson_ids = [
+            lesson.pk
+            for topic in topics
+            for lesson in topic.lessons.all()
+        ]
+        if not all_lesson_ids:
+            return False
+
+        # Single query: completed lessons for this enrollment
+        completed_lesson_ids = set(
+            LessonProgress.objects.filter(
+                enrollment=self,
+                lesson_id__in=all_lesson_ids,
+                is_completed=True,
+            ).values_list('lesson_id', flat=True)
+        )
+
+        # Single query: passed quiz IDs for this enrollment
+        quiz_ids = [
+            lesson.quiz.pk
+            for topic in topics
+            for lesson in topic.lessons.all()
+            if hasattr(lesson, 'quiz') and lesson.quiz
+            and lesson.quiz.status == Quiz.Status.PUBLISHED
+        ]
+        passed_quiz_ids = set(
+            QuizAttempt.objects.filter(
+                assignment__course_enrollment=self,
+                assignment__quiz_id__in=quiz_ids,
+                passed=True,
+            ).values_list('assignment__quiz_id', flat=True)
+        ) if quiz_ids else set()
+
+        # Check completion in Python — no further DB queries
+        for topic in topics:
+            for lesson in topic.lessons.all():
+                if lesson.pk not in completed_lesson_ids:
+                    return False
+                if (hasattr(lesson, 'quiz') and lesson.quiz
+                        and lesson.quiz.status == Quiz.Status.PUBLISHED):
+                    if lesson.quiz.pk not in passed_quiz_ids:
+                        return False
+
+        # All topics and quizzes complete — mark course complete
         self.completed_at = timezone.now()
         self.save()
 
