@@ -6,6 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
+        ('messaging', '0006_remove_conversation_unique_private_teaching_conversation_and_more'),
         ('private_teaching', '0032_migrate_pla_to_la'),
     ]
 

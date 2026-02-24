@@ -12,7 +12,9 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('core', '0002_cart'),
+        ('digital_products', '0005_update_digitalproductcartitem_cart_fk'),
         ('private_teaching', '0033_delete_privatelessonassignment'),
+        ('workshops', '0032_update_workshopcartitem_cart_fk'),
     ]
 
     operations = [
