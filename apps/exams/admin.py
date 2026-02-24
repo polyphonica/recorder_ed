@@ -53,7 +53,7 @@ class ExamRegistrationAdmin(SimpleHistoryAdmin):
                       'examiner_comments', 'certificate_received_date')
         }),
         ('Payment', {
-            'fields': ('fee_amount', 'payment_status', 'payment_amount',
+            'fields': ('payment_amount', 'payment_status',
                       'stripe_payment_intent_id', 'paid_at'),
             'classes': ('collapse',)
         }),

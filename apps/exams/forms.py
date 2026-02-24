@@ -25,8 +25,11 @@ class ExamRegistrationForm(forms.ModelForm):
             'subject', 'exam_board',
             'grade_type', 'grade_level', 'exam_date', 'submission_deadline',
             'registration_number', 'venue', 'scales', 'arpeggios',
-            'sight_reading', 'aural_tests', 'fee_amount', 'teacher_notes'
+            'sight_reading', 'aural_tests', 'payment_amount', 'teacher_notes'
         ]
+        labels = {
+            'payment_amount': 'Registration fee',
+        }
         widgets = {
             'subject': forms.Select(attrs={'class': 'select select-bordered w-full'}),
             'exam_board': forms.Select(attrs={'class': 'select select-bordered w-full'}),
@@ -72,7 +75,7 @@ class ExamRegistrationForm(forms.ModelForm):
                 'rows': 2,
                 'placeholder': 'Aural test requirements'
             }),
-            'fee_amount': forms.NumberInput(attrs={
+            'payment_amount': forms.NumberInput(attrs={
                 'class': 'input input-bordered w-full',
                 'step': '0.01',
                 'min': '0',
@@ -153,7 +156,7 @@ class ExamRegistrationForm(forms.ModelForm):
         else:
             exam.child_profile = None
 
-        if exam.fee_amount > 0:
+        if exam.payment_amount > 0:
             exam.payment_status = 'pending'
         else:
             exam.payment_status = 'not_required'

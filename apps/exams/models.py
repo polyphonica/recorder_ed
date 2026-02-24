@@ -189,12 +189,6 @@ class ExamRegistration(PayableModel):
         blank=True,
         help_text="Date when certificate was received"
     )
-    fee_amount = models.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        default=0.00,
-        help_text="Exam registration fee set by teacher"
-    )
     teacher_notes = models.TextField(
         blank=True,
         help_text="Private teacher notes about this exam"

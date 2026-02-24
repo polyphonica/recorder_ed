@@ -222,10 +222,10 @@
                         <label class="label">
                             <span class="label-text font-semibold">Registration Fee (£) *</span>
                         </label>
-                        {{ form.fee_amount }}
+                        {{ form.payment_amount }}
                         <label class="label"><span class="label-text-alt">Set to 0 if no payment required</span></label>
-                        {% if form.fee_amount.errors %}
-                            <label class="label"><span class="label-text-alt text-error">{{ form.fee_amount.errors.0 }}</span></label>
+                        {% if form.payment_amount.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.payment_amount.errors.0 }}</span></label>
                         {% endif %}
                     </div>
 

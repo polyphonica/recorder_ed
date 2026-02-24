@@ -254,7 +254,7 @@ class ExamPaymentView(PrivateTeachingLoginRequiredMixin, View):
             messages.info(request, 'This exam has already been paid for.')
             return redirect('exams:exam_detail', pk=exam.id)
 
-        if not exam.requires_payment or exam.fee_amount <= 0:
+        if not exam.requires_payment or exam.payment_amount <= 0:
             messages.error(request, 'No payment is required for this exam.')
             return redirect('exams:exam_detail', pk=exam.id)
 
@@ -275,7 +275,7 @@ class ExamPaymentView(PrivateTeachingLoginRequiredMixin, View):
             }
 
             checkout_session = create_checkout_session(
-                amount=exam.fee_amount,
+                amount=exam.payment_amount,
                 student=exam.student,
                 teacher=exam.teacher,
                 domain='private_teaching',

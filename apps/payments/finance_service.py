@@ -175,7 +175,7 @@ class FinanceService:
             exam_registrations = exam_registrations.filter(paid_at__lte=end_date)
 
         exams_gross = exam_registrations.aggregate(
-            total=Sum('fee_amount')
+            total=Sum('payment_amount')
         )['total'] or Decimal('0.00')
         exams_count = exam_registrations.count()
 
@@ -370,7 +370,7 @@ class FinanceService:
             if end_date:
                 exams_query = exams_query.filter(paid_at__lte=end_date)
 
-            exams_gross = exams_query.aggregate(total=Sum('fee_amount'))['total'] or Decimal('0.00')
+            exams_gross = exams_query.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
             exams_count = exams_query.count()
 
             # Combine totals
@@ -684,7 +684,7 @@ class FinanceService:
                 }
 
             breakdown_dict[key]['exams_count'] += 1
-            fee_amount = Decimal(str(exam.fee_amount)) if exam.fee_amount else Decimal('0.00')
+            fee_amount = Decimal(str(exam.payment_amount)) if exam.payment_amount else Decimal('0.00')
             breakdown_dict[key]['exams_revenue'] += fee_amount
 
         # Build final breakdown list
@@ -995,7 +995,7 @@ class FinanceService:
         ).select_related('student', 'exam_board', 'subject', 'child_profile').order_by('-paid_at')[:limit]
 
         for exam in exam_registrations:
-            amount = exam.fee_amount
+            amount = exam.payment_amount
             teacher_share = amount * (1 - Decimal(str(commission_rate)))
 
             transactions.append({
@@ -1162,7 +1162,7 @@ class FinanceService:
         if end_date:
             exam_regs = exam_regs.filter(paid_at__lte=end_date)
 
-        exams_gross = exam_regs.aggregate(total=Sum('fee_amount'))['total'] or Decimal('0.00')
+        exams_gross = exam_regs.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
         exams_count = exam_regs.count()
 
         private_gross = lessons_gross + exams_gross
