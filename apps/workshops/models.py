@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 import uuid
 
 from apps.core.models import PayableModel
+from simple_history.models import HistoricalRecords
 
 
 def validate_workshop_image_size(image):
@@ -78,11 +79,13 @@ class WorkshopCategory(models.Model):
 
 class Workshop(models.Model):
     """Main workshop model"""
-    STATUS_CHOICES = [
-        ('draft', 'Draft'),
-        ('published', 'Published'),
-        ('archived', 'Archived'),
-    ]
+
+    class Status(models.TextChoices):
+        DRAFT     = 'draft',     'Draft'
+        PUBLISHED = 'published', 'Published'
+        ARCHIVED  = 'archived',  'Archived'
+
+    STATUS_CHOICES = Status.choices  # kept for backwards-compat with migrations
     
     DIFFICULTY_CHOICES = [
         ('beginner', 'Beginner'),
@@ -203,14 +206,14 @@ class Workshop(models.Model):
     )
     
     # Status and Publishing
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     is_featured = models.BooleanField(default=False)
-    
+
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     published_at = models.DateTimeField(null=True, blank=True)
-    
+
     # Stats (denormalized for performance)
     total_sessions = models.PositiveIntegerField(default=0)
     total_registrations = models.PositiveIntegerField(default=0)
@@ -264,7 +267,7 @@ class Workshop(models.Model):
     
     @property
     def is_published(self):
-        return self.status == 'published'
+        return self.status == Workshop.Status.PUBLISHED
     
     @property
     def next_session(self):
@@ -337,7 +340,11 @@ class Workshop(models.Model):
         """Get actual count of active registrations across all sessions"""
         return WorkshopRegistration.objects.filter(
             session__workshop=self,
-            status__in=['registered', 'attended', 'waitlisted']
+            status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.ATTENDED,
+                WorkshopRegistration.Status.WAITLISTED,
+            ]
         ).count()
 
     @property
@@ -365,6 +372,26 @@ class Workshop(models.Model):
     def series_session_count(self):
         """Count of active sessions in the series"""
         return self.series_sessions.count()
+
+    def update_counts(self):
+        """Update denormalized count fields. Called by signals on session/registration changes."""
+        from decimal import Decimal
+        from django.db.models import Avg
+
+        self.total_sessions = self.sessions.filter(is_active=True).count()
+
+        self.total_registrations = WorkshopRegistration.objects.filter(
+            session__workshop=self,
+            status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.ATTENDED]
+        ).count()
+
+        avg = WorkshopRegistration.objects.filter(
+            session__workshop=self,
+            rating__isnull=False
+        ).aggregate(avg=Avg('rating'))['avg']
+        self.average_rating = Decimal(str(round(avg, 2))) if avg else Decimal('0.00')
+
+        self.save(update_fields=['total_sessions', 'total_registrations', 'average_rating'])
 
 
 class WorkshopSession(models.Model):
@@ -462,7 +489,11 @@ class WorkshopSession(models.Model):
     def update_registration_count(self):
         """Update the current registration count based on active registrations"""
         self.current_registrations = self.registrations.filter(
-            status__in=['registered', 'promoted', 'attended']
+            status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+            ]
         ).count()
         self.save(update_fields=['current_registrations'])
     
@@ -484,7 +515,7 @@ class WorkshopSession(models.Model):
     def update_waitlist_positions(self):
         """Update waitlist positions for this session"""
         waitlisted_registrations = self.registrations.filter(
-            status='waitlisted'
+            status=WorkshopRegistration.Status.WAITLISTED
         ).order_by('registration_date')
         
         for index, registration in enumerate(waitlisted_registrations, start=1):
@@ -495,7 +526,7 @@ class WorkshopSession(models.Model):
     def get_next_waitlist_position(self):
         """Get the next available waitlist position"""
         last_position = self.registrations.filter(
-            status='waitlisted'
+            status=WorkshopRegistration.Status.WAITLISTED
         ).aggregate(
             max_position=models.Max('waitlist_position')
         )['max_position']
@@ -509,7 +540,11 @@ class WorkshopSession(models.Model):
         
         # Calculate available places
         active_registrations = self.registrations.filter(
-            status__in=['registered', 'promoted', 'attended']
+            status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+            ]
         ).count()
         available_places = self.max_participants - active_registrations
 
@@ -518,7 +553,7 @@ class WorkshopSession(models.Model):
         
         # Get waitlisted students in order
         waitlisted = self.registrations.filter(
-            status='waitlisted'
+            status=WorkshopRegistration.Status.WAITLISTED
         ).order_by('waitlist_position', 'registration_date')[:available_places]
         
         promoted_registrations = []
@@ -526,7 +561,7 @@ class WorkshopSession(models.Model):
         
         for registration in waitlisted:
             # Update registration status to promoted (awaiting payment/confirmation)
-            registration.status = 'promoted'
+            registration.status = WorkshopRegistration.Status.PROMOTED
             registration.promoted_at = timezone.now()
             registration.promotion_expires_at = promotion_deadline
             registration.promotion_notification_sent = False
@@ -546,7 +581,11 @@ class WorkshopSession(models.Model):
         
         # Update session registration count (include promoted students as they hold places)
         self.current_registrations = self.registrations.filter(
-            status__in=['registered', 'promoted', 'attended']
+            status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+            ]
         ).count()
         self.save(update_fields=['current_registrations'])
         
@@ -557,7 +596,7 @@ class WorkshopSession(models.Model):
     
     def get_waitlist_info(self):
         """Get waitlist statistics for this session"""
-        waitlisted = self.registrations.filter(status='waitlisted')
+        waitlisted = self.registrations.filter(status=WorkshopRegistration.Status.WAITLISTED)
         return {
             'total_waitlisted': waitlisted.count(),
             'next_position': self.get_next_waitlist_position(),
@@ -575,15 +614,17 @@ class WorkshopRegistration(PayableModel):
 
     Inherits payment-related fields from PayableModel.
     """
-    STATUS_CHOICES = [
-        ('pending_payment', 'Pending Payment'),
-        ('registered', 'Registered'),
-        ('waitlisted', 'Waitlisted'),
-        ('promoted', 'Promoted (Awaiting Payment)'),
-        ('attended', 'Attended'),
-        ('no_show', 'No Show'),
-        ('cancelled', 'Cancelled'),
-    ]
+
+    class Status(models.TextChoices):
+        PENDING_PAYMENT = 'pending_payment', 'Pending Payment'
+        REGISTERED      = 'registered',      'Registered'
+        WAITLISTED      = 'waitlisted',       'Waitlisted'
+        PROMOTED        = 'promoted',         'Promoted (Awaiting Payment)'
+        ATTENDED        = 'attended',         'Attended'
+        NO_SHOW         = 'no_show',          'No Show'
+        CANCELLED       = 'cancelled',        'Cancelled'
+
+    STATUS_CHOICES = Status.choices  # kept for backwards-compat with migrations
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     session = models.ForeignKey(WorkshopSession, on_delete=models.CASCADE, related_name='registrations')
@@ -598,7 +639,7 @@ class WorkshopRegistration(PayableModel):
     # - child_profile (ForeignKey to ChildProfile)
 
     # Registration Details
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='registered')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.REGISTERED)
     registration_date = models.DateTimeField(auto_now_add=True)
 
     # Contact Information
@@ -645,7 +686,9 @@ class WorkshopRegistration(PayableModel):
 
     # Metadata
     updated_at = models.DateTimeField(auto_now=True)
-    
+
+    history = HistoricalRecords()
+
     class Meta:
         ordering = ['registration_date']
         indexes = [
@@ -674,18 +717,18 @@ class WorkshopRegistration(PayableModel):
     
     def save(self, *args, **kwargs):
         """Override save to handle waitlist position assignment"""
-        if self.status == 'waitlisted' and not self.waitlist_position:
+        if self.status == WorkshopRegistration.Status.WAITLISTED and not self.waitlist_position:
             self.waitlist_position = self.session.get_next_waitlist_position()
-        elif self.status != 'waitlisted':
+        elif self.status != WorkshopRegistration.Status.WAITLISTED:
             self.waitlist_position = None
-        
+
         super().save(*args, **kwargs)
-        
+
         # Update session registration count whenever status changes
         self.session.update_registration_count()
-        
+
         # Update waitlist positions if this registration changed status
-        if self.status == 'waitlisted' or 'status' in kwargs.get('update_fields', []):
+        if self.status == WorkshopRegistration.Status.WAITLISTED or 'status' in kwargs.get('update_fields', []):
             self.session.update_waitlist_positions()
     
     @property
@@ -694,7 +737,7 @@ class WorkshopRegistration(PayableModel):
         if not self.promotion_expires_at:
             return False
         from django.utils import timezone
-        return timezone.now() > self.promotion_expires_at and self.status == 'registered'
+        return timezone.now() > self.promotion_expires_at and self.status == WorkshopRegistration.Status.REGISTERED
     
     def confirm_promotion(self):
         """Confirm a waitlist promotion"""
@@ -710,7 +753,7 @@ class WorkshopRegistration(PayableModel):
                 promotion.save()
                 
                 # Update registration status to confirmed
-                self.status = 'registered'
+                self.status = WorkshopRegistration.Status.REGISTERED
                 self.promotion_expires_at = None
                 self.save(update_fields=['status', 'promotion_expires_at'])
 
@@ -850,7 +893,10 @@ class WorkshopMaterial(models.Model):
         if not self.requires_registration:
             return True
             
-        if not registration or registration.status not in ['registered', 'attended']:
+        if not registration or registration.status not in [
+            WorkshopRegistration.Status.REGISTERED,
+            WorkshopRegistration.Status.ATTENDED,
+        ]:
             return False
         
         # If material is session-specific, check session timing
@@ -958,10 +1004,10 @@ class WorkshopInterest(models.Model):
 class WorkshopCartItem(models.Model):
     """
     Workshop session in shopping cart.
-    Uses the unified Cart model from private_teaching app.
+    Uses the unified Cart model from core app.
     """
     cart = models.ForeignKey(
-        'private_teaching.Cart',
+        'core.Cart',
         on_delete=models.CASCADE,
         related_name='workshop_items',
         help_text="Cart this workshop session belongs to"
@@ -985,7 +1031,7 @@ class WorkshopCartItem(models.Model):
     )
     child_profile = models.ForeignKey(
         'accounts.ChildProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='workshop_cart_items',
         null=True,
         blank=True,

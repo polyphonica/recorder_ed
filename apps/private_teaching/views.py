@@ -8,29 +8,27 @@ from django.urls import reverse_lazy, reverse
 from django.http import JsonResponse, Http404
 from django.utils import timezone
 from django.db import transaction, models
-from django.db.models import Q
+from django.db.models import Count, Q, Sum
 from django.core.mail import send_mail
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.conf import settings
 from django import forms
 
 from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, UserFilterMixin
+from apps.core.models import Cart
 from .models import (
-    LessonRequest, Subject, LessonRequestMessage, Cart, CartItem, Order, OrderItem,
-    TeacherStudentApplication, ExamRegistration, ExamPiece, ExamBoard,
-    LessonCancellationRequest, PracticeEntry, PrivateLessonAssignment,
-    PrivateLessonQuiz, PrivateLessonQuizQuestion, PrivateLessonQuizAnswer,
-    PrivateLessonQuizAssignment, PrivateLessonQuizAttempt,
+    LessonRequest, Subject, LessonRequestMessage, CartItem, Order, OrderItem,
+    TeacherStudentApplication, LessonCancellationRequest,
     StudentPieceAssignment, StudentCollectionAssignment
 )
 from .notifications import TeacherNotificationService, StudentNotificationService
-from .availability_engine import check_slot_availability
+from apps.exams.models import ExamRegistration
+from apps.practice.models import PracticeEntry
+from apps.quizzes.models import Quiz as PrivateLessonQuiz, QuizAssignment as PrivateLessonQuizAssignment
+from apps.scheduling.availability_engine import check_slot_availability
 from lessons.models import Lesson, Document, LessonAttachedUrl, LessonAssignment
-from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, ExamRegistrationForm, ExamPieceFormSet, ExamResultsForm, PracticeEntryForm, RescheduleForm
-from .quiz_forms import (
-    PrivateLessonQuizForm, PrivateLessonQuizQuestionForm, PrivateLessonQuizAnswerFormSet,
-    PrivateLessonQuizAssignmentForm, PrivateLessonQuizAnswerForm
-)
+from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, RescheduleForm, TeacherInitiateCancellationForm
 from .cart import CartManager
 from apps.payments.voucher_service import VoucherService, VoucherValidationError
 from .mixins import (
@@ -284,6 +282,18 @@ class PrivateTeachingHomeView(TemplateView):
         return context
 
 
+class PrivateLessonTermsView(TemplateView):
+    """Display current Private Lesson Terms and Conditions"""
+    template_name = 'private_teaching/terms_and_conditions.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from .models import PrivateLessonTermsAndConditions
+        current_terms = PrivateLessonTermsAndConditions.objects.filter(is_current=True).first()
+        context['current_terms'] = current_terms
+        return context
+
+
 class ProfileCompleteView(StudentProfileNotCompletedMixin, TemplateView):
     """View for completing user profile"""
     template_name = 'private_teaching/profile_complete.html'
@@ -363,19 +373,26 @@ class MyLessonRequestsView(UserFilterMixin, StudentProfileCompletedMixin, Studen
             eligible_lessons_count=Count(
                 'lessons',
                 filter=Q(
-                    lessons__approved_status='Accepted',
-                    lessons__payment_status='Not Paid',
+                    lessons__approved_status=Lesson.ApprovalStatus.ACCEPTED,
+                    lessons__payment_status='pending',
                     lessons__is_deleted=False
                 )
             ),
             total_active_lessons=Count(
                 'lessons',
                 filter=Q(lessons__is_deleted=False)
+            ),
+            rejected_lessons_count=Count(
+                'lessons',
+                filter=Q(
+                    lessons__is_deleted=True,
+                    lessons__approved_status=Lesson.ApprovalStatus.REJECTED
+                )
             )
         ).order_by('-created_at')
 
-        # Exclude requests with no active lessons
-        return queryset.exclude(total_active_lessons=0)
+        # Exclude requests with no lessons at all (neither active nor rejected)
+        return queryset.exclude(total_active_lessons=0, rejected_lessons_count=0)
 
 
 class StudentLessonRequestDetailView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
@@ -394,16 +411,21 @@ class StudentLessonRequestDetailView(StudentProfileCompletedMixin, StudentOnlyMi
         context = super().get_context_data(**kwargs)
         lesson_request = self.get_lesson_request()
         lessons = lesson_request.lessons.filter(is_deleted=False).select_related('subject')
+        rejected_lessons = lesson_request.lessons.filter(
+            is_deleted=True,
+            approved_status=Lesson.ApprovalStatus.REJECTED
+        ).select_related('subject')
 
         # Count eligible lessons (accepted and unpaid)
         eligible_lessons_count = lessons.filter(
-            approved_status='Accepted',
-            payment_status='Not Paid'
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
+            payment_status='pending'
         ).count()
 
         context.update({
             'lesson_request': lesson_request,
             'lessons': lessons,
+            'rejected_lessons': rejected_lessons,
             'conversation_messages': lesson_request.messages.select_related('author').order_by('created_at'),
             'eligible_lessons_count': eligible_lessons_count,
         })
@@ -437,7 +459,7 @@ def delete_lesson_from_request(request, lesson_id):
     )
 
     # Only allow deleting lessons that haven't been paid
-    if lesson.payment_status == 'Paid':
+    if lesson.payment_status == 'completed':
         messages.error(request, 'Cannot delete a lesson that has already been paid for.')
         return redirect('private_teaching:student_request_detail', request_id=lesson.lesson_request.id)
 
@@ -503,10 +525,10 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
         from django.db.models import Prefetch, Q
         pending_requests = LessonRequest.objects.filter(
             lessons__subject__teacher=self.request.user,
-            lessons__approved_status='Pending'
+            lessons__approved_status=Lesson.ApprovalStatus.PENDING
         ).distinct().select_related('student', 'child_profile').prefetch_related(
             Prefetch('lessons',
-                     queryset=Lesson.objects.select_related('subject').filter(approved_status='Pending'))
+                     queryset=Lesson.objects.select_related('subject').filter(approved_status=Lesson.ApprovalStatus.PENDING))
         )
 
         # Get today's lessons for this teacher
@@ -525,12 +547,12 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             is_deleted=False
         ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('lesson_date', 'lesson_time')[:10]
 
-        # Get paid lessons waiting to be assigned (payment_status='Paid' and status='Draft')
+        # Get paid lessons waiting to be assigned (payment_status='Paid' and status=Lesson.Status.DRAFT)
         # These are lessons that have been paid for but the teacher hasn't scheduled them yet
         paid_unassigned_lessons = Lesson.objects.filter(
             teacher=self.request.user,
-            payment_status='Paid',
-            status='Draft',
+            payment_status='completed',
+            status=Lesson.Status.DRAFT,
             is_deleted=False
         ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('created_at')
 
@@ -562,18 +584,18 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
         ).count()
 
         context.update({
-            'pending_applications': pending_applications,
+            'pending_applications': pending_applications[:10],
             'pending_applications_count': pending_applications.count(),
-            'waitlist_applications': waitlist_applications,
+            'waitlist_applications': waitlist_applications[:10],
             'waitlist_applications_count': waitlist_applications.count(),
-            'pending_requests': pending_requests,
+            'pending_requests': pending_requests[:10],
             'pending_count': pending_requests.count(),
             'today_lessons': today_lessons,
             'upcoming_lessons': upcoming_lessons,
-            'paid_unassigned_lessons': paid_unassigned_lessons,
+            'paid_unassigned_lessons': paid_unassigned_lessons[:10],
             'paid_unassigned_count': paid_unassigned_lessons.count(),
             'active_exams_count': active_exams,
-            'pending_cancellations': pending_cancellations,
+            'pending_cancellations': pending_cancellations[:10],
             'pending_cancellations_count': pending_cancellations.count(),
             'my_assignments_count': my_assignments_count,
             'pending_assignment_submissions_count': pending_assignment_submissions_count,
@@ -613,15 +635,15 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
         upcoming_lessons = Lesson.objects.filter(
             student=self.request.user,
             lesson_date__gte=today,
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             is_deleted=False
         ).select_related('subject', 'teacher').order_by('lesson_date', 'lesson_time')[:5]
 
         # Get lessons awaiting payment (approved but not paid)
         awaiting_payment = Lesson.objects.filter(
             student=self.request.user,
-            approved_status='Accepted',
-            payment_status='Not Paid',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
+            payment_status='pending',
             is_deleted=False
         ).select_related('subject', 'teacher').order_by('lesson_date', 'lesson_time')[:5]
 
@@ -635,22 +657,15 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
         ).select_related('subject', 'exam_board').order_by('exam_date')
 
         # Get pending assignments (draft or not yet submitted)
-        # PERFORMANCE FIX: Use single query instead of N+1 pattern
+        # Includes both lesson-linked (lesson.student = user) and standalone (student = user)
         from assignments.models import AssignmentSubmission
 
-        # Get all lessons for this student
-        student_lessons = Lesson.objects.filter(
-            student=self.request.user,
-            status='Assigned'
-        )
-
-        # Get all assignment links from these lessons
-        lesson_ids = student_lessons.values_list('id', flat=True)
         assignment_links = LessonAssignment.objects.filter(
-            lesson_id__in=lesson_ids
+            Q(lesson__student=self.request.user, lesson__status=Lesson.Status.ASSIGNED) |
+            Q(student=self.request.user, lesson__isnull=True)
         ).select_related('assignment')
 
-        # Get all assignment IDs and fetch submissions in a single query
+        # Fetch all submissions in a single query
         assignment_ids = [link.assignment_id for link in assignment_links]
         submissions_by_assignment = {
             sub.assignment_id: sub
@@ -660,7 +675,6 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
             )
         }
 
-        # Count pending assignments using the lookup dictionary (no additional queries)
         pending_assignments_count = 0
         for link in assignment_links:
             submission = submissions_by_assignment.get(link.assignment_id)
@@ -754,10 +768,10 @@ class LessonRequestDetailView(TeacherProfileCompletedMixin, TemplateView):
 
             for lesson in lessons:
                 # Mark rejected lessons as deleted (soft delete)
-                if lesson.approved_status == 'Rejected':
+                if lesson.approved_status == Lesson.ApprovalStatus.REJECTED:
                     lesson.is_deleted = True
                     rejected_lessons.append(lesson)
-                elif lesson.approved_status == 'Accepted':
+                elif lesson.approved_status == Lesson.ApprovalStatus.ACCEPTED:
                     accepted_lessons.append(lesson)
                 lesson.save()
 
@@ -818,10 +832,20 @@ class TeacherScheduleView(TeacherProfileCompletedMixin, TemplateView):
             is_deleted=False
         ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('lesson_date', 'lesson_time')
 
+        # Lesson IDs that already have a pending teacher-initiated request (disable button)
+        pending_teacher_cancel_ids = set(
+            LessonCancellationRequest.objects.filter(
+                teacher=self.request.user,
+                initiated_by=LessonCancellationRequest.INITIATED_BY_TEACHER,
+                status=LessonCancellationRequest.PENDING
+            ).values_list('lesson_id', flat=True)
+        )
+
         context.update({
             'scheduled_lessons': scheduled_lessons,
             'today': today,
             'end_date': end_date,
+            'pending_teacher_cancel_ids': pending_teacher_cancel_ids,
         })
         return context
 
@@ -838,7 +862,7 @@ class MyLessonsView(UserFilterMixin, StudentProfileCompletedMixin, StudentOnlyMi
         # UserFilterMixin automatically filters by student=self.request.user
         # Prefetch order_item to access price_paid for discount display
         return super().get_queryset().filter(
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             is_deleted=False
         ).select_related('subject', 'teacher', 'order_item').order_by('lesson_date', 'lesson_time')
 
@@ -847,8 +871,8 @@ class MyLessonsView(UserFilterMixin, StudentProfileCompletedMixin, StudentOnlyMi
 
         # Separate paid and unpaid lessons
         lessons = self.get_queryset()
-        context['paid_lessons'] = lessons.filter(payment_status='Paid')
-        context['unpaid_lessons'] = lessons.filter(payment_status='Not Paid')
+        context['paid_lessons'] = lessons.filter(payment_status='completed')
+        context['unpaid_lessons'] = lessons.filter(payment_status='pending')
 
         return context
 
@@ -897,11 +921,11 @@ class CalendarView(PrivateTeachingLoginRequiredMixin, TemplateView):
             end_datetime = lesson_datetime + timedelta(minutes=duration_minutes)
 
             # Determine color based on status hierarchy
-            if lesson.payment_status == 'Paid':
+            if lesson.payment_status == 'completed':
                 color = '#10b981'  # Green for paid lessons
-            elif lesson.approved_status == 'Accepted':
+            elif lesson.approved_status == Lesson.ApprovalStatus.ACCEPTED:
                 color = '#f59e0b'  # Yellow/amber for approved but not paid
-            elif lesson.approved_status == 'Rejected':
+            elif lesson.approved_status == Lesson.ApprovalStatus.REJECTED:
                 color = '#ef4444'  # Red for rejected
             else:
                 color = '#9ca3af'  # Gray for pending/draft
@@ -1104,13 +1128,23 @@ class VoucherListView(TeacherProfileCompletedMixin, TemplateView):
         from .forms import VoucherForm
 
         context = super().get_context_data(**kwargs)
-        vouchers = Voucher.objects.filter(created_by=self.request.user).order_by('-created_at')
+        vouchers = (
+            Voucher.objects
+            .filter(created_by=self.request.user)
+            .annotate(redemption_count=Count('redemptions'))
+            .order_by('-created_at')
+        )
 
-        # Calculate stats
+        # Calculate stats on full queryset before paginating
         active_vouchers = vouchers.filter(status='active')
-        total_redemptions = sum(v.times_used for v in vouchers)
+        total_redemptions = vouchers.aggregate(total=Sum('redemption_count'))['total'] or 0
 
-        context['vouchers'] = vouchers
+        paginator = Paginator(vouchers, 20)
+        page = paginator.get_page(self.request.GET.get('page'))
+
+        context['vouchers'] = page
+        context['page_obj'] = page
+        context['is_paginated'] = page.has_other_pages()
         context['active_count'] = active_vouchers.count()
         context['total_redemptions'] = total_redemptions
         context['voucher_form'] = VoucherForm(teacher=self.request.user)
@@ -1151,11 +1185,16 @@ class VoucherDetailView(TeacherProfileCompletedMixin, TemplateView):
             'student', 'private_lesson_order', 'workshop_registration'
         ).order_by('-redeemed_at')
 
-        # Calculate stats
-        total_discount_given = sum(r.discount_amount for r in redemptions)
+        # Calculate stats on full queryset before paginating
+        total_discount_given = redemptions.aggregate(total=Sum('discount_amount'))['total'] or 0
+
+        paginator = Paginator(redemptions, 20)
+        page = paginator.get_page(self.request.GET.get('page'))
 
         context['voucher'] = voucher
-        context['redemptions'] = redemptions
+        context['redemptions'] = page
+        context['page_obj'] = page
+        context['is_paginated'] = page.has_other_pages()
         context['total_discount_given'] = total_discount_given
         context['voucher_form'] = VoucherForm(instance=voucher, teacher=self.request.user)
         return context
@@ -1239,17 +1278,6 @@ class UpdateZoomLinkView(TeacherProfileCompletedMixin, View):
             messages.success(request, 'Default Zoom link cleared successfully!')
 
         return redirect('private_teaching:teacher_settings')
-
-
-class TeacherAvailabilityEditorView(TeacherProfileCompletedMixin, TemplateView):
-    """Teacher availability calendar editor"""
-    template_name = 'private_teaching/teacher_availability_editor.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # All data will be loaded via API, but we pass the user ID for API calls
-        context['teacher_id'] = self.request.user.id
-        return context
 
 
 # Cart Views
@@ -1418,7 +1446,7 @@ class ProcessPaymentView(StudentProfileCompletedMixin, View):
                 lesson_ids.append(str(cart_item.lesson.id))
 
                 # Mark lesson as paid
-                cart_item.lesson.payment_status = 'Paid'
+                cart_item.lesson.payment_status = 'completed'
                 cart_item.lesson.in_cart = False
                 cart_item.lesson.save()
 
@@ -1616,7 +1644,7 @@ class CheckoutSuccessView(StudentProfileCompletedMixin, BaseCheckoutSuccessView)
             # Mark all lessons in this order as Paid
             for order_item in order.items.select_related('lesson'):
                 lesson = order_item.lesson
-                lesson.payment_status = 'Paid'
+                lesson.payment_status = 'completed'
                 lesson.save(update_fields=['payment_status'])
 
             # Handle voucher redemption if applicable
@@ -1710,7 +1738,7 @@ class LessonDetailView(PrivateTeachingLoginRequiredMixin, View):
                 ).get(
                     id=lesson_id,
                     teacher=request.user,
-                    approved_status='Accepted'
+                    approved_status=Lesson.ApprovalStatus.ACCEPTED
                 )
             else:
                 lesson = Lesson.objects.select_related(
@@ -1718,7 +1746,7 @@ class LessonDetailView(PrivateTeachingLoginRequiredMixin, View):
                 ).get(
                     id=lesson_id,
                     student=request.user,
-                    approved_status='Accepted'
+                    approved_status=Lesson.ApprovalStatus.ACCEPTED
                 )
 
             # Get student name - use child's name if lesson is for a child
@@ -1765,9 +1793,9 @@ class StudentDocumentLibraryView(StudentProfileCompletedMixin, TemplateView):
         # Get student's lessons that are paid AND assigned (published)
         student_lessons = Lesson.objects.filter(
             student=self.request.user,
-            approved_status='Accepted',
-            payment_status='Paid',
-            status='Assigned',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
+            payment_status='completed',
+            status=Lesson.Status.ASSIGNED,
             is_deleted=False
         ).select_related('subject', 'teacher')
 
@@ -1817,7 +1845,7 @@ class TeacherDocumentLibraryView(TeacherProfileCompletedMixin, TemplateView):
         # Get teacher's lessons (all approved lessons they teach)
         teacher_lessons = Lesson.objects.filter(
             teacher=self.request.user,
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             is_deleted=False
         ).select_related('subject', 'student', 'teacher')
 
@@ -1858,7 +1886,7 @@ class TeacherDocumentLibraryView(TeacherProfileCompletedMixin, TemplateView):
         # Build list of students with proper display names (showing child names, not guardian names)
         lessons_for_students = Lesson.objects.filter(
             teacher=self.request.user,
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             is_deleted=False
         ).select_related('student__profile', 'lesson_request__child_profile').order_by('student').distinct('student')
 
@@ -1915,7 +1943,7 @@ class TeacherStudentsListView(TeacherProfileCompletedMixin, ListView):
         from lessons.models import Lesson
         student_ids = Lesson.objects.filter(
             teacher=self.request.user,
-            approved_status='Accepted',
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
             is_deleted=False
         ).values_list('student__id', flat=True).distinct()
 
@@ -1951,7 +1979,7 @@ class TeacherStudentsListView(TeacherProfileCompletedMixin, ListView):
             lessons = Lesson.objects.filter(
                 teacher=self.request.user,
                 student=student,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).select_related('subject', 'lesson_request', 'lesson_request__child_profile')
 
@@ -1959,7 +1987,7 @@ class TeacherStudentsListView(TeacherProfileCompletedMixin, ListView):
             subjects = Subject.objects.filter(
                 teacher=self.request.user,
                 lesson__student=student,
-                lesson__approved_status='Accepted',
+                lesson__approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 lesson__is_deleted=False
             ).distinct()
 
@@ -1996,7 +2024,7 @@ class StudentContactDetailView(TeacherProfileCompletedMixin, View):
             lesson_exists = Lesson.objects.filter(
                 teacher=request.user,
                 student_id=student_id,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).exists()
 
@@ -2064,7 +2092,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             lesson_exists = Lesson.objects.filter(
                 teacher=self.request.user,
                 student_id=student_id,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).exists()
 
@@ -2079,7 +2107,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             subjects = Subject.objects.filter(
                 teacher=self.request.user,
                 lesson__student=student,
-                lesson__approved_status='Accepted',
+                lesson__approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 lesson__is_deleted=False
             ).distinct()
             context['subjects'] = subjects
@@ -2088,7 +2116,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             total_lessons = Lesson.objects.filter(
                 teacher=self.request.user,
                 student=student,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).count()
             context['total_lessons'] = total_lessons
@@ -2098,7 +2126,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             lessons = Lesson.objects.filter(
                 teacher=self.request.user,
                 student=student,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).select_related('lesson_request__child_profile')
 
@@ -2118,11 +2146,13 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
 
             # ===== ASSIGNMENTS SECTION =====
             from assignments.models import AssignmentSubmission
+            from lessons.models import LessonAssignment
+            from django.db.models import Q as DQ
 
-            assignments = PrivateLessonAssignment.objects.filter(
-                teacher=self.request.user,
-                student=student
-            ).select_related('assignment').prefetch_related('assignment__submissions')
+            assignments = LessonAssignment.objects.filter(
+                DQ(lesson__student=student, lesson__subject__teacher=self.request.user) |
+                DQ(student=student, teacher=self.request.user, lesson__isnull=True)
+            ).select_related('assignment')
 
             # Annotate assignments with status
             assignment_data = []
@@ -2342,7 +2372,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             lessons_queryset = Lesson.objects.filter(
                 teacher=self.request.user,
                 student=student,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).select_related('subject', 'lesson_request').annotate(
                 pieces_count=Count('lesson_pieces', distinct=True),
@@ -2399,7 +2429,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             timeline_lessons = Lesson.objects.filter(
                 teacher=self.request.user,
                 student=student,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).select_related('subject').prefetch_related(
                 'lesson_pieces__piece',
@@ -2442,28 +2472,19 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
 
                 # Add assignments from this lesson
                 for la in lesson.lesson_assignments.all():
-                    # Find submission status
-                    submission = None
+                    # Use submission property (effective_student = lesson.student for lesson-linked)
+                    submission = la.submission
                     status = 'not_started'
                     grade_display = '—'
 
-                    # Check if there's a PrivateLessonAssignment linking to this assignment
-                    pla = PrivateLessonAssignment.objects.filter(
-                        assignment=la.assignment,
-                        student=student,
-                        teacher=self.request.user
-                    ).first()
-
-                    if pla:
-                        submission = pla.submission
-                        if submission:
-                            if submission.status == 'graded':
-                                status = 'graded'
-                                grade_display = la.assignment.format_grade(submission.grade) if submission.grade else '—'
-                            elif submission.status == 'submitted':
-                                status = 'submitted'
-                            else:
-                                status = 'in_progress'
+                    if submission:
+                        if submission.status == 'graded':
+                            status = 'graded'
+                            grade_display = la.assignment.format_grade(submission.grade) if submission.grade else '—'
+                        elif submission.status == 'submitted':
+                            status = 'submitted'
+                        else:
+                            status = 'in_progress'
 
                     lesson_entry['items'].append({
                         'type': 'assignment',
@@ -2473,7 +2494,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
                         'subtitle': f'Assignment - {status.replace("_", " ").title()}',
                         'status': status,
                         'grade': grade_display,
-                        'due_date': pla.due_date if pla else None,
+                        'due_date': la.due_date,
                     })
 
                 # Only add lesson to timeline if it has content
@@ -2546,7 +2567,7 @@ class TeacherStudentProgressView(TeacherProfileCompletedMixin, TemplateView):
             # Get all students for this teacher (for next/previous navigation)
             all_student_ids = list(Lesson.objects.filter(
                 teacher=self.request.user,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).order_by('student__profile__last_name', 'student__profile__first_name').values_list('student__id', flat=True).distinct())
 
@@ -3131,957 +3152,6 @@ class UpdateTeacherCapacityView(TeacherProfileCompletedMixin, View):
         return redirect('private_teaching:teacher_applications')
 
 
-# ============================================================================
-# EXAM REGISTRATION VIEWS
-# ============================================================================
-
-class ExamRegistrationListView(UserFilterMixin, PrivateTeachingLoginRequiredMixin, TeacherProfileCompletedMixin, ListView):
-    """List all exam registrations for a teacher. Uses UserFilterMixin."""
-    model = ExamRegistration
-    template_name = 'private_teaching/exams/list.html'
-    context_object_name = 'exams'
-    paginate_by = 20
-    user_field_name = 'teacher'
-
-    def get_queryset(self):
-        # UserFilterMixin automatically filters by teacher=self.request.user
-        queryset = super().get_queryset().select_related(
-            'student', 'child_profile', 'subject', 'exam_board'
-        ).prefetch_related('pieces')
-
-        # Filter by status if provided
-        status_filter = self.request.GET.get('status')
-        if status_filter:
-            queryset = queryset.filter(status=status_filter)
-
-        return queryset.order_by('-exam_date', '-created_at')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # Filter by status if provided
-        status_filter = self.request.GET.get('status')
-        if status_filter:
-            context['status_filter'] = status_filter
-
-        # Get all exams for this teacher (not paginated)
-        all_exams = ExamRegistration.objects.filter(
-            teacher=self.request.user
-        ).select_related(
-            'student', 'child_profile', 'subject', 'exam_board'
-        ).prefetch_related('pieces')
-
-        # Group exams for sidebar/stats
-        context['upcoming_exams'] = all_exams.filter(
-            exam_date__gte=timezone.now().date(),
-            status=ExamRegistration.REGISTERED
-        ).order_by('exam_date')[:5]
-
-        context['pending_results'] = all_exams.filter(
-            status=ExamRegistration.SUBMITTED
-        ).order_by('-exam_date')[:5]
-
-        return context
-
-
-class ExamRegistrationCreateView(PrivateTeachingLoginRequiredMixin, TeacherProfileCompletedMixin, View):
-    """Create a new exam registration"""
-    template_name = 'private_teaching/exams/create.html'
-
-    def get(self, request):
-        # Get student from query parameter if provided
-        student_id = request.GET.get('student')
-        form = ExamRegistrationForm(teacher=request.user, student=student_id)
-        piece_formset = ExamPieceFormSet()
-
-        return render(request, self.template_name, {
-            'form': form,
-            'piece_formset': piece_formset,
-        })
-
-    def post(self, request):
-        form = ExamRegistrationForm(request.POST, teacher=request.user)
-        piece_formset = ExamPieceFormSet(request.POST)
-
-        if form.is_valid() and piece_formset.is_valid():
-            with transaction.atomic():
-                exam = form.save()
-
-                # Save pieces
-                pieces = piece_formset.save(commit=False)
-                for piece in pieces:
-                    piece.exam_registration = exam
-                    piece.save()
-
-                # Delete removed pieces
-                for obj in piece_formset.deleted_objects:
-                    obj.delete()
-
-                messages.success(request, f'Exam registration created for {exam.student_name}!')
-
-                # Send notification to student/parent
-                StudentNotificationService.send_exam_registration_notification(exam)
-
-                return redirect('private_teaching:exam_detail', pk=exam.id)
-
-        return render(request, self.template_name, {
-            'form': form,
-            'piece_formset': piece_formset,
-        })
-
-
-class ExamRegistrationDetailView(PrivateTeachingLoginRequiredMixin, View):
-    """View exam registration details"""
-    template_name = 'private_teaching/exams/detail.html'
-
-    def get(self, request, pk):
-        exam = get_object_or_404(ExamRegistration, pk=pk)
-
-        # Check permissions
-        if request.user == exam.teacher:
-            # Teacher view
-            is_teacher = True
-        elif request.user == exam.student or (exam.child_profile and request.user == exam.child_profile.guardian):
-            # Student/parent view
-            is_teacher = False
-        else:
-            messages.error(request, 'You do not have permission to view this exam.')
-            return redirect('private_teaching:home')
-
-        pieces = exam.pieces.all().order_by('piece_number')
-        preparation_lessons = exam.preparation_lessons.all().order_by('-lesson_date')[:10] if is_teacher else None
-
-        return render(request, self.template_name, {
-            'exam': exam,
-            'pieces': pieces,
-            'preparation_lessons': preparation_lessons,
-            'is_teacher': is_teacher,
-        })
-
-
-class ExamRegistrationUpdateView(PrivateTeachingLoginRequiredMixin, TeacherProfileCompletedMixin, View):
-    """Update exam registration"""
-    template_name = 'private_teaching/exams/edit.html'
-
-    def get(self, request, pk):
-        exam = get_object_or_404(ExamRegistration, pk=pk, teacher=request.user)
-        form = ExamRegistrationForm(instance=exam, teacher=request.user)
-        piece_formset = ExamPieceFormSet(instance=exam)
-
-        return render(request, self.template_name, {
-            'exam': exam,
-            'form': form,
-            'piece_formset': piece_formset,
-        })
-
-    def post(self, request, pk):
-        exam = get_object_or_404(ExamRegistration, pk=pk, teacher=request.user)
-        form = ExamRegistrationForm(request.POST, instance=exam, teacher=request.user)
-        piece_formset = ExamPieceFormSet(request.POST, instance=exam)
-
-        if form.is_valid() and piece_formset.is_valid():
-            with transaction.atomic():
-                exam = form.save()
-
-                # Save pieces
-                pieces = piece_formset.save(commit=False)
-                for piece in pieces:
-                    piece.exam_registration = exam
-                    piece.save()
-
-                # Delete removed pieces
-                for obj in piece_formset.deleted_objects:
-                    obj.delete()
-
-                messages.success(request, 'Exam registration updated!')
-                return redirect('private_teaching:exam_detail', pk=exam.id)
-
-        return render(request, self.template_name, {
-            'exam': exam,
-            'form': form,
-            'piece_formset': piece_formset,
-        })
-
-
-class ExamRegistrationDeleteView(PrivateTeachingLoginRequiredMixin, TeacherProfileCompletedMixin, View):
-    """Delete exam registration"""
-
-    def post(self, request, pk):
-        exam = get_object_or_404(ExamRegistration, pk=pk, teacher=request.user)
-
-        student_name = exam.student_name
-        exam.delete()
-
-        messages.success(request, f'Exam registration for {student_name} has been deleted.')
-        return redirect('private_teaching:exam_list')
-
-
-class ExamResultsUpdateView(PrivateTeachingLoginRequiredMixin, TeacherProfileCompletedMixin, View):
-    """Update exam results"""
-    template_name = 'private_teaching/exams/results.html'
-
-    def get(self, request, pk):
-        exam = get_object_or_404(ExamRegistration, pk=pk, teacher=request.user)
-        form = ExamResultsForm(instance=exam)
-
-        return render(request, self.template_name, {
-            'exam': exam,
-            'form': form,
-        })
-
-    def post(self, request, pk):
-        exam = get_object_or_404(ExamRegistration, pk=pk, teacher=request.user)
-        form = ExamResultsForm(request.POST, instance=exam)
-
-        if form.is_valid():
-            exam = form.save()
-            messages.success(request, 'Exam results updated!')
-
-            # Send notification to student/parent
-            StudentNotificationService.send_exam_results_notification(exam)
-
-            return redirect('private_teaching:exam_detail', pk=exam.id)
-
-        return render(request, self.template_name, {
-            'exam': exam,
-            'form': form,
-        })
-
-
-class StudentExamListView(PrivateTeachingLoginRequiredMixin, StudentProfileCompletedMixin, ListView):
-    """List all exams for a student"""
-    model = ExamRegistration
-    template_name = 'private_teaching/exams/student_list.html'
-    context_object_name = 'exams'
-    paginate_by = 20
-
-    def get_queryset(self):
-        user = self.request.user
-
-        # Get exams where user is the student or guardian
-        return ExamRegistration.objects.filter(
-            Q(student=user) | Q(child_profile__guardian=user)
-        ).select_related(
-            'teacher', 'subject', 'exam_board', 'child_profile'
-        ).prefetch_related('pieces').order_by('-exam_date', '-created_at')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # Get all exams for this user (not paginated)
-        user = self.request.user
-        all_exams = ExamRegistration.objects.filter(
-            Q(student=user) | Q(child_profile__guardian=user)
-        ).select_related(
-            'teacher', 'subject', 'exam_board', 'child_profile'
-        ).prefetch_related('pieces')
-
-        # Group exams for stats
-        context['upcoming_exams'] = all_exams.filter(
-            exam_date__gte=timezone.now().date(),
-            status__in=[ExamRegistration.REGISTERED, ExamRegistration.SUBMITTED]
-        ).order_by('exam_date')
-
-        context['completed_exams'] = all_exams.filter(
-            status=ExamRegistration.RESULTS_RECEIVED
-        ).order_by('-exam_date')
-
-        context['unpaid_exams'] = all_exams.filter(
-            payment_status='pending'
-        ).order_by('exam_date')
-
-        return context
-
-
-class ExamPaymentView(PrivateTeachingLoginRequiredMixin, View):
-    """Handle exam payment via Stripe"""
-
-    def post(self, request, pk):
-        exam = get_object_or_404(ExamRegistration, pk=pk)
-
-        # Check permissions (student or guardian can pay)
-        if not (request.user == exam.student or
-                (exam.child_profile and request.user == exam.child_profile.guardian)):
-            messages.error(request, 'You do not have permission to pay for this exam.')
-            return redirect('private_teaching:home')
-
-        # Check if already paid
-        if exam.is_paid:
-            messages.info(request, 'This exam has already been paid for.')
-            return redirect('private_teaching:exam_detail', pk=exam.id)
-
-        # Check if payment is required
-        if not exam.requires_payment or exam.fee_amount <= 0:
-            messages.error(request, 'No payment is required for this exam.')
-            return redirect('private_teaching:exam_detail', pk=exam.id)
-
-        # Create Stripe checkout session using centralized service
-        from apps.payments.stripe_service import create_checkout_session
-
-        try:
-            # Build URLs
-            success_url = request.build_absolute_uri(
-                reverse('private_teaching:exam_payment_success', kwargs={'pk': exam.id})
-            )
-            cancel_url = request.build_absolute_uri(
-                reverse('private_teaching:exam_payment_cancel', kwargs={'pk': exam.id})
-            )
-
-            # Prepare metadata
-            metadata = {
-                'exam_id': str(exam.id),
-                'student_id': str(exam.student.id),
-                'teacher_id': str(exam.teacher.id),
-            }
-
-            # Create checkout session
-            checkout_session = create_checkout_session(
-                amount=exam.fee_amount,
-                student=exam.student,
-                teacher=exam.teacher,
-                domain='private_teaching',
-                success_url=success_url,
-                cancel_url=cancel_url,
-                metadata=metadata,
-                item_name=f'Exam Registration: {exam.display_name}',
-                item_description=f'{exam.student_name} - {exam.exam_board} {exam.get_grade_type_display()} Grade {exam.grade_level}'
-            )
-
-            # Save checkout session ID
-            exam.stripe_checkout_session_id = checkout_session.id
-            exam.payment_status = 'pending'
-            exam.save()
-
-            return redirect(checkout_session.url)
-
-        except Exception as e:
-            messages.error(request, f'Error creating payment session: {str(e)}')
-            return redirect('private_teaching:exam_detail', pk=exam.id)
-
-
-class ExamPaymentSuccessView(BaseCheckoutSuccessView):
-    """Handle successful exam payment"""
-    template_name = 'core/checkout_success.html'
-
-    def get_object_model(self):
-        return ExamRegistration
-
-    def get_object_id_kwarg(self):
-        return 'pk'
-
-    def get_redirect_url_name(self):
-        return 'private_teaching:student_exams'
-
-    def perform_post_checkout_actions(self, exam):
-        """Mark exam as paid after successful checkout"""
-        if exam.payment_status != 'completed':
-            exam.payment_status = 'completed'
-            exam.paid_at = timezone.now()
-            exam.save(update_fields=['payment_status', 'paid_at'])
-
-    def get_context_extras(self, exam):
-        return {
-            'exam': exam,
-            'student_name': exam.student_name,
-            'success_message': f'Payment successful! Your exam registration for {exam.display_name} is confirmed.',
-            'detail_url': reverse('private_teaching:exam_detail', kwargs={'pk': exam.id}),
-            'detail_button_text': 'View Exam Details',
-        }
-
-
-class ExamPaymentCancelView(BaseCheckoutCancelView):
-    """Handle cancelled exam payment"""
-    template_name = 'core/checkout_cancel.html'
-
-    def get_object_model(self):
-        return ExamRegistration
-
-    def get_object_id_kwarg(self):
-        return 'pk'
-
-    def get_redirect_url_name(self):
-        return 'private_teaching:exam_detail'
-
-
-class PrivateLessonTermsView(TemplateView):
-    """Display current Private Lesson Terms and Conditions"""
-    template_name = 'private_teaching/terms_and_conditions.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        from .models import PrivateLessonTermsAndConditions
-
-        current_terms = PrivateLessonTermsAndConditions.objects.filter(is_current=True).first()
-        context['current_terms'] = current_terms
-
-        return context
-
-
-# ============================================================================
-# PRACTICE DIARY VIEWS
-# ============================================================================
-
-class LogPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
-    """Student logs a new practice session"""
-    template_name = 'private_teaching/practice/log_practice.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['form'] = PracticeEntryForm(user=self.request.user)
-
-        # Get teacher options for this student
-        # Find teachers student has lessons with
-        teacher_ids = Lesson.objects.filter(
-            student=self.request.user,
-            approved_status='Accepted',
-            is_deleted=False
-        ).values_list('teacher__id', flat=True).distinct()
-
-        context['teachers'] = User.objects.filter(id__in=teacher_ids).select_related('profile')
-
-        return context
-
-    def post(self, request, *args, **kwargs):
-        form = PracticeEntryForm(request.POST, user=request.user)
-
-        if form.is_valid():
-            practice_entry = form.save(commit=False)
-            practice_entry.student = request.user
-
-            # Get selected teacher
-            teacher_id = request.POST.get('teacher')
-            if teacher_id:
-                try:
-                    teacher = User.objects.get(id=teacher_id)
-                    # Verify student has lessons with this teacher
-                    has_lessons = Lesson.objects.filter(
-                        student=request.user,
-                        teacher=teacher,
-                        approved_status='Accepted',
-                        is_deleted=False
-                    ).exists()
-
-                    if has_lessons:
-                        practice_entry.teacher = teacher
-                    else:
-                        messages.error(request, 'Invalid teacher selected.')
-                        return render(request, self.template_name, {
-                            'form': form,
-                            'teachers': User.objects.filter(
-                                id__in=Lesson.objects.filter(
-                                    student=request.user,
-                                    approved_status='Accepted',
-                                    is_deleted=False
-                                ).values_list('teacher__id', flat=True).distinct()
-                            ).select_related('profile')
-                        })
-                except User.DoesNotExist:
-                    messages.error(request, 'Teacher not found.')
-                    return render(request, self.template_name, {
-                        'form': form,
-                        'teachers': User.objects.filter(
-                            id__in=Lesson.objects.filter(
-                                student=request.user,
-                                approved_status='Accepted',
-                                is_deleted=False
-                            ).values_list('teacher__id', flat=True).distinct()
-                        ).select_related('profile')
-                    })
-
-            practice_entry.save()
-
-            if practice_entry.teacher:
-                TeacherNotificationService.send_practice_logged_notification(practice_entry)
-
-            # Show success message emphasizing exam/performance prep if applicable
-            success_msg = 'Practice session logged successfully!'
-            if practice_entry.preparing_for_exam:
-                success_msg += ' Keep up the great exam preparation work!'
-            elif practice_entry.preparing_for_performance:
-                success_msg += ' Excellent performance preparation!'
-
-            messages.success(request, success_msg)
-            return redirect('private_teaching:practice_log')
-
-        return render(request, self.template_name, {
-            'form': form,
-            'teachers': User.objects.filter(
-                id__in=Lesson.objects.filter(
-                    student=request.user,
-                    approved_status='Accepted',
-                    is_deleted=False
-                ).values_list('teacher__id', flat=True).distinct()
-            ).select_related('profile')
-        })
-
-
-class PracticeLogView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
-    """Student views their practice log history with statistics"""
-    model = PracticeEntry
-    template_name = 'private_teaching/practice/practice_log.html'
-    context_object_name = 'practice_entries'
-    paginate_by = 20
-
-    def get_queryset(self):
-        queryset = PracticeEntry.objects.filter(
-            student=self.request.user
-        ).select_related('teacher', 'teacher__profile', 'child_profile', 'lesson_request').order_by('-practice_date', '-created_at')
-
-        # Filter by child if guardian
-        child_id = self.request.GET.get('child')
-        if child_id:
-            queryset = queryset.filter(child_profile__id=child_id)
-
-        # Filter by teacher
-        teacher_id = self.request.GET.get('teacher')
-        if teacher_id:
-            queryset = queryset.filter(teacher__id=teacher_id)
-
-        # Filter by exam prep
-        exam_prep = self.request.GET.get('exam_prep')
-        if exam_prep == 'yes':
-            queryset = queryset.filter(preparing_for_exam=True)
-
-        # Filter by performance prep
-        performance_prep = self.request.GET.get('performance_prep')
-        if performance_prep == 'yes':
-            queryset = queryset.filter(preparing_for_performance=True)
-
-        # Filter by date range
-        start_date = self.request.GET.get('start_date')
-        if start_date:
-            queryset = queryset.filter(practice_date__gte=start_date)
-
-        end_date = self.request.GET.get('end_date')
-        if end_date:
-            queryset = queryset.filter(practice_date__lte=end_date)
-
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        from datetime import timedelta
-        from django.db.models import Sum, Avg, Count
-
-        # Get all practice entries for stats (not filtered by pagination)
-        all_entries = PracticeEntry.objects.filter(student=self.request.user)
-
-        # Apply same filters as queryset
-        child_id = self.request.GET.get('child')
-        if child_id:
-            all_entries = all_entries.filter(child_profile__id=child_id)
-
-        teacher_id = self.request.GET.get('teacher')
-        if teacher_id:
-            all_entries = all_entries.filter(teacher__id=teacher_id)
-
-        exam_prep = self.request.GET.get('exam_prep')
-        if exam_prep == 'yes':
-            all_entries = all_entries.filter(preparing_for_exam=True)
-
-        performance_prep = self.request.GET.get('performance_prep')
-        if performance_prep == 'yes':
-            all_entries = all_entries.filter(preparing_for_performance=True)
-
-        # Apply date range filters
-        start_date = self.request.GET.get('start_date')
-        if start_date:
-            all_entries = all_entries.filter(practice_date__gte=start_date)
-
-        end_date = self.request.GET.get('end_date')
-        if end_date:
-            all_entries = all_entries.filter(practice_date__lte=end_date)
-
-        # Calculate statistics
-        stats = all_entries.aggregate(
-            total_sessions=Count('id'),
-            total_minutes=Sum('duration_minutes'),
-            avg_duration=Avg('duration_minutes'),
-            avg_enjoyment=Avg('enjoyment_rating')
-        )
-
-        # Calculate last 7 days stats
-        from datetime import date
-        seven_days_ago = date.today() - timedelta(days=7)
-        last_week_entries = all_entries.filter(practice_date__gte=seven_days_ago)
-        last_week_stats = last_week_entries.aggregate(
-            sessions=Count('id'),
-            minutes=Sum('duration_minutes')
-        )
-
-        # PERFORMANCE FIX: Consolidate 2 count queries into 1 aggregate
-        prep_counts = all_entries.aggregate(
-            exam_prep=Count('id', filter=Q(preparing_for_exam=True)),
-            performance_prep=Count('id', filter=Q(preparing_for_performance=True))
-        )
-        exam_prep_count = prep_counts['exam_prep']
-        performance_prep_count = prep_counts['performance_prep']
-
-        context.update({
-            'total_sessions': stats['total_sessions'] or 0,
-            'total_minutes': stats['total_minutes'] or 0,
-            'total_hours': round((stats['total_minutes'] or 0) / 60, 1),
-            'avg_duration': round(stats['avg_duration'] or 0),
-            'avg_enjoyment': round(stats['avg_enjoyment'] or 0, 1) if stats['avg_enjoyment'] else None,
-            'last_week_sessions': last_week_stats['sessions'] or 0,
-            'last_week_minutes': last_week_stats['minutes'] or 0,
-            'last_week_hours': round((last_week_stats['minutes'] or 0) / 60, 1),
-            'exam_prep_count': exam_prep_count,
-            'performance_prep_count': performance_prep_count,
-        })
-
-        # Get filter options
-        if self.request.user.profile.is_guardian:
-            from apps.accounts.models import ChildProfile
-            context['children'] = ChildProfile.objects.filter(guardian=self.request.user)
-
-        teacher_ids = PracticeEntry.objects.filter(
-            student=self.request.user
-        ).values_list('teacher__id', flat=True).distinct()
-        context['teachers'] = User.objects.filter(id__in=teacher_ids).select_related('profile')
-
-        # Pass current filters
-        context['child_filter'] = child_id
-        context['teacher_filter'] = teacher_id
-        context['exam_prep_filter'] = exam_prep
-        context['performance_prep_filter'] = performance_prep
-        context['start_date_filter'] = start_date
-        context['end_date_filter'] = end_date
-
-        return context
-
-
-class PracticeLogPrintView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
-    """Print-friendly view of practice log with all entries (no pagination)"""
-    model = PracticeEntry
-    template_name = 'private_teaching/practice/practice_log_print.html'
-    context_object_name = 'practice_entries'
-    # No pagination - show all filtered entries
-
-    def get_queryset(self):
-        queryset = PracticeEntry.objects.filter(
-            student=self.request.user
-        ).select_related('teacher', 'teacher__profile', 'child_profile', 'lesson_request').order_by('-practice_date', '-created_at')
-
-        # Filter by child if guardian
-        child_id = self.request.GET.get('child')
-        if child_id:
-            queryset = queryset.filter(child_profile__id=child_id)
-
-        # Filter by teacher
-        teacher_id = self.request.GET.get('teacher')
-        if teacher_id:
-            queryset = queryset.filter(teacher__id=teacher_id)
-
-        # Filter by exam prep
-        exam_prep = self.request.GET.get('exam_prep')
-        if exam_prep == 'yes':
-            queryset = queryset.filter(preparing_for_exam=True)
-
-        # Filter by performance prep
-        performance_prep = self.request.GET.get('performance_prep')
-        if performance_prep == 'yes':
-            queryset = queryset.filter(preparing_for_performance=True)
-
-        # Filter by date range
-        start_date = self.request.GET.get('start_date')
-        if start_date:
-            queryset = queryset.filter(practice_date__gte=start_date)
-
-        end_date = self.request.GET.get('end_date')
-        if end_date:
-            queryset = queryset.filter(practice_date__lte=end_date)
-
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        from datetime import timedelta
-        from django.db.models import Sum, Avg, Count
-
-        # Get all practice entries for stats (same as filtered queryset)
-        all_entries = self.get_queryset()
-
-        # Calculate statistics
-        stats = all_entries.aggregate(
-            total_sessions=Count('id'),
-            total_minutes=Sum('duration_minutes'),
-            avg_duration=Avg('duration_minutes'),
-            avg_enjoyment=Avg('enjoyment_rating')
-        )
-
-        # PERFORMANCE FIX: Consolidate 2 count queries into 1 aggregate
-        prep_counts = all_entries.aggregate(
-            exam_prep=Count('id', filter=Q(preparing_for_exam=True)),
-            performance_prep=Count('id', filter=Q(preparing_for_performance=True))
-        )
-        exam_prep_count = prep_counts['exam_prep']
-        performance_prep_count = prep_counts['performance_prep']
-
-        context.update({
-            'total_sessions': stats['total_sessions'] or 0,
-            'total_minutes': stats['total_minutes'] or 0,
-            'total_hours': round((stats['total_minutes'] or 0) / 60, 1),
-            'avg_duration': round(stats['avg_duration'] or 0),
-            'avg_enjoyment': round(stats['avg_enjoyment'] or 0, 1) if stats['avg_enjoyment'] else None,
-            'exam_prep_count': exam_prep_count,
-            'performance_prep_count': performance_prep_count,
-        })
-
-        # Pass current filters for display
-        context['start_date_filter'] = self.request.GET.get('start_date')
-        context['end_date_filter'] = self.request.GET.get('end_date')
-        context['child_filter'] = self.request.GET.get('child')
-        context['teacher_filter'] = self.request.GET.get('teacher')
-
-        # Get child name if filtering by child
-        child_id = self.request.GET.get('child')
-        if child_id:
-            from apps.accounts.models import ChildProfile
-            try:
-                child = ChildProfile.objects.get(id=child_id, guardian=self.request.user)
-                context['child_name'] = child.full_name
-            except ChildProfile.DoesNotExist:
-                pass
-
-        return context
-
-
-class TeacherStudentPracticeView(TeacherProfileCompletedMixin, ListView):
-    """Teacher views a specific student's practice log"""
-    model = PracticeEntry
-    template_name = 'private_teaching/practice/teacher_student_practice.html'
-    context_object_name = 'practice_entries'
-    paginate_by = 20
-
-    def get_student(self):
-        """Get the student whose practice log is being viewed"""
-        student_id = self.kwargs.get('student_id')
-        student = get_object_or_404(User, id=student_id)
-
-        # Verify teacher has lessons with this student
-        has_lessons = Lesson.objects.filter(
-            teacher=self.request.user,
-            student=student,
-            approved_status='Accepted',
-            is_deleted=False
-        ).exists()
-
-        if not has_lessons:
-            from django.core.exceptions import PermissionDenied
-            raise PermissionDenied("You don't have permission to view this student's practice log.")
-
-        return student
-
-    def get_queryset(self):
-        student = self.get_student()
-
-        queryset = PracticeEntry.objects.filter(
-            student=student,
-            teacher=self.request.user
-        ).select_related('child_profile', 'lesson_request').order_by('-practice_date', '-created_at')
-
-        # Filter by exam prep
-        exam_prep = self.request.GET.get('exam_prep')
-        if exam_prep == 'yes':
-            queryset = queryset.filter(preparing_for_exam=True)
-
-        # Filter by performance prep
-        performance_prep = self.request.GET.get('performance_prep')
-        if performance_prep == 'yes':
-            queryset = queryset.filter(preparing_for_performance=True)
-
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        from datetime import timedelta
-        from django.db.models import Sum, Avg, Count
-
-        student = self.get_student()
-        context['viewed_student'] = student
-
-        # Check if this is a child student by looking at practice entries
-        # If all practice entries have a child_profile, get the child info
-        practice_entries = PracticeEntry.objects.filter(
-            student=student,
-            teacher=self.request.user
-        ).select_related('child_profile')
-
-        # Get unique child profiles from practice entries
-        child_profiles = set()
-        for entry in practice_entries:
-            if entry.child_profile:
-                child_profiles.add(entry.child_profile)
-
-        # If there's only one child profile, use that as the display name
-        if len(child_profiles) == 1:
-            context['child_profile'] = list(child_profiles)[0]
-            context['is_child_student'] = True
-        else:
-            context['is_child_student'] = False
-
-        # Get all practice entries for stats
-        all_entries = PracticeEntry.objects.filter(
-            student=student,
-            teacher=self.request.user
-        )
-
-        # Apply same filters as queryset
-        exam_prep = self.request.GET.get('exam_prep')
-        if exam_prep == 'yes':
-            all_entries = all_entries.filter(preparing_for_exam=True)
-
-        performance_prep = self.request.GET.get('performance_prep')
-        if performance_prep == 'yes':
-            all_entries = all_entries.filter(preparing_for_performance=True)
-
-        # Calculate statistics
-        stats = all_entries.aggregate(
-            total_sessions=Count('id'),
-            total_minutes=Sum('duration_minutes'),
-            avg_duration=Avg('duration_minutes'),
-            avg_enjoyment=Avg('enjoyment_rating')
-        )
-
-        # Calculate last 7 days stats
-        from datetime import date
-        seven_days_ago = date.today() - timedelta(days=7)
-        last_week_entries = all_entries.filter(practice_date__gte=seven_days_ago)
-        last_week_stats = last_week_entries.aggregate(
-            sessions=Count('id'),
-            minutes=Sum('duration_minutes')
-        )
-
-        # PERFORMANCE FIX: Consolidate 2 count queries into 1 aggregate
-        prep_counts = all_entries.aggregate(
-            exam_prep=Count('id', filter=Q(preparing_for_exam=True)),
-            performance_prep=Count('id', filter=Q(preparing_for_performance=True))
-        )
-        exam_prep_count = prep_counts['exam_prep']
-        performance_prep_count = prep_counts['performance_prep']
-
-        # Mark entries as viewed by teacher
-        PracticeEntry.objects.filter(
-            student=student,
-            teacher=self.request.user,
-            teacher_viewed_at__isnull=True
-        ).update(teacher_viewed_at=timezone.now())
-
-        context.update({
-            'total_sessions': stats['total_sessions'] or 0,
-            'total_minutes': stats['total_minutes'] or 0,
-            'total_hours': round((stats['total_minutes'] or 0) / 60, 1),
-            'avg_duration': round(stats['avg_duration'] or 0),
-            'avg_enjoyment': round(stats['avg_enjoyment'] or 0, 1) if stats['avg_enjoyment'] else None,
-            'last_week_sessions': last_week_stats['sessions'] or 0,
-            'last_week_minutes': last_week_stats['minutes'] or 0,
-            'last_week_hours': round((last_week_stats['minutes'] or 0) / 60, 1),
-            'exam_prep_count': exam_prep_count,
-            'performance_prep_count': performance_prep_count,
-        })
-
-        # Pass current filters
-        context['exam_prep_filter'] = exam_prep
-        context['performance_prep_filter'] = performance_prep
-
-        return context
-
-
-class AddPracticeCommentView(TeacherProfileCompletedMixin, View):
-    """Teacher adds comment to a practice entry"""
-
-    def post(self, request, *args, **kwargs):
-        entry_id = kwargs.get('entry_id')
-        practice_entry = get_object_or_404(
-            PracticeEntry,
-            id=entry_id,
-            teacher=request.user
-        )
-
-        teacher_comment = request.POST.get('teacher_comment', '').strip()
-
-        if teacher_comment:
-            practice_entry.teacher_comment = teacher_comment
-            practice_entry.teacher_viewed_at = timezone.now()
-            practice_entry.save(update_fields=['teacher_comment', 'teacher_viewed_at'])
-            messages.success(request, 'Comment added successfully!')
-            StudentNotificationService.send_practice_comment_notification(practice_entry)
-        else:
-            messages.error(request, 'Comment cannot be empty.')
-
-        return redirect('private_teaching:teacher_student_practice', student_id=practice_entry.student.id)
-
-
-class EditPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, UpdateView):
-    """Student edits their own practice entry"""
-    model = PracticeEntry
-    template_name = 'private_teaching/practice/log_practice.html'
-    form_class = PracticeEntryForm
-
-    def get_queryset(self):
-        # Security: Students can only edit their own entries
-        return PracticeEntry.objects.filter(student=self.request.user)
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['entry'] = self.object
-        context['form'] = self.get_form()
-
-        # Get teacher options (same as create)
-        teacher_ids = Lesson.objects.filter(
-            student=self.request.user,
-            approved_status='Accepted',
-            is_deleted=False
-        ).values_list('teacher__id', flat=True).distinct()
-
-        context['teachers'] = User.objects.filter(id__in=teacher_ids).select_related('profile')
-        return context
-
-    def form_valid(self, form):
-        # Validate teacher relationship
-        teacher = form.cleaned_data.get('teacher')
-        if teacher:
-            has_lessons = Lesson.objects.filter(
-                student=self.request.user,
-                teacher=teacher,
-                approved_status='Accepted',
-                is_deleted=False
-            ).exists()
-
-            if not has_lessons:
-                form.add_error('teacher', 'You can only log practice for teachers you have accepted lessons with.')
-                return self.form_invalid(form)
-
-        messages.success(self.request, 'Practice entry updated successfully!')
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse('private_teaching:practice_log')
-
-
-class DeletePracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, DeleteView):
-    """Student deletes their own practice entry"""
-    model = PracticeEntry
-
-    def get_queryset(self):
-        # Security: Students can only delete their own entries
-        return PracticeEntry.objects.filter(student=self.request.user)
-
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, 'Practice entry deleted successfully.')
-        return super().delete(request, *args, **kwargs)
-
-    def get_success_url(self):
-        return reverse('private_teaching:practice_log')
-
-
-# ============================================================================
 # LESSON CANCELLATION VIEWS
 # ============================================================================
 
@@ -4114,7 +3184,7 @@ class RequestLessonCancellationView(StudentProfileCompletedMixin, StudentOnlyMix
         # Calculate potential refund amount (lesson fee minus platform fee)
         # Platform fee is typically 10% - adjust as needed
         PLATFORM_FEE_PERCENTAGE = 0.10
-        if lesson.fee and lesson.payment_status == 'Paid':
+        if lesson.fee and lesson.payment_status == 'completed':
             platform_fee = lesson.fee * PLATFORM_FEE_PERCENTAGE
             refund_amount = lesson.fee - platform_fee
         else:
@@ -4235,11 +3305,23 @@ class CancellationRequestDetailView(PrivateTeachingLoginRequiredMixin, View):
                 proposed_time=cancellation_request.proposed_new_time
             )
 
+        is_teacher_initiated = (
+            cancellation_request.initiated_by == LessonCancellationRequest.INITIATED_BY_TEACHER
+        )
+        is_pending_reschedule = (
+            is_teacher_initiated
+            and cancellation_request.request_type == LessonCancellationRequest.RESCHEDULE
+            and is_pending
+        )
+
         context = {
             'cancellation_request': cancellation_request,
             'lesson': cancellation_request.lesson,
             'is_teacher': is_teacher,
             'is_student': request.user == cancellation_request.student,
+            'is_teacher_initiated': is_teacher_initiated,
+            'is_pending_reschedule': is_pending_reschedule,
+            'is_student_view': (request.user == cancellation_request.student),
             'reschedule_form': reschedule_form,
         }
 
@@ -4470,6 +3552,219 @@ class TeacherRespondToCancellationView(TeacherProfileCompletedMixin, View):
         return redirect('private_teaching:teacher_cancellation_requests')
 
 
+class TeacherInitiateCancellationView(TeacherProfileCompletedMixin, View):
+    """
+    Teacher cancels or proposes a reschedule for an auto-accepted lesson.
+
+    Cancel:    Immediate — lesson soft-deleted, full refund if paid. No student approval.
+    Reschedule: Proposal — student is notified and must Accept or Decline.
+    """
+    template_name = 'private_teaching/teacher_initiate_cancellation.html'
+
+    def get_lesson(self, lesson_id, teacher):
+        lesson = get_object_or_404(Lesson, id=lesson_id, is_deleted=False)
+        if lesson.teacher != teacher:
+            raise PermissionDenied("You can only cancel your own lessons.")
+        from lessons.models import Lesson as LessonModel
+        if lesson.approved_status != LessonModel.ApprovalStatus.ACCEPTED:
+            messages.error(self.request, "Only accepted lessons can be cancelled or rescheduled here.")
+            return None
+        return lesson
+
+    def get(self, request, *args, **kwargs):
+        lesson = self.get_lesson(kwargs['lesson_id'], request.user)
+        if lesson is None:
+            return redirect('private_teaching:teacher_schedule')
+        # Check for already-pending teacher request
+        existing = LessonCancellationRequest.objects.filter(
+            lesson=lesson,
+            initiated_by=LessonCancellationRequest.INITIATED_BY_TEACHER,
+            status=LessonCancellationRequest.PENDING
+        ).first()
+        return render(request, self.template_name, {
+            'form': TeacherInitiateCancellationForm(),
+            'lesson': lesson,
+            'existing_request': existing,
+        })
+
+    def post(self, request, *args, **kwargs):
+        lesson = self.get_lesson(kwargs['lesson_id'], request.user)
+        if lesson is None:
+            return redirect('private_teaching:teacher_schedule')
+
+        # Block if a pending teacher-initiated request already exists
+        if LessonCancellationRequest.objects.filter(
+            lesson=lesson,
+            initiated_by=LessonCancellationRequest.INITIATED_BY_TEACHER,
+            status=LessonCancellationRequest.PENDING
+        ).exists():
+            messages.error(request, "A pending reschedule proposal already exists for this lesson.")
+            return redirect('private_teaching:teacher_schedule')
+
+        form = TeacherInitiateCancellationForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {'form': form, 'lesson': lesson})
+
+        action = form.cleaned_data['action']
+        reason = form.cleaned_data['reason']
+
+        if action == 'cancel':
+            cancellation_request = LessonCancellationRequest.objects.create(
+                lesson=lesson,
+                student=lesson.student,
+                teacher=request.user,
+                initiated_by=LessonCancellationRequest.INITIATED_BY_TEACHER,
+                request_type=LessonCancellationRequest.CANCEL_WITH_REFUND,
+                reason=reason,
+                status=LessonCancellationRequest.COMPLETED,
+                completed_at=timezone.now(),
+            )
+
+            # Process full refund if lesson was paid (teacher fault = no platform fee retained)
+            if lesson.payment_status == 'completed' and lesson.fee:
+                from apps.payments.models import StripePayment
+                from apps.payments.stripe_service import create_refund
+                try:
+                    order_item = OrderItem.objects.filter(lesson=lesson).select_related('order').first()
+                    if order_item and order_item.order.stripe_payment_intent_id:
+                        stripe_payment = StripePayment.objects.get(
+                            stripe_payment_intent_id=order_item.order.stripe_payment_intent_id
+                        )
+                        create_refund(
+                            payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                            amount=lesson.fee,
+                            reason='requested_by_customer',
+                            metadata={
+                                'cancellation_request_id': str(cancellation_request.id),
+                                'lesson_id': str(lesson.id),
+                                'refund_type': 'teacher_initiated_cancellation',
+                            }
+                        )
+                        cancellation_request.refund_amount = lesson.fee
+                        cancellation_request.platform_fee_retained = 0
+                        cancellation_request.refund_processed_at = timezone.now()
+                        cancellation_request.save(update_fields=[
+                            'refund_amount', 'platform_fee_retained', 'refund_processed_at'
+                        ])
+                        messages.success(
+                            request,
+                            f'Lesson cancelled and full refund of £{lesson.fee} processed.'
+                        )
+                    else:
+                        messages.warning(request, 'Lesson cancelled. No payment record found — please process any refund manually.')
+                except StripePayment.DoesNotExist:
+                    messages.warning(request, 'Lesson cancelled. Payment record not found — please process any refund manually.')
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).error(f"Refund error on teacher cancel: {e}")
+                    messages.error(request, f'Lesson cancelled but refund failed: {e}. Please process manually in Stripe.')
+            else:
+                messages.success(request, 'Lesson cancelled and student notified.')
+
+            lesson.is_deleted = True
+            lesson.save()
+
+            try:
+                StudentNotificationService.send_teacher_initiated_cancellation_notification(
+                    cancellation_request, lesson
+                )
+            except Exception as e:
+                print(f"Error sending teacher cancellation email: {e}")
+
+            return redirect('private_teaching:teacher_cancellation_requests')
+
+        else:  # reschedule
+            cancellation_request = LessonCancellationRequest.objects.create(
+                lesson=lesson,
+                student=lesson.student,
+                teacher=request.user,
+                initiated_by=LessonCancellationRequest.INITIATED_BY_TEACHER,
+                request_type=LessonCancellationRequest.RESCHEDULE,
+                reason=reason,
+                proposed_new_date=form.cleaned_data['proposed_new_date'],
+                proposed_new_time=form.cleaned_data['proposed_new_time'],
+                status=LessonCancellationRequest.PENDING,
+            )
+
+            try:
+                StudentNotificationService.send_teacher_reschedule_proposal_notification(
+                    cancellation_request, lesson
+                )
+            except Exception as e:
+                print(f"Error sending reschedule proposal email: {e}")
+
+            messages.success(
+                request,
+                f'Reschedule proposal sent to {lesson.student.get_full_name() or lesson.student.username}. '
+                f'They will be asked to accept or decline.'
+            )
+            return redirect(
+                'private_teaching:cancellation_request_detail',
+                request_id=cancellation_request.id
+            )
+
+
+class StudentRespondToTeacherRescheduleView(StudentProfileCompletedMixin, StudentOnlyMixin, View):
+    """
+    Student accepts or declines a teacher-proposed reschedule.
+    Accept  → lesson date/time updated, request completed, teacher notified.
+    Decline → request rejected, original lesson time kept, teacher notified.
+    """
+
+    def post(self, request, *args, **kwargs):
+        cancellation_request = get_object_or_404(
+            LessonCancellationRequest,
+            id=kwargs['request_id'],
+            student=request.user,
+            initiated_by=LessonCancellationRequest.INITIATED_BY_TEACHER,
+            request_type=LessonCancellationRequest.RESCHEDULE,
+            status=LessonCancellationRequest.PENDING,
+        )
+
+        action = request.POST.get('action')
+        lesson = cancellation_request.lesson
+
+        if action == 'accept':
+            lesson.lesson_date = cancellation_request.proposed_new_date
+            lesson.lesson_time = cancellation_request.proposed_new_time
+            lesson.save()
+
+            cancellation_request.status = LessonCancellationRequest.COMPLETED
+            cancellation_request.completed_at = timezone.now()
+            cancellation_request.save()
+
+            try:
+                TeacherNotificationService.send_student_reschedule_response_notification(
+                    cancellation_request, lesson, accepted=True
+                )
+            except Exception as e:
+                print(f"Error sending reschedule response email: {e}")
+
+            messages.success(
+                request,
+                f'Lesson rescheduled to {lesson.lesson_date.strftime("%B %d, %Y")} '
+                f'at {lesson.lesson_time.strftime("%I:%M %p")}.'
+            )
+
+        elif action == 'decline':
+            cancellation_request.status = LessonCancellationRequest.REJECTED
+            cancellation_request.save()
+
+            try:
+                TeacherNotificationService.send_student_reschedule_response_notification(
+                    cancellation_request, lesson, accepted=False
+                )
+            except Exception as e:
+                print(f"Error sending reschedule response email: {e}")
+
+            messages.info(request, 'Reschedule declined. Your original lesson time is kept.')
+
+        else:
+            messages.error(request, 'Invalid action.')
+
+        return redirect('private_teaching:cancellation_request_detail', request_id=cancellation_request.id)
+
+
 # ============================================================================
 # QUIZ SYSTEM VIEWS
 # ============================================================================
@@ -4478,985 +3773,7 @@ class TeacherRespondToCancellationView(TeacherProfileCompletedMixin, View):
 # Teacher: Quiz Library & Management
 # -----------------------------
 
-class QuizLibraryView(TeacherProfileCompletedMixin, ListView):
-    """
-    Teacher's quiz library - browse, search, and filter quizzes.
-    Shows teacher's own quizzes plus public quizzes from other teachers.
-    """
-    model = PrivateLessonQuiz
-    template_name = 'private_teaching/quiz/quiz_library.html'
-    context_object_name = 'quizzes'
-    paginate_by = 20
-
-    def get_queryset(self):
-        """Get teacher's quizzes + public quizzes, with search/filters"""
-        queryset = PrivateLessonQuiz.objects.filter(
-            Q(created_by=self.request.user) | Q(is_public=True)
-        ).select_related('created_by', 'subject').prefetch_related('tags')
-
-        # Search
-        search_query = self.request.GET.get('q')
-        if search_query:
-            queryset = queryset.filter(
-                Q(title__icontains=search_query) |
-                Q(description__icontains=search_query) |
-                Q(tags__name__icontains=search_query)
-            ).distinct()
-
-        # Filter by subject
-        subject_id = self.request.GET.get('subject')
-        if subject_id:
-            queryset = queryset.filter(subject_id=subject_id)
-
-        # Filter by syllabus
-        syllabus = self.request.GET.get('syllabus')
-        if syllabus:
-            queryset = queryset.filter(syllabus=syllabus)
-
-        # Filter by grade level
-        grade = self.request.GET.get('grade')
-        if grade:
-            queryset = queryset.filter(grade_level__icontains=grade)
-
-        # Filter by ownership
-        ownership = self.request.GET.get('ownership')
-        if ownership == 'mine':
-            queryset = queryset.filter(created_by=self.request.user)
-        elif ownership == 'public':
-            queryset = queryset.filter(is_public=True).exclude(created_by=self.request.user)
-
-        return queryset.order_by('-created_at')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['subjects'] = Subject.objects.filter(
-            teacher=self.request.user, is_active=True
-        )
-        context['search_query'] = self.request.GET.get('q', '')
-        context['selected_subject'] = self.request.GET.get('subject', '')
-        context['selected_syllabus'] = self.request.GET.get('syllabus', '')
-        context['selected_grade'] = self.request.GET.get('grade', '')
-        context['selected_ownership'] = self.request.GET.get('ownership', '')
-        return context
-
-
-class QuizCreateView(TeacherProfileCompletedMixin, CreateView):
-    """Create new quiz"""
-    model = PrivateLessonQuiz
-    form_class = PrivateLessonQuizForm
-    template_name = 'private_teaching/quiz/quiz_form.html'
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['teacher'] = self.request.user
-        return kwargs
-
-    def form_valid(self, form):
-        form.instance.created_by = self.request.user
-        messages.success(self.request, f'Quiz "{form.instance.title}" created successfully!')
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse('private_teaching:quiz_detail', kwargs={'pk': self.object.pk})
-
-
-class QuizDetailView(TeacherProfileCompletedMixin, TemplateView):
-    """View quiz details with questions and statistics"""
-    template_name = 'private_teaching/quiz/quiz_detail.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        quiz = get_object_or_404(
-            PrivateLessonQuiz,
-            pk=kwargs['pk']
-        )
-
-        # Check permissions - must be creator or quiz must be public
-        if quiz.created_by != self.request.user and not quiz.is_public:
-            messages.error(self.request, 'You do not have permission to view this quiz.')
-            return redirect('private_teaching:quiz_library')
-
-        context['quiz'] = quiz
-        context['questions'] = quiz.questions.prefetch_related('answers').order_by('order')
-        context['is_owner'] = quiz.created_by == self.request.user
-
-        # Get assignment statistics if owner
-        if context['is_owner']:
-            assignments = quiz.assignments.select_related('student').all()
-            context['total_assignments'] = assignments.count()
-            context['completed_assignments'] = assignments.filter(status='completed').count()
-            context['recent_assignments'] = assignments.order_by('-assigned_date')[:5]
-
-        return context
-
-
-class QuizEditView(TeacherProfileCompletedMixin, UpdateView):
-    """Edit existing quiz"""
-    model = PrivateLessonQuiz
-    form_class = PrivateLessonQuizForm
-    template_name = 'private_teaching/quiz/quiz_form.html'
-
-    def get_queryset(self):
-        """Only allow editing own quizzes"""
-        return PrivateLessonQuiz.objects.filter(created_by=self.request.user)
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['teacher'] = self.request.user
-        return kwargs
-
-    def form_valid(self, form):
-        messages.success(self.request, f'Quiz "{form.instance.title}" updated successfully!')
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse('private_teaching:quiz_detail', kwargs={'pk': self.object.pk})
-
-
-class QuizDeleteView(TeacherProfileCompletedMixin, DeleteView):
-    """Delete quiz (with confirmation)"""
-    model = PrivateLessonQuiz
-    template_name = 'private_teaching/quiz/quiz_confirm_delete.html'
-    success_url = reverse_lazy('private_teaching:quiz_library')
-
-    def get_queryset(self):
-        """Only allow deleting own quizzes"""
-        return PrivateLessonQuiz.objects.filter(created_by=self.request.user)
-
-    def delete(self, request, *args, **kwargs):
-        quiz = self.get_object()
-        messages.success(request, f'Quiz "{quiz.title}" deleted successfully.')
-        return super().delete(request, *args, **kwargs)
-
-
-class QuizDuplicateView(TeacherProfileCompletedMixin, View):
-    """Duplicate an existing quiz with all questions and answers"""
-
-    def post(self, request, *args, **kwargs):
-        original_quiz = get_object_or_404(
-            PrivateLessonQuiz,
-            pk=kwargs['pk']
-        )
-
-        # Check permissions - must be creator or quiz must be public
-        if original_quiz.created_by != request.user and not original_quiz.is_public:
-            messages.error(request, 'You do not have permission to duplicate this quiz.')
-            return redirect('private_teaching:quiz_library')
-
-        try:
-            with transaction.atomic():
-                # Duplicate quiz
-                new_quiz = PrivateLessonQuiz.objects.create(
-                    title=f"{original_quiz.title} (Copy)",
-                    description=original_quiz.description,
-                    instructions=original_quiz.instructions,
-                    created_by=request.user,
-                    pass_percentage=original_quiz.pass_percentage,
-                    time_limit_minutes=original_quiz.time_limit_minutes,
-                    randomize_questions=original_quiz.randomize_questions,
-                    show_correct_answers=original_quiz.show_correct_answers,
-                    allow_retakes=original_quiz.allow_retakes,
-                    max_attempts=original_quiz.max_attempts,
-                    subject=original_quiz.subject,
-                    syllabus=original_quiz.syllabus,
-                    grade_level=original_quiz.grade_level,
-                    is_public=False  # Copies are always private initially
-                )
-
-                # Copy tags
-                new_quiz.tags.set(original_quiz.tags.all())
-
-                # Duplicate questions and answers
-                for question in original_quiz.questions.all():
-                    new_question = PrivateLessonQuizQuestion.objects.create(
-                        quiz=new_quiz,
-                        text=question.text,
-                        order=question.order,
-                        points=question.points,
-                        explanation=question.explanation
-                    )
-
-                    # Duplicate answers
-                    for answer in question.answers.all():
-                        PrivateLessonQuizAnswer.objects.create(
-                            question=new_question,
-                            text=answer.text,
-                            is_correct=answer.is_correct,
-                            order=answer.order
-                        )
-
-            messages.success(request, f'Quiz duplicated successfully as "{new_quiz.title}"')
-            return redirect('private_teaching:quiz_detail', pk=new_quiz.pk)
-
-        except Exception as e:
-            messages.error(request, f'Error duplicating quiz: {str(e)}')
-            return redirect('private_teaching:quiz_library')
-
-
-# -----------------------------
-# Teacher: Question Management
-# -----------------------------
-
-class QuestionCreateView(TeacherProfileCompletedMixin, TemplateView):
-    """Create question with inline answer formset"""
-    template_name = 'private_teaching/quiz/question_form.html'
-
-    def get_answer_formset_class(self):
-        """Generate formset class with exactly 3 answer forms"""
-        return forms.inlineformset_factory(
-            PrivateLessonQuizQuestion,
-            PrivateLessonQuizAnswer,
-            form=PrivateLessonQuizAnswerForm,
-            extra=3,
-            max_num=10,
-            can_delete=True
-        )
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        quiz = get_object_or_404(
-            PrivateLessonQuiz,
-            pk=kwargs['quiz_id'],
-            created_by=self.request.user
-        )
-        context['quiz'] = quiz
-        context['form'] = PrivateLessonQuizQuestionForm()
-        context['formset'] = self.get_answer_formset_class()()
-        return context
-
-    def post(self, request, *args, **kwargs):
-        quiz = get_object_or_404(
-            PrivateLessonQuiz,
-            pk=kwargs['quiz_id'],
-            created_by=request.user
-        )
-
-        form = PrivateLessonQuizQuestionForm(request.POST)
-        formset_class = self.get_answer_formset_class()
-
-        # Create temporary question instance for formset
-        if form.is_valid():
-            question = form.save(commit=False)
-            question.quiz = quiz
-
-            formset = formset_class(request.POST, instance=question)
-
-            if formset.is_valid():
-                # Check at least one correct answer
-                # Don't check for text content here - formset validation handles that
-                correct_answers = sum(
-                    1 for f in formset
-                    if f.cleaned_data  # Form has data
-                    and not f.cleaned_data.get('DELETE', False)  # Not marked for deletion
-                    and f.cleaned_data.get('is_correct', False)  # Is marked as correct
-                )
-
-                if correct_answers == 0:
-                    messages.error(request, 'At least one answer must be marked as correct.')
-                    return render(request, self.template_name, {
-                        'quiz': quiz,
-                        'form': form,
-                        'formset': formset
-                    })
-
-                with transaction.atomic():
-                    question.save()
-                    formset.instance = question
-
-                    # Save answers and assign sequential order values
-                    answers = formset.save(commit=False)
-                    for index, answer in enumerate(answers):
-                        answer.order = index
-                        answer.save()
-
-                    # Handle deletions
-                    for obj in formset.deleted_objects:
-                        obj.delete()
-
-                messages.success(request, 'Question added successfully!')
-                return redirect('private_teaching:quiz_detail', pk=quiz.pk)
-        else:
-            formset = formset_class(request.POST)
-
-        return render(request, self.template_name, {
-            'quiz': quiz,
-            'form': form,
-            'formset': formset
-        })
-
-
-class QuestionEditView(TeacherProfileCompletedMixin, TemplateView):
-    """Edit question with inline answer formset"""
-    template_name = 'private_teaching/quiz/question_form.html'
-
-    def get_answer_formset_class_edit(self):
-        """Generate formset class for editing with no extra blank forms"""
-        return forms.inlineformset_factory(
-            PrivateLessonQuizQuestion,
-            PrivateLessonQuizAnswer,
-            form=PrivateLessonQuizAnswerForm,
-            extra=0,  # No extra blank forms when editing
-            max_num=10,
-            can_delete=True
-        )
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        question = get_object_or_404(
-            PrivateLessonQuizQuestion,
-            pk=kwargs['pk'],
-            quiz__created_by=self.request.user
-        )
-        context['quiz'] = question.quiz
-        context['question'] = question
-        context['form'] = PrivateLessonQuizQuestionForm(instance=question)
-        context['formset'] = self.get_answer_formset_class_edit()(instance=question)
-        return context
-
-    def post(self, request, *args, **kwargs):
-        question = get_object_or_404(
-            PrivateLessonQuizQuestion,
-            pk=kwargs['pk'],
-            quiz__created_by=request.user
-        )
-
-        form = PrivateLessonQuizQuestionForm(request.POST, instance=question)
-        formset_class = self.get_answer_formset_class_edit()
-        formset = formset_class(request.POST, instance=question)
-
-        if form.is_valid() and formset.is_valid():
-            # Check at least one correct answer
-            # Don't check for text content here - formset validation handles that
-            correct_answers = sum(
-                1 for f in formset
-                if f.cleaned_data  # Form has data
-                and not f.cleaned_data.get('DELETE', False)  # Not marked for deletion
-                and f.cleaned_data.get('is_correct', False)  # Is marked as correct
-            )
-
-            if correct_answers == 0:
-                messages.error(request, 'At least one answer must be marked as correct.')
-                return render(request, self.template_name, {
-                    'quiz': question.quiz,
-                    'question': question,
-                    'form': form,
-                    'formset': formset
-                })
-
-            with transaction.atomic():
-                form.save()
-
-                # Save answers and assign sequential order values
-                answers = formset.save(commit=False)
-                for index, answer in enumerate(answers):
-                    answer.order = index
-                    answer.save()
-
-                # Handle deletions
-                for obj in formset.deleted_objects:
-                    obj.delete()
-
-            messages.success(request, 'Question updated successfully!')
-            return redirect('private_teaching:quiz_detail', pk=question.quiz.pk)
-
-        return render(request, self.template_name, {
-            'quiz': question.quiz,
-            'question': question,
-            'form': form,
-            'formset': formset
-        })
-
-
-class QuestionDeleteView(TeacherProfileCompletedMixin, DeleteView):
-    """Delete question"""
-    model = PrivateLessonQuizQuestion
-
-    def get_queryset(self):
-        """Only allow deleting questions from own quizzes"""
-        return PrivateLessonQuizQuestion.objects.filter(quiz__created_by=self.request.user)
-
-    def get_success_url(self):
-        """Redirect to quiz detail page after deletion"""
-        return reverse('private_teaching:quiz_detail', kwargs={'pk': self.object.quiz.pk})
-
-    def delete(self, request, *args, **kwargs):
-        question = self.get_object()
-        quiz_pk = question.quiz.pk
-        messages.success(request, 'Question deleted successfully.')
-        response = super().delete(request, *args, **kwargs)
-        return response
-
-
-# -----------------------------
-# Teacher: Quiz Assignments
-# -----------------------------
-
-class QuizAssignView(TeacherProfileCompletedMixin, CreateView):
-    """Assign quiz to student(s)"""
-    model = PrivateLessonQuizAssignment
-    form_class = PrivateLessonQuizAssignmentForm
-    template_name = 'private_teaching/quiz/quiz_assign.html'
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['teacher'] = self.request.user
-        return kwargs
-
-    def get_initial(self):
-        """Set quiz from URL if provided"""
-        initial = super().get_initial()
-        quiz_id = self.kwargs.get('quiz_id')
-        if quiz_id:
-            quiz = get_object_or_404(
-                PrivateLessonQuiz,
-                pk=quiz_id,
-                created_by=self.request.user
-            )
-            initial['quiz'] = quiz
-        return initial
-
-    def get_form(self, form_class=None):
-        """Set quiz on instance before validation if in URL"""
-        form = super().get_form(form_class)
-        quiz_id = self.kwargs.get('quiz_id')
-        if quiz_id:
-            form.instance.quiz = get_object_or_404(
-                PrivateLessonQuiz,
-                pk=quiz_id,
-                created_by=self.request.user
-            )
-        return form
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        quiz_id = self.kwargs.get('quiz_id')
-        if quiz_id:
-            context['quiz'] = get_object_or_404(
-                PrivateLessonQuiz,
-                pk=quiz_id,
-                created_by=self.request.user
-            )
-        return context
-
-    def form_valid(self, form):
-        try:
-            form.instance.teacher = self.request.user
-
-            # If quiz_id in URL, set it
-            quiz_id = self.kwargs.get('quiz_id')
-            if quiz_id:
-                form.instance.quiz = get_object_or_404(
-                    PrivateLessonQuiz,
-                    pk=quiz_id,
-                    created_by=self.request.user
-                )
-
-            # Get student name from cleaned data (before save)
-            parsed_student = form.cleaned_data.get('_parsed_student')
-            parsed_child = form.cleaned_data.get('_parsed_child_profile')
-
-            if parsed_child:
-                student_name = parsed_child.full_name
-            elif parsed_student:
-                student_name = parsed_student.get_full_name() or parsed_student.username
-            else:
-                student_name = 'Unknown Student'
-
-            response = super().form_valid(form)
-
-            messages.success(
-                self.request,
-                f'Quiz assigned to {student_name} successfully!'
-            )
-            StudentNotificationService.send_quiz_assignment_notification(self.object)
-            return response
-        except Exception as e:
-            messages.error(
-                self.request,
-                f'Error assigning quiz: {str(e)}'
-            )
-            return self.form_invalid(form)
-
-    def get_success_url(self):
-        return reverse('private_teaching:quiz_assignment_list')
-
-
-class QuizAssignmentListView(TeacherProfileCompletedMixin, ListView):
-    """Teacher's list of all quiz assignments"""
-    model = PrivateLessonQuizAssignment
-    template_name = 'private_teaching/quiz/quiz_assignment_list.html'
-    context_object_name = 'assignments'
-    paginate_by = 20
-
-    def get_queryset(self):
-        queryset = PrivateLessonQuizAssignment.objects.filter(
-            teacher=self.request.user
-        ).select_related(
-            'quiz', 'student', 'child_profile', 'lesson'
-        ).prefetch_related('attempts')
-
-        # Filter by status
-        status = self.request.GET.get('status')
-        if status:
-            queryset = queryset.filter(status=status)
-
-        # Filter by student
-        student_id = self.request.GET.get('student')
-        if student_id:
-            queryset = queryset.filter(student_id=student_id)
-
-        # Filter by quiz
-        quiz_id = self.request.GET.get('quiz')
-        if quiz_id:
-            queryset = queryset.filter(quiz_id=quiz_id)
-
-        return queryset.order_by('-assigned_date')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # Get accepted students for filter
-        accepted_apps = TeacherStudentApplication.objects.filter(
-            teacher=self.request.user,
-            status='accepted'
-        ).values_list('applicant_id', flat=True)
-
-        context['students'] = User.objects.filter(id__in=accepted_apps).order_by('first_name', 'last_name')
-        context['quizzes'] = PrivateLessonQuiz.objects.filter(created_by=self.request.user).order_by('-created_at')
-        context['selected_status'] = self.request.GET.get('status', '')
-        context['selected_student'] = self.request.GET.get('student', '')
-        context['selected_quiz'] = self.request.GET.get('quiz', '')
-
-        return context
-
-
-class QuizAssignmentDetailView(TeacherProfileCompletedMixin, TemplateView):
-    """View assignment details with all attempts"""
-    template_name = 'private_teaching/quiz/quiz_assignment_detail.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        assignment = get_object_or_404(
-            PrivateLessonQuizAssignment,
-            pk=kwargs['pk'],
-            teacher=self.request.user
-        )
-
-        context['assignment'] = assignment
-        context['attempts'] = assignment.attempts.order_by('-started_at')
-
-        # Calculate statistics
-        if context['attempts']:
-            scores = [attempt.score for attempt in context['attempts'] if attempt.submitted_at]
-            if scores:
-                context['best_score'] = max(scores)
-                context['average_score'] = sum(scores) / len(scores)
-                context['passed_attempts'] = sum(1 for attempt in context['attempts'] if attempt.passed)
-
-        return context
-
-
-class QuizAssignmentDeleteView(TeacherProfileCompletedMixin, DeleteView):
-    """Delete assignment"""
-    model = PrivateLessonQuizAssignment
-    template_name = 'private_teaching/quiz/quiz_assignment_confirm_delete.html'
-    success_url = reverse_lazy('private_teaching:quiz_assignment_list')
-
-    def get_queryset(self):
-        """Only allow deleting own assignments"""
-        return PrivateLessonQuizAssignment.objects.filter(teacher=self.request.user)
-
-    def delete(self, request, *args, **kwargs):
-        assignment = self.get_object()
-        messages.success(request, f'Assignment deleted successfully.')
-        return super().delete(request, *args, **kwargs)
-
-
-# -----------------------------
-# Student: Quiz Taking
-# -----------------------------
-
-class StudentQuizListView(AcceptedStudentRequiredMixin, ListView):
-    """Student's assigned quizzes"""
-    model = PrivateLessonQuizAssignment
-    template_name = 'private_teaching/quiz/student_quiz_list.html'
-    context_object_name = 'assignments'
-    paginate_by = 20
-
-    def get_queryset(self):
-        queryset = PrivateLessonQuizAssignment.objects.filter(
-            student=self.request.user
-        ).select_related(
-            'quiz', 'teacher', 'child_profile', 'lesson'
-        ).prefetch_related('attempts')
-
-        # Filter by status
-        status = self.request.GET.get('status')
-        if status:
-            queryset = queryset.filter(status=status)
-
-        # Filter by child profile if guardian
-        child_id = self.request.GET.get('child')
-        if child_id:
-            queryset = queryset.filter(child_profile_id=child_id)
-
-        return queryset.order_by('-assigned_date')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # Get child profiles if guardian
-        from apps.accounts.models import ChildProfile
-        context['child_profiles'] = ChildProfile.objects.filter(guardian=self.request.user)
-        context['selected_status'] = self.request.GET.get('status', '')
-        context['selected_child'] = self.request.GET.get('child', '')
-
-        return context
-
-
-class QuizTakeView(AcceptedStudentRequiredMixin, TemplateView):
-    """Take quiz - show questions and collect answers"""
-    template_name = 'private_teaching/quiz/quiz_take.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        assignment = get_object_or_404(
-            PrivateLessonQuizAssignment,
-            pk=kwargs['assignment_id'],
-            student=self.request.user
-        )
-
-        # Check if already reached max attempts
-        if assignment.quiz.max_attempts:
-            attempt_count = assignment.attempts.count()
-            if attempt_count >= assignment.quiz.max_attempts:
-                messages.error(self.request, 'You have reached the maximum number of attempts for this quiz.')
-                return redirect('private_teaching:student_quiz_list')
-
-        # Check if quiz has questions
-        if not assignment.quiz.questions.exists():
-            messages.error(self.request, 'This quiz has no questions yet. Please contact your teacher.')
-            return redirect('private_teaching:student_quiz_list')
-
-        context['assignment'] = assignment
-        context['quiz'] = assignment.quiz
-
-        # Get questions (randomized if enabled)
-        questions = assignment.quiz.get_questions(randomize=assignment.quiz.randomize_questions)
-        context['questions'] = questions
-
-        # Check for existing in-progress attempt to resume
-        existing_attempt = assignment.attempts.filter(
-            submitted_at__isnull=True
-        ).order_by('-started_at').first()
-
-        if existing_attempt:
-            # Resume existing attempt
-            attempt = existing_attempt
-            context['is_resuming'] = True
-            context['last_save_time'] = (
-                existing_attempt.last_autosave_at.strftime('%I:%M %p')
-                if existing_attempt.last_autosave_at
-                else None
-            )
-        else:
-            # Create new attempt only if no in-progress attempt exists
-            attempt = PrivateLessonQuizAttempt.objects.create(
-                assignment=assignment
-            )
-            context['is_resuming'] = False
-
-        context['attempt'] = attempt
-
-        # Update assignment status
-        if assignment.status == 'assigned':
-            assignment.status = 'in_progress'
-            assignment.save()
-
-        return context
-
-
-class QuizSubmitView(AcceptedStudentRequiredMixin, View):
-    """Submit quiz answers (AJAX endpoint)"""
-
-    def post(self, request, *args, **kwargs):
-        assignment = get_object_or_404(
-            PrivateLessonQuizAssignment,
-            pk=kwargs['assignment_id'],
-            student=request.user
-        )
-
-        # Get attempt ID from POST data
-        attempt_id = request.POST.get('attempt_id')
-        if not attempt_id:
-            return JsonResponse({'success': False, 'error': 'No attempt ID provided'}, status=400)
-
-        attempt = get_object_or_404(
-            PrivateLessonQuizAttempt,
-            pk=attempt_id,
-            assignment=assignment
-        )
-
-        # Check if already submitted
-        if attempt.submitted_at:
-            return JsonResponse({'success': False, 'error': 'Quiz already submitted'}, status=400)
-
-        try:
-            with transaction.atomic():
-                # Collect answers from POST data
-                # Handles both single-answer (radio) and multi-answer (checkbox) questions
-                answers_data = {}
-                processed_keys = set()
-                for key in request.POST.keys():
-                    if key.startswith('question_') and key not in processed_keys:
-                        processed_keys.add(key)
-                        if key.endswith('[]'):
-                            # Multi-answer question (checkboxes)
-                            question_id = key.replace('question_', '').replace('[]', '')
-                            answers_data[question_id] = request.POST.getlist(key)
-                        else:
-                            # Single-answer question (radio)
-                            question_id = key.replace('question_', '')
-                            answers_data[question_id] = request.POST.get(key)
-
-                # Save answers
-                attempt.answers_data = answers_data
-                attempt.submitted_at = timezone.now()
-                # Clear auto-save timestamp on final submission
-                attempt.last_autosave_at = None
-
-                # Calculate time taken
-                time_taken = (attempt.submitted_at - attempt.started_at).total_seconds() / 60
-                attempt.time_taken_minutes = int(time_taken)
-
-                # Grade the attempt
-                attempt.calculate_score()
-                attempt.grade()
-                attempt.save()
-
-                # Update assignment status
-                assignment.status = 'completed'
-                assignment.save()
-
-            TeacherNotificationService.send_quiz_submission_notification(attempt)
-
-            return JsonResponse({
-                'success': True,
-                'score': float(attempt.score),
-                'passed': attempt.passed,
-                'redirect_url': reverse('private_teaching:quiz_attempt_results', kwargs={'pk': attempt.pk})
-            })
-
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-
-class QuizAutoSaveView(AcceptedStudentRequiredMixin, View):
-    """
-    Auto-save quiz answers without grading (AJAX endpoint).
-    Allows students to save progress periodically.
-    """
-
-    def post(self, request, *args, **kwargs):
-        """Save answers without submitting quiz"""
-        assignment = get_object_or_404(
-            PrivateLessonQuizAssignment,
-            pk=kwargs['assignment_id'],
-            student=request.user
-        )
-
-        # Get attempt ID from POST data
-        attempt_id = request.POST.get('attempt_id')
-        if not attempt_id:
-            return JsonResponse({
-                'success': False,
-                'error': 'No attempt ID provided'
-            }, status=400)
-
-        attempt = get_object_or_404(
-            PrivateLessonQuizAttempt,
-            pk=attempt_id,
-            assignment=assignment
-        )
-
-        # Don't allow auto-save on submitted attempts
-        if attempt.submitted_at:
-            return JsonResponse({
-                'success': False,
-                'error': 'Cannot auto-save submitted quiz'
-            }, status=400)
-
-        try:
-            # Collect answers from POST data
-            # Handles both single-answer (radio) and multi-answer (checkbox) questions
-            answers_data = {}
-            processed_keys = set()
-            for key in request.POST.keys():
-                if key.startswith('question_') and key not in processed_keys:
-                    processed_keys.add(key)
-                    if key.endswith('[]'):
-                        # Multi-answer question (checkboxes)
-                        question_id = key.replace('question_', '').replace('[]', '')
-                        answers_data[question_id] = request.POST.getlist(key)
-                    else:
-                        # Single-answer question (radio)
-                        question_id = key.replace('question_', '')
-                        answers_data[question_id] = request.POST.get(key)
-
-            # Perform auto-save
-            attempt.autosave_answers(answers_data)
-
-            # Format timestamp for display
-            save_time = attempt.last_autosave_at.strftime('%I:%M %p')
-
-            return JsonResponse({
-                'success': True,
-                'saved_at': save_time,
-                'timestamp': attempt.last_autosave_at.isoformat()
-            })
-
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'error': str(e)
-            }, status=500)
-
-
-class QuizAttemptResultsView(AcceptedStudentRequiredMixin, TemplateView):
-    """View quiz results after submission"""
-    template_name = 'private_teaching/quiz/quiz_results.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        attempt = get_object_or_404(
-            PrivateLessonQuizAttempt,
-            pk=kwargs['pk'],
-            assignment__student=self.request.user
-        )
-
-        context['attempt'] = attempt
-        context['assignment'] = attempt.assignment
-        context['quiz'] = attempt.assignment.quiz
-
-        # Get questions with student's answers
-        questions_data = []
-        for question in attempt.assignment.quiz.questions.order_by('order'):
-            question_id_str = str(question.id)
-            student_answer = attempt.answers_data.get(question_id_str)
-
-            # Normalize student answer(s) to a list of strings
-            if student_answer is None:
-                student_answer_ids = []
-            elif isinstance(student_answer, list):
-                student_answer_ids = [str(a) for a in student_answer]
-            else:
-                student_answer_ids = [str(student_answer)]
-
-            is_multi_answer = question.has_multiple_correct_answers()
-            correct_answers = question.get_correct_answers()
-            correct_answer_ids = [str(a.id) for a in correct_answers]
-
-            question_info = {
-                'question': question,
-                'student_answer_ids': student_answer_ids,
-                'is_multi_answer': is_multi_answer,
-                'answers': question.answers.order_by('order'),
-                'correct_answer_ids': correct_answer_ids,
-                'is_correct': False
-            }
-
-            # Check if answer(s) are correct
-            if student_answer_ids:
-                if is_multi_answer:
-                    # Must match exactly for multi-answer questions
-                    question_info['is_correct'] = set(student_answer_ids) == set(correct_answer_ids)
-                else:
-                    # Single answer check
-                    question_info['is_correct'] = student_answer_ids[0] in correct_answer_ids
-
-            questions_data.append(question_info)
-
-        context['questions_data'] = questions_data
-
-        # Check if can retake
-        context['can_retake'] = False
-        if attempt.assignment.quiz.allow_retakes:
-            if attempt.assignment.quiz.max_attempts:
-                attempt_count = attempt.assignment.attempts.count()
-                context['can_retake'] = attempt_count < attempt.assignment.quiz.max_attempts
-            else:
-                context['can_retake'] = True
-
-        return context
-
-
-class TeacherQuizAttemptResultsView(TeacherProfileCompletedMixin, TemplateView):
-    """Teacher view for student quiz results"""
-    template_name = 'private_teaching/quiz/quiz_results.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # Get the attempt
-        attempt = get_object_or_404(
-            PrivateLessonQuizAttempt,
-            pk=kwargs['pk']
-        )
-
-        # Verify teacher has access (must be assigned by this teacher)
-        if attempt.assignment.teacher != self.request.user:
-            messages.error(self.request, 'You do not have permission to view this quiz attempt.')
-            return redirect('private_teaching:teacher_dashboard')
-
-        context['attempt'] = attempt
-        context['assignment'] = attempt.assignment
-        context['quiz'] = attempt.assignment.quiz
-        context['is_teacher_view'] = True  # Flag for template
-
-        # Get questions with student's answers
-        questions_data = []
-        for question in attempt.assignment.quiz.questions.order_by('order'):
-            question_id_str = str(question.id)
-            student_answer = attempt.answers_data.get(question_id_str)
-
-            # Normalize student answer(s) to a list of strings
-            if student_answer is None:
-                student_answer_ids = []
-            elif isinstance(student_answer, list):
-                student_answer_ids = [str(a) for a in student_answer]
-            else:
-                student_answer_ids = [str(student_answer)]
-
-            is_multi_answer = question.has_multiple_correct_answers()
-            correct_answers = question.get_correct_answers()
-            correct_answer_ids = [str(a.id) for a in correct_answers]
-
-            question_info = {
-                'question': question,
-                'student_answer_ids': student_answer_ids,
-                'is_multi_answer': is_multi_answer,
-                'answers': question.answers.order_by('order'),
-                'correct_answer_ids': correct_answer_ids,
-                'is_correct': False
-            }
-
-            # Check if answer(s) are correct
-            if student_answer_ids:
-                if is_multi_answer:
-                    # Must match exactly for multi-answer questions
-                    question_info['is_correct'] = set(student_answer_ids) == set(correct_answer_ids)
-                else:
-                    # Single answer check
-                    question_info['is_correct'] = student_answer_ids[0] in correct_answer_ids
-
-            questions_data.append(question_info)
-
-        context['questions_data'] = questions_data
-        context['can_retake'] = False  # Teachers viewing, no retake option
-
-        return context
+# Quiz views moved to apps.quizzes.views
 
 
 # ============================================================================
@@ -5472,7 +3789,7 @@ class AssignPlayalongView(TeacherProfileCompletedMixin, View):
         # Verify teacher has lessons with this student
         if not Lesson.objects.filter(
             teacher=request.user, student=student,
-            approved_status='Accepted', is_deleted=False
+            approved_status=Lesson.ApprovalStatus.ACCEPTED, is_deleted=False
         ).exists():
             raise PermissionDenied()
 
@@ -5483,7 +3800,7 @@ class AssignPlayalongView(TeacherProfileCompletedMixin, View):
         child_profile = None
         lesson_with_child = Lesson.objects.filter(
             teacher=request.user, student=student,
-            approved_status='Accepted', is_deleted=False
+            approved_status=Lesson.ApprovalStatus.ACCEPTED, is_deleted=False
         ).select_related('lesson_request__child_profile').first()
         if lesson_with_child and lesson_with_child.lesson_request:
             child_profile = lesson_with_child.lesson_request.child_profile

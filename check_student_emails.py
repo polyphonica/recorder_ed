@@ -11,6 +11,7 @@ django.setup()
 
 from django.contrib.auth.models import User
 from apps.private_teaching.models import Order, LessonRequest
+from lessons.models import Lesson
 from apps.workshops.models import WorkshopRegistration
 from django.conf import settings
 from django.contrib.sites.models import Site
@@ -91,7 +92,7 @@ try:
             print(f"     - Student: {req.student.username}")
             print(f"     - Student Email: '{req.student.email}'")
             print(f"     - Created: {req.created_at}")
-            lessons = req.lessons.filter(approved_status='Accepted', payment_status='Paid')
+            lessons = req.lessons.filter(approved_status=Lesson.ApprovalStatus.ACCEPTED, payment_status='completed')
             print(f"     - Paid Lessons: {lessons.count()}")
             print()
     else:

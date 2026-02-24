@@ -286,9 +286,9 @@ class AvailabilityEngineTestCase(TestCase):
             lesson_time=time(10, 0),
             duration_in_minutes=60,
             location='Online',
-            approved_status='Accepted',
-            payment_status='Not Paid',
-            status='Draft'
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
+            payment_status='pending',
+            status=Lesson.Status.DRAFT
         )
 
         # Try to book same time
@@ -332,9 +332,9 @@ class AvailabilityEngineTestCase(TestCase):
             lesson_time=time(10, 0),
             duration_in_minutes=60,
             location='Online',
-            approved_status='Accepted',
-            payment_status='Not Paid',
-            status='Draft'
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
+            payment_status='pending',
+            status=Lesson.Status.DRAFT
         )
 
         # Try to book 11:00-12:00 (should fail due to 15-min buffer)

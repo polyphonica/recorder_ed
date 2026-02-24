@@ -1,10 +1,11 @@
 from django.contrib import admin
+from simple_history.admin import SimpleHistoryAdmin
 
 from .models import Lesson, Document, LessonOrder, LessonAttachedUrl, PrivateLessonPiece, PrivateLessonCollection
 
 
 @admin.register(Lesson)
-class LessonAdmin(admin.ModelAdmin):
+class LessonAdmin(SimpleHistoryAdmin):
     list_display = ('subject', 'lesson_date', 'lesson_time', 'status', 'approved_status', 'payment_status')
     list_filter = ('status', 'approved_status', 'payment_status', 'location', 'subject')
     search_fields = ('subject__subject', 'student__email', 'student__first_name', 'student__last_name', 'teacher__email')

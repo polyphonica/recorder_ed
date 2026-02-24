@@ -113,7 +113,7 @@
                             <span class="font-semibold text-lg">{{ month_practice_minutes }} min</span>
                         </div>
                     </div>
-                    <a href="{% url 'private_teaching:teacher_student_practice' student.id %}" class="btn btn-sm btn-success mt-3 w-full">
+                    <a href="{% url 'practice:teacher_student_practice' student.id %}" class="btn btn-sm btn-success mt-3 w-full">
                         <i class="fas fa-clipboard-list mr-1"></i>View Practice Log
                     </a>
                 </div>
@@ -354,9 +354,9 @@
                                         {% endif %}
                                     </td>
                                     <td class="text-lg">
-                                        {% if lesson.payment_status == 'Paid' %}
+                                        {% if lesson.payment_status == 'completed' %}
                                             <span class="badge badge-success badge-lg">Paid</span>
-                                        {% elif lesson.payment_status == 'Not Paid' %}
+                                        {% elif lesson.payment_status == 'pending' %}
                                             <span class="badge badge-warning badge-lg">Not Paid</span>
                                         {% elif lesson.payment_status == 'Payment In Process' %}
                                             <span class="badge badge-info badge-lg">Processing</span>
@@ -673,7 +673,7 @@
                 </h2>
                 <div class="flex items-center gap-3">
                     <span class="text-base-content/70 text-lg">{{ total_quizzes }} total</span>
-                    <a href="{% url 'private_teaching:quiz_library' %}?student={{ student.id }}" class="btn btn-sm btn-success">
+                    <a href="{% url 'quizzes:quiz_library' %}?student={{ student.id }}" class="btn btn-sm btn-success">
                         <i class="fas fa-plus mr-1"></i>Assign Quiz
                     </a>
                 </div>
@@ -980,7 +980,7 @@
                 <h2 class="text-2xl font-bold">
                     <i class="fas fa-graduation-cap mr-2 text-accent"></i>Exams
                 </h2>
-                <a href="{% url 'private_teaching:exam_create' %}?student={{ student.id }}" class="btn btn-sm btn-accent">
+                <a href="{% url 'exams:exam_create' %}?student={{ student.id }}" class="btn btn-sm btn-accent">
                     <i class="fas fa-plus mr-2"></i>Register for Exam
                 </a>
             </div>
@@ -1003,7 +1003,7 @@
                                             </div>
                                         {% endif %}
                                     </div>
-                                    <a href="{% url 'private_teaching:exam_detail' exam.id %}" class="btn btn-sm btn-outline">
+                                    <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-sm btn-outline">
                                         View Details
                                     </a>
                                 </div>
@@ -1039,7 +1039,7 @@
                                             {% endif %}
                                         </td>
                                         <td class="text-center text-lg">
-                                            <a href="{% url 'private_teaching:exam_detail' exam.id %}" class="btn btn-sm btn-outline">
+                                            <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-sm btn-outline">
                                                 View
                                             </a>
                                         </td>
@@ -1066,7 +1066,7 @@
                 <h2 class="text-2xl font-bold">
                     <i class="fas fa-music mr-2 text-success"></i>Recent Practice
                 </h2>
-                <a href="{% url 'private_teaching:teacher_student_practice' student.id %}" class="btn btn-sm btn-success">
+                <a href="{% url 'practice:teacher_student_practice' student.id %}" class="btn btn-sm btn-success">
                     <i class="fas fa-clipboard-list mr-2"></i>Full Practice Log
                 </a>
             </div>

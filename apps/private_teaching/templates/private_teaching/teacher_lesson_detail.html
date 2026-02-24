@@ -91,9 +91,9 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <i class="fas fa-credit-card w-5 text-primary"></i>
-                            {% if lesson.payment_status == 'Paid' %}
+                            {% if lesson.payment_status == 'completed' %}
                                 <span class="badge badge-success badge-lg">Paid</span>
-                            {% elif lesson.payment_status == 'Not Paid' %}
+                            {% elif lesson.payment_status == 'pending' %}
                                 <span class="badge badge-warning badge-lg">Not Paid</span>
                             {% elif lesson.payment_status == 'Payment In Process' %}
                                 <span class="badge badge-info badge-lg">Processing</span>
@@ -305,7 +305,7 @@
                 {% if lesson.exam_registration %}
                 <div>
                     <span class="font-semibold">Exam Preparation:</span>
-                    <a href="{% url 'private_teaching:exam_detail' lesson.exam_registration.id %}" class="link link-primary">
+                    <a href="{% url 'exams:exam_detail' lesson.exam_registration.id %}" class="link link-primary">
                         {{ lesson.exam_registration.exam_type }}
                     </a>
                 </div>

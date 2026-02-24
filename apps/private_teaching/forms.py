@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.forms import inlineformset_factory
-from .models import LessonRequest, Subject, LessonRequestMessage, ExamRegistration, ExamPiece, ExamBoard, PracticeEntry
+from .models import LessonRequest, Subject, LessonRequestMessage
 from lessons.models import Lesson
 
 
@@ -453,364 +453,6 @@ class SubjectForm(forms.ModelForm):
         return subject
 
 
-class ExamRegistrationForm(forms.ModelForm):
-    """Form for teachers to register students for exams"""
-
-    # Override student and child_profile as ChoiceFields
-    student = forms.ChoiceField(
-        label="Student/Guardian:",
-        widget=forms.Select(attrs={'class': 'select select-bordered w-full'}),
-        help_text="Select the student or guardian"
-    )
-
-    child_profile = forms.ChoiceField(
-        required=False,
-        label="Student (if child):",
-        widget=forms.Select(attrs={'class': 'select select-bordered w-full'}),
-        help_text="Select which child this exam is for (if applicable)"
-    )
-
-    class Meta:
-        model = ExamRegistration
-        fields = [
-            'subject', 'exam_board',
-            'grade_type', 'grade_level', 'exam_date', 'submission_deadline',
-            'registration_number', 'venue', 'scales', 'arpeggios',
-            'sight_reading', 'aural_tests', 'fee_amount', 'teacher_notes'
-        ]
-        widgets = {
-            'subject': forms.Select(attrs={'class': 'select select-bordered w-full'}),
-            'exam_board': forms.Select(attrs={'class': 'select select-bordered w-full'}),
-            'grade_type': forms.Select(attrs={'class': 'select select-bordered w-full'}),
-            'grade_level': forms.NumberInput(attrs={
-                'class': 'input input-bordered w-full',
-                'min': '1',
-                'max': '8'
-            }),
-            'exam_date': forms.DateInput(attrs={
-                'class': 'input input-bordered w-full',
-                'type': 'date'
-            }),
-            'submission_deadline': forms.DateInput(attrs={
-                'class': 'input input-bordered w-full',
-                'type': 'date'
-            }),
-            'registration_number': forms.TextInput(attrs={
-                'class': 'input input-bordered w-full',
-                'placeholder': 'Optional - from exam board'
-            }),
-            'venue': forms.TextInput(attrs={
-                'class': 'input input-bordered w-full',
-                'placeholder': 'e.g., Video submission, London Centre'
-            }),
-            'scales': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full',
-                'rows': 3,
-                'placeholder': 'e.g., C major, A minor melodic, chromatic'
-            }),
-            'arpeggios': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full',
-                'rows': 2,
-                'placeholder': 'e.g., C major, A minor'
-            }),
-            'sight_reading': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full',
-                'rows': 2,
-                'placeholder': 'Sight reading requirements'
-            }),
-            'aural_tests': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full',
-                'rows': 2,
-                'placeholder': 'Aural test requirements'
-            }),
-            'fee_amount': forms.NumberInput(attrs={
-                'class': 'input input-bordered w-full',
-                'step': '0.01',
-                'min': '0',
-                'placeholder': '0.00'
-            }),
-            'teacher_notes': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full',
-                'rows': 3,
-                'placeholder': 'Private notes about this exam registration'
-            }),
-        }
-
-    def __init__(self, *args, **kwargs):
-        self.teacher = kwargs.pop('teacher', None)
-        self.selected_student = kwargs.pop('student', None)
-        super().__init__(*args, **kwargs)
-
-        # Filter students to only accepted students of this teacher
-        if self.teacher:
-            from .models import TeacherStudentApplication
-            accepted_applications = TeacherStudentApplication.objects.filter(
-                teacher=self.teacher,
-                status='accepted'
-            ).select_related('applicant', 'child_profile')
-
-            # Build choices for student field
-            student_choices = []
-            child_choices = []
-
-            for app in accepted_applications:
-                if app.child_profile:
-                    # Add guardian to students if not already there
-                    if (str(app.applicant.id), f"{app.applicant.get_full_name()} (Guardian)") not in student_choices:
-                        student_choices.append((str(app.applicant.id), f"{app.applicant.get_full_name()} (Guardian)"))
-                    # Add child to child choices
-                    child_choices.append((str(app.child_profile.id), app.child_profile.full_name))
-                else:
-                    # Adult student
-                    student_choices.append((str(app.applicant.id), app.applicant.get_full_name()))
-
-            self.fields['student'].choices = [('', 'Select student')] + student_choices
-            self.fields['child_profile'].choices = [('', 'N/A - Adult student')] + child_choices
-
-            # Pre-select student if provided
-            if self.selected_student:
-                self.fields['student'].initial = str(self.selected_student)
-
-            # Filter subjects to only this teacher's subjects
-            self.fields['subject'].queryset = Subject.objects.filter(
-                teacher=self.teacher,
-                is_active=True
-            )
-
-            # Filter exam boards to only active ones
-            self.fields['exam_board'].queryset = ExamBoard.objects.filter(is_active=True)
-
-    def clean(self):
-        cleaned_data = super().clean()
-        grade_type = cleaned_data.get('grade_type')
-        grade_level = cleaned_data.get('grade_level')
-
-        if grade_type and grade_level:
-            if grade_type == ExamRegistration.THEORY:
-                if grade_level < 1 or grade_level > 6:
-                    self.add_error('grade_level', 'Theory grades must be between 1 and 6')
-            else:  # Practical or Performance
-                if grade_level < 1 or grade_level > 8:
-                    self.add_error('grade_level', 'Practical and Performance grades must be between 1 and 8')
-
-        return cleaned_data
-
-    def save(self, commit=True):
-        exam = super().save(commit=False)
-        if self.teacher:
-            exam.teacher = self.teacher
-
-        # Handle student conversion from string ID to User instance
-        student_id = self.cleaned_data.get('student')
-        if student_id:
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-            exam.student = User.objects.get(id=student_id)
-
-        # Handle child_profile conversion from string ID to instance
-        child_profile_id = self.cleaned_data.get('child_profile')
-        if child_profile_id:
-            from apps.users.models import ChildProfile
-            exam.child_profile = ChildProfile.objects.get(id=child_profile_id)
-        else:
-            exam.child_profile = None
-
-        # Set payment status to pending if fee is greater than 0
-        if exam.fee_amount > 0:
-            exam.payment_status = 'pending'
-        else:
-            exam.payment_status = 'not_required'
-
-        if commit:
-            exam.save()
-        return exam
-
-
-class ExamPieceForm(forms.ModelForm):
-    """Form for individual exam pieces"""
-
-    class Meta:
-        model = ExamPiece
-        fields = ['piece_number', 'title', 'composer', 'syllabus_list', 'teacher_notes']
-        widgets = {
-            'piece_number': forms.NumberInput(attrs={
-                'class': 'input input-bordered w-20',
-                'min': '1',
-                'placeholder': '#'
-            }),
-            'title': forms.TextInput(attrs={
-                'class': 'input input-bordered w-full',
-                'placeholder': 'Piece title'
-            }),
-            'composer': forms.TextInput(attrs={
-                'class': 'input input-bordered w-full',
-                'placeholder': 'Composer name'
-            }),
-            'syllabus_list': forms.TextInput(attrs={
-                'class': 'input input-bordered w-32',
-                'placeholder': 'A, B, C...'
-            }),
-            'teacher_notes': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full',
-                'rows': 2,
-                'placeholder': 'Notes about practice progress'
-            }),
-        }
-
-
-# Create formset for exam pieces
-ExamPieceFormSet = inlineformset_factory(
-    ExamRegistration,
-    ExamPiece,
-    form=ExamPieceForm,
-    extra=3,  # Show 3 empty forms by default (typical for most exams)
-    min_num=0,  # Pieces are optional (can be added later)
-    can_delete=True
-)
-
-
-class ExamResultsForm(forms.ModelForm):
-    """Form for teachers to enter exam results"""
-
-    class Meta:
-        model = ExamRegistration
-        fields = [
-            'status', 'mark_achieved', 'grade_achieved',
-            'examiner_comments', 'certificate_received_date'
-        ]
-        widgets = {
-            'status': forms.Select(attrs={'class': 'select select-bordered w-full'}),
-            'mark_achieved': forms.NumberInput(attrs={
-                'class': 'input input-bordered w-full',
-                'min': '0',
-                'max': '100',
-                'placeholder': 'e.g., 85'
-            }),
-            'grade_achieved': forms.Select(attrs={'class': 'select select-bordered w-full'}),
-            'examiner_comments': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full',
-                'rows': 4,
-                'placeholder': 'Enter examiner feedback and comments'
-            }),
-            'certificate_received_date': forms.DateInput(attrs={
-                'class': 'input input-bordered w-full',
-                'type': 'date'
-            }),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Make status required and set to results_received by default
-        self.fields['status'].initial = ExamRegistration.RESULTS_RECEIVED
-
-class PracticeEntryForm(forms.ModelForm):
-    """Form for students to log their practice sessions"""
-    
-    class Meta:
-        model = PracticeEntry
-        fields = [
-            'practice_date', 'duration_minutes', 'child_profile',
-            'pieces_practiced', 'exercises_practiced',
-            'focus_areas', 'struggles', 'achievements',
-            'enjoyment_rating',
-            'preparing_for_exam', 'preparing_for_performance'
-        ]
-        widgets = {
-            'practice_date': forms.DateInput(attrs={
-                'class': 'input input-bordered w-full',
-                'type': 'date'
-            }),
-            'duration_minutes': forms.NumberInput(attrs={
-                'class': 'input input-bordered w-full',
-                'placeholder': '30',
-                'min': '1',
-                'max': '300'
-            }),
-            'child_profile': forms.Select(attrs={
-                'class': 'select select-bordered w-full'
-            }),
-            'pieces_practiced': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full',
-                'rows': 3,
-                'placeholder': 'e.g., Sonata in F - mvmt 1, G Major scale, A Minor arpeggio'
-            }),
-            'exercises_practiced': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full',
-                'rows': 2,
-                'placeholder': 'e.g., Long tones, Tonguing exercises, Finger exercises'
-            }),
-            'focus_areas': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full',
-                'rows': 2,
-                'placeholder': 'What did you focus on today? (e.g., bars 12-16 tempo, breathing technique)'
-            }),
-            'struggles': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full',
-                'rows': 2,
-                'placeholder': 'Any difficulties? (optional)'
-            }),
-            'achievements': forms.Textarea(attrs={
-                'class': 'textarea textarea-bordered w-full',
-                'rows': 2,
-                'placeholder': 'Any breakthroughs or improvements? (optional)'
-            }),
-            'enjoyment_rating': forms.Select(attrs={
-                'class': 'select select-bordered w-full'
-            }),
-            'preparing_for_exam': forms.CheckboxInput(attrs={
-                'class': 'checkbox checkbox-primary'
-            }),
-            'preparing_for_performance': forms.CheckboxInput(attrs={
-                'class': 'checkbox checkbox-primary'
-            }),
-        }
-        labels = {
-            'practice_date': 'Practice Date',
-            'duration_minutes': 'Practice Duration (minutes)',
-            'child_profile': 'Who Practiced?',
-            'pieces_practiced': 'Pieces/Songs Practiced',
-            'exercises_practiced': 'Technical Exercises',
-            'focus_areas': 'What I Focused On',
-            'struggles': 'Challenges',
-            'achievements': 'Wins & Breakthroughs',
-            'enjoyment_rating': 'How enjoyable was this practice?',
-            'preparing_for_exam': 'Preparing for an exam',
-            'preparing_for_performance': 'Preparing for a performance/recital',
-        }
-        help_texts = {
-            'practice_date': 'When did you practice?',
-            'duration_minutes': 'How long did you practice?',
-            'child_profile': 'Leave blank if you are the student',
-            'preparing_for_exam': 'Check this if practicing for an upcoming exam',
-            'preparing_for_performance': 'Check this if practicing for a recital or performance',
-        }
-
-    def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
-        super().__init__(*args, **kwargs)
-        
-        # Set today's date as default
-        if not self.instance.pk:
-            from django.utils import timezone
-            self.fields['practice_date'].initial = timezone.now().date()
-        
-        # Filter child_profile to only show user's children
-        if user:
-            from apps.accounts.models import ChildProfile
-            self.fields['child_profile'].queryset = ChildProfile.objects.filter(guardian=user)
-            
-            # If user has no children, hide the field
-            if not self.fields['child_profile'].queryset.exists():
-                self.fields['child_profile'].widget = forms.HiddenInput()
-                self.fields['child_profile'].required = False
-        
-        # Make optional fields clearly marked
-        self.fields['exercises_practiced'].required = False
-        self.fields['struggles'].required = False
-        self.fields['achievements'].required = False
-        self.fields['enjoyment_rating'].required = False
-
-
 class RescheduleForm(forms.Form):
     """Form for teachers to reschedule a lesson inline from cancellation request detail"""
 
@@ -840,6 +482,38 @@ class RescheduleForm(forms.Form):
             self.fields['lesson_date'].initial = proposed_date
         if proposed_time and not self.is_bound:
             self.fields['lesson_time'].initial = proposed_time
+
+
+class TeacherInitiateCancellationForm(forms.Form):
+    """Form for teachers to cancel or propose a reschedule on an auto-accepted lesson"""
+    action = forms.ChoiceField(
+        choices=[('cancel', 'Cancel lesson'), ('reschedule', 'Propose new time')],
+        widget=forms.RadioSelect,
+        label='What would you like to do?'
+    )
+    reason = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 3, 'class': 'textarea textarea-bordered w-full'}),
+        label='Reason (required — visible to student)'
+    )
+    proposed_new_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'input input-bordered w-full'}),
+        label='Proposed new date'
+    )
+    proposed_new_time = forms.TimeField(
+        required=False,
+        widget=forms.TimeInput(attrs={'type': 'time', 'class': 'input input-bordered w-full'}),
+        label='Proposed new time'
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('action') == 'reschedule':
+            if not cleaned.get('proposed_new_date') or not cleaned.get('proposed_new_time'):
+                raise forms.ValidationError(
+                    'A proposed date and time are required when proposing a reschedule.'
+                )
+        return cleaned
 
 
 class VoucherForm(forms.ModelForm):

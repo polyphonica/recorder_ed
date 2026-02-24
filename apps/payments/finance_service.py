@@ -162,7 +162,7 @@ class FinanceService:
         private_lessons_gross = private_lessons_gross - total_refunds
 
         # ===== PRIVATE TEACHING - EXAM REGISTRATIONS =====
-        from apps.private_teaching.models import ExamRegistration
+        from apps.exams.models import ExamRegistration
 
         exam_registrations = ExamRegistration.objects.filter(
             teacher=teacher,
@@ -175,7 +175,7 @@ class FinanceService:
             exam_registrations = exam_registrations.filter(paid_at__lte=end_date)
 
         exams_gross = exam_registrations.aggregate(
-            total=Sum('fee_amount')
+            total=Sum('payment_amount')
         )['total'] or Decimal('0.00')
         exams_count = exam_registrations.count()
 
@@ -331,7 +331,8 @@ class FinanceService:
             transactions = query.select_related('course', 'student').order_by('-paid_at')
 
         elif domain == 'private_teaching':
-            from apps.private_teaching.models import Order, OrderItem, ExamRegistration
+            from apps.private_teaching.models import Order, OrderItem
+            from apps.exams.models import ExamRegistration
 
             # Query OrderItems directly to only sum items for this teacher
             # (An order can contain lessons from multiple teachers)
@@ -369,7 +370,7 @@ class FinanceService:
             if end_date:
                 exams_query = exams_query.filter(paid_at__lte=end_date)
 
-            exams_gross = exams_query.aggregate(total=Sum('fee_amount'))['total'] or Decimal('0.00')
+            exams_gross = exams_query.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
             exams_count = exams_query.count()
 
             # Combine totals
@@ -584,7 +585,8 @@ class FinanceService:
         Returns:
             list of dicts with student, subject, and revenue info
         """
-        from apps.private_teaching.models import Order, OrderItem, ExamRegistration, Subject, LessonCancellationRequest
+        from apps.private_teaching.models import Order, OrderItem, Subject, LessonCancellationRequest
+        from apps.exams.models import ExamRegistration
         from django.contrib.auth.models import User
         from lessons.models import Lesson
         from django.conf import settings
@@ -595,7 +597,7 @@ class FinanceService:
         # Get paid lessons and group by student and subject
         lessons_query = Lesson.objects.filter(
             teacher=teacher,
-            payment_status='Paid',
+            payment_status='completed',
             is_deleted=False
         ).select_related('student', 'subject', 'order_item__order')
 
@@ -682,7 +684,7 @@ class FinanceService:
                 }
 
             breakdown_dict[key]['exams_count'] += 1
-            fee_amount = Decimal(str(exam.fee_amount)) if exam.fee_amount else Decimal('0.00')
+            fee_amount = Decimal(str(exam.payment_amount)) if exam.payment_amount else Decimal('0.00')
             breakdown_dict[key]['exams_revenue'] += fee_amount
 
         # Build final breakdown list
@@ -729,7 +731,7 @@ class FinanceService:
         # Get all paid lessons for this teacher
         lessons_query = Lesson.objects.filter(
             teacher=teacher,
-            payment_status='Paid',
+            payment_status='completed',
             is_deleted=False
         ).select_related('subject', 'student')
 
@@ -985,7 +987,7 @@ class FinanceService:
             })
 
         # Get exam registrations
-        from apps.private_teaching.models import ExamRegistration
+        from apps.exams.models import ExamRegistration
 
         exam_registrations = ExamRegistration.objects.filter(
             teacher=teacher,
@@ -993,7 +995,7 @@ class FinanceService:
         ).select_related('student', 'exam_board', 'subject', 'child_profile').order_by('-paid_at')[:limit]
 
         for exam in exam_registrations:
-            amount = exam.fee_amount
+            amount = exam.payment_amount
             teacher_share = amount * (1 - Decimal(str(commission_rate)))
 
             transactions.append({
@@ -1129,7 +1131,8 @@ class FinanceService:
         courses_commission = courses_gross * Decimal(str(commission_rate))
 
         # ===== PRIVATE TEACHING =====
-        from apps.private_teaching.models import Order, OrderItem, ExamRegistration
+        from apps.private_teaching.models import Order, OrderItem
+        from apps.exams.models import ExamRegistration
 
         # Lessons - query OrderItems directly
         order_items = OrderItem.objects.filter(
@@ -1159,7 +1162,7 @@ class FinanceService:
         if end_date:
             exam_regs = exam_regs.filter(paid_at__lte=end_date)
 
-        exams_gross = exam_regs.aggregate(total=Sum('fee_amount'))['total'] or Decimal('0.00')
+        exams_gross = exam_regs.aggregate(total=Sum('payment_amount'))['total'] or Decimal('0.00')
         exams_count = exam_regs.count()
 
         private_gross = lessons_gross + exams_gross

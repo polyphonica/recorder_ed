@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Edit Quiz{% else %}Create Quiz{% endif %} - Recorder-ed{% endblock %}
+
+{% block extra_head %}
+{{ form.media }}
+<link rel="stylesheet" type="text/css" href="{% static 'css/ckeditor_custom.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold mb-2">
+            {% if object %}Edit Quiz{% else %}Create New Quiz{% endif %}
+        </h1>
+        <p class="text-base-content/70">
+            {% if object %}Update quiz details and settings{% else %}Set up a new quiz for your students{% endif %}
+        </p>
+    </div>
+
+    <!-- Form -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Basic Information -->
+        <div class="card card-section shadow-lg">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Basic Information</h2>
+
+                <!-- Title -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Title <span class="text-error">*</span></span>
+                    </label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.title.errors.0 }}</span></label>
+                    {% endif %}
+                    <label class="label"><span class="label-text-alt">{{ form.title.help_text }}</span></label>
+                </div>
+
+                <!-- Description -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Description</span>
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.description.errors.0 }}</span></label>
+                    {% endif %}
+                    <label class="label"><span class="label-text-alt">{{ form.description.help_text }}</span></label>
+                </div>
+
+                <!-- Instructions -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Instructions</span>
+                    </label>
+                    {{ form.instructions }}
+                    {% if form.instructions.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.instructions.errors.0 }}</span></label>
+                    {% endif %}
+                    <label class="label"><span class="label-text-alt">{{ form.instructions.help_text }}</span></label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Classification -->
+        <div class="card card-section shadow-lg">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Classification</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Subject -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Subject</span>
+                        </label>
+                        {{ form.subject }}
+                        {% if form.subject.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.subject.errors.0 }}</span></label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Syllabus -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Syllabus</span>
+                        </label>
+                        {{ form.syllabus }}
+                        {% if form.syllabus.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.syllabus.errors.0 }}</span></label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Grade Level -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Grade Level</span>
+                        </label>
+                        {{ form.grade_level }}
+                        {% if form.grade_level.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.grade_level.errors.0 }}</span></label>
+                        {% endif %}
+                        <label class="label"><span class="label-text-alt">{{ form.grade_level.help_text }}</span></label>
+                    </div>
+                </div>
+
+                <!-- Tags -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Tags</span>
+                    </label>
+                    {{ form.tags }}
+                    {% if form.tags.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.tags.errors.0 }}</span></label>
+                    {% endif %}
+                    <label class="label"><span class="label-text-alt">Hold Ctrl/Cmd to select multiple</span></label>
+                </div>
+
+                <!-- New Tags -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Or Create New Tags</span>
+                    </label>
+                    {{ form.new_tags }}
+                    {% if form.new_tags.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.new_tags.errors.0 }}</span></label>
+                    {% endif %}
+                    <label class="label"><span class="label-text-alt">{{ form.new_tags.help_text }}</span></label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Settings -->
+        <div class="card card-section shadow-lg">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Quiz Settings</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Pass Percentage -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Pass Percentage <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.pass_percentage }}
+                        {% if form.pass_percentage.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.pass_percentage.errors.0 }}</span></label>
+                        {% endif %}
+                        <label class="label"><span class="label-text-alt">{{ form.pass_percentage.help_text }}</span></label>
+                    </div>
+
+                    <!-- Time Limit -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Time Limit (minutes)</span>
+                        </label>
+                        {{ form.time_limit_minutes }}
+                        {% if form.time_limit_minutes.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.time_limit_minutes.errors.0 }}</span></label>
+                        {% endif %}
+                        <label class="label"><span class="label-text-alt">{{ form.time_limit_minutes.help_text }}</span></label>
+                    </div>
+
+                    <!-- Max Attempts -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Maximum Attempts</span>
+                        </label>
+                        {{ form.max_attempts }}
+                        {% if form.max_attempts.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.max_attempts.errors.0 }}</span></label>
+                        {% endif %}
+                        <label class="label"><span class="label-text-alt">{{ form.max_attempts.help_text }}</span></label>
+                    </div>
+                </div>
+
+                <!-- Quiz Display Mode -->
+                <div class="divider"></div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Quiz Display Mode</span>
+                    </label>
+                    <div class="space-y-3">
+                        {% for choice in form.pagination_mode %}
+                            <label class="label cursor-pointer justify-start gap-4 p-4 border border-base-300 rounded-lg hover:bg-base-200">
+                                {{ choice.tag }}
+                                <div class="flex-1">
+                                    <span class="label-text font-semibold">{{ choice.choice_label }}</span>
+                                    {% if choice.data.value == 'continuous' %}
+                                        <p class="text-xs text-base-content/60 mt-1">
+                                            <strong>Best for:</strong> Short quizzes (under 20 questions), practice quizzes, open-note quizzes.<br>
+                                            Students see all questions on one scrollable page.
+                                        </p>
+                                    {% elif choice.data.value == 'paginated' %}
+                                        <p class="text-xs text-base-content/60 mt-1">
+                                            <strong>Best for:</strong> Long quizzes (20+ questions), mock exams, formal assessments.<br>
+                                            Students navigate through questions one at a time with Previous/Next buttons and progress tracking.
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </label>
+                        {% endfor %}
+                    </div>
+                    {% if form.pagination_mode.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.pagination_mode.errors.0 }}</span></label>
+                    {% endif %}
+                </div>
+
+                <!-- Boolean Options -->
+                <div class="divider"></div>
+                <div class="space-y-3">
+                    <!-- Randomize Questions -->
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            {{ form.randomize_questions }}
+                            <div>
+                                <span class="label-text font-semibold">Randomize Questions</span>
+                                <p class="text-xs text-base-content/60">{{ form.randomize_questions.help_text }}</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Show Correct Answers -->
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            {{ form.show_correct_answers }}
+                            <div>
+                                <span class="label-text font-semibold">Show Correct Answers</span>
+                                <p class="text-xs text-base-content/60">{{ form.show_correct_answers.help_text }}</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Allow Retakes -->
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            {{ form.allow_retakes }}
+                            <div>
+                                <span class="label-text font-semibold">Allow Retakes</span>
+                                <p class="text-xs text-base-content/60">{{ form.allow_retakes.help_text }}</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Is Public -->
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            {{ form.is_public }}
+                            <div>
+                                <span class="label-text font-semibold">Make Public</span>
+                                <p class="text-xs text-base-content/60">{{ form.is_public.help_text }}</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-3 justify-end">
+            <a href="{% if object %}{% url 'quizzes:quiz_detail' object.pk %}{% else %}{% url 'quizzes:quiz_library' %}{% endif %}"
+               class="btn btn-ghost">
+                <i class="fas fa-times mr-2"></i>Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-2"></i>
+                {% if object %}Update Quiz{% else %}Create Quiz{% endif %}
+            </button>
+        </div>
+    </form>
+
+    {% if object %}
+        <!-- Info box about adding questions -->
+        <div class="alert alert-info mt-6">
+            <i class="fas fa-info-circle"></i>
+            <span>After saving, you can add questions to this quiz from the quiz detail page.</span>
+        </div>
+    {% endif %}
+</div>
+</div>
+{% endblock %}

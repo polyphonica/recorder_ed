@@ -1,4 +1,5 @@
 from django.contrib import admin
+from simple_history.admin import SimpleHistoryAdmin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils import timezone
@@ -219,8 +220,8 @@ class WorkshopSessionAdmin(admin.ModelAdmin):
     capacity_display.short_description = 'Capacity'
     
     def registration_count(self, obj):
-        registered = obj.registrations.filter(status='registered').count()
-        waitlisted = obj.registrations.filter(status='waitlisted').count()
+        registered = obj.registrations.filter(status=WorkshopRegistration.Status.REGISTERED).count()
+        waitlisted = obj.registrations.filter(status=WorkshopRegistration.Status.WAITLISTED).count()
         if waitlisted > 0:
             return f"{registered} (+{waitlisted} waitlisted)"
         return str(registered)
@@ -240,7 +241,7 @@ class WorkshopSessionAdmin(admin.ModelAdmin):
 
 
 @admin.register(WorkshopRegistration)
-class WorkshopRegistrationAdmin(UserDisplayMixin, admin.ModelAdmin):
+class WorkshopRegistrationAdmin(UserDisplayMixin, SimpleHistoryAdmin):
     list_display = [
         'student_name', 'workshop_title', 'session_date', 
         'status', 'registration_date', 'attended'

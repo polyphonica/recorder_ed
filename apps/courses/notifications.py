@@ -12,10 +12,14 @@ class StudentNotificationService(BaseNotificationService):
     def send_enrollment_confirmation(enrollment):
         """Send enrollment confirmation email to student"""
         try:
-            # Validate student email
+            # For child enrollments, student field holds the guardian
+            child_profile = enrollment.child_profile
+            is_child_enrollment = enrollment.is_for_child
+            recipient_label = 'Guardian' if is_child_enrollment else 'Student'
+
             is_valid, guardian_email = StudentNotificationService.validate_email(
                 enrollment.student,
-                'Student'
+                recipient_label
             )
             if not is_valid:
                 return False
@@ -31,13 +35,15 @@ class StudentNotificationService(BaseNotificationService):
 
             # Use inherited properties from PayableModel
             student_name = enrollment.student_name
-            is_child_enrollment = enrollment.is_for_child
+            guardian_name = StudentNotificationService.get_display_name(enrollment.student)
 
             context = {
                 'enrollment': enrollment,
                 'course': enrollment.course,
                 'student_name': student_name,
+                'guardian_name': guardian_name,
                 'is_child_enrollment': is_child_enrollment,
+                'child_profile': child_profile,
                 'course_url': course_url,
                 'my_courses_url': my_courses_url,
             }

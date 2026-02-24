@@ -1,0 +1,30 @@
+Subject: Your lesson on {{ lesson.lesson_date|date:"d F Y" }} has been cancelled by your teacher - {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ student.get_full_name|default:student.username }},
+
+We are writing to let you know that {{ teacher_name }} has cancelled {% if is_for_child %}{{ child_profile.full_name }}'s{% else %}your{% endif %} upcoming lesson.
+
+LESSON DETAILS:
+Subject: {{ lesson.subject.subject }}
+Teacher: {{ teacher_name }}
+Date: {{ lesson.lesson_date|date:"d F Y" }} at {{ lesson.lesson_time|time:"H:i" }}
+Duration: {{ lesson.duration_in_minutes }} minutes
+
+REASON FROM {{ teacher_name|upper }}:
+{{ cancellation_request.reason }}
+
+{% if has_refund %}REFUND INFORMATION:
+As this lesson has been paid for and the cancellation was initiated by your teacher,
+a full refund of £{{ refund_amount|floatformat:2 }} will be processed back to your
+original payment method within 5-10 business days.
+{% endif %}
+If you have any questions, please contact your teacher directly.
+
+View your lessons:
+{{ my_lessons_url }}
+
+Best regards,
+The {{ site_name }} Team

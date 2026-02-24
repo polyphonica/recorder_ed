@@ -531,7 +531,7 @@ class DigitalProductCartItem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     cart = models.ForeignKey(
-        'private_teaching.Cart',  # Reuse existing Cart model
+        'core.Cart',
         on_delete=models.CASCADE,
         related_name='digital_product_items'
     )

@@ -6,7 +6,8 @@ from django import forms
 from django.db import models
 from django.contrib.auth.models import User
 from django.forms import inlineformset_factory
-from .models import Course, Topic, Lesson, Quiz, QuizQuestion, QuizAnswer, CourseMessage, LessonAttachment
+from .models import Course, Topic, Lesson, CourseMessage, LessonAttachment
+from apps.quizzes.models import QuizQuestion, QuizAnswer
 from apps.audioplayer.models import LessonPiece, Piece
 
 

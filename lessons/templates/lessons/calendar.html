@@ -232,7 +232,7 @@ function updateLessonCounts() {
         const props = event.extendedProps || {};
         if (props.status === 'Assigned') {
             assignedCount++;
-        } else if (props.paymentStatus === 'Paid') {
+        } else if (props.paymentStatus === 'completed') {
             paidCount++;
         } else if (props.approvedStatus === 'Accepted') {
             acceptedCount++;
@@ -351,7 +351,7 @@ function showLessonModal(event) {
         <div class="mt-2">
             <strong>Status:</strong><br/>
             <span class="badge badge-sm ${props.approvedStatus === 'Accepted' ? 'badge-success' : props.approvedStatus === 'Rejected' ? 'badge-error' : 'badge-warning'}">${escapeHtml(props.approvedStatus)}</span>
-            <span class="badge badge-sm ${props.paymentStatus === 'Paid' ? 'badge-success' : 'badge-warning'}">${escapeHtml(props.paymentStatus)}</span>
+            <span class="badge badge-sm ${props.paymentStatus === 'completed' ? 'badge-success' : 'badge-warning'}">${escapeHtml(props.paymentStatus)}</span>
             <span class="badge badge-sm badge-info">${escapeHtml(props.status)}</span>
         </div>
     `;
@@ -370,12 +370,12 @@ function showLessonModal(event) {
     } else if (isStudent) {
         // Students can access if Accepted AND Paid AND Assigned
         canGoToLesson = props.approvedStatus === 'Accepted' &&
-                       props.paymentStatus === 'Paid' &&
+                       props.paymentStatus === 'completed' &&
                        props.status === 'Assigned';
         if (!canGoToLesson) {
             if (props.approvedStatus !== 'Accepted') {
                 message = 'Lesson must be accepted by teacher';
-            } else if (props.paymentStatus !== 'Paid') {
+            } else if (props.paymentStatus !== 'completed') {
                 message = 'Lesson must be paid for';
             } else if (props.status !== 'Assigned') {
                 message = 'Lesson must be assigned';

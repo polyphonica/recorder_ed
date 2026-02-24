@@ -21,6 +21,7 @@ from django.utils import timezone
 from django_ckeditor_5.fields import CKEditor5Field
 
 from apps.core.models import PayableModel, BaseCancellationRequest, BaseAttachment
+from simple_history.models import HistoricalRecords
 
 
 # ============================================================================
@@ -53,11 +54,12 @@ class Course(models.Model):
         ('18', 'Adults Only (18+) - Not suitable for minors'),
     ]
 
-    STATUS_CHOICES = [
-        ('draft', 'Draft'),
-        ('published', 'Published'),
-        ('archived', 'Archived'),
-    ]
+    class Status(models.TextChoices):
+        DRAFT     = 'draft',     'Draft'
+        PUBLISHED = 'published', 'Published'
+        ARCHIVED  = 'archived',  'Archived'
+
+    STATUS_CHOICES = Status.choices  # kept for backwards-compat with migrations
 
     # Primary key - UUID pattern from recordered
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -96,7 +98,7 @@ class Course(models.Model):
     )
 
     # Status and visibility
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     is_featured = models.BooleanField(default=False, help_text='Show on featured courses list')
     show_as_coming_soon = models.BooleanField(
         default=False,
@@ -125,6 +127,7 @@ class Course(models.Model):
             models.Index(fields=['status', 'is_featured']),
             models.Index(fields=['grade', 'status']),
             models.Index(fields=['instructor', 'status']),
+            models.Index(fields=['instructor', 'created_at']),
         ]
 
     def __str__(self):
@@ -136,7 +139,7 @@ class Course(models.Model):
             self.slug = slugify(self.title)
 
         # Set published_at timestamp when status changes to published
-        if self.status == 'published' and not self.published_at:
+        if self.status == Course.Status.PUBLISHED and not self.published_at:
             self.published_at = timezone.now()
 
         super().save(*args, **kwargs)
@@ -151,7 +154,7 @@ class Course(models.Model):
 
     def get_first_lesson(self):
         """Get the first published lesson in the course"""
-        first_topic = self.topics.filter(lessons__status='published').first()
+        first_topic = self.topics.filter(lessons__status=Lesson.Status.PUBLISHED).first()
         if first_topic:
             return first_topic.lessons.filter(status='published').first()
         return None
@@ -159,12 +162,13 @@ class Course(models.Model):
     @property
     def is_published(self):
         """Check if course is published"""
-        return self.status == 'published'
+        return self.status == Course.Status.PUBLISHED
 
     @property
     def has_quiz(self):
         """Check if any lesson in the course has a quiz"""
-        return Quiz.objects.filter(lesson__topic__course=self).exists()
+        from apps.quizzes.models import Quiz
+        return Quiz.objects.filter(course_lesson__topic__course=self).exists()
 
     def requires_age_acknowledgment(self, child_age):
         """
@@ -257,32 +261,42 @@ class Topic(models.Model):
         1. The lesson is marked complete
         2. Any associated quiz is passed
         """
-        published_lessons = self.lessons.filter(status='published')
-
-        if not published_lessons.exists():
+        published_lessons = list(
+            self.lessons.filter(status='published').select_related('quiz')
+        )
+        if not published_lessons:
             return False
 
-        for lesson in published_lessons:
-            # Check lesson completion
-            lesson_complete = LessonProgress.objects.filter(
+        lesson_ids = [lesson.pk for lesson in published_lessons]
+
+        completed_lesson_ids = set(
+            LessonProgress.objects.filter(
                 enrollment=enrollment,
-                lesson=lesson,
-                is_completed=True
-            ).exists()
+                lesson_id__in=lesson_ids,
+                is_completed=True,
+            ).values_list('lesson_id', flat=True)
+        )
 
-            # Check quiz completion if quiz exists
-            if hasattr(lesson, 'quiz') and lesson.quiz.status == 'published':
-                quiz_complete = QuizAttempt.objects.filter(
-                    enrollment=enrollment,
-                    quiz=lesson.quiz,
-                    passed=True
-                ).exists()
-            else:
-                quiz_complete = True  # No quiz required
+        from apps.quizzes.models import Quiz, QuizAttempt
+        quiz_ids = [
+            lesson.quiz.pk
+            for lesson in published_lessons
+            if hasattr(lesson, 'quiz') and lesson.quiz.status == Quiz.Status.PUBLISHED
+        ]
+        passed_quiz_ids = set(
+            QuizAttempt.objects.filter(
+                assignment__course_enrollment=enrollment,
+                assignment__quiz_id__in=quiz_ids,
+                passed=True,
+            ).values_list('assignment__quiz_id', flat=True)
+        ) if quiz_ids else set()
 
-            if not (lesson_complete and quiz_complete):
+        for lesson in published_lessons:
+            if lesson.pk not in completed_lesson_ids:
                 return False
-
+            if hasattr(lesson, 'quiz') and lesson.quiz.status == Quiz.Status.PUBLISHED:
+                if lesson.quiz.pk not in passed_quiz_ids:
+                    return False
         return True
 
 
@@ -292,10 +306,11 @@ class Lesson(models.Model):
     Contains rich content, optional video, and optional quiz.
     """
 
-    STATUS_CHOICES = [
-        ('draft', 'Draft'),
-        ('published', 'Published'),
-    ]
+    class Status(models.TextChoices):
+        DRAFT     = 'draft',     'Draft'
+        PUBLISHED = 'published', 'Published'
+
+    STATUS_CHOICES = Status.choices  # kept for backwards-compat with migrations
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     topic = models.ForeignKey(Topic, related_name='lessons', on_delete=models.CASCADE)
@@ -330,7 +345,7 @@ class Lesson(models.Model):
         default=False,
         help_text='Allow non-enrolled users to preview this lesson'
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -375,7 +390,7 @@ class Lesson(models.Model):
         next_in_topic = Lesson.objects.filter(
             topic=self.topic,
             lesson_number__gt=self.lesson_number,
-            status='published'
+            status=Lesson.Status.PUBLISHED
         ).first()
 
         if next_in_topic:
@@ -398,7 +413,7 @@ class Lesson(models.Model):
         prev_in_topic = Lesson.objects.filter(
             topic=self.topic,
             lesson_number__lt=self.lesson_number,
-            status='published'
+            status=Lesson.Status.PUBLISHED
         ).order_by('-lesson_number').first()
 
         if prev_in_topic:
@@ -484,6 +499,8 @@ class CourseEnrollment(PayableModel):
     # - stripe_checkout_session_id
     # - paid_at
 
+    history = HistoricalRecords()
+
     class Meta:
         ordering = ['-enrolled_at']
         indexes = [
@@ -514,7 +531,7 @@ class CourseEnrollment(PayableModel):
         """Calculate overall course completion percentage"""
         total_lessons = Lesson.objects.filter(
             topic__course=self.course,
-            status='published'
+            status=Lesson.Status.PUBLISHED
         ).count()
 
         if total_lessons == 0:
@@ -523,7 +540,7 @@ class CourseEnrollment(PayableModel):
         completed_lessons = LessonProgress.objects.filter(
             enrollment=self,
             is_completed=True,
-            lesson__status='published'
+            lesson__status=Lesson.Status.PUBLISHED
         ).count()
 
         return int((completed_lessons / total_lessons) * 100)
@@ -538,16 +555,70 @@ class CourseEnrollment(PayableModel):
         Check if all lessons and quizzes are complete.
         If yes, mark course as complete and create certificate.
         Returns True if marked complete, False otherwise.
+
+        Batches all DB queries upfront to avoid N+1 (2 queries regardless of topic count).
         """
         if self.completed_at:
             return True  # Already complete
 
-        # Check all topics
-        for topic in self.course.topics.all():
-            if not topic.is_completed(self):
-                return False
+        from apps.quizzes.models import Quiz, QuizAttempt
 
-        # All topics complete - mark course complete
+        # Prefetch all published lessons + their quizzes across all topics in two queries
+        topics = list(
+            self.course.topics.prefetch_related(
+                models.Prefetch(
+                    'lessons',
+                    queryset=Lesson.objects.filter(
+                        status=Lesson.Status.PUBLISHED
+                    ).select_related('quiz'),
+                )
+            ).order_by('topic_number')
+        )
+
+        all_lesson_ids = [
+            lesson.pk
+            for topic in topics
+            for lesson in topic.lessons.all()
+        ]
+        if not all_lesson_ids:
+            return False
+
+        # Single query: completed lessons for this enrollment
+        completed_lesson_ids = set(
+            LessonProgress.objects.filter(
+                enrollment=self,
+                lesson_id__in=all_lesson_ids,
+                is_completed=True,
+            ).values_list('lesson_id', flat=True)
+        )
+
+        # Single query: passed quiz IDs for this enrollment
+        quiz_ids = [
+            lesson.quiz.pk
+            for topic in topics
+            for lesson in topic.lessons.all()
+            if hasattr(lesson, 'quiz') and lesson.quiz
+            and lesson.quiz.status == Quiz.Status.PUBLISHED
+        ]
+        passed_quiz_ids = set(
+            QuizAttempt.objects.filter(
+                assignment__course_enrollment=self,
+                assignment__quiz_id__in=quiz_ids,
+                passed=True,
+            ).values_list('assignment__quiz_id', flat=True)
+        ) if quiz_ids else set()
+
+        # Check completion in Python — no further DB queries
+        for topic in topics:
+            for lesson in topic.lessons.all():
+                if lesson.pk not in completed_lesson_ids:
+                    return False
+                if (hasattr(lesson, 'quiz') and lesson.quiz
+                        and lesson.quiz.status == Quiz.Status.PUBLISHED):
+                    if lesson.quiz.pk not in passed_quiz_ids:
+                        return False
+
+        # All topics and quizzes complete — mark course complete
         self.completed_at = timezone.now()
         self.save()
 
@@ -603,191 +674,7 @@ class LessonProgress(models.Model):
             self.enrollment.check_and_mark_complete()
 
 
-# ============================================================================
-# QUIZ MODELS
-# ============================================================================
-
-class Quiz(models.Model):
-    """
-    Quiz associated with a lesson (one-to-one relationship).
-    """
-
-    STATUS_CHOICES = [
-        ('draft', 'Draft'),
-        ('published', 'Published'),
-    ]
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name='quiz')
-
-    title = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
-    pass_percentage = models.PositiveIntegerField(
-        default=70,
-        help_text='Minimum percentage required to pass (0-100)'
-    )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        verbose_name_plural = 'Quizzes'
-
-    def __str__(self):
-        return f"Quiz: {self.lesson.lesson_title}"
-
-    def get_questions(self):
-        """Get all questions ordered by order field"""
-        return self.questions.all().order_by('order')
-
-    @property
-    def total_points(self):
-        """Calculate total possible points"""
-        return sum(q.points for q in self.questions.all())
-
-
-class QuizQuestion(models.Model):
-    """
-    Individual question within a quiz.
-    Uses CKEditor for rich content (images, formatting, etc.)
-    """
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='questions')
-
-    text = CKEditor5Field('question', config_name='default')
-    order = models.PositiveIntegerField(default=0, help_text='Display order')
-    points = models.PositiveIntegerField(default=1, help_text='Points for correct answer')
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['order']
-
-    def __str__(self):
-        # Strip HTML tags for display
-        from django.utils.html import strip_tags
-        text = strip_tags(self.text)
-        return text[:75] + '...' if len(text) > 75 else text
-
-    def get_answers(self):
-        """Get all answers ordered by order field"""
-        return self.answers.all().order_by('order')
-
-    def get_correct_answer(self):
-        """Get the correct answer for this question"""
-        return self.answers.filter(is_correct=True).first()
-
-
-class QuizAnswer(models.Model):
-    """
-    Multiple choice answer for a quiz question.
-    Only one answer should be marked as correct per question.
-    """
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    question = models.ForeignKey(QuizQuestion, on_delete=models.CASCADE, related_name='answers')
-
-    text = models.CharField(max_length=200)
-    is_correct = models.BooleanField(default=False)
-    order = models.PositiveIntegerField(default=0)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['order']
-
-    def __str__(self):
-        correct_marker = " ✓" if self.is_correct else ""
-        return f"{self.text}{correct_marker}"
-
-
-class QuizAttempt(models.Model):
-    """
-    Records each attempt a student makes at a quiz.
-    Students can retake quizzes unlimited times.
-    """
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    enrollment = models.ForeignKey(
-        CourseEnrollment,
-        on_delete=models.CASCADE,
-        related_name='quiz_attempts'
-    )
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='attempts')
-
-    started_at = models.DateTimeField(auto_now_add=True)
-    submitted_at = models.DateTimeField(null=True, blank=True)
-
-    score = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        default=0,
-        help_text='Score as a percentage (0-100)'
-    )
-    passed = models.BooleanField(default=False)
-
-    # Store student's answers as JSON: {question_id: answer_id}
-    answers_data = models.JSONField(default=dict, blank=True)
-
-    class Meta:
-        ordering = ['-started_at']
-        indexes = [
-            models.Index(fields=['enrollment', 'quiz']),
-            models.Index(fields=['quiz', 'passed']),
-        ]
-
-    def __str__(self):
-        student_name = self.enrollment.student.get_full_name() or self.enrollment.student.username
-        status = "✓" if self.passed else "✗"
-        return f"{status} {student_name} - {self.quiz.title} ({self.score}%)"
-
-    def calculate_score(self):
-        """
-        Calculate score based on answers_data.
-        Returns percentage score.
-        """
-        if not self.answers_data:
-            return 0
-
-        total_points = 0
-        earned_points = 0
-
-        for question in self.quiz.questions.all():
-            total_points += question.points
-
-            # Get student's answer
-            student_answer_id = self.answers_data.get(str(question.id))
-            if student_answer_id:
-                try:
-                    answer = QuizAnswer.objects.get(id=student_answer_id)
-                    if answer.is_correct:
-                        earned_points += question.points
-                except QuizAnswer.DoesNotExist:
-                    pass
-
-        if total_points == 0:
-            return 0
-
-        percentage = (earned_points / total_points) * 100
-        return round(percentage, 2)
-
-    def grade(self):
-        """
-        Grade the quiz attempt and update score and passed status.
-        """
-        self.score = self.calculate_score()
-        self.passed = self.score >= self.quiz.pass_percentage
-        self.submitted_at = timezone.now()
-        self.save()
-
-        return {
-            'score': self.score,
-            'passed': self.passed,
-            'pass_percentage': self.quiz.pass_percentage
-        }
-
+# Quiz models moved to apps.quizzes
 
 # ============================================================================
 # MESSAGING MODELS

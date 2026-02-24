@@ -3,9 +3,7 @@ from django.db import models
 from django_ckeditor_5.fields import CKEditor5Field
 from django.conf import settings
 from django.contrib.auth import get_user_model
-
-# Import models from other apps
-from apps.private_teaching.models import Subject, LessonRequest
+from simple_history.models import HistoricalRecords
 
 import uuid
 
@@ -19,7 +17,16 @@ class Lesson(models.Model):
     NOSHOW = 'No-show'
     LEGALCANCEL = 'Legal-Cancel'
     ILLEGALCANCEL = 'Illegal-Cancel'
-    
+
+    class Status(models.TextChoices):
+        DRAFT    = 'Draft',    'Draft'
+        ASSIGNED = 'Assigned', 'Assigned'
+
+    class ApprovalStatus(models.TextChoices):
+        ACCEPTED = 'Accepted', 'Accepted'
+        REJECTED = 'Rejected', 'Rejected'
+        PENDING  = 'Pending',  'Pending'
+
     Location = [
         (ONLINE, 'Online'),
         (ONSITE, 'Onsite'),
@@ -30,26 +37,17 @@ class Lesson(models.Model):
         (LEGALCANCEL, 'Legal-Cancel'),
         (ILLEGALCANCEL, 'Illegal-Cancel'),
     ]
-    status = [
-        ('Draft', 'Draft'),
-        ('Assigned', 'Assigned'),
-    ]
-    approved_status = [
-        ('Accepted', 'Accepted'),
-        ('Rejected', 'Rejected'),
-        ('Pending', 'Pending'),
-    ]
+    class PaymentStatus(models.TextChoices):
+        NOT_REQUIRED = 'not_required', 'Not Required'
+        PENDING      = 'pending',      'Pending Payment'
+        COMPLETED    = 'completed',    'Payment Completed'
+        FAILED       = 'failed',       'Payment Failed'
+
     DURATION = [
         ('30', '30'),
         ('60', '60'),
         ('90', '90'),
     ]
-    PAYMENT_STATUS = (
-        ('Not Paid', 'Not Paid'),
-        ('Paid', 'Paid'),
-        ('Failed', 'Failed'),
-        ('Payment In Process', 'Payment In Process')
-    )
     
     # Primary key
     id = models.UUIDField(
@@ -59,12 +57,12 @@ class Lesson(models.Model):
 
     # Relationships
     lesson_request = models.ForeignKey(
-        LessonRequest,
+        'private_teaching.LessonRequest',
         on_delete=models.CASCADE,
         related_name='lessons',
         help_text="The lesson request this lesson belongs to"
     )
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    subject = models.ForeignKey('private_teaching.Subject', on_delete=models.CASCADE)
     student = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -104,10 +102,10 @@ class Lesson(models.Model):
     )
     
     # Status fields
-    status = models.CharField(max_length=20, choices=status, default='Draft')
-    approved_status = models.CharField(max_length=20, choices=approved_status, default='Pending')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    approved_status = models.CharField(max_length=20, choices=ApprovalStatus.choices, default=ApprovalStatus.PENDING)
     payment_status = models.CharField(
-        choices=PAYMENT_STATUS, max_length=20, default='Not Paid')
+        choices=PaymentStatus.choices, max_length=20, default=PaymentStatus.PENDING)
     in_cart = models.BooleanField(default=False)
     is_deleted = models.BooleanField(
         default=False,
@@ -117,6 +115,8 @@ class Lesson(models.Model):
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    history = HistoricalRecords()
 
     # Playalong pieces
     pieces = models.ManyToManyField(
@@ -138,7 +138,7 @@ class Lesson(models.Model):
 
     # Exam preparation link
     exam_registration = models.ForeignKey(
-        'private_teaching.ExamRegistration',
+        'exams.ExamRegistration',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -182,13 +182,13 @@ class Lesson(models.Model):
     @property
     def calendar_color(self):
         """Return color code for calendar display based on lesson status"""
-        if self.status == 'Assigned':
+        if self.status == Lesson.Status.ASSIGNED:
             return '#1e40af'  # Dark blue for assigned
-        elif self.payment_status == 'Paid':
+        elif self.payment_status == Lesson.PaymentStatus.COMPLETED:
             return '#3b82f6'  # Blue for paid
-        elif self.approved_status == 'Accepted':
+        elif self.approved_status == Lesson.ApprovalStatus.ACCEPTED:
             return '#10b981'  # Green for accepted but not paid
-        elif self.approved_status == 'Rejected':
+        elif self.approved_status == Lesson.ApprovalStatus.REJECTED:
             return '#ef4444'  # Red for rejected
         else:
             return '#f59e0b'  # Yellow/orange for pending
@@ -335,7 +335,12 @@ class PrivateLessonCollection(models.Model):
 
 
 class LessonAssignment(models.Model):
-    """Through model for associating homework assignments with lessons"""
+    """
+    Links homework assignments to lessons or directly to students (standalone).
+    Replaces PrivateLessonAssignment as the single canonical assignment-link model.
+    Lesson-linked: lesson is set, student/teacher derived from lesson.
+    Standalone: lesson is null, student/teacher/child_profile set explicitly.
+    """
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -345,13 +350,40 @@ class LessonAssignment(models.Model):
         Lesson,
         on_delete=models.CASCADE,
         related_name='lesson_assignments',
-        help_text="The lesson this assignment is homework for"
+        null=True,
+        blank=True,
+        help_text="The lesson this assignment is homework for (null for standalone)"
     )
     assignment = models.ForeignKey(
         'assignments.Assignment',
         on_delete=models.CASCADE,
         related_name='lesson_assignments',
         help_text="The homework assignment"
+    )
+    # For standalone assignments (lesson=null): explicit student/teacher/child_profile
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='standalone_assignments_received',
+        help_text="Student (standalone only; lesson-linked derive from lesson.student)"
+    )
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='standalone_assignments_given',
+        help_text="Teacher (standalone only; lesson-linked derive from lesson.subject.teacher)"
+    )
+    child_profile = models.ForeignKey(
+        'accounts.ChildProfile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lesson_assignments_received',
+        help_text="Optional: specific child this assignment is for"
     )
     due_date = models.DateTimeField(
         null=True,
@@ -372,10 +404,53 @@ class LessonAssignment(models.Model):
         ordering = ['order', 'assigned_at']
         verbose_name = 'Lesson Assignment'
         verbose_name_plural = 'Lesson Assignments'
-        unique_together = ['lesson', 'assignment']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['lesson', 'assignment'],
+                condition=models.Q(lesson__isnull=False),
+                name='unique_lesson_assignment_per_lesson'
+            )
+        ]
 
     def __str__(self):
-        return f"{self.assignment.title} for {self.lesson}"
+        student = self.effective_student
+        student_name = (student.get_full_name() or student.username) if student else 'Unknown'
+        lesson_info = f" (Lesson: {self.lesson.lesson_date})" if self.lesson else " (Standalone)"
+        return f"{self.assignment.title} → {student_name}{lesson_info}"
+
+    @property
+    def effective_student(self):
+        """Student for this assignment — explicit for standalone, derived for lesson-linked"""
+        return self.student if self.student_id else (self.lesson.student if self.lesson_id else None)
+
+    @property
+    def effective_teacher(self):
+        """Teacher for this assignment — explicit for standalone, derived for lesson-linked"""
+        return self.teacher if self.teacher_id else (self.lesson.subject.teacher if self.lesson_id else None)
+
+    @property
+    def submission(self):
+        """Get the submission for this assignment (if exists)"""
+        from assignments.models import AssignmentSubmission
+        student = self.effective_student
+        if not student:
+            return None
+        try:
+            return AssignmentSubmission.objects.get(student=student, assignment=self.assignment)
+        except AssignmentSubmission.DoesNotExist:
+            return None
+
+    @property
+    def is_submitted(self):
+        """Check if student has submitted"""
+        sub = self.submission
+        return sub is not None and sub.status in ['submitted', 'graded']
+
+    @property
+    def is_graded(self):
+        """Check if submission is graded"""
+        sub = self.submission
+        return sub is not None and sub.status == 'graded'
 
     @property
     def is_overdue(self):
@@ -383,7 +458,7 @@ class LessonAssignment(models.Model):
         if not self.due_date:
             return False
         from django.utils import timezone
-        return timezone.now() > self.due_date
+        return timezone.now() > self.due_date and not self.is_submitted
 
 
 class Document(models.Model):
@@ -412,17 +487,11 @@ class LessonAttachedUrl(models.Model):
 
 # Keep the LessonOrder model for backward compatibility with existing payment system
 class LessonOrder(models.Model):
-    PAYMENT_STATUS = (
-        ('NONE', 'NONE'),
-        ('Paid', 'Paid'),
-        ('Failed', 'Failed'),
-        ('Payment In Process', 'Payment In Process')
-    )
     # Will need to reference student profile from private_teaching app
     # student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE)
     lessons = models.ManyToManyField(Lesson)
     payment_status = models.CharField(
-        choices=PAYMENT_STATUS, max_length=20, default='NONE')
+        choices=Lesson.PaymentStatus.choices, max_length=20, default=Lesson.PaymentStatus.NOT_REQUIRED)
     transaction_id = models.CharField(max_length=100, null=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)

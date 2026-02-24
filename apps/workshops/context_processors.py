@@ -1,7 +1,7 @@
 """
 Context processors for workshops app - provides unified cart data
 """
-from apps.private_teaching.models import Cart
+from apps.core.models import Cart
 
 
 def unified_cart_context(request):

@@ -4,7 +4,8 @@ Shopping cart utilities for private teaching lessons
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
 from apps.core.cart import BaseCartManager
-from .models import Cart, CartItem
+from apps.core.models import Cart
+from .models import CartItem
 from lessons.models import Lesson
 
 
@@ -27,10 +28,10 @@ class CartManager(BaseCartManager):
             return False, "Lesson not found"
 
         # Verify lesson is approved and unpaid
-        if lesson.approved_status != 'Accepted':
+        if lesson.approved_status != Lesson.ApprovalStatus.ACCEPTED:
             return False, f"Only accepted lessons can be added to cart (status: {lesson.approved_status})"
 
-        if lesson.payment_status == 'Paid':
+        if lesson.payment_status == 'completed':
             return False, "This lesson has already been paid for"
 
         cart, error_tuple = self._get_cart_or_error()
@@ -72,8 +73,8 @@ class CartManager(BaseCartManager):
 
         # Get all accepted, unpaid lessons from the request
         eligible_lessons = lesson_request.lessons.filter(
-            approved_status='Accepted',
-            payment_status='Not Paid'
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
+            payment_status='pending'
         )
 
         if not eligible_lessons.exists():

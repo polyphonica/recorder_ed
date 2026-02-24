@@ -5,7 +5,7 @@ Subject: Lesson Request Update from {{ teacher_name }} - {{ site_name }}
 
 Hello {{ student.get_full_name|default:student.username }},
 
-Your lesson request has been updated by {{ teacher_name }}.
+{% if is_for_child %}{{ child_profile.full_name }}'s lesson request{% else %}Your lesson request{% endif %} has been updated by {{ teacher_name }}.
 {% if accepted_lessons %}
 
 ACCEPTED LESSONS:

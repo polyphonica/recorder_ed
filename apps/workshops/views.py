@@ -124,7 +124,7 @@ class WorkshopListView(SearchableListViewMixin, ListView):
     def get_queryset(self):
         # Annotate with next session date for sorting
         # This finds the earliest upcoming session for each workshop
-        queryset = Workshop.objects.filter(status='published').select_related(
+        queryset = Workshop.objects.filter(status=Workshop.Status.PUBLISHED).select_related(
             'instructor', 'category'
         ).prefetch_related('sessions').annotate(
             next_session_date=Min(
@@ -178,9 +178,9 @@ class WorkshopDetailView(DetailView):
         ).prefetch_related('sessions', 'materials')
         if self.request.user.is_authenticated:
             return qs.filter(
-                Q(status='published') | Q(instructor=self.request.user)
+                Q(status=Workshop.Status.PUBLISHED) | Q(instructor=self.request.user)
             )
-        return qs.filter(status='published')
+        return qs.filter(status=Workshop.Status.PUBLISHED)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -198,7 +198,12 @@ class WorkshopDetailView(DetailView):
             registrations = WorkshopRegistration.objects.filter(
                 student=self.request.user,
                 session__workshop=workshop,
-                status__in=['registered', 'promoted', 'attended', 'waitlisted']  # Exclude cancelled
+                status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+                WorkshopRegistration.Status.WAITLISTED,
+            ]  # Exclude cancelled
             ).select_related('session')
             
             # Create a mapping for easy lookup
@@ -223,7 +228,7 @@ class WorkshopDetailView(DetailView):
             user_sessions = WorkshopSession.objects.filter(
                 workshop=workshop,
                 registrations__student=self.request.user,
-                registrations__status__in=['registered', 'attended']
+                registrations__status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.ATTENDED]
             ).prefetch_related('materials', 'registrations')
             
             for session in user_sessions:
@@ -253,7 +258,7 @@ class WorkshopDetailView(DetailView):
         # Get related workshops
         related_workshops = Workshop.objects.filter(
             category=workshop.category,
-            status='published'
+            status=Workshop.Status.PUBLISHED
         ).exclude(id=workshop.id).select_related('instructor', 'category')[:3]
         
         # If current workshop has no available sessions, prioritize similar workshops with sessions
@@ -263,7 +268,7 @@ class WorkshopDetailView(DetailView):
                 Q(category=workshop.category) | 
                 Q(difficulty_level=workshop.difficulty_level) |
                 Q(tags__icontains=workshop.tags.split(',')[0] if workshop.tags else ''),
-                status='published'
+                status=Workshop.Status.PUBLISHED
             ).exclude(
                 id=workshop.id
             ).annotate(
@@ -282,7 +287,11 @@ class WorkshopDetailView(DetailView):
             user_is_registered = WorkshopRegistration.objects.filter(
                 student=self.request.user,
                 session__workshop=workshop,
-                status__in=['registered', 'promoted', 'attended']
+                status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+            ]
             ).exists()
 
         # Get current terms for T&Cs modal
@@ -334,7 +343,7 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
         self.workshop = get_object_or_404(
             Workshop, 
             slug=kwargs['workshop_slug'], 
-            status='published'
+            status=Workshop.Status.PUBLISHED
         )
         self.session = get_object_or_404(
             WorkshopSession,
@@ -350,7 +359,7 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
         ).first()
         
         if existing_registration:
-            if existing_registration.status == 'promoted':
+            if existing_registration.status == WorkshopRegistration.Status.PROMOTED:
                 # Redirect promoted users to complete their payment
                 messages.warning(request, 'Complete your payment to secure your workshop place.')
                 return redirect('workshops:registration_confirm', registration_id=existing_registration.id)
@@ -392,7 +401,7 @@ class WorkshopRegistrationView(LoginRequiredMixin, CreateView):
         # WAITLIST FLOW: If session is full, add to waitlist directly (no payment)
         if self.session.is_full:
             if self.session.waitlist_enabled:
-                registration.status = 'waitlisted'
+                registration.status = WorkshopRegistration.Status.WAITLISTED
                 registration.payment_status = 'not_required'  # Payment only required when promoted
                 registration.save()
 
@@ -485,7 +494,7 @@ class RegistrationConfirmView(LoginRequiredMixin, DetailView):
         """Handle payment initiation for promoted registrations"""
         registration = self.get_object()
 
-        if registration.status == 'promoted':
+        if registration.status == WorkshopRegistration.Status.PROMOTED:
             # Check if workshop requires payment
             if registration.session.workshop.price > 0:
                 # Set payment fields
@@ -542,7 +551,7 @@ class RegistrationConfirmView(LoginRequiredMixin, DetailView):
                     return redirect('workshops:registration_confirm', registration_id=registration.id)
             else:
                 # Free workshop - complete immediately
-                registration.status = 'registered'
+                registration.status = WorkshopRegistration.Status.REGISTERED
                 registration.payment_status = 'not_required'
                 registration.save()
 
@@ -560,7 +569,11 @@ class RegistrationConfirmView(LoginRequiredMixin, DetailView):
 
                 # Update session registration count
                 registration.session.current_registrations = registration.session.registrations.filter(
-                    status__in=['registered', 'promoted', 'attended']
+                    status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+            ]
                 ).count()
                 registration.session.save(update_fields=['current_registrations'])
 
@@ -607,9 +620,9 @@ class WorkshopCheckoutSuccessView(BaseCheckoutSuccessView):
         registration = obj
 
         # Check if this is a promoted registration that needs confirmation
-        if registration.status == 'promoted' and registration.payment_status == 'completed':
+        if registration.status == WorkshopRegistration.Status.PROMOTED and registration.payment_status == 'completed':
             # Update status to registered
-            registration.status = 'registered'
+            registration.status = WorkshopRegistration.Status.REGISTERED
             registration.save(update_fields=['status'])
 
             # Mark the promotion as confirmed
@@ -626,7 +639,11 @@ class WorkshopCheckoutSuccessView(BaseCheckoutSuccessView):
 
             # Update session registration count
             registration.session.current_registrations = registration.session.registrations.filter(
-                status__in=['registered', 'promoted', 'attended']
+                status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+            ]
             ).count()
             registration.session.save(update_fields=['current_registrations'])
 
@@ -770,10 +787,10 @@ class RegistrationCancelView(LoginRequiredMixin, View):
         # Determine which registrations to cancel
         registrations_to_cancel = series_registrations if is_series_cancellation else [registration]
 
-        if registration.status in ['registered', 'waitlisted']:
+        if registration.status in [WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.WAITLISTED]:
             # Cancel all registrations (either single or entire series)
             for reg in registrations_to_cancel:
-                if reg.status == 'registered':
+                if reg.status == WorkshopRegistration.Status.REGISTERED:
                     # Free up a place
                     session = reg.session
                     session.current_registrations = max(0, session.current_registrations - 1)
@@ -782,11 +799,11 @@ class RegistrationCancelView(LoginRequiredMixin, View):
                     # Promote someone from waitlist
                     waitlisted = WorkshopRegistration.objects.filter(
                         session=session,
-                        status='waitlisted'
+                        status=WorkshopRegistration.Status.WAITLISTED
                     ).order_by('registration_date').first()
 
                     if waitlisted:
-                        waitlisted.status = 'registered'
+                        waitlisted.status = WorkshopRegistration.Status.REGISTERED
                         waitlisted.save()
                         session.current_registrations += 1
                         session.save()
@@ -805,7 +822,7 @@ class RegistrationCancelView(LoginRequiredMixin, View):
                         except Exception as e:
                             print(f"Failed to send instructor promotion notification: {e}")
 
-                reg.status = 'cancelled'
+                reg.status = WorkshopRegistration.Status.CANCELLED
                 reg.save()
 
                 # Send cancellation notification to instructor for each session
@@ -1019,7 +1036,7 @@ class StudentDashboardView(LoginRequiredMixin, TemplateView):
         # Upcoming workshops - include registered and promoted (awaiting payment)
         upcoming_registrations = WorkshopRegistration.objects.filter(
             student=user,
-            status__in=['registered', 'promoted'],
+            status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.PROMOTED],
             session__start_datetime__gte=timezone.now()
         ).select_related(
             'session__workshop',
@@ -1034,7 +1051,7 @@ class StudentDashboardView(LoginRequiredMixin, TemplateView):
         # Statistics
         total_registered = WorkshopRegistration.objects.filter(
             student=user, 
-            status__in=['registered', 'attended']
+            status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.ATTENDED]
         ).count()
         
         attended = WorkshopRegistration.objects.filter(
@@ -1088,8 +1105,8 @@ class MyRegistrationsView(UserFilterMixin, LoginRequiredMixin, ListView):
         from django.db.models import Count, Q
         all_registrations = self.get_queryset()
         counts = all_registrations.aggregate(
-            confirmed=Count('id', filter=Q(status='registered')),
-            waitlisted=Count('id', filter=Q(status='waitlisted')),
+            confirmed=Count('id', filter=Q(status=WorkshopRegistration.Status.REGISTERED)),
+            waitlisted=Count('id', filter=Q(status=WorkshopRegistration.Status.WAITLISTED)),
             attended=Count('id', filter=Q(attended=True))
         )
         context['confirmed_count'] = counts['confirmed']
@@ -1262,7 +1279,7 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
             'workshop_interest_summary': workshop_interest_summary,
             'stats': {
                 'total_workshops': len(workshops),
-                'published_workshops': len([w for w in workshops if w.status == 'published']),
+                'published_workshops': len([w for w in workshops if w.status == Workshop.Status.PUBLISHED]),
                 'total_sessions': total_sessions,
                 'total_registrations': total_registrations,
                 'total_interest_requests': sum(getattr(w, 'interest_count', 0) for w in workshops),
@@ -1296,7 +1313,11 @@ class InstructorWorkshopsView(UserFilterMixin, InstructorRequiredMixin, ListView
         ).aggregate(
             total_sessions=Count('sessions'),
             total_registrations=Count('sessions__registrations', filter=Q(
-                sessions__registrations__status__in=['registered', 'attended', 'waitlisted']
+                sessions__registrations__status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.ATTENDED,
+                WorkshopRegistration.Status.WAITLISTED,
+            ]
             ))
         )
 
@@ -1353,7 +1374,7 @@ class DuplicateWorkshopView(LoginRequiredMixin, View):
         original = get_object_or_404(Workshop, slug=slug, instructor=request.user)
 
         # Build new workshop from original's fields
-        new_workshop = Workshop(instructor=request.user, status='draft', is_featured=False)
+        new_workshop = Workshop(instructor=request.user, status=Workshop.Status.DRAFT, is_featured=False)
         for field in self.COPY_FIELDS:
             setattr(new_workshop, field, getattr(original, field))
 
@@ -1378,12 +1399,12 @@ class TogglePublishView(LoginRequiredMixin, View):
     def post(self, request, slug):
         workshop = get_object_or_404(Workshop, slug=slug, instructor=request.user)
 
-        if workshop.status == 'published':
-            workshop.status = 'draft'
+        if workshop.status == Workshop.Status.PUBLISHED:
+            workshop.status = Workshop.Status.DRAFT
             workshop.save(update_fields=['status'])
             messages.success(request, f'"{workshop.title}" has been unpublished.')
         else:
-            workshop.status = 'published'
+            workshop.status = Workshop.Status.PUBLISHED
             if not workshop.published_at:
                 workshop.published_at = timezone.now()
             workshop.save(update_fields=['status', 'published_at'])
@@ -1417,7 +1438,12 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
 
         for session in sessions:
             registrations = session.registrations.filter(
-                status__in=['registered', 'waitlisted', 'attended', 'promoted']
+                status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.WAITLISTED,
+                WorkshopRegistration.Status.ATTENDED,
+                WorkshopRegistration.Status.PROMOTED,
+            ]
             )
             registered_count = registrations.count()
 
@@ -1456,7 +1482,12 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
         # Check if any sessions have paid registrations
         paid_registrations = WorkshopRegistration.objects.filter(
             session__workshop=self.object,
-            status__in=['registered', 'waitlisted', 'attended', 'promoted'],
+            status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.WAITLISTED,
+                WorkshopRegistration.Status.ATTENDED,
+                WorkshopRegistration.Status.PROMOTED,
+            ],
             payment_status='completed'  # PayableModel uses 'completed' not 'paid'
         )
 
@@ -1472,7 +1503,12 @@ class WorkshopDeleteView(UserFilterMixin, LoginRequiredMixin, DeleteView):
         # IMPORTANT: Convert to list() to fetch data before workshop deletion cascades
         all_registrations_query = WorkshopRegistration.objects.filter(
             session__workshop=self.object,
-            status__in=['registered', 'waitlisted', 'attended', 'promoted']
+            status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.WAITLISTED,
+                WorkshopRegistration.Status.ATTENDED,
+                WorkshopRegistration.Status.PROMOTED,
+            ]
         ).select_related('student', 'session', 'child_profile')
 
         total_reg_count = all_registrations_query.count()
@@ -1555,9 +1591,9 @@ class ManageSessionsView(LoginRequiredMixin, TemplateView):
         from django.db.models import Count, Q
         sessions = self.workshop.sessions.annotate(
             total_registrations=Count('registrations'),
-            registered_count=Count('registrations', filter=Q(registrations__status='registered')),
-            waitlisted_count=Count('registrations', filter=Q(registrations__status='waitlisted')),
-            attended_count=Count('registrations', filter=Q(registrations__status='attended')),
+            registered_count=Count('registrations', filter=Q(registrations__status=WorkshopRegistration.Status.REGISTERED)),
+            waitlisted_count=Count('registrations', filter=Q(registrations__status=WorkshopRegistration.Status.WAITLISTED)),
+            attended_count=Count('registrations', filter=Q(registrations__status=WorkshopRegistration.Status.ATTENDED)),
             materials_count=Count('materials', distinct=True),
         ).order_by('start_datetime')
 
@@ -1635,7 +1671,12 @@ class DeleteSessionView(LoginRequiredMixin, View):
 
         # Block deletion if there are any registrations
         reg_count = session.registrations.filter(
-            status__in=['registered', 'waitlisted', 'promoted', 'attended']
+            status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.WAITLISTED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+            ]
         ).count()
         if reg_count > 0:
             messages.error(
@@ -1720,7 +1761,11 @@ class CancelSessionView(LoginRequiredMixin, View):
             return redirect_response
 
         active_registrations = session.registrations.filter(
-            status__in=['registered', 'waitlisted', 'promoted']
+            status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.WAITLISTED,
+                WorkshopRegistration.Status.PROMOTED,
+            ]
         ).select_related('student', 'child_profile')
 
         paid_registrations = active_registrations.filter(payment_status='completed')
@@ -1749,7 +1794,11 @@ class CancelSessionView(LoginRequiredMixin, View):
         # Fetch active registrations before updating anything
         active_registrations = list(
             session.registrations.filter(
-                status__in=['registered', 'waitlisted', 'promoted']
+                status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.WAITLISTED,
+                WorkshopRegistration.Status.PROMOTED,
+            ]
             ).select_related('student', 'session__workshop', 'child_profile')
         )
 
@@ -1793,7 +1842,7 @@ class CancelSessionView(LoginRequiredMixin, View):
 
         # Cancel all active registrations
         for registration in active_registrations:
-            registration.status = 'cancelled'
+            registration.status = WorkshopRegistration.Status.CANCELLED
             registration.save(update_fields=['status'])
 
         # Mark session as cancelled
@@ -1904,11 +1953,11 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
         from django.db.models import Count, Q
         stats_aggregate = WorkshopRegistration.objects.filter(session=self.session).aggregate(
             total=Count('id'),
-            registered=Count('id', filter=Q(status='registered')),
-            waitlisted=Count('id', filter=Q(status='waitlisted')),
-            attended=Count('id', filter=Q(status='attended')),
-            no_show=Count('id', filter=Q(status='no_show')),
-            cancelled=Count('id', filter=Q(status='cancelled'))
+            registered=Count('id', filter=Q(status=WorkshopRegistration.Status.REGISTERED)),
+            waitlisted=Count('id', filter=Q(status=WorkshopRegistration.Status.WAITLISTED)),
+            attended=Count('id', filter=Q(status=WorkshopRegistration.Status.ATTENDED)),
+            no_show=Count('id', filter=Q(status=WorkshopRegistration.Status.NO_SHOW)),
+            cancelled=Count('id', filter=Q(status=WorkshopRegistration.Status.CANCELLED))
         )
         stats = {
             'total': stats_aggregate['total'] or 0,
@@ -1952,13 +2001,13 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
         )
         
         if action == 'mark_attended':
-            count = registrations.update(status='attended', attended=True)
+            count = registrations.update(status=WorkshopRegistration.Status.ATTENDED, attended=True)
             messages.success(request, f'Marked {count} participants as attended.')
         elif action == 'mark_no_show':
-            count = registrations.update(status='no_show', attended=False)
+            count = registrations.update(status=WorkshopRegistration.Status.NO_SHOW, attended=False)
             messages.success(request, f'Marked {count} participants as no-show.')
         elif action == 'move_to_registered':
-            count = registrations.update(status='registered')
+            count = registrations.update(status=WorkshopRegistration.Status.REGISTERED)
             messages.success(request, f'Moved {count} participants to registered status.')
         elif action == 'cancel_registration':
             # Process cancellations with automatic refunds
@@ -1972,7 +2021,7 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
 
             for registration in registrations:
                 # Cancel the registration
-                registration.status = 'cancelled'
+                registration.status = WorkshopRegistration.Status.CANCELLED
                 registration.save()
                 cancelled_count += 1
 
@@ -2066,7 +2115,7 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
                 )
         elif action == 'promote_from_waitlist':
             # Manual promotion from waitlist - only promote selected waitlisted registrations
-            waitlisted_registrations = registrations.filter(status='waitlisted')
+            waitlisted_registrations = registrations.filter(status=WorkshopRegistration.Status.WAITLISTED)
             
             if not waitlisted_registrations.exists():
                 messages.warning(request, 'No waitlisted participants were selected.')
@@ -2074,7 +2123,11 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
             
             promoted_count = 0
             available_places = self.session.max_participants - self.session.registrations.filter(
-                status__in=['registered', 'promoted', 'attended']
+                status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+            ]
             ).count()
             
             if available_places <= 0:
@@ -2090,7 +2143,7 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
 
                 # Update registration status
                 promotion_deadline = timezone.now() + timedelta(hours=settings.WAITLIST_PROMOTION_HOURS)
-                registration.status = 'promoted'
+                registration.status = WorkshopRegistration.Status.PROMOTED
                 registration.promoted_at = timezone.now()
                 registration.promotion_expires_at = promotion_deadline
                 registration.save()
@@ -2118,7 +2171,12 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
             
             # Update session registration count
             self.session.current_registrations = self.session.registrations.filter(
-                status__in=['registered', 'promoted', 'attended', 'waitlisted']
+                status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+                WorkshopRegistration.Status.WAITLISTED,
+            ]
             ).count()
             self.session.save(update_fields=['current_registrations'])
             
@@ -2139,9 +2197,9 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
                         session__workshop__instructor=request.user
                     )
                     registration.status = status
-                    if status == 'attended':
+                    if status == WorkshopRegistration.Status.ATTENDED:
                         registration.attended = True
-                    elif status == 'no_show':
+                    elif status == WorkshopRegistration.Status.NO_SHOW:
                         registration.attended = False
                     registration.save()
                     
@@ -2171,7 +2229,11 @@ class AttendanceSheetView(LoginRequiredMixin, TemplateView):
         # Get all registered and attended participants (not cancelled/no-show)
         registrations = WorkshopRegistration.objects.filter(
             session=session,
-            status__in=['registered', 'attended', 'promoted']
+            status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.ATTENDED,
+                WorkshopRegistration.Status.PROMOTED,
+            ]
         ).select_related(
             'student',
             'student__profile',
@@ -2197,7 +2259,11 @@ class TakeAttendanceView(LoginRequiredMixin, View):
     def _get_registrations(self, session):
         return WorkshopRegistration.objects.filter(
             session=session,
-            status__in=['registered', 'attended', 'promoted'],
+            status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.ATTENDED,
+                WorkshopRegistration.Status.PROMOTED,
+            ],
         ).select_related(
             'student', 'student__profile', 'child_profile',
         ).order_by('student__last_name', 'student__first_name')
@@ -2205,7 +2271,7 @@ class TakeAttendanceView(LoginRequiredMixin, View):
     def get(self, request, session_id):
         session = self._get_session(session_id, request.user)
         registrations = self._get_registrations(session)
-        attended_count = registrations.filter(status='attended').count()
+        attended_count = registrations.filter(status=WorkshopRegistration.Status.ATTENDED).count()
         return render(request, 'workshops/take_attendance.html', {
             'session': session,
             'workshop': session.workshop,
@@ -2219,21 +2285,24 @@ class TakeAttendanceView(LoginRequiredMixin, View):
         registration_id = request.POST.get('registration_id')
         new_status = request.POST.get('new_status')
 
-        if registration_id and new_status in ('attended', 'registered'):
+        if registration_id and new_status in (
+            WorkshopRegistration.Status.ATTENDED,
+            WorkshopRegistration.Status.REGISTERED,
+        ):
             reg = get_object_or_404(
                 WorkshopRegistration,
                 id=registration_id,
                 session=session,
             )
             reg.status = new_status
-            reg.attended = (new_status == 'attended')
+            reg.attended = (new_status == WorkshopRegistration.Status.ATTENDED)
             reg.save(update_fields=['status', 'attended', 'updated_at'])
 
         # For AJAX calls return a minimal JSON response
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             from django.http import JsonResponse
             registrations = self._get_registrations(session)
-            attended_count = registrations.filter(status='attended').count()
+            attended_count = registrations.filter(status=WorkshopRegistration.Status.ATTENDED).count()
             return JsonResponse({
                 'ok': True,
                 'attended_count': attended_count,
@@ -2250,7 +2319,7 @@ class WorkshopInterestView(CreateView):
     template_name = 'workshops/workshop_detail.html'
     
     def dispatch(self, request, *args, **kwargs):
-        self.workshop = get_object_or_404(Workshop, slug=kwargs['slug'], status='published')
+        self.workshop = get_object_or_404(Workshop, slug=kwargs['slug'], status=Workshop.Status.PUBLISHED)
         return super().dispatch(request, *args, **kwargs)
     
     def get_form_kwargs(self):
@@ -2371,7 +2440,7 @@ class MaterialDownloadView(LoginRequiredMixin, RedirectView):
             registration = WorkshopRegistration.objects.filter(
                 session=material.session,
                 student=self.request.user,
-                status__in=['registered', 'attended']
+                status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.ATTENDED]
             ).first()
             
             if not material.can_be_accessed_by_registration(registration):
@@ -2382,7 +2451,7 @@ class MaterialDownloadView(LoginRequiredMixin, RedirectView):
             has_registration = WorkshopRegistration.objects.filter(
                 session__workshop=material.workshop,
                 student=self.request.user,
-                status__in=['registered', 'attended']
+                status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.ATTENDED]
             ).exists()
             
             if material.requires_registration and not has_registration:
@@ -2532,7 +2601,7 @@ class ParticipantMaterialsView(LoginRequiredMixin, TemplateView):
         registration = WorkshopRegistration.objects.filter(
             session=session,
             student=self.request.user,
-            status__in=['registered', 'attended']
+            status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.ATTENDED]
         ).first()
         
         if not registration:
@@ -2640,7 +2709,7 @@ class AddSeriesToCartView(LoginRequiredMixin, View):
         notes = request.POST.get('notes', '')
 
         try:
-            workshop = Workshop.objects.get(id=workshop_id, is_series=True, status='published')
+            workshop = Workshop.objects.get(id=workshop_id, is_series=True, status=Workshop.Status.PUBLISHED)
         except Workshop.DoesNotExist:
             messages.error(request, 'Workshop series not found or not available.')
             return redirect('workshops:list')
@@ -2856,7 +2925,7 @@ class CheckoutSuccessView(LoginRequiredMixin, TemplateView):
                     expectations=cart_item.expectations or '',
                     special_requirements=cart_item.special_requirements or '',
                     child_profile=cart_item.child_profile,
-                    status='registered',
+                    status=WorkshopRegistration.Status.REGISTERED,
                     payment_status='completed',
                     payment_amount=discounted_price,
                     stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
@@ -2868,7 +2937,11 @@ class CheckoutSuccessView(LoginRequiredMixin, TemplateView):
                 # Update session registration count
                 session_obj = cart_item.session
                 session_obj.current_registrations = session_obj.registrations.filter(
-                    status__in=['registered', 'promoted', 'attended']
+                    status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+            ]
                 ).count()
                 session_obj.save(update_fields=['current_registrations'])
 
@@ -3028,7 +3101,7 @@ class ProcessCartPaymentView(LoginRequiredMixin, View):
                     student=request.user,
                     email=request.user.email,
                     child_profile=item.child_profile,
-                    status='registered',
+                    status=WorkshopRegistration.Status.REGISTERED,
                     payment_status='not_required' if not applied_voucher else 'completed',
                     payment_amount=0,
                     series_registration_id=series_registration_id
@@ -3164,7 +3237,12 @@ class EmailParticipantsView(LoginRequiredMixin, TemplateView):
         # Get all registrations for this session
         registrations = WorkshopRegistration.objects.filter(
             session=session,
-            status__in=['registered', 'waitlisted', 'promoted', 'attended']
+            status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.WAITLISTED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+            ]
         ).select_related('student', 'student__profile').order_by('registration_date')
 
         # Filter to only include students who haven't opted out
@@ -3211,7 +3289,12 @@ class EmailParticipantsView(LoginRequiredMixin, TemplateView):
         # Get registrations to email
         registrations = WorkshopRegistration.objects.filter(
             session=session,
-            status__in=['registered', 'waitlisted', 'promoted', 'attended']
+            status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.WAITLISTED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+            ]
         ).select_related('student', 'student__profile')
 
         # Filter based on opt-in status
@@ -3536,7 +3619,12 @@ class InstructorParticipantsView(LoginRequiredMixin, ListView):
         # Base queryset: all registrations for instructor's workshops with active statuses
         base_qs = WorkshopRegistration.objects.filter(
             session__workshop__instructor=self.request.user,
-            status__in=['registered', 'waitlisted', 'promoted', 'attended']
+            status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.WAITLISTED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+            ]
         )
 
         # Subquery to check if student has any voucher redemptions for this instructor's workshops
@@ -3622,7 +3710,12 @@ class InstructorParticipantsView(LoginRequiredMixin, ListView):
         # Summary statistics (before filters)
         all_registrations = WorkshopRegistration.objects.filter(
             session__workshop__instructor=self.request.user,
-            status__in=['registered', 'waitlisted', 'promoted', 'attended']
+            status__in=[
+                WorkshopRegistration.Status.REGISTERED,
+                WorkshopRegistration.Status.WAITLISTED,
+                WorkshopRegistration.Status.PROMOTED,
+                WorkshopRegistration.Status.ATTENDED,
+            ]
         )
 
         stats = all_registrations.aggregate(

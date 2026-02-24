@@ -4,9 +4,6 @@ from . import views
 app_name = 'private_teaching'
 
 urlpatterns = [
-    # API endpoints (must come before other paths to avoid conflicts)
-    path('api/', include('apps.private_teaching.api.urls')),
-
     # Web views
     path('', views.PrivateTeachingHomeView.as_view(), name='home'),
     path('terms-and-conditions/', views.PrivateLessonTermsView.as_view(), name='terms'),
@@ -27,7 +24,6 @@ urlpatterns = [
     # Teacher Views
     path('teacher/dashboard/', views.TeacherDashboardView.as_view(), name='teacher_dashboard'),
     path('teacher/settings/', views.TeacherSettingsView.as_view(), name='teacher_settings'),
-    path('teacher/availability/', views.TeacherAvailabilityEditorView.as_view(), name='teacher_availability'),
     path('teacher/settings/zoom-link/', views.UpdateZoomLinkView.as_view(), name='update_zoom_link'),
     path('teacher/subjects/create/', views.SubjectCreateView.as_view(), name='subject_create'),
     path('teacher/subjects/<int:subject_id>/update/', views.SubjectUpdateView.as_view(), name='subject_update'),
@@ -82,65 +78,13 @@ urlpatterns = [
     path('teacher/applications/<uuid:application_id>/', views.TeacherApplicationDetailView.as_view(), name='teacher_application_detail'),
     path('teacher/capacity/update/', views.UpdateTeacherCapacityView.as_view(), name='update_teacher_capacity'),
 
-    # Exam Registration Views (Teacher)
-    path('exams/', views.ExamRegistrationListView.as_view(), name='exam_list'),
-    path('exams/create/', views.ExamRegistrationCreateView.as_view(), name='exam_create'),
-    path('exams/<uuid:pk>/', views.ExamRegistrationDetailView.as_view(), name='exam_detail'),
-    path('exams/<uuid:pk>/edit/', views.ExamRegistrationUpdateView.as_view(), name='exam_edit'),
-    path('exams/<uuid:pk>/delete/', views.ExamRegistrationDeleteView.as_view(), name='exam_delete'),
-    path('exams/<uuid:pk>/results/', views.ExamResultsUpdateView.as_view(), name='exam_results'),
-
-    # Exam Views (Student)
-    path('my-exams/', views.StudentExamListView.as_view(), name='student_exams'),
-
-    # Exam Payment Views
-    path('exams/<uuid:pk>/pay/', views.ExamPaymentView.as_view(), name='exam_payment'),
-    path('exams/<uuid:pk>/payment/success/', views.ExamPaymentSuccessView.as_view(), name='exam_payment_success'),
-    path('exams/<uuid:pk>/payment/cancel/', views.ExamPaymentCancelView.as_view(), name='exam_payment_cancel'),
-
     # Lesson Cancellation Views
     path('lesson/<uuid:lesson_id>/cancel/', views.RequestLessonCancellationView.as_view(), name='request_cancellation'),
+    path('lesson/<uuid:lesson_id>/teacher-cancel/', views.TeacherInitiateCancellationView.as_view(), name='teacher_initiate_cancellation'),
     path('cancellation-request/<int:request_id>/', views.CancellationRequestDetailView.as_view(), name='cancellation_request_detail'),
+    path('cancellation-request/<int:request_id>/student-respond/', views.StudentRespondToTeacherRescheduleView.as_view(), name='student_respond_to_cancellation'),
     path('teacher/cancellation-requests/', views.TeacherCancellationRequestsView.as_view(), name='teacher_cancellation_requests'),
     path('teacher/cancellation-requests/<int:request_id>/respond/', views.TeacherRespondToCancellationView.as_view(), name='teacher_respond_cancellation'),
 
-    # Practice Diary Views
-    path('practice/log/', views.LogPracticeView.as_view(), name='log_practice'),
-    path('practice/', views.PracticeLogView.as_view(), name='practice_log'),
-    path('practice/print/', views.PracticeLogPrintView.as_view(), name='practice_log_print'),
-    path('practice/<uuid:pk>/edit/', views.EditPracticeView.as_view(), name='edit_practice'),
-    path('practice/<uuid:pk>/delete/', views.DeletePracticeView.as_view(), name='delete_practice'),
-    path('teacher/students/<int:student_id>/practice/', views.TeacherStudentPracticeView.as_view(), name='teacher_student_practice'),
-    path('teacher/practice/<uuid:entry_id>/comment/', views.AddPracticeCommentView.as_view(), name='add_practice_comment'),
-
-    # ========================================================================
-    # QUIZ SYSTEM URLs
-    # ========================================================================
-
-    # Teacher: Quiz Library & Management
-    path('quizzes/', views.QuizLibraryView.as_view(), name='quiz_library'),
-    path('quizzes/create/', views.QuizCreateView.as_view(), name='quiz_create'),
-    path('quizzes/<uuid:pk>/', views.QuizDetailView.as_view(), name='quiz_detail'),
-    path('quizzes/<uuid:pk>/edit/', views.QuizEditView.as_view(), name='quiz_edit'),
-    path('quizzes/<uuid:pk>/delete/', views.QuizDeleteView.as_view(), name='quiz_delete'),
-    path('quizzes/<uuid:pk>/duplicate/', views.QuizDuplicateView.as_view(), name='quiz_duplicate'),
-
-    # Teacher: Question Management
-    path('quizzes/<uuid:quiz_id>/questions/create/', views.QuestionCreateView.as_view(), name='question_create'),
-    path('questions/<uuid:pk>/edit/', views.QuestionEditView.as_view(), name='question_edit'),
-    path('questions/<uuid:pk>/delete/', views.QuestionDeleteView.as_view(), name='question_delete'),
-
-    # Teacher: Quiz Assignments
-    path('quizzes/<uuid:quiz_id>/assign/', views.QuizAssignView.as_view(), name='quiz_assign'),
-    path('quiz-assignments/', views.QuizAssignmentListView.as_view(), name='quiz_assignment_list'),
-    path('quiz-assignments/<uuid:pk>/', views.QuizAssignmentDetailView.as_view(), name='quiz_assignment_detail'),
-    path('quiz-assignments/<uuid:pk>/delete/', views.QuizAssignmentDeleteView.as_view(), name='quiz_assignment_delete'),
-    path('teacher/quiz-attempts/<uuid:pk>/results/', views.TeacherQuizAttemptResultsView.as_view(), name='teacher_quiz_attempt_results'),
-
-    # Student: Quiz Taking
-    path('my-quizzes/', views.StudentQuizListView.as_view(), name='student_quiz_list'),
-    path('quiz-assignments/<uuid:assignment_id>/take/', views.QuizTakeView.as_view(), name='quiz_take'),
-    path('quiz-assignments/<uuid:assignment_id>/submit/', views.QuizSubmitView.as_view(), name='quiz_submit'),
-    path('quiz-assignments/<uuid:assignment_id>/autosave/', views.QuizAutoSaveView.as_view(), name='quiz_autosave'),
-    path('quiz-attempts/<uuid:pk>/results/', views.QuizAttemptResultsView.as_view(), name='quiz_attempt_results'),
+    # Quiz URLs moved to apps.quizzes.urls
 ]

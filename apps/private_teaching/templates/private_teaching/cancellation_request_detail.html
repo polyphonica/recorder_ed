@@ -19,14 +19,30 @@
         <div>
             <h3 class="font-bold">Status: {{ cancellation_request.get_status_display }}</h3>
             <div class="text-sm">
-                {% if cancellation_request.status == 'pending' %}
-                    Waiting for teacher to review this request
-                {% elif cancellation_request.status == 'approved' %}
-                    This request has been approved by the teacher
-                {% elif cancellation_request.status == 'rejected' %}
-                    This request has been rejected by the teacher
-                {% elif cancellation_request.status == 'completed' %}
-                    This request has been completed
+                {% if is_teacher_initiated %}
+                    {% if cancellation_request.status == 'pending' %}
+                        Your teacher has proposed a new time — awaiting your response
+                    {% elif cancellation_request.status == 'rejected' %}
+                        You declined the proposed new time. Your original lesson is unchanged.
+                    {% elif cancellation_request.status == 'completed' %}
+                        {% if cancellation_request.request_type == 'reschedule' %}
+                            Reschedule accepted — lesson has been updated to the new time
+                        {% else %}
+                            Lesson cancelled by teacher
+                        {% endif %}
+                    {% else %}
+                        This request has been completed
+                    {% endif %}
+                {% else %}
+                    {% if cancellation_request.status == 'pending' %}
+                        Waiting for teacher to review this request
+                    {% elif cancellation_request.status == 'approved' %}
+                        This request has been approved by the teacher
+                    {% elif cancellation_request.status == 'rejected' %}
+                        This request has been rejected by the teacher
+                    {% elif cancellation_request.status == 'completed' %}
+                        This request has been completed
+                    {% endif %}
                 {% endif %}
             </div>
         </div>
@@ -67,7 +83,7 @@
                         <div>
                             <p class="text-sm text-base-content/70">Payment Status</p>
                             <p>
-                                {% if lesson.payment_status == 'Paid' %}
+                                {% if lesson.payment_status == 'completed' %}
                                     <span class="badge badge-success">Paid</span>
                                 {% else %}
                                     <span class="badge badge-warning">Not Paid</span>
@@ -94,7 +110,7 @@
 
                         {% if cancellation_request.student_message %}
                         <div>
-                            <p class="text-sm text-base-content/70">Student's Note</p>
+                            <p class="text-sm text-base-content/70">{% if is_teacher_initiated %}Teacher's Reason{% else %}Student's Note{% endif %}</p>
                             <div class="bg-base-200 p-4 rounded-lg">
                                 <p>{{ cancellation_request.student_message }}</p>
                             </div>
@@ -187,8 +203,8 @@
             </div>
             {% endif %}
 
-            <!-- Teacher Response Form (Only for teachers on pending requests) -->
-            {% if is_teacher and cancellation_request.status == 'pending' %}
+            <!-- Teacher Response Form (Only for teachers on pending student-initiated requests) -->
+            {% if is_teacher and cancellation_request.status == 'pending' and not is_teacher_initiated %}
             <div class="card bg-base-100 shadow-xl">
                 <div class="card-body">
                     <h2 class="card-title">Respond to Request</h2>
@@ -224,6 +240,41 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Student Accept/Decline (Only for teacher-initiated pending reschedule proposals) -->
+            {% if is_pending_reschedule and is_student_view %}
+            <div class="card border border-warning shadow-xl mb-6">
+                <div class="card-body">
+                    <h3 class="card-title text-xl">
+                        <i class="fas fa-calendar-edit text-warning mr-2"></i>
+                        Your teacher has proposed a new time
+                    </h3>
+                    <p class="text-base-content/70 mb-4">{{ cancellation_request.student_message }}</p>
+                    <div class="flex flex-wrap gap-6 items-start mb-6">
+                        <div>
+                            <div class="text-sm text-base-content/70">Proposed new date</div>
+                            <div class="font-bold text-lg">{{ cancellation_request.proposed_new_date|date:"l, F j, Y" }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-base-content/70">Proposed new time</div>
+                            <div class="font-bold text-lg">{{ cancellation_request.proposed_new_time|time:"g:i A" }}</div>
+                        </div>
+                    </div>
+                    <form method="post" action="{% url 'private_teaching:student_respond_to_cancellation' cancellation_request.id %}">
+                        {% csrf_token %}
+                        <div class="flex flex-wrap gap-3">
+                            <button name="action" value="accept" class="btn btn-success">
+                                <i class="fas fa-check mr-2"></i>Accept New Time
+                            </button>
+                            <button name="action" value="decline" class="btn btn-error btn-outline">
+                                <i class="fas fa-times mr-2"></i>Decline — Keep Original Time
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
         </div>
 
         <!-- Sidebar -->

@@ -3,7 +3,7 @@ Shopping cart utilities for workshop sessions
 """
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
-from apps.private_teaching.models import Cart
+from apps.core.models import Cart
 from apps.core.cart import BaseCartManager
 from .models import WorkshopCartItem, WorkshopSession
 

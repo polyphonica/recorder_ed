@@ -16,7 +16,7 @@
             <h1 class="text-3xl font-bold text-gray-900 mb-2">Write a Review</h1>
             <div class="flex items-center gap-4">
                 {% if product.featured_image %}
-                <img src="{{ product.featured_image.url }}" alt="{{ product.title }}" class="w-20 h-20 object-cover rounded">
+                <img src="{{ product.featured_image.url }}" alt="" class="w-20 h-20 object-cover rounded" onerror="this.style.display='none'">
                 {% endif %}
                 <div>
                     <h2 class="text-xl font-semibold text-gray-900">{{ product.title }}</h2>

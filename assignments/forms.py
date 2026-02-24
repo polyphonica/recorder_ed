@@ -1,7 +1,7 @@
 from django import forms
 from django_ckeditor_5.widgets import CKEditor5Widget
 from .models import Assignment, AssignmentSubmission, Tag
-from apps.private_teaching.models import PrivateLessonAssignment
+from lessons.models import LessonAssignment
 from django.contrib.auth.models import User
 
 
@@ -121,7 +121,7 @@ class AssignToStudentForm(forms.ModelForm):
     """Form for assigning an assignment to a student"""
 
     class Meta:
-        model = PrivateLessonAssignment
+        model = LessonAssignment
         fields = ['student', 'lesson', 'due_date']
         widgets = {
             'student': forms.Select(attrs={
@@ -157,7 +157,7 @@ class AssignToStudentForm(forms.ModelForm):
             # Get all accepted lessons for this teacher with child profile info
             lessons = Lesson.objects.filter(
                 teacher=teacher,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).select_related('student', 'lesson_request', 'lesson_request__child_profile').distinct()
 
@@ -172,7 +172,7 @@ class AssignToStudentForm(forms.ModelForm):
                     has_completed_lesson = Lesson.objects.filter(
                         teacher=teacher,
                         student=lesson.student,
-                        approved_status='Accepted',
+                        approved_status=Lesson.ApprovalStatus.ACCEPTED,
                         lesson_date__lt=date.today()
                     ).exists()
 
@@ -213,7 +213,7 @@ class AssignToStudentForm(forms.ModelForm):
             # Filter lessons to only this teacher's accepted lessons
             self.fields['lesson'].queryset = Lesson.objects.filter(
                 teacher=teacher,
-                approved_status='Accepted',
+                approved_status=Lesson.ApprovalStatus.ACCEPTED,
                 is_deleted=False
             ).select_related('lesson_request', 'lesson_request__child_profile', 'student').order_by('-lesson_date')
 

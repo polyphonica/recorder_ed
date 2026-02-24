@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assign Quiz - Recorder-ed{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold mb-2">Assign Quiz</h1>
+        {% if quiz %}
+            <p class="text-base-content/70">Assign "{{ quiz.title }}" to a student</p>
+        {% else %}
+            <p class="text-base-content/70">Assign a quiz to your students</p>
+        {% endif %}
+    </div>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Form-level Errors -->
+        {% if form.non_field_errors %}
+            <div class="alert alert-error">
+                <div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <div>
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Assignment Details -->
+        <div class="card card-section shadow-lg">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Assignment Details</h2>
+
+                {% if not quiz %}
+                    <!-- Quiz Selection (if not pre-selected) -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Quiz <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.quiz }}
+                        {% if form.quiz.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ form.quiz.errors.0 }}</span></label>
+                        {% endif %}
+                        <label class="label"><span class="label-text-alt">{{ form.quiz.help_text }}</span></label>
+                    </div>
+                {% endif %}
+
+                <!-- Student Selection (Adult or Child) -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Student <span class="text-error">*</span></span>
+                    </label>
+                    {{ form.student_selection }}
+                    {% if form.student_selection.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.student_selection.errors.0 }}</span></label>
+                    {% endif %}
+                    <label class="label"><span class="label-text-alt">{{ form.student_selection.help_text }}</span></label>
+                </div>
+
+                <!-- Lesson Link (optional) -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Link to Lesson (Optional)</span>
+                    </label>
+                    {{ form.lesson }}
+                    {% if form.lesson.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.lesson.errors.0 }}</span></label>
+                    {% endif %}
+                    <label class="label"><span class="label-text-alt">{{ form.lesson.help_text }}</span></label>
+                </div>
+
+                <!-- Due Date -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Due Date (Optional)</span>
+                    </label>
+                    {{ form.due_date }}
+                    {% if form.due_date.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.due_date.errors.0 }}</span></label>
+                    {% endif %}
+                    <label class="label"><span class="label-text-alt">{{ form.due_date.help_text }}</span></label>
+                </div>
+
+                <!-- Notes -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Notes for Student (Optional)</span>
+                    </label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.notes.errors.0 }}</span></label>
+                    {% endif %}
+                    <label class="label"><span class="label-text-alt">{{ form.notes.help_text }}</span></label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-3 justify-end">
+            <a href="{% if quiz %}{% url 'quizzes:quiz_detail' quiz.pk %}{% else %}{% url 'quizzes:quiz_assignment_list' %}{% endif %}"
+               class="btn btn-ghost">
+                <i class="fas fa-times mr-2"></i>Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-user-plus mr-2"></i>Assign Quiz
+            </button>
+        </div>
+    </form>
+</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const studentSelect = document.getElementById('id_student_selection');
+    const form = document.querySelector('form');
+    const studentsWithoutLessons = [
+        {% for student_key in form.students_without_lessons %}
+            '{{ student_key }}'{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    let warningShown = false;
+
+    form.addEventListener('submit', function(e) {
+        const selectedStudent = studentSelect.value;
+
+        // Check if selected student hasn't had a lesson yet
+        if (selectedStudent && studentsWithoutLessons.includes(selectedStudent) && !warningShown) {
+            e.preventDefault();
+            warningShown = false;  // Reset for next submission
+
+            const studentName = studentSelect.options[studentSelect.selectedIndex].text.replace(' ⚠️ No lessons yet', '');
+
+            // Show confirmation dialog
+            const confirmation = confirm(
+                '⚠️ First Lesson Not Yet Completed\n\n' +
+                studentName + ' has not yet had their first private lesson with you.\n\n' +
+                'Consider whether this material is appropriate before their first meeting.\n\n' +
+                'Do you want to proceed with this assignment?'
+            );
+
+            if (confirmation) {
+                warningShown = true;
+                form.submit();
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

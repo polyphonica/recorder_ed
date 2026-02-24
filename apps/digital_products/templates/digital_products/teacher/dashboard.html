@@ -87,7 +87,7 @@
                             <td>
                                 <div class="flex items-center gap-3">
                                     {% if product.featured_image %}
-                                    <img src="{{ product.featured_image.url }}" alt="{{ product.title }}" class="w-12 h-12 object-cover rounded">
+                                    <img src="{{ product.featured_image.url }}" alt="" class="w-12 h-12 object-cover rounded" onerror="this.style.display='none'">
                                     {% else %}
                                     <div class="w-12 h-12 bg-gradient-to-br from-primary/20 to-secondary/20 rounded flex items-center justify-center">
                                         <i class="fas fa-file-alt text-xl text-primary/60"></i>

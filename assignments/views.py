@@ -6,7 +6,7 @@ from django.http import JsonResponse
 import json
 
 from .models import Assignment, AssignmentSubmission
-from apps.private_teaching.models import PrivateLessonAssignment
+from lessons.models import LessonAssignment
 from .forms import AssignmentForm, AssignToStudentForm, GradeSubmissionForm, SubmissionForm
 from apps.private_teaching.notifications import StudentNotificationService
 
@@ -152,10 +152,11 @@ def assign_to_student(request, pk):
             assignment_link.assignment = assignment
             assignment_link.teacher = request.user
 
-            # Check if assignment is already assigned to this student
-            existing_assignment = PrivateLessonAssignment.objects.filter(
+            # Check if assignment is already assigned to this student (standalone)
+            existing_assignment = LessonAssignment.objects.filter(
                 assignment=assignment,
-                student=assignment_link.student
+                student=assignment_link.student,
+                lesson__isnull=True
             ).first()
 
             if existing_assignment:
@@ -203,9 +204,7 @@ def assignment_delete(request, pk):
 
     # If GET request, show confirmation page
     # Count how many times this assignment has been assigned
-    from lessons.models import LessonAssignment
     times_assigned = LessonAssignment.objects.filter(assignment=assignment).count()
-    times_assigned += PrivateLessonAssignment.objects.filter(assignment=assignment).count()
 
     return render(request, 'assignments/teacher_delete_confirm.html', {
         'assignment': assignment,
@@ -226,36 +225,19 @@ def teacher_preview(request, pk):
 @login_required
 def teacher_submissions(request):
     """Teacher views all submissions from their students"""
-    from lessons.models import LessonAssignment, Lesson
-    from itertools import chain
+    from django.db.models import Q
+    from lessons.models import Lesson
 
-    # Get all lessons where this user is the teacher
-    teacher_lessons = Lesson.objects.filter(
-        subject__teacher=request.user,
-        status='Assigned'
-    )
-
-    # Get all assignment links from these lessons
-    lesson_ids = teacher_lessons.values_list('id', flat=True)
-
-    # Query LessonAssignment (course lessons)
-    lesson_assignment_links = LessonAssignment.objects.filter(
-        lesson_id__in=lesson_ids
+    # Single combined query: lesson-linked (via lesson.subject.teacher) + standalone (teacher field)
+    assignment_links = LessonAssignment.objects.filter(
+        Q(lesson__subject__teacher=request.user, lesson__status=Lesson.Status.ASSIGNED) |
+        Q(teacher=request.user, lesson__isnull=True)
     ).select_related(
         'assignment',
         'lesson',
         'lesson__student',
         'lesson__lesson_request',
-        'lesson__lesson_request__child_profile'
-    ).order_by('-assigned_at')
-
-    # Query PrivateLessonAssignment (standalone assignments assigned via "Assign" button)
-    # Filter by teacher instead of lesson since lesson is optional
-    private_assignment_links = PrivateLessonAssignment.objects.filter(
-        teacher=request.user
-    ).select_related(
-        'assignment',
-        'lesson',
+        'lesson__lesson_request__child_profile',
         'student',
         'child_profile'
     ).order_by('-assigned_at')
@@ -263,26 +245,13 @@ def teacher_submissions(request):
     # Get submissions for these assignments
     submissions_data = []
 
-    # Process LessonAssignment links
-    for link in lesson_assignment_links:
-        try:
-            submission = AssignmentSubmission.objects.get(
-                student=link.lesson.student,
-                assignment=link.assignment
-            )
-            if submission.status in ['submitted', 'graded']:
-                submissions_data.append({
-                    'link': link,
-                    'submission': submission,
-                })
-        except AssignmentSubmission.DoesNotExist:
+    for link in assignment_links:
+        student = link.effective_student
+        if not student:
             continue
-
-    # Process PrivateLessonAssignment links
-    for link in private_assignment_links:
         try:
             submission = AssignmentSubmission.objects.get(
-                student=link.student,
+                student=student,
                 assignment=link.assignment
             )
             if submission.status in ['submitted', 'graded']:
@@ -348,43 +317,23 @@ def grade_submission(request, pk):
 @login_required
 def student_assignment_library(request):
     """Student's library of assigned assignments from their lessons"""
-    from lessons.models import LessonAssignment, Lesson
+    from django.db.models import Q
+    from lessons.models import Lesson
 
-    # Get all course lesson assignments
-    student_lessons = Lesson.objects.filter(
-        student=request.user,
-        status='Assigned'  # Only show assignments from assigned (published) lessons
-    ).select_related('lesson_request', 'lesson_request__child_profile', 'subject', 'subject__teacher')
-
-    lesson_ids = student_lessons.values_list('id', flat=True)
-    course_assignment_links = LessonAssignment.objects.filter(
-        lesson_id__in=lesson_ids
+    # Single combined query: lesson-linked (published lessons for this student) + standalone
+    assignment_links = LessonAssignment.objects.filter(
+        Q(lesson__student=request.user, lesson__status=Lesson.Status.ASSIGNED) |
+        Q(student=request.user, lesson__isnull=True)
     ).select_related(
         'assignment',
         'lesson',
         'lesson__lesson_request',
         'lesson__lesson_request__child_profile',
         'lesson__subject',
-        'lesson__subject__teacher'
+        'lesson__subject__teacher',
+        'student',
+        'teacher'
     ).order_by('-assigned_at')
-
-    # Get all private lesson assignments
-    private_assignment_links = PrivateLessonAssignment.objects.filter(
-        student=request.user
-    ).select_related(
-        'assignment',
-        'lesson',
-        'lesson__lesson_request',
-        'lesson__lesson_request__child_profile',
-        'lesson__subject',
-        'lesson__subject__teacher'
-    ).order_by('-assigned_at')
-
-    # Combine both types of assignment links
-    assignment_links = list(course_assignment_links) + list(private_assignment_links)
-
-    # Sort combined list by assigned_at
-    assignment_links.sort(key=lambda x: x.assigned_at, reverse=True)
 
     # Organize by status
     pending_assignments = []
@@ -392,27 +341,8 @@ def student_assignment_library(request):
     graded_assignments = []
 
     for link in assignment_links:
-        # Check if there's a submission for this assignment
-        try:
-            submission = AssignmentSubmission.objects.get(
-                student=request.user,
-                assignment=link.assignment
-            )
-        except AssignmentSubmission.DoesNotExist:
-            submission = None
-
-        # For PrivateLessonAssignment, submission is a @property (read-only)
-        # For LessonAssignment, we can set it as an attribute
-        # Check if submission is a property to avoid AttributeError
-        try:
-            # Try to check if it's a property
-            is_property = isinstance(getattr(type(link), 'submission', None), property)
-            if not is_property:
-                link.submission = submission
-        except AttributeError:
-            # If checking fails, just set it
-            link.submission = submission
-        # Note: PrivateLessonAssignment already has a submission property that queries the DB
+        # submission property on LessonAssignment handles both lesson-linked and standalone
+        submission = link.submission
 
         if not submission or submission.status == 'draft':
             # Not submitted yet - show in pending
@@ -435,26 +365,19 @@ def student_assignment_library(request):
 @login_required
 def complete_assignment(request, assignment_link_id):
     """Student completes an assignment"""
-    from lessons.models import LessonAssignment
-    from django.core.exceptions import ObjectDoesNotExist
+    from django.core.exceptions import PermissionDenied
 
-    # Try to get PrivateLessonAssignment first
-    try:
-        assignment_link = PrivateLessonAssignment.objects.select_related(
-            'assignment', 'lesson', 'lesson__lesson_request', 'lesson__lesson_request__child_profile', 'lesson__subject', 'lesson__subject__teacher'
-        ).get(
-            pk=assignment_link_id,
-            student=request.user  # Ensure this assignment belongs to this student
-        )
-    except ObjectDoesNotExist:
-        # If not found, try LessonAssignment (course lessons)
-        assignment_link = get_object_or_404(
-            LessonAssignment.objects.select_related(
-                'assignment', 'lesson', 'lesson__lesson_request', 'lesson__lesson_request__child_profile', 'lesson__subject', 'lesson__subject__teacher'
-            ),
-            pk=assignment_link_id,
-            lesson__student=request.user  # Ensure this assignment's lesson belongs to this student
-        )
+    assignment_link = get_object_or_404(
+        LessonAssignment.objects.select_related(
+            'assignment', 'lesson', 'lesson__lesson_request',
+            'lesson__lesson_request__child_profile', 'lesson__subject',
+            'lesson__subject__teacher', 'student'
+        ),
+        pk=assignment_link_id
+    )
+    # Verify ownership
+    if assignment_link.effective_student != request.user:
+        raise PermissionDenied
 
     # Get or create submission
     submission, created = AssignmentSubmission.objects.get_or_create(
@@ -493,11 +416,10 @@ def complete_assignment(request, assignment_link_id):
 @login_required
 def submit_assignment(request, assignment_link_id):
     """Student submits their completed assignment"""
-    assignment_link = get_object_or_404(
-        PrivateLessonAssignment,
-        pk=assignment_link_id,
-        student=request.user
-    )
+    from django.core.exceptions import PermissionDenied
+    assignment_link = get_object_or_404(LessonAssignment, pk=assignment_link_id)
+    if assignment_link.effective_student != request.user:
+        raise PermissionDenied
 
     submission = get_object_or_404(
         AssignmentSubmission,
@@ -524,10 +446,11 @@ def view_graded_assignment(request, pk):
         status='graded'
     )
 
-    # Get the PrivateLessonAssignment for messaging link
-    assignment_link = PrivateLessonAssignment.objects.filter(
-        assignment=submission.assignment,
-        student=request.user
+    # Get the LessonAssignment for messaging link
+    from django.db.models import Q
+    assignment_link = LessonAssignment.objects.filter(
+        Q(lesson__student=request.user) | Q(student=request.user),
+        assignment=submission.assignment
     ).first()
 
     return render(request, 'assignments/view_graded.html', {

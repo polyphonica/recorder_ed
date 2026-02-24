@@ -195,8 +195,8 @@
             </div>
             <div class="text-right">
                 <div class="text-sm opacity-80 mb-2">Payment Status</div>
-                <div class="{% if lesson.payment_status == 'Paid' %}payment-paid{% else %}payment-unpaid{% endif %} text-lg font-bold">
-                    {{ lesson.payment_status }}
+                <div class="{% if lesson.payment_status == 'completed' %}payment-paid{% else %}payment-unpaid{% endif %} text-lg font-bold">
+                    {% if lesson.payment_status == 'completed' %}Paid{% else %}Not Paid{% endif %}
                 </div>
             </div>
         </div>

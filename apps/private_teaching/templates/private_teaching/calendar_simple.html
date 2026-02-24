@@ -385,8 +385,8 @@ function showLessonDetails(event) {
             <div>
                 <div class="text-sm text-gray-500">Payment Status</div>
                 <div>
-                    <span class="badge ${props.paymentStatus === 'Paid' ? 'badge-success' : 'badge-warning'}">
-                        ${escapeHtml(props.paymentStatus) || 'Not Paid'}
+                    <span class="badge ${props.paymentStatus === 'completed' ? 'badge-success' : 'badge-warning'}">
+                        ${props.paymentStatus === 'completed' ? 'Paid' : 'Not Paid'}
                     </span>
                 </div>
             </div>
@@ -420,7 +420,7 @@ function showLessonDetails(event) {
         }
     {% else %}
         // Students can only access lessons that are Assigned (teacher has published content)
-        if (lessonId && approvedStatus === 'Accepted' && paymentStatus === 'Paid' && lessonStatus === 'Assigned') {
+        if (lessonId && approvedStatus === 'Accepted' && paymentStatus === 'completed' && lessonStatus === 'Assigned') {
             goToLessonButton.style.display = 'inline-block';
             goToLessonButton.onclick = () => {
                 window.location.href = `/lessons/${lessonId}/`;
@@ -431,7 +431,7 @@ function showLessonDetails(event) {
             let message = '';
             if (approvedStatus !== 'Accepted') {
                 message = '<div class="alert alert-info mt-4"><span>⏳ This lesson is still awaiting teacher approval.</span></div>';
-            } else if (paymentStatus !== 'Paid') {
+            } else if (paymentStatus !== 'completed') {
                 message = '<div class="alert alert-warning mt-4"><span>💳 This lesson needs to be paid for before you can access it.</span></div>';
             } else if (lessonStatus === 'Draft') {
                 message = '<div class="alert alert-info mt-4"><span>✏️ Your teacher is still preparing the lesson content. You will be notified when it\'s ready.</span></div>';

@@ -105,7 +105,7 @@ class TeacherNotificationService(BaseNotificationService):
             # Build URL for cancellation request detail page
             request_detail_url = TeacherNotificationService.build_absolute_url(
                 'private_teaching:cancellation_request_detail',
-                cancellation_request.id
+                kwargs={'request_id': cancellation_request.id}
             )
 
             context = {
@@ -137,75 +137,43 @@ class TeacherNotificationService(BaseNotificationService):
             return False
 
     @staticmethod
-    def send_practice_logged_notification(practice_entry):
-        """Send notification to teacher when a student logs a practice session"""
+    def send_student_reschedule_response_notification(cancellation_request, lesson, accepted):
+        """Send notification to teacher when student accepts or declines a reschedule proposal"""
         try:
-            teacher = practice_entry.teacher
+            teacher = cancellation_request.teacher
             is_valid, email = TeacherNotificationService.validate_email(teacher, 'Teacher')
             if not is_valid:
                 return False
 
-            practice_url = TeacherNotificationService.build_absolute_url(
-                'private_teaching:teacher_student_practice',
-                kwargs={'student_id': practice_entry.student.id}
+            request_detail_url = TeacherNotificationService.build_absolute_url(
+                'private_teaching:cancellation_request_detail',
+                kwargs={'request_id': cancellation_request.id}
             )
 
             context = {
-                'practice_entry': practice_entry,
+                'cancellation_request': cancellation_request,
+                'lesson': lesson,
                 'teacher': teacher,
-                'student': practice_entry.student,
-                'student_name': TeacherNotificationService.get_display_name(practice_entry.student),
-                'practice_url': practice_url,
+                'student_name': TeacherNotificationService.get_display_name(cancellation_request.student),
+                'accepted': accepted,
+                'proposed_new_date': cancellation_request.proposed_new_date,
+                'proposed_new_time': cancellation_request.proposed_new_time,
+                'request_detail_url': request_detail_url,
             }
 
+            subject = 'Student accepted your reschedule proposal' if accepted else 'Student declined your reschedule proposal'
+
             return TeacherNotificationService.send_templated_email(
-                template_path='private_teaching/emails/teacher_practice_logged.txt',
+                template_path='private_teaching/emails/teacher_student_reschedule_response.txt',
                 context=context,
                 recipient_list=[email],
-                default_subject='Student Practice Session Logged',
+                default_subject=subject,
                 fail_silently=False,
-                log_description=f"Practice logged notification to teacher {teacher.username}"
+                log_description=f"Reschedule response notification to teacher {teacher.username}"
             )
 
         except Exception as e:
-            logger.error(f"Failed to send practice logged notification to teacher: {str(e)}")
-            return False
-
-    @staticmethod
-    def send_quiz_submission_notification(attempt):
-        """Send notification to teacher when a student submits a quiz"""
-        try:
-            teacher = attempt.assignment.teacher
-            is_valid, email = TeacherNotificationService.validate_email(teacher, 'Teacher')
-            if not is_valid:
-                return False
-
-            results_url = TeacherNotificationService.build_absolute_url(
-                'private_teaching:teacher_quiz_attempt_results',
-                kwargs={'pk': attempt.pk}
-            )
-
-            context = {
-                'attempt': attempt,
-                'assignment': attempt.assignment,
-                'quiz': attempt.assignment.quiz,
-                'teacher': teacher,
-                'student': attempt.assignment.student,
-                'student_name': TeacherNotificationService.get_display_name(attempt.assignment.student),
-                'results_url': results_url,
-            }
-
-            return TeacherNotificationService.send_templated_email(
-                template_path='private_teaching/emails/teacher_quiz_submission.txt',
-                context=context,
-                recipient_list=[email],
-                default_subject='Student Quiz Submitted',
-                fail_silently=False,
-                log_description=f"Quiz submission notification to teacher {teacher.username}"
-            )
-
-        except Exception as e:
-            logger.error(f"Failed to send quiz submission notification to teacher: {str(e)}")
+            logger.error(f"Failed to send reschedule response notification to teacher: {str(e)}")
             return False
 
 
@@ -216,10 +184,14 @@ class StudentNotificationService(BaseNotificationService):
     def send_lesson_request_response_notification(lesson_request, teacher, accepted_lessons, rejected_lessons, message_text=None):
         """Send notification to student when teacher responds to their lesson request"""
         try:
-            # Validate student email
+            # For child lesson requests, student field holds the guardian
+            child_profile = lesson_request.child_profile
+            is_for_child = child_profile is not None
+            recipient_label = 'Guardian' if is_for_child else 'Student'
+
             is_valid, email = StudentNotificationService.validate_email(
                 lesson_request.student,
-                'Student'
+                recipient_label
             )
             if not is_valid:
                 return False
@@ -238,6 +210,8 @@ class StudentNotificationService(BaseNotificationService):
                 'rejected_lessons': rejected_lessons,
                 'message_text': message_text,
                 'my_requests_url': my_requests_url,
+                'is_for_child': is_for_child,
+                'child_profile': child_profile,
             }
 
             return StudentNotificationService.send_templated_email(
@@ -257,10 +231,14 @@ class StudentNotificationService(BaseNotificationService):
     def send_application_status_notification(application, teacher, new_status, teacher_notes=None):
         """Send notification to student when their application status changes"""
         try:
-            # Validate applicant email
+            # For child applications, applicant is the guardian; student_name is the child's name
+            child_profile = application.child_profile
+            is_for_child = child_profile is not None
+            recipient_label = 'Guardian' if is_for_child else 'Applicant'
+
             is_valid, email = StudentNotificationService.validate_email(
                 application.applicant,
-                'Applicant'
+                recipient_label
             )
             if not is_valid:
                 return False
@@ -278,11 +256,14 @@ class StudentNotificationService(BaseNotificationService):
             context = {
                 'application': application,
                 'student_name': application.student_name,
+                'guardian_name': StudentNotificationService.get_display_name(application.applicant),
                 'teacher': teacher,
                 'teacher_name': StudentNotificationService.get_display_name(teacher),
                 'new_status': new_status,
                 'teacher_notes': teacher_notes,
                 'action_url': action_url,
+                'is_for_child': is_for_child,
+                'child_profile': child_profile,
             }
 
             return StudentNotificationService.send_templated_email(
@@ -339,101 +320,19 @@ class StudentNotificationService(BaseNotificationService):
             return False
 
     @staticmethod
-    def send_exam_registration_notification(exam):
-        """Send notification to student/parent when registered for an exam"""
-        try:
-            # Validate recipient email (student or guardian)
-            is_valid, recipient_email = StudentNotificationService.validate_email(
-                exam.student,
-                'Student'
-            )
-            if not is_valid:
-                return False
-
-            recipient_name = StudentNotificationService.get_display_name(exam.student)
-
-            # Build URLs
-            exam_detail_url = StudentNotificationService.build_action_url(
-                'private_teaching:exam_detail',
-                exam,
-                'pk'
-            )
-
-            context = {
-                'exam': exam,
-                'student_name': exam.student_name,
-                'recipient_name': recipient_name,
-                'teacher': exam.teacher,
-                'exam_detail_url': exam_detail_url,
-                'requires_payment': exam.requires_payment and not exam.is_paid,
-            }
-
-            return StudentNotificationService.send_templated_email(
-                template_path='private_teaching/emails/student_exam_registration.txt',
-                context=context,
-                recipient_list=[recipient_email],
-                default_subject=f'Exam Registration: {exam.display_name}',
-                fail_silently=True,
-                log_description=f"Exam registration notification to {recipient_name}"
-            )
-
-        except Exception as e:
-            logger.error(f"Failed to send exam registration notification: {str(e)}")
-            return False
-
-    @staticmethod
-    def send_exam_results_notification(exam):
-        """Send notification to student/parent when exam results are available"""
-        try:
-            # Validate recipient email (student or guardian)
-            is_valid, recipient_email = StudentNotificationService.validate_email(
-                exam.student,
-                'Student'
-            )
-            if not is_valid:
-                return False
-
-            recipient_name = StudentNotificationService.get_display_name(exam.student)
-
-            # Build URLs
-            exam_detail_url = StudentNotificationService.build_action_url(
-                'private_teaching:exam_detail',
-                exam,
-                'pk'
-            )
-
-            context = {
-                'exam': exam,
-                'student_name': exam.student_name,
-                'recipient_name': recipient_name,
-                'teacher': exam.teacher,
-                'exam_detail_url': exam_detail_url,
-                'has_results': exam.has_results,
-            }
-
-            return StudentNotificationService.send_templated_email(
-                template_path='private_teaching/emails/student_exam_results.txt',
-                context=context,
-                recipient_list=[recipient_email],
-                default_subject=f'Exam Results: {exam.display_name}',
-                fail_silently=True,
-                log_description=f"Exam results notification to {recipient_name}"
-            )
-
-        except Exception as e:
-            logger.error(f"Failed to send exam results notification: {str(e)}")
-            return False
-
-    @staticmethod
     def send_cancellation_approved_notification(cancellation_request, lesson):
         """Send notification to student when teacher approves their cancellation/reschedule request"""
         try:
             from apps.private_teaching.models import LessonCancellationRequest
 
-            # Validate student email
+            # child_profile lives on the lesson request; student field holds the guardian for children
+            child_profile = lesson.lesson_request.child_profile
+            is_for_child = child_profile is not None
+            recipient_label = 'Guardian' if is_for_child else 'Student'
+
             is_valid, email = StudentNotificationService.validate_email(
                 cancellation_request.student,
-                'Student'
+                recipient_label
             )
             if not is_valid:
                 return False
@@ -444,7 +343,7 @@ class StudentNotificationService(BaseNotificationService):
             # Build URL for request detail page
             request_detail_url = StudentNotificationService.build_absolute_url(
                 'private_teaching:cancellation_request_detail',
-                cancellation_request.id
+                kwargs={'request_id': cancellation_request.id}
             )
 
             # Build URL for my lessons page
@@ -464,6 +363,8 @@ class StudentNotificationService(BaseNotificationService):
                 'my_lessons_url': my_lessons_url,
                 'has_teacher_response': bool(cancellation_request.teacher_response),
                 'has_refund': cancellation_request.refund_amount and cancellation_request.refund_amount > 0,
+                'is_for_child': is_for_child,
+                'child_profile': child_profile,
             }
 
             # Different subject for reschedule vs cancellation
@@ -488,10 +389,14 @@ class StudentNotificationService(BaseNotificationService):
         try:
             from apps.private_teaching.models import LessonCancellationRequest
 
-            # Validate student email
+            # child_profile lives on the lesson request; student field holds the guardian for children
+            child_profile = lesson.lesson_request.child_profile
+            is_for_child = child_profile is not None
+            recipient_label = 'Guardian' if is_for_child else 'Student'
+
             is_valid, email = StudentNotificationService.validate_email(
                 cancellation_request.student,
-                'Student'
+                recipient_label
             )
             if not is_valid:
                 return False
@@ -502,7 +407,7 @@ class StudentNotificationService(BaseNotificationService):
             # Build URL for request detail page
             request_detail_url = StudentNotificationService.build_absolute_url(
                 'private_teaching:cancellation_request_detail',
-                cancellation_request.id
+                kwargs={'request_id': cancellation_request.id}
             )
 
             # Build URL for my lessons page
@@ -521,6 +426,8 @@ class StudentNotificationService(BaseNotificationService):
                 'request_detail_url': request_detail_url,
                 'my_lessons_url': my_lessons_url,
                 'has_teacher_response': bool(cancellation_request.teacher_response),
+                'is_for_child': is_for_child,
+                'child_profile': child_profile,
             }
 
             # Different subject for reschedule vs cancellation
@@ -575,40 +482,6 @@ class StudentNotificationService(BaseNotificationService):
             return False
 
     @staticmethod
-    def send_practice_comment_notification(practice_entry):
-        """Send notification to student when teacher comments on a practice entry"""
-        try:
-            is_valid, email = StudentNotificationService.validate_email(practice_entry.student, 'Student')
-            if not is_valid:
-                return False
-
-            practice_log_url = StudentNotificationService.build_absolute_url(
-                'private_teaching:practice_log'
-            )
-
-            context = {
-                'practice_entry': practice_entry,
-                'student': practice_entry.student,
-                'student_name': StudentNotificationService.get_display_name(practice_entry.student),
-                'teacher': practice_entry.teacher,
-                'teacher_name': StudentNotificationService.get_display_name(practice_entry.teacher),
-                'practice_log_url': practice_log_url,
-            }
-
-            return StudentNotificationService.send_templated_email(
-                template_path='private_teaching/emails/student_practice_comment.txt',
-                context=context,
-                recipient_list=[email],
-                default_subject='Feedback on Your Practice Entry',
-                fail_silently=False,
-                log_description=f"Practice comment notification to student {practice_entry.student.username}"
-            )
-
-        except Exception as e:
-            logger.error(f"Failed to send practice comment notification to student: {str(e)}")
-            return False
-
-    @staticmethod
     def send_playalong_assignment_notification(student, teacher, new_pieces, new_collections):
         """Send notification to student when teacher assigns playalong pieces or collections"""
         try:
@@ -648,39 +521,92 @@ class StudentNotificationService(BaseNotificationService):
             return False
 
     @staticmethod
-    def send_quiz_assignment_notification(assignment):
-        """Send notification to student when teacher assigns a quiz"""
+    def send_teacher_initiated_cancellation_notification(cancellation_request, lesson):
+        """Send notification to student when teacher cancels an accepted lesson"""
         try:
-            is_valid, email = StudentNotificationService.validate_email(assignment.student, 'Student')
+            # child_profile lives on the lesson request; student field holds the guardian for children
+            child_profile = lesson.lesson_request.child_profile
+            is_for_child = child_profile is not None
+            recipient_label = 'Guardian' if is_for_child else 'Student'
+
+            is_valid, email = StudentNotificationService.validate_email(
+                cancellation_request.student, recipient_label
+            )
             if not is_valid:
                 return False
 
-            quiz_url = StudentNotificationService.build_absolute_url(
-                'private_teaching:quiz_take',
-                kwargs={'assignment_id': assignment.pk}
+            my_lessons_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:my_lessons'
             )
 
             context = {
-                'assignment': assignment,
-                'quiz': assignment.quiz,
-                'student': assignment.student,
-                'student_name': StudentNotificationService.get_display_name(assignment.student),
-                'teacher': assignment.teacher,
-                'teacher_name': StudentNotificationService.get_display_name(assignment.teacher),
-                'quiz_url': quiz_url,
+                'cancellation_request': cancellation_request,
+                'lesson': lesson,
+                'student': cancellation_request.student,
+                'teacher_name': StudentNotificationService.get_display_name(cancellation_request.teacher),
+                'my_lessons_url': my_lessons_url,
+                'has_refund': lesson.payment_status == 'completed' and bool(lesson.fee),
+                'refund_amount': lesson.fee,
+                'is_for_child': is_for_child,
+                'child_profile': child_profile,
             }
 
             return StudentNotificationService.send_templated_email(
-                template_path='private_teaching/emails/student_quiz_assigned.txt',
+                template_path='private_teaching/emails/student_teacher_cancelled.txt',
                 context=context,
                 recipient_list=[email],
-                default_subject='New Quiz Assigned',
+                default_subject='Your lesson has been cancelled by your teacher',
                 fail_silently=False,
-                log_description=f"Quiz assignment notification to student {assignment.student.username}"
+                log_description=f"Teacher-initiated cancellation notification to student {cancellation_request.student.username}"
             )
 
         except Exception as e:
-            logger.error(f"Failed to send quiz assignment notification to student: {str(e)}")
+            logger.error(f"Failed to send teacher-initiated cancellation notification to student: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_teacher_reschedule_proposal_notification(cancellation_request, lesson):
+        """Send notification to student when teacher proposes a new lesson time"""
+        try:
+            # child_profile lives on the lesson request; student field holds the guardian for children
+            child_profile = lesson.lesson_request.child_profile
+            is_for_child = child_profile is not None
+            recipient_label = 'Guardian' if is_for_child else 'Student'
+
+            is_valid, email = StudentNotificationService.validate_email(
+                cancellation_request.student, recipient_label
+            )
+            if not is_valid:
+                return False
+
+            respond_url = StudentNotificationService.build_absolute_url(
+                'private_teaching:cancellation_request_detail',
+                kwargs={'request_id': cancellation_request.id}
+            )
+
+            context = {
+                'cancellation_request': cancellation_request,
+                'lesson': lesson,
+                'student': cancellation_request.student,
+                'teacher_name': StudentNotificationService.get_display_name(cancellation_request.teacher),
+                'proposed_new_date': cancellation_request.proposed_new_date,
+                'proposed_new_time': cancellation_request.proposed_new_time,
+                'respond_url': respond_url,
+                'is_for_child': is_for_child,
+                'child_profile': child_profile,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_teacher_reschedule_proposal.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject='Your teacher has proposed a new time for your lesson',
+                fail_silently=False,
+                log_description=f"Teacher reschedule proposal notification to student {cancellation_request.student.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send teacher reschedule proposal notification to student: {str(e)}")
             return False
 
 

@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     'django_recaptcha',  # django-recaptcha v4+
     'tailwind',
     'theme',
+    'simple_history',
 
     # Local apps
     'apps.core',
@@ -81,6 +82,10 @@ INSTALLED_APPS = [
     'apps.accounts',
     'apps.payments',
     'apps.private_teaching',
+    'apps.practice',
+    'apps.exams',
+    'apps.scheduling',
+    'apps.quizzes',
     'apps.expenses',
     'apps.courses',
     'apps.digital_products',
@@ -108,6 +113,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'apps.accounts.middleware.ProfileCompletionMiddleware',
+    'simple_history.middleware.HistoryRequestMiddleware',
 ]
 
 ROOT_URLCONF = 'recordered.urls'
@@ -267,6 +273,12 @@ TAILWIND_APP_NAME = 'theme'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Celery — async task queue for email sending
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = None  # No result tracking needed for email tasks
+CELERY_TASK_ALWAYS_EAGER = config('CELERY_TASK_ALWAYS_EAGER', default=False, cast=bool)
+CELERY_TASK_EAGER_PROPAGATES = True  # Surface exceptions in eager/test mode
 
 # Development settings
 INTERNAL_IPS = [

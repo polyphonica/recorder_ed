@@ -1,13 +1,13 @@
 from django.contrib import admin
+from simple_history.admin import SimpleHistoryAdmin
 from django.utils.html import format_html
-from django.db.models import Count, Sum, Max, Subquery, OuterRef, DecimalField
+from django.db.models import Count, Sum, DecimalField
 from django.db.models.functions import Coalesce
+from apps.core.models import Cart
 from .models import (
-    Subject, LessonRequest, LessonRequestMessage, Cart, CartItem, Order, OrderItem,
-    TeacherStudentApplication, ApplicationMessage, ExamBoard, ExamRegistration, ExamPiece,
+    Subject, LessonRequest, LessonRequestMessage, CartItem, Order, OrderItem,
+    TeacherStudentApplication, ApplicationMessage,
     PrivateLessonTermsAndConditions, PrivateLessonTermsAcceptance, LessonCancellationRequest,
-    PrivateLessonQuiz, PrivateLessonQuizQuestion, PrivateLessonQuizAnswer,
-    PrivateLessonQuizAssignment, PrivateLessonQuizAttempt,
     StudentPieceAssignment, StudentCollectionAssignment
 )
 from lessons.models import Lesson
@@ -119,7 +119,7 @@ class OrderItemInline(admin.TabularInline):
 
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(SimpleHistoryAdmin):
     list_display = ['order_number', 'student', 'total_amount', 'payment_status', 'created_at']
     list_filter = ['payment_status', 'created_at']
     search_fields = ['order_number', 'student__first_name', 'student__last_name']
@@ -143,7 +143,7 @@ class ApplicationMessageInline(admin.TabularInline):
 
 
 @admin.register(TeacherStudentApplication)
-class TeacherStudentApplicationAdmin(admin.ModelAdmin):
+class TeacherStudentApplicationAdmin(SimpleHistoryAdmin):
     list_display = ['student_name', 'teacher', 'status', 'created_at', 'status_changed_at']
     list_filter = ['status', 'created_at', 'status_changed_at']
     search_fields = [
@@ -180,79 +180,6 @@ class ApplicationMessageAdmin(admin.ModelAdmin):
     def message_preview(self, obj):
         return obj.message[:50] + '...' if len(obj.message) > 50 else obj.message
     message_preview.short_description = 'Message'
-
-
-@admin.register(ExamBoard)
-class ExamBoardAdmin(admin.ModelAdmin):
-    list_display = ['name', 'is_active']
-    list_filter = ['is_active']
-    search_fields = ['name', 'description']
-
-
-class ExamPieceInline(admin.TabularInline):
-    model = ExamPiece
-    extra = 0
-    fields = ['piece_number', 'title', 'composer', 'syllabus_list', 'playalong_piece', 'teacher_notes']
-    autocomplete_fields = ['playalong_piece']
-
-
-@admin.register(ExamRegistration)
-class ExamRegistrationAdmin(admin.ModelAdmin):
-    list_display = [
-        'student_name', 'teacher', 'exam_board', 'grade_type', 'grade_level',
-        'exam_date', 'status', 'payment_status', 'created_at'
-    ]
-    list_filter = ['status', 'payment_status', 'exam_board', 'grade_type', 'created_at']
-    search_fields = [
-        'student__first_name', 'student__last_name', 'student__email',
-        'teacher__first_name', 'teacher__last_name',
-        'child_profile__first_name', 'child_profile__last_name',
-        'registration_number'
-    ]
-    ordering = ['-exam_date', '-created_at']
-    inlines = [ExamPieceInline]
-    readonly_fields = ['created_at', 'updated_at', 'student_name']
-    list_select_related = ['student', 'teacher', 'child_profile', 'exam_board', 'subject']
-
-    fieldsets = (
-        ('Student & Teacher', {
-            'fields': ('student', 'child_profile', 'student_name', 'teacher', 'subject')
-        }),
-        ('Exam Details', {
-            'fields': ('exam_board', 'grade_type', 'grade_level', 'exam_date',
-                      'submission_deadline', 'registration_number', 'venue')
-        }),
-        ('Technical Requirements', {
-            'fields': ('scales', 'arpeggios', 'sight_reading', 'aural_tests'),
-            'classes': ('collapse',)
-        }),
-        ('Status & Results', {
-            'fields': ('status', 'mark_achieved', 'grade_achieved',
-                      'examiner_comments', 'certificate_received_date')
-        }),
-        ('Payment', {
-            'fields': ('fee_amount', 'payment_status', 'payment_amount',
-                      'stripe_payment_intent_id', 'paid_at'),
-            'classes': ('collapse',)
-        }),
-        ('Notes', {
-            'fields': ('teacher_notes',),
-            'classes': ('collapse',)
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
-
-
-@admin.register(ExamPiece)
-class ExamPieceAdmin(admin.ModelAdmin):
-    list_display = ['exam_registration', 'piece_number', 'title', 'composer', 'syllabus_list']
-    list_filter = ['exam_registration__exam_board', 'exam_registration__grade_type']
-    search_fields = ['title', 'composer', 'exam_registration__student__first_name']
-    ordering = ['exam_registration', 'piece_number']
-
 
 @admin.register(PrivateLessonTermsAndConditions)
 class PrivateLessonTermsAndConditionsAdmin(admin.ModelAdmin):
@@ -307,7 +234,7 @@ class PrivateLessonTermsAcceptanceAdmin(admin.ModelAdmin):
 
 
 @admin.register(LessonCancellationRequest)
-class LessonCancellationRequestAdmin(admin.ModelAdmin):
+class LessonCancellationRequestAdmin(SimpleHistoryAdmin):
     list_display = ['lesson', 'student', 'teacher', 'request_type', 'status', 'is_within_policy', 'hours_before_lesson', 'created_at']
     list_filter = ['status', 'request_type', 'is_within_policy', 'cancellation_reason', 'created_at']
     search_fields = ['student__username', 'teacher__username', 'lesson__subject__subject', 'reason']
@@ -344,200 +271,7 @@ class LessonCancellationRequestAdmin(admin.ModelAdmin):
 # QUIZ ADMIN CLASSES
 # ============================================================================
 
-class PrivateLessonQuizAnswerInline(admin.TabularInline):
-    model = PrivateLessonQuizAnswer
-    extra = 4
-    fields = ['text', 'is_correct', 'order']
-    ordering = ['order']
-
-
-@admin.register(PrivateLessonQuizQuestion)
-class PrivateLessonQuizQuestionAdmin(admin.ModelAdmin):
-    list_display = ['__str__', 'quiz', 'order', 'points']
-    list_filter = ['quiz']
-    search_fields = ['text', 'quiz__title']
-    ordering = ['quiz', 'order']
-    inlines = [PrivateLessonQuizAnswerInline]
-    readonly_fields = ['id']
-
-
-@admin.register(PrivateLessonQuiz)
-class PrivateLessonQuizAdmin(admin.ModelAdmin):
-    list_display = [
-        'title',
-        'created_by',
-        'syllabus',
-        'grade_level',
-        'question_count',
-        'pass_percentage',
-        'is_public',
-        'use_count',
-        'created_at'
-    ]
-    list_filter = ['syllabus', 'is_public', 'created_at', 'grade_level']
-    search_fields = ['title', 'description']
-    filter_horizontal = ['tags']
-    readonly_fields = ['id', 'use_count', 'created_at', 'updated_at', 'total_points']
-    list_select_related = ['created_by']
-    fieldsets = [
-        ('Basic Information', {
-            'fields': ['title', 'description', 'instructions', 'created_by']
-        }),
-        ('Quiz Settings', {
-            'fields': [
-                'pass_percentage',
-                'time_limit_minutes',
-                'randomize_questions',
-                'show_correct_answers',
-                'allow_retakes',
-                'max_attempts'
-            ]
-        }),
-        ('Categorization', {
-            'fields': ['subject', 'syllabus', 'grade_level', 'tags']
-        }),
-        ('Sharing', {
-            'fields': ['is_public']
-        }),
-        ('Metadata', {
-            'fields': ['id', 'use_count', 'total_points', 'created_at', 'updated_at'],
-            'classes': ['collapse']
-        }),
-    ]
-
-    def get_queryset(self, request):
-        """PERFORMANCE FIX: Annotate question count to avoid N+1 queries"""
-        return super().get_queryset(request).annotate(
-            _question_count=Count('questions')
-        )
-
-    def question_count(self, obj):
-        return obj._question_count
-    question_count.short_description = 'Questions'
-    question_count.admin_order_field = '_question_count'
-
-    def save_model(self, request, obj, form, change):
-        if not change:  # Creating new quiz
-            obj.created_by = request.user
-        super().save_model(request, obj, form, change)
-
-
-@admin.register(PrivateLessonQuizAssignment)
-class PrivateLessonQuizAssignmentAdmin(admin.ModelAdmin):
-    list_display = [
-        'quiz',
-        'student_name',
-        'teacher',
-        'status',
-        'assigned_date',
-        'due_date',
-        'attempt_count',
-        'best_score'
-    ]
-    list_filter = ['status', 'assigned_date', 'teacher']
-    search_fields = ['quiz__title', 'student__username', 'student__email']
-    readonly_fields = [
-        'id',
-        'assigned_date',
-        'attempt_count',
-        'best_score',
-        'passed_status'
-    ]
-    list_select_related = ['quiz', 'student', 'child_profile', 'teacher']
-
-    def get_queryset(self, request):
-        """PERFORMANCE FIX: Annotate attempt count and best score to avoid N+1 queries"""
-        # Subquery to get the best (max) score from submitted attempts
-        best_score_subquery = PrivateLessonQuizAttempt.objects.filter(
-            assignment=OuterRef('pk'),
-            submitted_at__isnull=False
-        ).order_by('-score').values('score')[:1]
-
-        # Subquery to check if any attempt passed
-        has_passed_subquery = PrivateLessonQuizAttempt.objects.filter(
-            assignment=OuterRef('pk'),
-            submitted_at__isnull=False,
-            passed=True
-        ).values('passed')[:1]
-
-        return super().get_queryset(request).annotate(
-            _attempt_count=Count('attempts'),
-            _best_score=Subquery(best_score_subquery),
-            _has_passed=Subquery(has_passed_subquery)
-        )
-
-    def student_name(self, obj):
-        # child_profile and student are already prefetched via list_select_related
-        if obj.child_profile:
-            return f"{obj.child_profile.full_name} (via {obj.student.username})"
-        return obj.student.get_full_name() or obj.student.username
-    student_name.short_description = 'Student'
-
-    def attempt_count(self, obj):
-        return obj._attempt_count
-    attempt_count.short_description = 'Attempts'
-    attempt_count.admin_order_field = '_attempt_count'
-
-    def best_score(self, obj):
-        if obj._best_score is None:
-            return '-'
-        color = 'green' if obj._has_passed else 'red'
-        return format_html(
-            '<span style="color: {};">{}%</span>',
-            color,
-            f'{float(obj._best_score):.1f}'
-        )
-    best_score.short_description = 'Best Score'
-    best_score.admin_order_field = '_best_score'
-
-    def passed_status(self, obj):
-        if obj._has_passed:
-            return format_html('<span style="color: green;">✓ Passed</span>')
-        return format_html('<span style="color: red;">✗ Not Passed</span>')
-    passed_status.short_description = 'Status'
-
-
-@admin.register(PrivateLessonQuizAttempt)
-class PrivateLessonQuizAttemptAdmin(admin.ModelAdmin):
-    list_display = [
-        'assignment',
-        'started_at',
-        'submitted_at',
-        'colored_score',
-        'passed_indicator',
-        'time_taken_minutes'
-    ]
-    list_filter = ['passed', 'submitted_at', 'started_at']
-    search_fields = ['assignment__quiz__title', 'assignment__student__username']
-    readonly_fields = [
-        'id',
-        'started_at',
-        'submitted_at',
-        'score',
-        'passed',
-        'time_taken_minutes',
-        'answers_data'
-    ]
-    list_select_related = ['assignment', 'assignment__quiz', 'assignment__student']
-    
-    def colored_score(self, obj):
-        if not obj.submitted_at:
-            return '-'
-        color = 'green' if obj.passed else 'red'
-        return format_html(
-            '<span style="color: {}; font-weight: bold;">{}%</span>',
-            color,
-            f'{float(obj.score):.1f}'
-        )
-    colored_score.short_description = 'Score'
-    
-    def passed_indicator(self, obj):
-        if not obj.submitted_at:
-            return format_html('<span style="color: gray;">In Progress</span>')
-        if obj.passed:
-            return format_html('<span style="color: green;">✓ Passed</span>')
-        return format_html('<span style="color: red;">✗ Failed</span>')
-    passed_indicator.short_description = 'Result'
+# Quiz admin moved to apps.quizzes.admin
 
 
 @admin.register(StudentPieceAssignment)

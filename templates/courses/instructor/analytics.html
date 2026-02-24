@@ -123,6 +123,21 @@
                             </tbody>
                         </table>
                     </div>
+                    {% if is_paginated %}
+                    <div class="flex justify-center mt-6">
+                        <div class="join">
+                            {% if page_obj.has_previous %}
+                                <a href="?page=1" class="join-item btn btn-sm">«</a>
+                                <a href="?page={{ page_obj.previous_page_number }}" class="join-item btn btn-sm">‹</a>
+                            {% endif %}
+                            <span class="join-item btn btn-sm btn-active">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                            {% if page_obj.has_next %}
+                                <a href="?page={{ page_obj.next_page_number }}" class="join-item btn btn-sm">›</a>
+                                <a href="?page={{ page_obj.paginator.num_pages }}" class="join-item btn btn-sm">»</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
                 {% else %}
                     <div class="text-center py-12">
                         <div class="text-base-content/30 text-6xl mb-4">

@@ -3,7 +3,7 @@ Signal handlers to keep Course denormalized counts up to date.
 """
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from .models import Course, Topic, Lesson
+from .models import Course, Topic, Lesson, CourseEnrollment
 
 
 @receiver(post_save, sender=Topic)
@@ -20,3 +20,11 @@ def update_course_on_lesson_change(sender, instance, **kwargs):
     """Update course counts when a lesson is added, modified, or deleted"""
     if instance.topic and instance.topic.course:
         instance.topic.course.update_counts()
+
+
+@receiver(post_save, sender=CourseEnrollment)
+@receiver(post_delete, sender=CourseEnrollment)
+def update_course_on_enrollment_change(sender, instance, **kwargs):
+    """Update course counts when an enrollment is created, modified, or deleted"""
+    if instance.course:
+        instance.course.update_counts()

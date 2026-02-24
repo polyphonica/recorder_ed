@@ -7,6 +7,7 @@ import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView,
@@ -24,9 +25,9 @@ from apps.core.views import (
 from .models import (
     Course, Topic, Lesson, LessonAttachment,
     CourseEnrollment, LessonProgress,
-    Quiz, QuizQuestion, QuizAnswer, QuizAttempt,
     CourseMessage, CourseCancellationRequest
 )
+from apps.quizzes.models import Quiz, QuizQuestion, QuizAttempt, QuizAssignment
 from .mixins import InstructorRequiredMixin, CourseInstructorMixin, EnrollmentRequiredMixin
 from .forms import (
     CourseAdminForm, QuizAnswerFormSet, CourseMessageForm, MessageReplyForm,
@@ -58,12 +59,15 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
             quiz_count=Count('topics__lessons__quiz', distinct=True)
         ).order_by('created_at')
 
+        paginator = Paginator(courses, 12)
+        courses_page = paginator.get_page(self.request.GET.get('page'))
+
         # Calculate stats
         # PERFORMANCE FIX: Consolidate course counts into single aggregate
         course_stats = Course.objects.filter(instructor=self.request.user).aggregate(
             total=Count('id'),
-            published=Count('id', filter=Q(status='published')),
-            draft=Count('id', filter=Q(status='draft'))
+            published=Count('id', filter=Q(status=Course.Status.PUBLISHED)),
+            draft=Count('id', filter=Q(status=Course.Status.DRAFT))
         )
         total_courses = course_stats['total']
         published_courses = course_stats['published']
@@ -83,7 +87,9 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
         ).select_related('enrollment', 'enrollment__course', 'student').order_by('-created_at')[:10]
 
         context.update({
-            'courses': courses,
+            'courses': courses_page,
+            'page_obj': courses_page,
+            'is_paginated': courses_page.has_other_pages(),
             'total_courses': total_courses,
             'published_courses': published_courses,
             'draft_courses': draft_courses,
@@ -173,7 +179,7 @@ class CourseDeleteView(InstructorRequiredMixin, CourseInstructorMixin, DeleteVie
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
         # Soft delete - set status to archived
-        self.object.status = 'archived'
+        self.object.status = Course.Status.ARCHIVED
         self.object.save()
         messages.success(request, f'Course "{self.object.title}" has been archived.')
         return redirect(self.success_url)
@@ -443,10 +449,10 @@ class QuizManageView(CourseOwnershipMixin, CourseContextMixin, InstructorRequire
 
         # Get or create quiz for this lesson
         quiz, created = Quiz.objects.get_or_create(
-            lesson=self.object,
+            course_lesson=self.object,
             defaults={
                 'title': f'Quiz: {self.object.lesson_title}',
-                'status': 'draft'
+                'status': Quiz.Status.DRAFT
             }
         )
 
@@ -466,7 +472,7 @@ class QuizUpdateView(InstructorRequiredMixin, View):
     """
     def post(self, request, quiz_id):
         quiz = get_object_or_404(Quiz, id=quiz_id)
-        lesson = quiz.lesson
+        lesson = quiz.course_lesson
 
         # Verify ownership
         if not lesson.topic.course.is_owned_by(request.user):
@@ -495,7 +501,7 @@ class QuizUpdateView(InstructorRequiredMixin, View):
             except ValueError:
                 return JsonResponse({'success': False, 'error': 'Invalid pass percentage'}, status=400)
 
-        if status in ['draft', 'published']:
+        if status in [Quiz.Status.DRAFT, Quiz.Status.PUBLISHED]:
             quiz.status = status
 
         quiz.save()
@@ -522,9 +528,8 @@ class QuizQuestionCreateView(InstructorRequiredMixin, CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         # Get quiz and verify ownership
-        from .models import Quiz
         self.quiz = get_object_or_404(Quiz, id=kwargs['quiz_id'])
-        lesson = self.quiz.lesson
+        lesson = self.quiz.course_lesson
 
         if not lesson.topic.course.is_owned_by(request.user):
             messages.error(request, 'Permission denied')
@@ -543,9 +548,9 @@ class QuizQuestionCreateView(InstructorRequiredMixin, CreateView):
 
         # Set context vars based on self.quiz
         context['quiz'] = self.quiz
-        context['lesson'] = self.quiz.lesson
-        context['course'] = self.quiz.lesson.topic.course
-        context['topic'] = self.quiz.lesson.topic
+        context['lesson'] = self.quiz.course_lesson
+        context['course'] = self.quiz.course_lesson.topic.course
+        context['topic'] = self.quiz.course_lesson.topic
 
         return context
 
@@ -581,7 +586,7 @@ class QuizQuestionCreateView(InstructorRequiredMixin, CreateView):
             return self.form_invalid(form)
 
     def get_success_url(self):
-        return reverse('courses:manage_quiz', kwargs={'lesson_id': self.quiz.lesson.id})
+        return reverse('courses:manage_quiz', kwargs={'lesson_id': self.quiz.course_lesson.id})
 
 
 class QuizQuestionUpdateView(CourseOwnershipMixin, CourseContextMixin, InstructorRequiredMixin, UpdateView):
@@ -629,7 +634,7 @@ class QuizQuestionUpdateView(CourseOwnershipMixin, CourseContextMixin, Instructo
             return self.form_invalid(form)
 
     def get_success_url(self):
-        return reverse('courses:manage_quiz', kwargs={'lesson_id': self.object.quiz.lesson.id})
+        return reverse('courses:manage_quiz', kwargs={'lesson_id': self.object.quiz.course_lesson.id})
 
 
 class QuizQuestionDeleteView(CourseOwnershipMixin, CourseContextMixin, InstructorRequiredMixin, DeleteView):
@@ -641,7 +646,7 @@ class QuizQuestionDeleteView(CourseOwnershipMixin, CourseContextMixin, Instructo
     pk_url_kwarg = 'question_id'
 
     def get_success_url(self):
-        return reverse('courses:manage_quiz', kwargs={'lesson_id': self.object.quiz.lesson.id})
+        return reverse('courses:manage_quiz', kwargs={'lesson_id': self.object.quiz.course_lesson.id})
 
     def delete(self, request, *args, **kwargs):
         # Add success message before deleting
@@ -678,7 +683,7 @@ class CourseListView(SearchableListViewMixin, ListView):
         thirty_days_ago = timezone.now().date() - timedelta(days=30)
 
         queryset = Course.objects.filter(
-            Q(status='published') |
+            Q(status=Course.Status.PUBLISHED) |
             Q(
                 show_as_coming_soon=True
             ) & (
@@ -718,7 +723,7 @@ class CourseDetailView(DetailView):
         # For non-owners, show published + coming soon courses (with auto-hide logic)
         thirty_days_ago = timezone.now().date() - timedelta(days=30)
         return Course.objects.filter(
-            Q(status='published') |
+            Q(status=Course.Status.PUBLISHED) |
             Q(
                 show_as_coming_soon=True
             ) & (
@@ -751,8 +756,8 @@ class CourseDetailView(DetailView):
         # Calculate course stats dynamically using aggregate (PERFORMANCE FIX)
         from django.db.models import Sum, Count, Q
         stats = self.object.topics.aggregate(
-            total_lessons=Count('lessons', filter=Q(lessons__status='published')),
-            total_duration=Sum('lessons__duration_minutes', filter=Q(lessons__status='published'))
+            total_lessons=Count('lessons', filter=Q(lessons__status=Lesson.Status.PUBLISHED)),
+            total_duration=Sum('lessons__duration_minutes', filter=Q(lessons__status=Lesson.Status.PUBLISHED))
         )
         total_lessons = stats['total_lessons'] or 0
         total_duration = stats['total_duration'] or 0
@@ -778,7 +783,7 @@ class CourseEnrollView(LoginRequiredMixin, View):
     """
     def get(self, request, slug):
         """Show child selection page for guardians"""
-        course = get_object_or_404(Course, slug=slug, status='published')
+        course = get_object_or_404(Course, slug=slug, status=Course.Status.PUBLISHED)
 
         # If not a guardian, redirect to POST (direct enrollment)
         if not request.user.profile.is_guardian:
@@ -800,7 +805,7 @@ class CourseEnrollView(LoginRequiredMixin, View):
 
     def post(self, request, slug):
         """Process enrollment"""
-        course = get_object_or_404(Course, slug=slug, status='published')
+        course = get_object_or_404(Course, slug=slug, status=Course.Status.PUBLISHED)
         child_id = request.POST.get('child_id')
         terms_accepted = request.POST.get('terms_accepted')
 
@@ -997,6 +1002,20 @@ class CourseCheckoutSuccessView(BaseCheckoutSuccessView):
     def get_object_queryset(self):
         return CourseEnrollment.objects.select_related('course', 'student', 'child_profile')
 
+    def perform_post_checkout_actions(self, obj):
+        """Confirm payment status via Stripe session as fallback if webhook hasn't fired yet"""
+        if obj.payment_status == 'pending' and obj.stripe_checkout_session_id:
+            try:
+                from apps.payments.stripe_service import retrieve_session
+                from django.utils import timezone
+                session = retrieve_session(obj.stripe_checkout_session_id)
+                if session and session.payment_status == 'paid':
+                    obj.payment_status = 'completed'
+                    obj.paid_at = timezone.now()
+                    obj.save(update_fields=['payment_status', 'paid_at'])
+            except Exception:
+                pass  # Webhook will handle it
+
     def get_context_extras(self, obj):
         return {
             'enrollment': obj,
@@ -1072,9 +1091,9 @@ class LessonPreviewView(DetailView):
         # 2. Marked as preview
         # 3. In a published course
         return Lesson.objects.filter(
-            status='published',
+            status=Lesson.Status.PUBLISHED,
             is_preview=True,
-            topic__course__status='published',
+            topic__course__status=Course.Status.PUBLISHED,
             topic__course__slug=self.kwargs['slug']
         ).select_related('topic__course')
 
@@ -1107,7 +1126,7 @@ class StudentDashboardView(LoginRequiredMixin, TemplateView):
         for enrollment in enrollments:
             # Get total lessons in course
             total_lessons = enrollment.course.topics.aggregate(
-                total=Count('lessons', filter=Q(lessons__status='published'))
+                total=Count('lessons', filter=Q(lessons__status=Lesson.Status.PUBLISHED))
             )['total'] or 0
 
             # Get completed lessons
@@ -1191,16 +1210,15 @@ class LessonViewView(LoginRequiredMixin, DetailView):
             )
 
         # Check for quiz and quiz completion
-        has_quiz = hasattr(self.object, 'quiz') and self.object.quiz.status == 'published'
+        has_quiz = hasattr(self.object, 'quiz') and self.object.quiz.status == Quiz.Status.PUBLISHED
         quiz_passed = False
         best_attempt = None
 
         if has_quiz and enrollment:
             # Get best passing attempt for this quiz
-            from .models import QuizAttempt
             best_attempt = QuizAttempt.objects.filter(
-                enrollment=enrollment,
-                quiz=self.object.quiz,
+                assignment__course_enrollment=enrollment,
+                assignment__quiz=self.object.quiz,
                 passed=True
             ).order_by('-score').first()
             quiz_passed = best_attempt is not None
@@ -1208,7 +1226,7 @@ class LessonViewView(LoginRequiredMixin, DetailView):
         # Get all lessons in order for navigation
         all_lessons = []
         for t in course.topics.order_by('topic_number'):
-            for lesson in t.lessons.filter(status='published').order_by('lesson_number'):
+            for lesson in t.lessons.filter(status=Lesson.Status.PUBLISHED).order_by('lesson_number'):
                 all_lessons.append(lesson)
 
         # Find current lesson index
@@ -1236,7 +1254,7 @@ class LessonViewView(LoginRequiredMixin, DetailView):
         # Build navigation for all users (both enrolled students and owners)
         for t in course.topics.order_by('topic_number'):
             lessons_data = []
-            published_lessons = t.lessons.filter(status='published').order_by('lesson_number')
+            published_lessons = t.lessons.filter(status=Lesson.Status.PUBLISHED).order_by('lesson_number')
 
             for lesson in published_lessons:
                 lessons_data.append({
@@ -1297,14 +1315,13 @@ class MarkLessonCompleteView(LoginRequiredMixin, View):
             return JsonResponse({'success': False, 'error': 'Not enrolled'}, status=403)
 
         # Check if lesson has a quiz requirement
-        has_quiz = hasattr(lesson, 'quiz') and lesson.quiz.status == 'published'
+        has_quiz = hasattr(lesson, 'quiz') and lesson.quiz.status == Quiz.Status.PUBLISHED
 
         if has_quiz:
             # Check if student has passed the quiz
-            from .models import QuizAttempt
             quiz_passed = QuizAttempt.objects.filter(
-                enrollment=enrollment,
-                quiz=lesson.quiz,
+                assignment__course_enrollment=enrollment,
+                assignment__quiz=lesson.quiz,
                 passed=True
             ).exists()
 
@@ -1343,7 +1360,7 @@ class QuizTakeView(LoginRequiredMixin, DetailView):
         course = self.object.topic.course
 
         # Check if lesson has a quiz
-        if not hasattr(self.object, 'quiz') or self.object.quiz.status != 'published':
+        if not hasattr(self.object, 'quiz') or self.object.quiz.status != Quiz.Status.PUBLISHED:
             messages.error(request, 'This lesson does not have a quiz.')
             return redirect('courses:view_lesson', lesson_id=self.object.id)
 
@@ -1371,10 +1388,9 @@ class QuizTakeView(LoginRequiredMixin, DetailView):
         questions = quiz.get_questions()
 
         # Get previous attempts
-        from .models import QuizAttempt
         previous_attempts = QuizAttempt.objects.filter(
-            enrollment=self.enrollment,
-            quiz=quiz,
+            assignment__course_enrollment=self.enrollment,
+            assignment__quiz=quiz,
             submitted_at__isnull=False
         ).order_by('-submitted_at')
 
@@ -1401,7 +1417,7 @@ class QuizSubmitView(LoginRequiredMixin, View):
         course = lesson.topic.course
 
         # Check if lesson has a quiz
-        if not hasattr(lesson, 'quiz') or lesson.quiz.status != 'published':
+        if not hasattr(lesson, 'quiz') or lesson.quiz.status != Quiz.Status.PUBLISHED:
             return JsonResponse({'success': False, 'error': 'Quiz not found'}, status=404)
 
         quiz = lesson.quiz
@@ -1423,11 +1439,13 @@ class QuizSubmitView(LoginRequiredMixin, View):
         except json.JSONDecodeError:
             return JsonResponse({'success': False, 'error': 'Invalid data'}, status=400)
 
-        # Create quiz attempt
-        from .models import QuizAttempt
-        attempt = QuizAttempt.objects.create(
-            enrollment=enrollment,
+        # Get or create quiz assignment, then create attempt
+        assignment, _ = QuizAssignment.objects.get_or_create(
             quiz=quiz,
+            course_enrollment=enrollment,
+        )
+        attempt = QuizAttempt.objects.create(
+            assignment=assignment,
             answers_data=answers
         )
 
@@ -1468,16 +1486,21 @@ class CourseAnalyticsView(LoginRequiredMixin, TemplateView):
         # Get all courses taught by this instructor
         courses = Course.objects.filter(instructor=self.request.user).annotate(
             enrollment_count=Count('enrollments', filter=Q(enrollments__is_active=True), distinct=True),
-            published_lessons_count=Count('topics__lessons', filter=Q(topics__lessons__status='published'), distinct=True),
+            published_lessons_count=Count('topics__lessons', filter=Q(topics__lessons__status=Lesson.Status.PUBLISHED), distinct=True),
             published_quizzes_count=Count('topics__lessons__quiz', filter=Q(
-                topics__lessons__status='published',
-                topics__lessons__quiz__status='published'
+                topics__lessons__status=Lesson.Status.PUBLISHED,
+                topics__lessons__quiz__status=Quiz.Status.PUBLISHED
             ), distinct=True)
         ).order_by('-created_at')
 
-        # Calculate additional metrics for each course
+        total_courses = courses.count()
+
+        paginator = Paginator(courses, 12)
+        courses_page = paginator.get_page(self.request.GET.get('page'))
+
+        # Calculate additional metrics for each course on the current page only
         courses_data = []
-        for course in courses:
+        for course in courses_page.object_list:
             # Get accurate completed enrollment count
             # (avoiding Django ORM Count annotation issues with multiple filters)
             completed_count = CourseEnrollment.objects.filter(
@@ -1494,7 +1517,7 @@ class CourseAnalyticsView(LoginRequiredMixin, TemplateView):
 
             # Calculate average quiz score for this course
             quiz_attempts = QuizAttempt.objects.filter(
-                quiz__lesson__topic__course=course,
+                assignment__quiz__course_lesson__topic__course=course,
                 submitted_at__isnull=False
             )
             avg_quiz_score = quiz_attempts.aggregate(Avg('score'))['score__avg'] or 0
@@ -1510,6 +1533,8 @@ class CourseAnalyticsView(LoginRequiredMixin, TemplateView):
             })
 
         context['courses_data'] = courses_data
+        context['page_obj'] = courses_page
+        context['is_paginated'] = courses_page.has_other_pages()
 
         # Overall statistics
         total_students = CourseEnrollment.objects.filter(
@@ -1524,7 +1549,7 @@ class CourseAnalyticsView(LoginRequiredMixin, TemplateView):
 
         context['total_students'] = total_students
         context['total_enrollments'] = total_enrollments
-        context['total_courses'] = courses.count()
+        context['total_courses'] = total_courses
 
         return context
 
@@ -1552,10 +1577,10 @@ class CourseStudentListView(LoginRequiredMixin, InstructorRequiredMixin, DetailV
                 distinct=True
             ),
             quizzes_passed=Count(
-                'quiz_attempts__quiz',
+                'quiz_assignments__quiz',
                 filter=Q(
-                    quiz_attempts__passed=True,
-                    quiz_attempts__quiz__lesson__topic__course=course
+                    quiz_assignments__attempts__passed=True,
+                    quiz_assignments__quiz__course_lesson__topic__course=course
                 ),
                 distinct=True
             )
@@ -1564,23 +1589,30 @@ class CourseStudentListView(LoginRequiredMixin, InstructorRequiredMixin, DetailV
         # Calculate total lessons and quizzes for the course
         total_lessons = Lesson.objects.filter(
             topic__course=course,
-            status='published'
+            status=Lesson.Status.PUBLISHED
         ).count()
 
         total_quizzes = Quiz.objects.filter(
-            lesson__topic__course=course,
-            lesson__status='published',
-            status='published'
+            course_lesson__topic__course=course,
+            course_lesson__status=Lesson.Status.PUBLISHED,
+            status=Quiz.Status.PUBLISHED
         ).count()
 
-        # Build student data
+        # Count completed students and total from the full queryset before paginating
+        total_enrolled = enrollments.count()
+        completed_students = enrollments.filter(completed_at__isnull=False).count()
+
+        paginator = Paginator(enrollments, 25)
+        enrollments_page = paginator.get_page(self.request.GET.get('page'))
+
+        # Build student data for the current page only
         students_data = []
-        for enrollment in enrollments:
+        for enrollment in enrollments_page.object_list:
             # Get best quiz scores
             quiz_attempts = QuizAttempt.objects.filter(
-                enrollment=enrollment,
+                assignment__course_enrollment=enrollment,
                 submitted_at__isnull=False
-            ).values('quiz').annotate(
+            ).values('assignment__quiz').annotate(
                 best_score=Max('score')
             )
 
@@ -1601,12 +1633,12 @@ class CourseStudentListView(LoginRequiredMixin, InstructorRequiredMixin, DetailV
                 'completed_at': enrollment.completed_at,
             })
 
-        # Count completed students
-        completed_students = sum(1 for s in students_data if s['completed_at'] is not None)
-
         context['students_data'] = students_data
+        context['page_obj'] = enrollments_page
+        context['is_paginated'] = enrollments_page.has_other_pages()
         context['total_lessons'] = total_lessons
         context['total_quizzes'] = total_quizzes
+        context['total_enrolled'] = total_enrolled
         context['completed_students'] = completed_students
 
         return context
@@ -1653,7 +1685,7 @@ class StudentProgressDetailView(LoginRequiredMixin, InstructorRequiredMixin, Tem
         topics_data = []
         for topic in course.topics.order_by('topic_number'):
             lessons_data = []
-            published_lessons = topic.lessons.filter(status='published').order_by('lesson_number')
+            published_lessons = topic.lessons.filter(status=Lesson.Status.PUBLISHED).order_by('lesson_number')
 
             for lesson in published_lessons:
                 # Get lesson progress from prefetched dict (PERFORMANCE FIX)
@@ -1667,13 +1699,13 @@ class StudentProgressDetailView(LoginRequiredMixin, InstructorRequiredMixin, Tem
 
                 # Get quiz data if exists
                 quiz_data = None
-                if hasattr(lesson, 'quiz') and lesson.quiz.status == 'published':
+                if hasattr(lesson, 'quiz') and lesson.quiz.status == Quiz.Status.PUBLISHED:
                     quiz = lesson.quiz
 
                     # Get all attempts for this quiz
                     attempts = QuizAttempt.objects.filter(
-                        enrollment=enrollment,
-                        quiz=quiz,
+                        assignment__course_enrollment=enrollment,
+                        assignment__quiz=quiz,
                         submitted_at__isnull=False
                     ).order_by('-submitted_at')
 
@@ -1751,7 +1783,7 @@ class StudentCourseProgressView(LoginRequiredMixin, TemplateView):
         topics_data = []
         for topic in course.topics.order_by('topic_number'):
             lessons_data = []
-            published_lessons = topic.lessons.filter(status='published').order_by('lesson_number')
+            published_lessons = topic.lessons.filter(status=Lesson.Status.PUBLISHED).order_by('lesson_number')
 
             for lesson in published_lessons:
                 # Get lesson progress from prefetched dict (PERFORMANCE FIX)
@@ -1765,13 +1797,13 @@ class StudentCourseProgressView(LoginRequiredMixin, TemplateView):
 
                 # Get quiz data if exists
                 quiz_data = None
-                if hasattr(lesson, 'quiz') and lesson.quiz.status == 'published':
+                if hasattr(lesson, 'quiz') and lesson.quiz.status == Quiz.Status.PUBLISHED:
                     quiz = lesson.quiz
 
                     # Get all attempts for this quiz
                     attempts = QuizAttempt.objects.filter(
-                        enrollment=enrollment,
-                        quiz=quiz,
+                        assignment__course_enrollment=enrollment,
+                        assignment__quiz=quiz,
                         submitted_at__isnull=False
                     ).order_by('-submitted_at')
 
@@ -1807,9 +1839,9 @@ class StudentCourseProgressView(LoginRequiredMixin, TemplateView):
 
         # Calculate overall quiz performance
         all_quiz_attempts = QuizAttempt.objects.filter(
-            enrollment=enrollment,
+            assignment__course_enrollment=enrollment,
             submitted_at__isnull=False
-        ).values('quiz').annotate(
+        ).values('assignment__quiz').annotate(
             best_score=Max('score')
         )
 
