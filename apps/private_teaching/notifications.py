@@ -221,10 +221,14 @@ class StudentNotificationService(BaseNotificationService):
     def send_lesson_request_response_notification(lesson_request, teacher, accepted_lessons, rejected_lessons, message_text=None):
         """Send notification to student when teacher responds to their lesson request"""
         try:
-            # Validate student email
+            # For child lesson requests, student field holds the guardian
+            child_profile = lesson_request.child_profile
+            is_for_child = child_profile is not None
+            recipient_label = 'Guardian' if is_for_child else 'Student'
+
             is_valid, email = StudentNotificationService.validate_email(
                 lesson_request.student,
-                'Student'
+                recipient_label
             )
             if not is_valid:
                 return False
@@ -243,6 +247,8 @@ class StudentNotificationService(BaseNotificationService):
                 'rejected_lessons': rejected_lessons,
                 'message_text': message_text,
                 'my_requests_url': my_requests_url,
+                'is_for_child': is_for_child,
+                'child_profile': child_profile,
             }
 
             return StudentNotificationService.send_templated_email(
@@ -262,10 +268,14 @@ class StudentNotificationService(BaseNotificationService):
     def send_application_status_notification(application, teacher, new_status, teacher_notes=None):
         """Send notification to student when their application status changes"""
         try:
-            # Validate applicant email
+            # For child applications, applicant is the guardian; student_name is the child's name
+            child_profile = application.child_profile
+            is_for_child = child_profile is not None
+            recipient_label = 'Guardian' if is_for_child else 'Applicant'
+
             is_valid, email = StudentNotificationService.validate_email(
                 application.applicant,
-                'Applicant'
+                recipient_label
             )
             if not is_valid:
                 return False
@@ -283,11 +293,14 @@ class StudentNotificationService(BaseNotificationService):
             context = {
                 'application': application,
                 'student_name': application.student_name,
+                'guardian_name': StudentNotificationService.get_display_name(application.applicant),
                 'teacher': teacher,
                 'teacher_name': StudentNotificationService.get_display_name(teacher),
                 'new_status': new_status,
                 'teacher_notes': teacher_notes,
                 'action_url': action_url,
+                'is_for_child': is_for_child,
+                'child_profile': child_profile,
             }
 
             return StudentNotificationService.send_templated_email(
@@ -349,10 +362,14 @@ class StudentNotificationService(BaseNotificationService):
         try:
             from apps.private_teaching.models import LessonCancellationRequest
 
-            # Validate student email
+            # child_profile lives on the lesson request; student field holds the guardian for children
+            child_profile = lesson.lesson_request.child_profile
+            is_for_child = child_profile is not None
+            recipient_label = 'Guardian' if is_for_child else 'Student'
+
             is_valid, email = StudentNotificationService.validate_email(
                 cancellation_request.student,
-                'Student'
+                recipient_label
             )
             if not is_valid:
                 return False
@@ -383,6 +400,8 @@ class StudentNotificationService(BaseNotificationService):
                 'my_lessons_url': my_lessons_url,
                 'has_teacher_response': bool(cancellation_request.teacher_response),
                 'has_refund': cancellation_request.refund_amount and cancellation_request.refund_amount > 0,
+                'is_for_child': is_for_child,
+                'child_profile': child_profile,
             }
 
             # Different subject for reschedule vs cancellation
@@ -407,10 +426,14 @@ class StudentNotificationService(BaseNotificationService):
         try:
             from apps.private_teaching.models import LessonCancellationRequest
 
-            # Validate student email
+            # child_profile lives on the lesson request; student field holds the guardian for children
+            child_profile = lesson.lesson_request.child_profile
+            is_for_child = child_profile is not None
+            recipient_label = 'Guardian' if is_for_child else 'Student'
+
             is_valid, email = StudentNotificationService.validate_email(
                 cancellation_request.student,
-                'Student'
+                recipient_label
             )
             if not is_valid:
                 return False
@@ -440,6 +463,8 @@ class StudentNotificationService(BaseNotificationService):
                 'request_detail_url': request_detail_url,
                 'my_lessons_url': my_lessons_url,
                 'has_teacher_response': bool(cancellation_request.teacher_response),
+                'is_for_child': is_for_child,
+                'child_profile': child_profile,
             }
 
             # Different subject for reschedule vs cancellation
@@ -572,8 +597,13 @@ class StudentNotificationService(BaseNotificationService):
     def send_teacher_initiated_cancellation_notification(cancellation_request, lesson):
         """Send notification to student when teacher cancels an accepted lesson"""
         try:
+            # child_profile lives on the lesson request; student field holds the guardian for children
+            child_profile = lesson.lesson_request.child_profile
+            is_for_child = child_profile is not None
+            recipient_label = 'Guardian' if is_for_child else 'Student'
+
             is_valid, email = StudentNotificationService.validate_email(
-                cancellation_request.student, 'Student'
+                cancellation_request.student, recipient_label
             )
             if not is_valid:
                 return False
@@ -590,6 +620,8 @@ class StudentNotificationService(BaseNotificationService):
                 'my_lessons_url': my_lessons_url,
                 'has_refund': lesson.payment_status == 'completed' and bool(lesson.fee),
                 'refund_amount': lesson.fee,
+                'is_for_child': is_for_child,
+                'child_profile': child_profile,
             }
 
             return StudentNotificationService.send_templated_email(
@@ -609,8 +641,13 @@ class StudentNotificationService(BaseNotificationService):
     def send_teacher_reschedule_proposal_notification(cancellation_request, lesson):
         """Send notification to student when teacher proposes a new lesson time"""
         try:
+            # child_profile lives on the lesson request; student field holds the guardian for children
+            child_profile = lesson.lesson_request.child_profile
+            is_for_child = child_profile is not None
+            recipient_label = 'Guardian' if is_for_child else 'Student'
+
             is_valid, email = StudentNotificationService.validate_email(
-                cancellation_request.student, 'Student'
+                cancellation_request.student, recipient_label
             )
             if not is_valid:
                 return False
@@ -628,6 +665,8 @@ class StudentNotificationService(BaseNotificationService):
                 'proposed_new_date': cancellation_request.proposed_new_date,
                 'proposed_new_time': cancellation_request.proposed_new_time,
                 'respond_url': respond_url,
+                'is_for_child': is_for_child,
+                'child_profile': child_profile,
             }
 
             return StudentNotificationService.send_templated_email(

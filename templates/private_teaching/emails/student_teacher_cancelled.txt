@@ -5,7 +5,7 @@ Subject: Your lesson on {{ lesson.lesson_date|date:"d F Y" }} has been cancelled
 
 Hello {{ student.get_full_name|default:student.username }},
 
-We are writing to let you know that {{ teacher_name }} has cancelled your upcoming lesson.
+We are writing to let you know that {{ teacher_name }} has cancelled {% if is_for_child %}{{ child_profile.full_name }}'s{% else %}your{% endif %} upcoming lesson.
 
 LESSON DETAILS:
 Subject: {{ lesson.subject.subject }}

@@ -5,7 +5,7 @@ Subject: {% if is_reschedule %}Reschedule Request Approved{% else %}Cancellation
 
 Hello {{ student.get_full_name|default:student.username }},
 
-{% if is_reschedule %}Great news! {{ teacher_name }} has approved your reschedule request.{% else %}{{ teacher_name }} has approved your cancellation request.{% endif %}
+{% if is_reschedule %}Great news! {{ teacher_name }} has approved {% if is_for_child %}{{ child_profile.full_name }}'s{% else %}your{% endif %} reschedule request.{% else %}{{ teacher_name }} has approved {% if is_for_child %}{{ child_profile.full_name }}'s{% else %}your{% endif %} cancellation request.{% endif %}
 
 LESSON DETAILS:
 Subject: {{ lesson.subject.subject }}
