@@ -26,8 +26,8 @@ from apps.private_teaching.mixins import (
     AcceptedStudentRequiredMixin,
 )
 from apps.private_teaching.models import Subject, TeacherStudentApplication
-from apps.private_teaching.notifications import (
-    TeacherNotificationService, StudentNotificationService,
+from apps.quizzes.notifications import (
+    QuizTeacherNotificationService, QuizStudentNotificationService,
 )
 
 User = get_user_model()
@@ -433,7 +433,7 @@ class QuizAssignView(TeacherProfileCompletedMixin, CreateView):
 
             response = super().form_valid(form)
             messages.success(self.request, f'Quiz assigned to {student_name} successfully!')
-            StudentNotificationService.send_quiz_assignment_notification(self.object)
+            QuizStudentNotificationService.send_quiz_assignment_notification(self.object)
             return response
         except Exception as e:
             messages.error(self.request, f'Error assigning quiz: {str(e)}')
@@ -714,7 +714,7 @@ class QuizSubmitView(AcceptedStudentRequiredMixin, View):
                 assignment.status = 'completed'
                 assignment.save()
 
-            TeacherNotificationService.send_quiz_submission_notification(attempt)
+            QuizTeacherNotificationService.send_quiz_submission_notification(attempt)
 
             return JsonResponse({
                 'success': True,

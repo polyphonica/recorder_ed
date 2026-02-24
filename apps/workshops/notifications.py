@@ -621,6 +621,5 @@ class WorkshopInterestNotificationService(BaseNotificationService):
             kwargs={
                 'workshop_slug': session.workshop.slug,
                 'session_id': session.id
-            },
-            use_https=False
+            }
         )

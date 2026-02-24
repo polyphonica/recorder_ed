@@ -37,7 +37,7 @@ class ExamNotificationService(BaseNotificationService):
                 context=context,
                 recipient_list=[recipient_email],
                 default_subject=f'Exam Registration: {exam.display_name}',
-                fail_silently=True,
+                fail_silently=False,
                 log_description=f"Exam registration notification to {recipient_name}"
             )
 
@@ -74,7 +74,7 @@ class ExamNotificationService(BaseNotificationService):
                 context=context,
                 recipient_list=[recipient_email],
                 default_subject=f'Exam Results: {exam.display_name}',
-                fail_silently=True,
+                fail_silently=False,
                 log_description=f"Exam results notification to {recipient_name}"
             )
 
