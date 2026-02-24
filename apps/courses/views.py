@@ -7,6 +7,7 @@ import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView,
@@ -58,6 +59,9 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
             quiz_count=Count('topics__lessons__quiz', distinct=True)
         ).order_by('created_at')
 
+        paginator = Paginator(courses, 12)
+        courses_page = paginator.get_page(self.request.GET.get('page'))
+
         # Calculate stats
         # PERFORMANCE FIX: Consolidate course counts into single aggregate
         course_stats = Course.objects.filter(instructor=self.request.user).aggregate(
@@ -83,7 +87,9 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
         ).select_related('enrollment', 'enrollment__course', 'student').order_by('-created_at')[:10]
 
         context.update({
-            'courses': courses,
+            'courses': courses_page,
+            'page_obj': courses_page,
+            'is_paginated': courses_page.has_other_pages(),
             'total_courses': total_courses,
             'published_courses': published_courses,
             'draft_courses': draft_courses,
@@ -1487,9 +1493,14 @@ class CourseAnalyticsView(LoginRequiredMixin, TemplateView):
             ), distinct=True)
         ).order_by('-created_at')
 
-        # Calculate additional metrics for each course
+        total_courses = courses.count()
+
+        paginator = Paginator(courses, 12)
+        courses_page = paginator.get_page(self.request.GET.get('page'))
+
+        # Calculate additional metrics for each course on the current page only
         courses_data = []
-        for course in courses:
+        for course in courses_page.object_list:
             # Get accurate completed enrollment count
             # (avoiding Django ORM Count annotation issues with multiple filters)
             completed_count = CourseEnrollment.objects.filter(
@@ -1522,6 +1533,8 @@ class CourseAnalyticsView(LoginRequiredMixin, TemplateView):
             })
 
         context['courses_data'] = courses_data
+        context['page_obj'] = courses_page
+        context['is_paginated'] = courses_page.has_other_pages()
 
         # Overall statistics
         total_students = CourseEnrollment.objects.filter(
@@ -1536,7 +1549,7 @@ class CourseAnalyticsView(LoginRequiredMixin, TemplateView):
 
         context['total_students'] = total_students
         context['total_enrollments'] = total_enrollments
-        context['total_courses'] = courses.count()
+        context['total_courses'] = total_courses
 
         return context
 
@@ -1585,9 +1598,16 @@ class CourseStudentListView(LoginRequiredMixin, InstructorRequiredMixin, DetailV
             status=Quiz.Status.PUBLISHED
         ).count()
 
-        # Build student data
+        # Count completed students and total from the full queryset before paginating
+        total_enrolled = enrollments.count()
+        completed_students = enrollments.filter(completed_at__isnull=False).count()
+
+        paginator = Paginator(enrollments, 25)
+        enrollments_page = paginator.get_page(self.request.GET.get('page'))
+
+        # Build student data for the current page only
         students_data = []
-        for enrollment in enrollments:
+        for enrollment in enrollments_page.object_list:
             # Get best quiz scores
             quiz_attempts = QuizAttempt.objects.filter(
                 assignment__course_enrollment=enrollment,
@@ -1613,12 +1633,12 @@ class CourseStudentListView(LoginRequiredMixin, InstructorRequiredMixin, DetailV
                 'completed_at': enrollment.completed_at,
             })
 
-        # Count completed students
-        completed_students = sum(1 for s in students_data if s['completed_at'] is not None)
-
         context['students_data'] = students_data
+        context['page_obj'] = enrollments_page
+        context['is_paginated'] = enrollments_page.has_other_pages()
         context['total_lessons'] = total_lessons
         context['total_quizzes'] = total_quizzes
+        context['total_enrolled'] = total_enrolled
         context['completed_students'] = completed_students
 
         return context

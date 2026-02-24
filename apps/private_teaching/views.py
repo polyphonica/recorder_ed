@@ -8,9 +8,10 @@ from django.urls import reverse_lazy, reverse
 from django.http import JsonResponse, Http404
 from django.utils import timezone
 from django.db import transaction, models
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.core.mail import send_mail
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.conf import settings
 from django import forms
 
@@ -583,18 +584,18 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
         ).count()
 
         context.update({
-            'pending_applications': pending_applications,
+            'pending_applications': pending_applications[:10],
             'pending_applications_count': pending_applications.count(),
-            'waitlist_applications': waitlist_applications,
+            'waitlist_applications': waitlist_applications[:10],
             'waitlist_applications_count': waitlist_applications.count(),
-            'pending_requests': pending_requests,
+            'pending_requests': pending_requests[:10],
             'pending_count': pending_requests.count(),
             'today_lessons': today_lessons,
             'upcoming_lessons': upcoming_lessons,
-            'paid_unassigned_lessons': paid_unassigned_lessons,
+            'paid_unassigned_lessons': paid_unassigned_lessons[:10],
             'paid_unassigned_count': paid_unassigned_lessons.count(),
             'active_exams_count': active_exams,
-            'pending_cancellations': pending_cancellations,
+            'pending_cancellations': pending_cancellations[:10],
             'pending_cancellations_count': pending_cancellations.count(),
             'my_assignments_count': my_assignments_count,
             'pending_assignment_submissions_count': pending_assignment_submissions_count,
@@ -1134,11 +1135,16 @@ class VoucherListView(TeacherProfileCompletedMixin, TemplateView):
             .order_by('-created_at')
         )
 
-        # Calculate stats
+        # Calculate stats on full queryset before paginating
         active_vouchers = vouchers.filter(status='active')
-        total_redemptions = sum(v.redemption_count for v in vouchers)
+        total_redemptions = vouchers.aggregate(total=Sum('redemption_count'))['total'] or 0
 
-        context['vouchers'] = vouchers
+        paginator = Paginator(vouchers, 20)
+        page = paginator.get_page(self.request.GET.get('page'))
+
+        context['vouchers'] = page
+        context['page_obj'] = page
+        context['is_paginated'] = page.has_other_pages()
         context['active_count'] = active_vouchers.count()
         context['total_redemptions'] = total_redemptions
         context['voucher_form'] = VoucherForm(teacher=self.request.user)
@@ -1179,11 +1185,16 @@ class VoucherDetailView(TeacherProfileCompletedMixin, TemplateView):
             'student', 'private_lesson_order', 'workshop_registration'
         ).order_by('-redeemed_at')
 
-        # Calculate stats
-        total_discount_given = sum(r.discount_amount for r in redemptions)
+        # Calculate stats on full queryset before paginating
+        total_discount_given = redemptions.aggregate(total=Sum('discount_amount'))['total'] or 0
+
+        paginator = Paginator(redemptions, 20)
+        page = paginator.get_page(self.request.GET.get('page'))
 
         context['voucher'] = voucher
-        context['redemptions'] = redemptions
+        context['redemptions'] = page
+        context['page_obj'] = page
+        context['is_paginated'] = page.has_other_pages()
         context['total_discount_given'] = total_discount_given
         context['voucher_form'] = VoucherForm(instance=voucher, teacher=self.request.user)
         return context
