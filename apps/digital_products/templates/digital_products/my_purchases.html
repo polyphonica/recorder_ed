@@ -41,12 +41,19 @@
                             <span>£{{ purchase.payment_amount|floatformat:2 }}</span>
                         </div>
 
-                        <!-- Access Status -->
-                        <div class="mt-3">
+                        <!-- Access Status & Player -->
+                        <div class="mt-3 flex flex-wrap items-center gap-3">
                             <div class="inline-flex items-center gap-2 px-3 py-1 bg-green-50 border border-green-200 rounded-full text-sm text-green-800">
                                 <span>✓</span>
                                 <span>Lifetime Access</span>
                             </div>
+                            {% if purchase.product.has_audio_player %}
+                            <a href="{% url 'audioplayer:digital_product_player' purchase.id %}"
+                               class="inline-flex items-center gap-2 px-4 py-1.5 bg-purple-600 text-white rounded-full text-sm font-semibold hover:bg-purple-700 transition">
+                                <i class="fas fa-play text-xs"></i>
+                                Play Along
+                            </a>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

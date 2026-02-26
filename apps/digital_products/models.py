@@ -211,6 +211,11 @@ class DigitalProduct(models.Model):
         """Get preview/sample files (publicly viewable)"""
         return self.files.filter(file_role='preview')
 
+    @property
+    def has_audio_player(self):
+        """True if this product has linked play-along pieces or collections."""
+        return self.product_pieces.exists() or self.product_collections.exists()
+
     def update_rating_stats(self):
         """Update average rating and review count from published reviews"""
         from django.db.models import Avg
@@ -561,3 +566,53 @@ class DigitalProductCartItem(models.Model):
     def total_price(self):
         """Total price (quantity is always 1 for digital products)"""
         return self.price
+
+
+class DigitalProductPiece(models.Model):
+    """
+    Links a DigitalProduct to an audioplayer Piece.
+    Follows the same pattern as LessonPiece / PrivateLessonPiece.
+    """
+    product = models.ForeignKey(
+        DigitalProduct,
+        on_delete=models.CASCADE,
+        related_name='product_pieces'
+    )
+    piece = models.ForeignKey(
+        'audioplayer.Piece',
+        on_delete=models.CASCADE,
+        related_name='digital_products'
+    )
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = [['product', 'piece']]
+        ordering = ['order']
+
+    def __str__(self):
+        return f"{self.product.title} → {self.piece.title}"
+
+
+class DigitalProductCollection(models.Model):
+    """
+    Links a DigitalProduct to an audioplayer PieceCollection.
+    Follows the same pattern as LessonCollection / PrivateLessonCollection.
+    """
+    product = models.ForeignKey(
+        DigitalProduct,
+        on_delete=models.CASCADE,
+        related_name='product_collections'
+    )
+    collection = models.ForeignKey(
+        'audioplayer.PieceCollection',
+        on_delete=models.CASCADE,
+        related_name='digital_products'
+    )
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = [['product', 'collection']]
+        ordering = ['order']
+
+    def __str__(self):
+        return f"{self.product.title} → {self.collection.title}"

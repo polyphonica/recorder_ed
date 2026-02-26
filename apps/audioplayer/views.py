@@ -749,6 +749,117 @@ def library_collection_json(request, collection_id):
     })
 
 
+# ===== DIGITAL PRODUCT PLAYER VIEWS =====
+
+@login_required
+def digital_product_player(request, purchase_id):
+    """
+    Audio player page for a purchased digital product.
+    Verifies completed purchase ownership before granting access.
+    """
+    from apps.digital_products.models import ProductPurchase
+
+    purchase = get_object_or_404(
+        ProductPurchase,
+        pk=purchase_id,
+        student=request.user,
+        payment_status='completed'
+    )
+    product = purchase.product
+    piece_count = product.product_pieces.count() + product.product_collections.count()
+
+    context = {
+        'purchase': purchase,
+        'product': product,
+        'piece_count': piece_count,
+        'is_digital_product': True,
+        'title': product.title,
+    }
+    return render(request, 'audioplayer/audio_player.html', context)
+
+
+@login_required
+def digital_product_pieces_json(request, purchase_id):
+    """
+    JSON API endpoint for the digital product audio player.
+    Returns all pieces and collections linked to the purchased product.
+    Uses the same data structure as private_lesson_pieces_json.
+    """
+    from apps.digital_products.models import ProductPurchase
+
+    purchase = get_object_or_404(
+        ProductPurchase,
+        pk=purchase_id,
+        student=request.user,
+        payment_status='completed'
+    )
+    product = purchase.product
+
+    pieces_data = []
+    collections_data = []
+
+    # Individual pieces linked to this product
+    for dp in product.product_pieces.select_related('piece').prefetch_related(
+        'piece__stems'
+    ).order_by('order'):
+        piece = dp.piece
+        stems_data = [
+            {
+                'audio_file': stem.audio_file.url,
+                'instrument_name': stem.instrument_name,
+            }
+            for stem in piece.stems.all().order_by('order')
+        ]
+        pieces_data.append({
+            'title': piece.title,
+            'stems': stems_data,
+            'svg_image': piece.svg_image.url if piece.svg_image else None,
+            'pdf_score': piece.pdf_score.url if piece.pdf_score else None,
+            'pdf_score_title': piece.pdf_score_title or None,
+            'order': dp.order,
+            'description': piece.description or None,
+        })
+
+    # Collections linked to this product
+    for dc in product.product_collections.select_related('collection').prefetch_related(
+        'collection__collection_memberships__piece__stems'
+    ).order_by('order'):
+        collection = dc.collection
+        collection_pieces = []
+
+        for cp in collection.collection_memberships.all().order_by('order'):
+            piece = cp.piece
+            stems_data = [
+                {
+                    'audio_file': stem.audio_file.url,
+                    'instrument_name': stem.instrument_name,
+                }
+                for stem in piece.stems.all().order_by('order')
+            ]
+            collection_pieces.append({
+                'title': piece.title,
+                'stems': stems_data,
+                'svg_image': piece.svg_image.url if piece.svg_image else None,
+                'pdf_score': piece.pdf_score.url if piece.pdf_score else None,
+                'pdf_score_title': piece.pdf_score_title if hasattr(piece, 'pdf_score_title') else None,
+                'order': cp.order,
+                'description': piece.description or None,
+            })
+
+        collections_data.append({
+            'title': collection.title,
+            'pdf_score': collection.pdf_score.url if collection.pdf_score else None,
+            'pdf_score_title': collection.pdf_score_title or None,
+            'order': dc.order,
+            'pieces': collection_pieces,
+        })
+
+    return JsonResponse({
+        'pieces_data': pieces_data,
+        'collections_data': collections_data,
+    })
+
+
 # ===== COMPOSER MANAGEMENT VIEWS =====
 
 @teacher_required

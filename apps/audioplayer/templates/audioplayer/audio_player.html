@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{% if is_library_player or is_library_collection %}{{ title }}{% elif is_private_lesson %}Playalong: {{ lesson.subject.subject }}{% else %}Playalong: {{ lesson.lesson_title }}{% endif %} - {{ block.super }}{% endblock %}
+{% block title %}{% if is_library_player or is_library_collection %}{{ title }}{% elif is_digital_product %}{{ product.title }}{% elif is_private_lesson %}Playalong: {{ lesson.subject.subject }}{% else %}Playalong: {{ lesson.lesson_title }}{% endif %} - {{ block.super }}{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'audioplayer/css/styles.css' %}">
@@ -22,6 +22,10 @@
             <a href="{% url 'audioplayer:library' %}" class="text-primary hover:underline">Play-Along Library</a>
             <span class="mx-2">›</span>
             <span class="text-base-content/70">{{ collection.title }}</span>
+        {% elif is_digital_product %}
+            <a href="{% url 'digital_products:my_purchases' %}" class="text-primary hover:underline">My Purchases</a>
+            <span class="mx-2">›</span>
+            <span class="text-base-content/70">{{ product.title }}</span>
         {% elif is_private_lesson %}
             <a href="{% url 'private_teaching:calendar' %}" class="text-primary hover:underline">My Calendar</a>
             <span class="mx-2">›</span>
@@ -60,6 +64,15 @@
             {% if collection.description %}
             <p class="text-lg text-base-content/70 mb-4">{{ collection.description }}</p>
             {% endif %}
+        {% elif is_digital_product %}
+            <h1 class="text-3xl font-bold mb-4">
+                <i class="fas fa-music text-primary mr-2"></i>
+                {{ product.title }}
+            </h1>
+            <div class="inline-flex items-center gap-2 px-3 py-1 bg-green-50 border border-green-200 rounded-full text-sm text-green-800 mb-4">
+                <span>✓</span>
+                <span>Purchased — Lifetime Access</span>
+            </div>
         {% elif is_private_lesson %}
             <h1 class="text-3xl font-bold mb-4">Playalong: {{ lesson.subject.subject }}</h1>
         {% else %}
@@ -101,6 +114,8 @@
     {% elif is_library_collection %}
     <input type="hidden" id="collection-id" value="{{ collection.id }}">
     <input type="hidden" id="is-library-collection" value="true">
+    {% elif is_digital_product %}
+    <input type="hidden" id="digital-product-purchase-id" value="{{ purchase.id }}">
     {% else %}
     <input type="hidden" id="lesson-id" value="{{ lesson.id }}">
     <input type="hidden" id="is-private-lesson" value="{% if is_private_lesson %}true{% else %}false{% endif %}">
@@ -123,6 +138,12 @@
                class="btn btn-primary">
                 <i class="fas fa-arrow-left mr-2"></i>
                 Back to Library
+            </a>
+        {% elif is_digital_product %}
+            <a href="{% url 'digital_products:my_purchases' %}"
+               class="btn btn-primary">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to My Purchases
             </a>
         {% elif is_private_lesson %}
             <a href="{% url 'lessons:lesson_detail' lesson.pk %}"

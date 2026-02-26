@@ -23,7 +23,9 @@ from .models import (
     ProductFile,
     ProductPurchase,
     ProductReview,
-    DigitalProductCartItem
+    DigitalProductCartItem,
+    DigitalProductPiece,
+    DigitalProductCollection,
 )
 from .forms import ProductForm, ProductFileFormSet, ProductReviewForm
 from .cart import DigitalProductCartManager
@@ -332,7 +334,11 @@ class MyPurchasesView(LoginRequiredMixin, ListView):
         return ProductPurchase.objects.filter(
             student=self.request.user,
             payment_status='completed'
-        ).select_related('product__teacher').prefetch_related('product__files').order_by('-purchased_at')
+        ).select_related('product__teacher').prefetch_related(
+            'product__files',
+            'product__product_pieces',
+            'product__product_collections',
+        ).order_by('-purchased_at')
 
 
 @login_required
@@ -530,6 +536,20 @@ class TeacherDashboardView(InstructorRequiredMixin, ListView):
         return context
 
 
+def _sync_product_audio_links(product, form):
+    """Sync DigitalProductPiece and DigitalProductCollection from form data."""
+    selected_pieces = form.cleaned_data.get('pieces', [])
+    selected_collections = form.cleaned_data.get('collections', [])
+
+    product.product_pieces.all().delete()
+    for i, piece in enumerate(selected_pieces):
+        DigitalProductPiece.objects.create(product=product, piece=piece, order=i)
+
+    product.product_collections.all().delete()
+    for i, collection in enumerate(selected_collections):
+        DigitalProductCollection.objects.create(product=product, collection=collection, order=i)
+
+
 class ProductCreateView(InstructorRequiredMixin, CreateView):
     """Create a new digital product"""
     model = DigitalProduct
@@ -557,6 +577,7 @@ class ProductCreateView(InstructorRequiredMixin, CreateView):
             self.object = form.save()
             file_formset.instance = self.object
             file_formset.save()
+            _sync_product_audio_links(self.object, form)
             messages.success(self.request, f"Product '{self.object.title}' created successfully!")
             return redirect('digital_products:teacher_dashboard')
         else:
@@ -598,6 +619,7 @@ class ProductEditView(InstructorRequiredMixin, UpdateView):
             self.object = form.save()
             file_formset.instance = self.object
             file_formset.save()
+            _sync_product_audio_links(self.object, form)
             messages.success(self.request, f"Product '{self.object.title}' updated successfully!")
             return redirect('digital_products:teacher_dashboard')
         else:

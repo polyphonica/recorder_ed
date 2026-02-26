@@ -43,4 +43,8 @@ urlpatterns = [
     # Student - Playback Interface (Library Collections)
     path('library/collection/<int:collection_id>/player/', views.library_collection_player, name='library_collection_player'),
     path('library/collection/<int:collection_id>/pieces-json/', views.library_collection_json, name='library_collection_json'),
+
+    # Purchaser - Playback Interface (Digital Product purchases)
+    path('digital-product/<uuid:purchase_id>/player/', views.digital_product_player, name='digital_product_player'),
+    path('digital-product/<uuid:purchase_id>/pieces-json/', views.digital_product_pieces_json, name='digital_product_pieces_json'),
 ]

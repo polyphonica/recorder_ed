@@ -51,6 +51,15 @@
             <!-- What's Included -->
             <div class="bg-gray-50 rounded-lg p-6 mb-8">
                 <h2 class="text-2xl font-bold mb-4">What's Included</h2>
+                {% if product.has_audio_player %}
+                <div class="flex items-start gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg mb-4">
+                    <i class="fas fa-headphones text-purple-600 text-xl mt-0.5"></i>
+                    <div>
+                        <p class="font-semibold text-purple-900">Interactive Play-Along Player</p>
+                        <p class="text-sm text-purple-700">Multi-track audio with individual mute, solo, and volume controls — practice at your own pace.</p>
+                    </div>
+                </div>
+                {% endif %}
                 <ul class="space-y-2">
                     {% for file in main_files %}
                     <li class="flex items-center gap-2">

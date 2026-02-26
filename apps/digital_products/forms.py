@@ -1,6 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 from .models import DigitalProduct, ProductFile, ProductReview
+from apps.audioplayer.models import Piece, PieceCollection
 
 
 class ProductForm(forms.ModelForm):
@@ -53,6 +54,22 @@ class ProductForm(forms.ModelForm):
             }),
         }
 
+    # Play-along content linking (not model fields — handled manually in the view)
+    pieces = forms.ModelMultipleChoiceField(
+        queryset=Piece.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(),
+        label='Individual Pieces',
+        help_text='Select pieces from your play-along library to include in this product.'
+    )
+    collections = forms.ModelMultipleChoiceField(
+        queryset=PieceCollection.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(),
+        label='Collections',
+        help_text='Select collections from your play-along library to include in this product.'
+    )
+
     def __init__(self, *args, **kwargs):
         self.teacher = kwargs.pop('teacher', None)
         super().__init__(*args, **kwargs)
@@ -61,6 +78,20 @@ class ProductForm(forms.ModelForm):
         if not self.instance.pk or self.instance.status == 'draft':
             self.fields['description'].required = False
             self.fields['featured_image'].required = False
+
+        # Filter pieces/collections to the teacher's own library
+        if self.teacher:
+            self.fields['pieces'].queryset = Piece.objects.filter(
+                created_by=self.teacher
+            ).order_by('title')
+            self.fields['collections'].queryset = PieceCollection.objects.filter(
+                created_by=self.teacher
+            ).order_by('title')
+
+        # On edit, pre-select currently linked pieces/collections
+        if self.instance.pk:
+            self.fields['pieces'].initial = self.instance.product_pieces.values_list('piece_id', flat=True)
+            self.fields['collections'].initial = self.instance.product_collections.values_list('collection_id', flat=True)
 
     def save(self, commit=True):
         instance = super().save(commit=False)
