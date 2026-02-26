@@ -79,14 +79,9 @@ class ProductForm(forms.ModelForm):
             self.fields['description'].required = False
             self.fields['featured_image'].required = False
 
-        # Filter pieces/collections to the teacher's own library
-        if self.teacher:
-            self.fields['pieces'].queryset = Piece.objects.filter(
-                created_by=self.teacher
-            ).order_by('title')
-            self.fields['collections'].queryset = PieceCollection.objects.filter(
-                created_by=self.teacher
-            ).order_by('title')
+        # Show all pieces/collections in the library (content may be uploaded via admin)
+        self.fields['pieces'].queryset = Piece.objects.all().order_by('title')
+        self.fields['collections'].queryset = PieceCollection.objects.all().order_by('title')
 
         # On edit, pre-select currently linked pieces/collections
         if self.instance.pk:

@@ -381,7 +381,6 @@
                     <strong>Tip:</strong> set pieces to "Don't show in public library" if they should only be accessible via purchase.
                 </p>
 
-                {% if form.pieces.field.queryset.count or form.collections.field.queryset.count %}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                     <!-- Individual Pieces -->
@@ -389,7 +388,7 @@
                         <h3 class="text-lg font-semibold text-gray-800 mb-3">
                             <i class="fas fa-music text-purple-500 mr-2"></i>Individual Pieces
                         </h3>
-                        {% if form.pieces.field.queryset.count %}
+                        {% if form.pieces %}
                         <div class="border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto space-y-2">
                             {% for choice in form.pieces %}
                             <label class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded p-1">
@@ -399,7 +398,7 @@
                             {% endfor %}
                         </div>
                         {% else %}
-                        <p class="text-sm text-gray-500 italic">No pieces in your library yet. <a href="{% url 'audioplayer:piece_create' %}" class="text-purple-600 hover:underline">Create a piece</a>.</p>
+                        <p class="text-sm text-gray-500 italic">No pieces in the library yet. <a href="{% url 'audioplayer:piece_create' %}" class="text-purple-600 hover:underline">Create a piece</a>.</p>
                         {% endif %}
                     </div>
 
@@ -408,7 +407,7 @@
                         <h3 class="text-lg font-semibold text-gray-800 mb-3">
                             <i class="fas fa-folder-open text-purple-500 mr-2"></i>Collections
                         </h3>
-                        {% if form.collections.field.queryset.count %}
+                        {% if form.collections %}
                         <div class="border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto space-y-2">
                             {% for choice in form.collections %}
                             <label class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded p-1">
@@ -418,16 +417,11 @@
                             {% endfor %}
                         </div>
                         {% else %}
-                        <p class="text-sm text-gray-500 italic">No collections in your library yet. <a href="{% url 'audioplayer:collection_create' %}" class="text-purple-600 hover:underline">Create a collection</a>.</p>
+                        <p class="text-sm text-gray-500 italic">No collections in the library yet. <a href="{% url 'audioplayer:collection_create' %}" class="text-purple-600 hover:underline">Create a collection</a>.</p>
                         {% endif %}
                     </div>
 
                 </div>
-                {% else %}
-                <p class="text-sm text-gray-500 italic">
-                    Your play-along library is empty. <a href="{% url 'audioplayer:piece_create' %}" class="text-purple-600 hover:underline">Add pieces</a> to your library first, then link them here.
-                </p>
-                {% endif %}
             </div>
 
             <!-- Action Buttons -->
