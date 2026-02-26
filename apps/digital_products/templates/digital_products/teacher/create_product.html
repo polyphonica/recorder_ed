@@ -378,47 +378,27 @@
                 </div>
                 <p class="text-base text-gray-700 mb-6 bg-purple-50 border-l-4 border-purple-500 p-4 rounded-r-lg">
                     Link pieces and collections from your play-along library. Purchasers will get access to the full interactive player with mute, solo, and volume controls per instrument track.
-                    <strong>Tip:</strong> set pieces to "Don't show in public library" if they should only be accessible via purchase.
+                    <strong>Tip:</strong> mark pieces as "Don't show in public library" if they should only be accessible via purchase.
                 </p>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                     <!-- Individual Pieces -->
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                        <label class="block text-base font-semibold text-gray-800 mb-2">
                             <i class="fas fa-music text-purple-500 mr-2"></i>Individual Pieces
-                        </h3>
-                        {% if form.pieces %}
-                        <div class="border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto space-y-2">
-                            {% for choice in form.pieces %}
-                            <label class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded p-1">
-                                {{ choice.tag }}
-                                <span class="text-sm text-gray-700">{{ choice.choice_label }}</span>
-                            </label>
-                            {% endfor %}
-                        </div>
-                        {% else %}
-                        <p class="text-sm text-gray-500 italic">No pieces in the library yet. <a href="{% url 'audioplayer:piece_create' %}" class="text-purple-600 hover:underline">Create a piece</a>.</p>
-                        {% endif %}
+                        </label>
+                        <p class="text-sm text-gray-500 mb-2">Type to search, click to add. Leave empty if using a collection.</p>
+                        {{ form.pieces }}
                     </div>
 
                     <!-- Collections -->
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                        <label class="block text-base font-semibold text-gray-800 mb-2">
                             <i class="fas fa-folder-open text-purple-500 mr-2"></i>Collections
-                        </h3>
-                        {% if form.collections %}
-                        <div class="border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto space-y-2">
-                            {% for choice in form.collections %}
-                            <label class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded p-1">
-                                {{ choice.tag }}
-                                <span class="text-sm text-gray-700">{{ choice.choice_label }}</span>
-                            </label>
-                            {% endfor %}
-                        </div>
-                        {% else %}
-                        <p class="text-sm text-gray-500 italic">No collections in the library yet. <a href="{% url 'audioplayer:collection_create' %}" class="text-purple-600 hover:underline">Create a collection</a>.</p>
-                        {% endif %}
+                        </label>
+                        <p class="text-sm text-gray-500 mb-2">Type to search, click to add. A collection includes all its pieces.</p>
+                        {{ form.collections }}
                     </div>
 
                 </div>
@@ -442,6 +422,18 @@
 
 {% block extra_head %}
 {{ form.media }}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<style>
+  .ts-wrapper.multi .ts-control { border: 2px solid #d1d5db; border-radius: 0.5rem; padding: 0.5rem; min-height: 2.75rem; }
+  .ts-wrapper.multi.focus .ts-control { border-color: #9333ea; box-shadow: 0 0 0 4px rgba(147,51,234,0.1); }
+  .ts-wrapper .ts-control .item { background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; border-radius: 9999px; padding: 2px 10px; font-size: 0.875rem; display: flex; align-items: center; gap: 4px; }
+  .ts-wrapper .ts-control .item .remove { color: #9333ea; font-weight: bold; margin-left: 2px; }
+  .ts-wrapper .ts-control .item .remove:hover { color: #6b21a8; }
+  .ts-dropdown { border: 1px solid #d1d5db; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .ts-dropdown .option { padding: 0.5rem 0.75rem; font-size: 0.9rem; }
+  .ts-dropdown .option:hover, .ts-dropdown .option.active { background: #f3e8ff; color: #6b21a8; }
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -566,6 +558,22 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             totalFormsInput.value = newIdx;
         }
+    }
+
+    // === Tom Select for play-along content pickers ===
+    if (document.getElementById('id_pieces')) {
+        new TomSelect('#id_pieces', {
+            plugins: ['remove_button'],
+            placeholder: 'Search pieces…',
+            maxOptions: 500,
+        });
+    }
+    if (document.getElementById('id_collections')) {
+        new TomSelect('#id_collections', {
+            plugins: ['remove_button'],
+            placeholder: 'Search collections…',
+            maxOptions: 500,
+        });
     }
 });
 </script>

@@ -58,16 +58,16 @@ class ProductForm(forms.ModelForm):
     pieces = forms.ModelMultipleChoiceField(
         queryset=Piece.objects.none(),
         required=False,
-        widget=forms.CheckboxSelectMultiple(),
+        widget=forms.SelectMultiple(attrs={'id': 'id_pieces'}),
         label='Individual Pieces',
-        help_text='Select pieces from your play-along library to include in this product.'
+        help_text='Search and select pieces from your play-along library.'
     )
     collections = forms.ModelMultipleChoiceField(
         queryset=PieceCollection.objects.none(),
         required=False,
-        widget=forms.CheckboxSelectMultiple(),
+        widget=forms.SelectMultiple(attrs={'id': 'id_collections'}),
         label='Collections',
-        help_text='Select collections from your play-along library to include in this product.'
+        help_text='Search and select collections from your play-along library.'
     )
 
     def __init__(self, *args, **kwargs):
