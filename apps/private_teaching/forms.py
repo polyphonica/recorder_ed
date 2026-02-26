@@ -523,6 +523,7 @@ class VoucherForm(forms.ModelForm):
         ('private_teaching', 'Private Lessons'),
         ('workshops', 'Workshops'),
         ('workshop_series', 'Workshop Series'),
+        ('digital_products', 'Digital Products'),
     ]
 
     applicable_domains = forms.MultipleChoiceField(
