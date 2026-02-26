@@ -109,7 +109,8 @@ class VoucherService:
             domain_names = {
                 'private_teaching': 'private lessons',
                 'workshops': 'workshops',
-                'workshop_series': 'workshop series'
+                'workshop_series': 'workshop series',
+                'digital_products': 'digital products'
             }
             raise VoucherValidationError(
                 f"This voucher cannot be used for {domain_names.get(domain, domain)}."

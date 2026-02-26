@@ -136,6 +136,7 @@ class Voucher(models.Model):
         ('private_teaching', 'Private Lessons'),
         ('workshops', 'Workshops'),
         ('workshop_series', 'Workshop Series'),
+        ('digital_products', 'Digital Products'),
     ]
 
     # Primary Key
@@ -179,7 +180,7 @@ class Voucher(models.Model):
     # Applicable Domains (stored as JSON list for flexibility)
     applicable_domains = models.JSONField(
         default=list,
-        help_text="List of domains: ['private_teaching', 'workshops', 'workshop_series']"
+        help_text="List of domains: ['private_teaching', 'workshops', 'workshop_series', 'digital_products']"
     )
 
     # Restrictions - specific students

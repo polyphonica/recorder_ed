@@ -729,6 +729,29 @@ class StripeWebhookView(View):
                 except Exception as e:
                     logger.error(f"Failed to send cart purchase confirmation email: {e}")
 
+        # Create voucher redemption if a voucher was applied (partial discount paid via Stripe)
+        voucher_id = metadata.get('voucher_id')
+        if voucher_id:
+            try:
+                from decimal import Decimal as _Decimal
+                from .models import Voucher
+                from .voucher_service import VoucherService
+                voucher = Voucher.objects.get(id=voucher_id)
+                original_amount = _Decimal(metadata.get('original_amount', str(stripe_payment.total_amount)))
+                discount_amount = _Decimal(metadata.get('discount_amount', '0'))
+                VoucherService.create_redemption(
+                    voucher=voucher,
+                    student=stripe_payment.student,
+                    domain='digital_products',
+                    original_amount=original_amount,
+                    discount_amount=discount_amount,
+                    final_amount=stripe_payment.total_amount,
+                    stripe_payment=stripe_payment
+                )
+                logger.info(f"Created voucher redemption for code {metadata.get('voucher_code')}")
+            except Exception as e:
+                logger.error(f"Failed to create voucher redemption in digital products webhook: {e}")
+
         # Mark payment as completed
         stripe_payment.mark_completed()
         logger.info(f"Marked StripePayment {stripe_payment.id} as completed")

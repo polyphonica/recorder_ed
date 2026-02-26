@@ -16,6 +16,7 @@ from django.conf import settings
 
 from apps.payments.stripe_service import create_checkout_session_with_items
 from apps.payments.utils import calculate_commission
+from apps.payments.voucher_service import VoucherService, VoucherValidationError
 
 from .models import (
     ProductCategory,
@@ -29,6 +30,7 @@ from .models import (
 )
 from .forms import ProductForm, ProductFileFormSet, ProductReviewForm
 from .cart import DigitalProductCartManager
+from .notifications import send_purchase_confirmation, send_cart_purchase_confirmation
 
 logger = logging.getLogger(__name__)
 
@@ -190,6 +192,66 @@ def remove_from_cart(request, product_id):
 # CHECKOUT VIEWS
 # ============================================================
 
+def _handle_free_checkout(request, products, applied_voucher, total_amount, discount_amount, cart_id=None):
+    """
+    Handle free checkout (£0 products or 100% voucher discount).
+    Creates purchase records directly without Stripe.
+    """
+    created_purchases = []
+
+    for product in products:
+        purchase, created = ProductPurchase.objects.get_or_create(
+            student=request.user,
+            product=product,
+            defaults={
+                'payment_status': 'completed',
+                'payment_amount': Decimal('0.00'),
+                'paid_at': timezone.now()
+            }
+        )
+        if not created:
+            if purchase.payment_status == 'completed':
+                continue  # Already purchased — skip silently
+            purchase.payment_status = 'completed'
+            purchase.payment_amount = Decimal('0.00')
+            purchase.paid_at = timezone.now()
+            purchase.save()
+
+        product.total_sales += 1
+        product.save(update_fields=['total_sales'])
+        created_purchases.append(purchase)
+
+    # Send confirmation email
+    try:
+        if len(created_purchases) == 1:
+            send_purchase_confirmation(created_purchases[0])
+        elif created_purchases:
+            send_cart_purchase_confirmation(request.user, created_purchases)
+    except Exception as e:
+        logger.error(f"Failed to send free checkout confirmation email: {e}")
+
+    # Record voucher redemption if a voucher was applied
+    if applied_voucher and created_purchases:
+        try:
+            VoucherService.create_redemption(
+                voucher=applied_voucher,
+                student=request.user,
+                domain='digital_products',
+                original_amount=total_amount,
+                discount_amount=discount_amount,
+                final_amount=Decimal('0.00'),
+                request=request
+            )
+        except Exception as e:
+            logger.error(f"Failed to create voucher redemption for free checkout: {e}")
+
+    # Clear cart items if this was a cart checkout
+    if cart_id:
+        DigitalProductCartItem.objects.filter(cart_id=cart_id).delete()
+
+    return redirect('digital_products:checkout_success')
+
+
 class ProductCheckoutView(LoginRequiredMixin, View):
     """Handle checkout for digital products (single or cart)"""
 
@@ -207,7 +269,6 @@ class ProductCheckoutView(LoginRequiredMixin, View):
                 messages.error(request, "You have already purchased this product")
                 return redirect('digital_products:my_purchases')
 
-            # Create Stripe checkout session
             line_items = [{
                 'name': product.title,
                 'description': product.short_description,
@@ -215,6 +276,8 @@ class ProductCheckoutView(LoginRequiredMixin, View):
             }]
             total_amount = product.price
             teacher = product.teacher
+            products = [product]
+            cart_id = None
             metadata = {
                 'product_id': str(product.id),
             }
@@ -231,6 +294,7 @@ class ProductCheckoutView(LoginRequiredMixin, View):
             # Build line items
             line_items = []
             product_ids = []
+            products = []
             cart_items = cart.digital_product_items.select_related('product__teacher').all()
 
             for item in cart_items:
@@ -240,20 +304,61 @@ class ProductCheckoutView(LoginRequiredMixin, View):
                     'amount': item.price
                 })
                 product_ids.append(str(item.product.id))
+                products.append(item.product)
 
             total_amount = sum(item.price for item in cart_items)
             teacher = cart_items.first().product.teacher  # First product's teacher for commission
+            cart_id = str(cart.id)
             metadata = {
                 'product_ids': ','.join(product_ids),
-                'cart_id': str(cart.id),
+                'cart_id': cart_id,
             }
 
         else:
             messages.error(request, "Invalid checkout request")
             return redirect('digital_products:catalog')
 
-        # Calculate commission
-        platform_commission, teacher_share = calculate_commission(total_amount)
+        # --- Voucher handling ---
+        voucher_code = request.POST.get('voucher_code', '').strip().upper()
+        applied_voucher = None
+        discount_amount = Decimal('0.00')
+        final_total = total_amount
+
+        if voucher_code:
+            try:
+                applied_voucher = VoucherService.validate_voucher(
+                    code=voucher_code,
+                    student=request.user,
+                    domain='digital_products',
+                    cart_total=total_amount,
+                    teacher=teacher
+                )
+                discount_amount, final_total = VoucherService.calculate_discount(applied_voucher, total_amount)
+            except VoucherValidationError as e:
+                messages.error(request, str(e))
+                if checkout_cart:
+                    return redirect('digital_products:cart')
+                else:
+                    return redirect('digital_products:detail', slug=product.slug)
+
+        # --- Free checkout path (£0 product or voucher covers 100%) ---
+        if final_total == Decimal('0.00'):
+            return _handle_free_checkout(
+                request, products, applied_voucher, total_amount, discount_amount, cart_id=cart_id
+            )
+
+        # --- Stripe checkout path ---
+        # Embed voucher info in metadata so the webhook can record the redemption
+        if applied_voucher:
+            metadata['voucher_id'] = str(applied_voucher.id)
+            metadata['voucher_code'] = applied_voucher.code
+            metadata['original_amount'] = str(total_amount)
+            metadata['discount_amount'] = str(discount_amount)
+
+        # Get Stripe coupon ID for partial-discount vouchers
+        coupon_id = None
+        if applied_voucher:
+            coupon_id = VoucherService.create_or_get_stripe_coupon(applied_voucher)
 
         # Build URLs
         success_url = request.build_absolute_uri(reverse('digital_products:checkout_success'))
@@ -268,7 +373,8 @@ class ProductCheckoutView(LoginRequiredMixin, View):
                 domain='digital_products',
                 success_url=success_url,
                 cancel_url=cancel_url,
-                metadata=metadata
+                metadata=metadata,
+                coupon_id=coupon_id
             )
 
             return redirect(session.url, code=303)

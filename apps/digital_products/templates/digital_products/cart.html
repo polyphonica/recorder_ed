@@ -29,6 +29,88 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 {% endif %}
+
+// Voucher validation for cart
+{% if digital_product_cart_items %}
+var originalTotal = {{ digital_product_cart_total|default:0 }};
+var appliedVoucher = null;
+
+function applyVoucher() {
+    var codeInput = document.getElementById('voucher_code_input');
+    if (!codeInput) return;
+    var code = codeInput.value.trim().toUpperCase();
+    var feedback = document.getElementById('voucher_feedback');
+    var applyBtn = document.getElementById('apply_voucher_btn');
+
+    if (!code) {
+        feedback.innerHTML = '<span class="text-red-600 text-sm">Please enter a voucher code</span>';
+        return;
+    }
+
+    applyBtn.disabled = true;
+    applyBtn.innerHTML = '...';
+    feedback.innerHTML = '';
+
+    fetch('{% url "payments:validate_voucher" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: 'code=' + encodeURIComponent(code) + '&domain=digital_products&cart_total=' + originalTotal
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        applyBtn.disabled = false;
+        applyBtn.innerHTML = 'Apply';
+
+        if (data.valid) {
+            appliedVoucher = data;
+            var finalTotal = parseFloat(data.final_total);
+
+            // Show discount row
+            document.getElementById('discount_row').classList.remove('hidden');
+            document.getElementById('voucher_code_display').textContent = data.code;
+            document.getElementById('discount_amount').textContent = parseFloat(data.discount_amount).toFixed(2);
+
+            // Update total display
+            var finalTotalEl = document.getElementById('final_total');
+            if (finalTotal === 0) {
+                finalTotalEl.textContent = 'FREE';
+            } else {
+                finalTotalEl.textContent = '£' + finalTotal.toFixed(2);
+            }
+
+            // Set hidden voucher code for form submission
+            document.getElementById('voucher_code_hidden').value = code;
+
+            feedback.innerHTML = '<span class="text-green-600 text-sm"><i class="fas fa-check-circle mr-1"></i>' + data.message + '</span>';
+            codeInput.disabled = true;
+            applyBtn.textContent = 'Applied';
+            applyBtn.disabled = true;
+        } else {
+            feedback.innerHTML = '<span class="text-red-600 text-sm"><i class="fas fa-times-circle mr-1"></i>' + data.message + '</span>';
+        }
+    })
+    .catch(function(error) {
+        applyBtn.disabled = false;
+        applyBtn.innerHTML = 'Apply';
+        feedback.innerHTML = '<span class="text-red-600 text-sm">Error validating voucher. Please try again.</span>';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var codeInput = document.getElementById('voucher_code_input');
+    if (codeInput) {
+        codeInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applyVoucher();
+            }
+        });
+    }
+});
+{% endif %}
 </script>
 {% endblock %}
 
@@ -89,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="bg-white rounded-lg shadow-md p-6 sticky top-4">
                 <h2 class="text-xl font-bold text-gray-900 mb-4">Order Summary</h2>
 
-                <div class="space-y-3 mb-6">
+                <div class="space-y-3 mb-4">
                     <div class="flex justify-between text-gray-600">
                         <span>Items ({{ digital_product_cart_count }})</span>
                         <span>£{{ digital_product_cart_total|floatformat:2 }}</span>
@@ -98,15 +180,44 @@ document.addEventListener('DOMContentLoaded', function() {
                         <span>Digital Delivery</span>
                         <span class="text-green-600 font-semibold">FREE</span>
                     </div>
+
+                    <!-- Discount row (hidden until voucher applied) -->
+                    <div id="discount_row" class="hidden">
+                        <div class="flex justify-between text-green-700 font-medium">
+                            <span>Discount (<span id="voucher_code_display"></span>)</span>
+                            <span>−£<span id="discount_amount">0.00</span></span>
+                        </div>
+                    </div>
+
                     <div class="border-t pt-3 flex justify-between text-lg font-bold">
                         <span>Total</span>
-                        <span class="text-blue-600">£{{ digital_product_cart_total|floatformat:2 }}</span>
+                        <span class="text-blue-600" id="final_total">£{{ digital_product_cart_total|floatformat:2 }}</span>
                     </div>
+                </div>
+
+                <!-- Voucher code input -->
+                <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Have a voucher code?</label>
+                    <div class="flex gap-2">
+                        <input type="text"
+                               id="voucher_code_input"
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:outline-none"
+                               placeholder="Enter code"
+                               style="text-transform: uppercase;">
+                        <button type="button"
+                                id="apply_voucher_btn"
+                                onclick="applyVoucher()"
+                                class="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition">
+                            Apply
+                        </button>
+                    </div>
+                    <div id="voucher_feedback" class="mt-2"></div>
                 </div>
 
                 <form method="post" action="{% url 'digital_products:checkout' %}">
                     {% csrf_token %}
                     <input type="hidden" name="checkout_cart" value="true">
+                    <input type="hidden" name="voucher_code" id="voucher_code_hidden" value="">
                     <button type="submit"
                             class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold mb-3">
                         Proceed to Checkout

@@ -43,8 +43,8 @@ class ProductForm(forms.ModelForm):
             'price': forms.NumberInput(attrs={
                 'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all',
                 'step': '0.01',
-                'min': '0.01',
-                'placeholder': '12.99'
+                'min': '0',
+                'placeholder': '0.00'
             }),
             'featured_image': forms.FileInput(attrs={
                 'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100'
