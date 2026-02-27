@@ -64,6 +64,7 @@ class DigitalProduct(models.Model):
     PRODUCT_TYPE_CHOICES = [
         ('sheet_music', 'Sheet Music (PDF)'),
         ('practice_materials', 'Practice Materials (PDF)'),
+        ('play_along', 'Play-Along'),
         ('video', 'Video Recording'),
         ('audio', 'Audio File'),
         ('research', 'Research Article/Paper (PDF)'),
