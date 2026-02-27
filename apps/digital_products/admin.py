@@ -32,6 +32,7 @@ class DigitalProductAdmin(admin.ModelAdmin):
         'title',
         'teacher',
         'category',
+        'composer',
         'product_type',
         'price',
         'status',
@@ -39,8 +40,8 @@ class DigitalProductAdmin(admin.ModelAdmin):
         'average_rating',
         'created_at'
     ]
-    list_filter = ['status', 'category', 'product_type', 'created_at']
-    search_fields = ['title', 'description', 'tags', 'teacher__username', 'teacher__email']
+    list_filter = ['status', 'category', 'composer', 'product_type', 'created_at']
+    search_fields = ['title', 'description', 'tags', 'teacher__username', 'teacher__email', 'composer__name']
     prepopulated_fields = {'slug': ('title',)}
     readonly_fields = ['total_sales', 'average_rating', 'review_count', 'created_at', 'updated_at']
     inlines = [ProductFileInline]
@@ -50,7 +51,7 @@ class DigitalProductAdmin(admin.ModelAdmin):
             'fields': ('title', 'slug', 'short_description', 'description')
         }),
         ('Categorization', {
-            'fields': ('category', 'product_type', 'tags')
+            'fields': ('category', 'composer', 'product_type', 'tags')
         }),
         ('Teacher & Pricing', {
             'fields': ('teacher', 'price')
@@ -69,7 +70,7 @@ class DigitalProductAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related('teacher', 'category')
+        return qs.select_related('teacher', 'category', 'composer')
 
 
 @admin.register(ProductFile)

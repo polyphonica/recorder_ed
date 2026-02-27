@@ -8,7 +8,8 @@ Thank you for your purchase! All {{ total_products }} of your digital products a
 
 {% for item in products_data %}
 PRODUCT: {{ item.product.title }}
-By: {{ item.product.teacher.get_full_name|default:item.product.teacher.username }}
+{% if item.product.composer %}Music by: {{ item.product.composer.name }}
+{% endif %}
 
 YOUR CONTENT:
 

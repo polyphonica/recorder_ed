@@ -3,6 +3,11 @@
 
 {% block title %}Digital Products - {{ block.super }}{% endblock %}
 
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Header -->
@@ -14,7 +19,7 @@
     <!-- Search and Filters -->
     <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
         <form method="get" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <!-- Search -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
@@ -30,6 +35,17 @@
                         <option value="">All Types</option>
                         {% for value, label in product_types %}
                         <option value="{{ value }}" {% if request.GET.type == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Composer Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Composer</label>
+                    <select name="composer" id="catalog_composer_filter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Composers</option>
+                        {% for composer in composers %}
+                        <option value="{{ composer.id }}" {% if selected_composer_id == composer.id|stringformat:"s" %}selected{% endif %}>{{ composer.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -100,10 +116,10 @@
                 <p class="text-sm text-gray-600 mb-2 line-clamp-2">{{ product.short_description }}</p>
                 {% endif %}
 
-                <!-- Teacher -->
-                <p class="text-sm text-gray-500 mb-2">
-                    by {{ product.teacher.get_full_name|default:product.teacher.username }}
-                </p>
+                <!-- Composer / Teacher attribution -->
+                {% if product.composer %}
+                <p class="text-sm text-gray-500 mb-2">Music by {{ product.composer.name }}</p>
+                {% endif %}
 
                 {% comment %}Rating hidden — not displayed publicly{% endcomment %}
 
@@ -124,9 +140,9 @@
     {% if is_paginated %}
     <div class="flex justify-center gap-2">
         {% if page_obj.has_previous %}
-        <a href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}"
+        <a href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if selected_composer_id %}&composer={{ selected_composer_id }}{% endif %}"
            class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">First</a>
-        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}"
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if selected_composer_id %}&composer={{ selected_composer_id }}{% endif %}"
            class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Previous</a>
         {% endif %}
 
@@ -135,9 +151,9 @@
         </span>
 
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}"
+        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if selected_composer_id %}&composer={{ selected_composer_id }}{% endif %}"
            class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Next</a>
-        <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}"
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if selected_composer_id %}&composer={{ selected_composer_id }}{% endif %}"
            class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Last</a>
         {% endif %}
     </div>
@@ -151,4 +167,19 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var composerFilter = document.getElementById('catalog_composer_filter');
+    if (composerFilter) {
+        new TomSelect('#catalog_composer_filter', {
+            placeholder: 'Search composers…',
+            allowEmptyOption: true,
+            maxOptions: 200,
+        });
+    }
+});
+</script>
 {% endblock %}

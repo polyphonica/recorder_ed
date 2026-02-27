@@ -6,7 +6,8 @@ Thank you for your purchase! Your digital product is ready to download.
 
 ---
 Product: {{ product.title }}
-By: {{ product.teacher.get_full_name|default:product.teacher.username }}
+{% if product.composer %}Music by: {{ product.composer.name }}
+{% endif %}
 Amount Paid: £{{ purchase.payment_amount|floatformat:2 }}
 ---
 

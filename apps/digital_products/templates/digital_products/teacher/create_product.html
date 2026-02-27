@@ -121,6 +121,25 @@
                         {% endif %}
                     </div>
 
+                    <!-- Composer -->
+                    <div>
+                        <label for="id_composer" class="block text-base font-semibold text-gray-900 mb-3">
+                            Composer
+                        </label>
+                        {{ form.composer }}
+                        <div id="composer-hint" class="hidden mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                            Composer is recommended for Sheet Music and Play-along products
+                        </div>
+                        {% if form.composer.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.composer.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+
                     <!-- Product Type -->
                     <div>
                         <label for="id_product_type" class="block text-base font-semibold text-gray-900 mb-3">
@@ -558,6 +577,34 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             totalFormsInput.value = newIdx;
         }
+    }
+
+    // === Tom Select for composer (single-select with search) ===
+    if (document.getElementById('id_composer')) {
+        new TomSelect('#id_composer', {
+            placeholder: 'Search composers…',
+            allowEmptyOption: true,
+            maxOptions: 200,
+        });
+    }
+
+    // === Composer hint based on category selection ===
+    var categoryHintSlugs = ['sheet-music', 'play-along'];
+    var categorySelect = document.getElementById('id_category');
+    var composerHint = document.getElementById('composer-hint');
+
+    function updateComposerHint() {
+        if (!categorySelect || !composerHint) return;
+        var selectedOption = categorySelect.options[categorySelect.selectedIndex];
+        var optionText = selectedOption ? selectedOption.text.toLowerCase() : '';
+        // Show hint for sheet music or play-along categories
+        var show = optionText.includes('sheet music') || optionText.includes('play-along') || optionText.includes('play along');
+        composerHint.classList.toggle('hidden', !show);
+    }
+
+    if (categorySelect) {
+        categorySelect.addEventListener('change', updateComposerHint);
+        updateComposerHint();
     }
 
     // === Tom Select for play-along content pickers ===

@@ -143,9 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 {{ item.product.title }}
                             </a>
                         </h3>
-                        <p class="text-sm text-gray-600 mb-2">
-                            by {{ item.product.teacher.get_full_name|default:item.product.teacher.username }}
-                        </p>
+                        {% if item.product.composer %}<p class="text-sm text-gray-600 mb-2">Music by {{ item.product.composer.name }}</p>{% endif %}
                         {% if item.product.category %}
                         <span class="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
                             {{ item.product.category.name }}

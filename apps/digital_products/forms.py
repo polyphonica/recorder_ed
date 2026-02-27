@@ -14,6 +14,7 @@ class ProductForm(forms.ModelForm):
             'short_description',
             'description',
             'category',
+            'composer',
             'product_type',
             'tags',
             'price',
@@ -32,6 +33,10 @@ class ProductForm(forms.ModelForm):
             }),
             'category': forms.Select(attrs={
                 'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white cursor-pointer'
+            }),
+            'composer': forms.Select(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white cursor-pointer',
+                'id': 'id_composer',
             }),
             'product_type': forms.Select(attrs={
                 'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all bg-white cursor-pointer'

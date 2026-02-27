@@ -29,7 +29,7 @@
 
             <div class="product-info">
                 <h2 style="margin-top: 0;">{{ product.title }}</h2>
-                <p style="color: #6b7280; margin: 5px 0;">by {{ product.teacher.get_full_name|default:product.teacher.username }}</p>
+                {% if product.composer %}<p style="color: #6b7280; margin: 5px 0;">Music by {{ product.composer.name }}</p>{% endif %}
                 <p style="font-size: 18px; font-weight: bold; color: #3B82F6;">£{{ purchase.payment_amount|floatformat:2 }}</p>
             </div>
 

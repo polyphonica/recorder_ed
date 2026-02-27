@@ -31,7 +31,7 @@
             {% for item in products_data %}
             <div class="product-section">
                 <h2 style="margin-top: 0;">{{ item.product.title }}</h2>
-                <p style="color: #6b7280; margin: 5px 0;">by {{ item.product.teacher.get_full_name|default:item.product.teacher.username }}</p>
+                {% if item.product.composer %}<p style="color: #6b7280; margin: 5px 0;">Music by {{ item.product.composer.name }}</p>{% endif %}
 
                 <h3 style="margin-top: 20px;">Your Content:</h3>
 

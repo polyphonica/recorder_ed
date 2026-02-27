@@ -92,7 +92,7 @@ class DigitalProductCartManager(BaseCartManager):
         """
         cart = self.get_cart()
 
-        items = cart.digital_product_items.select_related('product__teacher', 'product__category').all() if cart else []
+        items = cart.digital_product_items.select_related('product__teacher', 'product__category', 'product__composer').all() if cart else []
 
         return self.get_base_cart_context(
             cart=cart,

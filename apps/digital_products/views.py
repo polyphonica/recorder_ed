@@ -49,7 +49,8 @@ class ProductCatalogView(ListView):
     def get_queryset(self):
         queryset = DigitalProduct.objects.filter(status='published').select_related(
             'teacher',
-            'category'
+            'category',
+            'composer',
         ).order_by('-published_at')
 
         # Category filter
@@ -71,14 +72,22 @@ class ProductCatalogView(ListView):
         if product_type:
             queryset = queryset.filter(product_type=product_type)
 
+        # Composer filter
+        composer_id = self.request.GET.get('composer')
+        if composer_id:
+            queryset = queryset.filter(composer_id=composer_id)
+
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        from apps.audioplayer.models import Composer
         context['categories'] = ProductCategory.objects.filter(is_active=True).order_by('order', 'name')
         context['selected_category'] = self.kwargs.get('category_slug')
         context['search_query'] = self.request.GET.get('q', '')
         context['product_types'] = DigitalProduct.PRODUCT_TYPE_CHOICES
+        context['composers'] = Composer.objects.order_by('name')
+        context['selected_composer_id'] = self.request.GET.get('composer', '')
         return context
 
 
@@ -93,7 +102,8 @@ class ProductDetailView(DetailView):
     def get_queryset(self):
         qs = DigitalProduct.objects.select_related(
             'teacher',
-            'category'
+            'category',
+            'composer',
         ).prefetch_related(
             'files',
             'reviews__student'
@@ -440,7 +450,7 @@ class MyPurchasesView(LoginRequiredMixin, ListView):
         return ProductPurchase.objects.filter(
             student=self.request.user,
             payment_status='completed'
-        ).select_related('product__teacher').prefetch_related(
+        ).select_related('product__teacher', 'product__composer').prefetch_related(
             'product__files',
             'product__product_pieces',
             'product__product_collections',

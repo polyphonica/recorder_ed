@@ -100,6 +100,13 @@ class DigitalProduct(models.Model):
         blank=True,
         related_name='products'
     )
+    composer = models.ForeignKey(
+        'audioplayer.Composer',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='digital_products'
+    )
     product_type = models.CharField(max_length=30, choices=PRODUCT_TYPE_CHOICES)
     tags = models.CharField(
         max_length=200,

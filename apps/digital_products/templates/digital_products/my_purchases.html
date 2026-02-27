@@ -32,9 +32,7 @@
                                 {{ purchase.product.title }}
                             </a>
                         </h2>
-                        <p class="text-gray-600 mb-2">
-                            by {{ purchase.product.teacher.get_full_name|default:purchase.product.teacher.username }}
-                        </p>
+                        {% if purchase.product.composer %}<p class="text-gray-600 mb-2">Music by {{ purchase.product.composer.name }}</p>{% endif %}
                         <div class="flex items-center gap-4 text-sm text-gray-600">
                             <span>Purchased: {{ purchase.purchased_at|date:"M d, Y" }}</span>
                             <span>•</span>
