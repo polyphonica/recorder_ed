@@ -75,6 +75,14 @@ class Command(BaseCommand):
                 'color': '#6366F1',
                 'order': 7
             },
+            {
+                'name': 'Play-along',
+                'slug': 'play-along',
+                'description': 'Backing tracks and accompaniments for playing along',
+                'icon': '🎹',
+                'color': '#F97316',
+                'order': 8
+            },
         ]
 
         created_count = 0
