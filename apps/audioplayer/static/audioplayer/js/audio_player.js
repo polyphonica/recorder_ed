@@ -812,9 +812,10 @@ async function createPiecePlayer(piece, pieceIndex, container, isInCollection = 
     tracksContainer.id = `tracks${pieceIndex + 1}`;
 
     // Create controls for each stem/track
+    const accentClasses = ['track-accent-0', 'track-accent-1', 'track-accent-2', 'track-accent-3', 'track-accent-4'];
     piece.stems.forEach((stem, trackIndex) => {
         let trackColumn = document.createElement('div');
-        trackColumn.classList.add('track-column');
+        trackColumn.classList.add('track-column', accentClasses[trackIndex % accentClasses.length]);
 
         let trackTitle = document.createElement('div');
         trackTitle.classList.add('track-title');
@@ -832,6 +833,9 @@ async function createPiecePlayer(piece, pieceIndex, container, isInCollection = 
         soloButton.textContent = 'Solo';
         soloButton.onclick = () => toggleSolo(pieceIndex + 1, soloButton, trackIndex);
 
+        let volumeSection = document.createElement('div');
+        volumeSection.classList.add('track-volume-section');
+
         let volumeSlider = document.createElement('input');
         volumeSlider.type = 'range';
         volumeSlider.min = '0';
@@ -844,11 +848,13 @@ async function createPiecePlayer(piece, pieceIndex, container, isInCollection = 
         volumeLabel.textContent = 'Volume';
         volumeLabel.classList.add('volume-label');
 
+        volumeSection.appendChild(volumeLabel);
+        volumeSection.appendChild(volumeSlider);
+
         trackColumn.appendChild(trackTitle);
         trackColumn.appendChild(muteButton);
         trackColumn.appendChild(soloButton);
-        trackColumn.appendChild(volumeLabel);
-        trackColumn.appendChild(volumeSlider);
+        trackColumn.appendChild(volumeSection);
 
         tracksContainer.appendChild(trackColumn);
     });
