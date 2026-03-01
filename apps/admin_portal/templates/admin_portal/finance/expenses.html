@@ -16,6 +16,9 @@
             <p class="text-base-content/60 ml-10">{{ date_label }} - General business expenses</p>
         </div>
         <div class="flex gap-2 items-center">
+            <a href="?days={{ days }}&export=csv" class="btn btn-sm btn-outline">
+                <i class="fas fa-download mr-1"></i>Export CSV
+            </a>
             <a href="{% url 'admin_portal:finance:expense_add' %}" class="btn btn-primary btn-sm">
                 <i class="fas fa-plus mr-2"></i>Add Expense
             </a>

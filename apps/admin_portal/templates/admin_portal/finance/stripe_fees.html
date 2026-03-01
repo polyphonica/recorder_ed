@@ -15,12 +15,17 @@
             </div>
             <p class="text-base-content/60 ml-10">{{ date_label }}</p>
         </div>
-        <div class="join">
-            <a href="?days=7" class="btn btn-sm join-item {% if days == '7' %}btn-primary{% else %}btn-outline{% endif %}">7 days</a>
-            <a href="?days=30" class="btn btn-sm join-item {% if days == '30' %}btn-primary{% else %}btn-outline{% endif %}">30 days</a>
-            <a href="?days=90" class="btn btn-sm join-item {% if days == '90' %}btn-primary{% else %}btn-outline{% endif %}">90 days</a>
-            <a href="?days=365" class="btn btn-sm join-item {% if days == '365' %}btn-primary{% else %}btn-outline{% endif %}">12 months</a>
-            <a href="?days=all" class="btn btn-sm join-item {% if days == 'all' %}btn-primary{% else %}btn-outline{% endif %}">All time</a>
+        <div class="flex gap-2 items-center">
+            <div class="join">
+                <a href="?days=7" class="btn btn-sm join-item {% if days == '7' %}btn-primary{% else %}btn-outline{% endif %}">7 days</a>
+                <a href="?days=30" class="btn btn-sm join-item {% if days == '30' %}btn-primary{% else %}btn-outline{% endif %}">30 days</a>
+                <a href="?days=90" class="btn btn-sm join-item {% if days == '90' %}btn-primary{% else %}btn-outline{% endif %}">90 days</a>
+                <a href="?days=365" class="btn btn-sm join-item {% if days == '365' %}btn-primary{% else %}btn-outline{% endif %}">12 months</a>
+                <a href="?days=all" class="btn btn-sm join-item {% if days == 'all' %}btn-primary{% else %}btn-outline{% endif %}">All time</a>
+            </div>
+            <a href="?days={{ days }}&export=csv" class="btn btn-sm btn-outline">
+                <i class="fas fa-download mr-1"></i>Export CSV
+            </a>
         </div>
     </div>
 

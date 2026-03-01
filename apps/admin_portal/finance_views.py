@@ -2,9 +2,12 @@
 Admin Portal Finance views.
 Platform-level financial reporting for the platform owner.
 """
+import csv
+import json
 from datetime import timedelta
 from decimal import Decimal
 
+from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.db.models import Sum
@@ -93,6 +96,15 @@ def platform_finance_dashboard(request):
     # Sort by commission descending
     domain_summary.sort(key=lambda x: x['commission'], reverse=True)
 
+    # Serialize monthly trend for Chart.js (Decimal/datetime aren't JSON-serialisable)
+    trend = summary['monthly_trend']
+    monthly_trend_json = json.dumps({
+        'labels': [item['month'].strftime('%b %Y') for item in trend],
+        'commission': [float(item['commission']) for item in trend],
+        'stripe_fees': [float(item['stripe_fees']) for item in trend],
+        'net_income': [float(item['net_income']) for item in trend],
+    })
+
     context = {
         # Date range
         'days': days,
@@ -116,7 +128,7 @@ def platform_finance_dashboard(request):
         'domain_summary': domain_summary,
 
         # Monthly trend for charts
-        'monthly_trend': summary['monthly_trend'],
+        'monthly_trend_json': monthly_trend_json,
 
         # Recent transactions
         'recent_transactions': recent_transactions,
@@ -196,6 +208,33 @@ def platform_revenue_detail(request):
     # Sort by commission descending
     domain_details.sort(key=lambda x: x['commission'], reverse=True)
 
+    if request.GET.get('export') == 'csv':
+        period = 'all_time' if days == 'all' else f'last_{days}days'
+        response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+        response['Content-Disposition'] = f'attachment; filename="revenue_detail_{period}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Domain', 'Transactions', 'Gross Revenue (£)', 'Commission (£)',
+                         'Stripe Fees (£)', 'Fee %', 'Net Income (£)'])
+        for d in domain_details:
+            writer.writerow([
+                d['display_name'],
+                d['count'],
+                f"{d['gross']:.2f}",
+                f"{d['commission']:.2f}",
+                f"{d['stripe_fees']:.2f}" if d['stripe_fees'] else '0.00',
+                f"{d['fees_pct']:.2f}" if d['fees_pct'] else '0.00',
+                f"{d['net_income']:.2f}",
+            ])
+        writer.writerow([
+            'TOTAL', '',
+            f"{summary['total_gross']:.2f}",
+            f"{summary['total_commission']:.2f}",
+            f"{summary['total_stripe_fees']:.2f}",
+            '',
+            f"{summary['net_platform_income']:.2f}",
+        ])
+        return response
+
     context = {
         'days': days,
         'date_label': date_label,
@@ -253,6 +292,32 @@ def stripe_fees_detail(request):
         status='completed',
         stripe_fee__isnull=False
     ).select_related('student', 'teacher').order_by('-created_at')[:20]
+
+    if request.GET.get('export') == 'csv':
+        period = 'all_time' if days == 'all' else f'last_{days}days'
+        response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+        response['Content-Disposition'] = f'attachment; filename="stripe_fees_{period}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Date', 'Domain', 'Student', 'Gross Amount (£)', 'Stripe Fee (£)', 'Fee %'])
+        all_transactions = StripePayment.objects.filter(
+            status='completed',
+            stripe_fee__isnull=False,
+        ).select_related('student').order_by('-created_at')
+        if start_date:
+            all_transactions = all_transactions.filter(created_at__gte=start_date)
+        if end_date:
+            all_transactions = all_transactions.filter(created_at__lte=end_date)
+        for tx in all_transactions:
+            fee_pct = (tx.stripe_fee / tx.total_amount * 100) if tx.total_amount else Decimal('0')
+            writer.writerow([
+                tx.created_at.strftime('%Y-%m-%d'),
+                tx.get_domain_display(),
+                tx.student.get_full_name() if tx.student else '',
+                f"{tx.total_amount:.2f}",
+                f"{tx.stripe_fee:.2f}",
+                f"{fee_pct:.2f}",
+            ])
+        return response
 
     context = {
         'days': days,
@@ -321,6 +386,25 @@ def platform_expenses_list(request):
     ).order_by('-total')
 
     total_expenses = expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+    if request.GET.get('export') == 'csv':
+        period = 'all_time' if days == 'all' else f'last_{days}days'
+        response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+        response['Content-Disposition'] = f'attachment; filename="expenses_{period}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Date', 'Category', 'Description', 'Supplier', 'Amount (£)',
+                         'Payment Method', 'Notes'])
+        for expense in expenses:
+            writer.writerow([
+                expense.date.strftime('%Y-%m-%d'),
+                expense.category.name if expense.category else '',
+                expense.description,
+                expense.supplier or '',
+                f"{expense.amount:.2f}",
+                expense.get_payment_method_display(),
+                expense.notes or '',
+            ])
+        return response
 
     context = {
         'days': days,

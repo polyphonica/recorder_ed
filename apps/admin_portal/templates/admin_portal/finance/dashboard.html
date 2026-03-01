@@ -74,6 +74,20 @@
         </div>
     </div>
 
+    <!-- Monthly Revenue Trend Chart -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-chart-line text-primary"></i>
+                Monthly Revenue Trend
+                <span class="text-sm font-normal text-base-content/60 ml-1">(last 12 months)</span>
+            </h2>
+            <div class="relative" style="height: 280px;">
+                <canvas id="revenueTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Revenue by Domain -->
@@ -267,4 +281,95 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const trend = {{ monthly_trend_json|safe }};
+
+    if (!trend.labels.length) {
+        const canvas = document.getElementById('revenueTrendChart');
+        canvas.closest('.card-body').innerHTML =
+            '<h2 class="card-title"><i class="fas fa-chart-line text-primary"></i> Monthly Revenue Trend <span class="text-sm font-normal text-base-content/60 ml-1">(last 12 months)</span></h2>' +
+            '<div class="text-center text-base-content/60 py-8"><i class="fas fa-chart-line text-4xl mb-4"></i><p>No trend data available yet</p></div>';
+        return;
+    }
+
+    const ctx = document.getElementById('revenueTrendChart').getContext('2d');
+    new Chart(ctx, {
+        data: {
+            labels: trend.labels,
+            datasets: [
+                {
+                    type: 'bar',
+                    label: 'Commission Income',
+                    data: trend.commission,
+                    backgroundColor: 'rgba(34, 197, 94, 0.65)',
+                    borderColor: 'rgb(34, 197, 94)',
+                    borderWidth: 1,
+                    order: 2,
+                },
+                {
+                    type: 'bar',
+                    label: 'Stripe Fees',
+                    data: trend.stripe_fees,
+                    backgroundColor: 'rgba(239, 68, 68, 0.65)',
+                    borderColor: 'rgb(239, 68, 68)',
+                    borderWidth: 1,
+                    order: 2,
+                },
+                {
+                    type: 'line',
+                    label: 'Net Income',
+                    data: trend.net_income,
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                    borderWidth: 2.5,
+                    pointBackgroundColor: 'rgb(59, 130, 246)',
+                    pointRadius: 4,
+                    fill: true,
+                    tension: 0.3,
+                    order: 1,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { boxWidth: 12, padding: 16 },
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (ctx) {
+                            return ' ' + ctx.dataset.label + ': £' + ctx.parsed.y.toFixed(2);
+                        },
+                    },
+                },
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function (value) {
+                            return '£' + value.toLocaleString('en-GB', { minimumFractionDigits: 0 });
+                        },
+                    },
+                },
+            },
+        },
+    });
+})();
+</script>
 {% endblock %}
