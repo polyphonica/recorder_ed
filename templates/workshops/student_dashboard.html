@@ -295,6 +295,64 @@
                 </div>
             </div>
 
+            <!-- Past Workshops -->
+            {% if past_registrations %}
+            <div class="card bg-base-200 shadow-xl mb-8">
+                <div class="card-body">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="card-title text-xl">
+                            <i class="fas fa-history text-secondary"></i>
+                            Past Workshops
+                        </h2>
+                    </div>
+                    <div class="space-y-4">
+                        {% for registration in past_registrations %}
+                            <div class="card bg-base-100 border border-base-300">
+                                <div class="card-body p-4">
+                                    <div class="flex flex-col sm:flex-row gap-4">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <h3 class="font-semibold text-lg">{{ registration.session.workshop.title }}</h3>
+                                                {% if registration.attended %}
+                                                    <span class="badge badge-success">Attended</span>
+                                                {% else %}
+                                                    <span class="badge badge-ghost">{{ registration.get_status_display }}</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="text-sm text-base-content/70 space-y-1">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-calendar"></i>
+                                                    <span>{{ registration.session.start_datetime|date:"F j, Y" }}</span>
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-clock"></i>
+                                                    <span>{{ registration.session.start_datetime|time:"g:i A" }} - {{ registration.session.end_datetime|time:"g:i A" }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-col gap-2 sm:w-32">
+                                            <a href="{% url 'workshops:detail' slug=registration.session.workshop.slug %}"
+                                               class="btn btn-sm btn-primary">
+                                                <i class="fas fa-eye"></i>
+                                                View
+                                            </a>
+                                            {% if registration.session.materials.exists %}
+                                                <a href="{% url 'workshops:participant_materials' session_id=registration.session.id %}"
+                                                   class="btn btn-sm btn-outline">
+                                                    <i class="fas fa-download"></i>
+                                                    Materials
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Sidebar -->
             <div class="space-y-6">
                 <!-- Quick Actions -->

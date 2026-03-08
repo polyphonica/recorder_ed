@@ -225,7 +225,7 @@
                                         View Workshop
                                     </a>
 
-                                    {% if registration.session.meeting_url and registration.status == 'registered' %}
+                                    {% if registration.session.meeting_url and registration.status == 'registered' and registration.session.end_datetime > now %}
                                         <a href="{{ registration.session.meeting_url }}" target="_blank"
                                            class="btn btn-sm btn-success tooltip"
                                            data-tip="Join the online workshop session">

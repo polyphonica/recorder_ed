@@ -238,14 +238,18 @@ class WorkshopDetailView(DetailView):
                 session_end = session.end_datetime
                 
                 accessible_materials = []
+                session_ended = now > session_end
                 for material in session.materials.all():
+                    # Once a session has ended, all materials are permanently accessible
+                    if session_ended:
+                        accessible_materials.append(material)
+                        continue
                     access_rules = {
                         'always': True,
                         'pre': now < session_start,
                         'during': session_start <= now <= session_end,
-                        'post': now > session_end,
+                        'post': False,
                     }
-                    
                     if access_rules.get(material.access_timing, False):
                         accessible_materials.append(material)
                 
@@ -1033,15 +1037,27 @@ class StudentDashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         
+        now = timezone.now()
+
         # Upcoming workshops - include registered and promoted (awaiting payment)
         upcoming_registrations = WorkshopRegistration.objects.filter(
             student=user,
             status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.PROMOTED],
-            session__start_datetime__gte=timezone.now()
+            session__start_datetime__gte=now
         ).select_related(
             'session__workshop',
             'session__workshop__instructor'
         ).order_by('session__start_datetime')[:5]
+
+        # Past workshops - registered or attended, session already ended
+        past_registrations = WorkshopRegistration.objects.filter(
+            student=user,
+            status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.ATTENDED],
+            session__start_datetime__lt=now
+        ).select_related(
+            'session__workshop',
+            'session__workshop__instructor'
+        ).order_by('-session__start_datetime')
         
         # Recent activity
         recent_registrations = WorkshopRegistration.objects.filter(
@@ -1061,7 +1077,9 @@ class StudentDashboardView(LoginRequiredMixin, TemplateView):
         
         context.update({
             'upcoming_registrations': upcoming_registrations,
+            'past_registrations': past_registrations,
             'recent_registrations': recent_registrations,
+            'now': now,
             'stats': {
                 'total_registered': total_registered,
                 'attended': attended,

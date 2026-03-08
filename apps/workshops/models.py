@@ -904,14 +904,18 @@ class WorkshopMaterial(models.Model):
             now = timezone.now()
             session_start = self.session.start_datetime
             session_end = self.session.end_datetime
-            
+
+            # Once a session has ended, all materials are permanently accessible
+            if now > session_end:
+                return True
+
             access_rules = {
                 'always': True,
                 'pre': now < session_start,
                 'during': session_start <= now <= session_end,
-                'post': now > session_end,
+                'post': False,  # 'post' is handled above (now > session_end)
             }
-            
+
             return access_rules.get(self.access_timing, False)
         
         # Workshop-level materials are generally always accessible to registered users
