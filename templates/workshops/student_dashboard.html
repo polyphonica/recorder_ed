@@ -355,6 +355,13 @@
                                                 {{ registration.registration_date|timesince }} ago
                                             </p>
                                         </div>
+                                        {% if registration.session.materials.exists %}
+                                            <a href="{% url 'workshops:participant_materials' session_id=registration.session.id %}"
+                                               class="btn btn-xs btn-outline flex-shrink-0">
+                                                <i class="fas fa-download"></i>
+                                                Materials
+                                            </a>
+                                        {% endif %}
                                     </div>
                                 {% endfor %}
                             </div>
