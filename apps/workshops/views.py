@@ -1364,24 +1364,27 @@ class WorkshopAIAssistView(LoginRequiredMixin, View):
 
         prompt = f"""You are an assistant helping a recorder music teacher create a workshop listing on their education platform.
 
-The teacher has provided a description below. Extract any explicit details, then ALWAYS generate sensible content for the remaining text fields — do not leave them null. The teacher will review and edit everything before publishing.
+The teacher has provided some notes below. Your job is to:
+1. Extract any explicit details (dates, prices, capacity, location, difficulty, delivery method)
+2. Generate engaging, professional content for ALL text fields — even if the notes are brief. The teacher will review and edit before publishing.
 
-Description: {description}
+Teacher's notes: {description}
 
-Return a JSON object with ALL of these fields:
-- title: string — a clear workshop title (infer one if not explicitly given)
-- short_description: string — 1–2 sentence summary for listing cards, max 300 characters. Always generate this.
-- description: string — full engaging description in one or two paragraphs suitable for a recorder music workshop listing. Always generate this even if the input is brief.
-- difficulty_level: one of "beginner", "intermediate", "advanced", "mixed" — or null only if genuinely impossible to infer
+Return a JSON object with ALL of these fields. IMPORTANT: description, short_description, learning_objectives, prerequisites, materials_needed and tags must NEVER be null — always write something appropriate for a recorder music workshop:
+
+- title: string — a clear workshop title
+- short_description: string — 1–2 sentence summary for listing cards, max 300 characters
+- description: string — write 2–3 paragraphs of engaging, professional copy for the workshop listing page. Base it on the title, topic, difficulty level, and learning objectives. This field is required.
+- difficulty_level: one of "beginner", "intermediate", "advanced", "mixed" — or null if impossible to infer
 - duration_value: integer — or null if not mentioned
 - duration_unit: one of "minutes", "hours", "days", "weeks" — or null if not mentioned
 - delivery_method: one of "online", "in_person", "hybrid" — or null if not mentioned
-- price: decimal number (e.g. 85.00) — or null if free or unspecified
+- price: decimal number (e.g. 85.00) — or null if unspecified
 - is_free: true only if explicitly stated as free; false if a price is given; null if unknown
-- learning_objectives: string — generate a plausible list of 3–4 learning objectives based on the topic. Always generate this.
-- prerequisites: string — generate sensible prerequisites for the difficulty level described. Always generate this.
-- materials_needed: string — generate a sensible list (e.g. recorder, music stand, printed parts). Always generate this.
-- tags: string — comma-separated relevant tags based on the topic and level. Always generate this.
+- learning_objectives: string — 3–4 bullet points of what participants will learn
+- prerequisites: string — what participants need to know or bring beforehand
+- materials_needed: string — practical list of what to bring (recorder, music stand, printed parts, pencil, etc.)
+- tags: string — comma-separated relevant tags (topic, style period, difficulty, instrument)
 - venue_name: string — or null if not mentioned
 - venue_address: string — or null if not mentioned
 - venue_city: string — or null if not mentioned
@@ -1395,7 +1398,7 @@ Return ONLY valid JSON with no markdown fences or explanation."""
 
         message = client.messages.create(
             model='claude-haiku-4-5-20251001',
-            max_tokens=1500,
+            max_tokens=2500,
             messages=[{'role': 'user', 'content': prompt}],
         )
 
