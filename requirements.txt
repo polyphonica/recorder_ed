@@ -1,4 +1,5 @@
 # Production dependencies
+anthropic>=0.40.0
 gunicorn==23.0.0
 celery[redis]>=5.3
 redis>=5.0

@@ -17,6 +17,7 @@ urlpatterns = [
     path('instructor/dashboard/', views.InstructorDashboardView.as_view(), name='instructor_dashboard'),
     path('instructor/participants/', views.InstructorParticipantsView.as_view(), name='instructor_participants'),
     path('instructor/workshops/', views.InstructorWorkshopsView.as_view(), name='instructor_workshops'),
+    path('instructor/workshop/ai-assist/', views.WorkshopAIAssistView.as_view(), name='ai_assist'),
     path('instructor/workshop/create/', views.CreateWorkshopView.as_view(), name='create_workshop'),
     path('instructor/workshop/<slug:slug>/edit/', views.EditWorkshopView.as_view(), name='edit_workshop'),
     path('instructor/workshop/<slug:slug>/delete/', views.WorkshopDeleteView.as_view(), name='delete_workshop'),

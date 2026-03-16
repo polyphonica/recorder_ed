@@ -38,6 +38,61 @@
         </p>
     </div>
 
+    {% if not object %}
+    <!-- AI Workshop Assistant -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-5 mb-6"
+         x-data="workshopAI()"
+         x-cloak>
+        <div class="flex items-center gap-3 mb-1">
+            <i class="fas fa-wand-magic-sparkles text-blue-500"></i>
+            <h3 class="font-semibold text-gray-900">AI Workshop Assistant</h3>
+            <button type="button" class="btn btn-ghost btn-xs ml-auto text-gray-500"
+                    @click="expanded = !expanded"
+                    x-text="expanded ? 'Hide' : 'Show'">
+            </button>
+        </div>
+        <p class="text-sm text-gray-500 mb-3 ml-7">Describe your workshop in plain English and I'll fill in the form for you.</p>
+
+        <div x-show="expanded" x-transition class="ml-7">
+            <p class="text-xs text-gray-400 mb-2 italic">
+                e.g. "A one-day in-person workshop in London on Saturday 14th June for intermediate players focusing on Renaissance consort music. Max 8 participants, £85 per person."
+            </p>
+
+            <textarea
+                x-model="prompt"
+                class="textarea textarea-bordered w-full mb-3 text-sm bg-white"
+                rows="3"
+                placeholder="Describe your workshop..."
+                :disabled="loading"
+            ></textarea>
+
+            <div class="flex items-center gap-3 flex-wrap">
+                <button
+                    type="button"
+                    class="btn btn-primary btn-sm"
+                    @click="generate()"
+                    :disabled="loading || !prompt.trim()"
+                >
+                    <template x-if="!loading">
+                        <span><i class="fas fa-wand-magic-sparkles mr-1"></i>Generate</span>
+                    </template>
+                    <template x-if="loading">
+                        <span><span class="loading loading-spinner loading-xs mr-1"></span>Generating...</span>
+                    </template>
+                </button>
+                <span x-show="summary" x-text="summary" class="text-sm text-gray-600"></span>
+            </div>
+
+            <template x-if="error">
+                <div class="alert alert-error mt-3 py-2 text-sm">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span x-text="error"></span>
+                </div>
+            </template>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Wizard Container -->
     <div class="bg-base-100 rounded-lg shadow p-6"
          x-data="workshopWizard()"
@@ -939,6 +994,84 @@ function workshopWizard() {
                 this.$nextTick(() => this.refreshReview());
             }
         }
+    };
+}
+
+function workshopAI() {
+    return {
+        expanded: true,
+        prompt: '',
+        loading: false,
+        summary: '',
+        error: '',
+
+        async generate() {
+            this.loading = true;
+            this.error = '';
+            this.summary = '';
+
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            try {
+                const formData = new FormData();
+                formData.append('description', this.prompt);
+
+                const response = await fetch('{% url "workshops:ai_assist" %}', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken },
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    this.error = data.error;
+                    return;
+                }
+
+                this.fillFields(data);
+                this.summary = data.summary || 'Fields filled from your description.';
+
+            } catch (e) {
+                this.error = 'Something went wrong. Please try again.';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        setField(name, value) {
+            if (value === null || value === undefined) return;
+            const el = document.querySelector('[name="' + name + '"]');
+            if (!el) return;
+            if (el.type === 'checkbox') {
+                el.checked = !!value;
+            } else {
+                el.value = value;
+            }
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        },
+
+        fillFields(data) {
+            const fields = [
+                'title', 'short_description', 'description', 'difficulty_level',
+                'duration_value', 'duration_unit', 'delivery_method',
+                'learning_objectives', 'prerequisites', 'materials_needed',
+                'tags', 'venue_name', 'venue_address', 'venue_city',
+                'venue_postcode', 'max_venue_capacity',
+            ];
+            for (const field of fields) {
+                if (data[field] !== null && data[field] !== undefined) {
+                    this.setField(field, data[field]);
+                }
+            }
+            if (data.is_free !== null && data.is_free !== undefined) {
+                this.setField('is_free', data.is_free);
+            }
+            if (data.price !== null && data.price !== undefined) {
+                this.setField('price', data.price);
+            }
+        },
     };
 }
 </script>

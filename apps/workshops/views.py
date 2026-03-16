@@ -1345,6 +1345,70 @@ class InstructorWorkshopsView(UserFilterMixin, InstructorRequiredMixin, ListView
         return context
 
 
+class WorkshopAIAssistView(LoginRequiredMixin, View):
+    """AI assistant: extract workshop fields from a natural language description."""
+
+    def post(self, request, *args, **kwargs):
+        import json
+        from anthropic import Anthropic
+
+        description = request.POST.get('description', '').strip()
+        if not description:
+            return JsonResponse({'error': 'No description provided.'}, status=400)
+
+        api_key = settings.ANTHROPIC_API_KEY
+        if not api_key:
+            return JsonResponse({'error': 'AI assistant is not configured.'}, status=503)
+
+        client = Anthropic(api_key=api_key)
+
+        prompt = f"""You are an assistant helping a recorder music teacher create a workshop listing.
+
+Extract structured information from the description below and return a JSON object.
+
+Description: {description}
+
+Return a JSON object with these fields (use null for any you cannot determine):
+- title: string — a clear workshop title (infer one if not given)
+- short_description: string — 1–2 sentence summary for listing cards, max 300 characters
+- description: string — full engaging description in one or two paragraphs
+- difficulty_level: one of "beginner", "intermediate", "advanced", "mixed" — or null
+- duration_value: integer — or null
+- duration_unit: one of "minutes", "hours", "days", "weeks" — or null
+- delivery_method: one of "online", "in_person", "hybrid" — or null
+- price: decimal number (e.g. 85.00) — or null if free or unspecified
+- is_free: true only if explicitly stated as free; false if a price is given; null if unknown
+- learning_objectives: string — what participants will learn, or null
+- prerequisites: string — what participants need beforehand, or null
+- materials_needed: string — what to bring, or null
+- tags: string — comma-separated relevant tags, or null
+- venue_name: string — or null
+- venue_address: string — or null
+- venue_city: string — or null
+- venue_postcode: string — or null
+- max_venue_capacity: integer — or null
+- filled_fields: array of field names you extracted with confidence
+- missing_fields: array of field names you could not determine
+- summary: one sentence, e.g. "I've filled in title, description, price and difficulty. Location and prerequisites are missing."
+
+Return ONLY valid JSON with no markdown fences or explanation."""
+
+        message = client.messages.create(
+            model='claude-haiku-4-5-20251001',
+            max_tokens=1500,
+            messages=[{'role': 'user', 'content': prompt}],
+        )
+
+        response_text = message.content[0].text.strip()
+
+        try:
+            data = json.loads(response_text)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Could not parse AI response. Please try again.'}, status=500)
+
+        return JsonResponse(data)
+
+
 class CreateWorkshopView(SuccessMessageMixin, SetUserFieldMixin, LoginRequiredMixin, CreateView):
     """Create new workshop. Uses SuccessMessageMixin and SetUserFieldMixin."""
     model = Workshop
