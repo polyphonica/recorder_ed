@@ -1362,34 +1362,34 @@ class WorkshopAIAssistView(LoginRequiredMixin, View):
 
         client = Anthropic(api_key=api_key)
 
-        prompt = f"""You are an assistant helping a recorder music teacher create a workshop listing.
+        prompt = f"""You are an assistant helping a recorder music teacher create a workshop listing on their education platform.
 
-Extract structured information from the description below and return a JSON object.
+The teacher has provided a description below. Extract any explicit details, then ALWAYS generate sensible content for the remaining text fields — do not leave them null. The teacher will review and edit everything before publishing.
 
 Description: {description}
 
-Return a JSON object with these fields (use null for any you cannot determine):
-- title: string — a clear workshop title (infer one if not given)
-- short_description: string — 1–2 sentence summary for listing cards, max 300 characters
-- description: string — full engaging description in one or two paragraphs
-- difficulty_level: one of "beginner", "intermediate", "advanced", "mixed" — or null
-- duration_value: integer — or null
-- duration_unit: one of "minutes", "hours", "days", "weeks" — or null
-- delivery_method: one of "online", "in_person", "hybrid" — or null
+Return a JSON object with ALL of these fields:
+- title: string — a clear workshop title (infer one if not explicitly given)
+- short_description: string — 1–2 sentence summary for listing cards, max 300 characters. Always generate this.
+- description: string — full engaging description in one or two paragraphs suitable for a recorder music workshop listing. Always generate this even if the input is brief.
+- difficulty_level: one of "beginner", "intermediate", "advanced", "mixed" — or null only if genuinely impossible to infer
+- duration_value: integer — or null if not mentioned
+- duration_unit: one of "minutes", "hours", "days", "weeks" — or null if not mentioned
+- delivery_method: one of "online", "in_person", "hybrid" — or null if not mentioned
 - price: decimal number (e.g. 85.00) — or null if free or unspecified
 - is_free: true only if explicitly stated as free; false if a price is given; null if unknown
-- learning_objectives: string — what participants will learn, or null
-- prerequisites: string — what participants need beforehand, or null
-- materials_needed: string — what to bring, or null
-- tags: string — comma-separated relevant tags, or null
-- venue_name: string — or null
-- venue_address: string — or null
-- venue_city: string — or null
-- venue_postcode: string — or null
-- max_venue_capacity: integer — or null
-- filled_fields: array of field names you extracted with confidence
-- missing_fields: array of field names you could not determine
-- summary: one sentence, e.g. "I've filled in title, description, price and difficulty. Location and prerequisites are missing."
+- learning_objectives: string — generate a plausible list of 3–4 learning objectives based on the topic. Always generate this.
+- prerequisites: string — generate sensible prerequisites for the difficulty level described. Always generate this.
+- materials_needed: string — generate a sensible list (e.g. recorder, music stand, printed parts). Always generate this.
+- tags: string — comma-separated relevant tags based on the topic and level. Always generate this.
+- venue_name: string — or null if not mentioned
+- venue_address: string — or null if not mentioned
+- venue_city: string — or null if not mentioned
+- venue_postcode: string — or null if not mentioned
+- max_venue_capacity: integer — or null if not mentioned
+- filled_fields: array of field names you populated
+- missing_fields: array of field names left as null
+- summary: one sentence describing what was filled and what the teacher still needs to add
 
 Return ONLY valid JSON with no markdown fences or explanation."""
 

@@ -1053,6 +1053,7 @@ function workshopAI() {
         },
 
         fillFields(data) {
+            // category is excluded — it's a FK select needing a DB id, not text
             const fields = [
                 'title', 'short_description', 'description', 'difficulty_level',
                 'duration_value', 'duration_unit', 'delivery_method',
@@ -1060,17 +1061,27 @@ function workshopAI() {
                 'tags', 'venue_name', 'venue_address', 'venue_city',
                 'venue_postcode', 'max_venue_capacity',
             ];
+            const filled = [];
+            const skipped = [];
             for (const field of fields) {
                 if (data[field] !== null && data[field] !== undefined) {
                     this.setField(field, data[field]);
+                    filled.push(field);
+                } else {
+                    skipped.push(field);
                 }
             }
             if (data.is_free !== null && data.is_free !== undefined) {
                 this.setField('is_free', data.is_free);
+                filled.push('is_free');
             }
             if (data.price !== null && data.price !== undefined) {
                 this.setField('price', data.price);
+                filled.push('price');
             }
+            console.log('[AI Assistant] Filled:', filled);
+            console.log('[AI Assistant] Skipped (null):', skipped);
+            console.log('[AI Assistant] Full response:', data);
         },
     };
 }
