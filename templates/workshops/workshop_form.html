@@ -1041,7 +1041,7 @@ function workshopAI() {
 
         setField(name, value) {
             if (value === null || value === undefined) return;
-            const el = document.querySelector('[name="' + name + '"]');
+            const el = document.querySelector('input[name="' + name + '"], textarea[name="' + name + '"], select[name="' + name + '"]');
             if (!el) return;
             if (el.type === 'checkbox') {
                 el.checked = !!value;
