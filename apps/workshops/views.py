@@ -1400,6 +1400,12 @@ Return ONLY valid JSON with no markdown fences or explanation."""
         )
 
         response_text = message.content[0].text.strip()
+        # Strip markdown fences if the model wrapped the JSON despite instructions
+        if response_text.startswith('```'):
+            response_text = response_text.split('```')[1]
+            if response_text.startswith('json'):
+                response_text = response_text[4:]
+            response_text = response_text.strip()
 
         try:
             data = json.loads(response_text)
