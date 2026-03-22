@@ -845,6 +845,55 @@ class FinanceDashboardView(LoginRequiredMixin, TeacherOnlyMixin, DateRangeMixin,
         # Add expense count
         expense_count = expense_queryset.count()
 
+        # Domain P&L: combine revenue + expenses per domain for template
+        from django.urls import reverse
+        domain_pl = [
+            {
+                'name': 'Workshops',
+                'icon': 'fas fa-chalkboard-teacher',
+                'color': 'text-primary',
+                'revenue': summary['by_domain']['workshops']['revenue'],
+                'expenses': expense_breakdown['workshops'],
+                'net': summary['by_domain']['workshops']['revenue'] - expense_breakdown['workshops'],
+                'count': summary['by_domain']['workshops']['count'],
+                'detail_url': f"{reverse('payments:workshop_revenue')}?range={date_range}",
+                'breakdown': None,
+            },
+            {
+                'name': 'Courses',
+                'icon': 'fas fa-graduation-cap',
+                'color': 'text-secondary',
+                'revenue': summary['by_domain']['courses']['revenue'],
+                'expenses': expense_breakdown['courses'],
+                'net': summary['by_domain']['courses']['revenue'] - expense_breakdown['courses'],
+                'count': summary['by_domain']['courses']['count'],
+                'detail_url': f"{reverse('payments:course_revenue')}?range={date_range}",
+                'breakdown': None,
+            },
+            {
+                'name': 'Private Teaching',
+                'icon': 'fas fa-user-graduate',
+                'color': 'text-accent',
+                'revenue': summary['by_domain']['private_teaching']['revenue'],
+                'expenses': expense_breakdown['private_teaching'],
+                'net': summary['by_domain']['private_teaching']['revenue'] - expense_breakdown['private_teaching'],
+                'count': summary['by_domain']['private_teaching']['count'],
+                'detail_url': f"{reverse('payments:private_teaching_revenue')}?range={date_range}",
+                'breakdown': summary['by_domain']['private_teaching'].get('breakdown'),
+            },
+            {
+                'name': 'Digital Products',
+                'icon': 'fas fa-download',
+                'color': 'text-info',
+                'revenue': summary['by_domain']['digital_products']['revenue'],
+                'expenses': expense_breakdown['digital_products'],
+                'net': summary['by_domain']['digital_products']['revenue'] - expense_breakdown['digital_products'],
+                'count': summary['by_domain']['digital_products']['count'],
+                'detail_url': reverse('digital_products:teacher_dashboard'),
+                'breakdown': None,
+            },
+        ]
+
         context.update({
             'summary': summary,
             'recent_transactions': recent_transactions,
@@ -854,6 +903,8 @@ class FinanceDashboardView(LoginRequiredMixin, TeacherOnlyMixin, DateRangeMixin,
             'expense_breakdown': expense_breakdown,
             'net_profit': net_profit,
             'expense_count': expense_count,
+            'domain_pl': domain_pl,
+            'general_expenses': expense_breakdown['general'],
         })
 
         return context
