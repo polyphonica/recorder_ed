@@ -72,7 +72,7 @@ class ProfileCompletionMiddleware:
                 # Don't redirect if already on profile setup page
                 if path != profile_setup_url:
                     return redirect(profile_setup_url)
-        except:
+        except Exception:
             # No profile exists (shouldn't happen due to signal, but handle it)
             profile_setup_url = reverse('accounts:profile_setup')
             if path != profile_setup_url:

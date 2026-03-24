@@ -13,7 +13,7 @@ class EmailBackend(ModelBackend):
             # Try to find user by email first, then by username as fallback
             # Handle potential duplicates by getting the first match
             user = User.objects.filter(Q(email=username) | Q(username=username)).first()
-            if user and user.check_password(password):
+            if user and user.is_active and user.check_password(password):
                 return user
         except User.DoesNotExist:
             return None
