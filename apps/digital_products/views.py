@@ -10,7 +10,7 @@ from apps.core.mixins import InstructorRequiredMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, View
 from django.urls import reverse, reverse_lazy
 from django.http import FileResponse, HttpResponseForbidden, Http404
-from django.db.models import Q, Count
+from django.db.models import F, Q, Count
 from django.utils import timezone
 from django.conf import settings
 
@@ -227,8 +227,7 @@ def _handle_free_checkout(request, products, applied_voucher, total_amount, disc
             purchase.paid_at = timezone.now()
             purchase.save()
 
-        product.total_sales += 1
-        product.save(update_fields=['total_sales'])
+        DigitalProduct.objects.filter(pk=product.pk).update(total_sales=F('total_sales') + 1)
         created_purchases.append(purchase)
 
     # Send confirmation email

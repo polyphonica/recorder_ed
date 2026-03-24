@@ -1,6 +1,8 @@
 import stripe
 import logging
 from django.conf import settings
+from django.db import transaction
+from django.db.models import F
 from django.http import JsonResponse, HttpResponse
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -223,38 +225,63 @@ class StripeWebhookView(View):
         order_id = metadata.get('order_id')
         if order_id:
             try:
-                order = Order.objects.get(id=order_id)
-                order.payment_status = 'completed'
-                order.completed_at = timezone.now()
-                order.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
-                order.save()
+                with transaction.atomic():
+                    order = Order.objects.get(id=order_id)
+                    order.payment_status = 'completed'
+                    order.completed_at = timezone.now()
+                    order.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
+                    order.save()
 
-                # Update order reference in StripePayment and mark as completed
-                stripe_payment.order_id = order_id
-                stripe_payment.save()
-                stripe_payment.mark_completed()
+                    # Update order reference in StripePayment and mark as completed
+                    stripe_payment.order_id = order_id
+                    stripe_payment.save()
+                    stripe_payment.mark_completed()
 
-                # Mark lessons as paid
-                lesson_ids = metadata.get('lesson_ids', '').split(',')
-                for lesson_id in lesson_ids:
-                    if lesson_id:
+                    # Mark lessons as paid
+                    lesson_ids = metadata.get('lesson_ids', '').split(',')
+                    for lesson_id in lesson_ids:
+                        if lesson_id:
+                            try:
+                                # Lesson IDs are UUIDs, not integers - don't convert
+                                lesson = Lesson.objects.get(id=lesson_id.strip())
+                                lesson.payment_status = 'completed'
+                                lesson.save()
+                                logger.info(f"Marked lesson {lesson_id} as completed")
+                            except (Lesson.DoesNotExist, ValueError) as e:
+                                logger.error(f"updating lesson {lesson_id}: {e}")
+
+                    # Handle voucher redemption if a voucher was used
+                    voucher_id = metadata.get('voucher_id')
+                    if voucher_id:
                         try:
-                            # Lesson IDs are UUIDs, not integers - don't convert
-                            lesson = Lesson.objects.get(id=lesson_id.strip())
-                            lesson.payment_status = 'completed'
-                            lesson.save()
-                            logger.info(f"Marked lesson {lesson_id} as completed")
-                        except (Lesson.DoesNotExist, ValueError) as e:
-                            logger.error(f"updating lesson {lesson_id}: {e}")
+                            from .models import Voucher
+                            from .voucher_service import VoucherService
 
-                # Send payment confirmation email to student
+                            voucher = Voucher.objects.get(id=voucher_id)
+                            original_amount = Decimal(metadata.get('original_amount', '0'))
+                            discount_amount = Decimal(metadata.get('discount_amount', '0'))
+
+                            VoucherService.create_redemption(
+                                voucher=voucher,
+                                student=order.student,
+                                domain='private_teaching',
+                                original_amount=original_amount,
+                                discount_amount=discount_amount,
+                                final_amount=order.total_amount,
+                                private_lesson_order=order,
+                                stripe_payment=stripe_payment
+                            )
+                            logger.info(f"Created VoucherRedemption for voucher {voucher.code}")
+                        except Exception as e:
+                            logger.error(f"creating voucher redemption: {e}")
+
+                # Send emails after transaction commits
                 try:
                     from apps.private_teaching.notifications import StudentNotificationService
                     StudentNotificationService.send_payment_confirmation(order)
                 except Exception as e:
                     logger.error(f"sending payment confirmation email: {e}")
 
-                # Send payment notification to teachers
                 order_items = OrderItem.objects.filter(order=order).select_related('lesson__teacher')
                 teachers = set()
                 for item in order_items:
@@ -267,32 +294,6 @@ class StripeWebhookView(View):
                         TeacherPaymentNotificationService.send_lesson_payment_notification(order, teacher)
                     except Exception as e:
                         logger.error(f"sending teacher payment notification: {e}")
-
-                # Handle voucher redemption if a voucher was used
-                voucher_id = metadata.get('voucher_id')
-                if voucher_id:
-                    try:
-                        from .models import Voucher
-                        from .voucher_service import VoucherService
-                        from decimal import Decimal
-
-                        voucher = Voucher.objects.get(id=voucher_id)
-                        original_amount = Decimal(metadata.get('original_amount', '0'))
-                        discount_amount = Decimal(metadata.get('discount_amount', '0'))
-
-                        VoucherService.create_redemption(
-                            voucher=voucher,
-                            student=order.student,
-                            domain='private_teaching',
-                            original_amount=original_amount,
-                            discount_amount=discount_amount,
-                            final_amount=order.total_amount,
-                            private_lesson_order=order,
-                            stripe_payment=stripe_payment
-                        )
-                        logger.info(f"Created VoucherRedemption for voucher {voucher.code}")
-                    except Exception as e:
-                        logger.error(f"creating voucher redemption: {e}")
 
                 logger.info(f"Private teaching order {order_id} marked as completed")
             except Order.DoesNotExist:
@@ -322,51 +323,51 @@ class StripeWebhookView(View):
         registration_id = metadata.get('registration_id')
         if registration_id:
             try:
-                registration = WorkshopRegistration.objects.select_related(
-                    'session__workshop', 'student', 'child_profile'
-                ).get(id=registration_id)
+                with transaction.atomic():
+                    registration = WorkshopRegistration.objects.select_related(
+                        'session__workshop', 'student', 'child_profile'
+                    ).get(id=registration_id)
 
-                # Update payment status
-                registration.payment_status = 'completed'
-                registration.status = WorkshopRegistration.Status.REGISTERED
-                registration.paid_at = timezone.now()
-                registration.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
-                registration.save()
+                    # Update payment status
+                    registration.payment_status = 'completed'
+                    registration.status = WorkshopRegistration.Status.REGISTERED
+                    registration.paid_at = timezone.now()
+                    registration.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
+                    registration.save()
 
-                # Create terms acceptance record
-                self._create_terms_acceptance_from_metadata(registration, metadata)
+                    # Create terms acceptance record
+                    self._create_terms_acceptance_from_metadata(registration, metadata)
 
-                # Update session registration count
-                session = registration.session
-                session.current_registrations = session.registrations.filter(
-                    status__in=[
-                        WorkshopRegistration.Status.REGISTERED,
-                        WorkshopRegistration.Status.PROMOTED,
-                        WorkshopRegistration.Status.ATTENDED,
-                    ]
-                ).count()
-                session.save(update_fields=['current_registrations'])
+                    # Update session registration count
+                    session = registration.session
+                    session.current_registrations = session.registrations.filter(
+                        status__in=[
+                            WorkshopRegistration.Status.REGISTERED,
+                            WorkshopRegistration.Status.PROMOTED,
+                            WorkshopRegistration.Status.ATTENDED,
+                        ]
+                    ).count()
+                    session.save(update_fields=['current_registrations'])
 
-                # Send notification to instructor
+                    # Update workshop total registrations if needed
+                    workshop = session.workshop
+                    workshop.total_registrations = WorkshopRegistration.objects.filter(
+                        session__workshop=workshop,
+                        status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.ATTENDED]
+                    ).count()
+                    workshop.save(update_fields=['total_registrations'])
+
+                    # Update reference in StripePayment
+                    stripe_payment.workshop_id = workshop.id
+                    stripe_payment.save()
+
+                # Send emails after transaction commits
                 try:
                     from apps.workshops.notifications import InstructorNotificationService
                     InstructorNotificationService.send_new_registration_notification(registration)
                 except Exception as e:
                     logger.error(f"Failed to send instructor notification: {e}")
 
-                # Update workshop total registrations if needed
-                workshop = session.workshop
-                workshop.total_registrations = WorkshopRegistration.objects.filter(
-                    session__workshop=workshop,
-                    status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.ATTENDED]
-                ).count()
-                workshop.save(update_fields=['total_registrations'])
-
-                # Update reference in StripePayment
-                stripe_payment.workshop_id = workshop.id
-                stripe_payment.save()
-
-                # Send confirmation email to student
                 try:
                     from apps.workshops.notifications import StudentNotificationService
                     StudentNotificationService.send_registration_confirmation(registration)
@@ -434,94 +435,127 @@ class StripeWebhookView(View):
                         logger.info(f"Detected mandatory series purchase: {workshop.title}")
                         logger.info(f"Generated series_registration_id: {series_registration_id}")
 
-            for item_id in item_ids:
-                logger.info(f"\n  Processing cart item: {item_id}")
-                try:
-                    cart_item = WorkshopCartItem.objects.select_related(
-                        'session__workshop__instructor',
-                        'session__workshop__category',
-                        'child_profile'
-                    ).get(id=item_id)
-
-                    logger.info(f"  Found cart item: {cart_item.session.workshop.title}")
-                    logger.info(f"  Session: {cart_item.session.start_datetime}")
-                    logger.info(f"  Original Price: £{cart_item.price}")
-
-                    # Calculate proportional discounted price for this item
-                    discounted_price = (cart_item.price * discount_ratio).quantize(Decimal('0.01'))
-                    logger.info(f"  Discounted Price: £{discounted_price}")
-
-                    # Create registration with data from cart item
-                    registration = WorkshopRegistration.objects.create(
-                        session=cart_item.session,
-                        student=user,
-                        email=cart_item.email or user.email,
-                        phone=cart_item.phone or '',
-                        emergency_contact=cart_item.emergency_contact or '',
-                        experience_level=cart_item.experience_level or '',
-                        expectations=cart_item.expectations or '',
-                        special_requirements=cart_item.special_requirements or '',
-                        child_profile=cart_item.child_profile,
-                        status=WorkshopRegistration.Status.REGISTERED,
-                        payment_status='completed',
-                        payment_amount=discounted_price,
-                        stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
-                        stripe_checkout_session_id=stripe_payment.stripe_checkout_session_id,
-                        paid_at=timezone.now(),
-                        series_registration_id=series_registration_id  # Link series registrations together
-                    )
-
-                    logger.info(f"  ✓ Created registration ID: {registration.id}")
-
-                    # Create terms acceptance record
-                    self._create_terms_acceptance_from_metadata(registration, metadata)
-                    logger.info(f"    - Status: {registration.status}")
-                    logger.info(f"    - Payment Status: {registration.payment_status}")
-                    logger.info(f"    - Paid At: {registration.paid_at}")
-                    logger.info(f"    - Registration Date: {registration.registration_date}")
-
-                    # Update session registration count
-                    session = cart_item.session
-                    session.current_registrations = session.registrations.filter(
-                        status__in=[
-                        WorkshopRegistration.Status.REGISTERED,
-                        WorkshopRegistration.Status.PROMOTED,
-                        WorkshopRegistration.Status.ATTENDED,
-                    ]
-                    ).count()
-                    session.save(update_fields=['current_registrations'])
-
-                    # Update workshop total registrations
-                    workshop = session.workshop
-                    workshop.total_registrations = WorkshopRegistration.objects.filter(
-                        session__workshop=workshop,
-                        status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.ATTENDED]
-                    ).count()
-                    workshop.save(update_fields=['total_registrations'])
-
-                    # Send notification to instructor
+            with transaction.atomic():
+                for item_id in item_ids:
+                    logger.info(f"\n  Processing cart item: {item_id}")
                     try:
-                        from apps.workshops.notifications import InstructorNotificationService
-                        InstructorNotificationService.send_new_registration_notification(registration)
-                        logger.info(f"  ✓ Sent notification to instructor {session.workshop.instructor.email}")
+                        cart_item = WorkshopCartItem.objects.select_related(
+                            'session__workshop__instructor',
+                            'session__workshop__category',
+                            'child_profile'
+                        ).get(id=item_id)
+
+                        logger.info(f"  Found cart item: {cart_item.session.workshop.title}")
+                        logger.info(f"  Session: {cart_item.session.start_datetime}")
+                        logger.info(f"  Original Price: £{cart_item.price}")
+
+                        # Calculate proportional discounted price for this item
+                        discounted_price = (cart_item.price * discount_ratio).quantize(Decimal('0.01'))
+                        logger.info(f"  Discounted Price: £{discounted_price}")
+
+                        # Create registration with data from cart item
+                        registration = WorkshopRegistration.objects.create(
+                            session=cart_item.session,
+                            student=user,
+                            email=cart_item.email or user.email,
+                            phone=cart_item.phone or '',
+                            emergency_contact=cart_item.emergency_contact or '',
+                            experience_level=cart_item.experience_level or '',
+                            expectations=cart_item.expectations or '',
+                            special_requirements=cart_item.special_requirements or '',
+                            child_profile=cart_item.child_profile,
+                            status=WorkshopRegistration.Status.REGISTERED,
+                            payment_status='completed',
+                            payment_amount=discounted_price,
+                            stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                            stripe_checkout_session_id=stripe_payment.stripe_checkout_session_id,
+                            paid_at=timezone.now(),
+                            series_registration_id=series_registration_id  # Link series registrations together
+                        )
+
+                        logger.info(f"  ✓ Created registration ID: {registration.id}")
+
+                        # Create terms acceptance record
+                        self._create_terms_acceptance_from_metadata(registration, metadata)
+                        logger.info(f"    - Status: {registration.status}")
+                        logger.info(f"    - Payment Status: {registration.payment_status}")
+                        logger.info(f"    - Paid At: {registration.paid_at}")
+                        logger.info(f"    - Registration Date: {registration.registration_date}")
+
+                        # Update session registration count
+                        session = cart_item.session
+                        session.current_registrations = session.registrations.filter(
+                            status__in=[
+                            WorkshopRegistration.Status.REGISTERED,
+                            WorkshopRegistration.Status.PROMOTED,
+                            WorkshopRegistration.Status.ATTENDED,
+                        ]
+                        ).count()
+                        session.save(update_fields=['current_registrations'])
+
+                        # Update workshop total registrations
+                        workshop = session.workshop
+                        workshop.total_registrations = WorkshopRegistration.objects.filter(
+                            session__workshop=workshop,
+                            status__in=[WorkshopRegistration.Status.REGISTERED, WorkshopRegistration.Status.ATTENDED]
+                        ).count()
+                        workshop.save(update_fields=['total_registrations'])
+
+                        # Store for email
+                        created_registrations.append(registration)
+
+                        # Delete cart item
+                        cart_item.delete()
+                        logger.info(f"  ✓ Deleted cart item {item_id}")
+
+                    except WorkshopCartItem.DoesNotExist:
+                        logger.warning(f"  ✗ Cart item {item_id} not found (may have been already processed)")
                     except Exception as e:
-                        logger.info(f"  ✗ Failed to send instructor notification: {e}")
+                        import traceback
+                        logger.info(f"  ✗ Error processing cart item {item_id}: {str(e)}")
+                        logger.info(f"  Traceback: {traceback.format_exc()}")
 
-                    # Store for email
-                    created_registrations.append(registration)
+                # Handle voucher redemption if a voucher was used
+                voucher_id = metadata.get('voucher_id')
+                if voucher_id and created_registrations:
+                    try:
+                        from .models import Voucher
+                        from .voucher_service import VoucherService
 
-                    # Delete cart item
-                    cart_item.delete()
-                    logger.info(f"  ✓ Deleted cart item {item_id}")
+                        voucher = Voucher.objects.get(id=voucher_id)
+                        original_amount = Decimal(metadata.get('original_amount', '0'))
+                        discount_amount = Decimal(metadata.get('discount_amount', '0'))
 
-                except WorkshopCartItem.DoesNotExist:
-                    logger.warning(f"  ✗ Cart item {item_id} not found (may have been already processed)")
+                        # Determine domain based on series purchase
+                        voucher_domain = 'workshop_series' if is_mandatory_series else 'workshops'
+
+                        VoucherService.create_redemption(
+                            voucher=voucher,
+                            student=user,
+                            domain=voucher_domain,
+                            original_amount=original_amount,
+                            discount_amount=discount_amount,
+                            final_amount=stripe_payment.total_amount,
+                            workshop_registration=created_registrations[0],  # Link to first registration
+                            stripe_payment=stripe_payment
+                        )
+                        logger.info(f"✓ Created VoucherRedemption for voucher {voucher.code}")
+                    except Exception as e:
+                        logger.error(f"creating voucher redemption: {e}")
+
+                # Mark payment as completed
+                stripe_payment.mark_completed()
+                logger.info(f"✓ Marked StripePayment {stripe_payment.id} as completed")
+
+            # Send emails after transaction commits
+            for registration in created_registrations:
+                try:
+                    from apps.workshops.notifications import InstructorNotificationService
+                    InstructorNotificationService.send_new_registration_notification(registration)
+                    logger.info(f"  ✓ Sent notification to instructor {registration.session.workshop.instructor.email}")
                 except Exception as e:
-                    import traceback
-                    logger.info(f"  ✗ Error processing cart item {item_id}: {str(e)}")
-                    logger.info(f"  Traceback: {traceback.format_exc()}")
+                    logger.info(f"  ✗ Failed to send instructor notification: {e}")
 
-            # Send consolidated confirmation email
             if created_registrations and user.email:
                 try:
                     logger.info(f"\nSending confirmation email to {user.email}...")
@@ -537,39 +571,6 @@ class StripeWebhookView(View):
             logger.info(f"Successfully created {len(created_registrations)} registrations:")
             for reg in created_registrations:
                 logger.info(f"  - {reg.session.workshop.title} (ID: {reg.id}, Status: {reg.status}, Payment: {reg.payment_status})")
-
-            # Handle voucher redemption if a voucher was used
-            voucher_id = metadata.get('voucher_id')
-            if voucher_id and created_registrations:
-                try:
-                    from .models import Voucher
-                    from .voucher_service import VoucherService
-                    from decimal import Decimal
-
-                    voucher = Voucher.objects.get(id=voucher_id)
-                    original_amount = Decimal(metadata.get('original_amount', '0'))
-                    discount_amount = Decimal(metadata.get('discount_amount', '0'))
-
-                    # Determine domain based on series purchase
-                    voucher_domain = 'workshop_series' if is_mandatory_series else 'workshops'
-
-                    VoucherService.create_redemption(
-                        voucher=voucher,
-                        student=user,
-                        domain=voucher_domain,
-                        original_amount=original_amount,
-                        discount_amount=discount_amount,
-                        final_amount=stripe_payment.total_amount,
-                        workshop_registration=created_registrations[0],  # Link to first registration
-                        stripe_payment=stripe_payment
-                    )
-                    logger.info(f"✓ Created VoucherRedemption for voucher {voucher.code}")
-                except Exception as e:
-                    logger.error(f"creating voucher redemption: {e}")
-
-            # Mark payment as completed
-            stripe_payment.mark_completed()
-            logger.info(f"✓ Marked StripePayment {stripe_payment.id} as completed")
             logger.info(f"=== END WORKSHOP CART PAYMENT ===\n")
 
         except User.DoesNotExist:
@@ -589,37 +590,37 @@ class StripeWebhookView(View):
         enrollment_id = metadata.get('enrollment_id')
         if enrollment_id:
             try:
-                enrollment = CourseEnrollment.objects.select_related(
-                    'course', 'student', 'child_profile'
-                ).get(id=enrollment_id)
+                with transaction.atomic():
+                    enrollment = CourseEnrollment.objects.select_related(
+                        'course', 'student', 'child_profile'
+                    ).get(id=enrollment_id)
 
-                # Update payment status
-                enrollment.payment_status = 'completed'
-                enrollment.paid_at = timezone.now()
-                enrollment.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
-                enrollment.save()
+                    # Update payment status
+                    enrollment.payment_status = 'completed'
+                    enrollment.paid_at = timezone.now()
+                    enrollment.stripe_payment_intent_id = stripe_payment.stripe_payment_intent_id
+                    enrollment.save()
 
-                # Update course enrollment count
-                course = enrollment.course
-                course.total_enrollments = CourseEnrollment.objects.filter(
-                    course=course,
-                    is_active=True,
-                    payment_status__in=['completed', 'not_required']
-                ).count()
-                course.save(update_fields=['total_enrollments'])
+                    # Update course enrollment count
+                    course = enrollment.course
+                    course.total_enrollments = CourseEnrollment.objects.filter(
+                        course=course,
+                        is_active=True,
+                        payment_status__in=['completed', 'not_required']
+                    ).count()
+                    course.save(update_fields=['total_enrollments'])
 
-                # Update reference in StripePayment
-                stripe_payment.course_id = course.id
-                stripe_payment.save()
+                    # Update reference in StripePayment
+                    stripe_payment.course_id = course.id
+                    stripe_payment.save()
 
-                # Send notification to instructor
+                # Send emails after transaction commits
                 try:
                     from apps.courses.notifications import InstructorNotificationService
                     InstructorNotificationService.send_new_enrollment_notification(enrollment)
                 except Exception as e:
                     logger.error(f"Failed to send instructor notification: {e}")
 
-                # Send confirmation email to student
                 try:
                     from apps.courses.notifications import StudentNotificationService
                     StudentNotificationService.send_enrollment_confirmation(enrollment)
@@ -643,28 +644,55 @@ class StripeWebhookView(View):
         product_id = metadata.get('product_id')
         product_ids = metadata.get('product_ids')
 
+        purchase = None
+        created_purchases = []
+        student = stripe_payment.student
+
         if product_id:
             # Single product purchase
             try:
-                product = DigitalProduct.objects.get(id=product_id)
-                student = stripe_payment.student
+                with transaction.atomic():
+                    product = DigitalProduct.objects.get(id=product_id)
 
-                # Create purchase record
-                purchase = ProductPurchase.objects.create(
-                    product=product,
-                    student=student,
-                    payment_status='completed',
-                    payment_amount=stripe_payment.total_amount,
-                    stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
-                    stripe_checkout_session_id=stripe_payment.stripe_checkout_session_id,
-                    paid_at=timezone.now()
-                )
+                    # Create purchase record
+                    purchase = ProductPurchase.objects.create(
+                        product=product,
+                        student=student,
+                        payment_status='completed',
+                        payment_amount=stripe_payment.total_amount,
+                        stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                        stripe_checkout_session_id=stripe_payment.stripe_checkout_session_id,
+                        paid_at=timezone.now()
+                    )
 
-                # Update product sales count
-                product.total_sales += 1
-                product.save(update_fields=['total_sales'])
+                    # Update product sales count (atomic to avoid race condition)
+                    DigitalProduct.objects.filter(pk=product.pk).update(total_sales=F('total_sales') + 1)
 
-                # Send download email
+                    # Voucher redemption
+                    voucher_id = metadata.get('voucher_id')
+                    if voucher_id:
+                        try:
+                            from .models import Voucher
+                            from .voucher_service import VoucherService
+                            voucher = Voucher.objects.get(id=voucher_id)
+                            original_amount = Decimal(metadata.get('original_amount', str(stripe_payment.total_amount)))
+                            discount_amount = Decimal(metadata.get('discount_amount', '0'))
+                            VoucherService.create_redemption(
+                                voucher=voucher,
+                                student=student,
+                                domain='digital_products',
+                                original_amount=original_amount,
+                                discount_amount=discount_amount,
+                                final_amount=stripe_payment.total_amount,
+                                stripe_payment=stripe_payment
+                            )
+                            logger.info(f"Created voucher redemption for code {metadata.get('voucher_code')}")
+                        except Exception as e:
+                            logger.error(f"Failed to create voucher redemption: {e}")
+
+                    stripe_payment.mark_completed()
+
+                # Send download email after transaction commits
                 try:
                     send_purchase_confirmation(purchase)
                     logger.info(f"Sent purchase confirmation email to {student.email}")
@@ -679,82 +707,83 @@ class StripeWebhookView(View):
         elif product_ids:
             # Cart purchase (multiple products)
             product_id_list = [pid.strip() for pid in product_ids.split(',')]
-            student = stripe_payment.student
-            created_purchases = []
 
-            for pid in product_id_list:
-                try:
-                    product = DigitalProduct.objects.get(id=pid)
-
-                    # Get price from cart item
-                    cart_item = DigitalProductCartItem.objects.filter(
-                        cart__user=student,
-                        product=product
-                    ).first()
-
-                    purchase_price = cart_item.price if cart_item else product.price
-
-                    # Create purchase record
-                    purchase = ProductPurchase.objects.create(
-                        product=product,
-                        student=student,
-                        payment_status='completed',
-                        payment_amount=purchase_price,
-                        stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
-                        stripe_checkout_session_id=stripe_payment.stripe_checkout_session_id,
-                        paid_at=timezone.now()
-                    )
-
-                    # Update product sales count
-                    product.total_sales += 1
-                    product.save(update_fields=['total_sales'])
-
-                    created_purchases.append(purchase)
-                    logger.info(f"Created ProductPurchase {purchase.id} for product {product.title}")
-
-                except DigitalProduct.DoesNotExist:
-                    logger.error(f"Product {pid} not found")
-
-            # Clear cart items
-            cart_id = metadata.get('cart_id')
-            if cart_id:
-                DigitalProductCartItem.objects.filter(cart_id=cart_id).delete()
-                logger.info(f"Cleared cart {cart_id}")
-
-            # Send consolidated email with all purchases
-            if created_purchases:
-                try:
-                    send_cart_purchase_confirmation(student, created_purchases)
-                    logger.info(f"Sent cart purchase confirmation email to {student.email}")
-                except Exception as e:
-                    logger.error(f"Failed to send cart purchase confirmation email: {e}")
-
-        # Create voucher redemption if a voucher was applied (partial discount paid via Stripe)
-        voucher_id = metadata.get('voucher_id')
-        if voucher_id:
             try:
-                from decimal import Decimal as _Decimal
-                from .models import Voucher
-                from .voucher_service import VoucherService
-                voucher = Voucher.objects.get(id=voucher_id)
-                original_amount = _Decimal(metadata.get('original_amount', str(stripe_payment.total_amount)))
-                discount_amount = _Decimal(metadata.get('discount_amount', '0'))
-                VoucherService.create_redemption(
-                    voucher=voucher,
-                    student=stripe_payment.student,
-                    domain='digital_products',
-                    original_amount=original_amount,
-                    discount_amount=discount_amount,
-                    final_amount=stripe_payment.total_amount,
-                    stripe_payment=stripe_payment
-                )
-                logger.info(f"Created voucher redemption for code {metadata.get('voucher_code')}")
-            except Exception as e:
-                logger.error(f"Failed to create voucher redemption in digital products webhook: {e}")
+                with transaction.atomic():
+                    for pid in product_id_list:
+                        try:
+                            product = DigitalProduct.objects.get(id=pid)
 
-        # Mark payment as completed
-        stripe_payment.mark_completed()
-        logger.info(f"Marked StripePayment {stripe_payment.id} as completed")
+                            # Get price from cart item
+                            cart_item = DigitalProductCartItem.objects.filter(
+                                cart__user=student,
+                                product=product
+                            ).first()
+
+                            purchase_price = cart_item.price if cart_item else product.price
+
+                            # Create purchase record
+                            purchase = ProductPurchase.objects.create(
+                                product=product,
+                                student=student,
+                                payment_status='completed',
+                                payment_amount=purchase_price,
+                                stripe_payment_intent_id=stripe_payment.stripe_payment_intent_id,
+                                stripe_checkout_session_id=stripe_payment.stripe_checkout_session_id,
+                                paid_at=timezone.now()
+                            )
+
+                            # Update product sales count (atomic to avoid race condition)
+                            DigitalProduct.objects.filter(pk=product.pk).update(total_sales=F('total_sales') + 1)
+
+                            created_purchases.append(purchase)
+                            logger.info(f"Created ProductPurchase {purchase.id} for product {product.title}")
+
+                        except DigitalProduct.DoesNotExist:
+                            logger.error(f"Product {pid} not found")
+
+                    # Clear cart items
+                    cart_id = metadata.get('cart_id')
+                    if cart_id:
+                        DigitalProductCartItem.objects.filter(cart_id=cart_id).delete()
+                        logger.info(f"Cleared cart {cart_id}")
+
+                    # Voucher redemption
+                    voucher_id = metadata.get('voucher_id')
+                    if voucher_id:
+                        try:
+                            from .models import Voucher
+                            from .voucher_service import VoucherService
+                            voucher = Voucher.objects.get(id=voucher_id)
+                            original_amount = Decimal(metadata.get('original_amount', str(stripe_payment.total_amount)))
+                            discount_amount = Decimal(metadata.get('discount_amount', '0'))
+                            VoucherService.create_redemption(
+                                voucher=voucher,
+                                student=student,
+                                domain='digital_products',
+                                original_amount=original_amount,
+                                discount_amount=discount_amount,
+                                final_amount=stripe_payment.total_amount,
+                                stripe_payment=stripe_payment
+                            )
+                            logger.info(f"Created voucher redemption for code {metadata.get('voucher_code')}")
+                        except Exception as e:
+                            logger.error(f"Failed to create voucher redemption in digital products webhook: {e}")
+
+                    stripe_payment.mark_completed()
+                    logger.info(f"Marked StripePayment {stripe_payment.id} as completed")
+
+                # Send consolidated email after transaction commits
+                if created_purchases:
+                    try:
+                        send_cart_purchase_confirmation(student, created_purchases)
+                        logger.info(f"Sent cart purchase confirmation email to {student.email}")
+                    except Exception as e:
+                        logger.error(f"Failed to send cart purchase confirmation email: {e}")
+
+            except Exception as e:
+                logger.error(f"Error in digital product cart payment: {e}")
+                return
 
 
 # ============================================================================

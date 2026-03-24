@@ -740,7 +740,11 @@ class LessonRequestDetailView(TeacherProfileCompletedMixin, TemplateView):
     template_name = 'private_teaching/lesson_request_detail.html'
 
     def get_lesson_request(self):
-        return get_object_or_404(LessonRequest, id=self.kwargs['request_id'])
+        return get_object_or_404(
+            LessonRequest,
+            id=self.kwargs['request_id'],
+            lessons__teacher=self.request.user
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -980,62 +984,75 @@ class CalendarView(PrivateTeachingLoginRequiredMixin, TemplateView):
 
 class ActionRequestView(TeacherProfileCompletedMixin, View):
     """Handle individual lesson request approval/rejection"""
-    
+
     def post(self, request, request_id):
         try:
-            lesson_request = LessonRequest.objects.get(id=request_id, status='pending')
+            lesson_request = LessonRequest.objects.get(
+                id=request_id,
+                lessons__teacher=request.user
+            )
             action = request.POST.get('action')
-            
+
             if action == 'approve':
-                lesson_request.status = 'approved'
-                lesson_request.save()
+                lesson_request.lessons.filter(
+                    approved_status=Lesson.ApprovalStatus.PENDING
+                ).update(approved_status=Lesson.ApprovalStatus.ACCEPTED)
                 messages.success(request, f'Lesson request from {lesson_request.student.get_full_name()} approved!')
-                
+
             elif action == 'reject':
-                lesson_request.status = 'rejected'
-                lesson_request.save()
+                lesson_request.lessons.filter(
+                    approved_status=Lesson.ApprovalStatus.PENDING
+                ).update(approved_status=Lesson.ApprovalStatus.REJECTED)
                 messages.info(request, f'Lesson request from {lesson_request.student.get_full_name()} rejected.')
-                
+
             else:
                 messages.error(request, 'Invalid action.')
-                
+
         except LessonRequest.DoesNotExist:
             messages.error(request, 'Lesson request not found or already processed.')
-            
+
         return redirect('private_teaching:incoming_requests')
 
 
 class BulkActionView(TeacherProfileCompletedMixin, View):
     """Handle bulk approval/rejection of lesson requests"""
-    
+
     def post(self, request):
         selected_ids = request.POST.getlist('selected_requests')
         action = request.POST.get('action')
-        
+
         if not selected_ids:
             messages.warning(request, 'No requests selected.')
             return redirect('private_teaching:incoming_requests')
-            
+
         try:
-            requests_to_update = LessonRequest.objects.filter(
-                id__in=selected_ids, 
-                status='pending'
-            )
-            
+            authorized_requests = LessonRequest.objects.filter(
+                id__in=selected_ids,
+                lessons__teacher=request.user
+            ).distinct()
+
             if action == 'approve':
-                updated_count = requests_to_update.update(status='approved')
+                Lesson.objects.filter(
+                    lesson_request__in=authorized_requests,
+                    approved_status=Lesson.ApprovalStatus.PENDING
+                ).update(approved_status=Lesson.ApprovalStatus.ACCEPTED)
+                updated_count = authorized_requests.count()
                 messages.success(request, f'Successfully approved {updated_count} lesson request{"s" if updated_count != 1 else ""}!')
-                
+
             elif action == 'reject':
-                updated_count = requests_to_update.update(status='rejected')
+                Lesson.objects.filter(
+                    lesson_request__in=authorized_requests,
+                    approved_status=Lesson.ApprovalStatus.PENDING
+                ).update(approved_status=Lesson.ApprovalStatus.REJECTED)
+                updated_count = authorized_requests.count()
                 messages.info(request, f'Successfully rejected {updated_count} lesson request{"s" if updated_count != 1 else ""}.')
-                
+
             else:
                 messages.error(request, 'Invalid bulk action.')
-                
+
         except Exception as e:
             messages.error(request, f'Error processing bulk action: {str(e)}')
-            
+
         return redirect('private_teaching:incoming_requests')
 
 

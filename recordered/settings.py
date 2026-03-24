@@ -383,16 +383,9 @@ CKEDITOR_5_CONFIGS = {
             "allow": [
                 {
                     "name": "hr",
-                    "attributes": True,
-                    "classes": True,
+                    "attributes": False,
+                    "classes": False,
                     "styles": True
-                },
-                {
-                    "name": "/.*/",
-                    "attributes": True,
-                    "classes": True,
-                    "styles": True,
-                    "children": True
                 }
             ]
         },
@@ -619,11 +612,6 @@ CKEDITOR_5_CONFIGS = {
                 "reversed": True
             }
         },
-        "htmlSupport": {
-            "allow": [
-                {"name": "/.*/", "attributes": True, "classes": True, "styles": True}
-            ]
-        }
     }
 }
 
