@@ -381,12 +381,18 @@ CKEDITOR_5_CONFIGS = {
         },
         "htmlSupport": {
             "allow": [
-                {
-                    "name": "hr",
-                    "attributes": False,
-                    "classes": False,
-                    "styles": True
-                }
+                {"name": "hr",     "attributes": False, "classes": False, "styles": True},
+                {"name": "div",    "attributes": True,  "classes": True,  "styles": True},
+                {"name": "p",      "attributes": True,  "classes": True,  "styles": True},
+                {"name": "h2",     "attributes": True,  "classes": True,  "styles": True},
+                {"name": "h3",     "attributes": True,  "classes": True,  "styles": True},
+                {"name": "ul",     "attributes": True,  "classes": True,  "styles": True},
+                {"name": "ol",     "attributes": True,  "classes": True,  "styles": True},
+                {"name": "li",     "attributes": True,  "classes": True,  "styles": True},
+                {"name": "span",   "attributes": True,  "classes": True,  "styles": True},
+                {"name": "i",      "attributes": True,  "classes": True,  "styles": True},
+                {"name": "strong", "attributes": True,  "classes": True,  "styles": True},
+                {"name": "em",     "attributes": True,  "classes": True,  "styles": True},
             ]
         },
         "image": {
