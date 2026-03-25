@@ -499,7 +499,7 @@ Use the generate_lesson tool to return your response."""
                 'type': 'object',
                 'properties': {
                     'lesson_title': {'type': 'string'},
-                    'content': {'type': 'string', 'description': 'Full lesson content as HTML'},
+                    'content': {'type': 'string', 'description': 'Full lesson content as valid HTML markup. MUST use HTML tags: <h2> for headings, <p> for paragraphs, <ul>/<li> for lists, <strong> for bold. Do NOT return plain text or markdown — the output is rendered directly in a rich text editor.'},
                     'duration_minutes': {'type': 'integer'},
                     'suggested_quiz_questions': {
                         'type': 'array',
