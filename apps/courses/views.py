@@ -430,8 +430,9 @@ class LessonAIAssistView(InstructorRequiredMixin, View):
         from anthropic import Anthropic
         from django.db.models import Max
 
+        ai_mode = request.POST.get('mode', '').strip()  # 'reformat', or blank for normal generate/revise
         description = request.POST.get('description', '').strip()
-        if not description:
+        if not description and ai_mode != 'reformat':
             return JsonResponse({'error': 'No description provided.'}, status=400)
 
         api_key = settings.ANTHROPIC_API_KEY
@@ -457,6 +458,9 @@ class LessonAIAssistView(InstructorRequiredMixin, View):
             topic = get_object_or_404(Topic, course=course, topic_number=int(topic_number))
         else:
             return JsonResponse({'error': 'Course context required.'}, status=400)
+
+        if ai_mode == 'reformat' and not existing_lesson:
+            return JsonResponse({'error': 'Reformat requires an existing lesson.'}, status=400)
 
         # Gather existing lesson titles in this topic for context
         existing_lessons_qs = topic.lessons.order_by('lesson_number').exclude(
@@ -523,7 +527,24 @@ EMPHASIS: use <strong> for key musical terms; <em> for gentle emphasis within ex
 DO NOT use any other colours, font sizes, or structural patterns not listed above.
 """
 
-        if mode == 'revise':
+        if ai_mode == 'reformat':
+            prompt = f"""You are reformatting an existing recorder lesson to match the platform's visual style guide.
+
+EXISTING LESSON CONTENT (full HTML):
+{existing_lesson.content}
+
+YOUR TASK: Reformat the HTML using the style guide below. Apply the exact inline styles specified to every element.
+
+STRICT RULES — YOU MUST FOLLOW THESE EXACTLY:
+- Do NOT change any words, sentences, paragraphs, or educational content
+- Do NOT add, remove, or reorder any sections
+- Do NOT change lesson title, duration, or any factual information
+- ONLY replace the HTML markup and inline styles to match the style guide
+- Keep all image placeholders, audio references, and any embedded content exactly as they are
+{LESSON_STYLE_GUIDE}
+Use the generate_lesson tool to return your response."""
+
+        elif mode == 'revise':
             prompt = f"""You are an expert recorder music teacher and editor. You are revising an existing lesson for an online recorder education platform.
 
 Course: {course.title}

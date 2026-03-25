@@ -111,17 +111,33 @@
                                                   placeholder="{% if object %}e.g. Improve the grammar and flow. Make the exercises section clearer. Add a better summary.{% else %}e.g. Introduce dotted crotchets — explain the concept, give simple exercises, assume students already know crotchets and minims.{% endif %}"></textarea>
                                     </div>
 
-                                    <button type="button"
-                                            @click="generate()"
-                                            :disabled="loading || !prompt.trim()"
-                                            class="btn btn-sm bg-violet-600 hover:bg-violet-700 text-white border-0">
-                                        <span x-show="!loading">
-                                            <i class="fas fa-wand-magic-sparkles mr-2"></i>Generate Draft
-                                        </span>
-                                        <span x-show="loading">
-                                            <span class="loading loading-spinner loading-sm mr-2"></span>Generating...
-                                        </span>
-                                    </button>
+                                    <div class="flex items-center gap-3 flex-wrap">
+                                        <button type="button"
+                                                @click="generate()"
+                                                :disabled="loading || reformatLoading || !prompt.trim()"
+                                                class="btn btn-sm bg-violet-600 hover:bg-violet-700 text-white border-0">
+                                            <span x-show="!loading">
+                                                <i class="fas fa-wand-magic-sparkles mr-2"></i>Generate Draft
+                                            </span>
+                                            <span x-show="loading">
+                                                <span class="loading loading-spinner loading-sm mr-2"></span>Generating...
+                                            </span>
+                                        </button>
+
+                                        {% if object %}
+                                        <button type="button"
+                                                @click="reformat()"
+                                                :disabled="loading || reformatLoading"
+                                                class="btn btn-sm bg-slate-600 hover:bg-slate-700 text-white border-0">
+                                            <span x-show="!reformatLoading">
+                                                <i class="fas fa-paintbrush mr-2"></i>Reformat to Style Guide
+                                            </span>
+                                            <span x-show="reformatLoading">
+                                                <span class="loading loading-spinner loading-sm mr-2"></span>Reformatting...
+                                            </span>
+                                        </button>
+                                        {% endif %}
+                                    </div>
 
                                     <!-- Error -->
                                     <div x-show="error" class="alert alert-error text-sm py-2">
@@ -549,6 +565,7 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('lessonAIAssist', () => ({
         open: false,
         loading: false,
+        reformatLoading: false,
         prompt: '',
         result: null,
         error: null,
@@ -586,6 +603,37 @@ document.addEventListener('alpine:init', () => {
             })
             .finally(() => {
                 this.loading = false;
+            });
+        },
+
+        reformat() {
+            if (!confirm('This will reformat the lesson HTML to match the platform style guide. All text and content will stay exactly the same — only the visual formatting will change.\n\nReview the result before applying.')) return;
+            this.reformatLoading = true;
+            this.error = null;
+            this.result = null;
+
+            const formData = new FormData();
+            formData.append('mode', 'reformat');
+            formData.append('lesson_id', '{{ object.id }}');
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            fetch('{% url "courses:lesson_ai_assist" %}', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    this.error = data.error;
+                } else {
+                    this.result = data;
+                }
+            })
+            .catch(() => {
+                this.error = 'Something went wrong. Please try again.';
+            })
+            .finally(() => {
+                this.reformatLoading = false;
             });
         },
 
