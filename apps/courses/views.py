@@ -499,12 +499,17 @@ Return a JSON object with these fields:
 
 Return ONLY valid JSON with no markdown fences or explanation."""
 
-        client = Anthropic(api_key=api_key)
-        message = client.messages.create(
-            model='claude-haiku-4-5-20251001',
-            max_tokens=3000,
-            messages=[{'role': 'user', 'content': prompt}],
-        )
+        try:
+            client = Anthropic(api_key=api_key)
+            message = client.messages.create(
+                model='claude-haiku-4-5-20251001',
+                max_tokens=3000,
+                messages=[{'role': 'user', 'content': prompt}],
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error('AI assist API call failed: %s', e)
+            return JsonResponse({'error': 'AI service unavailable. Please try again later.'}, status=503)
 
         response_text = message.content[0].text.strip()
         if response_text.startswith('```'):
