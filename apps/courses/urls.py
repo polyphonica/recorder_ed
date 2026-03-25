@@ -31,6 +31,8 @@ urlpatterns = [
          views.LessonManageView.as_view(), name='manage_lessons'),
     path('instructor/<slug:course_slug>/topic/<int:topic_number>/lessons/create/',
          views.LessonCreateView.as_view(), name='create_lesson'),
+    path('instructor/lessons/<uuid:lesson_id>/preview/',
+         views.InstructorLessonPreviewView.as_view(), name='instructor_lesson_preview'),
     path('instructor/lessons/<uuid:pk>/edit/',
          views.LessonUpdateView.as_view(), name='edit_lesson'),
     path('instructor/lessons/<uuid:pk>/delete/',

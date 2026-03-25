@@ -323,6 +323,86 @@ class LessonManageView(InstructorRequiredMixin, TemplateView):
         return context
 
 
+class InstructorLessonPreviewView(InstructorRequiredMixin, DetailView):
+    """
+    Instructor preview of any lesson regardless of status.
+    Shows the student lesson view with an instructor banner and back link.
+    """
+    model = Lesson
+    template_name = 'courses/student/lesson_view.html'
+    context_object_name = 'lesson'
+    pk_url_kwarg = 'lesson_id'
+
+    def get_queryset(self):
+        return Lesson.objects.select_related('topic__course')
+
+    def dispatch(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        course = self.object.topic.course
+        if not course.is_owned_by(request.user):
+            messages.error(request, 'Permission denied.')
+            return redirect('courses:instructor_dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        lesson = self.object
+        course = lesson.topic.course
+        topic = lesson.topic
+
+        has_quiz = hasattr(lesson, 'quiz') and lesson.quiz.status == Quiz.Status.PUBLISHED
+
+        # Prev/next based on published lessons only
+        all_lessons = [
+            l
+            for t in course.topics.order_by('topic_number')
+            for l in t.lessons.filter(status=Lesson.Status.PUBLISHED).order_by('lesson_number')
+        ]
+        try:
+            idx = all_lessons.index(lesson)
+            prev_lesson = all_lessons[idx - 1] if idx > 0 else None
+            next_lesson = all_lessons[idx + 1] if idx < len(all_lessons) - 1 else None
+        except ValueError:
+            prev_lesson = None
+            next_lesson = None
+
+        # Sidebar navigation — no progress data in preview
+        topics_with_progress = []
+        for t in course.topics.order_by('topic_number'):
+            lessons_data = [
+                {'lesson': l, 'is_completed': False, 'is_current': l.id == lesson.id}
+                for l in t.lessons.filter(status=Lesson.Status.PUBLISHED).order_by('lesson_number')
+            ]
+            if lessons_data:
+                topics_with_progress.append({
+                    'topic': t,
+                    'lessons': lessons_data,
+                    'completed': 0,
+                    'total': len(lessons_data),
+                    'progress_pct': 0,
+                    'is_current_topic': t.id == topic.id,
+                })
+
+        context.update({
+            'course': course,
+            'topic': topic,
+            'is_owner': True,
+            'is_instructor_preview': True,
+            'manage_lessons_url': reverse('courses:manage_lessons', kwargs={
+                'course_slug': course.slug,
+                'topic_number': topic.topic_number,
+            }),
+            'has_quiz': has_quiz,
+            'quiz_passed': False,
+            'best_attempt': None,
+            'lesson_progress': None,
+            'prev_lesson': prev_lesson,
+            'next_lesson': next_lesson,
+            'topics_with_progress': topics_with_progress,
+        })
+        return context
+
+
 class LessonCreateView(SuccessMessageMixin, CourseContextMixin, InstructorRequiredMixin, CreateView):
     """
     Create a new lesson. Uses SuccessMessageMixin and CourseContextMixin.
