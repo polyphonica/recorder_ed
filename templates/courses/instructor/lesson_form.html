@@ -115,7 +115,8 @@
                                         <button type="button"
                                                 @click="generate()"
                                                 :disabled="loading || reformatLoading || !prompt.trim()"
-                                                class="btn btn-sm bg-violet-600 hover:bg-violet-700 text-white border-0">
+                                                class="btn btn-sm text-white border-0"
+                                                style="background-color:#7c3aed;">
                                             <span x-show="!loading">
                                                 <i class="fas fa-wand-magic-sparkles mr-2"></i>Generate Draft
                                             </span>
@@ -128,7 +129,8 @@
                                         <button type="button"
                                                 @click="reformat()"
                                                 :disabled="loading || reformatLoading"
-                                                class="btn btn-sm bg-slate-600 hover:bg-slate-700 text-white border-0">
+                                                class="btn btn-sm text-white border-0"
+                                                style="background-color:#475569;">
                                             <span x-show="!reformatLoading">
                                                 <i class="fas fa-paintbrush mr-2"></i>Reformat to Style Guide
                                             </span>
