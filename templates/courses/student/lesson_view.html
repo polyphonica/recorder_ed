@@ -259,6 +259,11 @@
 <!-- CKEditor Custom Styles -->
 <link rel="stylesheet" type="text/css" href="{% static 'css/ckeditor_custom.css' %}">
 
+<style>
+  /* Exercise badge: always white text regardless of prose overrides */
+  .exercise-badge, .exercise-badge * { color: #ffffff !important; }
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Accordion click handlers
