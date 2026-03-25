@@ -5,7 +5,7 @@
 {% block title %}{{ course.title }} - Recorder Course | Recorder-ed{% endblock %}
 
 {% block meta_tags %}
-{% include 'includes/meta_tags.html' with page_title=course.title|add:" - Recorder Course | Recorder-ed" page_description=course.description|truncatewords:25|striptags page_keywords="recorder course, "|add:course.title|add:", online recorder course, music education" page_url=request.build_absolute_uri page_type="course" page_image=course.cover_image.url|default:"" %}
+{% include 'includes/meta_tags.html' with page_title=course.title|add:" - Recorder Course | Recorder-ed" page_description=course.description|truncatewords:25|striptags page_keywords="recorder course, "|add:course.title|add:", online recorder course, music education" page_url=request.build_absolute_uri page_type="course" page_image=course.image.url|default:"" %}
 {% include 'includes/schema_course.html' with course=course %}
 {% endblock %}
 
@@ -235,11 +235,17 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 <span>You're enrolled!</span>
                             </div>
-                            <a href="{% url 'courses:student_dashboard' %}" class="btn btn-primary btn-block mb-2">
-                                <i class="fas fa-play mr-2"></i>Go to My Courses
-                            </a>
+                            {% if continue_url %}
+                                <a href="{{ continue_url }}" class="btn btn-primary btn-block mb-2">
+                                    <i class="fas fa-play mr-2"></i>Continue Learning
+                                </a>
+                            {% else %}
+                                <a href="{% url 'courses:student_dashboard' %}" class="btn btn-primary btn-block mb-2">
+                                    <i class="fas fa-check-circle mr-2"></i>Course Complete
+                                </a>
+                            {% endif %}
                             <a href="{% url 'messaging:start_course_conversation' course.slug %}" class="btn btn-outline btn-block mb-2">
-                                💬 Message Instructor
+                                <i class="fas fa-comment mr-2"></i>Message Instructor
                             </a>
                             {% if enrollment %}
                                 <div class="text-center text-sm text-base-content/70">
@@ -339,15 +345,15 @@
                                 <i class="fas fa-check text-success mt-1"></i>
                                 <span>Quizzes and assessments</span>
                             </li>
-                             <li class="flex items-start gap-2">
+                            {% endif %}
+                            <li class="flex items-start gap-2">
                                 <i class="fas fa-check text-success mt-1"></i>
                                 <span>Play-along audio with accompaniment</span>
                             </li>
-                              <li class="flex items-start gap-2">
+                            <li class="flex items-start gap-2">
                                 <i class="fas fa-check text-success mt-1"></i>
-                                <span>Downloadable documentation</span>
+                                <span>Downloadable resources</span>
                             </li>
-                            {% endif %}
                         </ul>
                     </div>
                 </div>

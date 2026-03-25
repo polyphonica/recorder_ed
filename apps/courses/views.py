@@ -350,10 +350,7 @@ class LessonCreateView(SuccessMessageMixin, CourseContextMixin, InstructorRequir
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse('courses:manage_lessons', kwargs={
-            'course_slug': self.course.slug,
-            'topic_number': self.topic.topic_number
-        })
+        return reverse('courses:edit_lesson', kwargs={'lesson_id': self.object.id})
 
 
 class LessonUpdateView(CourseOwnershipMixin, CourseContextMixin, InstructorRequiredMixin, UpdateView):
@@ -702,6 +699,8 @@ class CourseListView(SearchableListViewMixin, ListView):
         context['grade_choices'] = Course.GRADE_CHOICES
         context['current_grade'] = self.request.GET.get('grade', 'all')
         context['current_search'] = self.request.GET.get('search', '')
+        grade_label_map = dict(Course.GRADE_CHOICES)
+        context['current_grade_label'] = grade_label_map.get(context['current_grade'], context['current_grade'])
         return context
 
 
@@ -762,9 +761,24 @@ class CourseDetailView(DetailView):
         total_lessons = stats['total_lessons'] or 0
         total_duration = stats['total_duration'] or 0
 
+        # Find first incomplete lesson for enrolled students
+        continue_url = None
+        if is_enrolled and enrollment:
+            completed_ids = set(LessonProgress.objects.filter(
+                enrollment=enrollment, is_completed=True
+            ).values_list('lesson_id', flat=True))
+            for topic in self.object.topics.order_by('topic_number').prefetch_related('lessons'):
+                for lesson in topic.lessons.filter(status=Lesson.Status.PUBLISHED).order_by('lesson_number'):
+                    if lesson.id not in completed_ids:
+                        continue_url = reverse('courses:view_lesson', kwargs={'lesson_id': lesson.id})
+                        break
+                if continue_url:
+                    break
+
         context.update({
             'is_enrolled': is_enrolled,
             'enrollment': enrollment,
+            'continue_url': continue_url,
             'topics': topics,
             'total_lessons': total_lessons,
             'total_duration': total_duration,
@@ -1130,10 +1144,11 @@ class StudentDashboardView(LoginRequiredMixin, TemplateView):
             )['total'] or 0
 
             # Get completed lessons
-            completed_lessons = LessonProgress.objects.filter(
+            completed_lesson_ids = set(LessonProgress.objects.filter(
                 enrollment=enrollment,
                 is_completed=True
-            ).count()
+            ).values_list('lesson_id', flat=True))
+            completed_lessons = len(completed_lesson_ids)
 
             # Calculate progress percentage (use custom attributes, not model properties)
             if total_lessons > 0:
@@ -1149,6 +1164,16 @@ class StudentDashboardView(LoginRequiredMixin, TemplateView):
             # Count certificates
             if enrollment.completed_at:
                 total_certificates += 1
+
+            # Find first incomplete published lesson for "Continue" button
+            enrollment.continue_url = None
+            for topic in enrollment.course.topics.order_by('topic_number').prefetch_related('lessons'):
+                for lesson in topic.lessons.filter(status=Lesson.Status.PUBLISHED).order_by('lesson_number'):
+                    if lesson.id not in completed_lesson_ids:
+                        enrollment.continue_url = reverse('courses:view_lesson', kwargs={'lesson_id': lesson.id})
+                        break
+                if enrollment.continue_url:
+                    break
 
         context.update({
             'enrollments': enrollments,
@@ -1343,7 +1368,16 @@ class MarkLessonCompleteView(LoginRequiredMixin, View):
             lesson_progress.completed_at = timezone.now()
             lesson_progress.save()
 
-        return JsonResponse({'success': True})
+        # Compute updated progress percentage for the response
+        total_lessons = course.topics.aggregate(
+            total=Count('lessons', filter=Q(lessons__status=Lesson.Status.PUBLISHED))
+        )['total'] or 0
+        completed_lessons = LessonProgress.objects.filter(
+            enrollment=enrollment, is_completed=True
+        ).count()
+        progress_percentage = int((completed_lessons / total_lessons) * 100) if total_lessons > 0 else 0
+
+        return JsonResponse({'success': True, 'progress_percentage': progress_percentage})
 
 
 class QuizTakeView(LoginRequiredMixin, DetailView):

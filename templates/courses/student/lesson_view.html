@@ -345,29 +345,18 @@
 <script>
 // Toggle topic accordion
 function toggleTopic(topicId) {
-    console.log('toggleTopic called with ID:', topicId); // Debug
     const topicContent = document.getElementById(`topic-${topicId}`);
     const chevron = document.getElementById(`chevron-${topicId}`);
 
-    console.log('Found elements:', { topicContent, chevron }); // Debug
-
-    if (!topicContent || !chevron) {
-        console.error('Elements not found for topic ID:', topicId);
-        console.error('Looking for IDs:', `topic-${topicId}`, `chevron-${topicId}`);
-        return;
-    }
+    if (!topicContent || !chevron) return;
 
     const isHidden = topicContent.classList.contains('hidden');
-    console.log('Current state - hidden:', isHidden); // Debug
-
     if (isHidden) {
         topicContent.classList.remove('hidden');
         chevron.classList.add('rotated');
-        console.log('Expanded topic'); // Debug
     } else {
         topicContent.classList.add('hidden');
         chevron.classList.remove('rotated');
-        console.log('Collapsed topic'); // Debug
     }
 }
 
@@ -409,7 +398,6 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function(e) {
             e.preventDefault();
             const topicId = this.getAttribute('data-topic-id');
-            console.log('Toggling topic:', topicId); // Debug log
             toggleTopic(topicId);
         });
     });
@@ -430,27 +418,36 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function markComplete() {
-    if (confirm('Mark this lesson as complete?')) {
-        fetch('{% url "courses:mark_complete" lesson.id %}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json',
-            },
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error marking lesson as complete');
+    const btn = document.getElementById('completeBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading loading-spinner loading-sm mr-2"></span>Saving...';
+
+    fetch('{% url "courses:mark_complete" lesson.id %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            btn.outerHTML = '<div class="badge badge-success badge-lg"><i class="fas fa-check-circle mr-2"></i>Completed</div>';
+            // Update sidebar progress badge if present
+            const progressEl = document.querySelector('.radial-progress span');
+            if (progressEl && data.progress_percentage !== undefined) {
+                progressEl.textContent = data.progress_percentage + '%';
+                progressEl.closest('.radial-progress').style.setProperty('--value', data.progress_percentage);
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error marking lesson as complete');
-        });
-    }
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Mark as Complete';
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Mark as Complete';
+    });
 }
 
 // Toggle fullscreen mode for lesson content

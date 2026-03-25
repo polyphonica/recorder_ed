@@ -9,8 +9,8 @@
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
         <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">My Courses</h1>
-            <p class="text-lg text-gray-600">Track your progress and continue learning</p>
+            <h1 class="text-3xl font-bold text-base-content mb-2">My Courses</h1>
+            <p class="text-lg text-base-content/70">Track your progress and continue learning</p>
         </div>
 
         <!-- Statistics Cards -->
@@ -53,7 +53,7 @@
 
         <!-- Quick Actions -->
         <div class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+            <h2 class="text-xl font-semibold text-base-content mb-4">Quick Actions</h2>
             <div class="flex flex-wrap gap-4">
                 <a href="{% url 'courses:list' %}" class="btn btn-primary">
                     <i class="fas fa-search mr-2"></i>Browse More Courses
@@ -77,7 +77,7 @@
         <div class="mt-8">
             <div class="bg-base-100 rounded-lg shadow p-6">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-semibold text-gray-900">Your Enrolled Courses</h2>
+                    <h2 class="text-xl font-semibold text-base-content">Your Enrolled Courses</h2>
                 </div>
 
                 {% if enrollments %}
@@ -97,53 +97,62 @@
                                 <h3 class="card-title text-base mb-2">{{ enrollment.course.title }}</h3>
 
                                 <!-- Instructor -->
-                                <p class="text-sm text-gray-600 mb-3">
+                                <p class="text-sm text-base-content/70 mb-3">
                                     <i class="fas fa-user-tie mr-1"></i>
                                     {{ enrollment.course.instructor.get_full_name|default:enrollment.course.instructor.username }}
                                 </p>
 
                                 <!-- Progress Bar -->
                                 <div class="mb-3">
-                                    <div class="flex justify-between text-xs text-gray-600 mb-1">
+                                    <div class="flex justify-between text-xs text-base-content/70 mb-1">
                                         <span>Progress</span>
                                         <span>{{ enrollment.calculated_progress }}%</span>
                                     </div>
                                     <progress class="progress progress-primary"
                                               value="{{ enrollment.calculated_progress }}"
                                               max="100"></progress>
-                                    <p class="text-xs text-gray-500 mt-1">
+                                    <p class="text-xs text-base-content/50 mt-1">
                                         {{ enrollment.calculated_completed }} of {{ enrollment.calculated_total }} lessons completed
                                     </p>
                                 </div>
 
                                 <!-- Enrollment Info -->
-                                <div class="text-xs text-gray-500 mb-3">
+                                <div class="text-xs text-base-content/50 mb-3">
                                     <i class="fas fa-calendar mr-1"></i>
                                     Enrolled {{ enrollment.enrolled_at|naturaltime }}
                                 </div>
 
                                 <!-- Actions -->
-                                <div class="card-actions justify-between flex-wrap gap-2">
-                                    <a href="{% url 'courses:detail' enrollment.course.slug %}"
-                                       class="btn btn-outline btn-xs">
-                                        <i class="fas fa-info-circle"></i> Details
-                                    </a>
-                                    <a href="{% url 'courses:my_progress' enrollment.course.slug %}"
-                                       class="btn btn-secondary btn-xs">
-                                        <i class="fas fa-chart-line"></i> My Progress
-                                    </a>
-                                    {% if enrollment.course.topics.first.lessons.first %}
-                                        <a href="{% url 'courses:view_lesson' enrollment.course.topics.first.lessons.first.id %}"
-                                           class="btn btn-primary btn-xs">
-                                            <i class="fas fa-play"></i> Continue
+                                <div class="card-actions justify-between flex-wrap gap-2 items-center">
+                                    <div class="flex gap-2 flex-wrap">
+                                        <a href="{% url 'courses:detail' enrollment.course.slug %}"
+                                           class="btn btn-outline btn-xs">
+                                            <i class="fas fa-info-circle"></i> Details
                                         </a>
-                                    {% else %}
-                                        <span class="btn btn-disabled btn-xs">No Lessons</span>
-                                    {% endif %}
-                                    <a href="{% url 'courses:request_cancellation' enrollment.id %}"
-                                       class="btn btn-error btn-xs">
-                                        <i class="fas fa-times-circle"></i> Cancel
-                                    </a>
+                                        <a href="{% url 'courses:my_progress' enrollment.course.slug %}"
+                                           class="btn btn-secondary btn-xs">
+                                            <i class="fas fa-chart-line"></i> Progress
+                                        </a>
+                                    </div>
+                                    <div class="flex gap-2 flex-wrap items-center">
+                                        {% if enrollment.continue_url %}
+                                            <a href="{{ enrollment.continue_url }}"
+                                               class="btn btn-primary btn-xs">
+                                                <i class="fas fa-play"></i> Continue
+                                            </a>
+                                        {% elif enrollment.course.topics.first.lessons.first %}
+                                            <a href="{% url 'courses:view_lesson' enrollment.course.topics.first.lessons.first.id %}"
+                                               class="btn btn-primary btn-xs">
+                                                <i class="fas fa-play"></i> Start
+                                            </a>
+                                        {% else %}
+                                            <span class="btn btn-disabled btn-xs">No Lessons</span>
+                                        {% endif %}
+                                        <a href="{% url 'courses:request_cancellation' enrollment.id %}"
+                                           class="text-xs text-base-content/40 hover:text-error transition-colors">
+                                            Cancel enrollment
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -151,11 +160,11 @@
                     </div>
                 {% else %}
                     <div class="text-center py-12">
-                        <div class="text-gray-400 text-6xl mb-4">
+                        <div class="text-base-content/30 text-6xl mb-4">
                             <i class="fas fa-book-reader"></i>
                         </div>
-                        <h3 class="text-xl font-semibold text-gray-700 mb-2">No enrolled courses yet</h3>
-                        <p class="text-gray-600 mb-4">Start your learning journey by enrolling in a course.</p>
+                        <h3 class="text-xl font-semibold text-base-content/80 mb-2">No enrolled courses yet</h3>
+                        <p class="text-base-content/70 mb-4">Start your learning journey by enrolling in a course.</p>
                         <a href="{% url 'courses:list' %}" class="btn btn-primary">
                             <i class="fas fa-search mr-2"></i>Browse Courses
                         </a>
