@@ -701,11 +701,14 @@ Use the generate_lesson tool to return your response."""
             },
         }]
 
+        # Reformat sends full lesson HTML + style guide — needs more output room
+        max_tokens = 8192 if ai_mode == 'reformat' else 4096
+
         try:
             client = Anthropic(api_key=api_key)
             message = client.messages.create(
                 model='claude-haiku-4-5-20251001',
-                max_tokens=4096,
+                max_tokens=max_tokens,
                 tools=tools,
                 tool_choice={'type': 'tool', 'name': 'generate_lesson'},
                 messages=[{'role': 'user', 'content': prompt}],
@@ -714,6 +717,9 @@ Use the generate_lesson tool to return your response."""
             import logging
             logging.getLogger(__name__).error('AI assist API call failed: %s', e)
             return JsonResponse({'error': 'AI service unavailable. Please try again later.'}, status=503)
+
+        if message.stop_reason == 'max_tokens':
+            return JsonResponse({'error': 'The lesson is too long to process in one request. Try splitting it into shorter sections.'}, status=500)
 
         try:
             data = message.content[0].input
