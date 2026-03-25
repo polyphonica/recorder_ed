@@ -173,7 +173,7 @@
                                         <button type="button"
                                                 @click="applyToForm()"
                                                 class="btn btn-sm btn-success w-full">
-                                            <i class="fas fa-check mr-2"></i>Apply Title, Content &amp; Duration to Form
+                                            <i class="fas fa-check mr-2"></i>Apply Draft to Form (replaces existing content)
                                         </button>
                                         <p class="text-xs text-base-content/50 text-center">
                                             You can edit everything in the form before saving.
@@ -584,6 +584,15 @@ document.addEventListener('alpine:init', () => {
         applyToForm() {
             if (!this.result) return;
 
+            // Warn before overwriting existing lesson content
+            const editor = window.editors && window.editors['id_content'];
+            const existingContent = editor ? editor.getData().trim() : '';
+            if (existingContent && existingContent !== '<p>&nbsp;</p>') {
+                if (!confirm('This will replace the existing lesson content with the AI draft. Are you sure?\n\nTip: Copy your existing content first if you want to keep it.')) {
+                    return;
+                }
+            }
+
             const titleField = document.getElementById('id_lesson_title');
             if (titleField && this.result.lesson_title) {
                 titleField.value = this.result.lesson_title;
@@ -594,8 +603,8 @@ document.addEventListener('alpine:init', () => {
                 durationField.value = this.result.duration_minutes;
             }
 
-            if (this.result.content && window.editors && window.editors['id_content']) {
-                window.editors['id_content'].setData(this.result.content);
+            if (this.result.content && editor) {
+                editor.setData(this.result.content);
             }
 
             document.getElementById('id_lesson_title')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
