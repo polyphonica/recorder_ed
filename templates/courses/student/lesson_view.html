@@ -29,11 +29,11 @@
             {% include 'courses/student/_lesson_sidebar.html' %}
         </div>
 
-        <!-- Desktop: two-column grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-[1fr_18rem] gap-8">
+        <!-- Desktop: two-column grid (matches course_detail.html pattern) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
             <!-- Main content area -->
-            <div id="lessonContent">
+            <div id="lessonContent" class="lg:col-span-2">
 
                 <!-- Top bar: Ask Teacher + Fullscreen -->
                 <div class="flex justify-between items-center mb-2">
