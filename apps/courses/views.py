@@ -470,18 +470,58 @@ class LessonAIAssistView(InstructorRequiredMixin, View):
         grade_display = course.get_grade_display()
         mode = 'revise' if existing_lesson else 'draft'
 
-        # Find a style reference lesson — prefer same topic, fall back to same course
-        style_reference = None
-        style_ref_qs = existing_lessons_qs.filter(status='published').exclude(content='')
-        if not style_ref_qs.exists():
-            style_ref_qs = course.topics.exclude(
-                id=topic.id
-            ).values_list('lessons__content', 'lessons__lesson_title').filter(
-                lessons__status='published'
-            ).exclude(lessons__content='')
-        style_ref_obj = style_ref_qs.first()
-        if style_ref_obj and hasattr(style_ref_obj, 'content') and style_ref_obj.content:
-            style_reference = style_ref_obj.content[:4000]
+        # Canonical style guide — exact HTML inline styles for every element type.
+        # Applied to all AI-generated lessons to ensure visual consistency across the platform.
+        LESSON_STYLE_GUIDE = """
+LESSON HTML STYLE GUIDE — apply these exact inline styles to every element. Do not deviate.
+
+FONT: font-family:'Inter',system-ui,sans-serif on all elements.
+
+LEARNING OBJECTIVES — always the opening section, rendered as a coral callout box:
+<div style="background:#fff4f3; border-left:5px solid #d94f3d; border-radius:0 6px 6px 0; padding:18px 22px; margin:0 0 36px 0;">
+  <p style="font-size:0.68rem; font-weight:700; color:#d94f3d; text-transform:uppercase; letter-spacing:0.14em; margin:0 0 8px 0; font-family:'Inter',system-ui,sans-serif;"><i class="fas fa-bullseye" style="margin-right:6px;"></i>Learning Objectives</p>
+  <p style="font-size:1rem; color:#2c1f1e; line-height:1.75; margin:0; font-family:'Inter',system-ui,sans-serif;">Objectives text here.</p>
+</div>
+
+THEORY/CONTENT HEADINGS (h2):
+<h2 style="font-size:1.15rem; font-weight:700; color:#2d3f50; font-family:'Inter',system-ui,sans-serif; border-bottom:3px solid #d94f3d; padding-bottom:8px; margin:0 0 16px 0; letter-spacing:0.01em;">Heading Text</h2>
+- Add a Font Awesome icon before the heading text where thematically appropriate:
+  - Listening/audio sections: <i class="fas fa-headphones" style="font-size:0.9rem; margin-right:8px; color:#d94f3d;"></i>
+  - Notation/written music sections: <i class="fas fa-music" style="font-size:0.9rem; margin-right:8px; color:#d94f3d;"></i>
+
+BODY PARAGRAPHS:
+<p style="font-size:1rem; color:#1e1e1e; line-height:1.8; margin:0 0 14px 0; font-family:'Inter',system-ui,sans-serif;">Text here.</p>
+- Last paragraph before a new heading or section: margin:0 0 32px 0
+
+EXERCISE SECTIONS — each exercise in a white card with coral top border:
+<div style="background:#ffffff; border:1px solid #dde1e6; border-top:3px solid #d94f3d; border-radius:6px; padding:22px 26px; margin:0 0 32px 0; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+  <p style="font-size:0.68rem; font-weight:700; color:#ffffff; background:#d94f3d; text-transform:uppercase; letter-spacing:0.12em; display:inline-block; padding:3px 10px; border-radius:3px; margin:0 0 12px 0; font-family:'Inter',system-ui,sans-serif;">Exercise 1</p>
+  <h2 style="font-size:1.1rem; font-weight:700; color:#2d3f50; font-family:'Inter',system-ui,sans-serif; margin:0 0 12px 0; border:none; padding:0;">Exercise Title</h2>
+  <p style="font-size:1rem; color:#1e1e1e; line-height:1.8; margin:0 0 14px 0; font-family:'Inter',system-ui,sans-serif;">Instructions.</p>
+  <ul style="font-size:1rem; color:#1e1e1e; line-height:1.8; margin:0; padding-left:0; list-style:none; font-family:'Inter',system-ui,sans-serif;">
+    <li style="padding:4px 0 4px 26px; position:relative;"><span style="position:absolute;left:0;color:#d94f3d;font-weight:bold;">&#9658;</span> Step text</li>
+  </ul>
+  <!-- If closing with a reflective note, separate it with a rule: -->
+  <p style="font-size:0.95rem; color:#4a5a6a; line-height:1.75; margin:0; font-style:italic; border-top:1px solid #dde1e6; padding-top:12px; font-family:'Inter',system-ui,sans-serif;">Closing note.</p>
+</div>
+
+LISTS outside exercise boxes:
+<ul style="font-size:1rem; color:#1e1e1e; line-height:1.8; margin:0 0 14px 0; padding-left:0; list-style:none; font-family:'Inter',system-ui,sans-serif;">
+  <li style="padding:4px 0 4px 26px; position:relative;"><span style="position:absolute;left:0;color:#d94f3d;font-weight:bold;">&#9658;</span> Item text</li>
+</ul>
+
+IMAGE/NOTATION PLACEHOLDERS:
+<div style="background:#f8f9fa; border:1px dashed #d94f3d; border-radius:6px; padding:14px 20px; margin:0 0 14px 0; text-align:center; color:#2d3f50; font-size:0.9rem; font-style:italic; font-family:'Inter',system-ui,sans-serif;"><i class="fas fa-image" style="margin-right:6px; color:#d94f3d;"></i>Description of image or notation example</div>
+
+SUMMARY — always the final section, rendered as a slate callout box:
+<div style="background:#f3f6f8; border-left:5px solid #2d3f50; border-radius:0 6px 6px 0; padding:20px 24px; margin:0;">
+  <p style="font-size:0.68rem; font-weight:700; color:#2d3f50; text-transform:uppercase; letter-spacing:0.14em; margin:0 0 10px 0; font-family:'Inter',system-ui,sans-serif;"><i class="fas fa-check-circle" style="margin-right:6px;"></i>Summary</p>
+  <p style="font-size:1rem; color:#1a2530; line-height:1.8; margin:0; font-family:'Inter',system-ui,sans-serif;">Summary text.</p>
+</div>
+
+EMPHASIS: use <strong> for key musical terms; <em> for gentle emphasis within exercise instructions.
+DO NOT use any other colours, font sizes, or structural patterns not listed above.
+"""
 
         if mode == 'revise':
             prompt = f"""You are an expert recorder music teacher and editor. You are revising an existing lesson for an online recorder education platform.
@@ -490,7 +530,7 @@ Course: {course.title}
 Grade level: {grade_display}
 Topic: {topic.topic_number}. {topic.topic_title}
 
-EXISTING LESSON CONTENT (full HTML — preserve all formatting):
+EXISTING LESSON CONTENT (full HTML):
 {existing_lesson.content}
 
 TEACHER'S REVISION INSTRUCTIONS:
@@ -498,24 +538,14 @@ TEACHER'S REVISION INSTRUCTIONS:
 
 YOUR TASK: Revise the lesson content according to the teacher's instructions above.
 
-CRITICAL FORMATTING RULES — YOU MUST FOLLOW THESE EXACTLY:
-- Preserve ALL HTML tags, attributes, and inline styles (font-size, margin-left, color, etc.) exactly as they appear
-- Preserve ALL emoji symbols, section dividers, and structural elements
-- Preserve the heading hierarchy (h1, h2, h3) and document structure
-- Do NOT add or remove HTML elements unless the teacher explicitly asked you to
-- Do NOT change font sizes, remove inline styles, or simplify the HTML structure
-- Only modify the text content itself (words, sentences, paragraphs) as directed
+CRITICAL RULES — YOU MUST FOLLOW THESE EXACTLY:
+- Preserve the existing text, structure, and HTML of sections you are NOT changing
+- For any new sections or content you add, apply the style guide below precisely
+- Do NOT reformat or restyle existing content that the teacher did not ask you to change
 - Return the complete revised HTML — not a summary or partial content
-
+{LESSON_STYLE_GUIDE}
 Use the generate_lesson tool to return your response."""
         else:
-            style_block = ''
-            if style_reference:
-                style_block = f"""
-STYLE REFERENCE — match this formatting style exactly (HTML tags, inline styles, font sizes, structure, use of emoji, section layout):
-{style_reference}
-
-"""
             prompt = f"""You are an expert recorder music teacher and curriculum writer creating a new lesson for an online recorder education platform.
 
 Course: {course.title}
@@ -524,15 +554,14 @@ Topic: {topic.topic_number}. {topic.topic_title}
 
 Other lessons already in this topic:
 {existing_lessons_text}
-{style_block}
+
 TEACHER'S NOTES FOR THIS LESSON:
 {description}
 
-YOUR TASK: Draft a complete new lesson based on the teacher's notes.
-{f"Match the HTML formatting style of the reference lesson above exactly — same inline styles, font sizes, heading structure, use of emoji symbols, and section layout." if style_reference else "Use rich HTML: h2/h3 for headings, p for paragraphs, ul/ol for lists, strong/em for emphasis, inline styles for font-size where appropriate."}
+YOUR TASK: Draft a complete new lesson based on the teacher's notes. Apply the style guide below to every element — use the exact inline styles specified, no exceptions.
 
 Write 400–800 words covering: learning objective, explanation of the concept, practical exercises, and a summary. Tailor language and complexity to the grade level.
-
+{LESSON_STYLE_GUIDE}
 Use the generate_lesson tool to return your response."""
 
         tools = [{
