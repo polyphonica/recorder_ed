@@ -702,13 +702,19 @@ Use the generate_lesson tool to return your response."""
             },
         }]
 
-        # Reformat sends full lesson HTML + style guide — needs more output room
-        max_tokens = 8192 if ai_mode == 'reformat' else 4096
+        # Reformat and revise send full lesson HTML — use Sonnet for larger context/output.
+        # Draft (new lesson) only needs to generate content, Haiku is sufficient.
+        if ai_mode in ('reformat', 'revise'):
+            model = 'claude-sonnet-4-6'
+            max_tokens = 16000
+        else:
+            model = 'claude-haiku-4-5-20251001'
+            max_tokens = 4096
 
         try:
             client = Anthropic(api_key=api_key)
             message = client.messages.create(
-                model='claude-haiku-4-5-20251001',
+                model=model,
                 max_tokens=max_tokens,
                 tools=tools,
                 tool_choice={'type': 'tool', 'name': 'generate_lesson'},
