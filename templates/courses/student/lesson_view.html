@@ -17,23 +17,23 @@
 
     <div class="container mx-auto px-4 py-8" x-data="{ navOpen: false }">
 
-        <!-- Mobile: Course Menu toggle (hidden on lg+) -->
-        <div class="lg:hidden mb-4">
+        <!-- Mobile: Course Menu toggle (CSS-hidden on desktop) -->
+        <div class="lesson-mobile-nav-toggle mb-4">
             <button @click="navOpen = !navOpen" class="btn btn-sm btn-outline">
                 <i class="fas fa-bars mr-2"></i>Course Menu
             </button>
         </div>
 
         <!-- Mobile: collapsible nav panel -->
-        <div x-show="navOpen" x-transition class="lg:hidden mb-6">
+        <div x-show="navOpen" x-transition class="lesson-mobile-nav-toggle mb-6">
             {% include 'courses/student/_lesson_sidebar.html' %}
         </div>
 
-        <!-- Desktop: two-column grid (matches course_detail.html pattern) -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Two-column grid (CSS handles responsive columns) -->
+        <div class="lesson-grid">
 
             <!-- Main content area -->
-            <div id="lessonContent" class="lg:col-span-2">
+            <div id="lessonContent">
 
                 <!-- Top bar: Ask Teacher + Fullscreen -->
                 <div class="flex justify-between items-center mb-2">
@@ -226,8 +226,8 @@
 
             </div><!-- /lessonContent -->
 
-            <!-- Desktop sidebar (always visible on lg+) -->
-            <div class="hidden lg:block">
+            <!-- Desktop sidebar (CSS-shown on desktop only) -->
+            <div class="lesson-sidebar">
                 <div class="sticky top-4 space-y-4">
                     {% include 'courses/student/_lesson_sidebar.html' %}
                 </div>
