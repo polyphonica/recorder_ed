@@ -15,21 +15,32 @@
         </ul>
     </div>
 
+    <style>
+        .lesson-grid { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+        .lesson-sidebar { display: none; }
+        .lesson-mobile-toggle { display: block; }
+        @media (min-width: 1024px) {
+            .lesson-grid { grid-template-columns: 3fr 1fr; }
+            .lesson-sidebar { display: block; }
+            .lesson-mobile-toggle { display: none; }
+        }
+    </style>
+
     <div class="container mx-auto px-4 py-8" x-data="{ navOpen: false }">
 
-        <!-- Mobile: Course Menu toggle (CSS-hidden on desktop) -->
-        <div class="lesson-mobile-nav-toggle mb-4">
+        <!-- Mobile: Course Menu toggle -->
+        <div class="lesson-mobile-toggle mb-4">
             <button @click="navOpen = !navOpen" class="btn btn-sm btn-outline">
                 <i class="fas fa-bars mr-2"></i>Course Menu
             </button>
         </div>
 
         <!-- Mobile: collapsible nav panel -->
-        <div x-show="navOpen" x-transition class="lesson-mobile-nav-toggle mb-6">
+        <div x-show="navOpen" x-transition class="lesson-mobile-toggle mb-6">
             {% include 'courses/student/_lesson_sidebar.html' %}
         </div>
 
-        <!-- Two-column grid (CSS handles responsive columns) -->
+        <!-- Two-column grid -->
         <div class="lesson-grid">
 
             <!-- Main content area -->
