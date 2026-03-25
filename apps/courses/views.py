@@ -345,6 +345,13 @@ class LessonCreateView(SuccessMessageMixin, CourseContextMixin, InstructorRequir
 
         return super().dispatch(request, *args, **kwargs)
 
+    def get_initial(self):
+        initial = super().get_initial()
+        from django.db.models import Max
+        max_num = self.topic.lessons.aggregate(Max('lesson_number'))['lesson_number__max']
+        initial['lesson_number'] = (max_num or 0) + 1
+        return initial
+
     def form_valid(self, form):
         form.instance.topic = self.topic
         return super().form_valid(form)

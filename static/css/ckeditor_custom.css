@@ -473,3 +473,12 @@ figure.image.image-style-block-align-left,
 .prose figure.media iframe {
     max-width: 100%;
 }
+
+/* Lesson view sidebar navigation */
+.topic-chevron {
+    transition: transform 0.2s ease;
+    display: inline-block;
+}
+.topic-chevron.rotated {
+    transform: rotate(90deg);
+}
