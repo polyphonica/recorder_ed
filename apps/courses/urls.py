@@ -48,6 +48,9 @@ urlpatterns = [
     path('instructor/question/<uuid:question_id>/delete/',
          views.QuizQuestionDeleteView.as_view(), name='delete_question'),
 
+    # AI Assist
+    path('instructor/ai-assist/lesson/', views.LessonAIAssistView.as_view(), name='lesson_ai_assist'),
+
     # Analytics
     path('instructor/analytics/', views.CourseAnalyticsView.as_view(), name='analytics'),
     path('instructor/<slug:slug>/analytics/', views.CourseStudentListView.as_view(), name='course_analytics'),

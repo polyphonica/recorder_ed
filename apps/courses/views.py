@@ -414,6 +414,113 @@ class LessonUpdateView(CourseOwnershipMixin, CourseContextMixin, InstructorRequi
         })
 
 
+class LessonAIAssistView(InstructorRequiredMixin, View):
+    """
+    AI assistant: draft lesson content from a natural language description.
+    Accepts course/topic context to tailor the output.
+    POST params:
+      - description: instructor's notes on what the lesson should cover
+      - course_slug + topic_number: context for new lessons
+      - lesson_id: context for revising an existing lesson
+    """
+
+    def post(self, request, *args, **kwargs):
+        import json
+        from anthropic import Anthropic
+        from django.db.models import Max
+
+        description = request.POST.get('description', '').strip()
+        if not description:
+            return JsonResponse({'error': 'No description provided.'}, status=400)
+
+        api_key = settings.ANTHROPIC_API_KEY
+        if not api_key:
+            return JsonResponse({'error': 'AI assistant is not configured.'}, status=503)
+
+        # Resolve course/topic context
+        course = topic = existing_lesson = None
+        lesson_id = request.POST.get('lesson_id', '').strip()
+        course_slug = request.POST.get('course_slug', '').strip()
+        topic_number = request.POST.get('topic_number', '').strip()
+
+        if lesson_id:
+            existing_lesson = get_object_or_404(Lesson, id=lesson_id)
+            topic = existing_lesson.topic
+            course = topic.course
+            if not course.is_owned_by(request.user):
+                return JsonResponse({'error': 'Permission denied.'}, status=403)
+        elif course_slug and topic_number:
+            course = get_object_or_404(Course, slug=course_slug)
+            if not course.is_owned_by(request.user):
+                return JsonResponse({'error': 'Permission denied.'}, status=403)
+            topic = get_object_or_404(Topic, course=course, topic_number=int(topic_number))
+        else:
+            return JsonResponse({'error': 'Course context required.'}, status=400)
+
+        # Gather existing lesson titles in this topic for context
+        existing_lessons = list(
+            topic.lessons.order_by('lesson_number')
+            .exclude(id=existing_lesson.id if existing_lesson else None)
+            .values_list('lesson_number', 'lesson_title')
+        )
+        existing_lessons_text = '\n'.join(
+            f'  Lesson {n}: {t}' for n, t in existing_lessons
+        ) or '  (none yet)'
+
+        grade_display = course.get_grade_display()
+        mode = 'revise' if existing_lesson else 'draft'
+        existing_content_block = ''
+        if existing_lesson and existing_lesson.content:
+            existing_content_block = f'\n\nExisting lesson content to revise:\n{existing_lesson.content[:3000]}'
+
+        prompt = f"""You are an expert recorder music teacher and curriculum writer helping create lesson content for an online recorder education platform.
+
+Course: {course.title}
+Grade level: {grade_display}
+Topic: {topic.topic_number}. {topic.topic_title}
+
+Other lessons already in this topic:
+{existing_lessons_text}{existing_content_block}
+
+The teacher's notes for this lesson:
+{description}
+
+{'Your job is to REVISE the existing lesson content based on the teacher\'s notes above.' if mode == 'revise' else 'Your job is to DRAFT a complete new lesson based on the teacher\'s notes above.'}
+
+Return a JSON object with these fields:
+
+- lesson_title: string — a clear, specific lesson title (e.g. "Introducing the Dotted Crotchet")
+- content: string — full lesson content as clean HTML. Use <h2> for section headings, <p> for paragraphs, <ul>/<ol> for lists, <strong> for emphasis. Write 400–800 words covering: learning objective, explanation of the concept, practical exercises, and a summary. Tailor the language and complexity to the grade level. No inline styles.
+- duration_minutes: integer — estimated lesson duration (15–60 minutes typical)
+- suggested_quiz_questions: array of 2–3 objects, each with:
+    - question: string
+    - answers: array of 4 objects each with "text" (string) and "is_correct" (boolean, exactly one true per question)
+- summary: one sentence describing what was generated
+
+Return ONLY valid JSON with no markdown fences or explanation."""
+
+        client = Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model='claude-haiku-4-5-20251001',
+            max_tokens=3000,
+            messages=[{'role': 'user', 'content': prompt}],
+        )
+
+        response_text = message.content[0].text.strip()
+        if response_text.startswith('```'):
+            response_text = response_text.split('```')[1]
+            if response_text.startswith('json'):
+                response_text = response_text[4:]
+            response_text = response_text.strip()
+
+        try:
+            data = json.loads(response_text)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Could not parse AI response. Please try again.'}, status=500)
+
+        return JsonResponse(data)
+
+
 class LessonDeleteView(CourseOwnershipMixin, InstructorRequiredMixin, DeleteView):
     """
     Delete a lesson. Uses CourseOwnershipMixin.
