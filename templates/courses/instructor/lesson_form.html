@@ -122,7 +122,8 @@
                                     </div>
 
                                     <!-- Generated result -->
-                                    <div x-show="result" class="space-y-3">
+                                    <template x-if="result">
+                                    <div class="space-y-3">
                                         <div class="divider text-xs text-violet-600">Generated Draft — review before applying</div>
 
                                         <!-- Title preview -->
@@ -178,6 +179,7 @@
                                             You can edit everything in the form before saving.
                                         </p>
                                     </div>
+                                    </template>
                                 </div>
                             </div>
                         </div>
