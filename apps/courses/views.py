@@ -579,7 +579,7 @@ BODY PARAGRAPHS:
 
 EXERCISE SECTIONS — each exercise in a white card with coral top border:
 <div style="background:#ffffff; border:1px solid #dde1e6; border-top:3px solid #d94f3d; border-radius:6px; padding:22px 26px; margin:0 0 32px 0; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-  <p style="font-size:0.68rem; font-weight:700; color:#ffffff; background:#d94f3d; text-transform:uppercase; letter-spacing:0.12em; display:inline-block; padding:3px 10px; border-radius:3px; margin:0 0 12px 0; font-family:'Inter',system-ui,sans-serif;">Exercise 1</p>
+  <p class="exercise-badge" style="font-size:0.68rem; font-weight:700; color:#ffffff; background:#d94f3d; text-transform:uppercase; letter-spacing:0.12em; display:inline-block; padding:3px 10px; border-radius:3px; margin:0 0 12px 0; font-family:'Inter',system-ui,sans-serif;">Exercise 1</p>
   <h2 style="font-size:1.1rem; font-weight:700; color:#2d3f50; font-family:'Inter',system-ui,sans-serif; margin:0 0 12px 0; border:none; padding:0;">Exercise Title</h2>
   <p style="font-size:1rem; color:#1e1e1e; line-height:1.8; margin:0 0 14px 0; font-family:'Inter',system-ui,sans-serif;">Instructions.</p>
   <ul style="font-size:1rem; color:#1e1e1e; line-height:1.8; margin:0; padding-left:0; list-style:none; font-family:'Inter',system-ui,sans-serif;">

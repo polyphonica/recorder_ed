@@ -475,9 +475,8 @@ figure.image.image-style-block-align-left,
 }
 
 /* AI Style Guide — Exercise badge: force white text on coral background */
-.ck-content p[style*="background:#d94f3d"],
-.prose .ck-content p[style*="background:#d94f3d"],
-.ck-content.prose p[style*="background:#d94f3d"] {
+.ck-content p.exercise-badge,
+.prose p.exercise-badge {
     color: #ffffff !important;
 }
 
