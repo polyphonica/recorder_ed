@@ -594,7 +594,7 @@ LISTS outside exercise boxes:
   <li style="padding:4px 0 4px 26px; position:relative;"><span style="position:absolute;left:0;color:#d94f3d;font-weight:bold;">&#9658;</span> Item text</li>
 </ul>
 
-IMAGE/NOTATION PLACEHOLDERS:
+IMAGE/NOTATION PLACEHOLDERS (use ONLY in new lessons when no actual image exists yet — NEVER replace an existing <img>, <figure>, or <svg> with this):
 <div style="background:#f8f9fa; border:1px dashed #d94f3d; border-radius:6px; padding:14px 20px; margin:0 0 14px 0; text-align:center; color:#2d3f50; font-size:0.9rem; font-style:italic; font-family:'Inter',system-ui,sans-serif;"><i class="fas fa-image" style="margin-right:6px; color:#d94f3d;"></i>Description of image or notation example</div>
 
 SUMMARY — always the final section, rendered as a slate callout box:
@@ -620,7 +620,8 @@ STRICT RULES — YOU MUST FOLLOW THESE EXACTLY:
 - Do NOT add, remove, or reorder any sections
 - Do NOT change lesson title, duration, or any factual information
 - ONLY replace the HTML markup and inline styles to match the style guide
-- Keep all image placeholders, audio references, and any embedded content exactly as they are
+- PRESERVE MEDIA VERBATIM: copy every <img>, <figure>, <svg>, <picture>, <audio>, <video>, and <source> element exactly character-for-character — do NOT simplify, replace, or omit them under any circumstances
+- The IMAGE/NOTATION PLACEHOLDERS shown in the style guide are ONLY for use when drafting NEW lessons that need a placeholder — do NOT apply them to existing images or figures in this lesson
 {LESSON_STYLE_GUIDE}
 Use the generate_lesson tool to return your response."""
 
