@@ -478,7 +478,9 @@ figure.image.image-style-block-align-left,
 .ck-content p.exercise-badge,
 .ck-content p.exercise-badge span,
 .prose p.exercise-badge,
-.prose p.exercise-badge span {
+.prose p.exercise-badge span,
+.prose.ck-content p.exercise-badge,
+.prose.ck-content p.exercise-badge span {
     color: #ffffff !important;
 }
 
