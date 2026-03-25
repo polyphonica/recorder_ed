@@ -13,6 +13,7 @@ from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView,
     TemplateView, View
 )
+from django.db import transaction
 from django.db.models import Count, Q, Prefetch, Max, Avg
 from django.conf import settings
 from django.http import JsonResponse
@@ -321,6 +322,50 @@ class LessonManageView(InstructorRequiredMixin, TemplateView):
         })
 
         return context
+
+
+class LessonReorderView(InstructorRequiredMixin, View):
+    """
+    POST endpoint: reorder lessons within a topic.
+    Accepts JSON body: {"lesson_ids": ["uuid1", "uuid2", ...]}
+    The new lesson_number is determined by position in the list (1-indexed).
+    Handles unique_together constraint by first moving to a temporary offset.
+    """
+
+    def post(self, request, course_slug, topic_number):
+        course = get_object_or_404(Course, slug=course_slug)
+        if not course.is_owned_by(request.user):
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+
+        topic = get_object_or_404(Topic, course=course, topic_number=topic_number)
+
+        try:
+            data = json.loads(request.body)
+            lesson_ids = data.get('lesson_ids', [])
+        except (json.JSONDecodeError, AttributeError):
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        lessons = {str(l.id): l for l in topic.lessons.all()}
+
+        if set(lesson_ids) != set(lessons.keys()):
+            return JsonResponse({'error': 'Lesson IDs do not match topic lessons'}, status=400)
+
+        offset = 10000  # temp offset avoids unique_together collisions during renumber
+
+        with transaction.atomic():
+            # Pass 1: move all to temporary positions
+            for i, lesson_id in enumerate(lesson_ids, start=1):
+                lesson = lessons[lesson_id]
+                lesson.lesson_number = offset + i
+                lesson.save(update_fields=['lesson_number'])
+
+            # Pass 2: set final positions
+            for i, lesson_id in enumerate(lesson_ids, start=1):
+                lesson = lessons[lesson_id]
+                lesson.lesson_number = i
+                lesson.save(update_fields=['lesson_number'])
+
+        return JsonResponse({'status': 'ok'})
 
 
 class InstructorLessonPreviewView(InstructorRequiredMixin, DetailView):
