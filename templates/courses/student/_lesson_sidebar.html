@@ -1,0 +1,75 @@
+<!-- Course Navigation -->
+<div class="card bg-base-100 shadow-xl">
+    <div class="card-body p-4">
+        <h3 class="font-bold text-sm text-base-content/70 uppercase mb-3">
+            <i class="fas fa-book mr-2"></i>{{ course.title }}
+        </h3>
+
+        {% if topics_with_progress %}
+            <div class="space-y-2" id="courseNavigation">
+                {% for topic_data in topics_with_progress %}
+                <div class="topic-section">
+                    <button type="button"
+                            data-topic-id="{{ topic_data.topic.id }}"
+                            class="topic-toggle w-full flex items-center justify-between p-2 rounded hover:bg-base-200 transition-colors text-left {% if topic_data.is_current_topic %}bg-base-200{% endif %}">
+                        <div class="flex items-center gap-2 flex-1 min-w-0">
+                            <i class="fas fa-chevron-right topic-chevron text-xs" id="chevron-{{ topic_data.topic.id }}"></i>
+                            <span class="font-semibold text-sm truncate">
+                                {{ topic_data.topic.topic_number }}. {{ topic_data.topic.topic_title }}
+                            </span>
+                        </div>
+                        <span class="badge badge-sm {% if topic_data.completed == topic_data.total %}badge-success{% else %}badge-ghost{% endif %}">
+                            {{ topic_data.completed }}/{{ topic_data.total }}
+                        </span>
+                    </button>
+
+                    <div id="topic-{{ topic_data.topic.id }}" class="{% if not topic_data.is_current_topic %}hidden{% endif %} ml-6 mt-1 space-y-1">
+                        {% for lesson_data in topic_data.lessons %}
+                        <a href="{% url 'courses:view_lesson' lesson_data.lesson.id %}"
+                           class="flex items-center gap-2 p-2 rounded text-sm transition-colors
+                                  {% if lesson_data.is_current %}bg-primary text-primary-content font-semibold
+                                  {% elif lesson_data.is_completed %}hover:bg-base-200
+                                  {% else %}text-base-content/60 hover:bg-base-200{% endif %}">
+                            {% if lesson_data.is_completed %}
+                                <i class="fas fa-check-circle text-success flex-shrink-0"></i>
+                            {% elif lesson_data.is_current %}
+                                <i class="fas fa-play-circle flex-shrink-0"></i>
+                            {% else %}
+                                <i class="far fa-circle flex-shrink-0"></i>
+                            {% endif %}
+                            <span class="truncate">{{ lesson_data.lesson.lesson_number }}. {{ lesson_data.lesson.lesson_title }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Overall Progress -->
+<div class="card bg-base-100 shadow-xl">
+    <div class="card-body p-4">
+        <h3 class="font-bold text-sm mb-3">Overall Progress</h3>
+        {% if enrollment %}
+            <div class="flex justify-center mb-3">
+                <div class="radial-progress text-primary"
+                     style="--value:{{ enrollment.progress_percentage }}; --size:6rem; --thickness: 0.4rem"
+                     role="progressbar">
+                    <span class="text-lg font-bold">{{ enrollment.progress_percentage }}%</span>
+                </div>
+            </div>
+        {% endif %}
+        <div class="space-y-1">
+            <a href="{% url 'courses:detail' course.slug %}"
+               class="btn btn-outline btn-sm btn-block">
+                <i class="fas fa-info-circle mr-2"></i>Course Info
+            </a>
+            <a href="{% url 'courses:student_dashboard' %}"
+               class="btn btn-ghost btn-sm btn-block">
+                <i class="fas fa-arrow-left mr-2"></i>My Courses
+            </a>
+        </div>
+    </div>
+</div>
