@@ -393,6 +393,8 @@ CKEDITOR_5_CONFIGS = {
                 {"name": "i",      "attributes": True,  "classes": True,  "styles": True},
                 {"name": "strong", "attributes": True,  "classes": True,  "styles": True},
                 {"name": "em",     "attributes": True,  "classes": True,  "styles": True},
+                {"name": "audio",  "attributes": True,  "classes": True,  "styles": True},
+                {"name": "source", "attributes": True,  "classes": False, "styles": False},
             ]
         },
         "image": {
