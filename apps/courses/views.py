@@ -491,7 +491,7 @@ The teacher's notes for this lesson:
 Return a JSON object with these fields:
 
 - lesson_title: string — a clear, specific lesson title (e.g. "Introducing the Dotted Crotchet")
-- content: string — full lesson content as clean HTML. Use <h2> for section headings, <p> for paragraphs, <ul>/<ol> for lists, <strong> for emphasis. Write 400–800 words covering: learning objective, explanation of the concept, practical exercises, and a summary. Tailor the language and complexity to the grade level. No inline styles.
+- content: string — full lesson content as clean HTML. Use <h2> for section headings, <p> for paragraphs, <ul>/<ol> for lists, <strong> for emphasis. Write 400–800 words covering: learning objective, explanation of the concept, practical exercises, and a summary. Tailor the language and complexity to the grade level. No inline styles. IMPORTANT: do not use any HTML attributes (no href, src, class, id, style etc.) as double quotes inside a JSON string will break parsing.
 - duration_minutes: integer — estimated lesson duration (15–60 minutes typical)
 - suggested_quiz_questions: array of 2–3 objects, each with:
     - question: string
@@ -504,7 +504,7 @@ Return ONLY valid JSON with no markdown fences or explanation."""
             client = Anthropic(api_key=api_key)
             message = client.messages.create(
                 model='claude-haiku-4-5-20251001',
-                max_tokens=3000,
+                max_tokens=4096,
                 messages=[{'role': 'user', 'content': prompt}],
             )
         except Exception as e:
