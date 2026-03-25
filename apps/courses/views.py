@@ -459,36 +459,79 @@ class LessonAIAssistView(InstructorRequiredMixin, View):
             return JsonResponse({'error': 'Course context required.'}, status=400)
 
         # Gather existing lesson titles in this topic for context
-        existing_lessons = list(
-            topic.lessons.order_by('lesson_number')
-            .exclude(id=existing_lesson.id if existing_lesson else None)
-            .values_list('lesson_number', 'lesson_title')
+        existing_lessons_qs = topic.lessons.order_by('lesson_number').exclude(
+            id=existing_lesson.id if existing_lesson else None
         )
+        existing_lessons = list(existing_lessons_qs.values_list('lesson_number', 'lesson_title'))
         existing_lessons_text = '\n'.join(
             f'  Lesson {n}: {t}' for n, t in existing_lessons
         ) or '  (none yet)'
 
         grade_display = course.get_grade_display()
         mode = 'revise' if existing_lesson else 'draft'
-        existing_content_block = ''
-        if existing_lesson and existing_lesson.content:
-            existing_content_block = f'\n\nExisting lesson content to revise:\n{existing_lesson.content[:3000]}'
 
-        prompt = f"""You are an expert recorder music teacher and curriculum writer helping create lesson content for an online recorder education platform.
+        # Find a style reference lesson — prefer same topic, fall back to same course
+        style_reference = None
+        style_ref_qs = existing_lessons_qs.filter(status='published').exclude(content='')
+        if not style_ref_qs.exists():
+            style_ref_qs = course.topics.exclude(
+                id=topic.id
+            ).values_list('lessons__content', 'lessons__lesson_title').filter(
+                lessons__status='published'
+            ).exclude(lessons__content='')
+        style_ref_obj = style_ref_qs.first()
+        if style_ref_obj and hasattr(style_ref_obj, 'content') and style_ref_obj.content:
+            style_reference = style_ref_obj.content[:4000]
+
+        if mode == 'revise':
+            prompt = f"""You are an expert recorder music teacher and editor. You are revising an existing lesson for an online recorder education platform.
+
+Course: {course.title}
+Grade level: {grade_display}
+Topic: {topic.topic_number}. {topic.topic_title}
+
+EXISTING LESSON CONTENT (full HTML — preserve all formatting):
+{existing_lesson.content}
+
+TEACHER'S REVISION INSTRUCTIONS:
+{description}
+
+YOUR TASK: Revise the lesson content according to the teacher's instructions above.
+
+CRITICAL FORMATTING RULES — YOU MUST FOLLOW THESE EXACTLY:
+- Preserve ALL HTML tags, attributes, and inline styles (font-size, margin-left, color, etc.) exactly as they appear
+- Preserve ALL emoji symbols, section dividers, and structural elements
+- Preserve the heading hierarchy (h1, h2, h3) and document structure
+- Do NOT add or remove HTML elements unless the teacher explicitly asked you to
+- Do NOT change font sizes, remove inline styles, or simplify the HTML structure
+- Only modify the text content itself (words, sentences, paragraphs) as directed
+- Return the complete revised HTML — not a summary or partial content
+
+Use the generate_lesson tool to return your response."""
+        else:
+            style_block = ''
+            if style_reference:
+                style_block = f"""
+STYLE REFERENCE — match this formatting style exactly (HTML tags, inline styles, font sizes, structure, use of emoji, section layout):
+{style_reference}
+
+"""
+            prompt = f"""You are an expert recorder music teacher and curriculum writer creating a new lesson for an online recorder education platform.
 
 Course: {course.title}
 Grade level: {grade_display}
 Topic: {topic.topic_number}. {topic.topic_title}
 
 Other lessons already in this topic:
-{existing_lessons_text}{existing_content_block}
-
-The teacher's notes for this lesson:
+{existing_lessons_text}
+{style_block}
+TEACHER'S NOTES FOR THIS LESSON:
 {description}
 
-{'Your job is to REVISE the existing lesson content based on the teacher\'s notes above.' if mode == 'revise' else 'Your job is to DRAFT a complete new lesson based on the teacher\'s notes above.'}
+YOUR TASK: Draft a complete new lesson based on the teacher's notes.
+{f"Match the HTML formatting style of the reference lesson above exactly — same inline styles, font sizes, heading structure, use of emoji symbols, and section layout." if style_reference else "Use rich HTML: h2/h3 for headings, p for paragraphs, ul/ol for lists, strong/em for emphasis, inline styles for font-size where appropriate."}
 
-For the content field, use clean HTML: <h2> for section headings, <p> for paragraphs, <ul>/<ol> for lists, <strong> for emphasis. Write 400–800 words covering: learning objective, explanation of the concept, practical exercises, and a summary. Tailor the language and complexity to the grade level. No inline styles, no HTML attributes.
+Write 400–800 words covering: learning objective, explanation of the concept, practical exercises, and a summary. Tailor language and complexity to the grade level.
 
 Use the generate_lesson tool to return your response."""
 
@@ -499,7 +542,7 @@ Use the generate_lesson tool to return your response."""
                 'type': 'object',
                 'properties': {
                     'lesson_title': {'type': 'string'},
-                    'content': {'type': 'string', 'description': 'Full lesson content as valid HTML markup. MUST use HTML tags: <h2> for headings, <p> for paragraphs, <ul>/<li> for lists, <strong> for bold. Do NOT return plain text or markdown — the output is rendered directly in a rich text editor.'},
+                    'content': {'type': 'string', 'description': 'Complete lesson content as valid HTML. Must preserve all existing inline styles, attributes, and formatting if revising. Do NOT return plain text or markdown.'},
                     'duration_minutes': {'type': 'integer'},
                     'suggested_quiz_questions': {
                         'type': 'array',

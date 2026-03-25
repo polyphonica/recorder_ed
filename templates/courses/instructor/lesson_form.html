@@ -90,17 +90,25 @@
                                 </button>
 
                                 <div x-show="open" x-transition class="mt-4 space-y-4">
+                                    {% if object %}
                                     <p class="text-sm text-violet-700">
-                                        Describe what this lesson should cover and the AI will draft the title, content, duration, and quiz questions for you to review and edit.
+                                        <strong>Revision mode:</strong> Describe what you want to improve. The AI will revise the lesson while preserving all your formatting, styles, headings, and symbols.
                                     </p>
+                                    {% else %}
+                                    <p class="text-sm text-violet-700">
+                                        <strong>New lesson:</strong> Describe what this lesson should cover. The AI will match the formatting style of existing lessons in this course.
+                                    </p>
+                                    {% endif %}
 
                                     <div class="form-control">
                                         <label class="label">
-                                            <span class="label-text font-medium">What should this lesson cover?</span>
+                                            <span class="label-text font-medium">
+                                                {% if object %}What would you like to improve or change?{% else %}What should this lesson cover?{% endif %}
+                                            </span>
                                         </label>
                                         <textarea x-model="prompt"
                                                   class="textarea textarea-bordered w-full h-28 text-sm"
-                                                  placeholder="e.g. Introduce dotted crotchets — explain the concept, give simple exercises, assume students already know crotchets and minims. Grade 2 level."></textarea>
+                                                  placeholder="{% if object %}e.g. Improve the grammar and flow. Make the exercises section clearer. Add a better summary.{% else %}e.g. Introduce dotted crotchets — explain the concept, give simple exercises, assume students already know crotchets and minims.{% endif %}"></textarea>
                                     </div>
 
                                     <button type="button"
