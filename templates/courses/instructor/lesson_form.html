@@ -76,7 +76,7 @@
                     </div>
 
                     <!-- AI Assist Panel -->
-                    <div class="mb-6" x-data="lessonAIAssist()">
+                    <div class="mb-6" x-data="lessonAIAssist">
                         <div class="card bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200">
                             <div class="card-body p-4">
                                 <button type="button"
@@ -535,8 +535,8 @@
 <link rel="stylesheet" type="text/css" href="{% static 'css/ckeditor_custom.css' %}">
 
 <script>
-function lessonAIAssist() {
-    return {
+document.addEventListener('alpine:init', () => {
+    Alpine.data('lessonAIAssist', () => ({
         open: false,
         loading: false,
         prompt: '',
@@ -553,10 +553,8 @@ function lessonAIAssist() {
             formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
             {% if object %}
-            // Editing existing lesson — pass lesson_id for context
             formData.append('lesson_id', '{{ object.id }}');
             {% else %}
-            // Creating new lesson — pass course/topic context
             formData.append('course_slug', '{{ course.slug }}');
             formData.append('topic_number', '{{ topic.topic_number }}');
             {% endif %}
@@ -584,28 +582,24 @@ function lessonAIAssist() {
         applyToForm() {
             if (!this.result) return;
 
-            // Fill lesson title
             const titleField = document.getElementById('id_lesson_title');
             if (titleField && this.result.lesson_title) {
                 titleField.value = this.result.lesson_title;
             }
 
-            // Fill duration
             const durationField = document.getElementById('id_duration_minutes');
             if (durationField && this.result.duration_minutes) {
                 durationField.value = this.result.duration_minutes;
             }
 
-            // Fill CKEditor content
             if (this.result.content && window.editors && window.editors['id_content']) {
                 window.editors['id_content'].setData(this.result.content);
             }
 
-            // Scroll to form fields
             document.getElementById('id_lesson_title')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-    };
-}
+    }));
+});
 
 (function() {
     const urlInput = document.getElementById('id_video_url');
