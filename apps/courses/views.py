@@ -14,6 +14,7 @@ from django.views.generic import (
     TemplateView, View
 )
 from django.db.models import Count, Q, Prefetch, Max, Avg
+from django.conf import settings
 from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
