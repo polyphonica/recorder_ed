@@ -474,6 +474,13 @@ figure.image.image-style-block-align-left,
     max-width: 100%;
 }
 
+/* AI Style Guide — Exercise badge: force white text on coral background */
+.ck-content p[style*="background:#d94f3d"],
+.prose .ck-content p[style*="background:#d94f3d"],
+.ck-content.prose p[style*="background:#d94f3d"] {
+    color: #ffffff !important;
+}
+
 /* Lesson view sidebar navigation */
 .topic-chevron {
     transition: transform 0.2s ease;
