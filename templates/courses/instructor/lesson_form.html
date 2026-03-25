@@ -100,6 +100,13 @@
                                     </p>
                                     {% endif %}
 
+                                    {% if object %}
+                                    <div x-show="isLong" class="alert alert-warning text-sm py-2">
+                                        <i class="fas fa-exclamation-triangle flex-shrink-0"></i>
+                                        <span>This lesson is quite long. AI reformatting and revision work best on focused lessons — consider splitting this into two shorter lessons for better results.</span>
+                                    </div>
+                                    {% endif %}
+
                                     <div class="form-control">
                                         <label class="label">
                                             <span class="label-text font-medium">
@@ -571,6 +578,16 @@ document.addEventListener('alpine:init', () => {
         prompt: '',
         result: null,
         error: null,
+        isLong: false,
+
+        init() {
+            this.$watch('open', (value) => {
+                if (value) {
+                    const editor = window.editors && window.editors['id_content'];
+                    this.isLong = editor ? editor.getData().length > 15000 : false;
+                }
+            });
+        },
 
         generate() {
             this.loading = true;
