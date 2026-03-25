@@ -513,15 +513,17 @@ Return ONLY valid JSON with no markdown fences or explanation."""
             return JsonResponse({'error': 'AI service unavailable. Please try again later.'}, status=503)
 
         response_text = message.content[0].text.strip()
-        if response_text.startswith('```'):
-            response_text = response_text.split('```')[1]
-            if response_text.startswith('json'):
-                response_text = response_text[4:]
-            response_text = response_text.strip()
+        # Extract JSON object robustly — find outermost { ... }
+        start = response_text.find('{')
+        end = response_text.rfind('}')
+        if start != -1 and end != -1:
+            response_text = response_text[start:end + 1]
 
         try:
             data = json.loads(response_text)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            import logging
+            logging.getLogger(__name__).error('AI assist JSON parse failed: %s\nResponse: %s', e, response_text[:500])
             return JsonResponse({'error': 'Could not parse AI response. Please try again.'}, status=500)
 
         return JsonResponse(data)
