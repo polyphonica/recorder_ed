@@ -488,23 +488,53 @@ The teacher's notes for this lesson:
 
 {'Your job is to REVISE the existing lesson content based on the teacher\'s notes above.' if mode == 'revise' else 'Your job is to DRAFT a complete new lesson based on the teacher\'s notes above.'}
 
-Return a JSON object with these fields:
+For the content field, use clean HTML: <h2> for section headings, <p> for paragraphs, <ul>/<ol> for lists, <strong> for emphasis. Write 400–800 words covering: learning objective, explanation of the concept, practical exercises, and a summary. Tailor the language and complexity to the grade level. No inline styles, no HTML attributes.
 
-- lesson_title: string — a clear, specific lesson title (e.g. "Introducing the Dotted Crotchet")
-- content: string — full lesson content as clean HTML. Use <h2> for section headings, <p> for paragraphs, <ul>/<ol> for lists, <strong> for emphasis. Write 400–800 words covering: learning objective, explanation of the concept, practical exercises, and a summary. Tailor the language and complexity to the grade level. No inline styles. IMPORTANT: do not use any HTML attributes (no href, src, class, id, style etc.) as double quotes inside a JSON string will break parsing.
-- duration_minutes: integer — estimated lesson duration (15–60 minutes typical)
-- suggested_quiz_questions: array of 2–3 objects, each with:
-    - question: string
-    - answers: array of 4 objects each with "text" (string) and "is_correct" (boolean, exactly one true per question)
-- summary: one sentence describing what was generated
+Use the generate_lesson tool to return your response."""
 
-Return ONLY valid JSON with no markdown fences or explanation."""
+        tools = [{
+            'name': 'generate_lesson',
+            'description': 'Generate structured lesson content for the instructor to review.',
+            'input_schema': {
+                'type': 'object',
+                'properties': {
+                    'lesson_title': {'type': 'string'},
+                    'content': {'type': 'string', 'description': 'Full lesson content as HTML'},
+                    'duration_minutes': {'type': 'integer'},
+                    'suggested_quiz_questions': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'question': {'type': 'string'},
+                                'answers': {
+                                    'type': 'array',
+                                    'items': {
+                                        'type': 'object',
+                                        'properties': {
+                                            'text': {'type': 'string'},
+                                            'is_correct': {'type': 'boolean'},
+                                        },
+                                        'required': ['text', 'is_correct'],
+                                    },
+                                },
+                            },
+                            'required': ['question', 'answers'],
+                        },
+                    },
+                    'summary': {'type': 'string'},
+                },
+                'required': ['lesson_title', 'content', 'duration_minutes', 'suggested_quiz_questions', 'summary'],
+            },
+        }]
 
         try:
             client = Anthropic(api_key=api_key)
             message = client.messages.create(
                 model='claude-haiku-4-5-20251001',
                 max_tokens=4096,
+                tools=tools,
+                tool_choice={'type': 'tool', 'name': 'generate_lesson'},
                 messages=[{'role': 'user', 'content': prompt}],
             )
         except Exception as e:
@@ -512,19 +542,12 @@ Return ONLY valid JSON with no markdown fences or explanation."""
             logging.getLogger(__name__).error('AI assist API call failed: %s', e)
             return JsonResponse({'error': 'AI service unavailable. Please try again later.'}, status=503)
 
-        response_text = message.content[0].text.strip()
-        # Extract JSON object robustly — find outermost { ... }
-        start = response_text.find('{')
-        end = response_text.rfind('}')
-        if start != -1 and end != -1:
-            response_text = response_text[start:end + 1]
-
         try:
-            data = json.loads(response_text)
-        except json.JSONDecodeError as e:
+            data = message.content[0].input
+        except (IndexError, AttributeError) as e:
             import logging
-            logging.getLogger(__name__).error('AI assist JSON parse failed: %s\nResponse: %s', e, response_text[:500])
-            return JsonResponse({'error': 'Could not parse AI response. Please try again.'}, status=500)
+            logging.getLogger(__name__).error('AI assist unexpected response: %s', e)
+            return JsonResponse({'error': 'Unexpected AI response. Please try again.'}, status=500)
 
         return JsonResponse(data)
 
