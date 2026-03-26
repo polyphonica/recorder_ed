@@ -23,7 +23,7 @@
                         </span>
                     </button>
 
-                    <div id="topic-{{ topic_data.topic.id }}" class="{% if not topic_data.is_current_topic %}hidden{% endif %} ml-6 mt-1 space-y-1">
+                    <div class="topic-lessons {% if not topic_data.is_current_topic %}hidden{% endif %} ml-6 mt-1 space-y-1">
                         {% for lesson_data in topic_data.lessons %}
                         <a href="{% url 'courses:view_lesson' lesson_data.lesson.id %}"
                            class="flex items-center gap-2 p-2 rounded text-sm transition-colors

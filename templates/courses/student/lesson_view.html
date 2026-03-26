@@ -270,17 +270,25 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.topic-toggle').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            toggleTopic(this.getAttribute('data-topic-id'));
+            const section = this.closest('.topic-section');
+            const topicContent = section.querySelector('.topic-lessons');
+            const chevron = section.querySelector('.topic-chevron');
+            if (!topicContent || !chevron) return;
+            if (topicContent.classList.contains('hidden')) {
+                topicContent.classList.remove('hidden');
+                chevron.classList.add('rotated');
+            } else {
+                topicContent.classList.add('hidden');
+                chevron.classList.remove('rotated');
+            }
         });
     });
 
     // Set initial chevron states for already-expanded topics
     document.querySelectorAll('.topic-section').forEach(section => {
-        const topicDiv = section.querySelector('[id^="topic-"]');
-        if (!topicDiv) return;
-        const topicId = topicDiv.id.replace('topic-', '');
-        const chevron = document.getElementById(`chevron-${topicId}`);
-        if (chevron && !topicDiv.classList.contains('hidden')) {
+        const topicContent = section.querySelector('.topic-lessons');
+        const chevron = section.querySelector('.topic-chevron');
+        if (chevron && topicContent && !topicContent.classList.contains('hidden')) {
             chevron.classList.add('rotated');
         }
     });
@@ -300,19 +308,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function toggleTopic(topicId) {
-    const topicContent = document.getElementById(`topic-${topicId}`);
-    const chevron = document.getElementById(`chevron-${topicId}`);
-    if (!topicContent || !chevron) return;
-    const isHidden = topicContent.classList.contains('hidden');
-    if (isHidden) {
-        topicContent.classList.remove('hidden');
-        chevron.classList.add('rotated');
-    } else {
-        topicContent.classList.add('hidden');
-        chevron.classList.remove('rotated');
-    }
-}
 
 function markComplete() {
     const btn = document.getElementById('completeBtn');
