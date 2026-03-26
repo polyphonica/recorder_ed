@@ -110,7 +110,8 @@ class VoucherService:
                 'private_teaching': 'private lessons',
                 'workshops': 'workshops',
                 'workshop_series': 'workshop series',
-                'digital_products': 'digital products'
+                'digital_products': 'digital products',
+                'courses': 'courses',
             }
             raise VoucherValidationError(
                 f"This voucher cannot be used for {domain_names.get(domain, domain)}."
@@ -205,6 +206,7 @@ class VoucherService:
         request=None,
         private_lesson_order=None,
         workshop_registration=None,
+        course_enrollment=None,
         stripe_payment: StripePayment = None
     ) -> VoucherRedemption:
         """
@@ -213,13 +215,14 @@ class VoucherService:
         Args:
             voucher: The Voucher being redeemed
             student: The User redeeming the voucher
-            domain: 'private_teaching', 'workshops', or 'workshop_series'
+            domain: 'private_teaching', 'workshops', 'workshop_series', 'digital_products', or 'courses'
             original_amount: Original price before discount
             discount_amount: Amount discounted
             final_amount: Final price after discount
             request: Optional HttpRequest for IP/user agent tracking
             private_lesson_order: Optional Order for private lessons
             workshop_registration: Optional WorkshopRegistration for workshops
+            course_enrollment: Optional CourseEnrollment for courses
             stripe_payment: Optional StripePayment if payment was made
 
         Returns:
@@ -245,6 +248,7 @@ class VoucherService:
             payment_bypassed=payment_bypassed,
             private_lesson_order=private_lesson_order,
             workshop_registration=workshop_registration,
+            course_enrollment=course_enrollment,
             stripe_payment=stripe_payment,
             ip_address=ip_address,
             user_agent=user_agent

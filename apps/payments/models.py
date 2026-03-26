@@ -137,6 +137,7 @@ class Voucher(models.Model):
         ('workshops', 'Workshops'),
         ('workshop_series', 'Workshop Series'),
         ('digital_products', 'Digital Products'),
+        ('courses', 'Courses'),
     ]
 
     # Primary Key
@@ -360,6 +361,14 @@ class VoucherRedemption(models.Model):
         blank=True,
         related_name='voucher_redemptions',
         help_text="Registration if used for workshop"
+    )
+    course_enrollment = models.ForeignKey(
+        'courses.CourseEnrollment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='voucher_redemptions',
+        help_text="Enrollment if used for a course"
     )
 
     # Financial Details

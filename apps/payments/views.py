@@ -614,6 +614,29 @@ class StripeWebhookView(View):
                     stripe_payment.course_id = course.id
                     stripe_payment.save()
 
+                    # Record voucher redemption if a voucher was applied
+                    voucher_id = metadata.get('voucher_id')
+                    if voucher_id:
+                        try:
+                            from .models import Voucher
+                            from .voucher_service import VoucherService
+                            voucher = Voucher.objects.get(id=voucher_id)
+                            original_amount = Decimal(metadata.get('original_amount', str(stripe_payment.total_amount)))
+                            discount_amount = Decimal(metadata.get('discount_amount', '0'))
+                            VoucherService.create_redemption(
+                                voucher=voucher,
+                                student=enrollment.student,
+                                domain='courses',
+                                original_amount=original_amount,
+                                discount_amount=discount_amount,
+                                final_amount=stripe_payment.total_amount,
+                                stripe_payment=stripe_payment,
+                                course_enrollment=enrollment
+                            )
+                            logger.info(f"Created voucher redemption for code {metadata.get('voucher_code')}")
+                        except Exception as e:
+                            logger.error(f"Failed to create voucher redemption for course: {e}")
+
                 # Send emails after transaction commits
                 try:
                     from apps.courses.notifications import InstructorNotificationService

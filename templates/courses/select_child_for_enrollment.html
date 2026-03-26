@@ -107,6 +107,16 @@
                         {% endfor %}
                     </div>
 
+                    {% if course.cost > 0 %}
+                    <!-- Voucher Code -->
+                    <div class="form-control mt-6">
+                        <label class="label pb-1">
+                            <span class="label-text text-sm">Voucher Code (optional)</span>
+                        </label>
+                        <input type="text" name="voucher_code" class="input input-bordered w-full uppercase" placeholder="Enter voucher code" style="text-transform: uppercase;">
+                    </div>
+                    {% endif %}
+
                     <!-- Terms & Conditions Acceptance -->
                     <div class="form-control mt-6">
                         <label class="label cursor-pointer justify-start gap-2">

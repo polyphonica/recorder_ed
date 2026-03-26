@@ -1195,9 +1195,13 @@ class CourseEnrollView(LoginRequiredMixin, View):
 
     def post(self, request, slug):
         """Process enrollment"""
+        from decimal import Decimal
+        from apps.payments.voucher_service import VoucherService, VoucherValidationError
+
         course = get_object_or_404(Course, slug=slug, status=Course.Status.PUBLISHED)
         child_id = request.POST.get('child_id')
         terms_accepted = request.POST.get('terms_accepted')
+        voucher_code = request.POST.get('voucher_code', '').strip().upper()
 
         # Check T&Cs acceptance
         if not terms_accepted:
@@ -1265,14 +1269,33 @@ class CourseEnrollView(LoginRequiredMixin, View):
         # Check if course requires payment
         is_paid_course = course.cost > 0
 
-        if is_paid_course:
-            # PAID COURSE: Create enrollment with pending payment status
+        # Validate voucher if provided
+        applied_voucher = None
+        discount_amount = Decimal('0.00')
+        final_cost = course.cost
+
+        if voucher_code and is_paid_course:
+            try:
+                applied_voucher = VoucherService.validate_voucher(
+                    code=voucher_code,
+                    student=request.user,
+                    domain='courses',
+                    cart_total=course.cost,
+                    teacher=course.instructor
+                )
+                discount_amount, final_cost = VoucherService.calculate_discount(applied_voucher, course.cost)
+            except VoucherValidationError as e:
+                messages.error(request, str(e))
+                return redirect('courses:detail', slug=course.slug)
+
+        if is_paid_course and final_cost > 0:
+            # PAID COURSE (with or without partial voucher): proceed to Stripe
             enrollment = CourseEnrollment.objects.create(
                 course=course,
                 student=request.user,
                 child_profile=child,
                 payment_status='pending',
-                payment_amount=course.cost,
+                payment_amount=final_cost,
                 is_active=True
             )
 
@@ -1298,24 +1321,35 @@ class CourseEnrollView(LoginRequiredMixin, View):
             )
 
             try:
-                # Use course title as item name
                 item_name = course.title
                 item_description = f"Course enrollment - {course.get_grade_display()}"
 
+                metadata = {
+                    'enrollment_id': str(enrollment.id),
+                    'course_id': str(course.id),
+                    'child_id': str(child.id) if child else '',
+                }
+
+                # Add voucher metadata so the webhook can record the redemption
+                coupon_id = None
+                if applied_voucher:
+                    metadata['voucher_id'] = str(applied_voucher.id)
+                    metadata['voucher_code'] = applied_voucher.code
+                    metadata['original_amount'] = str(course.cost)
+                    metadata['discount_amount'] = str(discount_amount)
+                    coupon_id = VoucherService.create_or_get_stripe_coupon(applied_voucher)
+
                 session = create_checkout_session(
-                    amount=course.cost,
+                    amount=final_cost,
                     student=request.user,
                     teacher=course.instructor,
                     domain='courses',
                     success_url=success_url,
                     cancel_url=cancel_url,
-                    metadata={
-                        'enrollment_id': str(enrollment.id),
-                        'course_id': str(course.id),
-                        'child_id': str(child.id) if child else '',
-                    },
+                    metadata=metadata,
                     item_name=item_name,
-                    item_description=item_description
+                    item_description=item_description,
+                    coupon_id=coupon_id
                 )
 
                 # Save session ID to enrollment
@@ -1330,6 +1364,63 @@ class CourseEnrollView(LoginRequiredMixin, View):
                 enrollment.delete()
                 messages.error(request, f"Payment setup failed: {str(e)}. Please try again.")
                 return redirect('courses:detail', slug=course.slug)
+
+        elif is_paid_course and final_cost == 0:
+            # VOUCHER MAKES COURSE FREE: bypass Stripe
+            from django.utils import timezone as tz
+            enrollment = CourseEnrollment.objects.create(
+                course=course,
+                student=request.user,
+                child_profile=child,
+                payment_status='completed',
+                payment_amount=Decimal('0.00'),
+                paid_at=tz.now(),
+                is_active=True
+            )
+
+            # Create T&Cs acceptance record
+            from .models import CourseTermsAndConditions, CourseTermsAcceptance
+            current_terms = CourseTermsAndConditions.objects.filter(is_current=True).first()
+            if current_terms:
+                CourseTermsAcceptance.objects.create(
+                    enrollment=enrollment,
+                    terms_version=current_terms,
+                    ip_address=request.META.get('REMOTE_ADDR')
+                )
+
+            # Record voucher redemption
+            VoucherService.create_redemption(
+                voucher=applied_voucher,
+                student=request.user,
+                domain='courses',
+                original_amount=course.cost,
+                discount_amount=discount_amount,
+                final_amount=Decimal('0.00'),
+                request=request,
+                course_enrollment=enrollment
+            )
+
+            # Update course enrollment count
+            course.total_enrollments = CourseEnrollment.objects.filter(
+                course=course,
+                is_active=True,
+                payment_status__in=['completed', 'not_required']
+            ).count()
+            course.save(update_fields=['total_enrollments'])
+
+            # Send notifications
+            try:
+                from .notifications import InstructorNotificationService
+                InstructorNotificationService.send_new_enrollment_notification(enrollment)
+            except Exception as e:
+                print(f"Failed to send instructor notification: {e}")
+
+            student_name = child.full_name if child else 'You'
+            messages.success(
+                request,
+                f'{student_name} {"has" if child else "have"} been successfully enrolled in {course.title}!'
+            )
+            return redirect('courses:enrollment_confirm', enrollment_id=enrollment.id)
 
         else:
             # FREE COURSE: Immediate enrollment

@@ -284,6 +284,16 @@
                                     <form method="post" action="{% url 'courses:enroll' course.slug %}" id="enrollForm">
                                         {% csrf_token %}
 
+                                        {% if course.cost > 0 %}
+                                        <!-- Voucher Code -->
+                                        <div class="form-control mb-3">
+                                            <label class="label pb-1">
+                                                <span class="label-text text-xs">Voucher Code (optional)</span>
+                                            </label>
+                                            <input type="text" name="voucher_code" class="input input-bordered input-sm w-full uppercase" placeholder="Enter voucher code" style="text-transform: uppercase;">
+                                        </div>
+                                        {% endif %}
+
                                         <!-- T&Cs Acceptance -->
                                         <div class="form-control mb-3">
                                             <label class="label cursor-pointer justify-start gap-2">
