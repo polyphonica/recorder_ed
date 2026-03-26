@@ -191,6 +191,21 @@
                         </label>
                         <textarea id="svgCode" readonly class="textarea textarea-bordered font-mono text-xs h-32 w-full">{{ svg_code }}</textarea>
                     </div>
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">PNG Background Colour</span>
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <input type="color" id="pngBgColorSwatch" value="#ffffff"
+                                   class="w-10 h-10 rounded border border-base-300 cursor-pointer p-0.5"
+                                   oninput="document.getElementById('pngBgColorText').value = this.value; updatePreviewBg(this.value);">
+                            <input type="text" id="pngBgColorText" value="#ffffff"
+                                   class="input input-bordered w-32 font-mono text-sm"
+                                   placeholder="#ffffff" maxlength="7"
+                                   oninput="syncColorSwatch(this.value)">
+                            <span class="text-sm text-base-content/70">Match your table cell background</span>
+                        </div>
+                    </div>
                     <div class="flex gap-3">
                         <button class="btn btn-primary flex-1" onclick="copySVG()">
                             <i class="fas fa-copy mr-2"></i>
@@ -239,6 +254,18 @@
 </div>
 
 <script>
+    function syncColorSwatch(value) {
+        // Only update the swatch when the text is a valid 6-digit hex colour
+        if (/^#[0-9a-fA-F]{6}$/.test(value)) {
+            document.getElementById('pngBgColorSwatch').value = value;
+            updatePreviewBg(value);
+        }
+    }
+
+    function updatePreviewBg(color) {
+        document.querySelector('#svgPreview').closest('.border-2').style.backgroundColor = color;
+    }
+
     async function copySVG() {
         const svgCode = document.getElementById('svgCode').value;
         try {
@@ -273,8 +300,9 @@
             canvas.height = height * scale;
             const ctx = canvas.getContext('2d');
 
-            // Set white background
-            ctx.fillStyle = 'white';
+            // Set background colour (from picker, default white)
+            const bgColor = document.getElementById('pngBgColorSwatch').value || '#ffffff';
+            ctx.fillStyle = bgColor;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Convert SVG to data URL
