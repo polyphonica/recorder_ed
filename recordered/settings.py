@@ -395,6 +395,11 @@ CKEDITOR_5_CONFIGS = {
                 {"name": "em",     "attributes": True,  "classes": True,  "styles": True},
                 {"name": "audio",  "attributes": True,  "classes": True,  "styles": True},
                 {"name": "source", "attributes": True,  "classes": False, "styles": False},
+                # SVG elements for inline time signatures
+                {"name": "svg",    "attributes": True,  "classes": False, "styles": False},
+                {"name": "text",   "attributes": True,  "classes": False, "styles": False},
+                {"name": "rect",   "attributes": True,  "classes": False, "styles": False},
+                {"name": "tspan",  "attributes": True,  "classes": False, "styles": False},
             ]
         },
         "image": {
