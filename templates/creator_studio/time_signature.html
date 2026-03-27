@@ -334,7 +334,9 @@
         if (bgColor) { outCtx.fillStyle = bgColor; outCtx.fillRect(0, 0, w, h); }
         outCtx.drawImage(fullCanvas, minX, minY, w, h, 0, 0, w, h);
 
-        return { canvas: out, displayW: Math.round(w / scale), displayH: Math.round(h / scale) };
+        // Keep the user's chosen display width; derive height from the tight crop aspect ratio
+        const chosenDisplayW = parseInt(svgElement.getAttribute('width')) || 45;
+        return { canvas: out, displayW: chosenDisplayW, displayH: Math.round(chosenDisplayW * h / w) };
     }
 
     async function copySVG() {
