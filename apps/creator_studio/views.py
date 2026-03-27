@@ -91,9 +91,9 @@ class TimeSignatureGeneratorView(InstructorRequiredMixin, TemplateView):
         viewbox_w = int(request.POST.get('viewbox_w', 60))
         viewbox_h = self._tight_viewbox_h(font_size, spacing)
         display_w = int(request.POST.get('display_w', 45))
-        # Default display_h to the correct aspect ratio; user can override
-        default_display_h = round(display_w * viewbox_h / viewbox_w)
-        display_h = int(request.POST.get('display_h', default_display_h))
+        # Always derive display_h from the aspect ratio — letting the user set it
+        # independently causes SVG letterboxing (large empty area around digits)
+        display_h = round(display_w * viewbox_h / viewbox_w)
 
         svg_code = self._generate_svg(top, bottom, top_right, bottom_right,
                                       font_size, spacing, viewbox_w, viewbox_h,

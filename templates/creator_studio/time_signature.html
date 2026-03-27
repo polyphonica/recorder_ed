@@ -122,10 +122,10 @@
                             <label class="label">
                                 <span class="label-text">Display Height (px)</span>
                             </label>
-                            <input type="number" name="display_h" value="{{ display_h }}"
-                                   class="input input-bordered w-full" min="20" max="350">
+                            <input type="number" value="{{ display_h }}"
+                                   class="input input-bordered w-full opacity-60" disabled>
                             <label class="label">
-                                <span class="label-text-alt">Default: auto (matches aspect ratio of viewbox)</span>
+                                <span class="label-text-alt">Auto-calculated from display width to match the viewbox aspect ratio. Setting it independently causes empty space around the digits.</span>
                             </label>
                         </div>
 
