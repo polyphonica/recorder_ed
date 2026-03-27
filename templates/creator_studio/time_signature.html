@@ -195,7 +195,7 @@
                         <label class="label">
                             <span class="label-text">PNG Background Colour</span>
                         </label>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <input type="color" id="pngBgColorSwatch" value="#ffffff"
                                    class="w-10 h-10 rounded border border-base-300 cursor-pointer p-0.5"
                                    oninput="document.getElementById('pngBgColorText').value = this.value; updatePreviewBg(this.value);">
@@ -203,6 +203,11 @@
                                    class="input input-bordered w-32 font-mono text-sm"
                                    placeholder="#ffffff" maxlength="7"
                                    oninput="syncColorSwatch(this.value)">
+                            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                                <input type="checkbox" id="pngBgTransparent" class="checkbox checkbox-sm"
+                                       onchange="toggleTransparentBg(this.checked)">
+                                <span class="text-sm">Transparent</span>
+                            </label>
                             <span class="text-sm text-base-content/70">Match your table cell background</span>
                         </div>
                     </div>
@@ -262,8 +267,24 @@
         }
     }
 
+    function toggleTransparentBg(isTransparent) {
+        const swatch = document.getElementById('pngBgColorSwatch');
+        const textInput = document.getElementById('pngBgColorText');
+        swatch.disabled = isTransparent;
+        textInput.disabled = isTransparent;
+        updatePreviewBg(isTransparent ? null : swatch.value);
+    }
+
     function updatePreviewBg(color) {
-        document.querySelector('#svgPreview').closest('.border-2').style.backgroundColor = color;
+        const previewWrapper = document.querySelector('#svgPreview').closest('.border-2');
+        if (color === null) {
+            previewWrapper.style.backgroundColor = '';
+            previewWrapper.style.backgroundImage = 'repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%)';
+            previewWrapper.style.backgroundSize = '16px 16px';
+        } else {
+            previewWrapper.style.backgroundColor = color;
+            previewWrapper.style.backgroundImage = '';
+        }
     }
 
     async function copySVG() {
@@ -300,10 +321,13 @@
             canvas.height = height * scale;
             const ctx = canvas.getContext('2d');
 
-            // Set background colour (from picker, default white)
-            const bgColor = document.getElementById('pngBgColorSwatch').value || '#ffffff';
-            ctx.fillStyle = bgColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Set background colour, or leave transparent if checkbox is checked
+            const isTransparent = document.getElementById('pngBgTransparent').checked;
+            if (!isTransparent) {
+                const bgColor = document.getElementById('pngBgColorSwatch').value || '#ffffff';
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
 
             // Convert SVG to data URL
             const svgData = new XMLSerializer().serializeToString(svgClone);
