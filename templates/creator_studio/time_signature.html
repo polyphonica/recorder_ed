@@ -276,54 +276,76 @@
         }
     }
 
-    function getTightSVGClone(svgElement) {
-        // Use the browser's own getBBox() to measure the exact rendered bounds
-        // of the glyphs — no whitespace guessing needed.
-        const bbox = svgElement.getBBox();
-        const margin = 2; // 2px breathing room on all sides
-        const vx = bbox.x - margin;
-        const vy = bbox.y - margin;
-        const vw = bbox.width  + margin * 2;
-        const vh = bbox.height + margin * 2;
-
-        const clone = svgElement.cloneNode(true);
-        clone.setAttribute('viewBox', `${vx} ${vy} ${vw} ${vh}`);
-        // Preserve the user's chosen display width; recalculate height from aspect ratio
-        const displayW = parseInt(svgElement.getAttribute('width')) || 45;
-        clone.setAttribute('width',  displayW);
-        clone.setAttribute('height', Math.round(displayW * vh / vw));
-        return clone;
-    }
-
     function getBgColor() {
         const isTransparent = document.getElementById('pngBgTransparent').checked;
         return isTransparent ? null : (document.getElementById('pngBgColorSwatch').value || '#ffffff');
     }
 
+    // Renders the SVG to a canvas and pixel-scans to find the exact glyph
+    // bounds, then crops to those bounds. getBBox() returns typographic metrics
+    // (includes full ascent/descent) not visible pixel bounds, so pixel scanning
+    // is the only reliable way to eliminate excess vertical whitespace.
+    async function buildTightCanvas(svgElement, bgColor, scale) {
+        const displayW = parseInt(svgElement.getAttribute('width')) || 45;
+        const displayH = parseInt(svgElement.getAttribute('height')) || 73;
+
+        // Render SVG without background so glyph pixels have alpha > 0
+        const fullCanvas = document.createElement('canvas');
+        fullCanvas.width  = displayW * scale;
+        fullCanvas.height = displayH * scale;
+        const fullCtx = fullCanvas.getContext('2d');
+        const svgData = new XMLSerializer().serializeToString(svgElement);
+        const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
+        await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => { fullCtx.drawImage(img, 0, 0, fullCanvas.width, fullCanvas.height); resolve(); };
+            img.onerror = reject;
+            img.src = url;
+        });
+
+        // Scan for non-transparent pixels to find actual glyph bounds
+        const pixels = fullCtx.getImageData(0, 0, fullCanvas.width, fullCanvas.height).data;
+        const pad = scale * 2; // 2px margin at output scale
+        let minX = fullCanvas.width, maxX = -1, minY = fullCanvas.height, maxY = -1;
+        for (let y = 0; y < fullCanvas.height; y++) {
+            for (let x = 0; x < fullCanvas.width; x++) {
+                if (pixels[(y * fullCanvas.width + x) * 4 + 3] > 10) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+        if (maxX === -1) { minX = 0; minY = 0; maxX = fullCanvas.width - 1; maxY = fullCanvas.height - 1; }
+        minX = Math.max(0, minX - pad);
+        minY = Math.max(0, minY - pad);
+        maxX = Math.min(fullCanvas.width  - 1, maxX + pad);
+        maxY = Math.min(fullCanvas.height - 1, maxY + pad);
+
+        const w = maxX - minX + 1;
+        const h = maxY - minY + 1;
+
+        // Compose final canvas: optional background + cropped glyphs
+        const out = document.createElement('canvas');
+        out.width  = w;
+        out.height = h;
+        const outCtx = out.getContext('2d');
+        if (bgColor) { outCtx.fillStyle = bgColor; outCtx.fillRect(0, 0, w, h); }
+        outCtx.drawImage(fullCanvas, minX, minY, w, h, 0, 0, w, h);
+
+        return { canvas: out, displayW: Math.round(w / scale), displayH: Math.round(h / scale) };
+    }
+
     async function copySVG() {
         // CKEditor 5 strips raw SVG from its content model, so we copy an <img>
-        // tag with the SVG embedded as a base64 data URL instead.
+        // tag with a tight-cropped PNG data URL instead.
         try {
             const svgElement = document.querySelector('#svgPreview svg');
             if (!svgElement) { alert('No time signature to copy. Please generate one first.'); return; }
-
-            const clone = getTightSVGClone(svgElement);
-            const bgColor = getBgColor();
-            if (bgColor) {
-                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                rect.setAttribute('x', clone.getAttribute('viewBox').split(' ')[0]);
-                rect.setAttribute('y', clone.getAttribute('viewBox').split(' ')[1]);
-                rect.setAttribute('width',  clone.getAttribute('viewBox').split(' ')[2]);
-                rect.setAttribute('height', clone.getAttribute('viewBox').split(' ')[3]);
-                rect.setAttribute('fill', bgColor);
-                clone.insertBefore(rect, clone.firstChild);
-            }
-
-            const svgData = new XMLSerializer().serializeToString(clone);
-            const b64 = btoa(unescape(encodeURIComponent(svgData)));
-            const w = clone.getAttribute('width');
-            const h = clone.getAttribute('height');
-            const imgTag = `<img src="data:image/svg+xml;base64,${b64}" width="${w}" height="${h}" alt="Time signature" style="vertical-align:middle;">`;
+            const { canvas, displayW, displayH } = await buildTightCanvas(svgElement, getBgColor(), 3);
+            const dataUrl = canvas.toDataURL('image/png');
+            const imgTag = `<img src="${dataUrl}" width="${displayW}" height="${displayH}" alt="Time signature" style="vertical-align:middle;">`;
             await navigator.clipboard.writeText(imgTag);
             alert('Image tag copied! Paste it into CKEditor source view.');
         } catch (err) {
@@ -340,55 +362,17 @@
                 return;
             }
 
-            const svgClone = getTightSVGClone(svgElement);
-            const width  = parseInt(svgClone.getAttribute('width'));
-            const height = parseInt(svgClone.getAttribute('height'));
-
-            // Create a higher resolution for better quality (3x)
-            const scale = 3;
-            const canvas = document.createElement('canvas');
-            canvas.width  = width  * scale;
-            canvas.height = height * scale;
-            const ctx = canvas.getContext('2d');
-
-            // Set background colour, or leave transparent if checkbox is checked
-            const bgColor = getBgColor();
-            if (bgColor) {
-                ctx.fillStyle = bgColor;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-            }
-
-            // Convert SVG to inline data URL — blob URLs cause browsers to render
-            // SVG with a white background, breaking transparency.
-            const svgData = new XMLSerializer().serializeToString(svgClone);
-            const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
-
-            // Load SVG into an image
-            const img = new Image();
-            img.onload = function() {
-                // Draw the image on canvas with scaling
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                // Convert canvas to PNG blob
-                canvas.toBlob(function(blob) {
-                    // Create download link
-                    const downloadUrl = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = downloadUrl;
-                    link.download = 'time-signature.png';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-
-                    URL.revokeObjectURL(downloadUrl);
-                }, 'image/png');
-            };
-
-            img.onerror = function() {
-                alert('Failed to convert SVG to PNG. Please try again.');
-            };
-
-            img.src = url;
+            const { canvas } = await buildTightCanvas(svgElement, getBgColor(), 3);
+            canvas.toBlob(function(blob) {
+                const downloadUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = 'time-signature.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(downloadUrl);
+            }, 'image/png');
 
         } catch (err) {
             console.error('Failed to download PNG:', err);
