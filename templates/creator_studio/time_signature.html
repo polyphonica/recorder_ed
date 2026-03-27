@@ -4,7 +4,7 @@
 {% block title %}Time Signature Generator - {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-6xl">
+<div class="container mx-auto px-4 py-8 max-w-5xl">
     <!-- Breadcrumb -->
     <div class="breadcrumbs text-sm mb-6">
         <ul>
@@ -15,152 +15,122 @@
 
     <!-- Header -->
     <div class="mb-8">
-        <h1 class="text-3xl font-bold mb-4">
+        <h1 class="text-3xl font-bold mb-2">
             <i class="fas fa-music mr-3"></i>Time Signature Generator
         </h1>
         <p class="text-base-content/70">
-            Generate customizable time signature notation. Adjust size, spacing, and positioning to match your lesson content perfectly.
+            Generate customizable time signature notation for your lesson content.
         </p>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Left Column - Controls -->
-        <div class="lg:col-span-1 space-y-6">
-            <!-- Time Signature Form -->
+        <div class="lg:col-span-1 space-y-4">
             <div class="card bg-base-200 shadow-md">
                 <div class="card-body">
-                    <h2 class="card-title text-lg">
-                        <i class="fas fa-sliders-h mr-2"></i>Time Signature
-                    </h2>
                     <form method="post" id="timeSigForm">
                         {% csrf_token %}
 
-                        <!-- Main Numbers -->
-                        <div class="form-control mb-4">
-                            <label class="label">
-                                <span class="label-text font-semibold">Top Number</span>
-                            </label>
-                            <input type="text" name="top" value="{{ top }}"
-                                   class="input input-bordered w-full" placeholder="4">
+                        <!-- Main Numbers — large and prominent -->
+                        <div class="flex gap-3 mb-4">
+                            <div class="form-control flex-1">
+                                <label class="label pb-1">
+                                    <span class="label-text font-semibold text-xs uppercase tracking-wide">Top</span>
+                                </label>
+                                <input type="text" name="top" id="inputTop" value="{{ top }}"
+                                       class="input input-bordered text-center text-2xl font-bold w-full"
+                                       placeholder="4" autocomplete="off">
+                            </div>
+                            <div class="flex items-end pb-3 text-base-content/30 text-2xl font-light">/</div>
+                            <div class="form-control flex-1">
+                                <label class="label pb-1">
+                                    <span class="label-text font-semibold text-xs uppercase tracking-wide">Bottom</span>
+                                </label>
+                                <input type="text" name="bottom" id="inputBottom" value="{{ bottom }}"
+                                       class="input input-bordered text-center text-2xl font-bold w-full"
+                                       placeholder="4" autocomplete="off">
+                            </div>
                         </div>
 
-                        <div class="form-control mb-4">
-                            <label class="label">
-                                <span class="label-text font-semibold">Bottom Number</span>
-                            </label>
-                            <input type="text" name="bottom" value="{{ bottom }}"
-                                   class="input input-bordered w-full" placeholder="4">
-                        </div>
-
-                        <!-- Optional Subscripts -->
-                        <div class="divider text-sm">Optional Subscripts</div>
-
-                        <div class="form-control mb-4">
-                            <label class="label">
-                                <span class="label-text">Top Right Subscript</span>
-                            </label>
-                            <input type="text" name="top_right" value="{{ top_right }}"
-                                   class="input input-bordered w-full" placeholder="e.g., +2">
-                        </div>
-
-                        <div class="form-control mb-4">
-                            <label class="label">
-                                <span class="label-text">Bottom Right Subscript</span>
-                            </label>
-                            <input type="text" name="bottom_right" value="{{ bottom_right }}"
-                                   class="input input-bordered w-full" placeholder="e.g., +1">
-                        </div>
-
-                        <!-- Advanced Settings -->
-                        <div class="divider text-sm">Advanced Settings</div>
-
-                        <div class="form-control mb-4">
-                            <label class="label">
-                                <span class="label-text">Font Size</span>
-                            </label>
-                            <input type="number" name="font_size" value="{{ font_size }}"
-                                   class="input input-bordered w-full" min="24" max="96">
-                            <label class="label">
-                                <span class="label-text-alt">Default: 48</span>
-                            </label>
-                        </div>
-
-                        <div class="form-control mb-4">
-                            <label class="label">
-                                <span class="label-text">Vertical Spacing</span>
-                            </label>
-                            <input type="number" name="spacing" value="{{ spacing }}"
-                                   class="input input-bordered w-full" min="10" max="50">
-                            <label class="label">
-                                <span class="label-text-alt">Default: 24</span>
-                            </label>
-                        </div>
-
-                        <div class="form-control mb-4">
-                            <label class="label">
-                                <span class="label-text">ViewBox Width</span>
-                            </label>
-                            <input type="number" name="viewbox_w" value="{{ viewbox_w }}"
-                                   class="input input-bordered w-full" min="30" max="200">
-                            <label class="label">
-                                <span class="label-text-alt">Default: 60. ViewBox height is auto-calculated to fit the digits snugly.</span>
-                            </label>
-                        </div>
-
-                        <div class="form-control mb-4">
-                            <label class="label">
-                                <span class="label-text">Display Width (px)</span>
+                        <div class="form-control mb-2">
+                            <label class="label pb-1">
+                                <span class="label-text font-semibold text-xs uppercase tracking-wide">Display Width (px)</span>
                             </label>
                             <input type="number" name="display_w" value="{{ display_w }}"
                                    class="input input-bordered w-full" min="20" max="300">
-                            <label class="label">
-                                <span class="label-text-alt">Default: 45</span>
-                            </label>
                         </div>
 
-                        <div class="form-control mb-4">
-                            <label class="label">
-                                <span class="label-text">Display Height (px)</span>
-                            </label>
-                            <input type="number" value="{{ display_h }}"
-                                   class="input input-bordered w-full opacity-60" disabled>
-                            <label class="label">
-                                <span class="label-text-alt">Auto-calculated from display width to match the viewbox aspect ratio. Setting it independently causes empty space around the digits.</span>
-                            </label>
-                        </div>
+                        <!-- Collapsible: Subscripts & Advanced -->
+                        <details class="mt-3">
+                            <summary class="cursor-pointer text-sm text-base-content/50 hover:text-base-content select-none py-2 border-t border-base-300">
+                                Advanced settings &amp; subscripts
+                            </summary>
 
-                        <button type="submit" class="btn btn-primary w-full">
-                            <i class="fas fa-sync-alt mr-2"></i>
-                            Update Preview
+                            <div class="mt-3 space-y-3 border-t border-base-300 pt-3">
+                                <div class="form-control">
+                                    <label class="label pb-1">
+                                        <span class="label-text text-sm">Top Right Subscript</span>
+                                    </label>
+                                    <input type="text" name="top_right" id="inputTopRight" value="{{ top_right }}"
+                                           class="input input-bordered w-full input-sm" placeholder="e.g., +2">
+                                </div>
+
+                                <div class="form-control">
+                                    <label class="label pb-1">
+                                        <span class="label-text text-sm">Bottom Right Subscript</span>
+                                    </label>
+                                    <input type="text" name="bottom_right" id="inputBottomRight" value="{{ bottom_right }}"
+                                           class="input input-bordered w-full input-sm" placeholder="e.g., +1">
+                                </div>
+
+                                <div class="form-control">
+                                    <label class="label pb-1">
+                                        <span class="label-text text-sm">Font Size</span>
+                                        <span class="label-text-alt text-base-content/50">Default: 48</span>
+                                    </label>
+                                    <input type="number" name="font_size" value="{{ font_size }}"
+                                           class="input input-bordered w-full input-sm" min="24" max="96">
+                                </div>
+
+                                <div class="form-control">
+                                    <label class="label pb-1">
+                                        <span class="label-text text-sm">Vertical Spacing</span>
+                                        <span class="label-text-alt text-base-content/50">Default: 24</span>
+                                    </label>
+                                    <input type="number" name="spacing" value="{{ spacing }}"
+                                           class="input input-bordered w-full input-sm" min="10" max="50">
+                                </div>
+
+                                <div class="form-control">
+                                    <label class="label pb-1">
+                                        <span class="label-text text-sm">ViewBox Width</span>
+                                        <span class="label-text-alt text-base-content/50">Default: 60</span>
+                                    </label>
+                                    <input type="number" name="viewbox_w" value="{{ viewbox_w }}"
+                                           class="input input-bordered w-full input-sm" min="30" max="200">
+                                </div>
+
+                                <p class="text-xs text-base-content/50">
+                                    Display Height: <span class="font-mono">{{ display_h }}px</span> (auto-calculated)
+                                </p>
+                            </div>
+                        </details>
+
+                        <button type="submit" class="btn btn-outline btn-sm w-full mt-4">
+                            <i class="fas fa-sync-alt mr-2"></i>Regenerate
                         </button>
                     </form>
-                </div>
-            </div>
-
-            <!-- Instructions -->
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i>
-                <div>
-                    <p class="font-semibold text-sm">Tips:</p>
-                    <ul class="text-sm mt-2 space-y-1">
-                        <li>Adjust font size and spacing to match your lesson style</li>
-                        <li>Use subscripts for additive time signatures</li>
-                        <li>ViewBox controls the SVG coordinate system</li>
-                        <li>Display size controls actual rendered size</li>
-                    </ul>
                 </div>
             </div>
         </div>
 
         <!-- Right Column - Preview and Export -->
-        <div class="lg:col-span-2 space-y-6">
+        <div class="lg:col-span-2 space-y-4">
             <!-- Preview -->
             <div class="card bg-base-100 shadow-xl">
                 <div class="card-body">
-                    <h2 class="card-title">
-                        <i class="fas fa-eye mr-2"></i>Preview
-                    </h2>
-                    <div class="border-2 border-base-300 rounded-lg p-8 min-h-[200px] flex justify-center items-center bg-white">
+                    <h2 class="card-title text-base">Preview</h2>
+                    <div id="previewWrapper" class="rounded-lg p-8 min-h-[180px] flex justify-center items-center bg-white border border-base-200">
                         <div id="svgPreview">
                             {{ svg_code|safe }}
                         </div>
@@ -170,69 +140,40 @@
 
             <!-- Export -->
             <div class="card bg-base-200 shadow-md">
-                <div class="card-body">
-                    <h2 class="card-title text-lg">
-                        <i class="fas fa-code mr-2"></i>SVG Code
-                    </h2>
-                    <div class="form-control mb-4">
-                        <label class="label">
-                            <span class="label-text">Copy this code to paste into CKEditor source view:</span>
-                        </label>
-                        <textarea id="svgCode" readonly class="textarea textarea-bordered font-mono text-xs h-32 w-full">{{ svg_code }}</textarea>
-                    </div>
-                    <div class="form-control mb-4">
-                        <label class="label">
-                            <span class="label-text">PNG Background Colour</span>
-                        </label>
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <input type="color" id="pngBgColorSwatch" value="#ffffff"
-                                   class="w-10 h-10 rounded border border-base-300 cursor-pointer p-0.5"
-                                   oninput="document.getElementById('pngBgColorText').value = this.value; updatePreviewBg(this.value);">
-                            <input type="text" id="pngBgColorText" value="#ffffff"
-                                   class="input input-bordered w-32 font-mono text-sm"
-                                   placeholder="#ffffff" maxlength="7"
-                                   oninput="syncColorSwatch(this.value)">
-                            <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                                <input type="checkbox" id="pngBgTransparent" class="checkbox checkbox-sm"
-                                       onchange="toggleTransparentBg(this.checked)">
-                                <span class="text-sm">Transparent</span>
-                            </label>
-                            <span class="text-sm text-base-content/70">Match your table cell background</span>
-                        </div>
-                    </div>
-                    <div class="flex gap-3">
-                        <button class="btn btn-primary flex-1" onclick="copySVG()">
-                            <i class="fas fa-copy mr-2"></i>
-                            Copy Image Tag
-                        </button>
-                        <button class="btn btn-secondary flex-1" onclick="downloadPNG()">
-                            <i class="fas fa-download mr-2"></i>
-                            Download as PNG
-                        </button>
-                    </div>
-                </div>
-            </div>
+                <div class="card-body gap-4">
+                    <h2 class="card-title text-base">Export</h2>
 
-            <!-- Usage Instructions -->
-            <div class="alert alert-success">
-                <i class="fas fa-lightbulb"></i>
-                <div>
-                    <p class="font-semibold">How to use in your lesson:</p>
-                    <p class="text-sm mt-2 mb-3"><strong>Option 1: SVG (Recommended for web)</strong></p>
-                    <ol class="list-decimal list-inside ml-4 space-y-1 text-sm">
-                        <li>Adjust the time signature and styling above</li>
-                        <li>Click "Copy Image Tag"</li>
-                        <li>In your lesson editor, click the "Source" button in CKEditor</li>
-                        <li>Paste the image tag at the desired location</li>
-                        <li>Click "Source" again to return to visual editing</li>
-                    </ol>
-                    <p class="text-sm mt-3 mb-3"><strong>Option 2: PNG (For downloads or printing)</strong></p>
-                    <ol class="list-decimal list-inside ml-4 space-y-1 text-sm">
-                        <li>Adjust the time signature and styling above</li>
-                        <li>Click "Download as PNG"</li>
-                        <li>The image will be saved to your downloads folder</li>
-                        <li>Insert the PNG image into your lesson using the image upload button</li>
-                    </ol>
+                    <!-- Background -->
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <span class="text-sm font-medium">Background:</span>
+                        <input type="color" id="pngBgColorSwatch" value="#ffffff"
+                               class="w-8 h-8 rounded border border-base-300 cursor-pointer p-0.5"
+                               oninput="document.getElementById('pngBgColorText').value = this.value; updatePreviewBg(this.value);">
+                        <input type="text" id="pngBgColorText" value="#ffffff"
+                               class="input input-bordered input-sm w-28 font-mono"
+                               placeholder="#ffffff" maxlength="7"
+                               oninput="syncColorSwatch(this.value)">
+                        <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                            <input type="checkbox" id="pngBgTransparent" class="checkbox checkbox-sm"
+                                   onchange="toggleTransparentBg(this.checked)">
+                            <span class="text-sm">Transparent</span>
+                        </label>
+                    </div>
+
+                    <!-- Primary Action -->
+                    <button class="btn btn-primary w-full" onclick="copySVG()">
+                        <i class="fas fa-copy mr-2"></i>Copy Image Tag
+                    </button>
+
+                    <!-- Secondary Action -->
+                    <button class="btn btn-ghost btn-sm" onclick="downloadPNG()">
+                        <i class="fas fa-download mr-1"></i>Download as PNG
+                    </button>
+
+                    <p class="text-xs text-base-content/50 -mt-2">
+                        <strong>Copy Image Tag</strong> &rarr; paste into CKEditor source view &nbsp;&middot;&nbsp;
+                        <strong>Download PNG</strong> &rarr; upload via the image button
+                    </p>
                 </div>
             </div>
         </div>
@@ -240,16 +181,32 @@
 
     <!-- Back Button -->
     <div class="mt-8">
-        <a href="{% url 'creator_studio:home' %}" class="btn btn-ghost">
-            <i class="fas fa-arrow-left mr-2"></i>
-            Back to Creator Studio
+        <a href="{% url 'creator_studio:home' %}" class="btn btn-ghost btn-sm">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Creator Studio
         </a>
     </div>
 </div>
 
 <script>
+    // ---- Live preview: update SVG text elements instantly on input change ----
+    // SVG text order: [0] top digit, [1] top subscript, [2] bottom digit, [3] bottom subscript
+    document.getElementById('inputTop').addEventListener('input', updateLivePreview);
+    document.getElementById('inputBottom').addEventListener('input', updateLivePreview);
+    document.getElementById('inputTopRight').addEventListener('input', updateLivePreview);
+    document.getElementById('inputBottomRight').addEventListener('input', updateLivePreview);
+
+    function updateLivePreview() {
+        const svg = document.querySelector('#svgPreview svg');
+        if (!svg) return;
+        const texts = svg.querySelectorAll('text');
+        if (texts[0]) texts[0].textContent = document.getElementById('inputTop').value;
+        if (texts[1]) texts[1].textContent = document.getElementById('inputTopRight').value;
+        if (texts[2]) texts[2].textContent = document.getElementById('inputBottom').value;
+        if (texts[3]) texts[3].textContent = document.getElementById('inputBottomRight').value;
+    }
+
+    // ---- Background colour ----
     function syncColorSwatch(value) {
-        // Only update the swatch when the text is a valid 6-digit hex colour
         if (/^#[0-9a-fA-F]{6}$/.test(value)) {
             document.getElementById('pngBgColorSwatch').value = value;
             updatePreviewBg(value);
@@ -265,14 +222,14 @@
     }
 
     function updatePreviewBg(color) {
-        const previewWrapper = document.querySelector('#svgPreview').closest('.border-2');
+        const wrapper = document.getElementById('previewWrapper');
         if (color === null) {
-            previewWrapper.style.backgroundColor = '';
-            previewWrapper.style.backgroundImage = 'repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%)';
-            previewWrapper.style.backgroundSize = '16px 16px';
+            wrapper.style.backgroundColor = '';
+            wrapper.style.backgroundImage = 'repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%)';
+            wrapper.style.backgroundSize = '16px 16px';
         } else {
-            previewWrapper.style.backgroundColor = color;
-            previewWrapper.style.backgroundImage = '';
+            wrapper.style.backgroundColor = color;
+            wrapper.style.backgroundImage = '';
         }
     }
 
@@ -281,19 +238,19 @@
         return isTransparent ? null : (document.getElementById('pngBgColorSwatch').value || '#ffffff');
     }
 
-    // Renders the SVG to a canvas and pixel-scans to find the exact glyph
-    // bounds, then crops to those bounds. getBBox() returns typographic metrics
-    // (includes full ascent/descent) not visible pixel bounds, so pixel scanning
+    // ---- Tight canvas: pixel-scan crop to actual glyph bounds ----
+    // getBBox() returns typographic metrics, not visible pixel bounds — pixel scanning
     // is the only reliable way to eliminate excess vertical whitespace.
     async function buildTightCanvas(svgElement, bgColor, scale) {
         const displayW = parseInt(svgElement.getAttribute('width')) || 45;
         const displayH = parseInt(svgElement.getAttribute('height')) || 73;
 
-        // Render SVG without background so glyph pixels have alpha > 0
         const fullCanvas = document.createElement('canvas');
         fullCanvas.width  = displayW * scale;
         fullCanvas.height = displayH * scale;
         const fullCtx = fullCanvas.getContext('2d');
+
+        // Inline data URL (NOT blob URL — blob URLs cause browsers to add white background)
         const svgData = new XMLSerializer().serializeToString(svgElement);
         const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
         await new Promise((resolve, reject) => {
@@ -303,9 +260,8 @@
             img.src = url;
         });
 
-        // Scan for non-transparent pixels to find actual glyph bounds
         const pixels = fullCtx.getImageData(0, 0, fullCanvas.width, fullCanvas.height).data;
-        const pad = scale * 2; // 2px margin at output scale
+        const pad = scale * 2;
         let minX = fullCanvas.width, maxX = -1, minY = fullCanvas.height, maxY = -1;
         for (let y = 0; y < fullCanvas.height; y++) {
             for (let x = 0; x < fullCanvas.width; x++) {
@@ -326,7 +282,6 @@
         const w = maxX - minX + 1;
         const h = maxY - minY + 1;
 
-        // Compose final canvas: optional background + cropped glyphs
         const out = document.createElement('canvas');
         out.width  = w;
         out.height = h;
@@ -334,14 +289,11 @@
         if (bgColor) { outCtx.fillStyle = bgColor; outCtx.fillRect(0, 0, w, h); }
         outCtx.drawImage(fullCanvas, minX, minY, w, h, 0, 0, w, h);
 
-        // Keep the user's chosen display width; derive height from the tight crop aspect ratio
         const chosenDisplayW = parseInt(svgElement.getAttribute('width')) || 45;
         return { canvas: out, displayW: chosenDisplayW, displayH: Math.round(chosenDisplayW * h / w) };
     }
 
     async function copySVG() {
-        // CKEditor 5 strips raw SVG from its content model, so we copy an <img>
-        // tag with a tight-cropped PNG data URL instead.
         try {
             const svgElement = document.querySelector('#svgPreview svg');
             if (!svgElement) { alert('No time signature to copy. Please generate one first.'); return; }
@@ -359,11 +311,7 @@
     async function downloadPNG() {
         try {
             const svgElement = document.querySelector('#svgPreview svg');
-            if (!svgElement) {
-                alert('No time signature to download. Please generate one first.');
-                return;
-            }
-
+            if (!svgElement) { alert('No time signature to download. Please generate one first.'); return; }
             const { canvas } = await buildTightCanvas(svgElement, getBgColor(), 3);
             canvas.toBlob(function(blob) {
                 const downloadUrl = URL.createObjectURL(blob);
@@ -375,7 +323,6 @@
                 document.body.removeChild(link);
                 URL.revokeObjectURL(downloadUrl);
             }, 'image/png');
-
         } catch (err) {
             console.error('Failed to download PNG:', err);
             alert('Failed to download PNG. Please try again.');
