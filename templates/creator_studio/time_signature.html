@@ -203,7 +203,7 @@
                     <div class="flex gap-3">
                         <button class="btn btn-primary flex-1" onclick="copySVG()">
                             <i class="fas fa-copy mr-2"></i>
-                            Copy SVG to Clipboard
+                            Copy Image Tag
                         </button>
                         <button class="btn btn-secondary flex-1" onclick="downloadPNG()">
                             <i class="fas fa-download mr-2"></i>
@@ -221,9 +221,9 @@
                     <p class="text-sm mt-2 mb-3"><strong>Option 1: SVG (Recommended for web)</strong></p>
                     <ol class="list-decimal list-inside ml-4 space-y-1 text-sm">
                         <li>Adjust the time signature and styling above</li>
-                        <li>Click "Copy SVG to Clipboard"</li>
+                        <li>Click "Copy Image Tag"</li>
                         <li>In your lesson editor, click the "Source" button in CKEditor</li>
-                        <li>Paste the SVG code at the desired location</li>
+                        <li>Paste the image tag at the desired location</li>
                         <li>Click "Source" again to return to visual editing</li>
                     </ol>
                     <p class="text-sm mt-3 mb-3"><strong>Option 2: PNG (For downloads or printing)</strong></p>
@@ -286,12 +286,21 @@
     }
 
     async function copySVG() {
+        // CKEditor 5 strips raw SVG from its content model, so we copy an <img>
+        // tag with the SVG embedded as a base64 data URL instead. CKEditor
+        // handles <img> natively and the image is fully self-contained.
         try {
-            await navigator.clipboard.writeText(getSVGWithBackground());
-            alert('SVG copied to clipboard! Paste it into CKEditor source view.');
+            const svgCode = getSVGWithBackground();
+            const b64 = btoa(unescape(encodeURIComponent(svgCode)));
+            const svgEl = document.querySelector('#svgPreview svg');
+            const w = svgEl ? svgEl.getAttribute('width') : '';
+            const h = svgEl ? svgEl.getAttribute('height') : '';
+            const imgTag = `<img src="data:image/svg+xml;base64,${b64}" width="${w}" height="${h}" alt="Time signature" style="vertical-align:middle;">`;
+            await navigator.clipboard.writeText(imgTag);
+            alert('Image tag copied! Paste it into CKEditor source view.');
         } catch (err) {
-            console.error('Failed to copy SVG:', err);
-            alert('Failed to copy SVG. Please try manually selecting and copying the code.');
+            console.error('Failed to copy image tag:', err);
+            alert('Failed to copy. Please try again.');
         }
     }
 
