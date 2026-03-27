@@ -103,18 +103,7 @@
                             <input type="number" name="viewbox_w" value="{{ viewbox_w }}"
                                    class="input input-bordered w-full" min="30" max="200">
                             <label class="label">
-                                <span class="label-text-alt">Default: 60</span>
-                            </label>
-                        </div>
-
-                        <div class="form-control mb-4">
-                            <label class="label">
-                                <span class="label-text">ViewBox Height</span>
-                            </label>
-                            <input type="number" name="viewbox_h" value="{{ viewbox_h }}"
-                                   class="input input-bordered w-full" min="60" max="300">
-                            <label class="label">
-                                <span class="label-text-alt">Default: 79</span>
+                                <span class="label-text-alt">Default: 60. ViewBox height and display height are auto-calculated to fit the digits snugly.</span>
                             </label>
                         </div>
 
@@ -123,20 +112,9 @@
                                 <span class="label-text">Display Width (px)</span>
                             </label>
                             <input type="number" name="display_w" value="{{ display_w }}"
-                                   class="input input-bordered w-full" min="45" max="300">
+                                   class="input input-bordered w-full" min="20" max="300">
                             <label class="label">
-                                <span class="label-text-alt">Default: 45</span>
-                            </label>
-                        </div>
-
-                        <div class="form-control mb-4">
-                            <label class="label">
-                                <span class="label-text">Display Height (px)</span>
-                            </label>
-                            <input type="number" name="display_h" value="{{ display_h }}"
-                                   class="input input-bordered w-full" min="30" max="350">
-                            <label class="label">
-                                <span class="label-text-alt">Default: 59</span>
+                                <span class="label-text-alt">Default: 45. Display height is set automatically to preserve the correct aspect ratio.</span>
                             </label>
                         </div>
 

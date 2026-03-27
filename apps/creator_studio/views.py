@@ -89,9 +89,10 @@ class TimeSignatureGeneratorView(InstructorRequiredMixin, TemplateView):
         font_size = int(request.POST.get('font_size', 48))
         spacing = int(request.POST.get('spacing', 24))
         viewbox_w = int(request.POST.get('viewbox_w', 60))
-        viewbox_h = int(request.POST.get('viewbox_h', 120))
-        display_w = int(request.POST.get('display_w', 90))
-        display_h = int(request.POST.get('display_h', 140))
+        viewbox_h = self._tight_viewbox_h(font_size, spacing)
+        display_w = int(request.POST.get('display_w', 45))
+        # Always derive display_h from the aspect ratio so there is no distortion
+        display_h = round(display_w * viewbox_h / viewbox_w)
 
         svg_code = self._generate_svg(top, bottom, top_right, bottom_right,
                                       font_size, spacing, viewbox_w, viewbox_h,
@@ -113,17 +114,19 @@ class TimeSignatureGeneratorView(InstructorRequiredMixin, TemplateView):
 
         return self.render_to_response(context)
 
+    def _top_y(self, font_size):
+        """Baseline of the top digit. Calibrated for Opus font (56 at size 48)."""
+        return round(font_size * 56 / 48)
+
     def _tight_viewbox_h(self, font_size, spacing):
-        """Calculate a tight viewBox height that fits the two stacked digits."""
-        top_y = round(font_size * 0.85)   # approximate cap height
-        bottom_y = top_y + spacing
-        descent = round(font_size * 0.2)  # digits have minimal descenders
-        return bottom_y + descent + 4     # 4px bottom margin
+        """ViewBox height that fits the two digits snugly (4px bottom margin)."""
+        bottom_y = self._top_y(font_size) + spacing
+        return bottom_y + 4
 
     def _generate_svg(self, top, bottom, top_right, bottom_right,
                      font_size, spacing, viewbox_w, viewbox_h, display_w, display_h):
         """Generate the time signature SVG code"""
-        top_y = round(font_size * 0.85)
+        top_y = self._top_y(font_size)
         bottom_y = top_y + spacing
 
         return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {viewbox_w} {viewbox_h}" width="{display_w}" height="{display_h}">
