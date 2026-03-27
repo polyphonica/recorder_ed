@@ -276,25 +276,53 @@
         }
     }
 
-    function getSVGWithBackground() {
+    function getTightSVGClone(svgElement) {
+        // Use the browser's own getBBox() to measure the exact rendered bounds
+        // of the glyphs — no whitespace guessing needed.
+        const bbox = svgElement.getBBox();
+        const margin = 2; // 2px breathing room on all sides
+        const vx = bbox.x - margin;
+        const vy = bbox.y - margin;
+        const vw = bbox.width  + margin * 2;
+        const vh = bbox.height + margin * 2;
+
+        const clone = svgElement.cloneNode(true);
+        clone.setAttribute('viewBox', `${vx} ${vy} ${vw} ${vh}`);
+        // Preserve the user's chosen display width; recalculate height from aspect ratio
+        const displayW = parseInt(svgElement.getAttribute('width')) || 45;
+        clone.setAttribute('width',  displayW);
+        clone.setAttribute('height', Math.round(displayW * vh / vw));
+        return clone;
+    }
+
+    function getBgColor() {
         const isTransparent = document.getElementById('pngBgTransparent').checked;
-        const svgCode = document.getElementById('svgCode').value;
-        if (isTransparent) return svgCode;
-        const bgColor = document.getElementById('pngBgColorSwatch').value || '#ffffff';
-        // Inject a background rect as the first child of the SVG
-        return svgCode.replace(/(<svg[^>]*>)/, `$1<rect width="100%" height="100%" fill="${bgColor}"/>`);
+        return isTransparent ? null : (document.getElementById('pngBgColorSwatch').value || '#ffffff');
     }
 
     async function copySVG() {
         // CKEditor 5 strips raw SVG from its content model, so we copy an <img>
-        // tag with the SVG embedded as a base64 data URL instead. CKEditor
-        // handles <img> natively and the image is fully self-contained.
+        // tag with the SVG embedded as a base64 data URL instead.
         try {
-            const svgCode = getSVGWithBackground();
-            const b64 = btoa(unescape(encodeURIComponent(svgCode)));
-            const svgEl = document.querySelector('#svgPreview svg');
-            const w = svgEl ? svgEl.getAttribute('width') : '';
-            const h = svgEl ? svgEl.getAttribute('height') : '';
+            const svgElement = document.querySelector('#svgPreview svg');
+            if (!svgElement) { alert('No time signature to copy. Please generate one first.'); return; }
+
+            const clone = getTightSVGClone(svgElement);
+            const bgColor = getBgColor();
+            if (bgColor) {
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', clone.getAttribute('viewBox').split(' ')[0]);
+                rect.setAttribute('y', clone.getAttribute('viewBox').split(' ')[1]);
+                rect.setAttribute('width',  clone.getAttribute('viewBox').split(' ')[2]);
+                rect.setAttribute('height', clone.getAttribute('viewBox').split(' ')[3]);
+                rect.setAttribute('fill', bgColor);
+                clone.insertBefore(rect, clone.firstChild);
+            }
+
+            const svgData = new XMLSerializer().serializeToString(clone);
+            const b64 = btoa(unescape(encodeURIComponent(svgData)));
+            const w = clone.getAttribute('width');
+            const h = clone.getAttribute('height');
             const imgTag = `<img src="data:image/svg+xml;base64,${b64}" width="${w}" height="${h}" alt="Time signature" style="vertical-align:middle;">`;
             await navigator.clipboard.writeText(imgTag);
             alert('Image tag copied! Paste it into CKEditor source view.');
@@ -306,31 +334,26 @@
 
     async function downloadPNG() {
         try {
-            // Get the SVG element from the preview
             const svgElement = document.querySelector('#svgPreview svg');
             if (!svgElement) {
                 alert('No time signature to download. Please generate one first.');
                 return;
             }
 
-            // Clone the SVG to avoid modifying the original
-            const svgClone = svgElement.cloneNode(true);
-
-            // Get dimensions
-            const width = parseInt(svgClone.getAttribute('width')) || 90;
-            const height = parseInt(svgClone.getAttribute('height')) || 140;
+            const svgClone = getTightSVGClone(svgElement);
+            const width  = parseInt(svgClone.getAttribute('width'));
+            const height = parseInt(svgClone.getAttribute('height'));
 
             // Create a higher resolution for better quality (3x)
             const scale = 3;
             const canvas = document.createElement('canvas');
-            canvas.width = width * scale;
+            canvas.width  = width  * scale;
             canvas.height = height * scale;
             const ctx = canvas.getContext('2d');
 
             // Set background colour, or leave transparent if checkbox is checked
-            const isTransparent = document.getElementById('pngBgTransparent').checked;
-            if (!isTransparent) {
-                const bgColor = document.getElementById('pngBgColorSwatch').value || '#ffffff';
+            const bgColor = getBgColor();
+            if (bgColor) {
                 ctx.fillStyle = bgColor;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
