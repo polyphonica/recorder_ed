@@ -60,18 +60,21 @@ class TimeSignatureGeneratorView(InstructorRequiredMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
         # Set defaults
+        font_size, spacing, viewbox_w = 48, 24, 60
+        viewbox_h = self._tight_viewbox_h(font_size, spacing)
+        display_w, display_h = 45, round(45 * viewbox_h / viewbox_w)
         context.update({
             'top': '4',
             'bottom': '4',
             'top_right': '',
             'bottom_right': '',
-            'font_size': 48,
-            'spacing': 24,
-            'viewbox_w': 60,
-            'viewbox_h': 120,
-            'display_w': 90,
-            'display_h': 140,
-            'svg_code': self._generate_svg('4', '4', '', '', 48, 24, 60, 120, 90, 140)
+            'font_size': font_size,
+            'spacing': spacing,
+            'viewbox_w': viewbox_w,
+            'viewbox_h': viewbox_h,
+            'display_w': display_w,
+            'display_h': display_h,
+            'svg_code': self._generate_svg('4', '4', '', '', font_size, spacing, viewbox_w, viewbox_h, display_w, display_h)
         })
         return self.render_to_response(context)
 
@@ -110,10 +113,17 @@ class TimeSignatureGeneratorView(InstructorRequiredMixin, TemplateView):
 
         return self.render_to_response(context)
 
+    def _tight_viewbox_h(self, font_size, spacing):
+        """Calculate a tight viewBox height that fits the two stacked digits."""
+        top_y = round(font_size * 0.85)   # approximate cap height
+        bottom_y = top_y + spacing
+        descent = round(font_size * 0.2)  # digits have minimal descenders
+        return bottom_y + descent + 4     # 4px bottom margin
+
     def _generate_svg(self, top, bottom, top_right, bottom_right,
                      font_size, spacing, viewbox_w, viewbox_h, display_w, display_h):
         """Generate the time signature SVG code"""
-        top_y = 56
+        top_y = round(font_size * 0.85)
         bottom_y = top_y + spacing
 
         return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {viewbox_w} {viewbox_h}" width="{display_w}" height="{display_h}">
