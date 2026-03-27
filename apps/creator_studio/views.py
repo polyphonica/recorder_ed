@@ -91,8 +91,9 @@ class TimeSignatureGeneratorView(InstructorRequiredMixin, TemplateView):
         viewbox_w = int(request.POST.get('viewbox_w', 60))
         viewbox_h = self._tight_viewbox_h(font_size, spacing)
         display_w = int(request.POST.get('display_w', 45))
-        # Always derive display_h from the aspect ratio so there is no distortion
-        display_h = round(display_w * viewbox_h / viewbox_w)
+        # Default display_h to the correct aspect ratio; user can override
+        default_display_h = round(display_w * viewbox_h / viewbox_w)
+        display_h = int(request.POST.get('display_h', default_display_h))
 
         svg_code = self._generate_svg(top, bottom, top_right, bottom_right,
                                       font_size, spacing, viewbox_w, viewbox_h,
@@ -119,9 +120,11 @@ class TimeSignatureGeneratorView(InstructorRequiredMixin, TemplateView):
         return round(font_size * 56 / 48)
 
     def _tight_viewbox_h(self, font_size, spacing):
-        """ViewBox height that fits the two digits snugly (4px bottom margin)."""
+        """ViewBox height that fits the two digits snugly."""
         bottom_y = self._top_y(font_size) + spacing
-        return bottom_y + 4
+        # Add ~35% of font_size below the baseline to account for how far
+        # Opus font digits extend beneath their baseline
+        return bottom_y + round(font_size * 0.35)
 
     def _generate_svg(self, top, bottom, top_right, bottom_right,
                      font_size, spacing, viewbox_w, viewbox_h, display_w, display_h):
