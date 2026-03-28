@@ -754,7 +754,7 @@ Use the generate_lesson tool to return your response."""
             max_tokens = 16000
         else:
             model = 'claude-haiku-4-5-20251001'
-            max_tokens = 4096
+            max_tokens = 8192
 
         try:
             client = Anthropic(api_key=api_key)
