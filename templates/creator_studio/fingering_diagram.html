@@ -362,7 +362,10 @@
     }
 
     function savePNG() {
+        const svg = generateSVG();
         const filename = getBasename() + '.png';
+
+        // Scale 2× for higher resolution output
         const scale = 2;
         const canvas = document.createElement('canvas');
         canvas.width = 445 * scale;
@@ -372,60 +375,28 @@
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Render SVG without the embedded staff image — encoding an SVG that
-        // contains a nested data URL image causes browsers to only draw the
-        // inner image. We composite the staff image onto the canvas separately.
-        const savedImage = state.staffImage;
-        state.staffImage = null;
-        const svg = generateSVG();
-        state.staffImage = savedImage;
-
         // Use inline data URL, not blob URL — blob URLs can produce a white background
         const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 
-        const svgImg = new Image();
-        svgImg.onload = () => {
-            ctx.drawImage(svgImg, 0, 0, canvas.width, canvas.height);
-
-            if (savedImage) {
-                // Composite the staff image at the correct canvas position.
-                // SVG viewBox: 0 0 891 2000; g transform: translate(-293.192, -293.192)
-                // <image> coords in SVG: x=295, y=300, w=886, h=366
-                // Effective viewBox position: x≈1.808, y≈6.808
-                const scaleX = canvas.width / 891;
-                const scaleY = canvas.height / 2000;
-                const ix = (295 - 293.192) * scaleX;
-                const iy = (300 - 293.192) * scaleY;
-                const iw = 886 * scaleX;
-                const ih = 366 * scaleY;
-
-                const staffImg = new Image();
-                staffImg.onload = () => {
-                    ctx.drawImage(staffImg, ix, iy, iw, ih);
-                    downloadPNGCanvas(canvas, filename);
-                };
-                staffImg.onerror = () => downloadPNGCanvas(canvas, filename);
-                staffImg.src = savedImage;
-            } else {
-                downloadPNGCanvas(canvas, filename);
-            }
+        const img = new Image();
+        img.onload = () => {
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 200);
+            }, 'image/png');
         };
-        svgImg.onerror = () => alert('Failed to render PNG. Try downloading as SVG instead.');
-        svgImg.src = dataUrl;
-    }
-
-    function downloadPNGCanvas(canvas, filename) {
-        canvas.toBlob(blob => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(url), 200);
-        }, 'image/png');
+        img.onerror = () => {
+            alert('Failed to render PNG. Try downloading as SVG instead.');
+        };
+        img.src = dataUrl;
     }
 </script>
 {% endblock %}
