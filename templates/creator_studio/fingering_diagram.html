@@ -63,13 +63,13 @@
             <div class="card bg-base-200 shadow-md">
                 <div class="card-body">
                     <h2 class="card-title text-lg">
-                        <i class="fas fa-download mr-2"></i>Export SVG
+                        <i class="fas fa-download mr-2"></i>Export
                     </h2>
                     <div class="form-control">
                         <label for="svgFilename" class="label">
-                            <span class="label-text">Filename</span>
+                            <span class="label-text">Filename (without extension)</span>
                         </label>
-                        <input id="svgFilename" type="text" value="recorder-fingering-diagram.svg"
+                        <input id="svgFilename" type="text" value="recorder-fingering-diagram"
                                class="input input-bordered w-full">
                     </div>
                     <div class="flex flex-col gap-2 mt-4">
@@ -80,6 +80,10 @@
                         <button class="btn btn-secondary btn-outline" onclick="saveSVG()">
                             <i class="fas fa-download mr-2"></i>
                             Download SVG File
+                        </button>
+                        <button class="btn btn-accent btn-outline" onclick="savePNG()">
+                            <i class="fas fa-image mr-2"></i>
+                            Download as PNG
                         </button>
                     </div>
                 </div>
@@ -310,10 +314,14 @@
         }
     }
 
+    function getBasename() {
+        const val = document.getElementById('svgFilename').value.trim();
+        return val || 'recorder-fingering-diagram';
+    }
+
     async function saveSVG() {
         const svg = generateSVG();
-        const filenameInput = document.getElementById('svgFilename');
-        const filename = (filenameInput && filenameInput.value) ? filenameInput.value.trim() : 'recorder-fingering-diagram.svg';
+        const filename = getBasename() + '.svg';
         const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
 
         if (window.showSaveFilePicker) {
@@ -351,6 +359,44 @@
             console.error('Download fallback failed', err);
             alert('Unable to save SVG — see console for details.');
         }
+    }
+
+    function savePNG() {
+        const svg = generateSVG();
+        const filename = getBasename() + '.png';
+
+        // Scale 2× for higher resolution output
+        const scale = 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = 445 * scale;
+        canvas.height = 1000 * scale;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Use inline data URL, not blob URL — blob URLs can produce a white background
+        const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+
+        const img = new Image();
+        img.onload = () => {
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 200);
+            }, 'image/png');
+        };
+        img.onerror = () => {
+            alert('Failed to render PNG. Try downloading as SVG instead.');
+        };
+        img.src = dataUrl;
     }
 </script>
 {% endblock %}
