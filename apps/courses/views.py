@@ -483,7 +483,7 @@ class LessonCreateView(SuccessMessageMixin, CourseContextMixin, InstructorRequir
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse('courses:edit_lesson', kwargs={'lesson_id': self.object.id})
+        return reverse('courses:edit_lesson', kwargs={'pk': self.object.id})
 
 
 class LessonUpdateView(CourseOwnershipMixin, CourseContextMixin, InstructorRequiredMixin, UpdateView):
