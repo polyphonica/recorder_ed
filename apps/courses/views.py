@@ -1023,9 +1023,14 @@ class QuizQuestionDeleteView(CourseOwnershipMixin, CourseContextMixin, Instructo
         return reverse('courses:manage_quiz', kwargs={'lesson_id': self.object.quiz.course_lesson.id})
 
     def delete(self, request, *args, **kwargs):
-        # Add success message before deleting
+        quiz = self.get_object().quiz
         messages.success(request, 'Question deleted successfully!')
-        return super().delete(request, *args, **kwargs)
+        response = super().delete(request, *args, **kwargs)
+        # Renumber remaining questions sequentially
+        for i, question in enumerate(quiz.questions.order_by('order'), start=1):
+            question.order = i
+            question.save(update_fields=['order'])
+        return response
 
 
 # ============================================================================
