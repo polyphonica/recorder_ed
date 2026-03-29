@@ -825,7 +825,8 @@ class QuizManageView(CourseOwnershipMixin, CourseContextMixin, InstructorRequire
             course_lesson=self.object,
             defaults={
                 'title': f'Quiz: {self.object.lesson_title}',
-                'status': Quiz.Status.DRAFT
+                'status': Quiz.Status.DRAFT,
+                'created_by': self.request.user,
             }
         )
 
