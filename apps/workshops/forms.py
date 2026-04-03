@@ -810,16 +810,24 @@ class WorkshopCompetitionForm(forms.ModelForm):
     """Form for instructors to create a competition question."""
     class Meta:
         model = WorkshopCompetition
-        fields = ['question']
+        fields = ['question', 'draw_datetime']
         widgets = {
             'question': forms.Textarea(attrs={
                 'class': 'textarea textarea-bordered w-full',
                 'rows': 3,
                 'placeholder': 'e.g. What is the fingering for a high D on the soprano recorder?',
             }),
+            'draw_datetime': forms.DateTimeInput(attrs={
+                'class': 'input input-bordered w-full',
+                'type': 'datetime-local',
+            }),
         }
         labels = {
             'question': 'Competition Question',
+            'draw_datetime': 'Earliest Draw Date & Time',
+        }
+        help_texts = {
+            'draw_datetime': 'Leave blank to allow drawing immediately. Once set, the Draw Winner button is locked until this time.',
         }
 
 

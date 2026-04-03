@@ -1234,6 +1234,11 @@ class WorkshopCompetition(models.Model):
         related_name='competition'
     )
     question = models.TextField()
+    draw_datetime = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Earliest date and time the winner draw can be performed"
+    )
     is_active = models.BooleanField(default=True)
     winner = models.ForeignKey(
         'WorkshopCompetitionEntry',
@@ -1250,6 +1255,13 @@ class WorkshopCompetition(models.Model):
     def eligible_entries(self):
         """Entries where the participant selected the correct answer."""
         return self.entries.filter(selected_answer__is_correct=True)
+
+    @property
+    def draw_allowed(self):
+        """True if the draw datetime has been reached (or no draw datetime is set)."""
+        if not self.draw_datetime:
+            return True
+        return timezone.now() >= self.draw_datetime
 
 
 class WorkshopCompetitionAnswer(models.Model):

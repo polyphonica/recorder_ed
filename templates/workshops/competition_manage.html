@@ -75,6 +75,39 @@
                     <button class="btn btn-disabled" disabled>
                         <i class="fas fa-random mr-2"></i>Draw Winner
                     </button>
+                {% elif not competition.draw_allowed %}
+                    <div class="alert alert-info mb-4 w-full">
+                        <i class="fas fa-lock text-xl"></i>
+                        <div class="text-left">
+                            <div class="font-semibold">Draw locked until</div>
+                            <div>{{ competition.draw_datetime|date:"F j, Y" }} at {{ competition.draw_datetime|time:"g:i A" }}</div>
+                        </div>
+                    </div>
+                    <p class="text-base-content/70 mb-3" id="countdownText"></p>
+                    <button class="btn btn-disabled" disabled>
+                        <i class="fas fa-lock mr-2"></i>Draw Winner
+                    </button>
+                    <script>
+                    (function() {
+                        const drawTime = new Date({{ competition.draw_datetime|date:"U" }} * 1000);
+                        function updateCountdown() {
+                            const diff = drawTime - Date.now();
+                            if (diff <= 0) { location.reload(); return; }
+                            const d = Math.floor(diff / 86400000);
+                            const h = Math.floor((diff % 86400000) / 3600000);
+                            const m = Math.floor((diff % 3600000) / 60000);
+                            const s = Math.floor((diff % 60000) / 1000);
+                            let parts = [];
+                            if (d > 0) parts.push(d + 'd');
+                            if (h > 0) parts.push(h + 'h');
+                            if (m > 0) parts.push(m + 'm');
+                            parts.push(s + 's');
+                            document.getElementById('countdownText').textContent = 'Draw available in ' + parts.join(' ');
+                        }
+                        updateCountdown();
+                        setInterval(updateCountdown, 1000);
+                    })();
+                    </script>
                 {% else %}
                     <p class="text-base-content/70 mb-3">
                         {{ eligible_count }} eligible entrant{{ eligible_count|pluralize }} (correct answers)

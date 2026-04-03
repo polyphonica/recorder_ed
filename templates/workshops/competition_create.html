@@ -48,6 +48,28 @@
             </div>
         </div>
 
+        <!-- Draw Date/Time -->
+        <div class="card bg-base-200 mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-lg mb-4">Draw Schedule</h2>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">{{ form.draw_datetime.label }}</span>
+                        <span class="label-text-alt">Optional</span>
+                    </label>
+                    {{ form.draw_datetime }}
+                    <label class="label">
+                        <span class="label-text-alt text-base-content/60">{{ form.draw_datetime.help_text }}</span>
+                    </label>
+                    {% if form.draw_datetime.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.draw_datetime.errors|join:", " }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
         <!-- Answers -->
         {{ formset.management_form }}
         <div class="card bg-base-200 mb-6">

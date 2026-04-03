@@ -4090,6 +4090,8 @@ class DrawWinnerView(InstructorRequiredMixin, View):
             return JsonResponse({'error': 'Permission denied'}, status=403)
         if competition.winner_id:
             return JsonResponse({'error': 'Winner already drawn'}, status=409)
+        if not competition.draw_allowed:
+            return JsonResponse({'error': 'Draw not yet allowed'}, status=403)
         eligible = list(
             competition.entries.filter(selected_answer__is_correct=True)
             .select_related('participant', 'child_profile')
