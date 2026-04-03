@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('private_teaching', '0018_add_teacher_availability_models'),
-        ('accounts', '__latest__'),  # Ensure accounts app migrations are applied
+        ('accounts', '0016_userprofile_workshop_email_notifications'),
         ('auth', '__latest__'),  # Ensure auth app migrations are applied
     ]
 

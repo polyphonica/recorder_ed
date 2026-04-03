@@ -656,3 +656,105 @@ class TeacherPaymentNotificationService(BaseNotificationService):
         except Exception as e:
             logger.error(f"Failed to send payment notification to teacher: {str(e)}")
             return False
+
+
+class LessonReminderNotificationService(BaseNotificationService):
+    """Service for sending pre-lesson reminder emails for private lessons"""
+
+    @staticmethod
+    def send_student_reminder(lesson):
+        """Send reminder email to the lesson student."""
+        try:
+            if not LessonReminderNotificationService.check_opt_out(
+                lesson.student,
+                'lesson_reminder_notifications'
+            ):
+                logger.info(
+                    f"Student {lesson.student.username} has opted out of lesson reminders — "
+                    f"skipping lesson reminder for lesson {lesson.id}"
+                )
+                return False
+
+            is_valid, email = LessonReminderNotificationService.validate_email(
+                lesson.student, 'Student'
+            )
+            if not is_valid:
+                return False
+
+            my_lessons_url = LessonReminderNotificationService.build_absolute_url(
+                'private_teaching:my_lessons'
+            )
+
+            context = {
+                'lesson': lesson,
+                'student_name': lesson.student.get_full_name() or lesson.student.username,
+                'teacher_name': lesson.teacher.get_full_name() or lesson.teacher.username,
+                'lesson_date': lesson.lesson_date,
+                'lesson_time': lesson.lesson_time,
+                'location': lesson.location,
+                'zoom_link': lesson.zoom_link,
+                'my_lessons_url': my_lessons_url,
+                'site_name': LessonReminderNotificationService.get_site_name(),
+            }
+
+            return LessonReminderNotificationService.send_templated_email(
+                template_path='private_teaching/emails/lesson_reminder_student.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject='Reminder: Your lesson is coming up',
+                fail_silently=False,
+                log_description=(
+                    f"Lesson reminder to student {lesson.student.username} ({email}) "
+                    f"for lesson {lesson.id}"
+                )
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Failed to send lesson reminder to student for lesson {lesson.id}: {str(e)}"
+            )
+            return False
+
+    @staticmethod
+    def send_teacher_reminder(lesson):
+        """Send reminder email to the teacher about an upcoming lesson."""
+        try:
+            is_valid, email = LessonReminderNotificationService.validate_email(
+                lesson.teacher, 'Teacher'
+            )
+            if not is_valid:
+                return False
+
+            schedule_url = LessonReminderNotificationService.build_absolute_url(
+                'private_teaching:teacher_schedule'
+            )
+
+            context = {
+                'lesson': lesson,
+                'student_name': lesson.student.get_full_name() or lesson.student.username,
+                'teacher_name': lesson.teacher.get_full_name() or lesson.teacher.username,
+                'lesson_date': lesson.lesson_date,
+                'lesson_time': lesson.lesson_time,
+                'location': lesson.location,
+                'zoom_link': lesson.zoom_link,
+                'schedule_url': schedule_url,
+                'site_name': LessonReminderNotificationService.get_site_name(),
+            }
+
+            return LessonReminderNotificationService.send_templated_email(
+                template_path='private_teaching/emails/lesson_reminder_teacher.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject='Upcoming lesson reminder',
+                fail_silently=False,
+                log_description=(
+                    f"Lesson reminder to teacher {lesson.teacher.username} ({email}) "
+                    f"for lesson {lesson.id}"
+                )
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Failed to send lesson reminder to teacher for lesson {lesson.id}: {str(e)}"
+            )
+            return False

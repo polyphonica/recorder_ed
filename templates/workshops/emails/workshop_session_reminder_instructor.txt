@@ -1,0 +1,23 @@
+Subject: Upcoming session: {{ workshop.title }} — {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello,
+
+This is a reminder that you have an upcoming workshop session.
+
+SESSION DETAILS:
+Workshop: {{ workshop.title }}
+Date: {{ session.start_datetime|date:"l, d F Y" }}
+Time: {{ session.start_datetime|time:"H:i" }} – {{ session.end_datetime|time:"H:i" }}
+Registered Participants: {{ registrations_count }}
+{% if workshop.delivery_method == 'online' %}Delivery: Online{% if session.meeting_url %}
+Meeting Link: {{ session.meeting_url }}{% endif %}{% elif workshop.delivery_method == 'in_person' %}Delivery: In-Person{% if workshop.venue_name %}
+Venue: {{ workshop.venue_name }}{% endif %}{% endif %}
+
+View registrations for this session:
+{{ registrations_url }}
+
+Best regards,
+The {{ site_name }} Team

@@ -733,6 +733,7 @@ def email_preferences_view(request):
         # Update preferences
         profile.email_on_new_message = request.POST.get('email_on_new_message') == 'on'
         profile.workshop_email_notifications = request.POST.get('workshop_email_notifications') == 'on'
+        profile.lesson_reminder_notifications = request.POST.get('lesson_reminder_notifications') == 'on'
         profile.save()
 
         messages.success(request, 'Email preferences updated successfully!')

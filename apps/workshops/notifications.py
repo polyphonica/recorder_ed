@@ -623,3 +623,113 @@ class WorkshopInterestNotificationService(BaseNotificationService):
                 'session_id': session.id
             }
         )
+
+class WorkshopReminderNotificationService(BaseNotificationService):
+    """Service for sending pre-event reminder emails for workshop sessions"""
+
+    @staticmethod
+    def send_student_reminder(registration):
+        """Send reminder email to a registered student (or guardian for child registrations)."""
+        try:
+            if not WorkshopReminderNotificationService.check_opt_out(
+                registration.student,
+                'workshop_email_notifications'
+            ):
+                logger.info(
+                    f"Student {registration.student.username} has opted out of workshop emails — "
+                    f"skipping workshop reminder for registration {registration.id}"
+                )
+                return False
+
+            is_valid, student_email = WorkshopReminderNotificationService.validate_email(
+                registration.student, 'Student'
+            )
+            if not is_valid:
+                return False
+
+            # For child registrations registration.email holds the guardian's address
+            recipient_email = registration.email if registration.email else student_email
+
+            session = registration.session
+            workshop = session.workshop
+            session_url = WorkshopReminderNotificationService.build_detail_url(
+                'workshops:detail', workshop
+            )
+            my_registrations_url = WorkshopReminderNotificationService.build_absolute_url(
+                'workshops:my_registrations'
+            )
+
+            context = {
+                'registration': registration,
+                'session': session,
+                'workshop': workshop,
+                'student_name': registration.student_name,
+                'is_child_registration': registration.is_for_child,
+                'session_url': session_url,
+                'my_registrations_url': my_registrations_url,
+                'site_name': WorkshopReminderNotificationService.get_site_name(),
+            }
+
+            return WorkshopReminderNotificationService.send_templated_email(
+                template_path='workshops/emails/workshop_session_reminder_student.txt',
+                context=context,
+                recipient_list=[recipient_email],
+                default_subject=f'Reminder: {workshop.title} is coming up',
+                fail_silently=False,
+                log_description=(
+                    f"Workshop session reminder to {registration.student.username} "
+                    f"({recipient_email}) for session {session.id}"
+                )
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Failed to send workshop reminder to student for registration "
+                f"{registration.id}: {str(e)}"
+            )
+            return False
+
+    @staticmethod
+    def send_instructor_reminder(session):
+        """Send reminder email to the workshop instructor about an upcoming session."""
+        try:
+            instructor = session.workshop.instructor
+            is_valid, email = WorkshopReminderNotificationService.validate_email(
+                instructor, 'Instructor'
+            )
+            if not is_valid:
+                return False
+
+            registrations_url = WorkshopReminderNotificationService.build_action_url(
+                'workshops:session_registrations', session, 'session_id'
+            )
+            registrations_count = session.registrations.filter(
+                status__in=['registered', 'promoted']
+            ).count()
+
+            context = {
+                'session': session,
+                'workshop': session.workshop,
+                'registrations_count': registrations_count,
+                'registrations_url': registrations_url,
+                'site_name': WorkshopReminderNotificationService.get_site_name(),
+            }
+
+            return WorkshopReminderNotificationService.send_templated_email(
+                template_path='workshops/emails/workshop_session_reminder_instructor.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject=f'Upcoming session: {session.workshop.title}',
+                fail_silently=False,
+                log_description=(
+                    f"Workshop session reminder to instructor {instructor.username} "
+                    f"for session {session.id}"
+                )
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Failed to send workshop reminder to instructor for session "
+                f"{session.id}: {str(e)}"
+            )
+            return False

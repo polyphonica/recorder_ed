@@ -1,0 +1,21 @@
+Subject: Upcoming lesson reminder — {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ teacher_name }},
+
+This is a reminder that you have a private lesson coming up soon.
+
+LESSON DETAILS:
+Student: {{ student_name }}
+Date: {{ lesson_date|date:"l, d F Y" }}
+Time: {{ lesson_time|time:"H:i" }}
+{% if location == 'Online' %}Location: Online{% if zoom_link %}
+Zoom Link: {{ zoom_link }}{% endif %}{% else %}Location: {{ location }}{% endif %}
+
+View your schedule:
+{{ schedule_url }}
+
+Best regards,
+The {{ site_name }} Team

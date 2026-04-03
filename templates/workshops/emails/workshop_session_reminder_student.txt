@@ -1,0 +1,27 @@
+Subject: Reminder: {{ workshop.title }} is coming up — {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{% if is_child_registration %}Hello,
+
+This is a reminder that {{ student_name }} is registered for an upcoming workshop.{% else %}Hello {{ student_name }},
+
+This is a reminder that you are registered for an upcoming workshop.{% endif %}
+
+WORKSHOP DETAILS:
+Workshop: {{ workshop.title }}
+Date: {{ session.start_datetime|date:"l, d F Y" }}
+Time: {{ session.start_datetime|time:"H:i" }} – {{ session.end_datetime|time:"H:i" }}
+{% if workshop.delivery_method == 'online' %}Delivery: Online{% if session.meeting_url %}
+Meeting Link: {{ session.meeting_url }}{% endif %}{% elif workshop.delivery_method == 'in_person' %}Delivery: In-Person{% if workshop.venue_name %}
+Venue: {{ workshop.venue_name }}{% endif %}{% if workshop.full_venue_address %}
+Address: {{ workshop.full_venue_address }}{% endif %}{% else %}Delivery: {{ workshop.get_delivery_method_display }}{% endif %}
+
+View your registrations:
+{{ my_registrations_url }}
+
+We look forward to seeing you!
+
+Best regards,
+The {{ site_name }} Team

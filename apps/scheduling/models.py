@@ -5,6 +5,48 @@ from django.core.exceptions import ValidationError
 User = get_user_model()
 
 
+class ReminderSettings(models.Model):
+    """
+    Per-teacher configuration for automatic reminder emails.
+    Created on-demand via get_or_create when accessed.
+    """
+    teacher = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='reminder_settings',
+    )
+
+    workshop_reminders_enabled = models.BooleanField(
+        default=True,
+        help_text="Send reminder emails before workshop sessions"
+    )
+    workshop_reminder_hours = models.PositiveIntegerField(
+        default=24,
+        help_text="Hours before a workshop session to send reminders (e.g. 24 = 1 day before)"
+    )
+
+    lesson_reminders_enabled = models.BooleanField(
+        default=True,
+        help_text="Send reminder emails before private lessons"
+    )
+    lesson_reminder_hours = models.PositiveIntegerField(
+        default=24,
+        help_text="Hours before a lesson to send reminders (e.g. 24 = 1 day before)"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'scheduling_reminder_settings'
+        verbose_name = 'Reminder Settings'
+        verbose_name_plural = 'Reminder Settings'
+
+    def __str__(self):
+        teacher_name = self.teacher.get_full_name() or self.teacher.username
+        return f"Reminder Settings - {teacher_name}"
+
+
 class TeacherAvailability(models.Model):
     """
     Represents a teacher's recurring weekly availability pattern.

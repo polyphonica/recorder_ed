@@ -1,7 +1,52 @@
 import uuid
 
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.conf import settings
+
+
+class ReminderLog(models.Model):
+    """
+    Tracks each reminder email that has been sent to prevent duplicate sends.
+    Uses a generic FK so it can reference either WorkshopRegistration or Lesson.
+    """
+    WORKSHOP_STUDENT = 'workshop_student'
+    WORKSHOP_INSTRUCTOR = 'workshop_instructor'
+    LESSON_STUDENT = 'lesson_student'
+    LESSON_TEACHER = 'lesson_teacher'
+
+    REMINDER_TYPE_CHOICES = [
+        (WORKSHOP_STUDENT, 'Workshop - Student'),
+        (WORKSHOP_INSTRUCTOR, 'Workshop - Instructor'),
+        (LESSON_STUDENT, 'Lesson - Student'),
+        (LESSON_TEACHER, 'Lesson - Teacher'),
+    ]
+
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.CharField(max_length=50)
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    reminder_type = models.CharField(max_length=30, choices=REMINDER_TYPE_CHOICES)
+    recipient_email = models.EmailField()
+    sent_at = models.DateTimeField(auto_now_add=True)
+    lead_hours = models.PositiveIntegerField(
+        help_text="Configured lead time (hours) at the time this reminder was sent"
+    )
+
+    class Meta:
+        db_table = 'core_reminder_log'
+        indexes = [
+            models.Index(
+                fields=['content_type', 'object_id', 'reminder_type'],
+                name='core_reminderlog_lookup_idx',
+            ),
+        ]
+        verbose_name = 'Reminder Log'
+        verbose_name_plural = 'Reminder Logs'
+
+    def __str__(self):
+        return f"{self.get_reminder_type_display()} → {self.recipient_email} at {self.sent_at}"
 
 
 class PayableModel(models.Model):

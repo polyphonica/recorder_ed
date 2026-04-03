@@ -54,6 +54,78 @@
         </div>
     </div>
 
+    <!-- Reminder Emails -->
+    <div class="card card-section shadow-xl mb-6" x-data="{
+        workshopEnabled: {{ reminder_form.workshop_reminders_enabled.value|yesno:'true,false' }},
+        lessonEnabled: {{ reminder_form.lesson_reminders_enabled.value|yesno:'true,false' }}
+    }">
+        <div class="card-body">
+            <h2 class="card-title text-2xl mb-2">
+                <i class="fas fa-bell text-primary mr-2"></i>
+                Reminder Emails
+            </h2>
+            <p class="text-base-content/70 mb-4">
+                Automatically send reminder emails to you and your students before upcoming workshops and lessons.
+                Students can opt out from their email preferences page.
+            </p>
+
+            <form method="post" action="{% url 'private_teaching:reminder_settings' %}">
+                {% csrf_token %}
+                <div class="space-y-6">
+                    <!-- Workshop reminders -->
+                    <div>
+                        <div class="form-control">
+                            <label class="label cursor-pointer justify-start gap-4">
+                                <input type="checkbox" name="workshop_reminders_enabled"
+                                       class="toggle toggle-primary"
+                                       {% if reminder_form.workshop_reminders_enabled.value %}checked{% endif %}
+                                       @change="workshopEnabled = $event.target.checked">
+                                <span class="label-text font-semibold text-lg">Workshop reminders</span>
+                            </label>
+                        </div>
+                        <div x-show="workshopEnabled" class="flex items-center gap-3 ml-12 mt-2">
+                            <span class="text-sm text-base-content/70">Send</span>
+                            <input type="number" name="workshop_reminder_hours"
+                                   value="{{ reminder_form.workshop_reminder_hours.value }}"
+                                   min="1" max="168"
+                                   class="input input-bordered w-24 input-sm">
+                            <span class="text-sm text-base-content/70">hours before each workshop session</span>
+                        </div>
+                    </div>
+
+                    <div class="divider my-2"></div>
+
+                    <!-- Lesson reminders -->
+                    <div>
+                        <div class="form-control">
+                            <label class="label cursor-pointer justify-start gap-4">
+                                <input type="checkbox" name="lesson_reminders_enabled"
+                                       class="toggle toggle-primary"
+                                       {% if reminder_form.lesson_reminders_enabled.value %}checked{% endif %}
+                                       @change="lessonEnabled = $event.target.checked">
+                                <span class="label-text font-semibold text-lg">Lesson reminders</span>
+                            </label>
+                        </div>
+                        <div x-show="lessonEnabled" class="flex items-center gap-3 ml-12 mt-2">
+                            <span class="text-sm text-base-content/70">Send</span>
+                            <input type="number" name="lesson_reminder_hours"
+                                   value="{{ reminder_form.lesson_reminder_hours.value }}"
+                                   min="1" max="168"
+                                   class="input input-bordered w-24 input-sm">
+                            <span class="text-sm text-base-content/70">hours before each lesson</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <button type="submit" class="btn btn-section-primary">
+                        <i class="fas fa-save mr-2"></i>Save Reminder Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Promotional Vouchers -->
     <div class="card card-section shadow-xl mb-6">
         <div class="card-body">

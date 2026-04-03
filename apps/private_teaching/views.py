@@ -1059,14 +1059,35 @@ class BulkActionView(TeacherProfileCompletedMixin, View):
 class TeacherSettingsView(TeacherProfileCompletedMixin, TemplateView):
     """Teacher settings page for managing subjects and pricing"""
     template_name = 'private_teaching/teacher_settings.html'
-    
+
     def get_context_data(self, **kwargs):
+        from apps.scheduling.models import ReminderSettings
+        from apps.scheduling.forms import ReminderSettingsForm
         context = super().get_context_data(**kwargs)
+        reminder_settings, _ = ReminderSettings.objects.get_or_create(teacher=self.request.user)
         context.update({
             'subjects': Subject.objects.filter(teacher=self.request.user).order_by('subject'),
             'subject_form': SubjectForm(teacher=self.request.user),
+            'reminder_form': ReminderSettingsForm(instance=reminder_settings),
         })
         return context
+
+
+class ReminderSettingsView(TeacherProfileCompletedMixin, View):
+    """Save reminder email settings for the teacher"""
+    redirect_url_name = 'private_teaching:teacher_settings'
+
+    def post(self, request, *args, **kwargs):
+        from apps.scheduling.models import ReminderSettings
+        from apps.scheduling.forms import ReminderSettingsForm
+        reminder_settings, _ = ReminderSettings.objects.get_or_create(teacher=request.user)
+        form = ReminderSettingsForm(request.POST, instance=reminder_settings)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Reminder settings saved.')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+        return redirect(self.redirect_url_name)
 
 
 class SubjectCreateView(PrivateTeachingCreateView):

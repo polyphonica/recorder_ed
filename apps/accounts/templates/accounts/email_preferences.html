@@ -55,6 +55,26 @@
                             </div>
                         </label>
                     </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Lesson Reminder Notifications -->
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            <input
+                                type="checkbox"
+                                name="lesson_reminder_notifications"
+                                class="checkbox checkbox-primary"
+                                {% if profile.lesson_reminder_notifications %}checked{% endif %}
+                            >
+                            <div>
+                                <span class="label-text font-semibold text-lg">Lesson Reminders</span>
+                                <p class="text-sm text-base-content/70 mt-1">
+                                    Receive reminder emails before your scheduled private lessons
+                                </p>
+                            </div>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="divider"></div>

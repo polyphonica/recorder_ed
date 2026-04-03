@@ -100,6 +100,10 @@ class UserProfile(models.Model):
         default=True,
         help_text="Receive email notifications about workshops you're registered for"
     )
+    lesson_reminder_notifications = models.BooleanField(
+        default=True,
+        help_text="Receive reminder emails before your scheduled private lessons"
+    )
 
     # Email verification
     email_verified = models.BooleanField(default=False, help_text="Whether the user has verified their email address")
