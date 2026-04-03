@@ -19,12 +19,13 @@ from .models import (
     Workshop, WorkshopCategory, WorkshopSession,
     WorkshopRegistration, WorkshopMaterial, WorkshopInterest,
     WorkshopTermsAndConditions, TermsAcceptance, SessionEmailLog,
-    WorkshopTestimonial,
+    WorkshopTestimonial, WorkshopCompetition, WorkshopCompetitionEntry,
 )
 from .forms import (
     WorkshopRegistrationForm, WorkshopForm, WorkshopSessionForm,
     BatchSessionForm, WorkshopFilterForm, WorkshopInterestForm,
     WorkshopMaterialForm, FeedbackForm, TestimonialForm,
+    WorkshopCompetitionForm, CompetitionAnswerFormSet,
 )
 from .mixins import InstructorRequiredMixin
 from .notifications import WorkshopInterestNotificationService
@@ -1183,6 +1184,25 @@ class MyRegistrationsView(UserFilterMixin, LoginRequiredMixin, ListView):
 
         context['grouped_registrations'] = grouped_registrations
 
+        # Competition context: for each session, check for an active competition
+        session_ids = [r.session_id for r in context['registrations']]
+        competitions = WorkshopCompetition.objects.filter(
+            session_id__in=session_ids
+        ).select_related('winner')
+        # Keyed by session UUID for easy template lookup via get_item filter
+        competition_by_session = {c.session_id: c for c in competitions}
+        context['competition_by_session'] = competition_by_session
+
+        # Which competitions has this user already entered? Dict for template get_item lookup.
+        entered_competition_ids = dict.fromkeys(
+            WorkshopCompetitionEntry.objects.filter(
+                competition__in=competitions,
+                participant=self.request.user,
+            ).values_list('competition_id', flat=True),
+            True
+        )
+        context['entered_competition_ids'] = entered_competition_ids
+
         return context
 
 
@@ -2059,6 +2079,12 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
             'cancelled': stats_aggregate['cancelled'] or 0,
         }
         
+        # Fetch competition for this session if it exists
+        try:
+            session_competition = self.session.competition
+        except WorkshopCompetition.DoesNotExist:
+            session_competition = None
+
         context.update({
             'session': self.session,
             'workshop': self.session.workshop,
@@ -2067,6 +2093,7 @@ class SessionRegistrationsView(LoginRequiredMixin, ListView):
             'current_search': self.request.GET.get('search', ''),
             'status_choices': WorkshopRegistration.STATUS_CHOICES,
             'waitlist_info': self.session.get_waitlist_info(),
+            'session_competition': session_competition,
         })
         return context
     
@@ -3964,3 +3991,170 @@ class InstructorParticipantsView(LoginRequiredMixin, ListView):
             )
 
         return redirect('workshops:instructor_participants')
+
+
+# ---------------------------------------------------------------------------
+# Competition Views
+# ---------------------------------------------------------------------------
+
+class CreateCompetitionView(InstructorRequiredMixin, View):
+    """Instructor creates a multiple-choice competition for a session."""
+    template_name = 'workshops/competition_create.html'
+
+    def _get_session(self, session_id, request):
+        session = get_object_or_404(WorkshopSession, id=session_id)
+        if session.workshop.instructor != request.user:
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+        return session
+
+    def get(self, request, session_id):
+        session = self._get_session(session_id, request)
+        if hasattr(session, 'competition'):
+            return redirect('workshops:manage_competition', competition_id=session.competition.id)
+        form = WorkshopCompetitionForm()
+        formset = CompetitionAnswerFormSet()
+        return render(request, self.template_name, {
+            'session': session,
+            'form': form,
+            'formset': formset,
+        })
+
+    def post(self, request, session_id):
+        session = self._get_session(session_id, request)
+        if hasattr(session, 'competition'):
+            return redirect('workshops:manage_competition', competition_id=session.competition.id)
+        form = WorkshopCompetitionForm(request.POST)
+        formset = CompetitionAnswerFormSet(request.POST)
+        if form.is_valid() and formset.is_valid():
+            correct_count = sum(
+                1 for f in formset.forms
+                if f.cleaned_data.get('is_correct') and not f.cleaned_data.get('DELETE')
+            )
+            if correct_count != 1:
+                form.add_error(None, 'Please mark exactly one answer as correct.')
+            else:
+                competition = form.save(commit=False)
+                competition.session = session
+                competition.save()
+                for i, answer_form in enumerate(formset.forms):
+                    if answer_form.cleaned_data and not answer_form.cleaned_data.get('DELETE'):
+                        answer = answer_form.save(commit=False)
+                        answer.competition = competition
+                        if answer.order == 0:
+                            answer.order = i
+                        answer.save()
+                messages.success(request, 'Competition created successfully.')
+                return redirect('workshops:manage_competition', competition_id=competition.id)
+        return render(request, self.template_name, {
+            'session': session,
+            'form': form,
+            'formset': formset,
+        })
+
+
+class ManageCompetitionView(InstructorRequiredMixin, View):
+    """Instructor views entrants and triggers the winner draw."""
+    template_name = 'workshops/competition_manage.html'
+
+    def _get_competition(self, competition_id, request):
+        competition = get_object_or_404(
+            WorkshopCompetition.objects.select_related('session__workshop', 'winner__participant'),
+            id=competition_id
+        )
+        if competition.session.workshop.instructor != request.user:
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+        return competition
+
+    def get(self, request, competition_id):
+        competition = self._get_competition(competition_id, request)
+        entries = competition.entries.select_related(
+            'participant', 'selected_answer', 'child_profile'
+        ).order_by('entered_at')
+        eligible_count = entries.filter(selected_answer__is_correct=True).count()
+        return render(request, self.template_name, {
+            'competition': competition,
+            'entries': entries,
+            'eligible_count': eligible_count,
+        })
+
+
+class DrawWinnerView(InstructorRequiredMixin, View):
+    """POST endpoint — picks a random winner from eligible entries and returns JSON."""
+
+    def post(self, request, competition_id):
+        import random as _random
+        competition = get_object_or_404(WorkshopCompetition, id=competition_id)
+        if competition.session.workshop.instructor != request.user:
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        if competition.winner_id:
+            return JsonResponse({'error': 'Winner already drawn'}, status=409)
+        eligible = list(
+            competition.entries.filter(selected_answer__is_correct=True)
+            .select_related('participant', 'child_profile')
+        )
+        if not eligible:
+            return JsonResponse({'error': 'No eligible entrants'}, status=400)
+        winner_entry = _random.choice(eligible)
+        competition.winner = winner_entry
+        competition.is_active = False
+        competition.save(update_fields=['winner', 'is_active'])
+        eligible_names = [e.display_name for e in eligible]
+        return JsonResponse({
+            'winner_name': winner_entry.display_name,
+            'eligible_names': eligible_names,
+        })
+
+
+class EnterCompetitionView(LoginRequiredMixin, View):
+    """Participant reads the question and submits their answer to enter."""
+    template_name = 'workshops/competition_enter.html'
+
+    def _get_competition_and_check(self, competition_id, request):
+        competition = get_object_or_404(
+            WorkshopCompetition.objects.select_related('session__workshop').prefetch_related('answers'),
+            id=competition_id
+        )
+        if not competition.is_active:
+            messages.info(request, 'This competition is no longer accepting entries.')
+            return competition, False
+        valid_statuses = ['registered', 'promoted', 'attended']
+        has_registration = WorkshopRegistration.objects.filter(
+            session=competition.session,
+            student=request.user,
+            status__in=valid_statuses,
+        ).exists()
+        if not has_registration:
+            messages.error(request, 'You must be registered for this session to enter the competition.')
+            return competition, False
+        return competition, True
+
+    def get(self, request, competition_id):
+        competition, eligible = self._get_competition_and_check(competition_id, request)
+        if not eligible:
+            return redirect('workshops:my_registrations')
+        if WorkshopCompetitionEntry.objects.filter(competition=competition, participant=request.user).exists():
+            messages.info(request, 'You have already entered this competition.')
+            return redirect('workshops:my_registrations')
+        return render(request, self.template_name, {'competition': competition})
+
+    def post(self, request, competition_id):
+        competition, eligible = self._get_competition_and_check(competition_id, request)
+        if not eligible:
+            return redirect('workshops:my_registrations')
+        if WorkshopCompetitionEntry.objects.filter(competition=competition, participant=request.user).exists():
+            messages.info(request, 'You have already entered this competition.')
+            return redirect('workshops:my_registrations')
+        answer_id = request.POST.get('answer')
+        answer = competition.answers.filter(id=answer_id).first()
+        if not answer:
+            messages.error(request, 'Please select an answer.')
+            return render(request, self.template_name, {'competition': competition})
+        WorkshopCompetitionEntry.objects.create(
+            competition=competition,
+            participant=request.user,
+            selected_answer=answer,
+        )
+        messages.success(request, 'You have entered the competition!')
+        return redirect('workshops:my_registrations')

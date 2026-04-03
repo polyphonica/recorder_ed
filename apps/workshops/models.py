@@ -1223,3 +1223,96 @@ class WorkshopTestimonial(models.Model):
     def __str__(self):
         status = "Published" if self.is_published else "Draft"
         return f'{self.display_name} on {self.workshop.title} ({status})'
+
+
+class WorkshopCompetition(models.Model):
+    """A multiple-choice competition created by an instructor for a session."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.OneToOneField(
+        WorkshopSession,
+        on_delete=models.CASCADE,
+        related_name='competition'
+    )
+    question = models.TextField()
+    is_active = models.BooleanField(default=True)
+    winner = models.ForeignKey(
+        'WorkshopCompetitionEntry',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='won_competition'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Competition for {self.session}'
+
+    def eligible_entries(self):
+        """Entries where the participant selected the correct answer."""
+        return self.entries.filter(selected_answer__is_correct=True)
+
+
+class WorkshopCompetitionAnswer(models.Model):
+    """An answer option for a WorkshopCompetition question."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    competition = models.ForeignKey(
+        WorkshopCompetition,
+        on_delete=models.CASCADE,
+        related_name='answers'
+    )
+    text = models.CharField(max_length=500)
+    is_correct = models.BooleanField(default=False)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        correct = ' (correct)' if self.is_correct else ''
+        return f'{self.text}{correct}'
+
+
+class WorkshopCompetitionEntry(models.Model):
+    """A participant's entry into a competition."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    competition = models.ForeignKey(
+        WorkshopCompetition,
+        on_delete=models.CASCADE,
+        related_name='entries'
+    )
+    participant = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='competition_entries'
+    )
+    child_profile = models.ForeignKey(
+        'accounts.ChildProfile',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='competition_entries'
+    )
+    selected_answer = models.ForeignKey(
+        WorkshopCompetitionAnswer,
+        on_delete=models.CASCADE,
+        related_name='entries'
+    )
+    entered_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('competition', 'participant')
+
+    def __str__(self):
+        return f'{self.participant} in {self.competition}'
+
+    @property
+    def display_name(self):
+        if self.child_profile:
+            return self.child_profile.full_name
+        if self.participant.first_name:
+            return f'{self.participant.first_name} {self.participant.last_name}'.strip()
+        return self.participant.username
+
+    @property
+    def is_eligible(self):
+        return self.selected_answer.is_correct

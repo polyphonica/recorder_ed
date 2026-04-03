@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Competition - {{ session.workshop.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm mb-6">
+        <ul>
+            <li><a href="{% url 'workshops:instructor_dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'workshops:session_registrations' session_id=session.id %}">Session Participants</a></li>
+            <li>Create Competition</li>
+        </ul>
+    </div>
+
+    <h1 class="text-2xl font-bold mb-1">Create Competition</h1>
+    <p class="text-base-content/70 mb-6">
+        {{ session.workshop.title }} &mdash;
+        {{ session.start_datetime|date:"F j, Y" }} at {{ session.start_datetime|time:"g:i A" }}
+    </p>
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-error mb-4">
+            {% for error in form.non_field_errors %}
+                <span>{{ error }}</span>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="post" id="competitionForm">
+        {% csrf_token %}
+
+        <!-- Question -->
+        <div class="card bg-base-200 mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-lg mb-4">Question</h2>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">{{ form.question.label }}</span>
+                    </label>
+                    {{ form.question }}
+                    {% if form.question.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.question.errors|join:", " }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Answers -->
+        {{ formset.management_form }}
+        <div class="card bg-base-200 mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-lg mb-2">Answer Options</h2>
+                <p class="text-sm text-base-content/60 mb-4">Add between 2 and 4 answers. Mark the correct one with the checkbox.</p>
+
+                <div id="answersContainer">
+                    {% for answer_form in formset %}
+                        <div class="answer-row flex items-center gap-3 mb-3">
+                            {% for hidden in answer_form.hidden_fields %}{{ hidden }}{% endfor %}
+                            <div class="flex-1">
+                                {{ answer_form.text }}
+                                {% if answer_form.text.errors %}
+                                    <p class="text-error text-xs mt-1">{{ answer_form.text.errors|join:", " }}</p>
+                                {% endif %}
+                            </div>
+                            <label class="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                                {{ answer_form.is_correct }}
+                                <span class="label-text text-sm">Correct</span>
+                            </label>
+                            <button type="button" class="btn btn-ghost btn-sm text-error remove-answer-btn" title="Remove">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <button type="button" id="addAnswerBtn" class="btn btn-outline btn-sm mt-2">
+                    <i class="fas fa-plus mr-1"></i> Add Answer
+                </button>
+            </div>
+        </div>
+
+        <div class="flex gap-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-trophy mr-2"></i>Create Competition
+            </button>
+            <a href="{% url 'workshops:session_registrations' session_id=session.id %}" class="btn btn-ghost">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+(function() {
+    const container = document.getElementById('answersContainer');
+    const addBtn = document.getElementById('addAnswerBtn');
+    const totalFormsInput = document.querySelector('[name$=TOTAL_FORMS]');
+    const MAX_ANSWERS = 4;
+
+    function updateRemoveButtons() {
+        const rows = container.querySelectorAll('.answer-row:not(.d-none)');
+        rows.forEach(function(row) {
+            const btn = row.querySelector('.remove-answer-btn');
+            btn.style.visibility = rows.length <= 2 ? 'hidden' : 'visible';
+        });
+    }
+
+    function updateAddButton() {
+        const visibleRows = container.querySelectorAll('.answer-row:not(.d-none)');
+        addBtn.disabled = visibleRows.length >= MAX_ANSWERS;
+    }
+
+    addBtn.addEventListener('click', function() {
+        const formCount = parseInt(totalFormsInput.value);
+        const firstRow = container.querySelector('.answer-row');
+        const newRow = firstRow.cloneNode(true);
+
+        // Update form index
+        newRow.innerHTML = newRow.innerHTML.replace(/form-(\d+)-/g, 'form-' + formCount + '-');
+        // Clear values
+        newRow.querySelectorAll('input[type=text]').forEach(function(el) { el.value = ''; });
+        newRow.querySelectorAll('input[type=checkbox]').forEach(function(el) { el.checked = false; });
+        newRow.querySelectorAll('input[type=hidden]').forEach(function(el) {
+            if (!el.name.includes('TOTAL') && !el.name.includes('INITIAL') && !el.name.includes('MIN') && !el.name.includes('MAX')) {
+                el.value = '';
+            }
+        });
+
+        container.appendChild(newRow);
+        totalFormsInput.value = formCount + 1;
+        updateRemoveButtons();
+        updateAddButton();
+    });
+
+    container.addEventListener('click', function(e) {
+        const btn = e.target.closest('.remove-answer-btn');
+        if (!btn) return;
+        const rows = container.querySelectorAll('.answer-row');
+        const visibleRows = container.querySelectorAll('.answer-row:not(.d-none)');
+        if (visibleRows.length <= 2) return;
+        const row = btn.closest('.answer-row');
+        // Mark for deletion if it has an id, otherwise just remove
+        const deleteInput = row.querySelector('input[name$="-DELETE"]');
+        if (deleteInput) {
+            deleteInput.checked = true;
+            row.classList.add('d-none');
+            row.style.display = 'none';
+        } else {
+            row.remove();
+        }
+        updateRemoveButtons();
+        updateAddButton();
+    });
+
+    // Make "correct" radio-style: only one can be checked at a time
+    container.addEventListener('change', function(e) {
+        if (e.target.type === 'checkbox' && e.target.name.includes('is_correct')) {
+            if (e.target.checked) {
+                container.querySelectorAll('input[name$="is_correct"]').forEach(function(cb) {
+                    if (cb !== e.target) cb.checked = false;
+                });
+            }
+        }
+    });
+
+    updateRemoveButtons();
+    updateAddButton();
+})();
+</script>
+{% endblock %}

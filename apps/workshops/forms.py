@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from django import forms
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .models import Workshop, WorkshopSession, WorkshopRegistration, WorkshopCategory, WorkshopInterest, WorkshopMaterial, WorkshopTestimonial
+from .models import Workshop, WorkshopSession, WorkshopRegistration, WorkshopCategory, WorkshopInterest, WorkshopMaterial, WorkshopTestimonial, WorkshopCompetition, WorkshopCompetitionAnswer
 
 
 TIMEZONE_CHOICES = [
@@ -804,3 +804,51 @@ class TestimonialForm(forms.ModelForm):
                 'min': 1, 'max': 5,
             }),
         }
+
+
+class WorkshopCompetitionForm(forms.ModelForm):
+    """Form for instructors to create a competition question."""
+    class Meta:
+        model = WorkshopCompetition
+        fields = ['question']
+        widgets = {
+            'question': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 3,
+                'placeholder': 'e.g. What is the fingering for a high D on the soprano recorder?',
+            }),
+        }
+        labels = {
+            'question': 'Competition Question',
+        }
+
+
+class WorkshopCompetitionAnswerForm(forms.ModelForm):
+    """Form for a single answer option."""
+    class Meta:
+        model = WorkshopCompetitionAnswer
+        fields = ['text', 'is_correct', 'order']
+        widgets = {
+            'text': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'Answer option',
+            }),
+            'is_correct': forms.CheckboxInput(attrs={'class': 'checkbox checkbox-primary'}),
+            'order': forms.HiddenInput(),
+        }
+        labels = {
+            'text': '',
+            'is_correct': 'Correct',
+        }
+
+
+CompetitionAnswerFormSet = forms.inlineformset_factory(
+    WorkshopCompetition,
+    WorkshopCompetitionAnswer,
+    form=WorkshopCompetitionAnswerForm,
+    fields=['text', 'is_correct', 'order'],
+    extra=2,
+    min_num=2,
+    validate_min=True,
+    can_delete=True,
+)

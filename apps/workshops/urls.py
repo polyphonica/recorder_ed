@@ -41,6 +41,12 @@ urlpatterns = [
          views.ManageTestimonialsView.as_view(), name='manage_testimonials'),
     path('instructor/testimonial/<uuid:testimonial_id>/toggle/',
          views.ToggleTestimonialView.as_view(), name='toggle_testimonial'),
+    path('instructor/session/<uuid:session_id>/competition/create/',
+         views.CreateCompetitionView.as_view(), name='create_competition'),
+    path('instructor/competition/<uuid:competition_id>/',
+         views.ManageCompetitionView.as_view(), name='manage_competition'),
+    path('instructor/competition/<uuid:competition_id>/draw/',
+         views.DrawWinnerView.as_view(), name='draw_winner'),
     path('instructor/session/<uuid:session_id>/materials/',
          views.SessionMaterialsView.as_view(), name='session_materials'),
     path('instructor/session/<uuid:session_id>/materials/create/', 
@@ -58,6 +64,10 @@ urlpatterns = [
     path('session/<uuid:session_id>/materials/', 
          views.ParticipantMaterialsView.as_view(), name='participant_materials'),
     
+    # Competition entry (participants)
+    path('competition/<uuid:competition_id>/enter/',
+         views.EnterCompetitionView.as_view(), name='enter_competition'),
+
     # Registration (also before workshop detail to avoid conflicts)
     path('registration/<uuid:registration_id>/feedback/',
          views.SubmitFeedbackView.as_view(), name='submit_feedback'),

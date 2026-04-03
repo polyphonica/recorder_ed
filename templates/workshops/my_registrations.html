@@ -271,6 +271,28 @@
                                             {% endfor %}
                                         </span>
                                     {% endif %}
+
+                                    {% with comp=competition_by_session|get_item:registration.session.id %}
+                                    {% if comp %}
+                                        {% with already_entered=entered_competition_ids|get_item:comp.id %}
+                                        {% if comp.winner %}
+                                            {# competition closed, no button #}
+                                        {% elif already_entered %}
+                                            <span class="badge badge-ghost badge-sm tooltip"
+                                                  data-tip="Your entry has been recorded">
+                                                <i class="fas fa-trophy mr-1"></i>Competition Entered
+                                            </span>
+                                        {% elif registration.status == 'registered' or registration.status == 'promoted' or registration.status == 'attended' %}
+                                            <a href="{% url 'workshops:enter_competition' competition_id=comp.id %}"
+                                               class="btn btn-sm btn-secondary tooltip"
+                                               data-tip="Enter the session competition">
+                                                <i class="fas fa-trophy"></i>
+                                                Enter Competition
+                                            </a>
+                                        {% endif %}
+                                        {% endwith %}
+                                    {% endif %}
+                                    {% endwith %}
                                 </div>
                             </div>
 

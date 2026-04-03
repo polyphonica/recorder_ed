@@ -51,7 +51,7 @@
             </div>
             
             <!-- Action Buttons -->
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
                 <a href="{% url 'workshops:attendance_sheet' session_id=session.id %}" target="_blank" class="btn btn-outline">
                     <i class="fas fa-print mr-2"></i>Print Attendance
                 </a>
@@ -61,6 +61,21 @@
                 <a href="{% url 'workshops:email_participants' session_id=session.id %}" class="btn btn-primary">
                     <i class="fas fa-envelope mr-2"></i>Email Participants
                 </a>
+                {% if session_competition %}
+                    <a href="{% url 'workshops:manage_competition' competition_id=session_competition.id %}"
+                       class="btn btn-secondary tooltip"
+                       data-tip="Manage competition ({{ session_competition.entries.count }} entrant{{ session_competition.entries.count|pluralize }})">
+                        <i class="fas fa-trophy mr-2"></i>
+                        Manage Competition
+                        <span class="badge badge-sm ml-1">{{ session_competition.entries.count }}</span>
+                    </a>
+                {% else %}
+                    <a href="{% url 'workshops:create_competition' session_id=session.id %}"
+                       class="btn btn-outline btn-secondary tooltip"
+                       data-tip="Create a competition for this session">
+                        <i class="fas fa-trophy mr-2"></i>Create Competition
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>
