@@ -8,6 +8,7 @@ Usage:
 """
 
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 TEST_ACCOUNTS = [
     'testStudent1@testmail.com',
@@ -29,6 +30,14 @@ for email in TEST_ACCOUNTS:
         user.save()
         print(f'Created: {email}')
     else:
-        print(f'Already exists (skipped): {email}')
+        print(f'Already exists: {email}')
+
+    # Ensure email is verified (works for both new and existing accounts)
+    profile = user.profile
+    if not profile.email_verified:
+        profile.email_verified = True
+        profile.email_verified_at = timezone.now()
+        profile.save(update_fields=['email_verified', 'email_verified_at'])
+        print(f'  → email verified')
 
 print('Done.')
