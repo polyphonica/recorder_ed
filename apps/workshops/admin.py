@@ -11,7 +11,8 @@ from .models import (
     WorkshopCategory, Workshop, WorkshopSession,
     WorkshopRegistration, WorkshopMaterial, WorkshopInterest,
     WorkshopCartItem, WorkshopTermsAndConditions, TermsAcceptance,
-    WorkshopTestimonial,
+    WorkshopTestimonial, WorkshopCompetition, WorkshopCompetitionAnswer,
+    WorkshopCompetitionEntry,
 )
 
 
@@ -464,6 +465,50 @@ class WorkshopTestimonialAdmin(admin.ModelAdmin):
     list_editable = ['is_published', 'display_order']
     list_display += ['display_order']
     ordering = ['workshop', 'display_order']
+
+
+class CompetitionAnswerInline(admin.TabularInline):
+    model = WorkshopCompetitionAnswer
+    extra = 0
+    fields = ['text', 'is_correct', 'order']
+
+
+class CompetitionEntryInline(admin.TabularInline):
+    model = WorkshopCompetitionEntry
+    extra = 0
+    readonly_fields = ['participant', 'child_profile', 'selected_answer', 'entered_at']
+    fields = ['participant', 'child_profile', 'selected_answer', 'entered_at']
+    can_delete = False
+
+
+@admin.register(WorkshopCompetition)
+class WorkshopCompetitionAdmin(admin.ModelAdmin):
+    list_display = ['session', 'workshop_title', 'draw_datetime', 'is_active', 'entry_count', 'eligible_count', 'winner']
+    list_filter = ['is_active', 'draw_datetime', 'session__workshop']
+    search_fields = ['question', 'session__workshop__title']
+    readonly_fields = ['created_at', 'winner']
+    inlines = [CompetitionAnswerInline, CompetitionEntryInline]
+
+    fieldsets = (
+        ('Competition', {
+            'fields': ('session', 'question', 'draw_datetime', 'is_active')
+        }),
+        ('Result', {
+            'fields': ('winner', 'created_at'),
+        }),
+    )
+
+    def workshop_title(self, obj):
+        return obj.session.workshop.title
+    workshop_title.short_description = 'Workshop'
+
+    def entry_count(self, obj):
+        return obj.entries.count()
+    entry_count.short_description = 'Entries'
+
+    def eligible_count(self, obj):
+        return obj.entries.filter(selected_answer__is_correct=True).count()
+    eligible_count.short_description = 'Eligible'
 
 
 # Customize admin site
