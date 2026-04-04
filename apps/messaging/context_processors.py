@@ -46,7 +46,7 @@ def unread_messages(request):
     # Use a join to compare created_at with last_read_at efficiently
     unread_in_read_conversations = Message.objects.filter(
         conversation_id__in=read_conversation_ids,
-        created_at__gt=Subquery(
+        created_at__gte=Subquery(
             ConversationReadStatus.objects.filter(
                 conversation_id=OuterRef('conversation_id'),
                 user=request.user

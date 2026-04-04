@@ -140,7 +140,7 @@ class Conversation(models.Model):
             return messages_qs.exclude(sender=user).count()
         # Count messages after last read that aren't from this user
         return messages_qs.filter(
-            created_at__gt=last_read.last_read_at
+            created_at__gte=last_read.last_read_at
         ).exclude(sender=user).count()
 
     def mark_as_read(self, user):
