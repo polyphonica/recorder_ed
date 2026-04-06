@@ -556,10 +556,10 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             is_deleted=False
         ).select_related('student', 'subject', 'lesson_request', 'lesson_request__child_profile').order_by('created_at')
 
-        # Active exam registrations (REGISTERED or SUBMITTED, not yet RESULTS_RECEIVED)
+        # Active exam registrations (DRAFT, REGISTERED, or SUBMITTED, not yet RESULTS_RECEIVED)
         active_exams = ExamRegistration.objects.filter(
             teacher=self.request.user,
-            status__in=[ExamRegistration.REGISTERED, ExamRegistration.SUBMITTED]
+            status__in=[ExamRegistration.DRAFT, ExamRegistration.REGISTERED, ExamRegistration.SUBMITTED]
         ).count()
 
         # Get pending cancellation requests from students
@@ -647,11 +647,11 @@ class StudentDashboardView(StudentProfileCompletedMixin, StudentOnlyMixin, Templ
             is_deleted=False
         ).select_related('subject', 'teacher').order_by('lesson_date', 'lesson_time')[:5]
 
-        # Get upcoming exams (REGISTERED or SUBMITTED, with upcoming or flexible dates)
+        # Get upcoming exams (DRAFT, REGISTERED, or SUBMITTED, with upcoming or flexible dates)
         from django.db.models import Q
         upcoming_exams = ExamRegistration.objects.filter(
             student=self.request.user,
-            status__in=[ExamRegistration.REGISTERED, ExamRegistration.SUBMITTED]
+            status__in=[ExamRegistration.DRAFT, ExamRegistration.REGISTERED, ExamRegistration.SUBMITTED]
         ).filter(
             Q(exam_date__gte=today) | Q(exam_date__isnull=True)
         ).select_related('subject', 'exam_board').order_by('exam_date')
