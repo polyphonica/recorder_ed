@@ -19,6 +19,27 @@ from .models import ExamBoard, ExamRegistration, ExamPiece
 from .forms import ExamRegistrationForm, ExamPieceFormSet, ExamResultsForm
 from .notifications import ExamNotificationService
 
+# Fields visible to the student/guardian — changes to these trigger re-notification
+_STUDENT_VISIBLE_REGISTRATION_FIELDS = frozenset([
+    'student', 'child_profile', 'exam_board', 'subject',
+    'grade_type', 'grade_level', 'exam_date', 'submission_deadline',
+    'venue', 'registration_number',
+    'scales', 'arpeggios', 'sight_reading', 'aural_tests',
+])
+_STUDENT_VISIBLE_PIECE_FIELDS = frozenset(['piece_number', 'title', 'composer', 'syllabus_list'])
+
+
+def _student_visible_changed(form, piece_formset):
+    """Return True if any student-visible field has changed in the form or piece formset."""
+    if _STUDENT_VISIBLE_REGISTRATION_FIELDS & set(form.changed_data):
+        return True
+    for pform in piece_formset.forms:
+        if pform in piece_formset.deleted_forms:
+            return True  # a piece was removed
+        if _STUDENT_VISIBLE_PIECE_FIELDS & set(pform.changed_data):
+            return True  # a piece was added or its visible fields changed
+    return False
+
 
 class ExamRegistrationListView(UserFilterMixin, PrivateTeachingLoginRequiredMixin, TeacherProfileCompletedMixin, ListView):
     """List all exam registrations for a teacher."""
@@ -167,21 +188,31 @@ class ExamRegistrationUpdateView(PrivateTeachingLoginRequiredMixin, TeacherProfi
     def post(self, request, pk):
         exam = get_object_or_404(ExamRegistration, pk=pk, teacher=request.user)
         was_approved = exam.programme_approved
+        is_draft = exam.status == ExamRegistration.DRAFT
         action = request.POST.get('action', 'save')
 
         form = ExamRegistrationForm(request.POST, instance=exam, teacher=request.user)
         piece_formset = ExamPieceFormSet(request.POST, instance=exam)
 
         if form.is_valid() and piece_formset.is_valid():
+
+            # For draft saves, check what (if anything) changed before writing to DB
+            any_changed = form.has_changed() or piece_formset.has_changed()
+
+            if is_draft and action != 'register' and not any_changed:
+                messages.info(request, 'No changes made. Student has not been notified.')
+                return redirect('exams:exam_detail', pk=exam.id)
+
+            student_changed = _student_visible_changed(form, piece_formset) if any_changed else False
+
             with transaction.atomic():
                 exam = form.save()
 
-                # If editing a draft, handle draft vs publish action
-                if exam.status == ExamRegistration.DRAFT and action == 'register':
+                if is_draft and action == 'register':
                     exam.status = ExamRegistration.REGISTERED
 
-                # Reset approval if the teacher has edited an approved programme
-                if was_approved:
+                # Only reset approval when student-visible content actually changed
+                if was_approved and student_changed:
                     exam.programme_approved = False
                     exam.programme_approved_at = None
 
@@ -195,18 +226,22 @@ class ExamRegistrationUpdateView(PrivateTeachingLoginRequiredMixin, TeacherProfi
                 for obj in piece_formset.deleted_objects:
                     obj.delete()
 
-                if exam.status == ExamRegistration.REGISTERED and action == 'register':
-                    messages.success(request, f'Exam registered for {exam.student_name}!')
-                    ExamNotificationService.send_exam_registration_notification(exam)
-                elif exam.status == ExamRegistration.DRAFT:
+            if action == 'register' and is_draft:
+                messages.success(request, f'Exam registered for {exam.student_name}!')
+                ExamNotificationService.send_exam_registration_notification(exam)
+            elif is_draft:
+                if student_changed:
                     if was_approved:
-                        messages.success(request, 'Draft saved. Approval has been reset — student will need to re-approve. They have not been re-notified.')
+                        messages.success(request, f'Draft saved. {exam.student_name} has been notified of the changes. Approval has been reset.')
                     else:
-                        messages.success(request, 'Draft saved. Student has not been re-notified.')
+                        messages.success(request, f'Draft saved. {exam.student_name} has been notified.')
+                    ExamNotificationService.send_exam_draft_notification(exam)
                 else:
-                    messages.success(request, 'Exam registration updated!')
+                    messages.success(request, 'Draft saved. Student has not been notified (no programme changes).')
+            else:
+                messages.success(request, 'Exam registration updated!')
 
-                return redirect('exams:exam_detail', pk=exam.id)
+            return redirect('exams:exam_detail', pk=exam.id)
 
         return render(request, self.template_name, {
             'exam': exam,
