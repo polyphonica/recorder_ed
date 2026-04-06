@@ -9,6 +9,42 @@ class ExamNotificationService(BaseNotificationService):
     """Service for sending exam registration email notifications"""
 
     @staticmethod
+    def send_exam_draft_notification(exam):
+        """Send notification to student/parent when a draft programme is shared for review"""
+        try:
+            is_valid, recipient_email = ExamNotificationService.validate_email(
+                exam.student, 'Student'
+            )
+            if not is_valid:
+                return False
+
+            recipient_name = ExamNotificationService.get_display_name(exam.student)
+            exam_detail_url = ExamNotificationService.build_action_url(
+                'exams:exam_detail', exam, 'pk'
+            )
+
+            context = {
+                'exam': exam,
+                'student_name': exam.student_name,
+                'recipient_name': recipient_name,
+                'teacher': exam.teacher,
+                'exam_detail_url': exam_detail_url,
+            }
+
+            return ExamNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_exam_draft.txt',
+                context=context,
+                recipient_list=[recipient_email],
+                default_subject=f'Exam Programme for Review: {exam.display_name}',
+                fail_silently=False,
+                log_description=f"Exam draft notification to {recipient_name}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send exam draft notification: {str(e)}")
+            return False
+
+    @staticmethod
     def send_exam_registration_notification(exam):
         """Send notification to student/parent when registered for an exam"""
         try:
@@ -43,6 +79,41 @@ class ExamNotificationService(BaseNotificationService):
 
         except Exception as e:
             logger.error(f"Failed to send exam registration notification: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_programme_approved_notification(exam):
+        """Send notification to teacher when student/guardian approves the exam programme"""
+        try:
+            is_valid, recipient_email = ExamNotificationService.validate_email(
+                exam.teacher, 'Teacher'
+            )
+            if not is_valid:
+                return False
+
+            recipient_name = ExamNotificationService.get_display_name(exam.teacher)
+            exam_detail_url = ExamNotificationService.build_action_url(
+                'exams:exam_detail', exam, 'pk'
+            )
+
+            context = {
+                'exam': exam,
+                'student_name': exam.student_name,
+                'recipient_name': recipient_name,
+                'exam_detail_url': exam_detail_url,
+            }
+
+            return ExamNotificationService.send_templated_email(
+                template_path='private_teaching/emails/teacher_programme_approved.txt',
+                context=context,
+                recipient_list=[recipient_email],
+                default_subject=f'Programme Approved: {exam.display_name} — {exam.student_name}',
+                fail_silently=False,
+                log_description=f"Programme approved notification to {recipient_name}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send programme approved notification: {str(e)}")
             return False
 
     @staticmethod

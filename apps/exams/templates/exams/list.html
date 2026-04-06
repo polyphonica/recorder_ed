@@ -55,6 +55,9 @@
     <!-- Filter Tabs -->
     <div class="tabs tabs-boxed mb-6">
         <a href="{% url 'exams:exam_list' %}" class="tab {% if not status_filter %}tab-active{% endif %}">All Exams</a>
+        <a href="{% url 'exams:exam_list' %}?status=draft" class="tab {% if status_filter == 'draft' %}tab-active{% endif %}">
+            Drafts{% if draft_count %} <span class="badge badge-warning badge-sm ml-1">{{ draft_count }}</span>{% endif %}
+        </a>
         <a href="{% url 'exams:exam_list' %}?status=registered" class="tab {% if status_filter == 'registered' %}tab-active{% endif %}">Registered</a>
         <a href="{% url 'exams:exam_list' %}?status=submitted" class="tab {% if status_filter == 'submitted' %}tab-active{% endif %}">Submitted</a>
         <a href="{% url 'exams:exam_list' %}?status=results_received" class="tab {% if status_filter == 'results_received' %}tab-active{% endif %}">Results Received</a>
@@ -99,9 +102,15 @@
                                     </td>
                                     <td>
                                         <span class="badge
-                                            {% if exam.status == 'registered' %}badge-info{% elif exam.status == 'submitted' %}badge-warning{% else %}badge-success{% endif %}">
+                                            {% if exam.status == 'draft' %}badge-warning
+                                            {% elif exam.status == 'registered' %}badge-info
+                                            {% elif exam.status == 'submitted' %}badge-warning
+                                            {% else %}badge-success{% endif %}">
                                             {{ exam.get_status_display }}
                                         </span>
+                                        {% if exam.status == 'draft' and exam.programme_approved %}
+                                            <span class="badge badge-success badge-sm ml-1">Approved</span>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         {% if exam.is_paid %}

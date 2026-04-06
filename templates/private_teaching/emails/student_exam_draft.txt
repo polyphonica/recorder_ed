@@ -1,0 +1,34 @@
+Hello {{ recipient_name }},
+
+Your teacher, {{ teacher.get_full_name }}, has prepared an exam programme for your review.
+
+Please look through the details below and, once you have discussed them together, log in to confirm your approval.
+
+EXAM PROGRAMME:
+Student: {{ student_name }}
+Exam: {{ exam.display_name }}
+Subject: {{ exam.subject.subject }}
+Teacher: {{ teacher.get_full_name }}
+{% if exam.exam_date %}Exam Date: {{ exam.exam_date|date:"l, F j, Y" }}{% else %}Exam Date: To be confirmed{% endif %}
+{% if exam.venue %}Venue / Submission: {{ exam.venue }}{% endif %}
+
+{% if exam.pieces.all %}
+PROGRAMME PIECES:
+{% for piece in exam.pieces.all %}  {{ piece.piece_number }}. {{ piece.title }} by {{ piece.composer }}{% if piece.syllabus_list %} (List {{ piece.syllabus_list }}){% endif %}
+{% endfor %}
+{% endif %}
+{% if exam.scales or exam.arpeggios or exam.sight_reading or exam.aural_tests %}
+TECHNICAL REQUIREMENTS:
+{% if exam.scales %}  Scales: {{ exam.scales }}
+{% endif %}{% if exam.arpeggios %}  Arpeggios: {{ exam.arpeggios }}
+{% endif %}{% if exam.sight_reading %}  Sight Reading: {{ exam.sight_reading }}
+{% endif %}{% if exam.aural_tests %}  Aural Tests: {{ exam.aural_tests }}
+{% endif %}{% endif %}
+
+To review the full details and approve the programme, please log in to your account:
+{{ exam_detail_url }}
+
+If you have any questions, please speak to your teacher.
+
+Best regards,
+{{ teacher.get_full_name }}

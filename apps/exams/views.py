@@ -5,6 +5,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Q
+from django.http import HttpResponse
+from django.template.loader import render_to_string
 
 from apps.core.views import BaseCheckoutSuccessView, BaseCheckoutCancelView, UserFilterMixin
 from apps.private_teaching.mixins import (
@@ -57,6 +59,8 @@ class ExamRegistrationListView(UserFilterMixin, PrivateTeachingLoginRequiredMixi
             status=ExamRegistration.SUBMITTED
         ).order_by('-exam_date')[:5]
 
+        context['draft_count'] = all_exams.filter(status=ExamRegistration.DRAFT).count()
+
         return context
 
 
@@ -77,10 +81,17 @@ class ExamRegistrationCreateView(PrivateTeachingLoginRequiredMixin, TeacherProfi
     def post(self, request):
         form = ExamRegistrationForm(request.POST, teacher=request.user)
         piece_formset = ExamPieceFormSet(request.POST)
+        action = request.POST.get('action', 'draft')
 
         if form.is_valid() and piece_formset.is_valid():
             with transaction.atomic():
                 exam = form.save()
+
+                if action == 'register':
+                    exam.status = ExamRegistration.REGISTERED
+                else:
+                    exam.status = ExamRegistration.DRAFT
+                exam.save(update_fields=['status'])
 
                 pieces = piece_formset.save(commit=False)
                 for piece in pieces:
@@ -90,8 +101,13 @@ class ExamRegistrationCreateView(PrivateTeachingLoginRequiredMixin, TeacherProfi
                 for obj in piece_formset.deleted_objects:
                     obj.delete()
 
-                messages.success(request, f'Exam registration created for {exam.student_name}!')
-                ExamNotificationService.send_exam_registration_notification(exam)
+                if action == 'register':
+                    messages.success(request, f'Exam registration created for {exam.student_name}!')
+                    ExamNotificationService.send_exam_registration_notification(exam)
+                else:
+                    messages.success(request, f'Draft exam programme saved for {exam.student_name}. Notification sent for review.')
+                    ExamNotificationService.send_exam_draft_notification(exam)
+
                 return redirect('exams:exam_detail', pk=exam.id)
 
         return render(request, self.template_name, {
@@ -118,11 +134,18 @@ class ExamRegistrationDetailView(PrivateTeachingLoginRequiredMixin, View):
         pieces = exam.pieces.all().order_by('piece_number')
         preparation_lessons = exam.preparation_lessons.all().order_by('-lesson_date')[:10] if is_teacher else None
 
+        can_approve = (
+            not is_teacher
+            and exam.status == ExamRegistration.DRAFT
+            and not exam.programme_approved
+        )
+
         return render(request, self.template_name, {
             'exam': exam,
             'pieces': pieces,
             'preparation_lessons': preparation_lessons,
             'is_teacher': is_teacher,
+            'can_approve': can_approve,
         })
 
 
@@ -143,12 +166,26 @@ class ExamRegistrationUpdateView(PrivateTeachingLoginRequiredMixin, TeacherProfi
 
     def post(self, request, pk):
         exam = get_object_or_404(ExamRegistration, pk=pk, teacher=request.user)
+        was_approved = exam.programme_approved
+        action = request.POST.get('action', 'save')
+
         form = ExamRegistrationForm(request.POST, instance=exam, teacher=request.user)
         piece_formset = ExamPieceFormSet(request.POST, instance=exam)
 
         if form.is_valid() and piece_formset.is_valid():
             with transaction.atomic():
                 exam = form.save()
+
+                # If editing a draft, handle draft vs publish action
+                if exam.status == ExamRegistration.DRAFT and action == 'register':
+                    exam.status = ExamRegistration.REGISTERED
+
+                # Reset approval if the teacher has edited an approved programme
+                if was_approved:
+                    exam.programme_approved = False
+                    exam.programme_approved_at = None
+
+                exam.save(update_fields=['status', 'programme_approved', 'programme_approved_at'])
 
                 pieces = piece_formset.save(commit=False)
                 for piece in pieces:
@@ -158,7 +195,17 @@ class ExamRegistrationUpdateView(PrivateTeachingLoginRequiredMixin, TeacherProfi
                 for obj in piece_formset.deleted_objects:
                     obj.delete()
 
-                messages.success(request, 'Exam registration updated!')
+                if exam.status == ExamRegistration.REGISTERED and action == 'register':
+                    messages.success(request, f'Exam registered for {exam.student_name}!')
+                    ExamNotificationService.send_exam_registration_notification(exam)
+                elif exam.status == ExamRegistration.DRAFT:
+                    if was_approved:
+                        messages.success(request, 'Exam programme updated. Approval has been reset — student will need to re-approve.')
+                    else:
+                        messages.success(request, 'Draft exam programme updated.')
+                else:
+                    messages.success(request, 'Exam registration updated!')
+
                 return redirect('exams:exam_detail', pk=exam.id)
 
         return render(request, self.template_name, {
@@ -166,6 +213,32 @@ class ExamRegistrationUpdateView(PrivateTeachingLoginRequiredMixin, TeacherProfi
             'form': form,
             'piece_formset': piece_formset,
         })
+
+
+class ExamProgrammeApproveView(PrivateTeachingLoginRequiredMixin, View):
+    """Student/guardian one-click approval of exam programme"""
+
+    def post(self, request, pk):
+        exam = get_object_or_404(ExamRegistration, pk=pk)
+
+        # Only student or guardian may approve
+        if not (request.user == exam.student or
+                (exam.child_profile and request.user == exam.child_profile.guardian)):
+            messages.error(request, 'You do not have permission to approve this programme.')
+            return redirect('private_teaching:home')
+
+        if exam.status != ExamRegistration.DRAFT:
+            messages.info(request, 'This exam programme is no longer in draft status.')
+            return redirect('exams:exam_detail', pk=exam.id)
+
+        exam.programme_approved = True
+        exam.programme_approved_at = timezone.now()
+        exam.save(update_fields=['programme_approved', 'programme_approved_at'])
+
+        messages.success(request, 'You have approved the exam programme. Your teacher has been notified.')
+        ExamNotificationService.send_programme_approved_notification(exam)
+
+        return redirect('exams:exam_detail', pk=exam.id)
 
 
 class ExamRegistrationDeleteView(PrivateTeachingLoginRequiredMixin, TeacherProfileCompletedMixin, View):
@@ -201,6 +274,43 @@ class ExamResultsUpdateView(PrivateTeachingLoginRequiredMixin, TeacherProfileCom
         return render(request, self.template_name, {'exam': exam, 'form': form})
 
 
+class ExamProgrammePDFView(PrivateTeachingLoginRequiredMixin, View):
+    """Generate and download exam programme as PDF"""
+
+    def get(self, request, pk):
+        from weasyprint import HTML
+
+        exam = get_object_or_404(ExamRegistration, pk=pk)
+
+        # Access check: teacher or student/guardian
+        if request.user == exam.teacher:
+            pass
+        elif request.user == exam.student or (exam.child_profile and request.user == exam.child_profile.guardian):
+            pass
+        else:
+            messages.error(request, 'You do not have permission to download this document.')
+            return redirect('private_teaching:home')
+
+        pieces = exam.pieces.all().order_by('piece_number')
+
+        context = {
+            'exam': exam,
+            'pieces': pieces,
+            'generated_date': timezone.now().date(),
+        }
+
+        html_string = render_to_string('exams/exam_programme_pdf.html', context, request=request)
+        pdf_file = HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
+
+        student_slug = exam.student_name.replace(' ', '_')
+        board_slug = str(exam.exam_board).replace(' ', '_').replace('(', '').replace(')', '')
+        filename = f"{board_slug}_{exam.get_grade_type_display()}_Grade{exam.grade_level}_{student_slug}.pdf"
+
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+
 class StudentExamListView(PrivateTeachingLoginRequiredMixin, StudentProfileCompletedMixin, ListView):
     """List all exams for a student"""
     model = ExamRegistration
@@ -223,6 +333,10 @@ class StudentExamListView(PrivateTeachingLoginRequiredMixin, StudentProfileCompl
             Q(student=user) | Q(child_profile__guardian=user)
         ).select_related('teacher', 'subject', 'exam_board', 'child_profile').prefetch_related('pieces')
 
+        context['draft_exams'] = all_exams.filter(
+            status=ExamRegistration.DRAFT
+        ).order_by('-created_at')
+
         context['upcoming_exams'] = all_exams.filter(
             exam_date__gte=timezone.now().date(),
             status__in=[ExamRegistration.REGISTERED, ExamRegistration.SUBMITTED]
@@ -233,7 +347,8 @@ class StudentExamListView(PrivateTeachingLoginRequiredMixin, StudentProfileCompl
         ).order_by('-exam_date')
 
         context['unpaid_exams'] = all_exams.filter(
-            payment_status='pending'
+            payment_status='pending',
+            status=ExamRegistration.REGISTERED,
         ).order_by('exam_date')
 
         return context

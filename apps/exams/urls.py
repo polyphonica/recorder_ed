@@ -12,9 +12,11 @@ urlpatterns = [
     path('exams/<uuid:pk>/edit/', views.ExamRegistrationUpdateView.as_view(), name='exam_edit'),
     path('exams/<uuid:pk>/delete/', views.ExamRegistrationDeleteView.as_view(), name='exam_delete'),
     path('exams/<uuid:pk>/results/', views.ExamResultsUpdateView.as_view(), name='exam_results'),
+    path('exams/<uuid:pk>/pdf/', views.ExamProgrammePDFView.as_view(), name='exam_pdf'),
 
-    # Student exam view
+    # Student exam views
     path('my-exams/', views.StudentExamListView.as_view(), name='student_exams'),
+    path('exams/<uuid:pk>/approve/', views.ExamProgrammeApproveView.as_view(), name='exam_approve'),
 
     # Payment views
     path('exams/<uuid:pk>/pay/', views.ExamPaymentView.as_view(), name='exam_payment'),

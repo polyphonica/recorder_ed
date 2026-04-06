@@ -1,0 +1,17 @@
+Hello {{ recipient_name }},
+
+{{ student_name }} has approved the exam programme for {{ exam.display_name }}.
+
+You can now proceed to formally register the exam with the examination board when ready.
+
+EXAM DETAILS:
+Student: {{ student_name }}
+Exam: {{ exam.display_name }}
+Subject: {{ exam.subject.subject }}
+{% if exam.exam_date %}Exam Date: {{ exam.exam_date|date:"l, F j, Y" }}{% else %}Exam Date: To be confirmed{% endif %}
+
+View the full registration:
+{{ exam_detail_url }}
+
+Best regards,
+Recorder-Ed

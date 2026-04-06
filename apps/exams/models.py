@@ -70,11 +70,13 @@ class ExamRegistration(PayableModel):
         (THEORY, 'Music Theory'),
     ]
 
+    DRAFT = 'draft'
     REGISTERED = 'registered'
     SUBMITTED = 'submitted'
     RESULTS_RECEIVED = 'results_received'
 
     STATUS_CHOICES = [
+        (DRAFT, 'Draft'),
         (REGISTERED, 'Registered'),
         (SUBMITTED, 'Exam Submitted'),
         (RESULTS_RECEIVED, 'Results Received'),
@@ -166,8 +168,17 @@ class ExamRegistration(PayableModel):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default=REGISTERED,
+        default=DRAFT,
         help_text="Current exam status"
+    )
+    programme_approved = models.BooleanField(
+        default=False,
+        help_text="Whether the student/guardian has approved the exam programme"
+    )
+    programme_approved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the student/guardian approved the programme"
     )
     mark_achieved = models.PositiveIntegerField(
         null=True,

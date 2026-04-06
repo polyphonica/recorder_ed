@@ -11,7 +11,13 @@
     </div>
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="stat bg-warning text-warning-content rounded-lg shadow-lg">
+            <div class="stat-title text-white text-lg font-semibold">Awaiting Review</div>
+            <div class="stat-value text-white text-4xl">{{ draft_exams|length }}</div>
+            <div class="stat-desc text-white text-base mt-2">Draft programmes</div>
+        </div>
+
         <div class="stat bg-info text-info-content rounded-lg shadow-lg">
             <div class="stat-title text-white text-lg font-semibold">Upcoming Exams</div>
             <div class="stat-value text-white text-4xl">{{ upcoming_exams|length }}</div>
@@ -27,20 +33,14 @@
         <div class="stat bg-success text-success-content rounded-lg shadow-lg">
             <div class="stat-title text-white text-lg font-semibold">Completed</div>
             <div class="stat-value text-white text-4xl">{{ completed_exams|length }}</div>
-            <div class="stat-desc text-white text-base mt-2">
-                Exams with results
-            </div>
+            <div class="stat-desc text-white text-base mt-2">Exams with results</div>
         </div>
 
-        <div class="stat bg-warning text-warning-content rounded-lg shadow-lg">
+        <div class="stat bg-error text-error-content rounded-lg shadow-lg">
             <div class="stat-title text-white text-lg font-semibold">Payment Required</div>
             <div class="stat-value text-white text-4xl">{{ unpaid_exams|length }}</div>
             <div class="stat-desc text-white text-base mt-2">
-                {% if unpaid_exams %}
-                    Action needed
-                {% else %}
-                    All paid
-                {% endif %}
+                {% if unpaid_exams %}Action needed{% else %}All paid{% endif %}
             </div>
         </div>
     </div>
@@ -52,6 +52,44 @@
             <div>
                 <h3 class="font-bold">Payment Required</h3>
                 <div class="text-sm">You have {{ unpaid_exams|length }} exam registration(s) requiring payment.</div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Draft Programmes Awaiting Review -->
+    {% if draft_exams %}
+        <div class="card bg-base-100 shadow-xl mb-8 border border-warning">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    <i class="fas fa-clipboard-check mr-2 text-warning"></i>Programmes Awaiting Review
+                </h2>
+                <p class="text-base-content/70 mb-4 text-sm">Your teacher has prepared the following exam programmes. Please review and approve once you have discussed them together.</p>
+                <div class="space-y-4">
+                    {% for exam in draft_exams %}
+                        <div class="border border-base-300 rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h3 class="font-bold text-lg">{{ exam.display_name }}</h3>
+                                    <div class="text-sm text-base-content/70 mt-1">
+                                        {{ exam.subject.subject }} with {{ exam.teacher.get_full_name }}
+                                    </div>
+                                    <div class="flex gap-3 mt-2">
+                                        {% if exam.programme_approved %}
+                                            <span class="badge badge-success badge-sm">
+                                                <i class="fas fa-check mr-1"></i>You approved this programme
+                                            </span>
+                                        {% else %}
+                                            <span class="badge badge-warning badge-sm">Awaiting your approval</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-sm btn-outline ml-4">
+                                    View & Approve <i class="fas fa-arrow-right ml-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     {% endif %}
@@ -79,9 +117,7 @@
                                             </div>
                                         {% endif %}
                                         <div class="text-sm">
-                                            <span class="badge badge-sm {% if exam.status == 'registered' %}badge-info{% else %}badge-warning{% endif %}">
-                                                {{ exam.get_status_display }}
-                                            </span>
+                                            <span class="badge badge-sm badge-info">{{ exam.get_status_display }}</span>
                                         </div>
                                         {% if not exam.is_paid and exam.requires_payment %}
                                             <div class="text-sm">
@@ -156,8 +192,8 @@
         </div>
     {% endif %}
 
-    <!-- All Exams -->
-    {% if not upcoming_exams and not completed_exams %}
+    <!-- Empty state -->
+    {% if not draft_exams and not upcoming_exams and not completed_exams %}
         <div class="card bg-base-100 shadow-xl">
             <div class="card-body">
                 <div class="text-center py-12">

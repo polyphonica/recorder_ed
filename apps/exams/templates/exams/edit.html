@@ -246,9 +246,18 @@
         <!-- Form Actions -->
         <div class="flex justify-end gap-4">
             <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-ghost">Cancel</a>
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save mr-2"></i>Save Changes
-            </button>
+            {% if exam.status == 'draft' %}
+                <button type="submit" name="action" value="save" class="btn btn-outline">
+                    <i class="fas fa-save mr-2"></i>Save Draft
+                </button>
+                <button type="submit" name="action" value="register" class="btn btn-primary">
+                    <i class="fas fa-check mr-2"></i>Register for Exam
+                </button>
+            {% else %}
+                <button type="submit" name="action" value="save" class="btn btn-primary">
+                    <i class="fas fa-save mr-2"></i>Save Changes
+                </button>
+            {% endif %}
         </div>
     </form>
 </div>

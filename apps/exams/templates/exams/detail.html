@@ -12,12 +12,20 @@
                     <i class="fas fa-arrow-left mr-2"></i>Back
                 </a>
                 <div>
-                    <h1 class="text-4xl font-bold mb-2">{{ exam.display_name }}</h1>
+                    <div class="flex items-center gap-3 mb-1">
+                        <h1 class="text-4xl font-bold">{{ exam.display_name }}</h1>
+                        {% if exam.status == 'draft' %}
+                            <span class="badge badge-warning badge-lg">Draft</span>
+                        {% endif %}
+                    </div>
                     <p class="text-base-content/70">{{ exam.student_name }}</p>
                 </div>
             </div>
-            {% if is_teacher %}
-                <div class="flex gap-2">
+            <div class="flex gap-2">
+                <a href="{% url 'exams:exam_pdf' exam.id %}" class="btn btn-outline btn-sm">
+                    <i class="fas fa-file-pdf mr-2"></i>Download PDF
+                </a>
+                {% if is_teacher %}
                     <a href="{% url 'exams:exam_edit' exam.id %}" class="btn btn-outline">
                         <i class="fas fa-edit mr-2"></i>Edit
                     </a>
@@ -26,16 +34,62 @@
                             <i class="fas fa-trophy mr-2"></i>Enter Results
                         </a>
                     {% endif %}
-                </div>
-            {% endif %}
+                {% endif %}
+            </div>
         </div>
     </div>
+
+    <!-- Draft notice for teacher -->
+    {% if is_teacher and exam.status == 'draft' %}
+        <div class="alert alert-warning mb-6">
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <h3 class="font-bold">Draft Programme</h3>
+                <div class="text-sm">
+                    This programme has been shared with {{ exam.student_name }} for review.
+                    {% if exam.programme_approved %}
+                        <span class="font-semibold text-success ml-1">They have approved it.</span>
+                        When ready, edit this record and click "Register for Exam" to formally register.
+                    {% else %}
+                        Awaiting their approval. Once agreed, edit and click "Register for Exam".
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Approval prompt for student/guardian -->
+    {% if can_approve %}
+        <div class="alert alert-info mb-6">
+            <i class="fas fa-clipboard-check"></i>
+            <div class="flex-1">
+                <h3 class="font-bold">Programme Awaiting Your Approval</h3>
+                <div class="text-sm">Please review the exam programme below. Once you have discussed it with your teacher, click to confirm your approval.</div>
+            </div>
+            <form method="post" action="{% url 'exams:exam_approve' exam.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-check mr-2"></i>Approve Programme
+                </button>
+            </form>
+        </div>
+    {% elif not is_teacher and exam.status == 'draft' and exam.programme_approved %}
+        <div class="alert alert-success mb-6">
+            <i class="fas fa-check-circle"></i>
+            <span>You approved this programme on {{ exam.programme_approved_at|date:"F j, Y" }}. Your teacher will formally register the exam when ready.</span>
+        </div>
+    {% endif %}
 
     <!-- Status Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="stat bg-base-200 rounded-lg shadow">
             <div class="stat-title">Exam Status</div>
-            <div class="stat-value text-2xl">{{ exam.get_status_display }}</div>
+            <div class="stat-value text-2xl">
+                {{ exam.get_status_display }}
+                {% if exam.status == 'draft' and exam.programme_approved %}
+                    <span class="badge badge-success badge-sm ml-2">Approved</span>
+                {% endif %}
+            </div>
             <div class="stat-desc">
                 {% if exam.exam_date %}{{ exam.exam_date|date:"M j, Y" }}{% else %}Date TBD{% endif %}
             </div>
@@ -45,6 +99,7 @@
             <div class="stat-title">Payment Status</div>
             <div class="stat-value text-2xl">
                 {% if exam.is_paid %}<span class="text-success">Paid</span>
+                {% elif exam.status == 'draft' %}<span class="text-base-content/50">Pending Registration</span>
                 {% elif exam.requires_payment %}<span class="text-warning">Pending</span>
                 {% else %}<span class="text-base-content/50">N/A</span>{% endif %}
             </div>
@@ -70,8 +125,8 @@
         </div>
     </div>
 
-    <!-- Payment Action (if needed) -->
-    {% if not is_teacher and exam.requires_payment and not exam.is_paid %}
+    <!-- Payment Action (if needed — only shown once formally registered) -->
+    {% if not is_teacher and exam.status != 'draft' and exam.requires_payment and not exam.is_paid %}
         <div class="alert alert-warning mb-8">
             <div class="flex justify-between items-center w-full">
                 <div>
@@ -132,12 +187,10 @@
                             <div class="font-semibold">{{ exam.registration_number }}</div>
                         </div>
                     {% endif %}
-                    {% if is_teacher %}
-                        <div>
-                            <div class="text-sm text-base-content/70">Teacher</div>
-                            <div class="font-semibold">{{ exam.teacher.get_full_name }}</div>
-                        </div>
-                    {% endif %}
+                    <div>
+                        <div class="text-sm text-base-content/70">Teacher</div>
+                        <div class="font-semibold">{{ exam.teacher.get_full_name }}</div>
+                    </div>
                 </div>
             </div>
         </div>
