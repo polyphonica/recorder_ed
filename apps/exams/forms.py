@@ -92,6 +92,7 @@ class ExamRegistrationForm(forms.ModelForm):
         self.teacher = kwargs.pop('teacher', None)
         self.selected_student = kwargs.pop('student', None)
         super().__init__(*args, **kwargs)
+        self.fields['payment_amount'].required = False
 
         if self.teacher:
             from apps.private_teaching.models import TeacherStudentApplication, Subject
@@ -156,6 +157,8 @@ class ExamRegistrationForm(forms.ModelForm):
         else:
             exam.child_profile = None
 
+        if not exam.payment_amount:
+            exam.payment_amount = 0
         if exam.payment_amount > 0:
             exam.payment_status = 'pending'
         else:

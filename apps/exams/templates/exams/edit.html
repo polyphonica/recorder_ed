@@ -18,6 +18,16 @@
     <form method="post" class="space-y-8">
         {% csrf_token %}
 
+        {% if form.errors or piece_formset.errors %}
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <div>
+                    <div class="font-bold">Please correct the errors below before saving.</div>
+                    <div class="text-sm mt-1">Required fields: Student, Subject, Exam Board, Grade Type, and Grade Level.</div>
+                </div>
+            </div>
+        {% endif %}
+
         <!-- Student & Subject Information -->
         <div class="card bg-base-100 shadow-xl">
             <div class="card-body">
@@ -223,10 +233,10 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="form-control">
                         <label class="label">
-                            <span class="label-text font-semibold">Registration Fee (£) *</span>
+                            <span class="label-text font-semibold">Registration Fee (£)</span>
                         </label>
                         {{ form.payment_amount }}
-                        <label class="label"><span class="label-text-alt">Set to 0 if no payment required</span></label>
+                        <label class="label"><span class="label-text-alt">Leave blank or set to 0 if not yet known</span></label>
                         {% if form.payment_amount.errors %}
                             <label class="label"><span class="label-text-alt text-error">{{ form.payment_amount.errors.0 }}</span></label>
                         {% endif %}
