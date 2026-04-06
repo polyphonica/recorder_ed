@@ -200,9 +200,9 @@ class ExamRegistrationUpdateView(PrivateTeachingLoginRequiredMixin, TeacherProfi
                     ExamNotificationService.send_exam_registration_notification(exam)
                 elif exam.status == ExamRegistration.DRAFT:
                     if was_approved:
-                        messages.success(request, 'Exam programme updated. Approval has been reset — student will need to re-approve.')
+                        messages.success(request, 'Draft saved. Approval has been reset — student will need to re-approve. They have not been re-notified.')
                     else:
-                        messages.success(request, 'Draft exam programme updated.')
+                        messages.success(request, 'Draft saved. Student has not been re-notified.')
                 else:
                     messages.success(request, 'Exam registration updated!')
 

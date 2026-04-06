@@ -244,12 +244,15 @@
         </div>
 
         <!-- Form Actions -->
-        <div class="flex justify-end gap-4">
+        <div class="flex justify-end items-end gap-4">
             <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-ghost">Cancel</a>
             {% if exam.status == 'draft' %}
-                <button type="submit" name="action" value="save" class="btn btn-outline">
-                    <i class="fas fa-save mr-2"></i>Save Draft
-                </button>
+                <div class="text-right">
+                    <button type="submit" name="action" value="save" class="btn btn-outline">
+                        <i class="fas fa-save mr-2"></i>Save Draft
+                    </button>
+                    <div class="text-xs text-base-content/50 mt-1">Student will not be re-notified</div>
+                </div>
                 <button type="submit" name="action" value="register" class="btn btn-primary">
                     <i class="fas fa-check mr-2"></i>Register for Exam
                 </button>
