@@ -95,26 +95,30 @@ class AssignmentForm(forms.ModelForm):
     def save(self, commit=True):
         instance = super().save(commit=commit)
 
-        # Handle new tags if provided
-        new_tags_str = self.cleaned_data.get('new_tags', '')
-        if new_tags_str:
-            # Parse comma-separated tags
-            tag_names = [name.strip() for name in new_tags_str.split(',') if name.strip()]
-
-            for tag_name in tag_names:
-                # Get or create tag (case-insensitive check)
-                tag, created = Tag.objects.get_or_create(
-                    name__iexact=tag_name,
-                    defaults={'name': tag_name}
-                )
-                # If tag exists but with different case, use the existing one
-                if not created:
-                    tag = Tag.objects.filter(name__iexact=tag_name).first()
-
-                # Add tag to assignment
-                instance.tags.add(tag)
+        if commit:
+            self._add_new_tags(instance)
+        else:
+            _original_save_m2m = self.save_m2m
+            def _save_m2m():
+                _original_save_m2m()
+                self._add_new_tags(instance)
+            self.save_m2m = _save_m2m
 
         return instance
+
+    def _add_new_tags(self, instance):
+        new_tags_str = self.cleaned_data.get('new_tags', '')
+        if not new_tags_str:
+            return
+        tag_names = [name.strip() for name in new_tags_str.split(',') if name.strip()]
+        for tag_name in tag_names:
+            tag, created = Tag.objects.get_or_create(
+                name__iexact=tag_name,
+                defaults={'name': tag_name}
+            )
+            if not created:
+                tag = Tag.objects.filter(name__iexact=tag_name).first()
+            instance.tags.add(tag)
 
 
 class AssignToStudentForm(forms.ModelForm):

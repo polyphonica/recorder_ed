@@ -22,6 +22,7 @@ def assignment_create(request):
             assignment = form.save(commit=False)
             assignment.created_by = request.user
             assignment.save()
+            form.save_m2m()
             messages.success(request, f'Assignment "{assignment.title}" created successfully!')
             return redirect('assignments:teacher_library')
     else:

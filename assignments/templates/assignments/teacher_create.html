@@ -950,18 +950,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('ref-notation-display');
         container.innerHTML = '';
 
+        const containerWidth = container.offsetWidth || 800;
+
         // Calculate height needed for all staves (250px per stave)
         const totalHeight = staves.length * 250;
 
         const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
-        renderer.resize(1200, totalHeight);
+        renderer.resize(containerWidth, totalHeight);
         const context = renderer.getContext();
 
         // Render each stave
         staves.forEach((staveData, index) => {
             const yPosition = 40 + (index * 250);
             try {
-                renderSingleStave(context, staveData, yPosition, index === currentStaveIndex, 'ref-notation-display', index);
+                renderSingleStave(context, staveData, yPosition, index === currentStaveIndex, 'ref-notation-display', index, containerWidth);
             } catch (error) {
                 console.error(`Error rendering stave ${index + 1}:`, error);
             }
@@ -972,8 +974,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Render a single stave at the given Y position
-    function renderSingleStave(context, staveData, yPosition, isCurrentStave, containerId, staveIndex) {
-        const stave = new VF.Stave(10, yPosition, 1150);
+    function renderSingleStave(context, staveData, yPosition, isCurrentStave, containerId, staveIndex, containerWidth) {
+        const staveWidth = (containerWidth || 800) - 20;
+        const stave = new VF.Stave(10, yPosition, staveWidth);
         stave.addClef(staveData.clef);
         if (staveData.keySignature) {
             stave.addKeySignature(staveData.keySignature);
