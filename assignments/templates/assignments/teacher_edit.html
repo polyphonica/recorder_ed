@@ -34,7 +34,7 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
-    <div class="max-w-5xl mx-auto">
+    <div class="max-w-7xl mx-auto">
         <!-- Header -->
         <div class="mb-8">
             <a href="{% url 'assignments:teacher_library' %}"
@@ -982,7 +982,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('ref-notation-display');
         container.innerHTML = '';
 
-        const containerWidth = container.offsetWidth || 800;
+        const style = window.getComputedStyle(container);
+        const containerWidth = container.clientWidth
+            - parseFloat(style.paddingLeft || 0)
+            - parseFloat(style.paddingRight || 0)
+            || 800;
 
         // Calculate height needed for all staves (250px per stave)
         const totalHeight = staves.length * 250;
