@@ -290,8 +290,11 @@
                     <label class="label"><span class="label-text font-medium">{{ voucher_form.restricted_to_workshops.label }}</span></label>
                     <div class="flex flex-col gap-1 max-h-40 overflow-y-auto border border-base-300 rounded-lg p-2">
                         {% for choice in voucher_form.restricted_to_workshops %}
-                            <label class="label cursor-pointer justify-start gap-2 py-1">
-                                {{ choice.tag }}
+                            <label class="label cursor-pointer justify-start gap-2 py-1 rounded has-[:checked]:bg-primary/10 has-[:checked]:text-primary">
+                                <input type="checkbox" class="checkbox checkbox-primary checkbox-sm"
+                                       name="{{ choice.data.name }}" value="{{ choice.data.value }}"
+                                       id="{{ choice.id_for_label }}"
+                                       {% if choice.data.selected %}checked{% endif %}>
                                 <span class="label-text">{{ choice.choice_label }}</span>
                             </label>
                         {% endfor %}
@@ -306,8 +309,11 @@
                     <label class="label"><span class="label-text font-medium">{{ voucher_form.restricted_to_digital_products.label }}</span></label>
                     <div class="flex flex-col gap-1 max-h-40 overflow-y-auto border border-base-300 rounded-lg p-2">
                         {% for choice in voucher_form.restricted_to_digital_products %}
-                            <label class="label cursor-pointer justify-start gap-2 py-1">
-                                {{ choice.tag }}
+                            <label class="label cursor-pointer justify-start gap-2 py-1 rounded has-[:checked]:bg-primary/10 has-[:checked]:text-primary">
+                                <input type="checkbox" class="checkbox checkbox-primary checkbox-sm"
+                                       name="{{ choice.data.name }}" value="{{ choice.data.value }}"
+                                       id="{{ choice.id_for_label }}"
+                                       {% if choice.data.selected %}checked{% endif %}>
                                 <span class="label-text">{{ choice.choice_label }}</span>
                             </label>
                         {% endfor %}

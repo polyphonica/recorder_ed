@@ -629,10 +629,6 @@ class VoucherForm(forms.ModelForm):
             self.fields['restricted_to_workshops'].queryset = Workshop.objects.none()
             self.fields['restricted_to_digital_products'].queryset = DigitalProduct.objects.none()
 
-        # Style the M2M checkboxes
-        self.fields['restricted_to_workshops'].widget.attrs['class'] = 'checkbox checkbox-primary'
-        self.fields['restricted_to_digital_products'].widget.attrs['class'] = 'checkbox checkbox-primary'
-
         # If editing, convert JSONField list to form values
         if self.instance and self.instance.pk:
             if self.instance.applicable_domains:
