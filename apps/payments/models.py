@@ -200,6 +200,14 @@ class Voucher(models.Model):
         help_text="If set, only valid for these specific workshops"
     )
 
+    # Restrictions - specific digital products
+    restricted_to_digital_products = models.ManyToManyField(
+        'digital_products.DigitalProduct',
+        related_name='restricted_vouchers',
+        blank=True,
+        help_text="If set, only valid for these specific digital products"
+    )
+
     # Validity Period
     valid_from = models.DateTimeField(
         default=timezone.now,

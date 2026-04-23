@@ -334,7 +334,7 @@ function applyVoucher() {
             'Content-Type': 'application/x-www-form-urlencoded',
             'X-CSRFToken': '{{ csrf_token }}'
         },
-        body: 'code=' + encodeURIComponent(code) + '&domain=digital_products&cart_total=' + originalTotal
+        body: 'code=' + encodeURIComponent(code) + '&domain=digital_products&cart_total=' + originalTotal + '&product_id={{ product.id }}'
     })
     .then(function(response) { return response.json(); })
     .then(function(data) {

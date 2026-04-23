@@ -144,6 +144,44 @@
                     </div>
                 </div>
 
+                <!-- Product Restrictions -->
+                {% if voucher_form.restricted_to_workshops.field.queryset.exists or voucher_form.restricted_to_digital_products.field.queryset.exists %}
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% if voucher_form.restricted_to_workshops.field.queryset.exists %}
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">{{ voucher_form.restricted_to_workshops.label }}</span>
+                        </label>
+                        <div class="flex flex-col gap-1 max-h-40 overflow-y-auto border border-base-300 rounded-lg p-2">
+                            {% for choice in voucher_form.restricted_to_workshops %}
+                                <label class="label cursor-pointer justify-start gap-2 py-1">
+                                    {{ choice.tag }}
+                                    <span class="label-text">{{ choice.choice_label }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                        <label class="label"><span class="label-text-alt">{{ voucher_form.restricted_to_workshops.help_text }}</span></label>
+                    </div>
+                    {% endif %}
+                    {% if voucher_form.restricted_to_digital_products.field.queryset.exists %}
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium">{{ voucher_form.restricted_to_digital_products.label }}</span>
+                        </label>
+                        <div class="flex flex-col gap-1 max-h-40 overflow-y-auto border border-base-300 rounded-lg p-2">
+                            {% for choice in voucher_form.restricted_to_digital_products %}
+                                <label class="label cursor-pointer justify-start gap-2 py-1">
+                                    {{ choice.tag }}
+                                    <span class="label-text">{{ choice.choice_label }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                        <label class="label"><span class="label-text-alt">{{ voucher_form.restricted_to_digital_products.help_text }}</span></label>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
                 <div class="mt-6">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-plus mr-2"></i>Create Voucher

@@ -55,6 +55,8 @@ class VoucherService:
         domain: str,
         cart_total: Decimal,
         workshop=None,
+        digital_product=None,
+        digital_products=None,
         teacher=None
     ) -> Voucher:
         """
@@ -66,6 +68,8 @@ class VoucherService:
             domain: 'private_teaching', 'workshops', or 'workshop_series'
             cart_total: Total amount before discount
             workshop: Optional - specific workshop being purchased (for restriction check)
+            digital_product: Optional - single digital product being purchased (for restriction check)
+            digital_products: Optional - list of digital products in cart (for restriction check)
             teacher: Optional - teacher whose products are being purchased
 
         Returns:
@@ -129,6 +133,20 @@ class VoucherService:
             if restricted_workshops.exists():
                 if workshop not in restricted_workshops:
                     raise VoucherValidationError("This voucher is not valid for this workshop.")
+
+        # 6b. Check digital product restrictions (if any)
+        restricted_digital_products = voucher.restricted_to_digital_products.all()
+        if restricted_digital_products.exists():
+            if digital_products is not None:
+                # Cart: all products in the cart must be in the restricted set
+                for dp in digital_products:
+                    if dp not in restricted_digital_products:
+                        raise VoucherValidationError("This voucher is not valid for one or more products in your cart.")
+            elif digital_product is not None:
+                if digital_product not in restricted_digital_products:
+                    raise VoucherValidationError("This voucher is not valid for this product.")
+            else:
+                raise VoucherValidationError("This voucher is only valid for specific digital products.")
 
         # 7. Check teacher ownership (voucher must belong to the teacher of the items being purchased)
         if teacher and voucher.created_by != teacher:

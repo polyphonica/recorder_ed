@@ -57,7 +57,7 @@ function applyVoucher() {
             'Content-Type': 'application/x-www-form-urlencoded',
             'X-CSRFToken': '{{ csrf_token }}'
         },
-        body: 'code=' + encodeURIComponent(code) + '&domain=digital_products&cart_total=' + originalTotal
+        body: 'code=' + encodeURIComponent(code) + '&domain=digital_products&cart_total=' + originalTotal + '&product_ids={% for item in digital_product_cart_items %}{{ item.product.id }}{% if not forloop.last %},{% endif %}{% endfor %}'
     })
     .then(function(response) { return response.json(); })
     .then(function(data) {

@@ -275,7 +275,7 @@ function applyVoucher() {
             'Content-Type': 'application/x-www-form-urlencoded',
             'X-CSRFToken': '{{ csrf_token }}'
         },
-        body: 'code=' + encodeURIComponent(code) + '&domain=' + domain + '&cart_total=' + originalTotal
+        body: 'code=' + encodeURIComponent(code) + '&domain=' + domain + '&cart_total=' + originalTotal{% if workshop_cart_items %} + '&workshop_id={{ workshop_cart_items.0.session.workshop.id }}'{% endif %}
     })
     .then(function(response) { return response.json(); })
     .then(function(data) {

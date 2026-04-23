@@ -1477,6 +1477,9 @@ class ValidateVoucherAPIView(View):
         code = request.POST.get('code', '').strip()
         domain = request.POST.get('domain', 'private_teaching')
         cart_total = request.POST.get('cart_total', '0')
+        workshop_id = request.POST.get('workshop_id', '').strip()
+        product_id = request.POST.get('product_id', '').strip()
+        product_ids = request.POST.get('product_ids', '').strip()
 
         if not code:
             return JsonResponse({
@@ -1489,12 +1492,42 @@ class ValidateVoucherAPIView(View):
         except:
             cart_total = Decimal('0')
 
+        # Resolve optional product/workshop objects for restriction checks
+        workshop_obj = None
+        digital_product_obj = None
+        digital_products_list = None
+
+        if workshop_id and domain in ('workshops', 'workshop_series'):
+            try:
+                from apps.workshops.models import Workshop
+                workshop_obj = Workshop.objects.get(id=workshop_id)
+            except Exception:
+                pass
+
+        if domain == 'digital_products':
+            if product_id:
+                try:
+                    from apps.digital_products.models import DigitalProduct
+                    digital_product_obj = DigitalProduct.objects.get(id=product_id)
+                except Exception:
+                    pass
+            elif product_ids:
+                try:
+                    from apps.digital_products.models import DigitalProduct
+                    id_list = [pid.strip() for pid in product_ids.split(',') if pid.strip()]
+                    digital_products_list = list(DigitalProduct.objects.filter(id__in=id_list))
+                except Exception:
+                    pass
+
         try:
             voucher = VoucherService.validate_voucher(
                 code=code,
                 student=request.user,
                 domain=domain,
-                cart_total=cart_total
+                cart_total=cart_total,
+                workshop=workshop_obj,
+                digital_product=digital_product_obj,
+                digital_products=digital_products_list,
             )
 
             discount, final = VoucherService.calculate_discount(voucher, cart_total)

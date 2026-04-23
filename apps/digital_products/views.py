@@ -340,6 +340,8 @@ class ProductCheckoutView(LoginRequiredMixin, View):
                     student=request.user,
                     domain='digital_products',
                     cart_total=total_amount,
+                    digital_product=product if product_id else None,
+                    digital_products=products if checkout_cart else None,
                     teacher=teacher
                 )
                 discount_amount, final_total = VoucherService.calculate_discount(applied_voucher, total_amount)

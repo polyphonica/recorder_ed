@@ -541,7 +541,8 @@ class VoucherForm(forms.ModelForm):
         fields = [
             'code', 'description', 'discount_type', 'discount_value',
             'applicable_domains', 'valid_from', 'valid_until',
-            'max_uses_total', 'max_uses_per_student', 'minimum_purchase_amount'
+            'max_uses_total', 'max_uses_per_student', 'minimum_purchase_amount',
+            'restricted_to_workshops', 'restricted_to_digital_products',
         ]
         widgets = {
             'code': forms.TextInput(attrs={
@@ -602,11 +603,35 @@ class VoucherForm(forms.ModelForm):
         self.fields['max_uses_total'].label = "Max Total Uses (optional)"
         self.fields['max_uses_per_student'].label = "Max Uses Per Student"
         self.fields['minimum_purchase_amount'].label = "Minimum Purchase (£)"
+        self.fields['restricted_to_workshops'].label = "Restrict to specific workshops (optional)"
+        self.fields['restricted_to_digital_products'].label = "Restrict to specific digital products (optional)"
 
         # Set help texts
         self.fields['discount_value'].help_text = "Enter percentage (0-100) or fixed amount in £ depending on type. Not needed for '100% Free'."
         self.fields['max_uses_total'].help_text = "Leave blank for unlimited uses"
         self.fields['valid_until'].help_text = "Leave blank for no expiration"
+        self.fields['restricted_to_workshops'].help_text = "Leave blank to allow on all your workshops"
+        self.fields['restricted_to_digital_products'].help_text = "Leave blank to allow on all your digital products"
+
+        # Filter restriction querysets to this teacher's items only
+        if self.teacher:
+            from apps.workshops.models import Workshop
+            from apps.digital_products.models import DigitalProduct
+            self.fields['restricted_to_workshops'].queryset = Workshop.objects.filter(
+                instructor=self.teacher, status='published'
+            ).order_by('title')
+            self.fields['restricted_to_digital_products'].queryset = DigitalProduct.objects.filter(
+                teacher=self.teacher, status='published'
+            ).order_by('title')
+        else:
+            from apps.workshops.models import Workshop
+            from apps.digital_products.models import DigitalProduct
+            self.fields['restricted_to_workshops'].queryset = Workshop.objects.none()
+            self.fields['restricted_to_digital_products'].queryset = DigitalProduct.objects.none()
+
+        # Style the M2M checkboxes
+        self.fields['restricted_to_workshops'].widget.attrs['class'] = 'checkbox checkbox-primary'
+        self.fields['restricted_to_digital_products'].widget.attrs['class'] = 'checkbox checkbox-primary'
 
         # If editing, convert JSONField list to form values
         if self.instance and self.instance.pk:
