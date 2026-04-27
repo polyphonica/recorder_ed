@@ -234,14 +234,14 @@ document.addEventListener('DOMContentLoaded', function() {
         staves.forEach((staveData, index) => {
             const yPosition = 40 + (index * 200);
             try {
-                renderSingleStave(context, staveData, yPosition);
+                renderSingleStave(context, staveData, yPosition, container);
             } catch (error) {
                 console.error(`Error rendering stave ${index + 1}:`, error);
             }
         });
     }
 
-    function renderSingleStave(context, staveData, yPosition) {
+    function renderSingleStave(context, staveData, yPosition, container) {
         const stave = new VF.Stave(10, yPosition, 680);
         const clef = staveData.clef || 'treble';
         const keySignature = staveData.keySignature || '';
@@ -268,6 +268,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         stave.setContext(context).draw();
+
+        // Render text labels placed by the teacher
+        if (staveData.textLabels && staveData.textLabels.length > 0 && container) {
+            const svgElement = container.querySelector('svg');
+            if (svgElement) {
+                staveData.textLabels.forEach((label) => {
+                    const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    textElement.setAttribute('x', label.x);
+                    textElement.setAttribute('y', label.y);
+                    textElement.setAttribute('fill', '#dc2626');
+                    textElement.setAttribute('font-size', '14');
+                    textElement.setAttribute('font-weight', 'bold');
+                    textElement.textContent = label.text;
+                    svgElement.appendChild(textElement);
+                });
+            }
+        }
 
         // If there are no notes, just show the empty stave
         if (!staveData.notes || staveData.notes.length === 0) {

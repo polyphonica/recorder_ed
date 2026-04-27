@@ -1259,7 +1259,7 @@ document.addEventListener('DOMContentLoaded', function() {
         staves.forEach((staveData, index) => {
             const yPosition = 40 + (index * 200);
             try {
-                renderSingleStaveReference(context, staveData, yPosition);
+                renderSingleStaveReference(context, staveData, yPosition, container, index);
             } catch (error) {
                 console.error(`Error rendering reference stave ${index + 1}:`, error);
             }
@@ -1267,7 +1267,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Render a single stave from multi-stave reference notation
-    function renderSingleStaveReference(context, staveData, yPosition) {
+    function renderSingleStaveReference(context, staveData, yPosition, container, staveIndex) {
         const stave = new VF.Stave(10, yPosition, 870);
         const clef = staveData.clef || 'treble';
         const keySignature = staveData.keySignature || '';
@@ -1293,6 +1293,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         stave.setContext(context).draw();
+
+        // Render text labels placed by the teacher
+        if (staveData.textLabels && staveData.textLabels.length > 0 && container) {
+            const svgElement = container.querySelector('svg');
+            if (svgElement) {
+                staveData.textLabels.forEach((label) => {
+                    const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    textElement.setAttribute('x', label.x);
+                    textElement.setAttribute('y', label.y);
+                    textElement.setAttribute('fill', '#dc2626');
+                    textElement.setAttribute('font-size', '14');
+                    textElement.setAttribute('font-weight', 'bold');
+                    textElement.textContent = label.text;
+                    svgElement.appendChild(textElement);
+                });
+            }
+        }
 
         if (!staveData.notes || staveData.notes.length === 0) {
             return;
