@@ -30,6 +30,7 @@ class AssignmentForm(forms.ModelForm):
             'is_public',
             'has_notation_component',
             'has_written_component',
+            'has_attachment_component',
             'reference_notation',
             'reference_image',
         ]
@@ -62,6 +63,9 @@ class AssignmentForm(forms.ModelForm):
             'has_written_component': forms.CheckboxInput(attrs={
                 'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
             }),
+            'has_attachment_component': forms.CheckboxInput(attrs={
+                'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
+            }),
             'reference_notation': forms.HiddenInput(),
             'reference_image': forms.FileInput(attrs={
                 'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100',
@@ -77,6 +81,7 @@ class AssignmentForm(forms.ModelForm):
             'is_public': 'Make Public',
             'has_notation_component': 'Include Music Notation Component',
             'has_written_component': 'Include Written Response Component',
+            'has_attachment_component': 'Include Scan/Upload Component',
             'reference_notation': 'Reference Notation Data',
             'reference_image': 'OR Upload Notation Image',
         }
@@ -88,6 +93,7 @@ class AssignmentForm(forms.ModelForm):
             'is_public': 'Allow other teachers to browse and use this assignment',
             'has_notation_component': 'Student will use the notation editor to complete this assignment',
             'has_written_component': 'Student will provide a written response with text formatting',
+            'has_attachment_component': 'Student will scan/photograph handwritten work and upload it (JPG, PNG, PDF)',
             'reference_notation': 'Created using the notation editor below',
             'reference_image': 'Upload an image from Sibelius, Finale, MuseScore, or other notation software (JPG, PNG, SVG)',
         }

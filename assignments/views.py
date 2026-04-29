@@ -4,11 +4,40 @@ from django.contrib import messages
 from django.utils import timezone
 from django.http import JsonResponse
 import json
+import os
 
-from .models import Assignment, AssignmentSubmission
+from .models import Assignment, AssignmentSubmission, SubmissionAttachment
 from lessons.models import LessonAssignment
 from .forms import AssignmentForm, AssignToStudentForm, GradeSubmissionForm, SubmissionForm
 from apps.private_teaching.notifications import StudentNotificationService
+
+_ALLOWED_ATTACHMENT_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.pdf'}
+_MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024  # 10MB
+_MAX_ATTACHMENTS = 5
+
+
+def _is_valid_attachment(file):
+    _, ext = os.path.splitext(file.name.lower())
+    return ext in _ALLOWED_ATTACHMENT_EXTENSIONS and file.size <= _MAX_ATTACHMENT_SIZE
+
+
+def _save_attachments(request, submission, uploader, field_name='attachments'):
+    files = request.FILES.getlist(field_name)
+    existing_count = submission.attachments.count()
+    slots = max(0, _MAX_ATTACHMENTS - existing_count)
+    skipped = 0
+    for f in files[:slots]:
+        if _is_valid_attachment(f):
+            SubmissionAttachment.objects.create(
+                submission=submission,
+                file=f,
+                uploaded_by=uploader,
+                label=f.name,
+            )
+        else:
+            skipped += 1
+    if skipped:
+        messages.warning(request, f'{skipped} file(s) were skipped — only JPG, PNG, PDF under 10MB are accepted.')
 
 
 # ============= TEACHER VIEWS =============
@@ -301,15 +330,22 @@ def grade_submission(request, pk):
                 feedback=graded_submission.feedback,
                 graded_by=request.user
             )
+            _save_attachments(request, submission, request.user, field_name='teacher_attachments')
             messages.success(request, f'Graded submission for {student_display_name}!')
             return redirect('assignments:teacher_submissions')
     else:
         form = GradeSubmissionForm(instance=submission)
 
+    student_attachments = submission.attachments.filter(uploaded_by=submission.student)
+    teacher_attachments = submission.attachments.filter(uploaded_by=request.user)
+
     return render(request, 'assignments/grade_submission.html', {
         'form': form,
         'submission': submission,
         'assignment_link': assignment_link,
+        'student_attachments': student_attachments,
+        'teacher_attachments': teacher_attachments,
+        'max_attachments': _MAX_ATTACHMENTS,
     })
 
 
@@ -390,27 +426,31 @@ def complete_assignment(request, assignment_link_id):
         form = SubmissionForm(request.POST, instance=submission)
 
         if form.is_valid():
-            # Check if it's a save draft request
             is_draft = request.POST.get('save_draft') == 'true'
 
             submission = form.save(commit=False)
 
             if is_draft:
                 submission.save_draft()
+                _save_attachments(request, submission, request.user)
                 messages.success(request, 'Draft saved successfully!')
             else:
-                # Submit the assignment
+                _save_attachments(request, submission, request.user)
                 submission.submit()
                 messages.success(request, 'Assignment submitted successfully!')
                 return redirect('assignments:student_library')
     else:
         form = SubmissionForm(instance=submission)
 
+    student_attachments = submission.attachments.filter(uploaded_by=request.user) if submission.pk else []
+
     return render(request, 'assignments/complete_assignment.html', {
         'assignment_link': assignment_link,
         'assignment': assignment_link.assignment,
         'submission': submission,
         'form': form,
+        'student_attachments': student_attachments,
+        'max_attachments': _MAX_ATTACHMENTS,
     })
 
 
@@ -454,10 +494,43 @@ def view_graded_assignment(request, pk):
         assignment=submission.assignment
     ).first()
 
+    student_attachments = submission.attachments.filter(uploaded_by=submission.student)
+    teacher_attachments = submission.attachments.exclude(uploaded_by=submission.student)
+
     return render(request, 'assignments/view_graded.html', {
         'submission': submission,
         'assignment_link': assignment_link,
+        'student_attachments': student_attachments,
+        'teacher_attachments': teacher_attachments,
     })
+
+
+@login_required
+def delete_attachment(request, pk):
+    from django.core.exceptions import PermissionDenied
+
+    if request.method != 'POST':
+        return redirect('assignments:student_library')
+
+    attachment = get_object_or_404(SubmissionAttachment, pk=pk)
+    submission = attachment.submission
+
+    if attachment.uploaded_by != request.user:
+        raise PermissionDenied
+
+    # Students can't remove attachments after they've submitted
+    if attachment.uploaded_by == submission.student and submission.status != 'draft':
+        messages.error(request, 'Attachments cannot be removed after submission.')
+        return redirect('assignments:student_library')
+
+    attachment.file.delete(save=False)
+    attachment.delete()
+    messages.success(request, 'Attachment removed.')
+
+    referer = request.META.get('HTTP_REFERER', '')
+    if referer:
+        return redirect(referer)
+    return redirect('assignments:student_library')
 
 
 # ============= HELPER FUNCTIONS =============

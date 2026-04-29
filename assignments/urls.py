@@ -19,4 +19,7 @@ urlpatterns = [
     path('student/assignment/<uuid:assignment_link_id>/complete/', views.complete_assignment, name='complete_assignment'),
     path('student/assignment/<uuid:assignment_link_id>/submit/', views.submit_assignment, name='submit_assignment'),
     path('student/submission/<uuid:pk>/view/', views.view_graded_assignment, name='view_graded'),
+
+    # Attachment URLs
+    path('attachment/<uuid:pk>/delete/', views.delete_attachment, name='delete_attachment'),
 ]

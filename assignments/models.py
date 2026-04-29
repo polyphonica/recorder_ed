@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django_ckeditor_5.fields import CKEditor5Field
+import os
 import uuid
 
 
@@ -65,6 +66,10 @@ class Assignment(models.Model):
     has_written_component = models.BooleanField(
         default=False,
         help_text="Whether this assignment includes a written response component"
+    )
+    has_attachment_component = models.BooleanField(
+        default=False,
+        help_text="Student will need to scan/photograph handwritten work and upload it"
     )
 
     # Categorization and difficulty
@@ -272,3 +277,42 @@ class AssignmentSubmission(models.Model):
     def get_formatted_grade(self):
         """Get the formatted grade according to the assignment's scale"""
         return self.assignment.format_grade(self.grade)
+
+
+def _submission_attachment_path(instance, filename):
+    return f'submission_attachments/{instance.submission.pk}/{filename}'
+
+
+class SubmissionAttachment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    submission = models.ForeignKey(
+        AssignmentSubmission,
+        on_delete=models.CASCADE,
+        related_name='attachments'
+    )
+    file = models.FileField(upload_to=_submission_attachment_path)
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='submission_attachments'
+    )
+    label = models.CharField(max_length=200, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['uploaded_at']
+
+    def __str__(self):
+        return f"Attachment by {self.uploaded_by.username} on {self.submission}"
+
+    @property
+    def is_image(self):
+        return self.file.name.lower().endswith(('.jpg', '.jpeg', '.png'))
+
+    @property
+    def is_pdf(self):
+        return self.file.name.lower().endswith('.pdf')
+
+    @property
+    def filename(self):
+        return os.path.basename(self.file.name)

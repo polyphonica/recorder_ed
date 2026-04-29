@@ -273,6 +273,19 @@
                             </span>
                         </label>
                     </div>
+
+                    <!-- Attachment Component -->
+                    <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            {{ form.has_attachment_component }}
+                            <span class="flex-1">
+                                <span class="block text-base font-semibold text-gray-900">{{ form.has_attachment_component.label }}</span>
+                                {% if form.has_attachment_component.help_text %}
+                                <span class="block text-sm text-gray-600 mt-1">{{ form.has_attachment_component.help_text }}</span>
+                                {% endif %}
+                            </span>
+                        </label>
+                    </div>
                 </div>
             </div>
 

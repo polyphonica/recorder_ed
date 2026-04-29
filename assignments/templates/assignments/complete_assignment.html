@@ -77,7 +77,7 @@
         </div>
     </div>
 
-    <form method="post" id="assignment-form">
+    <form method="post" id="assignment-form" enctype="multipart/form-data">
         {% csrf_token %}
         <input type="hidden" name="notation_data" id="notation-data-input">
         <input type="hidden" name="save_draft" id="save-draft-input" value="false">
@@ -469,6 +469,71 @@
                             </div>
                         </div>
                     </div>
+                {% endif %}
+
+                <!-- Attachment Component -->
+                {% if assignment.has_attachment_component %}
+                <div class="card card-section shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4">
+                            <i class="fas fa-paperclip mr-2"></i>Upload Your Work
+                        </h2>
+
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Scan or photograph your handwritten work and upload it here. Accepted: JPG, PNG, PDF — max 10MB each, up to {{ max_attachments }} files.</span>
+                        </div>
+
+                        {% if student_attachments %}
+                        <div class="mb-4">
+                            <div class="font-semibold mb-2">Uploaded files ({{ student_attachments.count }}/{{ max_attachments }}):</div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {% for attachment in student_attachments %}
+                                <div class="flex items-center gap-3 bg-base-200 rounded-lg p-3">
+                                    {% if attachment.is_image %}
+                                        <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0">
+                                            <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" class="w-16 h-16 object-cover rounded border border-base-300">
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0 w-16 h-16 flex items-center justify-center bg-red-50 rounded border border-red-200">
+                                            <i class="fas fa-file-pdf text-red-500 text-2xl"></i>
+                                        </a>
+                                    {% endif %}
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-sm font-medium truncate">{{ attachment.filename }}</div>
+                                        <div class="text-xs text-base-content/60">{{ attachment.uploaded_at|date:"M j, Y g:i A" }}</div>
+                                    </div>
+                                    {% if submission.status == 'draft' %}
+                                    <form method="post" action="{% url 'assignments:delete_attachment' attachment.pk %}" class="flex-shrink-0">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-ghost btn-xs text-error"
+                                                onclick="return confirm('Remove this attachment?')">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if submission.status == 'draft' and student_attachments.count < max_attachments %}
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Add files:</span>
+                            </label>
+                            <input type="file" name="attachments" multiple accept=".jpg,.jpeg,.png,.pdf"
+                                   class="file-input file-input-bordered w-full">
+                        </div>
+                        {% elif submission.status != 'draft' %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-lock"></i>
+                            <span>Attachments are locked after submission.</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
                 {% endif %}
 
                 <!-- Submit Actions -->

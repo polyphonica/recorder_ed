@@ -58,15 +58,40 @@
             </div>
 
             <!-- Teacher Feedback -->
-            {% if submission.feedback %}
+            {% if submission.feedback or teacher_attachments %}
                 <div class="card card-section shadow-xl">
                     <div class="card-body">
                         <h2 class="card-title text-2xl mb-4">
                             <i class="fas fa-comment-dots mr-2"></i>Teacher's Feedback
                         </h2>
-                        <div class="bg-base-200 rounded-lg p-4 whitespace-pre-wrap text-lg">
+                        {% if submission.feedback %}
+                        <div class="bg-base-200 rounded-lg p-4 whitespace-pre-wrap text-lg mb-4">
                             {{ submission.feedback }}
                         </div>
+                        {% endif %}
+                        {% if teacher_attachments %}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {% for attachment in teacher_attachments %}
+                            <div class="flex items-center gap-3 bg-base-200 rounded-lg p-3">
+                                {% if attachment.is_image %}
+                                    <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0">
+                                        <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" class="w-16 h-16 object-cover rounded border border-base-300">
+                                    </a>
+                                {% else %}
+                                    <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0 w-16 h-16 flex items-center justify-center bg-red-50 rounded border border-red-200">
+                                        <i class="fas fa-file-pdf text-red-500 text-2xl"></i>
+                                    </a>
+                                {% endif %}
+                                <div class="flex-1 min-w-0">
+                                    <a href="{{ attachment.file.url }}" target="_blank" class="text-sm font-medium truncate block hover:text-primary">
+                                        {{ attachment.filename }}
+                                    </a>
+                                    <div class="text-xs text-base-content/60">{{ attachment.uploaded_at|date:"M j, Y" }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             {% endif %}
@@ -168,6 +193,38 @@
                         </div>
                     </div>
                 </div>
+            {% endif %}
+
+            <!-- Your Uploaded Work -->
+            {% if student_attachments %}
+            <div class="card card-section shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4">
+                        <i class="fas fa-paperclip mr-2"></i>Your Uploaded Work
+                    </h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {% for attachment in student_attachments %}
+                        <div class="flex items-center gap-3 bg-base-200 rounded-lg p-3">
+                            {% if attachment.is_image %}
+                                <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0">
+                                    <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" class="w-16 h-16 object-cover rounded border border-base-300">
+                                </a>
+                            {% else %}
+                                <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0 w-16 h-16 flex items-center justify-center bg-red-50 rounded border border-red-200">
+                                    <i class="fas fa-file-pdf text-red-500 text-2xl"></i>
+                                </a>
+                            {% endif %}
+                            <div class="flex-1 min-w-0">
+                                <a href="{{ attachment.file.url }}" target="_blank" class="text-sm font-medium truncate block hover:text-primary">
+                                    {{ attachment.filename }}
+                                </a>
+                                <div class="text-xs text-base-content/60">{{ attachment.uploaded_at|date:"M j, Y g:i A" }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
             {% endif %}
         </div>
 
