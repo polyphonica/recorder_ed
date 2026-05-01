@@ -17,6 +17,81 @@
         </div>
     </div>
 
+    <!-- Shared Resources (Standalone Documents) -->
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="card-title text-2xl">
+                    <i class="fas fa-share-alt mr-2"></i>Shared Resources
+                </h2>
+                <a href="{% url 'private_teaching:standalone_upload' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-upload mr-2"></i>Upload Resource
+                </a>
+            </div>
+            <p class="text-sm text-base-content/60 mb-4">Documents shared directly with students — not tied to any lesson.</p>
+
+            {% if standalone_documents %}
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Shared With</th>
+                            <th>Uploaded</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in standalone_documents %}
+                        <tr>
+                            <td>
+                                <div class="font-medium">{{ doc.title }}</div>
+                                {% if doc.description %}
+                                <div class="text-xs text-base-content/60">{{ doc.description }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if doc.share_with_all_students %}
+                                    <span class="badge badge-success badge-sm">All Students</span>
+                                {% else %}
+                                    <div class="text-sm">
+                                        {% for student in doc.shared_with_students.all %}
+                                            <span class="badge badge-outline badge-sm mr-1">{{ student.get_full_name|default:student.username }}</span>
+                                        {% empty %}
+                                            <span class="text-base-content/40">No students</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>{{ doc.uploaded_at|date:"M j, Y" }}</td>
+                            <td>
+                                <div class="flex gap-2">
+                                    <a href="{{ doc.document.url }}" target="_blank" class="btn btn-sm btn-section-primary">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'private_teaching:standalone_delete' doc.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-error btn-outline"
+                                                onclick="return confirm('Remove &quot;{{ doc.title }}&quot;? Students will no longer see it.')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-6 text-base-content/50">
+                <i class="fas fa-share-alt text-4xl mb-3 block"></i>
+                No shared resources yet. Upload manuscript paper, scales sheets, or any PDF you want all students to access.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- Search and Filters -->
     <div class="card card-section shadow-xl mb-6">
         <div class="card-body">

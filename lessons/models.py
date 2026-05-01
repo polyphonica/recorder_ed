@@ -485,6 +485,44 @@ class LessonAttachedUrl(models.Model):
         return self.name
 
 
+class StandaloneDocument(models.Model):
+    """
+    A document shared directly by a teacher without being tied to a lesson.
+    Useful for resources like manuscript paper that all students should access.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='standalone_documents'
+    )
+    title = models.CharField(max_length=200)
+    description = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Optional note, e.g. 'Treble clef — 8 staves per page'"
+    )
+    document = models.FileField(upload_to='standalone_documents/')
+    share_with_all_students = models.BooleanField(
+        default=True,
+        help_text="Make available to all current students"
+    )
+    shared_with_students = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name='shared_standalone_documents',
+        help_text="Specific students to share with (only used when not sharing with all)"
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"{self.title} (by {self.teacher.get_full_name() or self.teacher.username})"
+
+
 # Keep the LessonOrder model for backward compatibility with existing payment system
 class LessonOrder(models.Model):
     # Will need to reference student profile from private_teaching app

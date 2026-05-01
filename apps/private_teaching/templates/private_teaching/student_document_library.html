@@ -17,6 +17,49 @@
         </div>
     </div>
 
+    <!-- Shared Resources (Standalone Documents) -->
+    {% if standalone_documents %}
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="card-title text-2xl mb-4">
+                <i class="fas fa-share-alt mr-2"></i>Shared Resources
+            </h2>
+            <p class="text-sm text-base-content/60 mb-4">Documents your teacher has made available for you to download.</p>
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Teacher</th>
+                            <th>Shared</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in standalone_documents %}
+                        <tr>
+                            <td>
+                                <div class="font-medium">{{ doc.title }}</div>
+                                {% if doc.description %}
+                                <div class="text-xs text-base-content/60">{{ doc.description }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ doc.teacher.get_full_name|default:doc.teacher.username }}</td>
+                            <td>{{ doc.uploaded_at|date:"M j, Y" }}</td>
+                            <td>
+                                <a href="{{ doc.document.url }}" target="_blank" class="btn btn-sm btn-section-primary">
+                                    <i class="fas fa-download mr-1"></i>Download
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Search Bar -->
     <div class="card card-section shadow-xl mb-6">
         <div class="card-body">
@@ -138,7 +181,7 @@
     {% endif %}
 
     <!-- Empty State -->
-    {% if not documents and not urls %}
+    {% if not documents and not urls and not standalone_documents %}
     <div class="card card-section shadow-xl">
         <div class="card-body">
             <div class="text-center py-12">

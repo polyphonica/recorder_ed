@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Share a Resource{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Share a Resource</h1>
+                <p class="text-base-content/70">Upload a PDF to share directly with your students</p>
+            </div>
+            <a href="{% url 'private_teaching:teacher_library' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Library
+            </a>
+        </div>
+    </div>
+
+    <div class="card card-section shadow-xl"
+         x-data="{
+             shareAll: true,
+             selectedStudents: []
+         }">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" action="">
+                {% csrf_token %}
+
+                <!-- Title -->
+                <div class="form-control mb-5">
+                    <label class="label">
+                        <span class="label-text font-semibold text-lg">Title <span class="text-error">*</span></span>
+                    </label>
+                    <input type="text" name="title" required maxlength="200"
+                           placeholder="e.g. Manuscript Paper — Treble Clef (8 staves)"
+                           class="input input-bordered w-full">
+                </div>
+
+                <!-- Description -->
+                <div class="form-control mb-5">
+                    <label class="label">
+                        <span class="label-text font-semibold">Description <span class="text-base-content/50 font-normal">(optional)</span></span>
+                    </label>
+                    <input type="text" name="description" maxlength="500"
+                           placeholder="e.g. A4, 8 staves per page, treble clef printed"
+                           class="input input-bordered w-full">
+                </div>
+
+                <!-- File Upload -->
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold text-lg">PDF File <span class="text-error">*</span></span>
+                    </label>
+                    <input type="file" name="document" required accept=".pdf"
+                           class="file-input file-input-bordered w-full">
+                    <label class="label">
+                        <span class="label-text-alt">PDF only — max 20MB</span>
+                    </label>
+                </div>
+
+                <!-- Sharing -->
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold text-lg">Share with</span>
+                    </label>
+
+                    <div class="space-y-3">
+                        <!-- All Students -->
+                        <label class="flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors"
+                               :class="shareAll ? 'border-primary bg-primary/5' : 'border-base-300'">
+                            <input type="radio" name="share_with_all_students_radio" value="all"
+                                   class="radio radio-primary" checked
+                                   @change="shareAll = true">
+                            <span>
+                                <span class="block font-semibold">All Students</span>
+                                <span class="block text-sm text-base-content/60">Visible to every student who has a lesson with you</span>
+                            </span>
+                        </label>
+
+                        <!-- Specific Students -->
+                        <label class="flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors"
+                               :class="!shareAll ? 'border-primary bg-primary/5' : 'border-base-300'">
+                            <input type="radio" name="share_with_all_students_radio" value="specific"
+                                   class="radio radio-primary"
+                                   @change="shareAll = false">
+                            <span>
+                                <span class="block font-semibold">Specific Students</span>
+                                <span class="block text-sm text-base-content/60">Choose which students can see this</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <!-- Hidden field carrying the actual value -->
+                    <input type="hidden" name="share_with_all_students" :value="shareAll ? 'true' : 'false'">
+
+                    <!-- Student Selector (shown when Specific Students is chosen) -->
+                    {% if students %}
+                    <div x-show="!shareAll" x-transition class="mt-4">
+                        <div class="font-semibold mb-2 text-sm">Select students:</div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto p-3 bg-base-200 rounded-lg">
+                            {% for student in students %}
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-base-300">
+                                <input type="checkbox" name="student_ids" value="{{ student.id }}"
+                                       class="checkbox checkbox-sm checkbox-primary">
+                                <span class="text-sm">{{ student.name }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div x-show="!shareAll" x-transition class="mt-4">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>You have no students with accepted lessons yet.</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="flex gap-3 justify-end">
+                    <a href="{% url 'private_teaching:teacher_library' %}" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload mr-2"></i>Upload & Share
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

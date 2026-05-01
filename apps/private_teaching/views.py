@@ -27,7 +27,7 @@ from apps.exams.models import ExamRegistration
 from apps.practice.models import PracticeEntry
 from apps.quizzes.models import Quiz as PrivateLessonQuiz, QuizAssignment as PrivateLessonQuizAssignment
 from apps.scheduling.availability_engine import check_slot_availability
-from lessons.models import Lesson, Document, LessonAttachedUrl, LessonAssignment
+from lessons.models import Lesson, Document, LessonAttachedUrl, LessonAssignment, StandaloneDocument
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, RescheduleForm, TeacherInitiateCancellationForm
 from .cart import CartManager
 from apps.payments.voucher_service import VoucherService, VoucherValidationError
@@ -1860,10 +1860,32 @@ class StudentDocumentLibraryView(StudentProfileCompletedMixin, TemplateView):
                 Q(lesson__subject__subject__icontains=search_query)
             )
 
+        # Get standalone documents shared by this student's teachers
+        teacher_ids = Lesson.objects.filter(
+            student=self.request.user,
+            approved_status=Lesson.ApprovalStatus.ACCEPTED,
+            is_deleted=False
+        ).values_list('teacher_id', flat=True).distinct()
+
+        standalone_documents = StandaloneDocument.objects.filter(
+            teacher_id__in=teacher_ids,
+            is_active=True
+        ).filter(
+            Q(share_with_all_students=True) |
+            Q(shared_with_students=self.request.user)
+        ).select_related('teacher').distinct().order_by('-uploaded_at')
+
+        if search_query:
+            standalone_documents = standalone_documents.filter(
+                Q(title__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+
         context['documents'] = documents
         context['urls'] = urls
+        context['standalone_documents'] = standalone_documents
         context['search_query'] = search_query
-        context['total_items'] = documents.count() + urls.count()
+        context['total_items'] = documents.count() + urls.count() + standalone_documents.count()
 
         return context
 
@@ -1958,8 +1980,15 @@ class TeacherDocumentLibraryView(TeacherProfileCompletedMixin, TemplateView):
 
         subjects = Subject.objects.filter(teacher=self.request.user, is_active=True)
 
+        # Get this teacher's standalone documents
+        standalone_documents = StandaloneDocument.objects.filter(
+            teacher=self.request.user,
+            is_active=True
+        ).prefetch_related('shared_with_students').order_by('-uploaded_at')
+
         context['documents'] = documents
         context['urls'] = urls
+        context['standalone_documents'] = standalone_documents
         context['search_query'] = search_query
         context['student_filter'] = student_filter
         context['subject_filter'] = subject_filter
@@ -1968,6 +1997,80 @@ class TeacherDocumentLibraryView(TeacherProfileCompletedMixin, TemplateView):
         context['total_items'] = documents.count() + urls.count()
 
         return context
+
+
+@login_required
+def upload_standalone_document(request):
+    """Teacher uploads a standalone document to share with students"""
+    # Build student list for the specific-students selector
+    student_lessons = Lesson.objects.filter(
+        teacher=request.user,
+        approved_status=Lesson.ApprovalStatus.ACCEPTED,
+        is_deleted=False
+    ).select_related('student', 'lesson_request__child_profile').order_by('student').distinct('student')
+
+    students = []
+    seen = set()
+    for lesson in student_lessons:
+        sid = lesson.student.id
+        if sid not in seen:
+            seen.add(sid)
+            if lesson.lesson_request and lesson.lesson_request.is_child_lesson:
+                display = lesson.lesson_request.student_display_name
+            else:
+                display = lesson.student.get_full_name() or lesson.student.username
+            students.append({'id': sid, 'name': display})
+    students.sort(key=lambda x: x['name'].lower())
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        share_all = request.POST.get('share_with_all_students') == 'true'
+        student_ids = request.POST.getlist('student_ids')
+        uploaded_file = request.FILES.get('document')
+
+        errors = []
+        if not title:
+            errors.append('Title is required.')
+        if not uploaded_file:
+            errors.append('Please select a file to upload.')
+        elif not uploaded_file.name.lower().endswith('.pdf'):
+            errors.append('Only PDF files are accepted.')
+        elif uploaded_file.size > 20 * 1024 * 1024:
+            errors.append('File must be under 20MB.')
+        if not share_all and not student_ids:
+            errors.append('Please select at least one student, or choose "All Students".')
+
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+        else:
+            doc = StandaloneDocument.objects.create(
+                teacher=request.user,
+                title=title,
+                description=description,
+                document=uploaded_file,
+                share_with_all_students=share_all,
+            )
+            if not share_all and student_ids:
+                doc.shared_with_students.set(User.objects.filter(id__in=student_ids))
+            messages.success(request, f'"{title}" uploaded and shared successfully.')
+            return redirect('private_teaching:teacher_library')
+
+    return render(request, 'private_teaching/teacher_standalone_upload.html', {
+        'students': students,
+    })
+
+
+@login_required
+def delete_standalone_document(request, pk):
+    """Teacher deletes one of their standalone documents"""
+    doc = get_object_or_404(StandaloneDocument, pk=pk, teacher=request.user)
+    if request.method == 'POST':
+        doc.document.delete(save=False)
+        doc.delete()
+        messages.success(request, f'"{doc.title}" has been removed.')
+    return redirect('private_teaching:teacher_library')
 
 
 class TeacherStudentsListView(TeacherProfileCompletedMixin, ListView):
