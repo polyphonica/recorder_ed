@@ -741,7 +741,7 @@ class LessonRequestDetailView(TeacherProfileCompletedMixin, TemplateView):
 
     def get_lesson_request(self):
         return get_object_or_404(
-            LessonRequest,
+            LessonRequest.objects.distinct(),
             id=self.kwargs['request_id'],
             lessons__teacher=self.request.user
         )
