@@ -56,8 +56,17 @@
                             <label class="label pb-1">
                                 <span class="label-text font-semibold text-xs uppercase tracking-wide">Display Width (px)</span>
                             </label>
-                            <input type="number" name="display_w" value="{{ display_w }}"
-                                   class="input input-bordered w-full" min="20" max="300">
+                            <input type="number" name="display_w" id="inputDisplayW" value="{{ display_w }}"
+                                   class="input input-bordered w-full" min="5" max="300">
+                        </div>
+
+                        <div class="flex gap-2 mb-3">
+                            <button type="button" class="btn btn-xs btn-outline flex-1" onclick="applyPreset('inline')">
+                                Inline text
+                            </button>
+                            <button type="button" class="btn btn-xs btn-outline flex-1" onclick="applyPreset('display')">
+                                Large display
+                            </button>
                         </div>
 
                         <!-- Collapsible: Subscripts & Advanced -->
@@ -88,8 +97,8 @@
                                         <span class="label-text text-sm">Font Size</span>
                                         <span class="label-text-alt text-base-content/50">Default: 48</span>
                                     </label>
-                                    <input type="number" name="font_size" value="{{ font_size }}"
-                                           class="input input-bordered w-full input-sm" min="24" max="96">
+                                    <input type="number" name="font_size" id="inputFontSize" value="{{ font_size }}"
+                                           class="input input-bordered w-full input-sm" min="12" max="96">
                                 </div>
 
                                 <div class="form-control">
@@ -97,8 +106,8 @@
                                         <span class="label-text text-sm">Vertical Spacing</span>
                                         <span class="label-text-alt text-base-content/50">Default: 24</span>
                                     </label>
-                                    <input type="number" name="spacing" value="{{ spacing }}"
-                                           class="input input-bordered w-full input-sm" min="10" max="50">
+                                    <input type="number" name="spacing" id="inputSpacing" value="{{ spacing }}"
+                                           class="input input-bordered w-full input-sm" min="2" max="50">
                                 </div>
 
                                 <div class="form-control">
@@ -106,8 +115,8 @@
                                         <span class="label-text text-sm">ViewBox Width</span>
                                         <span class="label-text-alt text-base-content/50">Default: 60</span>
                                     </label>
-                                    <input type="number" name="viewbox_w" value="{{ viewbox_w }}"
-                                           class="input input-bordered w-full input-sm" min="30" max="200">
+                                    <input type="number" name="viewbox_w" id="inputViewboxW" value="{{ viewbox_w }}"
+                                           class="input input-bordered w-full input-sm" min="15" max="200">
                                 </div>
 
                                 <p class="text-xs text-base-content/50">
@@ -188,6 +197,22 @@
 </div>
 
 <script>
+    // ---- Presets ----
+    function applyPreset(name) {
+        if (name === 'inline') {
+            document.getElementById('inputDisplayW').value  = 14;
+            document.getElementById('inputFontSize').value  = 48;
+            document.getElementById('inputSpacing').value   = 6;
+            document.getElementById('inputViewboxW').value  = 50;
+        } else if (name === 'display') {
+            document.getElementById('inputDisplayW').value  = 45;
+            document.getElementById('inputFontSize').value  = 48;
+            document.getElementById('inputSpacing').value   = 24;
+            document.getElementById('inputViewboxW').value  = 60;
+        }
+        document.getElementById('timeSigForm').submit();
+    }
+
     // ---- Live preview: update SVG text elements instantly on input change ----
     // SVG text order: [0] top digit, [1] top subscript, [2] bottom digit, [3] bottom subscript
     document.getElementById('inputTop').addEventListener('input', updateLivePreview);
