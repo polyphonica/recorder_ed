@@ -181,6 +181,16 @@ figure.image.image-style-block-align-left,
     padding: 0 !important;
 }
 
+/* Any img directly inside a paragraph or span (not wrapped in a figure block) */
+.ck-content p img,
+.ck-content li img,
+.prose p img,
+.prose li img {
+    display: inline-block !important;
+    vertical-align: middle !important;
+    margin: 0 2px !important;
+}
+
 /* Accordion styling */
 .accordion-header {
     background-color: #f4f4f4;
