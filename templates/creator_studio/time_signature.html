@@ -174,14 +174,20 @@
                         <i class="fas fa-copy mr-2"></i>Copy Image Tag
                     </button>
 
-                    <!-- Secondary Action -->
-                    <button class="btn btn-outline btn-sm w-full" onclick="downloadPNG()">
-                        <i class="fas fa-download mr-1"></i>Download as PNG
-                    </button>
+                    <!-- Secondary Actions -->
+                    <div class="flex gap-2">
+                        <button class="btn btn-outline btn-sm flex-1" onclick="downloadPNG()">
+                            <i class="fas fa-download mr-1"></i>Download PNG
+                        </button>
+                        <button class="btn btn-outline btn-sm flex-1" onclick="copySVGCode()">
+                            <i class="fas fa-code mr-1"></i>Copy SVG
+                        </button>
+                    </div>
 
                     <p class="text-xs text-base-content/50 -mt-2">
                         <strong>Copy Image Tag</strong> &rarr; CKEditor source view, paste <em>inside</em> the &lt;p&gt; tag &nbsp;&middot;&nbsp;
-                        <strong>Download PNG</strong> &rarr; upload via image button, then click the inline style button
+                        <strong>Download PNG</strong> &rarr; upload via image button, then click the inline style button &nbsp;&middot;&nbsp;
+                        <strong>Copy SVG</strong> &rarr; import into Affinity Designer / Inkscape for font creation
                     </p>
                 </div>
             </div>
@@ -330,6 +336,19 @@
             alert('Copied! In CKEditor source view, paste inside the <p> tag where you want it to appear.');
         } catch (err) {
             console.error('Failed to copy image tag:', err);
+            alert('Failed to copy. Please try again.');
+        }
+    }
+
+    async function copySVGCode() {
+        try {
+            const svgElement = document.querySelector('#svgPreview svg');
+            if (!svgElement) { alert('No time signature to copy. Please generate one first.'); return; }
+            const svgCode = new XMLSerializer().serializeToString(svgElement);
+            await navigator.clipboard.writeText(svgCode);
+            alert('SVG code copied! Paste into a .svg file or directly into Affinity Designer.');
+        } catch (err) {
+            console.error('Failed to copy SVG:', err);
             alert('Failed to copy. Please try again.');
         }
     }
