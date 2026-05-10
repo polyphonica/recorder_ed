@@ -14,6 +14,7 @@
     font-weight: normal;
     font-style: normal;
     font-display: swap;
+    unicode-range: U+E000-E0FF;
 }
 
 /* Set Arial as the default font for CKEditor content */
