@@ -162,13 +162,23 @@ figure.image.image-style-block-align-left,
     text-align: center;
 }
 
-/* Inline time signature - flows with surrounding text */
-.ck-content figure.image.time-sig-inline,
-.prose figure.image.time-sig-inline {
+/* Inline images (e.g. time signatures) — flow with surrounding text */
+.ck-content span.image-inline,
+.prose span.image-inline {
     display: inline-block !important;
     vertical-align: middle !important;
     margin: 0 2px !important;
-    clear: none !important;
+    line-height: 0;
+}
+
+.ck-content span.image-inline img,
+.prose span.image-inline img {
+    display: inline-block !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 /* Accordion styling */
