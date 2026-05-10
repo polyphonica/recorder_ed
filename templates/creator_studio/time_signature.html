@@ -322,9 +322,12 @@
         try {
             const svgElement = document.querySelector('#svgPreview svg');
             if (!svgElement) { alert('No time signature to copy. Please generate one first.'); return; }
-            const { canvas, displayW, displayH } = await buildTightCanvas(svgElement, getBgColor(), 3);
+            const { canvas, displayW } = await buildTightCanvas(svgElement, getBgColor(), 3);
             const dataUrl = canvas.toDataURL('image/png');
-            const imgTag = `<img src="${dataUrl}" width="${displayW}" height="${displayH}" alt="Time signature" style="vertical-align:middle;">`;
+            const naturalW = canvas.width;
+            const naturalH = canvas.height;
+            // CKEditor-native figure: image_resized preserves the width style; time-sig-inline makes it inline
+            const imgTag = `<figure class="image image_resized time-sig-inline" style="width:${displayW}px;"><img style="aspect-ratio:${naturalW}/${naturalH};" src="${dataUrl}" width="${naturalW}" height="${naturalH}" alt="Time signature"></figure>`;
             await navigator.clipboard.writeText(imgTag);
             alert('Image tag copied! Paste it into CKEditor source view.');
         } catch (err) {

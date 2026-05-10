@@ -400,6 +400,8 @@ CKEDITOR_5_CONFIGS = {
                 {"name": "text",   "attributes": True,  "classes": False, "styles": False},
                 {"name": "rect",   "attributes": True,  "classes": False, "styles": False},
                 {"name": "tspan",  "attributes": True,  "classes": False, "styles": False},
+                # Allow extra classes on figure elements (e.g. time-sig-inline)
+                {"name": "figure", "attributes": False, "classes": True,  "styles": True},
             ]
         },
         "image": {

@@ -81,8 +81,8 @@
 }
 
 /* Resized images default to left alignment - override prose defaults */
-.ck-content figure.image.image_resized:not(.image-style-align-left):not(.image-style-align-right):not(.image-style-align-center):not(.image-style-side),
-.prose figure.image.image_resized:not(.image-style-align-left):not(.image-style-align-right):not(.image-style-align-center):not(.image-style-side) {
+.ck-content figure.image.image_resized:not(.image-style-align-left):not(.image-style-align-right):not(.image-style-align-center):not(.image-style-side):not(.time-sig-inline),
+.prose figure.image.image_resized:not(.image-style-align-left):not(.image-style-align-right):not(.image-style-align-center):not(.image-style-side):not(.time-sig-inline) {
     margin-left: 0 !important;
     margin-right: auto !important;
     display: block !important;
@@ -162,15 +162,13 @@ figure.image.image-style-block-align-left,
     text-align: center;
 }
 
-/* Custom time signature styling */
-.custom-time-signature {
-    width: 3px !important;
-    max-width: 3px !important;
-}
-
-.custom-time-signature img {
-    width: 100% !important;
-    height: auto !important;
+/* Inline time signature - flows with surrounding text */
+.ck-content figure.image.time-sig-inline,
+.prose figure.image.time-sig-inline {
+    display: inline-block !important;
+    vertical-align: middle !important;
+    margin: 0 2px !important;
+    clear: none !important;
 }
 
 /* Accordion styling */
