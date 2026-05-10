@@ -180,8 +180,8 @@
                     </button>
 
                     <p class="text-xs text-base-content/50 -mt-2">
-                        <strong>Copy Image Tag</strong> &rarr; paste into CKEditor source view &nbsp;&middot;&nbsp;
-                        <strong>Download PNG</strong> &rarr; upload via the image button
+                        <strong>Copy Image Tag</strong> &rarr; CKEditor source view, paste <em>inside</em> the &lt;p&gt; tag &nbsp;&middot;&nbsp;
+                        <strong>Download PNG</strong> &rarr; upload via image button, then click the inline style button
                     </p>
                 </div>
             </div>
@@ -322,14 +322,12 @@
         try {
             const svgElement = document.querySelector('#svgPreview svg');
             if (!svgElement) { alert('No time signature to copy. Please generate one first.'); return; }
-            const { canvas, displayW } = await buildTightCanvas(svgElement, getBgColor(), 3);
+            const { canvas, displayW, displayH } = await buildTightCanvas(svgElement, getBgColor(), 3);
             const dataUrl = canvas.toDataURL('image/png');
-            const naturalW = canvas.width;
-            const naturalH = canvas.height;
-            // CKEditor-native figure: image_resized preserves the width style; time-sig-inline makes it inline
-            const imgTag = `<figure class="image image_resized time-sig-inline" style="width:${displayW}px;"><img style="aspect-ratio:${naturalW}/${naturalH};" src="${dataUrl}" width="${naturalW}" height="${naturalH}" alt="Time signature"></figure>`;
+            // CKEditor ImageInline output: <span class="image-inline"> flows inside paragraphs
+            const imgTag = `<span class="image-inline" style="width:${displayW}px;"><img src="${dataUrl}" width="${displayW}" height="${displayH}" alt="Time signature"></span>`;
             await navigator.clipboard.writeText(imgTag);
-            alert('Image tag copied! Paste it into CKEditor source view.');
+            alert('Copied! In CKEditor source view, paste inside the <p> tag where you want it to appear.');
         } catch (err) {
             console.error('Failed to copy image tag:', err);
             alert('Failed to copy. Please try again.');

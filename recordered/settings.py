@@ -408,6 +408,7 @@ CKEDITOR_5_CONFIGS = {
             "toolbar": [
                 "imageTextAlternative",
                 "|",
+                "imageStyle:inline",
                 "imageStyle:full",
                 "imageStyle:alignLeft",
                 "imageStyle:alignRight",
@@ -425,6 +426,7 @@ CKEDITOR_5_CONFIGS = {
                 "integrations": ["upload", "url"]
             },
             "styles": [
+                "inline",
                 "full",
                 "side",
                 "alignLeft",
@@ -550,6 +552,7 @@ CKEDITOR_5_CONFIGS = {
             "toolbar": [
                 "imageTextAlternative",
                 "|",
+                "imageStyle:inline",
                 "imageStyle:full",
                 "imageStyle:alignLeft",
                 "imageStyle:alignRight",
@@ -566,6 +569,7 @@ CKEDITOR_5_CONFIGS = {
                 "integrations": ["upload", "url"]
             },
             "styles": [
+                "inline",
                 "full",
                 "side",
                 "alignLeft",
