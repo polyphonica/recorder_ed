@@ -107,6 +107,14 @@ class Assignment(models.Model):
         help_text="Upload notation image from Sibelius, Finale, MuseScore, etc. (JPG, PNG, SVG)"
     )
 
+    # Optional printable document (worksheet for students to print off)
+    printable_document = models.FileField(
+        upload_to='assignment_documents/',
+        null=True,
+        blank=True,
+        help_text="Upload a worksheet or document for students to print and complete (PDF, JPG, PNG)"
+    )
+
     # For future auto-grading
     expected_notation = models.JSONField(
         null=True,

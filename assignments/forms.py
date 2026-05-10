@@ -33,6 +33,7 @@ class AssignmentForm(forms.ModelForm):
             'has_attachment_component',
             'reference_notation',
             'reference_image',
+            'printable_document',
         ]
         widgets = {
             'title': forms.TextInput(attrs={
@@ -71,6 +72,10 @@ class AssignmentForm(forms.ModelForm):
                 'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100',
                 'accept': 'image/jpeg,image/png,image/svg+xml'
             }),
+            'printable_document': forms.FileInput(attrs={
+                'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100',
+                'accept': '.pdf,image/jpeg,image/png'
+            }),
         }
         labels = {
             'title': 'Assignment Title',
@@ -84,6 +89,7 @@ class AssignmentForm(forms.ModelForm):
             'has_attachment_component': 'Include Scan/Upload Component',
             'reference_notation': 'Reference Notation Data',
             'reference_image': 'OR Upload Notation Image',
+            'printable_document': 'Printable Worksheet / Document',
         }
         help_texts = {
             'grading_scale': 'Choose how this assignment will be graded',
@@ -96,6 +102,7 @@ class AssignmentForm(forms.ModelForm):
             'has_attachment_component': 'Student will scan/photograph handwritten work and upload it (JPG, PNG, PDF)',
             'reference_notation': 'Created using the notation editor below',
             'reference_image': 'Upload an image from Sibelius, Finale, MuseScore, or other notation software (JPG, PNG, SVG)',
+            'printable_document': 'Upload a worksheet, exercise sheet, or other document for students to print off and complete by hand (PDF, JPG, PNG — max 10MB)',
         }
 
     def save(self, commit=True):

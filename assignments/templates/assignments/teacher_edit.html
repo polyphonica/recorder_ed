@@ -49,7 +49,7 @@
         </div>
 
         <!-- Form -->
-        <form method="post" id="assignment-form" class="space-y-8">
+        <form method="post" enctype="multipart/form-data" id="assignment-form" class="space-y-8">
             {% csrf_token %}
 
             <!-- Basic Information -->
@@ -286,6 +286,50 @@
                             </span>
                         </label>
                     </div>
+                </div>
+            </div>
+
+            <!-- Printable Document -->
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-8 bg-orange-600 rounded-full"></div>
+                    <h2 class="text-2xl font-bold text-gray-900">Printable Worksheet (Optional)</h2>
+                </div>
+
+                <div class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-lg mb-6">
+                    <p class="text-sm text-orange-800 flex items-start gap-2">
+                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Upload a worksheet or exercise sheet for students to print off and complete by hand. Students will see a download/print button on their assignment page. Accepted: PDF, JPG, PNG.</span>
+                    </p>
+                </div>
+
+                {% if assignment.printable_document %}
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                    <p class="text-sm font-semibold text-gray-700 mb-2">Current Printable Document:</p>
+                    <a href="{{ assignment.printable_document.url }}" target="_blank"
+                       class="inline-flex items-center gap-2 text-orange-700 hover:text-orange-900 font-medium">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
+                        </svg>
+                        {{ assignment.printable_document.name|slice:"22:" }}
+                    </a>
+                    <p class="text-xs text-gray-500 mt-1">Upload a new file below to replace it.</p>
+                </div>
+                {% endif %}
+
+                <div>
+                    <label for="{{ form.printable_document.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                        {{ form.printable_document.label }}
+                    </label>
+                    {{ form.printable_document }}
+                    {% if form.printable_document.help_text %}
+                    <p class="mt-2 text-sm text-gray-600">{{ form.printable_document.help_text }}</p>
+                    {% endif %}
+                    {% if form.printable_document.errors %}
+                    <p class="mt-2 text-sm font-medium text-red-600">{{ form.printable_document.errors.0 }}</p>
+                    {% endif %}
                 </div>
             </div>
 

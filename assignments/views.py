@@ -46,7 +46,7 @@ def _save_attachments(request, submission, uploader, field_name='attachments'):
 def assignment_create(request):
     """Teacher creates a new assignment"""
     if request.method == 'POST':
-        form = AssignmentForm(request.POST)
+        form = AssignmentForm(request.POST, request.FILES)
         if form.is_valid():
             assignment = form.save(commit=False)
             assignment.created_by = request.user
@@ -68,7 +68,7 @@ def assignment_edit(request, pk):
     assignment = get_object_or_404(Assignment, pk=pk, created_by=request.user)
 
     if request.method == 'POST':
-        form = AssignmentForm(request.POST, instance=assignment)
+        form = AssignmentForm(request.POST, request.FILES, instance=assignment)
         if form.is_valid():
             form.save()
             messages.success(request, f'Assignment "{assignment.title}" updated successfully!')

@@ -161,6 +161,22 @@
                     </div>
                 </div>
 
+                <!-- Printable Document (if provided) -->
+                {% if assignment.printable_document %}
+                    <div class="card card-section shadow-xl">
+                        <div class="card-body">
+                            <h2 class="card-title text-2xl mb-4">
+                                <i class="fas fa-print mr-2"></i>Printable Worksheet
+                            </h2>
+                            <p class="text-base-content/70 mb-4">Your teacher has provided a worksheet for this assignment. Download and print it, then complete it by hand.</p>
+                            <a href="{{ assignment.printable_document.url }}" target="_blank" download
+                               class="btn btn-warning gap-2 w-full sm:w-auto">
+                                <i class="fas fa-download"></i>Download &amp; Print Worksheet
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+
                 <!-- Reference Notation/Image (if provided) -->
                 {% if assignment.reference_notation or assignment.reference_image %}
                     <div class="card card-section shadow-xl">
