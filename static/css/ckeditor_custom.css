@@ -19,7 +19,8 @@
 
 /* Set Arial as the default font for CKEditor content */
 /* TimeSignatures is first; unicode-range restricts it to PUA chars U+E000-E0FF only */
-.ck-content {
+.ck-content,
+.ck-editor__editable {
     font-family: 'TimeSignatures', Arial, Helvetica, sans-serif;
     font-size: inherit;
 }
