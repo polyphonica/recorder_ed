@@ -57,21 +57,96 @@
                 </div>
             </div>
 
-            <!-- Teacher Feedback -->
-            {% if submission.feedback or teacher_attachments %}
+            <!-- Feedback Rounds History -->
+            {% if past_rounds %}
+            <div class="space-y-4">
+                {% for item in past_rounds %}
+                <div class="card card-section shadow-xl border-l-4 border-info">
+                    <div class="card-body">
+                        <h2 class="card-title text-xl mb-4">
+                            <i class="fas fa-comment-dots mr-2 text-info"></i>Round {{ item.round.round_number }} Feedback
+                            <span class="text-sm font-normal text-base-content/60 ml-2">{{ item.round.created_at|date:"M j, Y" }}</span>
+                        </h2>
+
+                        {% if item.student_attachments %}
+                        <div class="mb-4">
+                            <div class="text-sm font-semibold text-base-content/70 mb-2">Your files (Round {{ item.round.round_number }}):</div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {% for attachment in item.student_attachments %}
+                                <div class="flex items-center gap-3 bg-base-200 rounded-lg p-3">
+                                    {% if attachment.is_image %}
+                                        <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0">
+                                            <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" class="w-16 h-16 object-cover rounded border border-base-300">
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0 w-16 h-16 flex items-center justify-center bg-red-50 rounded border border-red-200">
+                                            <i class="fas fa-file-pdf text-red-500 text-2xl"></i>
+                                        </a>
+                                    {% endif %}
+                                    <div class="flex-1 min-w-0">
+                                        <a href="{{ attachment.file.url }}" target="_blank" class="text-sm font-medium truncate block hover:text-primary">{{ attachment.filename }}</a>
+                                        <div class="text-xs text-base-content/60">{{ attachment.uploaded_at|date:"M j, Y" }}</div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if item.round.teacher_feedback %}
+                        <div class="bg-info/10 border border-info/30 rounded-lg p-4 mb-4">
+                            <div class="text-sm font-semibold text-info mb-2">
+                                <i class="fas fa-chalkboard-teacher mr-1"></i>Teacher's Feedback:
+                            </div>
+                            <div class="whitespace-pre-wrap">{{ item.round.teacher_feedback }}</div>
+                        </div>
+                        {% endif %}
+
+                        {% if item.teacher_attachments %}
+                        <div>
+                            <div class="text-sm font-semibold text-base-content/70 mb-2">Teacher's files:</div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {% for attachment in item.teacher_attachments %}
+                                <div class="flex items-center gap-3 bg-base-200 rounded-lg p-3">
+                                    {% if attachment.is_image %}
+                                        <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0">
+                                            <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" class="w-16 h-16 object-cover rounded border border-base-300">
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0 w-16 h-16 flex items-center justify-center bg-red-50 rounded border border-red-200">
+                                            <i class="fas fa-file-pdf text-red-500 text-2xl"></i>
+                                        </a>
+                                    {% endif %}
+                                    <div class="flex-1 min-w-0">
+                                        <a href="{{ attachment.file.url }}" target="_blank" class="text-sm font-medium truncate block hover:text-primary">{{ attachment.filename }}</a>
+                                        <div class="text-xs text-base-content/60">{{ attachment.uploaded_at|date:"M j, Y" }}</div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Final Grade Feedback -->
+            {% if submission.feedback or final_teacher_attachments %}
                 <div class="card card-section shadow-xl">
                     <div class="card-body">
                         <h2 class="card-title text-2xl mb-4">
-                            <i class="fas fa-comment-dots mr-2"></i>Teacher's Feedback
+                            <i class="fas fa-comment-dots mr-2"></i>Teacher's Final Feedback
                         </h2>
                         {% if submission.feedback %}
                         <div class="bg-base-200 rounded-lg p-4 whitespace-pre-wrap text-lg mb-4">
                             {{ submission.feedback }}
                         </div>
                         {% endif %}
-                        {% if teacher_attachments %}
+                        {% if final_teacher_attachments %}
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {% for attachment in teacher_attachments %}
+                            {% for attachment in final_teacher_attachments %}
                             <div class="flex items-center gap-3 bg-base-200 rounded-lg p-3">
                                 {% if attachment.is_image %}
                                     <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0">
@@ -196,14 +271,14 @@
             {% endif %}
 
             <!-- Your Uploaded Work -->
-            {% if student_attachments %}
+            {% if final_student_attachments %}
             <div class="card card-section shadow-xl">
                 <div class="card-body">
                     <h2 class="card-title text-2xl mb-4">
                         <i class="fas fa-paperclip mr-2"></i>Your Uploaded Work
                     </h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {% for attachment in student_attachments %}
+                        {% for attachment in final_student_attachments %}
                         <div class="flex items-center gap-3 bg-base-200 rounded-lg p-3">
                             {% if attachment.is_image %}
                                 <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0">

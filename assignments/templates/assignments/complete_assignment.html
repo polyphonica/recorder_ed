@@ -133,6 +133,86 @@
             </div>
         </div>
 
+        <!-- Previous Feedback Rounds -->
+        {% if past_rounds %}
+        <div class="space-y-4 mb-2">
+            {% for item in past_rounds %}
+            <div class="card card-section shadow-xl border-l-4 border-info">
+                <div class="card-body">
+                    <h2 class="card-title text-xl mb-4">
+                        <i class="fas fa-comment-dots mr-2 text-info"></i>Round {{ item.round.round_number }} Feedback
+                        <span class="text-sm font-normal text-base-content/60 ml-2">{{ item.round.created_at|date:"M j, Y" }}</span>
+                    </h2>
+
+                    {% if item.student_attachments %}
+                    <div class="mb-4">
+                        <div class="text-sm font-semibold text-base-content/70 mb-2">Your files (Round {{ item.round.round_number }}):</div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {% for attachment in item.student_attachments %}
+                            <div class="flex items-center gap-3 bg-base-200 rounded-lg p-3">
+                                {% if attachment.is_image %}
+                                    <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0">
+                                        <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" class="w-16 h-16 object-cover rounded border border-base-300">
+                                    </a>
+                                {% else %}
+                                    <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0 w-16 h-16 flex items-center justify-center bg-red-50 rounded border border-red-200">
+                                        <i class="fas fa-file-pdf text-red-500 text-2xl"></i>
+                                    </a>
+                                {% endif %}
+                                <div class="flex-1 min-w-0">
+                                    <a href="{{ attachment.file.url }}" target="_blank" class="text-sm font-medium truncate block hover:text-primary">{{ attachment.filename }}</a>
+                                    <div class="text-xs text-base-content/60">{{ attachment.uploaded_at|date:"M j, Y g:i A" }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if item.round.teacher_feedback %}
+                    <div class="bg-info/10 border border-info/30 rounded-lg p-4 mb-4">
+                        <div class="text-sm font-semibold text-info mb-2">
+                            <i class="fas fa-chalkboard-teacher mr-1"></i>Teacher's Feedback:
+                        </div>
+                        <div class="whitespace-pre-wrap">{{ item.round.teacher_feedback }}</div>
+                    </div>
+                    {% endif %}
+
+                    {% if item.teacher_attachments %}
+                    <div>
+                        <div class="text-sm font-semibold text-base-content/70 mb-2">Teacher's files:</div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {% for attachment in item.teacher_attachments %}
+                            <div class="flex items-center gap-3 bg-base-200 rounded-lg p-3">
+                                {% if attachment.is_image %}
+                                    <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0">
+                                        <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" class="w-16 h-16 object-cover rounded border border-base-300">
+                                    </a>
+                                {% else %}
+                                    <a href="{{ attachment.file.url }}" target="_blank" class="flex-shrink-0 w-16 h-16 flex items-center justify-center bg-red-50 rounded border border-red-200">
+                                        <i class="fas fa-file-pdf text-red-500 text-2xl"></i>
+                                    </a>
+                                {% endif %}
+                                <div class="flex-1 min-w-0">
+                                    <a href="{{ attachment.file.url }}" target="_blank" class="text-sm font-medium truncate block hover:text-primary">{{ attachment.filename }}</a>
+                                    <div class="text-xs text-base-content/60">{{ attachment.uploaded_at|date:"M j, Y g:i A" }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="alert alert-info mb-4">
+            <i class="fas fa-pencil mr-2"></i>
+            <span><strong>Update your work below</strong> based on your teacher's feedback, then resubmit.</span>
+        </div>
+        {% endif %}
+
         <!-- Main Content (Full Width) -->
         <div class="space-y-6">
                 <!-- Assignment Instructions Card -->
@@ -519,7 +599,7 @@
                                         <div class="text-sm font-medium truncate">{{ attachment.filename }}</div>
                                         <div class="text-xs text-base-content/60">{{ attachment.uploaded_at|date:"M j, Y g:i A" }}</div>
                                     </div>
-                                    {% if submission.status == 'draft' %}
+                                    {% if submission.status == 'draft' or submission.status == 'feedback_given' %}
                                     <form method="post" action="{% url 'assignments:delete_attachment' attachment.pk %}" class="flex-shrink-0">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-ghost btn-xs text-error"
@@ -534,15 +614,17 @@
                         </div>
                         {% endif %}
 
-                        {% if submission.status == 'draft' and student_attachments.count < max_attachments %}
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text font-semibold">Add files:</span>
-                            </label>
-                            <input type="file" name="attachments" multiple accept=".jpg,.jpeg,.png,.pdf"
-                                   class="file-input file-input-bordered w-full">
-                        </div>
-                        {% elif submission.status != 'draft' %}
+                        {% if submission.status == 'draft' or submission.status == 'feedback_given' %}
+                            {% if student_attachments.count < max_attachments %}
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Add files:</span>
+                                </label>
+                                <input type="file" name="attachments" multiple accept=".jpg,.jpeg,.png,.pdf"
+                                       class="file-input file-input-bordered w-full">
+                            </div>
+                            {% endif %}
+                        {% else %}
                         <div class="alert alert-warning">
                             <i class="fas fa-lock"></i>
                             <span>Attachments are locked after submission.</span>
@@ -555,10 +637,17 @@
                 <!-- Submit Actions -->
                 <div class="card card-section shadow-xl mt-6">
                     <div class="card-body">
+                        {% if past_rounds %}
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-paper-plane"></i>
+                            <span class="text-sm">Submit your updated work for teacher review</span>
+                        </div>
+                        {% else %}
                         <div class="alert alert-warning mb-4">
                             <i class="fas fa-exclamation-triangle"></i>
                             <span class="text-sm">Once submitted, you cannot edit your work</span>
                         </div>
+                        {% endif %}
 
                         <div class="flex flex-wrap gap-2 justify-end">
                             <a href="{% url 'assignments:student_library' %}" class="btn btn-ghost">
@@ -568,7 +657,7 @@
                                 <i class="fas fa-save mr-2"></i>Save Draft
                             </button>
                             <button type="button" id="submit-btn" class="btn btn-primary">
-                                <i class="fas fa-paper-plane mr-2"></i>Submit Assignment
+                                <i class="fas fa-paper-plane mr-2"></i>{% if past_rounds %}Submit Updated Work{% else %}Submit Assignment{% endif %}
                             </button>
                         </div>
                     </div>

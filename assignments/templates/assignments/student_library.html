@@ -219,6 +219,85 @@
         {% endif %}
     </div>
 
+    <!-- Feedback Received Section -->
+    <div class="mb-12">
+        <div class="bg-gradient-to-r from-info/10 to-info/5 rounded-lg p-4 mb-6">
+            <h2 class="text-2xl font-bold">
+                <i class="fas fa-comment-dots mr-2 text-info"></i>Feedback Received
+                {% if feedback_assignments %}
+                    <span class="badge badge-info ml-2">{{ feedback_assignments|length }}</span>
+                {% endif %}
+            </h2>
+        </div>
+
+        {% if feedback_assignments %}
+            <div class="grid grid-cols-1 gap-6">
+                {% for link in feedback_assignments %}
+                    <div class="card card-section shadow-xl border-l-4 border-info">
+                        <div class="card-body">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h2 class="card-title text-2xl mb-2">
+                                        {{ link.assignment.title }}
+                                    </h2>
+
+                                    <div class="flex items-center gap-4 mb-3">
+                                        {% if link.lesson and link.lesson.lesson_request and link.lesson.lesson_request.child_profile %}
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-user text-info"></i>
+                                                <span class="font-semibold text-info">For: {{ link.lesson.lesson_request.child_profile.full_name }}</span>
+                                            </div>
+                                        {% endif %}
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas fa-user-tie text-primary"></i>
+                                            {% if link.lesson and link.lesson.subject %}
+                                                <span class="font-semibold">{{ link.lesson.subject.teacher.get_full_name|default:link.lesson.subject.teacher.username }}</span>
+                                            {% elif link.teacher %}
+                                                <span class="font-semibold">{{ link.teacher.get_full_name|default:link.teacher.username }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="flex gap-6 text-sm mb-4">
+                                        <div>
+                                            <i class="fas fa-check text-info mr-1"></i>
+                                            <span class="text-base-content/70">Submitted</span>
+                                            <span class="font-semibold">{{ link.submission.submitted_at|date:"M j, Y" }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="badge badge-info badge-lg">
+                                        <i class="fas fa-comment-dots mr-1"></i>Your teacher has left feedback
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col gap-2">
+                                    <a href="{% url 'assignments:complete_assignment' link.id %}"
+                                       class="btn btn-info">
+                                        <i class="fas fa-reply mr-2"></i>Respond to Feedback
+                                    </a>
+                                    <a href="{% url 'messaging:start_assignment_conversation' link.id %}"
+                                       class="btn btn-sm btn-outline btn-secondary">
+                                        <i class="fas fa-question-circle mr-2"></i>Ask Teacher
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card card-section shadow-xl">
+                <div class="card-body">
+                    <div class="text-center py-8">
+                        <i class="fas fa-comment-dots text-5xl text-base-content/30 mb-3"></i>
+                        <h3 class="text-xl font-medium text-base-content/70">No feedback waiting</h3>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
     <!-- Graded Assignments Section -->
     <div class="mb-12">
         <div class="bg-gradient-to-r from-success/10 to-success/5 rounded-lg p-4 mb-6">

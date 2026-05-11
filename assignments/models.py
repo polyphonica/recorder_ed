@@ -170,6 +170,7 @@ class AssignmentSubmission(models.Model):
     STATUS_CHOICES = [
         ('draft', 'Draft'),
         ('submitted', 'Submitted'),
+        ('feedback_given', 'Feedback Given'),
         ('graded', 'Graded'),
     ]
 
@@ -282,9 +283,55 @@ class AssignmentSubmission(models.Model):
         self.status = 'graded'
         self.save()
 
+    def give_feedback(self, feedback_text, given_by):
+        """Teacher gives interim feedback without grading; returns the FeedbackRound."""
+        round_number = self.rounds.count() + 1
+        feedback_round = FeedbackRound.objects.create(
+            submission=self,
+            round_number=round_number,
+            teacher_feedback=feedback_text,
+            given_by=given_by,
+        )
+        self.status = 'feedback_given'
+        self.save()
+        return feedback_round
+
+    @property
+    def current_round_number(self):
+        """The round number for attachments being added right now."""
+        return self.rounds.count() + 1
+
     def get_formatted_grade(self):
         """Get the formatted grade according to the assignment's scale"""
         return self.assignment.format_grade(self.grade)
+
+
+class FeedbackRound(models.Model):
+    """
+    Records one round of teacher interim feedback before final grading.
+    Round N is created when the teacher gives feedback after the student's Nth submission.
+    """
+    submission = models.ForeignKey(
+        AssignmentSubmission,
+        on_delete=models.CASCADE,
+        related_name='rounds'
+    )
+    round_number = models.PositiveIntegerField()
+    teacher_feedback = models.TextField(blank=True)
+    given_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='given_feedback_rounds'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['round_number']
+        unique_together = [['submission', 'round_number']]
+
+    def __str__(self):
+        return f"Round {self.round_number} feedback for {self.submission}"
 
 
 def _submission_attachment_path(instance, filename):
@@ -304,6 +351,7 @@ class SubmissionAttachment(models.Model):
         on_delete=models.CASCADE,
         related_name='submission_attachments'
     )
+    round_number = models.PositiveIntegerField(default=1)
     label = models.CharField(max_length=200, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
