@@ -242,18 +242,15 @@ figure.image.image-style-block-align-left,
     margin-right: auto;
 }
 
-.ck-content .ck-table,
 .ck-content figure.table > table {
-    width: 100%;
-    max-width: 600px;
     border-collapse: collapse;
+    width: 100%; /* default: fill the figure; overrideable by inline styles */
 }
 
-/* Allow CKEditor to override width when resizing */
-.ck-content .ck-table[style*="width"],
-.ck-content figure.table[style*="width"] > table {
-    width: auto !important;
-    max-width: none !important;
+/* When table has an explicit inline width, let it apply and remove max-width cap */
+.ck-content figure.table > table[style*="width"] {
+    width: revert;
+    max-width: none;
 }
 
 /* Table alignment - Applied to figure.table wrapper */
@@ -347,7 +344,7 @@ figure.image.image-style-block-align-left,
 .prose .ck-content table,
 .ck-content.prose table {
     border-collapse: collapse !important;
-    width: 100% !important;
+    /* No width override here — inline width styles on <table> must be respected */
 }
 
 .prose .ck-content td,
