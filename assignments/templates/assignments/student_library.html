@@ -194,8 +194,20 @@
                                     </div>
 
                                     <div class="badge badge-warning">
-                                        <i class="fas fa-clock mr-1"></i>Awaiting Grading
+                                        <i class="fas fa-clock mr-1"></i>Awaiting Feedback
                                     </div>
+                                </div>
+
+                                <!-- Action Button -->
+                                <div class="flex flex-col gap-2">
+                                    <a href="{% url 'assignments:complete_assignment' link.id %}"
+                                       class="btn btn-outline btn-warning">
+                                        <i class="fas fa-pencil mr-2"></i>Continue Working
+                                    </a>
+                                    <a href="{% url 'messaging:start_assignment_conversation' link.id %}"
+                                       class="btn btn-sm btn-outline btn-secondary">
+                                        <i class="fas fa-question-circle mr-2"></i>Ask Teacher
+                                    </a>
                                 </div>
                             </div>
                         </div>

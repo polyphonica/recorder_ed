@@ -273,51 +273,59 @@
             <!-- Grade Panel -->
             <div class="card card-section shadow-xl">
                 <div class="card-body">
-                    <h2 class="card-title text-xl mb-3">
-                        <i class="fas fa-check-circle mr-2"></i>{% if submission.status == 'graded' %}Update Grade{% else %}Final Grade{% endif %}
-                    </h2>
-
                     {% if submission.status == 'graded' %}
-                        <div class="alert alert-success mb-4">
-                            <i class="fas fa-info-circle"></i>
-                            <div>
-                                <div class="font-semibold">Currently Graded</div>
-                                <div class="text-sm">Grade: {{ submission.get_formatted_grade }}</div>
-                                <div class="text-sm">On: {{ submission.graded_at|date:"M j, Y" }}</div>
-                            </div>
+                        <h2 class="card-title text-xl mb-4">
+                            <i class="fas fa-check-circle mr-2 text-success"></i>Graded
+                        </h2>
+                        <div class="stat bg-base-200 rounded-lg mb-4">
+                            <div class="stat-title">Final Grade</div>
+                            <div class="stat-value text-primary">{{ submission.get_formatted_grade }}</div>
+                        </div>
+                        <div class="text-sm text-base-content/70 mb-3">Graded on {{ submission.graded_at|date:"M j, Y" }}</div>
+                        {% if submission.feedback %}
+                        <div class="mb-4">
+                            <div class="text-sm font-semibold mb-1">Your Feedback:</div>
+                            <div class="bg-base-200 rounded-lg p-3 text-sm whitespace-pre-wrap">{{ submission.feedback }}</div>
+                        </div>
+                        {% endif %}
+                        <div class="badge badge-success badge-lg w-full py-3 justify-center">
+                            <i class="fas fa-lock mr-2"></i>Submission Closed
                         </div>
                     {% else %}
+                        <h2 class="card-title text-xl mb-3">
+                            <i class="fas fa-check-circle mr-2"></i>Final Grade
+                        </h2>
                         <p class="text-sm text-base-content/70 mb-4">Assigning a final grade closes the submission for the student.</p>
+
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="grade">
+
+                            <div class="form-control mb-4">
+                                <label class="label">
+                                    <span class="label-text font-semibold">{{ form.grade.label }}</span>
+                                    <span class="label-text-alt text-error">*Required</span>
+                                </label>
+                                {{ form.grade }}
+                                {% if form.grade.errors %}
+                                    <label class="label"><span class="label-text-alt text-error">{{ form.grade.errors.0 }}</span></label>
+                                {% endif %}
+                            </div>
+
+                            <div class="form-control mb-4">
+                                <label class="label">
+                                    <span class="label-text font-semibold">{{ form.feedback.label }}</span>
+                                    <span class="label-text-alt">Optional</span>
+                                </label>
+                                {{ form.feedback }}
+                            </div>
+
+                            <div class="divider"></div>
+                            <button type="submit" class="btn btn-primary w-full">
+                                <i class="fas fa-save mr-2"></i>Submit Final Grade
+                            </button>
+                        </form>
                     {% endif %}
-
-                    <form method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="grade">
-
-                        <div class="form-control mb-4">
-                            <label class="label">
-                                <span class="label-text font-semibold">{{ form.grade.label }}</span>
-                                <span class="label-text-alt text-error">*Required</span>
-                            </label>
-                            {{ form.grade }}
-                            {% if form.grade.errors %}
-                                <label class="label"><span class="label-text-alt text-error">{{ form.grade.errors.0 }}</span></label>
-                            {% endif %}
-                        </div>
-
-                        <div class="form-control mb-4">
-                            <label class="label">
-                                <span class="label-text font-semibold">{{ form.feedback.label }}</span>
-                                <span class="label-text-alt">Optional</span>
-                            </label>
-                            {{ form.feedback }}
-                        </div>
-
-                        <div class="divider"></div>
-                        <button type="submit" class="btn btn-primary w-full">
-                            <i class="fas fa-save mr-2"></i>{% if submission.status == 'graded' %}Update Grade{% else %}Submit Final Grade{% endif %}
-                        </button>
-                    </form>
                 </div>
             </div>
 

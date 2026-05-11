@@ -21,7 +21,7 @@
         <div class="grid grid-cols-1 gap-6">
             {% for data in submissions_data %}
                 {% with link=data.link submission=data.submission %}
-                    <div class="card card-section shadow-xl {% if submission.status == 'submitted' %}border-l-4 border-warning{% else %}border-l-4 border-success{% endif %} hover:shadow-2xl transition-shadow">
+                    <div class="card card-section shadow-xl {% if submission.status == 'submitted' %}border-l-4 border-warning{% elif submission.status == 'feedback_given' %}border-l-4 border-info{% else %}border-l-4 border-success{% endif %} hover:shadow-2xl transition-shadow">
                         <div class="card-body">
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
@@ -62,7 +62,9 @@
                                             <div class="text-base-content/70">Status</div>
                                             <div>
                                                 {% if submission.status == 'submitted' %}
-                                                    <span class="badge badge-warning">Needs Grading</span>
+                                                    <span class="badge badge-warning">Awaiting Feedback</span>
+                                                {% elif submission.status == 'feedback_given' %}
+                                                    <span class="badge badge-info">Feedback Given</span>
                                                 {% elif submission.status == 'graded' %}
                                                     <span class="badge badge-success">Graded</span>
                                                 {% endif %}
@@ -92,9 +94,9 @@
                                 <!-- Action Button -->
                                 <div>
                                     <a href="{% url 'assignments:grade_submission' submission.id %}"
-                                       class="btn {% if submission.status == 'graded' %}btn-outline{% else %}btn-primary{% endif %}">
-                                        <i class="fas {% if submission.status == 'graded' %}fa-eye{% else %}fa-check-circle{% endif %} mr-2"></i>
-                                        {% if submission.status == 'graded' %}View/Re-grade{% else %}Grade Now{% endif %}
+                                       class="btn {% if submission.status == 'graded' %}btn-outline{% elif submission.status == 'feedback_given' %}btn-info{% else %}btn-warning{% endif %}">
+                                        <i class="fas {% if submission.status == 'graded' %}fa-eye{% else %}fa-comment-dots{% endif %} mr-2"></i>
+                                        {% if submission.status == 'graded' %}View{% elif submission.status == 'feedback_given' %}Review Again{% else %}Give Feedback{% endif %}
                                     </a>
                                 </div>
                             </div>

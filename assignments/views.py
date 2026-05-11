@@ -340,6 +340,9 @@ def grade_submission(request, pk):
             return redirect('assignments:teacher_submissions')
 
         else:  # action == 'grade'
+            if submission.status == 'graded':
+                messages.error(request, 'This submission has already been graded.')
+                return redirect('assignments:teacher_submissions')
             form = GradeSubmissionForm(request.POST, instance=submission)
             if form.is_valid():
                 graded_submission = form.save(commit=False)
@@ -468,12 +471,9 @@ def complete_assignment(request, assignment_link_id):
         assignment=assignment_link.assignment
     )
 
-    # Only allow access when in a workable state
+    # Graded submissions are read-only — redirect to view
     if submission.status == 'graded':
         return redirect('assignments:view_graded', pk=submission.pk)
-    if submission.status == 'submitted':
-        messages.info(request, 'Your assignment is awaiting teacher feedback.')
-        return redirect('assignments:student_library')
 
     if request.method == 'POST':
         form = SubmissionForm(request.POST, instance=submission)
