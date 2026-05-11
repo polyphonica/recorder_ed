@@ -476,6 +476,10 @@ def complete_assignment(request, assignment_link_id):
         return redirect('assignments:view_graded', pk=submission.pk)
 
     if request.method == 'POST':
+        if submission.is_submission_locked:
+            messages.error(request, 'You have used all your allowed submissions. Your teacher will now grade your work.')
+            return redirect('assignments:student_library')
+
         form = SubmissionForm(request.POST, instance=submission)
 
         if form.is_valid():
@@ -522,6 +526,7 @@ def complete_assignment(request, assignment_link_id):
         'student_attachments': student_attachments,
         'past_rounds': past_rounds,
         'max_attachments': _MAX_ATTACHMENTS,
+        'is_submission_locked': submission.is_submission_locked,
     })
 
 

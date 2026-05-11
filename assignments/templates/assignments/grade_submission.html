@@ -53,8 +53,15 @@
                             <div class="text-right">
                                 <div class="text-sm text-base-content/70">First Submitted</div>
                                 <div class="font-semibold">{{ submission.submitted_at|date:"M j, Y - g:i A" }}</div>
-                                {% if past_rounds %}
-                                    <div class="text-sm text-base-content/70 mt-1">Round {{ current_round_number }} of {{ current_round_number }}</div>
+                                {% if submission.assignment.submission_limit %}
+                                    <div class="text-sm text-base-content/70 mt-1">
+                                        Submissions: {{ submission.rounds.count }} / {{ submission.assignment.submission_limit }}
+                                        {% if submission.is_submission_locked %}
+                                            <span class="badge badge-warning badge-sm ml-1">Limit reached</span>
+                                        {% endif %}
+                                    </div>
+                                {% elif past_rounds %}
+                                    <div class="text-sm text-base-content/70 mt-1">Round {{ current_round_number }}</div>
                                 {% endif %}
                             </div>
                         </div>

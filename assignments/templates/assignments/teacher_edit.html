@@ -131,6 +131,23 @@
                         </p>
                         {% endif %}
                     </div>
+
+                    <!-- Submission Limit -->
+                    <div>
+                        <label for="{{ form.submission_limit.id_for_label }}" class="block text-base font-semibold text-gray-900 mb-3">
+                            {{ form.submission_limit.label }}
+                        </label>
+                        {{ form.submission_limit }}
+                        <p class="mt-2 text-sm text-gray-600 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ form.submission_limit.help_text }}
+                        </p>
+                        {% if form.submission_limit.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600">{{ form.submission_limit.errors.0 }}</p>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
 

@@ -25,6 +25,7 @@ class AssignmentForm(forms.ModelForm):
             'title',
             'instructions',
             'grading_scale',
+            'submission_limit',
             'difficulty',
             'tags',
             'is_public',
@@ -67,6 +68,11 @@ class AssignmentForm(forms.ModelForm):
             'has_attachment_component': forms.CheckboxInput(attrs={
                 'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
             }),
+            'submission_limit': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-4 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all',
+                'min': '1',
+                'placeholder': 'No limit',
+            }),
             'reference_notation': forms.HiddenInput(),
             'reference_image': forms.FileInput(attrs={
                 'class': 'w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100',
@@ -81,6 +87,7 @@ class AssignmentForm(forms.ModelForm):
             'title': 'Assignment Title',
             'instructions': 'Instructions and Question(s)',
             'grading_scale': 'Grading Scale',
+            'submission_limit': 'Submission Limit',
             'difficulty': 'Difficulty Level',
             'tags': 'Existing Tags',
             'is_public': 'Make Public',
@@ -93,6 +100,7 @@ class AssignmentForm(forms.ModelForm):
         }
         help_texts = {
             'grading_scale': 'Choose how this assignment will be graded',
+            'submission_limit': 'Maximum times the student may submit for feedback before being locked (leave blank for no limit)',
             'instructions': 'Provide instructions and any questions for the student',
             'difficulty': 'Select the difficulty level for this assignment',
             'tags': 'Select existing tags (Ctrl+Click to select multiple)',

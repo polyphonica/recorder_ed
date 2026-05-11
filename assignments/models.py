@@ -57,6 +57,11 @@ class Assignment(models.Model):
         default='100',
         help_text="Grading scale for this assignment"
     )
+    submission_limit = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Maximum number of times a student may submit for feedback (leave blank for no limit)"
+    )
 
     # Assignment components
     has_notation_component = models.BooleanField(
@@ -300,6 +305,14 @@ class AssignmentSubmission(models.Model):
     def current_round_number(self):
         """The round number for attachments being added right now."""
         return self.rounds.count() + 1
+
+    @property
+    def is_submission_locked(self):
+        """True when the student has used all allowed submissions."""
+        limit = self.assignment.submission_limit
+        if limit is None:
+            return False
+        return self.rounds.count() >= limit
 
     def get_formatted_grade(self):
         """Get the formatted grade according to the assignment's scale"""
