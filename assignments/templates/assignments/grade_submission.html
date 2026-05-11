@@ -159,6 +159,9 @@
                                 </a>
                                 <div class="text-xs text-base-content/60">{{ attachment.uploaded_at|date:"M j, Y g:i A" }}</div>
                             </div>
+                            <a href="{{ attachment.file.url }}" download="{{ attachment.filename }}" class="btn btn-ghost btn-xs flex-shrink-0" title="Download">
+                                <i class="fas fa-download"></i>
+                            </a>
                         </div>
                         {% endfor %}
                     </div>
