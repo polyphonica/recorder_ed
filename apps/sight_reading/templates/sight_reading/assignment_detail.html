@@ -113,55 +113,44 @@
             {% endif %}
         </div>
 
-        <!-- Results table -->
+        <!-- Results list -->
         <div class="card bg-base-200 shadow-lg mb-6">
             <div class="card-body">
                 <h2 class="card-title mb-4">Exercise Results</h2>
-                <div class="overflow-x-auto">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Exercise</th>
-                                <th>Result</th>
-                                <th>Teacher Note</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for r in results %}
-                            <tr>
-                                <td class="text-base-content/50 tabular-nums">{{ r.order }}</td>
-                                <td>
-                                    <div class="flex items-center gap-3">
-                                        <img src="{{ r.example.image.url }}" alt="{{ r.example.title }}"
-                                             class="w-12 h-9 object-contain rounded shrink-0" style="background:#fff;">
-                                        <a href="{% url 'sight_reading:session_exercise' assignment.pk r.order %}"
-                                           class="text-sm hover:underline">{{ r.example.title }}</a>
-                                    </div>
-                                </td>
-                                <td>
-                                    {% if r.result == 'correct' %}
-                                        <span class="badge badge-success badge-sm">✓ Correct</span>
-                                    {% elif r.result == 'incorrect' %}
-                                        <span class="badge badge-error badge-sm">✗ Incorrect</span>
-                                    {% else %}
-                                        <span class="badge badge-ghost badge-sm">—</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-sm text-base-content/70 max-w-xs">
-                                    {{ r.teacher_note|default:"—" }}
-                                </td>
-                                <td>
-                                    <a href="{% url 'sight_reading:session_exercise' assignment.pk r.order %}"
-                                       class="btn btn-xs btn-ghost">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="space-y-4">
+                    {% for r in results %}
+                    <div class="bg-base-100 rounded-lg p-3">
+                        <!-- Header row -->
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-sm text-base-content/50 tabular-nums shrink-0 w-5">{{ r.order }}</span>
+                            <div class="flex-1 min-w-0">
+                                <a href="{% url 'sight_reading:session_exercise' assignment.pk r.order %}"
+                                   class="font-medium text-sm hover:underline line-clamp-1">{{ r.example.title }}</a>
+                            </div>
+                            {% if r.result == 'correct' %}
+                                <span class="badge badge-success badge-sm shrink-0">✓ Correct</span>
+                            {% elif r.result == 'incorrect' %}
+                                <span class="badge badge-error badge-sm shrink-0">✗ Incorrect</span>
+                            {% else %}
+                                <span class="badge badge-ghost badge-sm shrink-0">—</span>
+                            {% endif %}
+                            <a href="{% url 'sight_reading:session_exercise' assignment.pk r.order %}"
+                               class="btn btn-xs btn-ghost shrink-0">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                        <!-- Full-width image -->
+                        <img src="{{ r.example.image.url }}" alt="{{ r.example.title }}"
+                             class="w-full object-contain rounded"
+                             style="background:#fff; max-height:240px;">
+                        <!-- Teacher note -->
+                        {% if r.teacher_note %}
+                        <p class="text-sm text-base-content/70 mt-2">
+                            <i class="fas fa-sticky-note mr-1 text-primary/60"></i>{{ r.teacher_note }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
