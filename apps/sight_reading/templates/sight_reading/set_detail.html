@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ sr_set.name }} – Sight Reading{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching min-h-screen bg-base-100">
+    <div class="container mx-auto px-4 py-8">
+
+        <!-- Header -->
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div>
+                <a href="{% url 'sight_reading:set_library' %}" class="btn btn-ghost btn-sm mb-2">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Sets
+                </a>
+                <h1 class="text-3xl font-bold">{{ sr_set.name }}</h1>
+                {% if sr_set.grade_level %}
+                    <span class="badge badge-outline mt-1">Grade {{ sr_set.grade_level }}</span>
+                {% endif %}
+                {% if sr_set.is_public %}
+                    <span class="badge badge-info mt-1 ml-1">Public</span>
+                {% endif %}
+                {% if sr_set.description %}
+                    <p class="text-base-content/70 mt-2">{{ sr_set.description }}</p>
+                {% endif %}
+            </div>
+            {% if is_owner %}
+            <div class="flex gap-2 flex-wrap">
+                <a href="{% url 'sight_reading:set_edit' sr_set.pk %}" class="btn btn-outline btn-sm">
+                    <i class="fas fa-edit mr-1"></i>Edit
+                </a>
+                <a href="{% url 'sight_reading:assignment_create' %}?set={{ sr_set.pk }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-user-plus mr-1"></i>Assign to Student
+                </a>
+                <a href="{% url 'sight_reading:set_delete' sr_set.pk %}" class="btn btn-outline btn-error btn-sm">
+                    <i class="fas fa-trash mr-1"></i>Delete
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Exercise list (left / main) -->
+            <div class="lg:col-span-2">
+                <div class="card bg-base-200 shadow-lg">
+                    <div class="card-body">
+                        <h2 class="card-title mb-4">
+                            Exercises
+                            <span class="badge badge-neutral">{{ items|length }}</span>
+                        </h2>
+
+                        {% if items %}
+                        <div id="sortable-items" class="space-y-3">
+                            {% for item in items %}
+                            <div class="flex items-center gap-3 bg-base-100 rounded-lg p-3"
+                                 data-item-id="{{ item.pk }}">
+                                <!-- Order controls -->
+                                {% if is_owner %}
+                                <div class="flex flex-col gap-0.5 shrink-0">
+                                    <form method="post" action="{% url 'sight_reading:set_reorder' sr_set.pk %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="_action" value="up">
+                                        <input type="hidden" name="_item_id" value="{{ item.pk }}">
+                                        <button type="button"
+                                                onclick="moveItem('{{ item.pk }}', -1)"
+                                                class="btn btn-xs btn-ghost px-1"
+                                                {% if forloop.first %}disabled{% endif %}>
+                                            <i class="fas fa-chevron-up"></i>
+                                        </button>
+                                    </form>
+                                    <span class="text-xs text-center text-base-content/50 tabular-nums w-6">{{ forloop.counter }}</span>
+                                    <button type="button"
+                                            onclick="moveItem('{{ item.pk }}', 1)"
+                                            class="btn btn-xs btn-ghost px-1"
+                                            {% if forloop.last %}disabled{% endif %}>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
+                                </div>
+                                {% else %}
+                                <span class="text-sm text-base-content/50 w-6 text-center">{{ forloop.counter }}</span>
+                                {% endif %}
+
+                                <!-- Thumbnail -->
+                                <img src="{{ item.example.image.url }}" alt="{{ item.example.title }}"
+                                     class="w-16 h-12 object-contain rounded shrink-0" style="background:#fff;">
+
+                                <!-- Info -->
+                                <div class="flex-1 min-w-0">
+                                    <a href="{% url 'sight_reading:example_detail' item.example.pk %}"
+                                       class="font-medium text-sm hover:underline line-clamp-1">{{ item.example.title }}</a>
+                                    {% if item.example.grade_level %}
+                                        <span class="badge badge-xs badge-outline ml-1">Gr {{ item.example.grade_level }}</span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Remove -->
+                                {% if is_owner %}
+                                <form method="post" action="{% url 'sight_reading:set_remove_example' sr_set.pk item.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-ghost btn-xs text-error"
+                                            onclick="return confirm('Remove this exercise from the set?')">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-8 text-base-content/50">
+                            <i class="fas fa-image text-4xl mb-3"></i>
+                            <p>No exercises yet. Add some from the library on the right.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add example panel (right) -->
+            {% if is_owner %}
+            <div>
+                <div class="card bg-base-200 shadow-lg sticky top-4">
+                    <div class="card-body">
+                        <h3 class="card-title text-base mb-3">Add Exercise</h3>
+
+                        {% if available_examples %}
+                        <form method="post" action="{% url 'sight_reading:set_add_example' sr_set.pk %}">
+                            {% csrf_token %}
+                            <div class="form-control mb-3">
+                                <input type="text" id="example-search" placeholder="Search…"
+                                       class="input input-bordered input-sm w-full mb-2"
+                                       oninput="filterExamples(this.value)">
+                                <select name="example_id" id="example-select"
+                                        class="select select-bordered select-sm w-full" size="8">
+                                    {% for ex in available_examples %}
+                                    <option value="{{ ex.pk }}" data-label="{{ ex.title|lower }}">
+                                        {% if ex.grade_level %}[Gr {{ ex.grade_level }}] {% endif %}{{ ex.title }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm w-full">
+                                <i class="fas fa-plus mr-1"></i>Add to Set
+                            </button>
+                        </form>
+                        <div class="divider text-xs">or</div>
+                        {% endif %}
+
+                        <a href="{% url 'sight_reading:example_create' %}" class="btn btn-outline btn-sm w-full">
+                            <i class="fas fa-upload mr-1"></i>Upload New Example
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<script>
+function filterExamples(query) {
+    const sel = document.getElementById('example-select');
+    if (!sel) return;
+    Array.from(sel.options).forEach(opt => {
+        opt.hidden = query && !opt.dataset.label.includes(query.toLowerCase());
+    });
+}
+
+function moveItem(itemId, direction) {
+    const container = document.getElementById('sortable-items');
+    const items = Array.from(container.children);
+    const idx = items.findIndex(el => el.dataset.itemId === itemId);
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= items.length) return;
+
+    const order = items.map(el => el.dataset.itemId);
+    const [moved] = order.splice(idx, 1);
+    order.splice(newIdx, 0, moved);
+
+    fetch('{% url "sight_reading:set_reorder" sr_set.pk %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: JSON.stringify({ order: order }),
+    }).then(r => r.json()).then(data => {
+        if (data.status === 'ok') window.location.reload();
+    });
+}
+</script>
+{% endblock %}

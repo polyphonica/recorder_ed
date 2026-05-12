@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}My Sight-Reading Sets{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching min-h-screen bg-base-100">
+    <div class="container mx-auto px-4 py-8">
+
+        <h1 class="text-3xl font-bold mb-2">Sight-Reading</h1>
+        <p class="text-base-content/60 mb-6">Practice sets assigned by your teacher. Your teacher will unlock a set when it's time to work through it during your lesson.</p>
+
+        {% if assignments %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for a in assignments %}
+            <div class="card shadow-lg {% if a.is_unlocked %}bg-base-200 border border-primary{% else %}bg-base-200{% endif %}">
+                <div class="card-body">
+                    <h2 class="card-title">{{ a.sight_reading_set.name }}</h2>
+
+                    <div class="text-sm text-base-content/60 space-y-1">
+                        {% if a.sight_reading_set.grade_level %}
+                            <div><span class="badge badge-outline badge-sm">Grade {{ a.sight_reading_set.grade_level }}</span></div>
+                        {% endif %}
+                        <div><i class="fas fa-user mr-1"></i>{{ a.teacher.get_full_name|default:a.teacher.username }}</div>
+                        <div><i class="fas fa-calendar mr-1"></i>Assigned {{ a.assigned_at|date:"M j, Y" }}</div>
+                    </div>
+
+                    <div class="mt-3">
+                        {% if a.is_unlocked %}
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="badge badge-info gap-1">
+                                    <i class="fas fa-unlock"></i>Session Open
+                                </span>
+                            </div>
+                            <a href="{% url 'sight_reading:session_exercise' a.pk 1 %}"
+                               class="btn btn-primary w-full">
+                                <i class="fas fa-play mr-2"></i>Open Session
+                            </a>
+                        {% elif a.is_completed %}
+                            <span class="badge badge-success gap-1">
+                                <i class="fas fa-check"></i>Completed
+                            </span>
+                        {% else %}
+                            <div class="flex items-center gap-2 text-base-content/50">
+                                <i class="fas fa-lock text-lg"></i>
+                                <span class="text-sm">Locked — your teacher will unlock this when it's time.</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-16 text-base-content/50">
+            <i class="fas fa-music text-5xl mb-4"></i>
+            <p class="text-lg">No sight-reading sets assigned yet.</p>
+            <p class="text-sm mt-2">Your teacher will assign sets for you to work through during lessons.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

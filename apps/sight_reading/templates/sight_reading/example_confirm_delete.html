@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete "{{ example.title }}" – Sight Reading{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching min-h-screen bg-base-100 flex items-center justify-center">
+    <div class="card bg-base-200 shadow-xl max-w-md w-full mx-4">
+        <div class="card-body">
+            <h2 class="card-title text-xl text-error">
+                <i class="fas fa-trash mr-2"></i>Delete Example
+            </h2>
+            <p class="my-4">
+                Are you sure you want to delete <strong>"{{ example.title }}"</strong>?
+                This will also remove it from any sets that contain it.
+            </p>
+            <div class="card-actions justify-end gap-3">
+                <a href="{% url 'sight_reading:example_detail' example.pk %}" class="btn btn-ghost">Cancel</a>
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-error">
+                        <i class="fas fa-trash mr-2"></i>Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

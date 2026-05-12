@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Sight-Reading Assignments{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching min-h-screen bg-base-100">
+    <div class="container mx-auto px-4 py-8">
+
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div>
+                <h1 class="text-3xl font-bold">Assignments</h1>
+                {% if needs_repeat_count %}
+                <p class="text-warning text-sm mt-1">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    {{ needs_repeat_count }} set{{ needs_repeat_count|pluralize }} need{{ needs_repeat_count|pluralize:"s," }} repeating.
+                </p>
+                {% endif %}
+            </div>
+            <div class="flex gap-2 flex-wrap">
+                <a href="{% url 'sight_reading:set_library' %}" class="btn btn-outline btn-sm">
+                    <i class="fas fa-layer-group mr-2"></i>Sets
+                </a>
+                <a href="{% url 'sight_reading:example_library' %}" class="btn btn-outline btn-sm">
+                    <i class="fas fa-image mr-2"></i>Examples
+                </a>
+                <a href="{% url 'sight_reading:assignment_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus mr-2"></i>New Assignment
+                </a>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex gap-3 mb-4 flex-wrap">
+            {% if needs_repeat_filter %}
+                <a href="{% url 'sight_reading:assignment_list' %}" class="btn btn-sm btn-warning">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>Needs Repeat
+                    <i class="fas fa-times ml-1"></i>
+                </a>
+            {% else %}
+                <a href="?needs_repeat=1" class="btn btn-sm btn-outline btn-warning">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>Show Needs Repeat Only
+                    {% if needs_repeat_count %}
+                        <span class="badge badge-warning badge-sm ml-1">{{ needs_repeat_count }}</span>
+                    {% endif %}
+                </a>
+            {% endif %}
+        </div>
+
+        {% if assignments %}
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>Set</th>
+                        <th>Student</th>
+                        <th>Assigned</th>
+                        <th>Status</th>
+                        <th>Results</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in assignments %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'sight_reading:assignment_detail' a.pk %}" class="font-medium hover:underline">
+                                {{ a.sight_reading_set.name }}
+                            </a>
+                            {% if a.sight_reading_set.grade_level %}
+                                <span class="badge badge-xs badge-outline ml-1">Gr {{ a.sight_reading_set.grade_level }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ a.student_display }}</td>
+                        <td class="text-sm text-base-content/70">{{ a.assigned_at|date:"M j, Y" }}</td>
+                        <td>
+                            {% if a.needs_repeat %}
+                                <span class="badge badge-warning gap-1">
+                                    <i class="fas fa-redo"></i>Needs Repeat
+                                </span>
+                            {% elif a.is_completed %}
+                                <span class="badge badge-success gap-1">
+                                    <i class="fas fa-check"></i>Complete
+                                </span>
+                            {% elif a.is_unlocked %}
+                                <span class="badge badge-info gap-1">
+                                    <i class="fas fa-unlock"></i>In Session
+                                </span>
+                            {% else %}
+                                <span class="badge badge-ghost gap-1">
+                                    <i class="fas fa-lock"></i>Locked
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-sm">
+                            {% with correct=a.results.all %}
+                                {% if a.results.exists %}
+                                    <span class="text-success">✓ {{ a.results.filter.count }}</span>
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            <a href="{% url 'sight_reading:assignment_detail' a.pk %}" class="btn btn-xs btn-outline">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-16 text-base-content/50">
+            <i class="fas fa-tasks text-5xl mb-4"></i>
+            <p class="text-lg">
+                {% if needs_repeat_filter %}No assignments need repeating.
+                {% else %}No assignments yet.{% endif %}
+            </p>
+            {% if not needs_repeat_filter %}
+            <a href="{% url 'sight_reading:assignment_create' %}" class="btn btn-primary mt-4">
+                <i class="fas fa-plus mr-2"></i>Create first assignment
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

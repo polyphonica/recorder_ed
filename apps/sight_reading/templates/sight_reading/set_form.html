@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} – Sight Reading{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching min-h-screen bg-base-100">
+    <div class="container mx-auto px-4 py-8 max-w-2xl">
+
+        <a href="{% url 'sight_reading:set_library' %}" class="btn btn-ghost btn-sm mb-4">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Sets
+        </a>
+        <h1 class="text-3xl font-bold mb-6">{{ page_title }}</h1>
+
+        <div class="card bg-base-200 shadow-lg">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="form-control mb-4">
+                        <label class="label"><span class="label-text font-medium">Set Name *</span></label>
+                        {{ form.name }}
+                        {% for error in form.name.errors %}<p class="text-error text-sm mt-1">{{ error }}</p>{% endfor %}
+                    </div>
+
+                    <div class="form-control mb-4">
+                        <label class="label"><span class="label-text font-medium">Description</span></label>
+                        {{ form.description }}
+                        {% for error in form.description.errors %}<p class="text-error text-sm mt-1">{{ error }}</p>{% endfor %}
+                    </div>
+
+                    <div class="form-control mb-4">
+                        <label class="label"><span class="label-text font-medium">Grade Level</span></label>
+                        {{ form.grade_level }}
+                        {% for error in form.grade_level.errors %}<p class="text-error text-sm mt-1">{{ error }}</p>{% endfor %}
+                    </div>
+
+                    <div class="form-control mb-6">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            {{ form.is_public }}
+                            <span class="label-text">Make this set public</span>
+                        </label>
+                    </div>
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-error mb-4">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="card-actions justify-end gap-3">
+                        <a href="{% url 'sight_reading:set_library' %}" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-2"></i>Save Set
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

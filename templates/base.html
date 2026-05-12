@@ -373,7 +373,7 @@
     </nav>
 
     <!-- Tier 2: Domain-Specific Navigation -->
-    {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace in 'private_teaching,lessons,expenses,audioplayer,assignments,aural_training' %}
+    {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace in 'private_teaching,lessons,expenses,audioplayer,assignments,aural_training,sight_reading' %}
         <div class="bg-base-300 shadow-sm">
             <div class="container mx-auto">
                 <div class="navbar justify-center py-2">
@@ -405,6 +405,7 @@
                                     <li><a href="{% url 'private_teaching:teacher_library' %}"><i class="fas fa-book mr-2"></i>Documents</a></li>
                                     <li><a href="{% url 'lesson_templates:library' %}"><i class="fas fa-book-open mr-2"></i>Lesson Templates</a></li>
                                     <li><a href="{% url 'quizzes:quiz_library' %}"><i class="fas fa-question-circle mr-2"></i>Quizzes</a></li>
+                                    <li><a href="{% url 'sight_reading:example_library' %}"><i class="fas fa-eye mr-2"></i>Sight Reading</a></li>
                                     <li class="divider"></li>
                                     <li><a href="{% url 'payments:finance_dashboard' %}"><i class="fas fa-chart-line mr-2"></i>Finance</a></li>
                                     <li><a href="{% url 'private_teaching:teacher_settings' %}"><i class="fas fa-cog mr-2"></i>Settings</a></li>
@@ -420,6 +421,7 @@
                             <li><a href="{% url 'private_teaching:calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}bg-primary text-primary-content{% endif %}">Calendar</a></li>
                             <li><a href="{% url 'audioplayer:library' %}" class="{% if request.resolver_match.namespace == 'audioplayer' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-music mr-1"></i>Play-Along Library</a></li>
                             <li><a href="{% url 'aural_training:student_training' %}" class="{% if request.resolver_match.namespace == 'aural_training' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-headphones mr-1"></i>Aural Training</a></li>
+                            <li><a href="{% url 'sight_reading:student_assignments' %}" class="{% if request.resolver_match.namespace == 'sight_reading' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-music mr-1"></i>Sight Reading</a></li>
                         {% endif %}
                     </ul>
                 </div>

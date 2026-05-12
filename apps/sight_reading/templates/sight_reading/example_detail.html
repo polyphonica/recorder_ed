@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ example.title }} – Sight Reading{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching min-h-screen bg-base-100">
+    <div class="container mx-auto px-4 py-8">
+
+        <a href="{% url 'sight_reading:example_library' %}" class="btn btn-ghost btn-sm mb-4">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Library
+        </a>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Image -->
+            <div class="lg:col-span-2">
+                <div class="card bg-base-200 shadow-lg">
+                    <div class="card-body">
+                        <img src="{{ example.image.url }}" alt="{{ example.title }}"
+                             class="w-full rounded-lg object-contain" style="max-height:75vh;background:#fff;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Details -->
+            <div>
+                <div class="card bg-base-200 shadow-lg mb-4">
+                    <div class="card-body">
+                        <h1 class="card-title text-xl mb-3">{{ example.title }}</h1>
+
+                        {% if example.grade_level %}
+                        <div class="mb-2">
+                            <span class="text-sm text-base-content/60">Grade:</span>
+                            <span class="badge badge-outline ml-2">{{ example.grade_level }}</span>
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-2">
+                            <span class="text-sm text-base-content/60">Created by:</span>
+                            <span class="ml-2 text-sm">{{ example.created_by.get_full_name|default:example.created_by.username }}</span>
+                        </div>
+
+                        <div class="mb-2">
+                            <span class="text-sm text-base-content/60">Added:</span>
+                            <span class="ml-2 text-sm">{{ example.created_at|date:"M j, Y" }}</span>
+                        </div>
+
+                        {% if example.is_public %}
+                        <div class="badge badge-info gap-1 mt-1"><i class="fas fa-globe"></i>Public</div>
+                        {% endif %}
+
+                        {% if example.teacher_notes %}
+                        <div class="mt-4 p-3 bg-base-100 rounded-lg">
+                            <p class="text-xs text-base-content/60 mb-1">
+                                <i class="fas fa-sticky-note mr-1"></i>Private notes:
+                            </p>
+                            <p class="text-sm">{{ example.teacher_notes }}</p>
+                        </div>
+                        {% endif %}
+
+                        {% if is_owner %}
+                        <div class="card-actions mt-4 gap-2">
+                            <a href="{% url 'sight_reading:example_edit' example.pk %}" class="btn btn-outline btn-sm flex-1">
+                                <i class="fas fa-edit mr-1"></i>Edit
+                            </a>
+                            <a href="{% url 'sight_reading:example_delete' example.pk %}" class="btn btn-outline btn-error btn-sm flex-1">
+                                <i class="fas fa-trash mr-1"></i>Delete
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Sets using this example -->
+                {% if sets_using %}
+                <div class="card bg-base-200 shadow-lg">
+                    <div class="card-body">
+                        <h3 class="card-title text-sm mb-3">Used in sets:</h3>
+                        <ul class="space-y-1">
+                            {% for s in sets_using %}
+                            <li>
+                                <a href="{% url 'sight_reading:set_detail' s.pk %}"
+                                   class="link link-hover text-sm">{{ s.name }}</a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Waiting – {{ assignment.sight_reading_set.name }}{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching min-h-screen bg-base-100 flex items-center justify-center">
+    <div class="card bg-base-200 shadow-xl max-w-md w-full mx-4">
+        <div class="card-body text-center">
+            <div class="text-6xl mb-4">🎵</div>
+            <h1 class="card-title text-2xl justify-center mb-2">Ready When You Are</h1>
+            <p class="text-base-content/70 mb-2">
+                <strong>{{ assignment.sight_reading_set.name }}</strong>
+            </p>
+            <p class="text-base-content/70 mb-6">
+                Your teacher hasn't started the session yet. Once they unlock the exercises this page will become available — refresh when they tell you to.
+            </p>
+            <div class="card-actions justify-center">
+                <a href="{% url 'sight_reading:student_assignments' %}" class="btn btn-ghost">
+                    <i class="fas fa-arrow-left mr-2"></i>My Assignments
+                </a>
+                <button onclick="window.location.reload()" class="btn btn-outline btn-primary">
+                    <i class="fas fa-sync mr-2"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

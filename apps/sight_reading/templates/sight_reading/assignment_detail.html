@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+
+{% block title %}Assignment – {{ assignment.sight_reading_set.name }}{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching min-h-screen bg-base-100">
+    <div class="container mx-auto px-4 py-8">
+
+        <a href="{% url 'sight_reading:assignment_list' %}" class="btn btn-ghost btn-sm mb-4">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Assignments
+        </a>
+
+        <!-- Header card -->
+        <div class="card bg-base-200 shadow-lg mb-6">
+            <div class="card-body">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold">{{ assignment.sight_reading_set.name }}</h1>
+                        <div class="flex flex-wrap gap-3 mt-2 text-sm text-base-content/70">
+                            <span><i class="fas fa-user mr-1"></i>{{ assignment.student_display }}</span>
+                            <span><i class="fas fa-calendar mr-1"></i>Assigned {{ assignment.assigned_at|date:"M j, Y" }}</span>
+                            {% if assignment.lesson %}
+                                <span><i class="fas fa-chalkboard mr-1"></i>Lesson {{ assignment.lesson.lesson_date|date:"M j, Y" }}</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Status badges -->
+                        <div class="flex flex-wrap gap-2 mt-3">
+                            {% if assignment.needs_repeat %}
+                                <span class="badge badge-warning gap-1">
+                                    <i class="fas fa-redo"></i>Needs Repeat
+                                </span>
+                            {% elif assignment.is_completed %}
+                                <span class="badge badge-success gap-1">
+                                    <i class="fas fa-check"></i>Completed {{ assignment.completed_at|date:"M j" }}
+                                </span>
+                            {% endif %}
+                            {% if assignment.is_unlocked %}
+                                <span class="badge badge-info gap-1">
+                                    <i class="fas fa-unlock"></i>Session Open
+                                </span>
+                            {% else %}
+                                <span class="badge badge-ghost gap-1">
+                                    <i class="fas fa-lock"></i>Locked
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="flex flex-wrap gap-2">
+                        <!-- Lock/Unlock -->
+                        <form method="post" action="{% url 'sight_reading:assignment_toggle_lock' assignment.pk %}">
+                            {% csrf_token %}
+                            {% if assignment.is_unlocked %}
+                                <button type="submit" class="btn btn-outline btn-sm">
+                                    <i class="fas fa-lock mr-1"></i>Lock Session
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn-info btn-sm">
+                                    <i class="fas fa-unlock mr-1"></i>Unlock Session
+                                </button>
+                            {% endif %}
+                        </form>
+
+                        <!-- Open session -->
+                        {% if session_url and assignment.is_unlocked %}
+                            <a href="{{ session_url }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-play mr-1"></i>Open Session
+                            </a>
+                        {% endif %}
+
+                        <!-- Complete session -->
+                        {% if assignment.results.exists and not assignment.is_completed %}
+                            <form method="post" action="{% url 'sight_reading:assignment_complete' assignment.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success btn-sm"
+                                        onclick="return confirm('Mark this session as complete?')">
+                                    <i class="fas fa-flag-checkered mr-1"></i>Complete Session
+                                </button>
+                            </form>
+                        {% endif %}
+
+                        <a href="{% url 'sight_reading:assignment_delete' assignment.pk %}" class="btn btn-ghost btn-sm btn-error">
+                            <i class="fas fa-trash mr-1"></i>Delete
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        {% if results %}
+        <div class="stats stats-horizontal shadow bg-base-200 mb-6 w-full">
+            <div class="stat">
+                <div class="stat-title">Total</div>
+                <div class="stat-value text-2xl">{{ total }}</div>
+                <div class="stat-desc">exercises</div>
+            </div>
+            <div class="stat">
+                <div class="stat-title">Correct</div>
+                <div class="stat-value text-2xl text-success">{{ correct_count }}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-title">Incorrect</div>
+                <div class="stat-value text-2xl text-error">{{ incorrect_count }}</div>
+            </div>
+            {% if ungraded_count %}
+            <div class="stat">
+                <div class="stat-title">Ungraded</div>
+                <div class="stat-value text-2xl text-base-content/40">{{ ungraded_count }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Results table -->
+        <div class="card bg-base-200 shadow-lg mb-6">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Exercise Results</h2>
+                <div class="overflow-x-auto">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Exercise</th>
+                                <th>Result</th>
+                                <th>Teacher Note</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in results %}
+                            <tr>
+                                <td class="text-base-content/50 tabular-nums">{{ r.order }}</td>
+                                <td>
+                                    <div class="flex items-center gap-3">
+                                        <img src="{{ r.example.image.url }}" alt="{{ r.example.title }}"
+                                             class="w-12 h-9 object-contain rounded shrink-0" style="background:#fff;">
+                                        <a href="{% url 'sight_reading:session_exercise' assignment.pk r.order %}"
+                                           class="text-sm hover:underline">{{ r.example.title }}</a>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if r.result == 'correct' %}
+                                        <span class="badge badge-success badge-sm">✓ Correct</span>
+                                    {% elif r.result == 'incorrect' %}
+                                        <span class="badge badge-error badge-sm">✗ Incorrect</span>
+                                    {% else %}
+                                        <span class="badge badge-ghost badge-sm">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-sm text-base-content/70 max-w-xs">
+                                    {{ r.teacher_note|default:"—" }}
+                                </td>
+                                <td>
+                                    <a href="{% url 'sight_reading:session_exercise' assignment.pk r.order %}"
+                                       class="btn btn-xs btn-ghost">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% elif not assignment.is_unlocked %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <span>Unlock the session to start tracking results.</span>
+        </div>
+        {% endif %}
+
+        <!-- Private notes -->
+        <div class="card bg-base-200 shadow-lg">
+            <div class="card-body">
+                <h2 class="card-title text-base mb-3">
+                    <i class="fas fa-sticky-note mr-2 text-primary"></i>Private Notes
+                    <span class="text-xs text-base-content/50 font-normal">(teacher only)</span>
+                </h2>
+                <textarea id="assignment-notes"
+                          class="textarea textarea-bordered w-full"
+                          rows="4"
+                          placeholder="Your private notes about this assignment…"
+                          data-save-url="{% url 'sight_reading:assignment_note_save' assignment.pk %}">{{ assignment.notes }}</textarea>
+                <p class="text-xs text-base-content/40 mt-1" id="notes-status">Auto-saved</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+(function() {
+    const textarea = document.getElementById('assignment-notes');
+    const status = document.getElementById('notes-status');
+    if (!textarea) return;
+    let timer;
+    textarea.addEventListener('input', () => {
+        clearTimeout(timer);
+        status.textContent = 'Saving…';
+        timer = setTimeout(() => {
+            const fd = new FormData();
+            fd.append('notes', textarea.value);
+            fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            fetch(textarea.dataset.saveUrl, { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(d => { status.textContent = d.status === 'ok' ? 'Saved' : 'Error saving'; })
+                .catch(() => { status.textContent = 'Error saving'; });
+        }, 800);
+    });
+})();
+</script>
+{% endblock %}

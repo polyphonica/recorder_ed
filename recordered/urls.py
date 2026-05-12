@@ -65,6 +65,7 @@ urlpatterns = [
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('robots.txt', robots_txt, name='robots_txt'),
     path('aural-training/', include('apps.aural_training.urls')),  # Aural training app
+    path('sight-reading/', include('apps.sight_reading.urls')),   # Sight-reading training
     path('', DomainSelectorView.as_view(), name='domain_selector'),  # Landing page at root
 ]
 

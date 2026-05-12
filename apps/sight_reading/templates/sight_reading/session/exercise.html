@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ example.title }} – Exercise {{ position }} of {{ total }}{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching min-h-screen bg-base-100">
+
+    <!-- Top bar -->
+    <div class="bg-base-200 border-b border-base-300 px-4 py-3">
+        <div class="container mx-auto flex items-center justify-between gap-4 flex-wrap">
+            <div class="flex items-center gap-3">
+                <a href="{% url 'sight_reading:assignment_detail' assignment.pk %}"
+                   class="btn btn-ghost btn-sm no-print">
+                    <i class="fas fa-arrow-left mr-1"></i>Back
+                </a>
+                <div>
+                    <div class="font-semibold">{{ assignment.sight_reading_set.name }}</div>
+                    <div class="text-sm text-base-content/60">{{ assignment.student_display }}</div>
+                </div>
+            </div>
+            <!-- Position counter -->
+            <div class="text-center">
+                <div class="text-2xl font-bold tabular-nums">{{ position }} / {{ total }}</div>
+                <div class="text-xs text-base-content/60">Exercise</div>
+            </div>
+            <!-- Navigation -->
+            <div class="flex gap-2">
+                {% if prev_url %}
+                    <a href="{{ prev_url }}" class="btn btn-outline btn-sm">
+                        <i class="fas fa-chevron-left mr-1"></i>Prev
+                    </a>
+                {% else %}
+                    <button class="btn btn-outline btn-sm btn-disabled" disabled>
+                        <i class="fas fa-chevron-left mr-1"></i>Prev
+                    </button>
+                {% endif %}
+                {% if next_url %}
+                    <a href="{{ next_url }}" class="btn btn-outline btn-sm">
+                        Next<i class="fas fa-chevron-right ml-1"></i>
+                    </a>
+                {% else %}
+                    <button class="btn btn-outline btn-sm btn-disabled" disabled>
+                        Next<i class="fas fa-chevron-right ml-1"></i>
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-6">
+        <div class="{% if is_teacher %}grid grid-cols-1 lg:grid-cols-3 gap-6{% endif %}">
+
+            <!-- Image panel -->
+            <div class="{% if is_teacher %}lg:col-span-2{% endif %}">
+                <!-- Result badge if already graded -->
+                {% if result.result %}
+                    <div class="mb-3 flex items-center gap-2">
+                        {% if result.result == 'correct' %}
+                            <span class="badge badge-success badge-lg gap-1">
+                                <i class="fas fa-check"></i>Correct
+                            </span>
+                        {% else %}
+                            <span class="badge badge-error badge-lg gap-1">
+                                <i class="fas fa-times"></i>Incorrect
+                            </span>
+                        {% endif %}
+                        <span class="text-sm text-base-content/60">Marked by teacher</span>
+                    </div>
+                {% endif %}
+
+                <div class="card bg-base-200 shadow-lg">
+                    <div class="card-body p-4">
+                        <h2 class="card-title text-lg mb-3">{{ example.title }}
+                            {% if example.grade_level %}
+                                <span class="badge badge-outline ml-2">Grade {{ example.grade_level }}</span>
+                            {% endif %}
+                        </h2>
+                        <img src="{{ example.image.url }}"
+                             alt="{{ example.title }}"
+                             class="w-full rounded-lg object-contain max-h-[70vh]"
+                             style="background:#fff;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teacher controls panel -->
+            {% if is_teacher %}
+            <div class="lg:col-span-1">
+                <div class="card bg-base-200 shadow-lg sticky top-4">
+                    <div class="card-body">
+                        <h3 class="card-title text-lg mb-4">
+                            <i class="fas fa-chalkboard-teacher mr-2 text-primary"></i>Teacher Controls
+                        </h3>
+
+                        <form method="post" action="{% url 'sight_reading:session_grade' assignment.pk position %}">
+                            {% csrf_token %}
+                            {{ grade_form.next_position }}
+
+                            <!-- Grade buttons -->
+                            <div class="mb-4">
+                                <label class="label"><span class="label-text font-medium">Mark this exercise:</span></label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button type="submit" name="result" value="correct"
+                                            class="btn btn-success gap-2 {% if result.result == 'correct' %}btn-active ring-2 ring-offset-1 ring-success{% endif %}">
+                                        <i class="fas fa-check"></i>Correct
+                                    </button>
+                                    <button type="submit" name="result" value="incorrect"
+                                            class="btn btn-error gap-2 {% if result.result == 'incorrect' %}btn-active ring-2 ring-offset-1 ring-error{% endif %}">
+                                        <i class="fas fa-times"></i>Incorrect
+                                    </button>
+                                </div>
+                                <p class="text-xs text-base-content/50 mt-1">Clicking grades this exercise and advances to the next one.</p>
+                            </div>
+
+                            <!-- Private note -->
+                            <div class="mb-4">
+                                <label class="label"><span class="label-text font-medium">Private note:</span></label>
+                                <textarea name="teacher_note"
+                                          class="textarea textarea-bordered w-full"
+                                          rows="3"
+                                          placeholder="Your private note about this exercise…">{{ grade_form.teacher_note.value|default:'' }}</textarea>
+                            </div>
+
+                            <!-- Save note without advancing -->
+                            <input type="hidden" name="result" value="{{ result.result|default:'' }}">
+                        </form>
+
+                        <!-- Clear result -->
+                        {% if result.result %}
+                        <form method="post" action="{% url 'sight_reading:session_grade' assignment.pk position %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="result" value="">
+                            <input type="hidden" name="teacher_note" value="{{ result.teacher_note }}">
+                            <input type="hidden" name="next_position" value="{{ position }}">
+                            <button type="submit" class="btn btn-ghost btn-sm w-full mt-1">
+                                <i class="fas fa-undo mr-1"></i>Clear grade
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        <div class="divider"></div>
+
+                        <!-- Teacher example notes -->
+                        {% if example.teacher_notes %}
+                        <div>
+                            <div class="text-sm font-medium mb-1 text-base-content/70">
+                                <i class="fas fa-sticky-note mr-1"></i>Example notes:
+                            </div>
+                            <p class="text-sm text-base-content/80 bg-base-100 rounded p-2">{{ example.teacher_notes }}</p>
+                        </div>
+                        {% endif %}
+
+                        <!-- Complete session -->
+                        {% if position == total %}
+                        <div class="mt-4">
+                            <form method="post" action="{% url 'sight_reading:assignment_complete' assignment.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary w-full"
+                                        onclick="return confirm('Mark this session as complete?')">
+                                    <i class="fas fa-flag-checkered mr-2"></i>Complete Session
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        </div><!-- /grid -->
+    </div><!-- /container -->
+</div>
+{% endblock %}
