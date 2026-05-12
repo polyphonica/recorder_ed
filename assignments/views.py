@@ -185,6 +185,16 @@ def assign_to_student(request, pk):
             assignment_link.assignment = assignment
             assignment_link.teacher = request.user
 
+            # If this guardian has a child taking lessons with this teacher, link the child profile
+            from lessons.models import Lesson as LessonModel
+            child_lesson = LessonModel.objects.filter(
+                teacher=request.user,
+                student=assignment_link.student,
+                lesson_request__child_profile__isnull=False
+            ).select_related('lesson_request__child_profile').first()
+            if child_lesson:
+                assignment_link.child_profile = child_lesson.lesson_request.child_profile
+
             # Check if assignment is already assigned to this student (standalone)
             existing_assignment = LessonAssignment.objects.filter(
                 assignment=assignment,
@@ -275,6 +285,22 @@ def teacher_submissions(request):
         'child_profile'
     ).order_by('-assigned_at')
 
+    # Build a guardian→child_profile map for standalone links missing child_profile
+    # (backfill for records created before child_profile was set on assignment)
+    from lessons.models import Lesson as LessonModel
+    guardian_ids = {
+        link.student_id for link in assignment_links
+        if link.lesson_id is None and link.child_profile_id is None and link.student_id
+    }
+    guardian_child_map = {}
+    if guardian_ids:
+        for lesson in LessonModel.objects.filter(
+            teacher=request.user,
+            student_id__in=guardian_ids,
+            lesson_request__child_profile__isnull=False
+        ).select_related('lesson_request__child_profile').order_by('student_id').distinct('student_id'):
+            guardian_child_map[lesson.student_id] = lesson.lesson_request.child_profile
+
     # Get submissions for these assignments
     submissions_data = []
 
@@ -287,6 +313,8 @@ def teacher_submissions(request):
             student_name = link.child_profile.full_name
         elif link.lesson and link.lesson.lesson_request and link.lesson.lesson_request.child_profile:
             student_name = link.lesson.lesson_request.child_profile.full_name
+        elif student.id in guardian_child_map:
+            student_name = guardian_child_map[student.id].full_name
         else:
             student_name = student.get_full_name() or student.username
 
