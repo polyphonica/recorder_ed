@@ -282,18 +282,24 @@ def teacher_submissions(request):
         student = link.effective_student
         if not student:
             continue
-        try:
-            submission = AssignmentSubmission.objects.get(
-                student=student,
-                assignment=link.assignment
-            )
-            if submission.status in ['submitted', 'feedback_given', 'graded']:
-                submissions_data.append({
-                    'link': link,
-                    'submission': submission,
-                })
-        except AssignmentSubmission.DoesNotExist:
-            continue
+
+        if link.child_profile:
+            student_name = link.child_profile.full_name
+        elif link.lesson and link.lesson.lesson_request and link.lesson.lesson_request.child_profile:
+            student_name = link.lesson.lesson_request.child_profile.full_name
+        else:
+            student_name = student.get_full_name() or student.username
+
+        submission = AssignmentSubmission.objects.filter(
+            student=student,
+            assignment=link.assignment
+        ).first()
+        if submission and submission.status in ['submitted', 'feedback_given', 'graded']:
+            submissions_data.append({
+                'link': link,
+                'submission': submission,
+                'student_name': student_name,
+            })
 
     # Sort all submissions by submission date (most recent first)
     submissions_data.sort(key=lambda x: x['submission'].submitted_at or x['submission'].updated_at, reverse=True)
