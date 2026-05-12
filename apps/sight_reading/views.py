@@ -3,7 +3,7 @@ import json
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -522,6 +522,10 @@ class StudentAssignmentListView(StudentProfileCompletedMixin, ListView):
         return (
             SightReadingAssignment.objects.filter(student=self.request.user)
             .select_related('sight_reading_set', 'teacher__profile', 'child_profile')
-            .prefetch_related('results')
+            .annotate(
+                total_results=Count('results'),
+                correct_results=Count('results', filter=Q(results__result='correct')),
+                incorrect_results=Count('results', filter=Q(results__result='incorrect')),
+            )
             .order_by('-assigned_at')
         )

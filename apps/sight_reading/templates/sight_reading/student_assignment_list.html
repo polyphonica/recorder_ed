@@ -14,6 +14,7 @@
             {% for a in assignments %}
             <div class="card shadow-lg {% if a.is_unlocked %}bg-base-200 border border-primary{% else %}bg-base-200{% endif %}">
                 <div class="card-body">
+
                     <h2 class="card-title">{{ a.sight_reading_set.name }}</h2>
 
                     <div class="text-sm text-base-content/60 space-y-1">
@@ -24,6 +25,7 @@
                         <div><i class="fas fa-calendar mr-1"></i>Assigned {{ a.assigned_at|date:"M j, Y" }}</div>
                     </div>
 
+                    <!-- Status -->
                     <div class="mt-3">
                         {% if a.is_unlocked %}
                             <div class="flex items-center gap-2 mb-3">
@@ -35,10 +37,43 @@
                                class="btn btn-primary w-full">
                                 <i class="fas fa-play mr-2"></i>Open Session
                             </a>
+
                         {% elif a.is_completed %}
-                            <span class="badge badge-success gap-1">
-                                <i class="fas fa-check"></i>Completed
-                            </span>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <span class="badge badge-success gap-1">
+                                    <i class="fas fa-check"></i>Completed {{ a.completed_at|date:"M j, Y" }}
+                                </span>
+                                {% if a.needs_repeat %}
+                                <span class="badge badge-warning gap-1">
+                                    <i class="fas fa-redo"></i>Needs Repeat
+                                </span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Results summary -->
+                            {% if a.total_results %}
+                            <div class="bg-base-100 rounded-lg p-3 mb-3">
+                                <div class="flex justify-between text-sm mb-2">
+                                    <span class="text-success font-medium">
+                                        <i class="fas fa-check mr-1"></i>{{ a.correct_results }} correct
+                                    </span>
+                                    <span class="text-error font-medium">
+                                        {{ a.incorrect_results }} incorrect<i class="fas fa-times ml-1"></i>
+                                    </span>
+                                </div>
+                                <!-- Progress bar -->
+                                <div class="w-full bg-base-300 rounded-full h-2">
+                                    {% if a.total_results %}
+                                    <div class="bg-success h-2 rounded-full"
+                                         style="width: {% widthratio a.correct_results a.total_results 100 %}%"></div>
+                                    {% endif %}
+                                </div>
+                                <div class="text-xs text-base-content/50 mt-1 text-center">
+                                    {{ a.correct_results }} / {{ a.total_results }} exercises
+                                </div>
+                            </div>
+                            {% endif %}
+
                         {% else %}
                             <div class="flex items-center gap-2 text-base-content/50">
                                 <i class="fas fa-lock text-lg"></i>
@@ -46,6 +81,7 @@
                             </div>
                         {% endif %}
                     </div>
+
                 </div>
             </div>
             {% endfor %}
