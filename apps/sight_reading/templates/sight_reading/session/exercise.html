@@ -10,10 +10,17 @@
     <div class="bg-base-200 border-b border-base-300 px-4 py-3">
         <div class="container mx-auto flex items-center justify-between gap-4 flex-wrap">
             <div class="flex items-center gap-3">
+                {% if is_teacher %}
                 <a href="{% url 'sight_reading:assignment_detail' assignment.pk %}"
                    class="btn btn-ghost btn-sm no-print">
                     <i class="fas fa-arrow-left mr-1"></i>Back
                 </a>
+                {% else %}
+                <a href="{% url 'sight_reading:student_assignments' %}"
+                   class="btn btn-ghost btn-sm no-print">
+                    <i class="fas fa-arrow-left mr-1"></i>Back
+                </a>
+                {% endif %}
                 <div>
                     <div class="font-semibold">{{ assignment.sight_reading_set.name }}</div>
                     <div class="text-sm text-base-content/60">{{ assignment.student_display }}</div>

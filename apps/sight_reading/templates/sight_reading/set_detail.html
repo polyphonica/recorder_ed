@@ -131,7 +131,7 @@
                                        class="input input-bordered input-sm w-full mb-2"
                                        oninput="filterExamples(this.value)">
                                 <select name="example_id" id="example-select"
-                                        class="select select-bordered select-sm w-full" size="8">
+                                        class="select select-bordered select-sm w-full">
                                     {% for ex in available_examples %}
                                     <option value="{{ ex.pk }}" data-label="{{ ex.title|lower }}">
                                         {% if ex.grade_level %}[Gr {{ ex.grade_level }}] {% endif %}{{ ex.title }}
