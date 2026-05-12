@@ -359,6 +359,7 @@ CKEDITOR_5_CONFIGS = {
                     }
                 },
                 "Opus, sans-serif",
+                "TimeSignatures",
                 "Times New Roman, Times, serif",
                 "Courier New, Courier, monospace"
             ],
@@ -375,7 +376,8 @@ CKEDITOR_5_CONFIGS = {
                 {"model": "24pt", "title": "24", "view": {"name": "span", "styles": {"font-size": "24pt"}}},
                 {"model": "36pt", "title": "36", "view": {"name": "span", "styles": {"font-size": "36pt"}}}
             ],
-            "supportAllValues": True
+            "supportAllValues": True,
+            "defaultLabel": "12"
         },
         "mediaEmbed": {
             "previewsInData": True
@@ -631,6 +633,29 @@ CKEDITOR_5_CONFIGS = {
                 "startIndex": True,
                 "reversed": True
             }
+        },
+        "fontSize": {
+            "supportAllValues": True,
+            "defaultLabel": "12"
+        },
+        "fontFamily": {
+            "options": [
+                {
+                    "title": "Default",
+                    "model": "Arial, Helvetica, sans-serif",
+                    "view": {
+                        "name": "span",
+                        "styles": {
+                            "font-family": "Arial, Helvetica, sans-serif"
+                        }
+                    }
+                },
+                "Opus, sans-serif",
+                "TimeSignatures",
+                "Times New Roman, Times, serif",
+                "Courier New, Courier, monospace"
+            ],
+            "supportAllValues": True
         },
     }
 }
