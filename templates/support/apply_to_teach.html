@@ -66,6 +66,11 @@
 
                     <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
+                        <input type="hidden" name="form_loaded_at" value="{{ form_token }}">
+                        <div style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
+                            <label for="website">Website</label>
+                            <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+                        </div>
 
                         <!-- Form-level errors -->
                         {% if form.non_field_errors %}

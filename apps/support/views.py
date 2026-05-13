@@ -4,6 +4,7 @@ from django.contrib import messages as django_messages
 from django.db.models import Q, Count, Avg
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.core import signing
 
 from .models import Ticket, TicketMessage, TicketAttachment
 from .forms import (
@@ -291,17 +292,38 @@ def update_ticket(request, ticket_number):
 
 def apply_to_teach(request):
     """Public page for prospective teachers to apply"""
+    import time
+
     if request.method == 'POST':
+        # Honeypot: bots fill the hidden website field, humans don't
+        if request.POST.get('website'):
+            django_messages.success(
+                request,
+                'Thank you for applying! We will review your information and be in touch within 3-5 business days.'
+            )
+            return redirect('domain_selector')
+
+        # Time check: reject submissions that arrive under 5 seconds after page load
+        form_token = request.POST.get('form_loaded_at', '')
+        try:
+            load_time = signing.loads(form_token, max_age=3600)
+            too_fast = (time.time() - load_time) < 5
+        except signing.BadSignature:
+            too_fast = True
+
+        if too_fast:
+            django_messages.success(
+                request,
+                'Thank you for applying! We will review your information and be in touch within 3-5 business days.'
+            )
+            return redirect('domain_selector')
+
         form = TeacherApplicationForm(request.POST)
         if form.is_valid():
             application = form.save(commit=False)
-            # Link to user if authenticated
             if request.user.is_authenticated:
                 application.user = request.user
             application.save()
-
-            # TODO: Send email notifications to applicant and staff
-            # This will be implemented in the next task
 
             django_messages.success(
                 request,
@@ -310,7 +332,6 @@ def apply_to_teach(request):
             )
             return redirect('domain_selector')
     else:
-        # Pre-fill if user is authenticated
         initial_data = {}
         if request.user.is_authenticated:
             initial_data = {
@@ -319,4 +340,5 @@ def apply_to_teach(request):
             }
         form = TeacherApplicationForm(initial=initial_data)
 
-    return render(request, 'support/apply_to_teach.html', {'form': form})
+    form_token = signing.dumps(time.time())
+    return render(request, 'support/apply_to_teach.html', {'form': form, 'form_token': form_token})
