@@ -183,9 +183,9 @@ figure.image.image-style-block-align-left,
     line-height: 0;
 }
 
-/* Glyphs/icons with no explicit width (e.g. time signatures) — natural pixel size */
-.ck-content span.image-inline img:not([style*="width"]),
-.prose span.image-inline img:not([style*="width"]) {
+/* Glyphs/icons not resized (no image_resized class on span) — natural pixel size */
+.ck-content span.image-inline:not(.image_resized) img,
+.prose span.image-inline:not(.image_resized) img {
     display: inline-block !important;
     width: auto !important;
     height: auto !important;
@@ -194,9 +194,9 @@ figure.image.image-style-block-align-left,
     padding: 0 !important;
 }
 
-/* Resized inline images with explicit width% — respect the percentage, don't override */
-.ck-content span.image-inline img[style*="width"],
-.prose span.image-inline img[style*="width"] {
+/* Resized inline images (image_resized class on span) — let CKEditor's max-width:100% apply */
+.ck-content span.image-inline.image_resized img,
+.prose span.image-inline.image_resized img {
     display: inline-block !important;
     height: auto !important;
     max-width: 100% !important;
