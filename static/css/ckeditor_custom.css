@@ -272,11 +272,12 @@ figure.image.image-style-block-align-left,
     margin-right: 0 !important;
 }
 
-/* Table cell styling */
-.ck-content .ck-table td,
-.ck-content .ck-table th {
-    padding: 5px;
-    border: 1px solid #000;
+/* Default vertical-align for CKEditor table cells.
+   Overrides Tailwind Typography's "baseline" default. CKEditor omits the
+   vertical-align inline style when the value is "middle" (the default), so
+   we must provide it here. Inline styles for top/bottom still override this. */
+.ck-content table td,
+.ck-content table th {
     vertical-align: middle;
 }
 
@@ -335,7 +336,7 @@ figure.image.image-style-block-align-left,
     display: block;
 }
 
-.ck-content .ck-table audio {
+.ck-content table audio {
     width: 100%;
     height: 30px;
 }
@@ -459,15 +460,10 @@ figure.image.image-style-block-align-left,
 
 /* Responsive Adjustments for Tables in CKEditor */
 @media (max-width: 600px) {
-    .ck-content .ck-table {
+    .ck-content figure.table {
         max-width: 100%;
     }
-    .ck-content .ck-table td,
-    .ck-content .ck-table th {
-        width: 80px !important;
-        height: 40px !important;
-    }
-    .ck-content .ck-table img {
+    .ck-content table img {
         width: 80px;
         height: auto;
     }
