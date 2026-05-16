@@ -183,12 +183,23 @@ figure.image.image-style-block-align-left,
     line-height: 0;
 }
 
-.ck-content span.image-inline img,
-.prose span.image-inline img {
+/* Glyphs/icons with no explicit width (e.g. time signatures) — natural pixel size */
+.ck-content span.image-inline img:not([style*="width"]),
+.prose span.image-inline img:not([style*="width"]) {
     display: inline-block !important;
     width: auto !important;
     height: auto !important;
     max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Resized inline images with explicit width% — respect the percentage, don't override */
+.ck-content span.image-inline img[style*="width"],
+.prose span.image-inline img[style*="width"] {
+    display: inline-block !important;
+    height: auto !important;
+    max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
 }
