@@ -3,6 +3,11 @@
 
 {% block title %}Lesson Detail - {{ lesson.subject.subject }} - {{ lesson.lesson_date|date:"M d, Y" }}{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/ckeditor_custom.css' %}">
+<link rel="stylesheet" href="{% static 'css/imagestyle.css' %}">
+{% endblock %}
+
 {% block content %}
 <div class="section-private-teaching">
 <div class="container mx-auto px-4 py-8 max-w-[1400px]">
@@ -133,7 +138,7 @@
             <h2 class="text-2xl font-bold mb-4">
                 <i class="fas fa-book-open mr-2 text-success"></i>Lesson Content
             </h2>
-            <div class="prose prose-lg max-w-none">
+            <div class="prose prose-lg max-w-none ck-content">
                 {{ lesson.lesson_content|safe }}
             </div>
         </div>

@@ -766,12 +766,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (ckeditorInstance) {
             try {
-                const currentData = ckeditorInstance.getData();
-                ckeditorInstance.setData(currentData + '\n\n' + content);
+                // Use model.insertContent so CKEditor's full upcast pipeline runs —
+                // this preserves image resize widths (style="width:X%") that setData()
+                // string-concat can silently drop.
+                const viewFragment = ckeditorInstance.data.processor.toView(content);
+                const modelFragment = ckeditorInstance.data.toModel(viewFragment);
+                ckeditorInstance.model.change(writer => {
+                    const root = ckeditorInstance.model.document.getRoot();
+                    writer.insert(modelFragment, writer.createPositionAt(root, 'end'));
+                });
                 console.log('Template content inserted');
             } catch (error) {
                 console.error('Error inserting template:', error);
-                alert('Could not insert template. Please try again.');
+                // Fallback: setData concatenation
+                try {
+                    const currentData = ckeditorInstance.getData();
+                    ckeditorInstance.setData(currentData + '\n\n' + content);
+                } catch (e) {
+                    alert('Could not insert template. Please try again.');
+                }
             }
         } else {
             alert('Could not access the editor. Please try again.');
