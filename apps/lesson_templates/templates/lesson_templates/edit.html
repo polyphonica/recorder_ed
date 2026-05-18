@@ -78,17 +78,8 @@ document.addEventListener('alpine:init', () => {
 });
 
 function getTemplateContentEditor() {
-    const editorContainers = document.querySelectorAll('.ck-editor');
-    for (let container of editorContainers) {
-        const prev = container.previousElementSibling;
-        if (prev && prev.name === 'content') {
-            const editable = container.querySelector('.ck-editor__editable');
-            if (editable && editable.ckeditorInstance) return editable.ckeditorInstance;
-        }
-    }
-    if (window.CKEDITOR && window.CKEDITOR.instances) {
-        for (let key in window.CKEDITOR.instances) return window.CKEDITOR.instances[key];
-    }
+    const editable = document.querySelector('.ck-editor__editable');
+    if (editable && editable.ckeditorInstance) return editable.ckeditorInstance;
     return null;
 }
 </script>
