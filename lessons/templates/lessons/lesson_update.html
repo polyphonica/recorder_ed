@@ -237,6 +237,7 @@
         <div class="form-section">
             <h3>Lesson Content</h3>
             <div class="mb-4">
+                <div x-data="lessonAIAssist">
                 <div class="flex justify-between items-center mb-2">
                     <label class="block text-sm font-medium text-gray-700">Lesson Content</label>
                     <div class="flex gap-2">
@@ -266,9 +267,66 @@
                                 </div>
                             </div>
                         </div>
+                        <button type="button" @click="open = !open"
+                            class="px-3 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            :class="open ? 'bg-purple-800' : ''">
+                            ✨ AI Assist
+                        </button>
                     </div>
                 </div>
+
+                <!-- AI Assist Panel -->
+                <div x-show="open" x-transition class="mb-3 border border-purple-200 rounded-lg bg-purple-50 p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-semibold text-purple-900 text-sm">AI Lesson Assistant</h4>
+                        <button type="button" @click="open = false" class="text-purple-400 hover:text-purple-600 text-lg leading-none">&times;</button>
+                    </div>
+
+                    <!-- Error -->
+                    <div x-show="error" class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700" x-text="error"></div>
+
+                    <!-- Result -->
+                    <template x-if="result">
+                        <div class="mb-3 p-3 bg-white border border-purple-200 rounded text-sm">
+                            <p class="text-gray-700 mb-2"><strong>Summary:</strong> <span x-text="result.summary"></span></p>
+                            <div class="flex gap-2">
+                                <button type="button" @click="apply()"
+                                    class="px-3 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700">
+                                    Apply to Editor
+                                </button>
+                                <button type="button" @click="result = null"
+                                    class="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                                    Discard
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Generate form -->
+                    <div x-show="!result">
+                        <textarea x-model="description" rows="3"
+                            class="w-full text-sm border border-gray-300 rounded p-2 mb-3 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                            placeholder="Describe what you'd like to cover or change in this lesson…"
+                            :disabled="loading || reformatLoading"></textarea>
+                        <div class="flex gap-2">
+                            <button type="button" @click="generate()"
+                                :disabled="loading || reformatLoading"
+                                class="px-3 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1">
+                                <span x-show="loading" class="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                <span x-text="loading ? 'Generating…' : 'Generate'"></span>
+                            </button>
+                            <button type="button" @click="reformat()"
+                                :disabled="loading || reformatLoading"
+                                class="px-3 py-1 text-sm bg-slate-600 text-white rounded hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1">
+                                <span x-show="reformatLoading" class="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                <span x-text="reformatLoading ? 'Reformatting…' : 'Reformat to Style Guide'"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 {{ form.lesson_content }}
+                </div><!-- end x-data="lessonAIAssist" -->
             </div>
         </div>
 
@@ -472,6 +530,97 @@
 </div>
 
 <script>
+// Global helper used by both vanilla JS and Alpine components
+function getLessonContentEditor() {
+    const editorContainers = document.querySelectorAll('.ck-editor');
+    for (let container of editorContainers) {
+        const prevElement = container.previousElementSibling;
+        if (prevElement && prevElement.name === 'lesson_content') {
+            const editableElement = container.querySelector('.ck-editor__editable');
+            if (editableElement && editableElement.ckeditorInstance) {
+                return editableElement.ckeditorInstance;
+            }
+        }
+    }
+    if (window.CKEDITOR && window.CKEDITOR.instances) {
+        for (let key in window.CKEDITOR.instances) {
+            return window.CKEDITOR.instances[key];
+        }
+    }
+    return null;
+}
+
+const AI_ASSIST_URL = "{% url 'lessons:lesson_ai_assist' %}";
+const AI_LESSON_ID = "{{ lesson.pk }}";
+
+document.addEventListener('alpine:init', () => {
+    Alpine.data('lessonAIAssist', () => ({
+        open: false,
+        loading: false,
+        reformatLoading: false,
+        description: '',
+        result: null,
+        error: null,
+
+        async generate() {
+            if (!this.description.trim()) {
+                this.error = 'Please describe what you want.';
+                return;
+            }
+            this.loading = true;
+            this.error = null;
+            this.result = null;
+            try {
+                const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                const resp = await fetch(AI_ASSIST_URL, {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': csrf, 'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams({lesson_id: AI_LESSON_ID, description: this.description}),
+                });
+                const data = await resp.json();
+                if (!resp.ok) { this.error = data.error || 'Request failed.'; return; }
+                this.result = data;
+            } catch (e) {
+                this.error = 'Network error. Please try again.';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async reformat() {
+            if (!confirm('Reformat existing lesson content to match the style guide? This will replace the HTML structure but keep all text and images.')) return;
+            this.reformatLoading = true;
+            this.error = null;
+            this.result = null;
+            try {
+                const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                const resp = await fetch(AI_ASSIST_URL, {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': csrf, 'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams({lesson_id: AI_LESSON_ID, mode: 'reformat'}),
+                });
+                const data = await resp.json();
+                if (!resp.ok) { this.error = data.error || 'Request failed.'; return; }
+                this.result = data;
+            } catch (e) {
+                this.error = 'Network error. Please try again.';
+            } finally {
+                this.reformatLoading = false;
+            }
+        },
+
+        apply() {
+            const editor = getLessonContentEditor();
+            if (!editor) { alert('Could not access the editor. Please try again.'); return; }
+            const existing = editor.getData();
+            if (existing && existing.trim() && !confirm('Replace the existing lesson content with the AI-generated version?')) return;
+            editor.setData(this.result.content);
+            this.result = null;
+            this.open = false;
+        },
+    }));
+});
+
 // Handle form errors and dynamic formsets
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Lesson edit form loaded');
@@ -482,34 +631,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const homeworkList = document.getElementById('homework-list');
     let ckeditorInstance = null;
 
-    // Get CKEditor instance (it's initialized by Django's CKEditor5Widget)
+    // Get CKEditor instance — delegates to global helper
     function getCKEditorInstance() {
-        // Method 1: Try to find editor through the .ck-editor container
-        const editorContainers = document.querySelectorAll('.ck-editor');
-        for (let container of editorContainers) {
-            // Check if this container is for our lesson_content field
-            const prevElement = container.previousElementSibling;
-            if (prevElement && prevElement.name === 'lesson_content') {
-                // Get the editable element
-                const editableElement = container.querySelector('.ck-editor__editable');
-                if (editableElement && editableElement.ckeditorInstance) {
-                    console.log('Found CKEditor instance via editableElement.ckeditorInstance');
-                    return editableElement.ckeditorInstance;
-                }
-            }
-        }
-
-        // Method 2: Try global CKEDITOR object (if available)
-        if (window.CKEDITOR && window.CKEDITOR.instances) {
-            const instances = window.CKEDITOR.instances;
-            for (let key in instances) {
-                console.log('Found CKEditor instance via CKEDITOR.instances:', key);
-                return instances[key];
-            }
-        }
-
-        console.warn('Could not find CKEditor instance');
-        return null;
+        return getLessonContentEditor();
     }
 
     // Toggle dropdown visibility
