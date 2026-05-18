@@ -1,0 +1,41 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #0891b2 0%, #0e7490 100%){% endblock %}
+{% block header_subtitle %}{{ course.title|upper }} - New Lesson{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ student_name }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    A new lesson has been published in <strong>{{ course.title }}</strong>.
+</p>
+
+<!-- Lesson Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #ecfeff; border-left: 4px solid #0891b2; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: #164e63;">
+                {% if lesson.lesson_number %}Lesson {{ lesson.lesson_number }}: {% endif %}{{ lesson.lesson_title }}
+            </h2>
+            {% if lesson.duration_minutes %}
+            <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                Duration: {{ lesson.duration_minutes }} minutes
+            </p>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+
+<!-- Action Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ lesson_url }}" style="display: inline-block; padding: 14px 28px; background-color: #0891b2; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(8, 145, 178, 0.3);">
+                View Lesson
+            </a>
+        </td>
+    </tr>
+</table>
+{% endblock %}

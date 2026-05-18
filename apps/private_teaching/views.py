@@ -2054,6 +2054,17 @@ def upload_standalone_document(request):
             )
             if not share_all and student_ids:
                 doc.shared_with_students.set(User.objects.filter(id__in=student_ids))
+            try:
+                from apps.private_teaching.notifications import StudentNotificationService
+                if share_all:
+                    notify_students = User.objects.filter(
+                        id__in=[s['id'] for s in students]
+                    )
+                else:
+                    notify_students = doc.shared_with_students.all()
+                StudentNotificationService.send_standalone_document_notification(doc, notify_students)
+            except Exception:
+                pass
             messages.success(request, f'"{title}" uploaded and shared successfully.')
             return redirect('private_teaching:teacher_library')
 

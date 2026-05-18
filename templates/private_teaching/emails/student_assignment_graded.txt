@@ -1,0 +1,17 @@
+Subject: Your assignment has been graded: {{ assignment.title }}
+
+Hello {{ student_name }},
+
+{{ teacher_name }} has graded your submission for "{{ assignment.title }}".
+
+{% if grade %}GRADE: {{ grade }}{% endif %}
+{% if feedback %}
+FEEDBACK:
+{{ feedback }}
+{% endif %}
+
+View your graded assignment:
+{{ library_url }}
+
+Best regards,
+The {{ site_name }} Team

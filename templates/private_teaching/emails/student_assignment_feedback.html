@@ -1,0 +1,37 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #d97706 0%, #b45309 100%){% endblock %}
+{% block header_subtitle %}PRIVATE LESSONS - Assignment Feedback{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ student_name }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    <strong>{{ teacher_name }}</strong> has reviewed your submission and left feedback on your assignment.
+</p>
+
+<!-- Assignment Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #fffbeb; border-left: 4px solid #d97706; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: #92400e;">
+                {{ assignment.title }}
+            </h2>
+            <p style="margin: 0; font-size: 14px; color: #6b7280;">Feedback received</p>
+        </td>
+    </tr>
+</table>
+
+<!-- Action Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ library_url }}" style="display: inline-block; padding: 14px 28px; background-color: #d97706; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(217, 119, 6, 0.3);">
+                View Feedback
+            </a>
+        </td>
+    </tr>
+</table>
+{% endblock %}

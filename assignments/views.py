@@ -389,6 +389,11 @@ def grade_submission(request, pk):
                 _save_attachments(request, submission, request.user,
                                   field_name='teacher_attachments',
                                   round_number=current_round)
+                try:
+                    from apps.private_teaching.notifications import StudentNotificationService
+                    StudentNotificationService.send_assignment_graded_notification(submission, assignment_link)
+                except Exception:
+                    pass
                 messages.success(request, f'Graded submission for {student_display_name}!')
                 return redirect('assignments:teacher_submissions')
     else:

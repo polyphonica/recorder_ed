@@ -519,11 +519,18 @@ class LessonUpdateView(CourseOwnershipMixin, CourseContextMixin, InstructorRequi
         attachment_formset = context['attachment_formset']
 
         if piece_formset.is_valid() and attachment_formset.is_valid():
+            old_status = self.object.status
             self.object = form.save()
             piece_formset.instance = self.object
             piece_formset.save()
             attachment_formset.instance = self.object
             attachment_formset.save()
+            if old_status != Lesson.Status.PUBLISHED and self.object.status == Lesson.Status.PUBLISHED:
+                try:
+                    from apps.courses.notifications import StudentNotificationService
+                    StudentNotificationService.send_lesson_published_notification(self.object)
+                except Exception:
+                    pass
             messages.success(self.request, f'Lesson "{form.instance.lesson_title}" updated successfully!')
             return redirect(self.get_success_url())
         else:

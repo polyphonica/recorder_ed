@@ -1,0 +1,15 @@
+Subject: Feedback on your assignment: {{ assignment.title }}
+
+Hello {{ student_name }},
+
+{{ teacher_name }} has reviewed your submission and left feedback on your assignment.
+
+ASSIGNMENT:
+{{ assignment.title }}
+
+Please log in to view the feedback and continue working on your assignment.
+
+{{ library_url }}
+
+Best regards,
+The {{ site_name }} Team

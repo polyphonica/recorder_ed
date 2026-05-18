@@ -9,6 +9,62 @@ class StudentNotificationService(BaseNotificationService):
     """Service for sending course-related email notifications to students"""
 
     @staticmethod
+    def send_lesson_published_notification(lesson):
+        """Notify all active enrolled students when a new lesson is published"""
+        from .models import CourseEnrollment
+
+        course = lesson.topic.course
+        enrollments = CourseEnrollment.objects.filter(
+            course=course, is_active=True
+        ).select_related('student', 'child_profile')
+
+        sent_count = 0
+        for enrollment in enrollments:
+            try:
+                is_valid, email = StudentNotificationService.validate_email(
+                    enrollment.student, 'Student'
+                )
+                if not is_valid:
+                    continue
+
+                child_profile = enrollment.child_profile
+                student_name = (
+                    child_profile.full_name if child_profile
+                    else StudentNotificationService.get_display_name(enrollment.student)
+                )
+
+                lesson_url = StudentNotificationService.build_absolute_url(
+                    'courses:view_lesson', kwargs={'lesson_id': lesson.id}
+                )
+                course_url = StudentNotificationService.build_detail_url('courses:detail', course)
+
+                context = {
+                    'lesson': lesson,
+                    'course': course,
+                    'enrollment': enrollment,
+                    'student_name': student_name,
+                    'child_profile': child_profile,
+                    'is_child_enrollment': enrollment.is_for_child,
+                    'lesson_url': lesson_url,
+                    'course_url': course_url,
+                }
+
+                result = StudentNotificationService.send_templated_email(
+                    template_path='courses/emails/student_lesson_published.txt',
+                    context=context,
+                    recipient_list=[email],
+                    default_subject=f'New lesson published: {lesson.lesson_title}',
+                    fail_silently=False,
+                    log_description=f"Lesson published notification to student {enrollment.student.username} for lesson {lesson.id}"
+                )
+                if result:
+                    sent_count += 1
+            except Exception as e:
+                logger.error(f"Failed to send lesson published notification to student {enrollment.student.username}: {str(e)}")
+
+        return sent_count
+
+    @staticmethod
     def send_enrollment_confirmation(enrollment):
         """Send enrollment confirmation email to student"""
         try:

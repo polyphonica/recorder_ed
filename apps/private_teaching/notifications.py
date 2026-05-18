@@ -521,6 +521,129 @@ class StudentNotificationService(BaseNotificationService):
             return False
 
     @staticmethod
+    def send_assignment_feedback_notification(submission, assignment_link):
+        """Send notification to student when teacher provides feedback on their submission"""
+        try:
+            is_valid, email = StudentNotificationService.validate_email(submission.student, 'Student')
+            if not is_valid:
+                return False
+
+            child_profile = (
+                assignment_link.lesson.lesson_request.child_profile
+                if assignment_link and assignment_link.lesson and assignment_link.lesson.lesson_request
+                else None
+            )
+            student_name = (
+                child_profile.full_name if child_profile
+                else StudentNotificationService.get_display_name(submission.student)
+            )
+
+            library_url = StudentNotificationService.build_absolute_url('assignments:student_library')
+
+            context = {
+                'submission': submission,
+                'assignment': submission.assignment,
+                'assignment_link': assignment_link,
+                'student': submission.student,
+                'student_name': student_name,
+                'teacher_name': StudentNotificationService.get_display_name(submission.assignment.created_by),
+                'library_url': library_url,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_assignment_feedback.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject=f'Feedback on your assignment: {submission.assignment.title}',
+                fail_silently=False,
+                log_description=f"Assignment feedback notification to student {submission.student.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send assignment feedback notification to student: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_assignment_graded_notification(submission, assignment_link):
+        """Send notification to student when their submission is graded"""
+        try:
+            is_valid, email = StudentNotificationService.validate_email(submission.student, 'Student')
+            if not is_valid:
+                return False
+
+            child_profile = (
+                assignment_link.lesson.lesson_request.child_profile
+                if assignment_link and assignment_link.lesson and assignment_link.lesson.lesson_request
+                else None
+            )
+            student_name = (
+                child_profile.full_name if child_profile
+                else StudentNotificationService.get_display_name(submission.student)
+            )
+
+            library_url = StudentNotificationService.build_absolute_url('assignments:student_library')
+
+            context = {
+                'submission': submission,
+                'assignment': submission.assignment,
+                'assignment_link': assignment_link,
+                'student': submission.student,
+                'student_name': student_name,
+                'teacher_name': StudentNotificationService.get_display_name(submission.assignment.created_by),
+                'grade': submission.grade,
+                'feedback': submission.feedback,
+                'library_url': library_url,
+            }
+
+            return StudentNotificationService.send_templated_email(
+                template_path='private_teaching/emails/student_assignment_graded.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject=f'Your assignment has been graded: {submission.assignment.title}',
+                fail_silently=False,
+                log_description=f"Assignment graded notification to student {submission.student.username}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send assignment graded notification to student: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_standalone_document_notification(doc, students):
+        """Send notification to students when teacher uploads a document to their library"""
+        sent_count = 0
+        for student in students:
+            try:
+                is_valid, email = StudentNotificationService.validate_email(student, 'Student')
+                if not is_valid:
+                    continue
+
+                library_url = StudentNotificationService.build_absolute_url('private_teaching:student_library')
+
+                context = {
+                    'doc': doc,
+                    'student': student,
+                    'student_name': StudentNotificationService.get_display_name(student),
+                    'teacher_name': StudentNotificationService.get_display_name(doc.teacher),
+                    'library_url': library_url,
+                }
+
+                result = StudentNotificationService.send_templated_email(
+                    template_path='private_teaching/emails/student_standalone_document_shared.txt',
+                    context=context,
+                    recipient_list=[email],
+                    default_subject=f'New document in your library: {doc.title}',
+                    fail_silently=False,
+                    log_description=f"Standalone document notification to student {student.username}"
+                )
+                if result:
+                    sent_count += 1
+            except Exception as e:
+                logger.error(f"Failed to send standalone document notification to student {student.username}: {str(e)}")
+
+        return sent_count
+
+    @staticmethod
     def send_teacher_initiated_cancellation_notification(cancellation_request, lesson):
         """Send notification to student when teacher cancels an accepted lesson"""
         try:

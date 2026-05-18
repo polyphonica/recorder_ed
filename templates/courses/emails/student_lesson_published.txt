@@ -1,0 +1,15 @@
+Subject: New lesson published: {{ lesson.lesson_title }}
+
+Hello {{ student_name }},
+
+A new lesson has been published in {{ course.title }}.
+
+LESSON:
+{% if lesson.lesson_number %}Lesson {{ lesson.lesson_number }}: {% endif %}{{ lesson.lesson_title }}{% if lesson.duration_minutes %}
+Duration: {{ lesson.duration_minutes }} minutes{% endif %}
+
+View the lesson:
+{{ lesson_url }}
+
+Best regards,
+The {{ site_name }} Team

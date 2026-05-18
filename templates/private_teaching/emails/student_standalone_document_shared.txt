@@ -1,0 +1,16 @@
+Subject: New document in your library: {{ doc.title }}
+
+Hello {{ student_name }},
+
+{{ teacher_name }} has added a new document to your library.
+
+DOCUMENT:
+{{ doc.title }}{% if doc.description %}
+
+{{ doc.description }}{% endif %}
+
+View your document library:
+{{ library_url }}
+
+Best regards,
+The {{ site_name }} Team
