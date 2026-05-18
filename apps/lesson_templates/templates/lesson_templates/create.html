@@ -7,6 +7,69 @@
 {{ form.media }}
 {% endblock %}
 
+{% block extra_js %}
+<script>
+const AI_ASSIST_URL = "{% url 'lesson_templates:ai_assist' %}";
+
+document.addEventListener('alpine:init', () => {
+    Alpine.data('templateAIAssist', () => ({
+        open: false,
+        loading: false,
+        description: '',
+        result: null,
+        error: null,
+
+        async generate() {
+            if (!this.description.trim()) { this.error = 'Please describe what you want.'; return; }
+            this.loading = true;
+            this.error = null;
+            this.result = null;
+            try {
+                const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                const resp = await fetch(AI_ASSIST_URL, {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': csrf, 'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams({description: this.description}),
+                });
+                const data = await resp.json();
+                if (!resp.ok) { this.error = data.error || 'Request failed.'; return; }
+                this.result = data;
+            } catch (e) {
+                this.error = 'Network error. Please try again.';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        apply() {
+            const editor = getTemplateContentEditor();
+            if (!editor) { alert('Could not access the editor. Please try again.'); return; }
+            const existing = editor.getData();
+            if (existing && existing.trim() && !confirm('Replace the existing content with the AI-generated version?')) return;
+            editor.setData(this.result.content);
+            this.result = null;
+            this.open = false;
+        },
+    }));
+});
+
+function getTemplateContentEditor() {
+    const editorContainers = document.querySelectorAll('.ck-editor');
+    for (let container of editorContainers) {
+        const prev = container.previousElementSibling;
+        if (prev && prev.name === 'content') {
+            const editable = container.querySelector('.ck-editor__editable');
+            if (editable && editable.ckeditorInstance) return editable.ckeditorInstance;
+        }
+    }
+    if (window.CKEDITOR && window.CKEDITOR.instances) {
+        for (let key in window.CKEDITOR.instances) return window.CKEDITOR.instances[key];
+    }
+    return null;
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8 max-w-4xl">
     <!-- Header -->
@@ -50,11 +113,47 @@
                 </div>
 
                 <!-- Content -->
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text font-semibold">{{ form.content.label }}</span>
-                        {% if form.content.field.required %}<span class="text-error">*</span>{% endif %}
+                <div class="form-control" x-data="templateAIAssist">
+                    <label class="label justify-between">
+                        <span>
+                            <span class="label-text font-semibold">{{ form.content.label }}</span>
+                            {% if form.content.field.required %}<span class="text-error">*</span>{% endif %}
+                        </span>
+                        <button type="button" @click="open = !open"
+                            class="btn btn-xs btn-outline border-purple-400 text-purple-700 hover:bg-purple-600 hover:border-purple-600 hover:text-white">
+                            ✨ AI Assist
+                        </button>
                     </label>
+
+                    <!-- AI Panel -->
+                    <div x-show="open" x-transition class="mb-3 border border-purple-200 rounded-lg bg-purple-50 p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold text-purple-900 text-sm">AI Template Assistant</h4>
+                            <button type="button" @click="open = false" class="text-purple-400 hover:text-purple-600 text-lg leading-none">&times;</button>
+                        </div>
+                        <div x-show="error" class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700" x-text="error"></div>
+                        <template x-if="result">
+                            <div class="mb-3 p-3 bg-white border border-purple-200 rounded text-sm">
+                                <p class="text-gray-700 mb-2"><strong>Summary:</strong> <span x-text="result.summary"></span></p>
+                                <div class="flex gap-2">
+                                    <button type="button" @click="apply()" class="btn btn-xs bg-purple-600 text-white border-purple-600 hover:bg-purple-700">Apply to Editor</button>
+                                    <button type="button" @click="result = null" class="btn btn-xs btn-ghost">Discard</button>
+                                </div>
+                            </div>
+                        </template>
+                        <div x-show="!result">
+                            <textarea x-model="description" rows="3"
+                                class="textarea textarea-bordered w-full text-sm mb-3"
+                                placeholder="Describe what this template should cover…"
+                                :disabled="loading"></textarea>
+                            <button type="button" @click="generate()" :disabled="loading"
+                                class="btn btn-sm bg-purple-600 text-white border-purple-600 hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2">
+                                <span x-show="loading" class="loading loading-spinner loading-xs"></span>
+                                <span x-text="loading ? 'Generating…' : 'Generate'"></span>
+                            </button>
+                        </div>
+                    </div>
+
                     {{ form.content }}
                     {% if form.content.help_text %}
                     <label class="label">

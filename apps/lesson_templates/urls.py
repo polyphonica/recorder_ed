@@ -24,4 +24,5 @@ urlpatterns = [
 
     # AJAX endpoints
     path('api/<uuid:pk>/content/', views.get_template_content, name='get_content'),
+    path('api/ai-assist/', views.template_ai_assist, name='ai_assist'),
 ]
