@@ -78,6 +78,7 @@ document.addEventListener('alpine:init', () => {
 });
 
 function getTemplateContentEditor() {
+    if (window.editors && window.editors['id_content']) return window.editors['id_content'];
     const editable = document.querySelector('.ck-editor__editable');
     if (editable && editable.ckeditorInstance) return editable.ckeditorInstance;
     return null;
@@ -147,28 +148,42 @@ function getTemplateContentEditor() {
                             <button type="button" @click="open = false" class="text-purple-400 hover:text-purple-600 text-lg leading-none">&times;</button>
                         </div>
                         <div x-show="error !== null" class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700" x-text="error || ''"></div>
-                        <div x-show="result !== null" class="mb-3 p-3 bg-white border border-purple-200 rounded text-sm">
-                            <p class="text-gray-700 mb-2"><strong>Summary:</strong> <span x-text="result ? result.summary : ''"></span></p>
+                        <!-- Result -->
+                        <div x-show="result !== null" class="mb-3">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Generated — review before applying</p>
+                            <div class="bg-white border border-purple-200 rounded p-3 mb-3 max-h-72 overflow-y-auto">
+                                <p class="text-xs font-semibold text-gray-400 uppercase mb-2">Content Preview</p>
+                                <div class="prose prose-sm max-w-none ck-content text-sm" x-html="result ? result.content : ''"></div>
+                            </div>
                             <div class="flex gap-2">
-                                <button type="button" @click="apply()" class="btn btn-xs bg-purple-600 text-white border-purple-600 hover:bg-purple-700">Apply to Editor</button>
-                                <button type="button" @click="result = null" class="btn btn-xs btn-ghost">Discard</button>
+                                <button type="button" @click="apply()" class="btn btn-sm bg-purple-600 text-white border-purple-600 hover:bg-purple-700 font-medium">✓ Apply to Editor</button>
+                                <button type="button" @click="result = null" class="btn btn-sm btn-ghost">Discard</button>
                             </div>
                         </div>
+                        <!-- Actions -->
                         <div x-show="result === null">
-                            <textarea x-model="description" rows="3"
-                                class="textarea textarea-bordered w-full text-sm mb-3"
-                                placeholder="Describe what you'd like to change or add…"
-                                :disabled="loading || reformatLoading"></textarea>
-                            <div class="flex gap-2">
+                            <!-- Apply Style Guide -->
+                            <div class="mb-3 p-3 bg-white border border-gray-200 rounded">
+                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Apply Style Guide</p>
+                                <p class="text-sm text-gray-600 mb-3">Reformat existing content to the platform style — text and images are preserved unchanged.</p>
+                                <button type="button" @click="reformat()" :disabled="loading || reformatLoading"
+                                    class="btn btn-sm disabled:opacity-50 flex items-center gap-2 text-white"
+                                    style="background-color: #475569;">
+                                    <span x-show="reformatLoading" class="loading loading-spinner loading-xs"></span>
+                                    <span x-text="reformatLoading ? 'Reformatting…' : 'Reformat to Style Guide'"></span>
+                                </button>
+                            </div>
+                            <!-- Generate / Revise -->
+                            <div class="p-3 bg-white border border-gray-200 rounded">
+                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Generate / Revise Content</p>
+                                <textarea x-model="description" rows="3"
+                                    class="textarea textarea-bordered w-full text-sm mb-3"
+                                    placeholder="Describe what you'd like to change or add…"
+                                    :disabled="loading || reformatLoading"></textarea>
                                 <button type="button" @click="generate()" :disabled="loading || reformatLoading"
                                     class="btn btn-sm bg-purple-600 text-white border-purple-600 hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2">
                                     <span x-show="loading" class="loading loading-spinner loading-xs"></span>
                                     <span x-text="loading ? 'Generating…' : 'Generate'"></span>
-                                </button>
-                                <button type="button" @click="reformat()" :disabled="loading || reformatLoading"
-                                    class="btn btn-sm btn-outline border-slate-400 text-slate-700 hover:bg-slate-600 hover:text-white disabled:opacity-50 flex items-center gap-2">
-                                    <span x-show="reformatLoading" class="loading loading-spinner loading-xs"></span>
-                                    <span x-text="reformatLoading ? 'Reformatting…' : 'Reformat to Style Guide'"></span>
                                 </button>
                             </div>
                         </div>
