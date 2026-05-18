@@ -146,17 +146,15 @@ function getTemplateContentEditor() {
                             <h4 class="font-semibold text-purple-900 text-sm">AI Template Assistant</h4>
                             <button type="button" @click="open = false" class="text-purple-400 hover:text-purple-600 text-lg leading-none">&times;</button>
                         </div>
-                        <div x-show="error" class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700" x-text="error"></div>
-                        <template x-if="result">
-                            <div class="mb-3 p-3 bg-white border border-purple-200 rounded text-sm">
-                                <p class="text-gray-700 mb-2"><strong>Summary:</strong> <span x-text="result.summary"></span></p>
-                                <div class="flex gap-2">
-                                    <button type="button" @click="apply()" class="btn btn-xs bg-purple-600 text-white border-purple-600 hover:bg-purple-700">Apply to Editor</button>
-                                    <button type="button" @click="result = null" class="btn btn-xs btn-ghost">Discard</button>
-                                </div>
+                        <div x-show="error !== null" class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700" x-text="error || ''"></div>
+                        <div x-show="result !== null" class="mb-3 p-3 bg-white border border-purple-200 rounded text-sm">
+                            <p class="text-gray-700 mb-2"><strong>Summary:</strong> <span x-text="result ? result.summary : ''"></span></p>
+                            <div class="flex gap-2">
+                                <button type="button" @click="apply()" class="btn btn-xs bg-purple-600 text-white border-purple-600 hover:bg-purple-700">Apply to Editor</button>
+                                <button type="button" @click="result = null" class="btn btn-xs btn-ghost">Discard</button>
                             </div>
-                        </template>
-                        <div x-show="!result">
+                        </div>
+                        <div x-show="result === null">
                             <textarea x-model="description" rows="3"
                                 class="textarea textarea-bordered w-full text-sm mb-3"
                                 placeholder="Describe what you'd like to change or add…"
