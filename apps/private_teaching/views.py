@@ -520,6 +520,23 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             status='waitlist'
         ).select_related('applicant', 'child_profile').order_by('created_at')
 
+        # Accepted applicants who have never booked a lesson — they fall through the cracks
+        # because they don't appear in the Students list until their first lesson is booked
+        from django.db.models import Exists, OuterRef
+        from lessons.models import Lesson as PrivateLesson
+        accepted_awaiting_lesson = TeacherStudentApplication.objects.filter(
+            teacher=self.request.user,
+            status='accepted'
+        ).annotate(
+            has_lesson=Exists(
+                PrivateLesson.objects.filter(
+                    teacher=OuterRef('teacher'),
+                    student=OuterRef('applicant'),
+                    is_deleted=False
+                )
+            )
+        ).filter(has_lesson=False).select_related('applicant', 'child_profile')
+
         # Get lesson requests for this teacher's subjects with pending lessons
         # PERFORMANCE FIX: Use direct join instead of subquery
         from django.db.models import Prefetch, Q
@@ -588,6 +605,8 @@ class TeacherDashboardView(TeacherProfileCompletedMixin, TemplateView):
             'pending_applications_count': pending_applications.count(),
             'waitlist_applications': waitlist_applications[:10],
             'waitlist_applications_count': waitlist_applications.count(),
+            'accepted_awaiting_lesson': accepted_awaiting_lesson,
+            'accepted_awaiting_count': accepted_awaiting_lesson.count(),
             'pending_requests': pending_requests[:10],
             'pending_count': pending_requests.count(),
             'today_lessons': today_lessons,
@@ -3211,6 +3230,16 @@ class TeacherApplicationDetailView(TeacherProfileCompletedMixin, TemplateView):
 
         context['application'] = application
         context['app_messages'] = application.messages.select_related('author').order_by('created_at')
+
+        if application.status == 'accepted':
+            from lessons.models import Lesson as PrivateLesson
+            context['has_booked'] = PrivateLesson.objects.filter(
+                teacher=application.teacher,
+                student=application.applicant,
+                is_deleted=False
+            ).exists()
+        else:
+            context['has_booked'] = None
 
         return context
 

@@ -40,6 +40,17 @@
                                 </span>
                             </div>
 
+                            {% if application.status == 'accepted' and has_booked == False %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-calendar-plus"></i>
+                                <span>
+                                    <strong>Awaiting first lesson booking.</strong>
+                                    {{ application.student_name }} has been accepted but has not yet booked a lesson.
+                                    They will appear in your Students list once their first lesson is confirmed.
+                                </span>
+                            </div>
+                            {% endif %}
+
                             <!-- Status Selection -->
                             <div class="form-control">
                                 <label class="label">

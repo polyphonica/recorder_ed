@@ -20,7 +20,7 @@
             <h2 class="card-title text-warning">
                 <i class="fas fa-bell mr-1"></i>Priority Actions
             </h2>
-            {% if paid_unassigned_count > 0 or pending_applications_count > 0 or pending_count > 0 or pending_cancellations_count > 0 or waitlist_applications_count > 0 or pending_assignment_submissions_count > 0 %}
+            {% if paid_unassigned_count > 0 or pending_applications_count > 0 or pending_count > 0 or pending_cancellations_count > 0 or waitlist_applications_count > 0 or pending_assignment_submissions_count > 0 or accepted_awaiting_count > 0 %}
             <div class="flex flex-wrap gap-2 mt-2">
                 {% if paid_unassigned_count > 0 %}
                 <a href="{% url 'private_teaching:teacher_schedule' %}" class="badge badge-warning gap-1 p-3">
@@ -44,6 +44,12 @@
                 <a href="{% url 'private_teaching:teacher_cancellation_requests' %}" class="badge badge-error gap-1 p-3">
                     <i class="fas fa-ban text-xs"></i>
                     Review {{ pending_cancellations_count }} Cancellation{{ pending_cancellations_count|pluralize }}
+                </a>
+                {% endif %}
+                {% if accepted_awaiting_count > 0 %}
+                <a href="{% url 'private_teaching:teacher_applications' %}?status=accepted" class="badge badge-success gap-1 p-3">
+                    <i class="fas fa-user-check text-xs"></i>
+                    {{ accepted_awaiting_count }} Accepted Student{{ accepted_awaiting_count|pluralize }} Awaiting First Booking
                 </a>
                 {% endif %}
                 {% if waitlist_applications_count > 0 %}
@@ -103,6 +109,17 @@
             <div class="stat-value text-accent">{{ pending_applications_count }}</div>
             <div class="stat-desc">
                 {% if pending_applications_count > 0 %}{{ pending_applications_count }} to review{% else %}No new applications{% endif %}
+            </div>
+        </a>
+
+        <a href="{% url 'private_teaching:teacher_applications' %}?status=accepted" class="stat bg-base-100 shadow rounded-lg hover:shadow-xl transition-shadow">
+            <div class="stat-figure text-success">
+                <i class="fas fa-user-check text-2xl"></i>
+            </div>
+            <div class="stat-title">Awaiting First Booking</div>
+            <div class="stat-value text-success">{{ accepted_awaiting_count }}</div>
+            <div class="stat-desc">
+                {% if accepted_awaiting_count > 0 %}Accepted, not yet booked{% else %}All accepted students active{% endif %}
             </div>
         </a>
 
