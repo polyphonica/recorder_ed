@@ -1,9 +1,8 @@
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from apps.private_teaching.mixins import StudentProfileCompletedMixin
 
 
-class StudentTrainingView(StudentProfileCompletedMixin, TemplateView):
+class StudentTrainingView(LoginRequiredMixin, TemplateView):
     """
     Main aural training interface for students.
     Serves the adapted POC as a Django template.
