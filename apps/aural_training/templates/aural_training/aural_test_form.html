@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ action }} Test — {{ test_set.name }}{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8 max-w-xl">
+
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold">{{ action }} Test</h1>
+            <p class="text-base-content/60 mt-1">{{ test_set.name }}</p>
+        </div>
+        <a href="{% url 'aural_training:aural_tests' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-arrow-left mr-2"></i>Back
+        </a>
+    </div>
+
+    {% if messages %}
+    <div class="mb-4 space-y-2">
+        {% for message in messages %}
+        <div class="alert alert-error"><span>{{ message }}</span></div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card card-section shadow-xl">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text font-medium">Title</span></label>
+                    <input type="text" name="title" class="input input-bordered"
+                           value="{{ test.title|default:'' }}" placeholder="e.g. Melodic Memory 1" required>
+                </div>
+
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text font-medium">Instructions</span></label>
+                    <textarea name="instructions" class="textarea textarea-bordered" rows="4" required
+                              placeholder="e.g. You will hear a short melody. You will be given the key and starting note. Sing or play the melody back in time without a pause.">{{ test.instructions|default:'' }}</textarea>
+                </div>
+
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text font-medium">Audio File</span>
+                        {% if test.audio_file %}
+                        <span class="label-text-alt text-base-content/50">Leave blank to keep current file</span>
+                        {% endif %}
+                    </label>
+                    {% if test.audio_file %}
+                    <div class="mb-2">
+                        <audio controls class="w-full max-w-sm" preload="none">
+                            <source src="{{ test.audio_file.url }}">
+                        </audio>
+                    </div>
+                    {% endif %}
+                    <input type="file" name="audio_file" class="file-input file-input-bordered"
+                           accept=".mp3,.wav,.ogg,.m4a" {% if not test %}required{% endif %}>
+                    <label class="label"><span class="label-text-alt text-base-content/50">MP3, WAV, OGG or M4A — max 50MB</span></label>
+                </div>
+
+                <div class="form-control mb-6">
+                    <label class="label"><span class="label-text font-medium">Display Order</span></label>
+                    <input type="number" name="order" class="input input-bordered w-32"
+                           value="{{ test.order|default:'0' }}" min="0">
+                    <label class="label"><span class="label-text-alt text-base-content/50">Lower numbers appear first within the set.</span></label>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save mr-2"></i>{{ action }} Test
+                    </button>
+                    <a href="{% url 'aural_training:aural_tests' %}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+</div>
+{% endblock %}

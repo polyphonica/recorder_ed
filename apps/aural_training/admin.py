@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import StudentIntervalProgress, AuralTrainingSession
+from .models import StudentIntervalProgress, AuralTrainingSession, AuralTestSet, AuralTest
 
 
 @admin.register(StudentIntervalProgress)
@@ -35,3 +35,25 @@ class AuralTrainingSessionAdmin(admin.ModelAdmin):
             return f"{obj.duration_minutes} min"
         return "-"
     get_duration.short_description = 'Duration'
+
+
+class AuralTestInline(admin.TabularInline):
+    model = AuralTest
+    extra = 0
+    fields = ['title', 'instructions', 'audio_file', 'order']
+    ordering = ['order', 'title']
+
+
+@admin.register(AuralTestSet)
+class AuralTestSetAdmin(admin.ModelAdmin):
+    list_display = ['name', 'created_by', 'is_shared', 'order', 'created_at']
+    list_filter = ['is_shared']
+    search_fields = ['name', 'created_by__email', 'created_by__first_name', 'created_by__last_name']
+    inlines = [AuralTestInline]
+
+
+@admin.register(AuralTest)
+class AuralTestAdmin(admin.ModelAdmin):
+    list_display = ['title', 'test_set', 'order', 'created_at']
+    list_filter = ['test_set']
+    search_fields = ['title', 'test_set__name']

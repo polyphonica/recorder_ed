@@ -71,10 +71,26 @@
                 <h1 class="text-4xl font-bold mb-2">Aural Training</h1>
                 <p class="text-base-content/70">Master intervals step-by-step with structured learning</p>
             </div>
+            {% if user.profile.is_teacher %}
+            <a href="{% url 'private_teaching:teacher_dashboard' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+            {% else %}
             <a href="{% url 'private_teaching:student_dashboard' %}" class="btn btn-outline">
                 <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
             </a>
+            {% endif %}
         </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tabs tabs-boxed mb-6">
+        <a href="{% url 'aural_training:student_training' %}" class="tab tab-active">
+            <i class="fas fa-music mr-2"></i>Interval Training
+        </a>
+        <a href="{% url 'aural_training:aural_tests' %}" class="tab">
+            <i class="fas fa-headphones mr-2"></i>Aural Tests
+        </a>
     </div>
 
     <!-- Loading Overlay -->

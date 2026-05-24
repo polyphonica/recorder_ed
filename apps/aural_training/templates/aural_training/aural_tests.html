@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Aural Tests{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8">
+
+    <!-- Page Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Aural Training</h1>
+                <p class="text-base-content/70">Exam preparation exercises</p>
+            </div>
+            {% if is_teacher %}
+            <a href="{% url 'private_teaching:teacher_dashboard' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+            {% else %}
+            <a href="{% url 'private_teaching:student_dashboard' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tabs tabs-boxed mb-6">
+        <a href="{% url 'aural_training:student_training' %}" class="tab">
+            <i class="fas fa-music mr-2"></i>Interval Training
+        </a>
+        <a href="{% url 'aural_training:aural_tests' %}" class="tab tab-active">
+            <i class="fas fa-headphones mr-2"></i>Aural Tests
+        </a>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="mb-4 space-y-2">
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">
+            <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Teacher: New Set button -->
+    {% if is_teacher %}
+    <div class="flex justify-end mb-4">
+        <a href="{% url 'aural_training:test_set_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus mr-2"></i>New Test Set
+        </a>
+    </div>
+    {% endif %}
+
+    {% if test_sets %}
+        {% for test_set in test_sets %}
+        <div class="card card-section shadow-xl mb-6">
+            <div class="card-body">
+
+                <!-- Set Header -->
+                <div class="flex items-start justify-between gap-4 mb-4">
+                    <div>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <h2 class="card-title text-2xl">{{ test_set.name }}</h2>
+                            {% if test_set.is_shared %}
+                            <span class="badge badge-success badge-sm">Shared</span>
+                            {% else %}
+                            <span class="badge badge-outline badge-sm">Private</span>
+                            {% endif %}
+                        </div>
+                        {% if test_set.description %}
+                        <p class="text-base-content/70 mt-1">{{ test_set.description }}</p>
+                        {% endif %}
+                        {% if is_teacher and test_set.created_by != request.user %}
+                        <p class="text-xs text-base-content/50 mt-1">By {{ test_set.created_by.get_full_name|default:test_set.created_by.username }}</p>
+                        {% endif %}
+                    </div>
+
+                    {% if is_teacher and test_set.created_by == request.user %}
+                    <div class="flex gap-2 flex-shrink-0">
+                        <a href="{% url 'aural_training:test_create' test_set.pk %}" class="btn btn-sm btn-section-primary">
+                            <i class="fas fa-plus mr-1"></i>Add Test
+                        </a>
+                        <a href="{% url 'aural_training:test_set_edit' test_set.pk %}" class="btn btn-sm btn-outline">
+                            <i class="fas fa-pencil-alt"></i>
+                        </a>
+                        <form method="post" action="{% url 'aural_training:test_set_delete' test_set.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-error btn-outline"
+                                    onclick="return confirm('Delete &quot;{{ test_set.name }}&quot; and all its tests?')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Tests -->
+                {% if test_set.tests.all %}
+                <div class="space-y-4">
+                    {% for test in test_set.tests.all %}
+                    <div class="bg-base-200 rounded-box p-4">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-semibold text-lg mb-1">{{ test.title }}</h3>
+                                <p class="text-base-content/70 text-sm mb-3 whitespace-pre-line">{{ test.instructions }}</p>
+                                <audio controls class="w-full max-w-md" preload="none">
+                                    <source src="{{ test.audio_file.url }}">
+                                    Your browser does not support audio playback.
+                                </audio>
+                            </div>
+
+                            {% if is_teacher and test_set.created_by == request.user %}
+                            <div class="flex gap-2 flex-shrink-0">
+                                <a href="{% url 'aural_training:test_edit' test.pk %}" class="btn btn-xs btn-outline">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </a>
+                                <form method="post" action="{% url 'aural_training:test_delete' test.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-xs btn-error btn-outline"
+                                            onclick="return confirm('Delete &quot;{{ test.title }}&quot;?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-6 text-base-content/40">
+                    <i class="fas fa-headphones text-3xl mb-2 block"></i>
+                    No tests in this set yet.
+                    {% if is_teacher and test_set.created_by == request.user %}
+                    <a href="{% url 'aural_training:test_create' test_set.pk %}" class="link link-primary ml-1">Add the first test.</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+        {% endfor %}
+
+    {% else %}
+    <div class="card card-section shadow-xl">
+        <div class="card-body text-center py-12">
+            <i class="fas fa-headphones text-5xl text-base-content/20 mb-4 block"></i>
+            <h2 class="text-2xl font-semibold mb-2">No aural tests yet</h2>
+            {% if is_teacher %}
+            <p class="text-base-content/60 mb-4">Create your first test set to get started.</p>
+            <a href="{% url 'aural_training:test_set_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus mr-2"></i>New Test Set
+            </a>
+            {% else %}
+            <p class="text-base-content/60">Your teacher hasn't uploaded any aural tests yet.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+</div>
+{% endblock %}

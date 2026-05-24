@@ -152,3 +152,54 @@ class AuralTrainingSession(models.Model):
     def __str__(self):
         student_name = self.child_profile.full_name if self.child_profile else self.student.get_full_name()
         return f"{student_name} - {self.get_mode_display()} - {self.started_at.strftime('%Y-%m-%d %H:%M')}"
+
+
+class AuralTestSet(models.Model):
+    """
+    A named collection of aural tests grouped by grade/syllabus (e.g. "Grade 1 ABRSM").
+    Created by a teacher; optionally shared across the whole platform.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='aural_test_sets'
+    )
+    is_shared = models.BooleanField(
+        default=False,
+        help_text="If true, all students on the platform can access this set; otherwise only this teacher's students."
+    )
+    order = models.PositiveIntegerField(default=0, help_text="Lower numbers appear first.")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name = 'Aural Test Set'
+        verbose_name_plural = 'Aural Test Sets'
+
+    def __str__(self):
+        return self.name
+
+
+class AuralTest(models.Model):
+    """
+    A single exam-preparation exercise within a test set.
+    The teacher uploads an audio file; the student listens and responds aloud.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    test_set = models.ForeignKey(AuralTestSet, on_delete=models.CASCADE, related_name='tests')
+    title = models.CharField(max_length=200)
+    instructions = models.TextField(help_text="What the student should do after listening.")
+    audio_file = models.FileField(upload_to='aural_tests/')
+    order = models.PositiveIntegerField(default=0, help_text="Lower numbers appear first.")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'title']
+        verbose_name = 'Aural Test'
+        verbose_name_plural = 'Aural Tests'
+
+    def __str__(self):
+        return f"{self.test_set.name} — {self.title}"

@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ action }} Test Set{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8 max-w-xl">
+
+    <div class="mb-6 flex items-center justify-between">
+        <h1 class="text-3xl font-bold">{{ action }} Test Set</h1>
+        <a href="{% url 'aural_training:aural_tests' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-arrow-left mr-2"></i>Back
+        </a>
+    </div>
+
+    {% if messages %}
+    <div class="mb-4 space-y-2">
+        {% for message in messages %}
+        <div class="alert alert-error"><span>{{ message }}</span></div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card card-section shadow-xl">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text font-medium">Name</span></label>
+                    <input type="text" name="name" class="input input-bordered"
+                           value="{{ test_set.name|default:'' }}" placeholder="e.g. Grade 1 ABRSM" required>
+                </div>
+
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text font-medium">Description <span class="text-base-content/50">(optional)</span></span></label>
+                    <textarea name="description" class="textarea textarea-bordered" rows="3"
+                              placeholder="e.g. Melodic memory and rhythmic echo exercises for ABRSM Grade 1">{{ test_set.description|default:'' }}</textarea>
+                </div>
+
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text font-medium">Display Order</span></label>
+                    <input type="number" name="order" class="input input-bordered w-32"
+                           value="{{ test_set.order|default:'0' }}" min="0">
+                    <label class="label"><span class="label-text-alt text-base-content/50">Lower numbers appear first. Use 0, 1, 2 … to set the order of your sets.</span></label>
+                </div>
+
+                <div class="form-control mb-6">
+                    <label class="label cursor-pointer justify-start gap-3">
+                        <input type="checkbox" name="is_shared" class="checkbox"
+                               {% if test_set.is_shared %}checked{% endif %}>
+                        <span class="label-text">Share with all students on the platform</span>
+                    </label>
+                    <p class="text-xs text-base-content/50 ml-8">When unchecked, only your own students can see this set.</p>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save mr-2"></i>{{ action }} Set
+                    </button>
+                    <a href="{% url 'aural_training:aural_tests' %}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+</div>
+{% endblock %}
