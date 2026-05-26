@@ -58,26 +58,30 @@
 
     {% if test_sets %}
         {% for test_set in test_sets %}
-        <div class="card card-section shadow-xl mb-6">
+        <div class="card card-section shadow-xl mb-6" x-data="{ open: true }">
             <div class="card-body">
 
                 <!-- Set Header -->
-                <div class="flex items-start justify-between gap-4 mb-4">
-                    <div>
-                        <div class="flex items-center gap-3 flex-wrap">
-                            <h2 class="card-title text-2xl">{{ test_set.name }}</h2>
-                            {% if test_set.is_shared %}
-                            <span class="badge badge-success badge-sm">Shared</span>
-                            {% else %}
-                            <span class="badge badge-outline badge-sm">Private</span>
+                <div class="flex items-start justify-between gap-4 mb-2">
+                    <div class="flex items-start gap-3 cursor-pointer flex-1 min-w-0" @click="open = !open">
+                        <i class="fas fa-chevron-right mt-1.5 flex-shrink-0 transition-transform duration-200 text-base-content/50"
+                           :class="{ 'rotate-90': open }"></i>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <h2 class="card-title text-2xl">{{ test_set.name }}</h2>
+                                {% if test_set.is_shared %}
+                                <span class="badge badge-success badge-sm">Shared</span>
+                                {% else %}
+                                <span class="badge badge-outline badge-sm">Private</span>
+                                {% endif %}
+                            </div>
+                            {% if test_set.description %}
+                            <p class="text-base-content/70 mt-1">{{ test_set.description }}</p>
+                            {% endif %}
+                            {% if is_teacher and test_set.created_by != request.user %}
+                            <p class="text-xs text-base-content/50 mt-1">By {{ test_set.created_by.get_full_name|default:test_set.created_by.username }}</p>
                             {% endif %}
                         </div>
-                        {% if test_set.description %}
-                        <p class="text-base-content/70 mt-1">{{ test_set.description }}</p>
-                        {% endif %}
-                        {% if is_teacher and test_set.created_by != request.user %}
-                        <p class="text-xs text-base-content/50 mt-1">By {{ test_set.created_by.get_full_name|default:test_set.created_by.username }}</p>
-                        {% endif %}
                     </div>
 
                     {% if is_teacher and test_set.created_by == request.user %}
@@ -99,9 +103,10 @@
                     {% endif %}
                 </div>
 
-                <!-- Tests -->
+                <!-- Tests (collapsible) -->
+                <div x-show="open" x-transition.duration.150ms>
                 {% if test_set.tests.all %}
-                <div class="space-y-4">
+                <div class="space-y-4 mt-2">
                     {% for test in test_set.tests.all %}
                     <div class="bg-base-200 rounded-box p-4">
                         <div class="flex items-start justify-between gap-4">
@@ -141,6 +146,7 @@
                     {% endif %}
                 </div>
                 {% endif %}
+                </div>
 
             </div>
         </div>
