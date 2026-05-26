@@ -73,7 +73,7 @@ class AuralTestsView(LoginRequiredMixin, TemplateView):
             ).prefetch_related('tests').select_related('created_by')
         else:
             teacher_ids = TeacherStudentApplication.objects.filter(
-                student=user, status='accepted'
+                applicant=user, status='accepted'
             ).values_list('teacher_id', flat=True)
             test_sets = AuralTestSet.objects.filter(
                 Q(is_shared=True) | Q(created_by_id__in=teacher_ids)
