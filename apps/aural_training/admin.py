@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import StudentIntervalProgress, AuralTrainingSession, AuralTestSet, AuralTest
+from .models import StudentIntervalProgress, AuralTrainingSession, AuralTestSet, AuralTest, GlossaryTerm
 
 
 @admin.register(StudentIntervalProgress)
@@ -57,3 +57,10 @@ class AuralTestAdmin(admin.ModelAdmin):
     list_display = ['title', 'test_set', 'order', 'created_at']
     list_filter = ['test_set']
     search_fields = ['title', 'test_set__name']
+
+
+@admin.register(GlossaryTerm)
+class GlossaryTermAdmin(admin.ModelAdmin):
+    list_display = ['term', 'grade', 'created_by', 'is_shared', 'order', 'created_at']
+    list_filter = ['grade', 'is_shared']
+    search_fields = ['term', 'definition', 'created_by__email', 'created_by__first_name', 'created_by__last_name']

@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ action }} Glossary Term{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8 max-w-xl">
+
+    <div class="mb-6 flex items-center justify-between">
+        <h1 class="text-3xl font-bold">{{ action }} Glossary Term</h1>
+        <a href="{% url 'aural_training:glossary' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-arrow-left mr-2"></i>Back
+        </a>
+    </div>
+
+    {% if messages %}
+    <div class="mb-4 space-y-2">
+        {% for message in messages %}
+        <div class="alert alert-error"><span>{{ message }}</span></div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card card-section shadow-xl">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text font-medium">Term</span></label>
+                    <input type="text" name="term" class="input input-bordered"
+                           value="{{ glossary_term.term|default:'' }}"
+                           placeholder="e.g. Allegro" required autofocus>
+                </div>
+
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text font-medium">Definition</span></label>
+                    <textarea name="definition" class="textarea textarea-bordered" rows="4"
+                              placeholder="e.g. Fast and lively tempo" required>{{ glossary_term.definition|default:'' }}</textarea>
+                </div>
+
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text font-medium">Grade <span class="text-base-content/50">(optional)</span></span></label>
+                    <select name="grade" class="select select-bordered w-40">
+                        <option value="">— General —</option>
+                        {% for grade_val, grade_label in grade_choices %}
+                        <option value="{{ grade_val }}"
+                            {% if glossary_term.grade == grade_val %}selected{% endif %}>
+                            {{ grade_label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <label class="label"><span class="label-text-alt text-base-content/50">Terms are grouped by grade on the glossary page.</span></label>
+                </div>
+
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text font-medium">Display Order <span class="text-base-content/50">(optional)</span></span></label>
+                    <input type="number" name="order" class="input input-bordered w-32"
+                           value="{{ glossary_term.order|default:'0' }}" min="0">
+                    <label class="label"><span class="label-text-alt text-base-content/50">Lower numbers appear first within a grade. Alphabetical by default (0).</span></label>
+                </div>
+
+                <div class="form-control mb-6">
+                    <label class="label cursor-pointer justify-start gap-3">
+                        <input type="checkbox" name="is_shared" class="checkbox"
+                               {% if glossary_term.is_shared %}checked{% endif %}>
+                        <span class="label-text">Share with all students on the platform</span>
+                    </label>
+                    <p class="text-xs text-base-content/50 ml-8">When unchecked, only your own students can see this term.</p>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save mr-2"></i>{{ action }} Term
+                    </button>
+                    <a href="{% url 'aural_training:glossary' %}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+</div>
+{% endblock %}

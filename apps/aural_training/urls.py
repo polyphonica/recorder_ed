@@ -23,4 +23,10 @@ urlpatterns = [
     path('tests/sets/<uuid:set_pk>/add/', views.aural_test_create, name='test_create'),
     path('tests/<uuid:pk>/edit/', views.aural_test_edit, name='test_edit'),
     path('tests/<uuid:pk>/delete/', views.aural_test_delete, name='test_delete'),
+
+    # Glossary
+    path('glossary/', views.GlossaryView.as_view(), name='glossary'),
+    path('glossary/new/', views.glossary_term_create, name='glossary_term_create'),
+    path('glossary/<uuid:pk>/edit/', views.glossary_term_edit, name='glossary_term_edit'),
+    path('glossary/<uuid:pk>/delete/', views.glossary_term_delete, name='glossary_term_delete'),
 ]

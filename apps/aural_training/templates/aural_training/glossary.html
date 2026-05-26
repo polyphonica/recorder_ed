@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Music Glossary{% endblock %}
+
+{% block content %}
+<div class="section-private-teaching">
+<div class="container mx-auto px-4 py-8">
+
+    <!-- Page Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Aural Training</h1>
+                <p class="text-base-content/70">Exam preparation exercises</p>
+            </div>
+            {% if is_teacher %}
+            <a href="{% url 'private_teaching:teacher_dashboard' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+            {% else %}
+            <a href="{% url 'private_teaching:student_dashboard' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tabs tabs-boxed mb-6">
+        <a href="{% url 'aural_training:student_training' %}" class="tab">
+            <i class="fas fa-music mr-2"></i>Interval Training
+        </a>
+        <a href="{% url 'aural_training:aural_tests' %}" class="tab">
+            <i class="fas fa-headphones mr-2"></i>Aural Tests
+        </a>
+        <a href="{% url 'aural_training:glossary' %}" class="tab tab-active">
+            <i class="fas fa-book mr-2"></i>Glossary
+        </a>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="mb-4 space-y-2">
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">
+            <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Toolbar -->
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        {% if is_teacher %}
+        <a href="{% url 'aural_training:glossary_term_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus mr-2"></i>Add Term
+        </a>
+        {% else %}
+        <div></div>
+        {% endif %}
+
+        {% if grouped_terms %}
+        <button x-data="{ all: false }"
+                @click="all = !all; $dispatch(all ? 'glossary-show-all' : 'glossary-hide-all')"
+                class="btn btn-outline btn-sm">
+            <i class="fas fa-eye mr-2" x-show="!all"></i>
+            <i class="fas fa-eye-slash mr-2" x-show="all" x-cloak></i>
+            <span x-text="all ? 'Hide all definitions' : 'Reveal all definitions'">Reveal all definitions</span>
+        </button>
+        {% endif %}
+    </div>
+
+    {% if grouped_terms %}
+        {% for group in grouped_terms %}
+        <div class="card card-section shadow-xl mb-6">
+            <div class="card-body">
+
+                <h2 class="card-title text-xl mb-4">
+                    <i class="fas fa-graduation-cap mr-2 text-base-content/50"></i>
+                    {{ group.grade_label }}
+                    <span class="text-sm font-normal text-base-content/50 ml-1">({{ group.terms|length }} term{{ group.terms|length|pluralize }})</span>
+                </h2>
+
+                <div class="divide-y divide-base-200">
+                    {% for glossary_term in group.terms %}
+                    <div class="py-3"
+                         x-data="{ shown: false }"
+                         @glossary-show-all.window="shown = true"
+                         @glossary-hide-all.window="shown = false">
+
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-3 flex-wrap mb-1">
+                                    <span class="font-semibold text-lg italic">{{ glossary_term.term }}</span>
+                                    {% if is_teacher and glossary_term.created_by != request.user %}
+                                    <span class="text-xs text-base-content/40">by {{ glossary_term.created_by.get_full_name|default:glossary_term.created_by.username }}</span>
+                                    {% endif %}
+                                </div>
+
+                                <div x-show="shown" x-transition.duration.150ms>
+                                    <p class="text-base-content/80 text-sm mt-1">{{ glossary_term.definition }}</p>
+                                </div>
+
+                                <button @click="shown = !shown"
+                                        class="btn btn-xs btn-ghost mt-1 text-base-content/50 px-0 hover:text-base-content">
+                                    <i class="fas mr-1" :class="shown ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                    <span x-text="shown ? 'Hide' : 'Show definition'">Show definition</span>
+                                </button>
+                            </div>
+
+                            {% if is_teacher and glossary_term.created_by == request.user %}
+                            <div class="flex gap-2 flex-shrink-0">
+                                <a href="{% url 'aural_training:glossary_term_edit' glossary_term.pk %}" class="btn btn-xs btn-outline">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </a>
+                                <form method="post" action="{% url 'aural_training:glossary_term_delete' glossary_term.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-xs btn-error btn-outline"
+                                            onclick="return confirm('Delete &quot;{{ glossary_term.term }}&quot;?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                    </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+        {% endfor %}
+
+    {% else %}
+    <div class="card card-section shadow-xl">
+        <div class="card-body text-center py-12">
+            <i class="fas fa-book text-5xl text-base-content/20 mb-4 block"></i>
+            <h2 class="text-2xl font-semibold mb-2">No glossary terms yet</h2>
+            {% if is_teacher %}
+            <p class="text-base-content/60 mb-4">Add musical terms and definitions for your students.</p>
+            <a href="{% url 'aural_training:glossary_term_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus mr-2"></i>Add Term
+            </a>
+            {% else %}
+            <p class="text-base-content/60">Your teacher hasn't added any glossary terms yet.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+</div>
+{% endblock %}

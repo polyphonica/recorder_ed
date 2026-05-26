@@ -183,6 +183,45 @@ class AuralTestSet(models.Model):
         return self.name
 
 
+GRADE_CHOICES = [(i, f'Grade {i}') for i in range(1, 9)]
+
+
+class GlossaryTerm(models.Model):
+    """
+    A musical term and its definition, optionally tied to an exam grade.
+    Teacher-created; students can hide definitions to self-test.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    term = models.CharField(max_length=100)
+    definition = models.TextField()
+    grade = models.PositiveSmallIntegerField(
+        choices=GRADE_CHOICES,
+        null=True,
+        blank=True,
+        help_text="Leave blank if not grade-specific."
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='glossary_terms'
+    )
+    is_shared = models.BooleanField(
+        default=False,
+        help_text="If true, all students on the platform can see this term."
+    )
+    order = models.PositiveIntegerField(default=0, help_text="Lower numbers appear first within a grade.")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['grade', 'order', 'term']
+        verbose_name = 'Glossary Term'
+        verbose_name_plural = 'Glossary Terms'
+
+    def __str__(self):
+        grade_str = f' (Grade {self.grade})' if self.grade else ''
+        return f'{self.term}{grade_str}'
+
+
 class AuralTest(models.Model):
     """
     A single exam-preparation exercise within a test set.

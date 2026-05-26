@@ -1,3 +1,5 @@
+from itertools import groupby
+
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect, get_object_or_404
@@ -303,6 +305,174 @@ def aural_test_edit(request, pk):
         'test_set': test_set,
         'test': test,
     })
+
+
+# ---------------------------------------------------------------------------
+# Glossary
+# ---------------------------------------------------------------------------
+
+class GlossaryView(LoginRequiredMixin, TemplateView):
+    template_name = 'aural_training/glossary.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from .models import GlossaryTerm
+        from apps.private_teaching.models import TeacherStudentApplication
+
+        user = self.request.user
+        is_teacher = hasattr(user, 'profile') and user.profile.is_teacher
+
+        if is_teacher:
+            terms = GlossaryTerm.objects.filter(
+                Q(is_shared=True) | Q(created_by=user)
+            ).select_related('created_by')
+        else:
+            teacher_ids = TeacherStudentApplication.objects.filter(
+                applicant=user, status='accepted'
+            ).values_list('teacher_id', flat=True)
+            terms = GlossaryTerm.objects.filter(
+                Q(is_shared=True) | Q(created_by_id__in=teacher_ids)
+            ).select_related('created_by')
+
+        grouped = []
+        for grade, items in groupby(terms, key=lambda t: t.grade):
+            grouped.append({
+                'grade': grade,
+                'grade_label': f'Grade {grade}' if grade else 'General',
+                'terms': list(items),
+            })
+
+        context['grouped_terms'] = grouped
+        context['is_teacher'] = is_teacher
+        return context
+
+
+@login_required
+def glossary_term_create(request):
+    if not _require_teacher(request):
+        return redirect('aural_training:glossary')
+
+    if request.method == 'POST':
+        term = request.POST.get('term', '').strip()
+        definition = request.POST.get('definition', '').strip()
+        grade = request.POST.get('grade', '').strip() or None
+        is_shared = request.POST.get('is_shared') == 'on'
+        order = request.POST.get('order', '0').strip() or '0'
+
+        errors = []
+        if not term:
+            errors.append('Term is required.')
+        if not definition:
+            errors.append('Definition is required.')
+        if grade is not None:
+            try:
+                grade = int(grade)
+                if not 1 <= grade <= 8:
+                    raise ValueError
+            except ValueError:
+                errors.append('Grade must be between 1 and 8.')
+                grade = None
+        try:
+            order = int(order)
+        except ValueError:
+            order = 0
+
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+        else:
+            from .models import GlossaryTerm
+            GlossaryTerm.objects.create(
+                term=term,
+                definition=definition,
+                grade=grade,
+                created_by=request.user,
+                is_shared=is_shared,
+                order=order,
+            )
+            messages.success(request, f'"{term}" added to the glossary.')
+            return redirect('aural_training:glossary')
+
+    from .models import GRADE_CHOICES
+    return render(request, 'aural_training/glossary_term_form.html', {
+        'action': 'Add',
+        'grade_choices': GRADE_CHOICES,
+    })
+
+
+@login_required
+def glossary_term_edit(request, pk):
+    from .models import GlossaryTerm
+    glossary_term = get_object_or_404(GlossaryTerm, pk=pk)
+
+    if not _require_teacher(request):
+        return redirect('aural_training:glossary')
+    if glossary_term.created_by != request.user:
+        messages.error(request, 'You can only edit your own glossary terms.')
+        return redirect('aural_training:glossary')
+
+    if request.method == 'POST':
+        term = request.POST.get('term', '').strip()
+        definition = request.POST.get('definition', '').strip()
+        grade = request.POST.get('grade', '').strip() or None
+        is_shared = request.POST.get('is_shared') == 'on'
+        order = request.POST.get('order', '0').strip() or '0'
+
+        errors = []
+        if not term:
+            errors.append('Term is required.')
+        if not definition:
+            errors.append('Definition is required.')
+        if grade is not None:
+            try:
+                grade = int(grade)
+                if not 1 <= grade <= 8:
+                    raise ValueError
+            except ValueError:
+                errors.append('Grade must be between 1 and 8.')
+                grade = None
+        try:
+            order = int(order)
+        except ValueError:
+            order = 0
+
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+        else:
+            glossary_term.term = term
+            glossary_term.definition = definition
+            glossary_term.grade = grade
+            glossary_term.is_shared = is_shared
+            glossary_term.order = order
+            glossary_term.save()
+            messages.success(request, f'"{term}" updated.')
+            return redirect('aural_training:glossary')
+
+    from .models import GRADE_CHOICES
+    return render(request, 'aural_training/glossary_term_form.html', {
+        'action': 'Edit',
+        'glossary_term': glossary_term,
+        'grade_choices': GRADE_CHOICES,
+    })
+
+
+@login_required
+def glossary_term_delete(request, pk):
+    from .models import GlossaryTerm
+    glossary_term = get_object_or_404(GlossaryTerm, pk=pk)
+
+    if not _require_teacher(request):
+        return redirect('aural_training:glossary')
+    if glossary_term.created_by != request.user:
+        messages.error(request, 'You can only delete your own glossary terms.')
+        return redirect('aural_training:glossary')
+
+    if request.method == 'POST':
+        term = glossary_term.term
+        glossary_term.delete()
+        messages.success(request, f'"{term}" removed from the glossary.')
+    return redirect('aural_training:glossary')
 
 
 @login_required
