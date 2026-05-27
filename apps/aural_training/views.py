@@ -215,6 +215,8 @@ def aural_test_create(request, set_pk):
         title = request.POST.get('title', '').strip()
         instructions = request.POST.get('instructions', '').strip()
         audio_file = request.FILES.get('audio_file')
+        audio_file_2 = request.FILES.get('audio_file_2') or None
+        audio_file_3 = request.FILES.get('audio_file_3') or None
         order = request.POST.get('order', '0').strip() or '0'
 
         errors = []
@@ -224,10 +226,12 @@ def aural_test_create(request, set_pk):
             errors.append('Instructions are required.')
         if not audio_file:
             errors.append('Please upload an audio file.')
-        elif not audio_file.name.lower().endswith(('.mp3', '.wav', '.ogg', '.m4a')):
-            errors.append('Accepted formats: MP3, WAV, OGG, M4A.')
-        elif audio_file.size > 50 * 1024 * 1024:
-            errors.append('File must be under 50MB.')
+        for label, f in [('Original', audio_file), ('Version A', audio_file_2), ('Version B', audio_file_3)]:
+            if f:
+                if not f.name.lower().endswith(('.mp3', '.wav', '.ogg', '.m4a')):
+                    errors.append(f'{label}: accepted formats are MP3, WAV, OGG, M4A.')
+                elif f.size > 50 * 1024 * 1024:
+                    errors.append(f'{label}: file must be under 50MB.')
         try:
             order = int(order)
         except ValueError:
@@ -243,6 +247,8 @@ def aural_test_create(request, set_pk):
                 title=title,
                 instructions=instructions,
                 audio_file=audio_file,
+                audio_file_2=audio_file_2,
+                audio_file_3=audio_file_3,
                 order=order,
             )
             messages.success(request, f'Test "{title}" added to {test_set.name}.')
@@ -251,6 +257,7 @@ def aural_test_create(request, set_pk):
     return render(request, 'aural_training/aural_test_form.html', {
         'action': 'Add',
         'test_set': test_set,
+        'initial_slots': 1,
     })
 
 
@@ -269,7 +276,11 @@ def aural_test_edit(request, pk):
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
         instructions = request.POST.get('instructions', '').strip()
-        audio_file = request.FILES.get('audio_file')
+        audio_file = request.FILES.get('audio_file') or None
+        audio_file_2 = request.FILES.get('audio_file_2') or None
+        audio_file_3 = request.FILES.get('audio_file_3') or None
+        clear_2 = request.POST.get('clear_audio_file_2') == 'on'
+        clear_3 = request.POST.get('clear_audio_file_3') == 'on'
         order = request.POST.get('order', '0').strip() or '0'
 
         errors = []
@@ -277,11 +288,12 @@ def aural_test_edit(request, pk):
             errors.append('Title is required.')
         if not instructions:
             errors.append('Instructions are required.')
-        if audio_file:
-            if not audio_file.name.lower().endswith(('.mp3', '.wav', '.ogg', '.m4a')):
-                errors.append('Accepted formats: MP3, WAV, OGG, M4A.')
-            elif audio_file.size > 50 * 1024 * 1024:
-                errors.append('File must be under 50MB.')
+        for label, f in [('Original', audio_file), ('Version A', audio_file_2), ('Version B', audio_file_3)]:
+            if f:
+                if not f.name.lower().endswith(('.mp3', '.wav', '.ogg', '.m4a')):
+                    errors.append(f'{label}: accepted formats are MP3, WAV, OGG, M4A.')
+                elif f.size > 50 * 1024 * 1024:
+                    errors.append(f'{label}: file must be under 50MB.')
         try:
             order = int(order)
         except ValueError:
@@ -296,14 +308,29 @@ def aural_test_edit(request, pk):
             test.order = order
             if audio_file:
                 test.audio_file = audio_file
+            if audio_file_2:
+                test.audio_file_2 = audio_file_2
+            elif clear_2:
+                test.audio_file_2 = None
+            if audio_file_3:
+                test.audio_file_3 = audio_file_3
+            elif clear_3:
+                test.audio_file_3 = None
             test.save()
             messages.success(request, f'Test "{title}" updated.')
             return redirect('aural_training:aural_tests')
+
+    initial_slots = 1
+    if test.audio_file_2:
+        initial_slots = 2
+    if test.audio_file_3:
+        initial_slots = 3
 
     return render(request, 'aural_training/aural_test_form.html', {
         'action': 'Edit',
         'test_set': test_set,
         'test': test,
+        'initial_slots': initial_slots,
     })
 
 

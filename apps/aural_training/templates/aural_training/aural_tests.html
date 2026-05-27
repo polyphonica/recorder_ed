@@ -113,10 +113,33 @@
                             <div class="flex-1 min-w-0">
                                 <h3 class="font-semibold text-lg mb-1">{{ test.title }}</h3>
                                 <p class="text-base-content/70 text-sm mb-3 whitespace-pre-line">{{ test.instructions }}</p>
-                                <audio controls class="w-full max-w-md" preload="none">
-                                    <source src="{{ test.audio_file.url }}">
-                                    Your browser does not support audio playback.
-                                </audio>
+                                <div class="space-y-2">
+                                    <div>
+                                        {% if test.audio_file_2 or test.audio_file_3 %}
+                                        <p class="text-xs font-medium text-base-content/50 mb-1 uppercase tracking-wide">Original</p>
+                                        {% endif %}
+                                        <audio controls class="w-full max-w-md" preload="none">
+                                            <source src="{{ test.audio_file.url }}">
+                                            Your browser does not support audio playback.
+                                        </audio>
+                                    </div>
+                                    {% if test.audio_file_2 %}
+                                    <div>
+                                        <p class="text-xs font-medium text-base-content/50 mb-1 uppercase tracking-wide">Version A</p>
+                                        <audio controls class="w-full max-w-md" preload="none">
+                                            <source src="{{ test.audio_file_2.url }}">
+                                        </audio>
+                                    </div>
+                                    {% endif %}
+                                    {% if test.audio_file_3 %}
+                                    <div>
+                                        <p class="text-xs font-medium text-base-content/50 mb-1 uppercase tracking-wide">Version B</p>
+                                        <audio controls class="w-full max-w-md" preload="none">
+                                            <source src="{{ test.audio_file_3.url }}">
+                                        </audio>
+                                    </div>
+                                    {% endif %}
+                                </div>
                             </div>
 
                             {% if is_teacher and test_set.created_by == request.user %}

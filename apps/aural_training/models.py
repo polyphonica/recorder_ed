@@ -232,6 +232,8 @@ class AuralTest(models.Model):
     title = models.CharField(max_length=200)
     instructions = models.TextField(help_text="What the student should do after listening.")
     audio_file = models.FileField(upload_to='aural_tests/')
+    audio_file_2 = models.FileField(upload_to='aural_tests/', null=True, blank=True)
+    audio_file_3 = models.FileField(upload_to='aural_tests/', null=True, blank=True)
     order = models.PositiveIntegerField(default=0, help_text="Lower numbers appear first.")
     created_at = models.DateTimeField(auto_now_add=True)
 

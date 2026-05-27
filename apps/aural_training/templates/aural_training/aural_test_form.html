@@ -26,7 +26,7 @@
 
     <div class="card card-section shadow-xl">
         <div class="card-body">
-            <form method="post" enctype="multipart/form-data">
+            <form method="post" enctype="multipart/form-data" x-data="{ slots: {{ initial_slots }} }">
                 {% csrf_token %}
 
                 <div class="form-control mb-4">
@@ -41,8 +41,13 @@
                               placeholder="e.g. You will hear a short melody. You will be given the key and starting note. Sing or play the melody back in time without a pause.">{{ test.instructions|default:'' }}</textarea>
                 </div>
 
-                <div class="form-control mb-4">
-                    <label class="label"><span class="label-text font-medium">Audio File</span>
+                <!-- Audio File 1: Original (always shown, always required on create) -->
+                <div class="form-control mb-3">
+                    <label class="label">
+                        <span class="label-text font-medium">
+                            <i class="fas fa-file-audio mr-1 text-base-content/50"></i>
+                            Original
+                        </span>
                         {% if test.audio_file %}
                         <span class="label-text-alt text-base-content/50">Leave blank to keep current file</span>
                         {% endif %}
@@ -57,6 +62,68 @@
                     <input type="file" name="audio_file" class="file-input file-input-bordered"
                            accept=".mp3,.wav,.ogg,.m4a" {% if not test %}required{% endif %}>
                     <label class="label"><span class="label-text-alt text-base-content/50">MP3, WAV, OGG or M4A — max 50MB</span></label>
+                </div>
+
+                <!-- Audio File 2: Version A -->
+                <div class="form-control mb-3" x-show="slots >= 2" x-transition.duration.150ms>
+                    <label class="label">
+                        <span class="label-text font-medium">
+                            <i class="fas fa-file-audio mr-1 text-base-content/50"></i>
+                            Version A
+                        </span>
+                        {% if test.audio_file_2 %}
+                        <span class="label-text-alt text-base-content/50">Leave blank to keep current file</span>
+                        {% endif %}
+                    </label>
+                    {% if test.audio_file_2 %}
+                    <div class="mb-2">
+                        <audio controls class="w-full max-w-sm" preload="none">
+                            <source src="{{ test.audio_file_2.url }}">
+                        </audio>
+                    </div>
+                    <label class="label cursor-pointer justify-start gap-2 mb-1">
+                        <input type="checkbox" name="clear_audio_file_2" class="checkbox checkbox-sm checkbox-error">
+                        <span class="label-text text-sm text-error">Remove Version A file</span>
+                    </label>
+                    {% endif %}
+                    <input type="file" name="audio_file_2" class="file-input file-input-bordered"
+                           accept=".mp3,.wav,.ogg,.m4a">
+                    <label class="label"><span class="label-text-alt text-base-content/50">MP3, WAV, OGG or M4A — max 50MB</span></label>
+                </div>
+
+                <!-- Audio File 3: Version B -->
+                <div class="form-control mb-3" x-show="slots >= 3" x-transition.duration.150ms>
+                    <label class="label">
+                        <span class="label-text font-medium">
+                            <i class="fas fa-file-audio mr-1 text-base-content/50"></i>
+                            Version B
+                        </span>
+                        {% if test.audio_file_3 %}
+                        <span class="label-text-alt text-base-content/50">Leave blank to keep current file</span>
+                        {% endif %}
+                    </label>
+                    {% if test.audio_file_3 %}
+                    <div class="mb-2">
+                        <audio controls class="w-full max-w-sm" preload="none">
+                            <source src="{{ test.audio_file_3.url }}">
+                        </audio>
+                    </div>
+                    <label class="label cursor-pointer justify-start gap-2 mb-1">
+                        <input type="checkbox" name="clear_audio_file_3" class="checkbox checkbox-sm checkbox-error">
+                        <span class="label-text text-sm text-error">Remove Version B file</span>
+                    </label>
+                    {% endif %}
+                    <input type="file" name="audio_file_3" class="file-input file-input-bordered"
+                           accept=".mp3,.wav,.ogg,.m4a">
+                    <label class="label"><span class="label-text-alt text-base-content/50">MP3, WAV, OGG or M4A — max 50MB</span></label>
+                </div>
+
+                <!-- Add variation button -->
+                <div class="mb-4" x-show="slots < 3">
+                    <button type="button" class="btn btn-outline btn-sm" @click="slots++">
+                        <i class="fas fa-plus mr-1"></i>
+                        <span x-text="slots === 1 ? 'Add Version A' : 'Add Version B'"></span>
+                    </button>
                 </div>
 
                 <div class="form-control mb-6">
