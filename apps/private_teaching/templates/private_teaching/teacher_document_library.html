@@ -92,6 +92,82 @@
         </div>
     </div>
 
+    <!-- Shared Links (Standalone URLs) -->
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="card-title text-2xl">
+                    <i class="fas fa-link mr-2"></i>Shared Links
+                </h2>
+                <a href="{% url 'private_teaching:standalone_url_add' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus mr-2"></i>Add Link
+                </a>
+            </div>
+            <p class="text-sm text-base-content/60 mb-4">URLs shared directly with students — not tied to any lesson.</p>
+
+            {% if standalone_urls %}
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Shared With</th>
+                            <th>Added</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for surl in standalone_urls %}
+                        <tr>
+                            <td>
+                                <div class="font-medium">{{ surl.name }}</div>
+                                {% if surl.description %}
+                                <div class="text-xs text-base-content/60">{{ surl.description }}</div>
+                                {% endif %}
+                                <div class="text-xs text-base-content/40 truncate max-w-xs">{{ surl.url }}</div>
+                            </td>
+                            <td>
+                                {% if surl.share_with_all_students %}
+                                    <span class="badge badge-success badge-sm">All Students</span>
+                                {% else %}
+                                    <div class="text-sm">
+                                        {% for student in surl.shared_with_students.all %}
+                                            <span class="badge badge-outline badge-sm mr-1">{{ student.get_full_name|default:student.username }}</span>
+                                        {% empty %}
+                                            <span class="text-base-content/40">No students</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>{{ surl.created_at|date:"M j, Y" }}</td>
+                            <td>
+                                <div class="flex gap-2">
+                                    <a href="{{ surl.url }}" target="_blank" class="btn btn-sm btn-section-primary">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'private_teaching:standalone_url_delete' surl.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-error btn-outline"
+                                                onclick="return confirm('Remove &quot;{{ surl.name }}&quot;? Students will no longer see it.')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-6 text-base-content/50">
+                <i class="fas fa-link text-4xl mb-3 block"></i>
+                No shared links yet. Add video links or reference URLs you want students to access anytime.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- Search and Filters -->
     <div class="card card-section shadow-xl mb-6">
         <div class="card-body">

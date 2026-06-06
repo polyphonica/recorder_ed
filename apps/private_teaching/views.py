@@ -27,7 +27,7 @@ from apps.exams.models import ExamRegistration
 from apps.practice.models import PracticeEntry
 from apps.quizzes.models import Quiz as PrivateLessonQuiz, QuizAssignment as PrivateLessonQuizAssignment
 from apps.scheduling.availability_engine import check_slot_availability
-from lessons.models import Lesson, Document, LessonAttachedUrl, LessonAssignment, StandaloneDocument
+from lessons.models import Lesson, Document, LessonAttachedUrl, LessonAssignment, StandaloneDocument, StandaloneUrl
 from .forms import LessonRequestForm, ProfileCompleteForm, StudentSignupForm, StudentLessonFormSet, TeacherProfileCompleteForm, TeacherLessonFormSet, TeacherResponseForm, SubjectForm, RescheduleForm, TeacherInitiateCancellationForm
 from .cart import CartManager
 from apps.payments.voucher_service import VoucherService, VoucherValidationError
@@ -1894,17 +1894,30 @@ class StudentDocumentLibraryView(StudentProfileCompletedMixin, TemplateView):
             Q(shared_with_students=self.request.user)
         ).select_related('teacher').distinct().order_by('-uploaded_at')
 
+        standalone_urls = StandaloneUrl.objects.filter(
+            teacher_id__in=teacher_ids,
+            is_active=True
+        ).filter(
+            Q(share_with_all_students=True) |
+            Q(shared_with_students=self.request.user)
+        ).select_related('teacher').distinct().order_by('-created_at')
+
         if search_query:
             standalone_documents = standalone_documents.filter(
                 Q(title__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+            standalone_urls = standalone_urls.filter(
+                Q(name__icontains=search_query) |
                 Q(description__icontains=search_query)
             )
 
         context['documents'] = documents
         context['urls'] = urls
         context['standalone_documents'] = standalone_documents
+        context['standalone_urls'] = standalone_urls
         context['search_query'] = search_query
-        context['total_items'] = documents.count() + urls.count() + standalone_documents.count()
+        context['total_items'] = documents.count() + urls.count() + standalone_documents.count() + standalone_urls.count()
 
         return context
 
@@ -2005,9 +2018,16 @@ class TeacherDocumentLibraryView(TeacherProfileCompletedMixin, TemplateView):
             is_active=True
         ).prefetch_related('shared_with_students').order_by('-uploaded_at')
 
+        # Get this teacher's standalone URLs
+        standalone_urls = StandaloneUrl.objects.filter(
+            teacher=self.request.user,
+            is_active=True
+        ).prefetch_related('shared_with_students').order_by('-created_at')
+
         context['documents'] = documents
         context['urls'] = urls
         context['standalone_documents'] = standalone_documents
+        context['standalone_urls'] = standalone_urls
         context['search_query'] = search_query
         context['student_filter'] = student_filter
         context['subject_filter'] = subject_filter
@@ -2100,6 +2120,83 @@ def delete_standalone_document(request, pk):
         doc.document.delete(save=False)
         doc.delete()
         messages.success(request, f'"{doc.title}" has been removed.')
+    return redirect('private_teaching:teacher_library')
+
+
+@login_required
+def add_standalone_url(request):
+    """Teacher adds a standalone URL to share with students"""
+    student_lessons = Lesson.objects.filter(
+        teacher=request.user,
+        approved_status=Lesson.ApprovalStatus.ACCEPTED,
+        is_deleted=False
+    ).select_related('student', 'lesson_request__child_profile').order_by('student').distinct('student')
+
+    students = []
+    seen = set()
+    for lesson in student_lessons:
+        sid = lesson.student.id
+        if sid not in seen:
+            seen.add(sid)
+            if lesson.lesson_request and lesson.lesson_request.is_child_lesson:
+                display = lesson.lesson_request.student_display_name
+            else:
+                display = lesson.student.get_full_name() or lesson.student.username
+            students.append({'id': sid, 'name': display})
+    students.sort(key=lambda x: x['name'].lower())
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        url = request.POST.get('url', '').strip()
+        description = request.POST.get('description', '').strip()
+        share_all = request.POST.get('share_with_all_students') == 'true'
+        student_ids = request.POST.getlist('student_ids')
+
+        errors = []
+        if not name:
+            errors.append('Name is required.')
+        if not url:
+            errors.append('URL is required.')
+        if not share_all and not student_ids:
+            errors.append('Please select at least one student, or choose "All Students".')
+
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+        else:
+            standalone_url = StandaloneUrl.objects.create(
+                teacher=request.user,
+                name=name,
+                url=url,
+                description=description,
+                share_with_all_students=share_all,
+            )
+            if not share_all and student_ids:
+                standalone_url.shared_with_students.set(User.objects.filter(id__in=student_ids))
+            try:
+                from apps.private_teaching.notifications import StudentNotificationService
+                if share_all:
+                    notify_students = User.objects.filter(id__in=[s['id'] for s in students])
+                else:
+                    notify_students = standalone_url.shared_with_students.all()
+                StudentNotificationService.send_standalone_url_notification(standalone_url, notify_students)
+            except Exception:
+                pass
+            messages.success(request, f'"{name}" shared successfully.')
+            return redirect('private_teaching:teacher_library')
+
+    return render(request, 'private_teaching/teacher_standalone_url_add.html', {
+        'students': students,
+    })
+
+
+@login_required
+def delete_standalone_url(request, pk):
+    """Teacher deletes one of their standalone URLs"""
+    standalone_url = get_object_or_404(StandaloneUrl, pk=pk, teacher=request.user)
+    if request.method == 'POST':
+        standalone_url.delete()
+        messages.success(request, f'"{standalone_url.name}" has been removed.')
     return redirect('private_teaching:teacher_library')
 
 

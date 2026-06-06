@@ -644,6 +644,41 @@ class StudentNotificationService(BaseNotificationService):
         return sent_count
 
     @staticmethod
+    def send_standalone_url_notification(standalone_url, students):
+        """Send notification to students when teacher shares a standalone URL"""
+        sent_count = 0
+        for student in students:
+            try:
+                is_valid, email = StudentNotificationService.validate_email(student, 'Student')
+                if not is_valid:
+                    continue
+
+                library_url = StudentNotificationService.build_absolute_url('private_teaching:student_library')
+
+                context = {
+                    'standalone_url': standalone_url,
+                    'student': student,
+                    'student_name': StudentNotificationService.get_display_name(student),
+                    'teacher_name': StudentNotificationService.get_display_name(standalone_url.teacher),
+                    'library_url': library_url,
+                }
+
+                result = StudentNotificationService.send_templated_email(
+                    template_path='private_teaching/emails/student_standalone_url_shared.txt',
+                    context=context,
+                    recipient_list=[email],
+                    default_subject=f'New link in your library: {standalone_url.name}',
+                    fail_silently=False,
+                    log_description=f"Standalone URL notification to student {student.username}"
+                )
+                if result:
+                    sent_count += 1
+            except Exception as e:
+                logger.error(f"Failed to send standalone URL notification to student {student.username}: {str(e)}")
+
+        return sent_count
+
+    @staticmethod
     def send_teacher_initiated_cancellation_notification(cancellation_request, lesson):
         """Send notification to student when teacher cancels an accepted lesson"""
         try:

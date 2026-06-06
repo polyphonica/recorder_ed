@@ -1,0 +1,18 @@
+Subject: New link in your library: {{ standalone_url.name }}
+
+Hello {{ student_name }},
+
+{{ teacher_name }} has added a new link to your library.
+
+LINK:
+{{ standalone_url.name }}{% if standalone_url.description %}
+
+{{ standalone_url.description }}{% endif %}
+
+{{ standalone_url.url }}
+
+View your document library:
+{{ library_url }}
+
+Best regards,
+The {{ site_name }} Team

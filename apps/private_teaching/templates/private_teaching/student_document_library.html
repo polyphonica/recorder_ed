@@ -60,6 +60,49 @@
     </div>
     {% endif %}
 
+    <!-- Shared Links (Standalone URLs) -->
+    {% if standalone_urls %}
+    <div class="card card-section shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="card-title text-2xl mb-4">
+                <i class="fas fa-link mr-2"></i>Shared Links
+            </h2>
+            <p class="text-sm text-base-content/60 mb-4">Links your teacher has shared with you.</p>
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Teacher</th>
+                            <th>Shared</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for surl in standalone_urls %}
+                        <tr>
+                            <td>
+                                <div class="font-medium">{{ surl.name }}</div>
+                                {% if surl.description %}
+                                <div class="text-xs text-base-content/60">{{ surl.description }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ surl.teacher.get_full_name|default:surl.teacher.username }}</td>
+                            <td>{{ surl.created_at|date:"M j, Y" }}</td>
+                            <td>
+                                <a href="{{ surl.url }}" target="_blank" class="btn btn-sm btn-section-primary">
+                                    <i class="fas fa-external-link-alt mr-1"></i>Open
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Search Bar -->
     <div class="card card-section shadow-xl mb-6">
         <div class="card-body">
@@ -181,7 +224,7 @@
     {% endif %}
 
     <!-- Empty State -->
-    {% if not documents and not urls and not standalone_documents %}
+    {% if not documents and not urls and not standalone_documents and not standalone_urls %}
     <div class="card card-section shadow-xl">
         <div class="card-body">
             <div class="text-center py-12">

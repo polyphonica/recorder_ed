@@ -523,6 +523,44 @@ class StandaloneDocument(models.Model):
         return f"{self.title} (by {self.teacher.get_full_name() or self.teacher.username})"
 
 
+class StandaloneUrl(models.Model):
+    """
+    A URL shared directly by a teacher without being tied to a lesson.
+    Useful for sharing video links, reference pages, or any web resource.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='standalone_urls'
+    )
+    name = models.CharField(max_length=200)
+    url = models.URLField()
+    description = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Optional note, e.g. 'Warm-up exercises — start at 2:30'"
+    )
+    share_with_all_students = models.BooleanField(
+        default=True,
+        help_text="Make available to all current students"
+    )
+    shared_with_students = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name='shared_standalone_urls',
+        help_text="Specific students to share with (only used when not sharing with all)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} (by {self.teacher.get_full_name() or self.teacher.username})"
+
+
 # Keep the LessonOrder model for backward compatibility with existing payment system
 class LessonOrder(models.Model):
     # Will need to reference student profile from private_teaching app
