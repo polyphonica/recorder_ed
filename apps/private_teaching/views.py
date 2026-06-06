@@ -2039,6 +2039,25 @@ class TeacherDocumentLibraryView(TeacherProfileCompletedMixin, TemplateView):
 
 
 @login_required
+def edit_lesson_document(request, pk):
+    """Teacher edits the title of a lesson-attached document"""
+    from lessons.models import Document
+    doc = get_object_or_404(Document, pk=pk, lesson__teacher=request.user)
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        if not title:
+            messages.error(request, 'Title is required.')
+        else:
+            doc.title = title
+            doc.save(update_fields=['title'])
+            messages.success(request, 'Document title updated.')
+            return redirect('private_teaching:teacher_library')
+
+    return render(request, 'private_teaching/teacher_lesson_document_edit.html', {'doc': doc})
+
+
+@login_required
 def upload_standalone_document(request):
     """Teacher uploads a standalone document to share with students"""
     # Build student list for the specific-students selector

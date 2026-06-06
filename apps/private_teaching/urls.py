@@ -45,6 +45,7 @@ urlpatterns = [
     path('teacher/action/<int:request_id>/', views.ActionRequestView.as_view(), name='action_request'),
     path('teacher/bulk-action/', views.BulkActionView.as_view(), name='bulk_action'),
     path('teacher/library/', views.TeacherDocumentLibraryView.as_view(), name='teacher_library'),
+    path('teacher/library/documents/<uuid:pk>/edit/', views.edit_lesson_document, name='document_edit'),
     path('teacher/library/resources/upload/', views.upload_standalone_document, name='standalone_upload'),
     path('teacher/library/resources/<uuid:pk>/edit/', views.edit_standalone_document, name='standalone_edit'),
     path('teacher/library/resources/<uuid:pk>/delete/', views.delete_standalone_document, name='standalone_delete'),
