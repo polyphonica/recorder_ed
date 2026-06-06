@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Resource{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-2">Edit Resource</h1>
+                <p class="text-base-content/70">Update the title or description</p>
+            </div>
+            <a href="{% url 'private_teaching:teacher_library' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Library
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %} mb-2">
+            <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card card-section shadow-xl">
+        <div class="card-body">
+            <form method="post" action="">
+                {% csrf_token %}
+
+                <div class="form-control mb-5">
+                    <label class="label">
+                        <span class="label-text font-semibold text-lg">Title <span class="text-error">*</span></span>
+                    </label>
+                    <input type="text" name="title" required maxlength="200"
+                           value="{{ doc.title }}"
+                           class="input input-bordered w-full">
+                </div>
+
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold">Description <span class="text-base-content/50 font-normal">(optional)</span></span>
+                    </label>
+                    <input type="text" name="description" maxlength="500"
+                           value="{{ doc.description }}"
+                           class="input input-bordered w-full">
+                </div>
+
+                <div class="flex gap-3 justify-end">
+                    <a href="{% url 'private_teaching:teacher_library' %}" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save mr-2"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

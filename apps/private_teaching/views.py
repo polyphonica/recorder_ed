@@ -2113,6 +2113,26 @@ def upload_standalone_document(request):
 
 
 @login_required
+def edit_standalone_document(request, pk):
+    """Teacher edits the title/description of a standalone document"""
+    doc = get_object_or_404(StandaloneDocument, pk=pk, teacher=request.user)
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        if not title:
+            messages.error(request, 'Title is required.')
+        else:
+            doc.title = title
+            doc.description = description
+            doc.save(update_fields=['title', 'description'])
+            messages.success(request, 'Resource updated.')
+            return redirect('private_teaching:teacher_library')
+
+    return render(request, 'private_teaching/teacher_standalone_document_edit.html', {'doc': doc})
+
+
+@login_required
 def delete_standalone_document(request, pk):
     """Teacher deletes one of their standalone documents"""
     doc = get_object_or_404(StandaloneDocument, pk=pk, teacher=request.user)
@@ -2188,6 +2208,34 @@ def add_standalone_url(request):
     return render(request, 'private_teaching/teacher_standalone_url_add.html', {
         'students': students,
     })
+
+
+@login_required
+def edit_standalone_url(request, pk):
+    """Teacher edits the name, URL, or description of a standalone URL"""
+    standalone_url = get_object_or_404(StandaloneUrl, pk=pk, teacher=request.user)
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        url = request.POST.get('url', '').strip()
+        description = request.POST.get('description', '').strip()
+        errors = []
+        if not name:
+            errors.append('Name is required.')
+        if not url:
+            errors.append('URL is required.')
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+        else:
+            standalone_url.name = name
+            standalone_url.url = url
+            standalone_url.description = description
+            standalone_url.save(update_fields=['name', 'url', 'description'])
+            messages.success(request, 'Link updated.')
+            return redirect('private_teaching:teacher_library')
+
+    return render(request, 'private_teaching/teacher_standalone_url_edit.html', {'surl': standalone_url})
 
 
 @login_required

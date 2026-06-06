@@ -69,6 +69,9 @@
                                     <a href="{{ doc.document.url }}" target="_blank" class="btn btn-sm btn-section-primary">
                                         <i class="fas fa-download"></i>
                                     </a>
+                                    <a href="{% url 'private_teaching:standalone_edit' doc.pk %}" class="btn btn-sm btn-outline">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
                                     <form method="post" action="{% url 'private_teaching:standalone_delete' doc.pk %}">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-sm btn-error btn-outline"
@@ -144,6 +147,9 @@
                                 <div class="flex gap-2">
                                     <a href="{{ surl.url }}" target="_blank" class="btn btn-sm btn-section-primary">
                                         <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                    <a href="{% url 'private_teaching:standalone_url_edit' surl.pk %}" class="btn btn-sm btn-outline">
+                                        <i class="fas fa-edit"></i>
                                     </a>
                                     <form method="post" action="{% url 'private_teaching:standalone_url_delete' surl.pk %}">
                                         {% csrf_token %}
