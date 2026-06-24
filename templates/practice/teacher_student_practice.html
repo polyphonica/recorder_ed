@@ -229,6 +229,33 @@
                                                 <p class="text-sm">{{ entry.teacher_comment }}</p>
                                             </div>
                                         </div>
+                                        <div class="collapse collapse-arrow bg-base-300 mt-3">
+                                            <input type="checkbox" />
+                                            <div class="collapse-title font-medium">
+                                                <i class="fas fa-pen mr-2"></i>
+                                                Edit Comment
+                                            </div>
+                                            <div class="collapse-content">
+                                                <form method="post" action="{% url 'practice:add_practice_comment' entry_id=entry.id %}">
+                                                    {% csrf_token %}
+                                                    <div class="form-control">
+                                                        <textarea
+                                                            name="teacher_comment"
+                                                            class="textarea textarea-bordered"
+                                                            rows="3"
+                                                            placeholder="Add encouraging feedback or suggestions..."
+                                                            required
+                                                        >{{ entry.teacher_comment }}</textarea>
+                                                    </div>
+                                                    <div class="flex justify-end mt-2">
+                                                        <button type="submit" class="btn btn-success btn-sm">
+                                                            <i class="fas fa-save mr-2"></i>
+                                                            Save Changes
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
                                     {% else %}
                                         <div class="collapse collapse-arrow bg-base-300 mt-3">
                                             <input type="checkbox" />
