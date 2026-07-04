@@ -513,6 +513,14 @@ class StandaloneDocument(models.Model):
         related_name='shared_standalone_documents',
         help_text="Specific students to share with (only used when not sharing with all)"
     )
+    child_profile = models.ForeignKey(
+        'accounts.ChildProfile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='standalone_documents',
+        help_text="The specific child this resource is for (its primary target), when shared with a child student"
+    )
     uploaded_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
 
@@ -550,6 +558,14 @@ class StandaloneUrl(models.Model):
         blank=True,
         related_name='shared_standalone_urls',
         help_text="Specific students to share with (only used when not sharing with all)"
+    )
+    child_profile = models.ForeignKey(
+        'accounts.ChildProfile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='standalone_urls',
+        help_text="The specific child this resource is for (its primary target), when shared with a child student"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)

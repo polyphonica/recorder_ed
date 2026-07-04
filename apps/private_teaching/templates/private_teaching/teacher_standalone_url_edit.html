@@ -27,7 +27,8 @@
     </div>
     {% endif %}
 
-    <div class="card card-section shadow-xl">
+    <div class="card card-section shadow-xl"
+         x-data="{ shareAll: {{ surl.share_with_all_students|yesno:'true,false' }} }">
         <div class="card-body">
             <form method="post" action="">
                 {% csrf_token %}
@@ -57,6 +58,58 @@
                     <input type="text" name="description" maxlength="500"
                            value="{{ surl.description }}"
                            class="input input-bordered w-full">
+                </div>
+
+                <!-- Sharing -->
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold text-lg">Share with</span>
+                    </label>
+
+                    <div class="space-y-3">
+                        <label class="flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors"
+                               :class="shareAll ? 'border-primary bg-primary/5' : 'border-base-300'">
+                            <input type="radio" name="share_with_all_students_radio" value="all"
+                                   class="radio radio-primary" {% if surl.share_with_all_students %}checked{% endif %}
+                                   @change="shareAll = true">
+                            <span>
+                                <span class="block font-semibold">All Students</span>
+                                <span class="block text-sm text-base-content/60">Visible to every student who has a lesson with you</span>
+                            </span>
+                        </label>
+
+                        <label class="flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors"
+                               :class="!shareAll ? 'border-primary bg-primary/5' : 'border-base-300'">
+                            <input type="radio" name="share_with_all_students_radio" value="specific"
+                                   class="radio radio-primary" {% if not surl.share_with_all_students %}checked{% endif %}
+                                   @change="shareAll = false">
+                            <span>
+                                <span class="block font-semibold">One specific student</span>
+                                <span class="block text-sm text-base-content/60">Assign this link to a single student or child</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <input type="hidden" name="share_with_all_students" :value="shareAll ? 'true' : 'false'">
+
+                    {% if recipients %}
+                    <div x-show="!shareAll" x-transition class="mt-4">
+                        <div class="font-semibold mb-2 text-sm">Assign to:</div>
+                        <select name="recipient" class="select select-bordered w-full">
+                            <option value="">— Select a student —</option>
+                            {% for r in recipients %}
+                            <option value="{{ r.value }}" {% if r.value == current_recipient %}selected{% endif %}>
+                                {{ r.name }}{% if r.guardian %} (Guardian: {{ r.guardian }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if not current_recipient and not surl.share_with_all_students %}
+                        <label class="label">
+                            <span class="label-text-alt text-warning">This link was shared before individual assignment existed — pick the child or student it's for.</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="flex gap-3 justify-end">

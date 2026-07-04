@@ -77,15 +77,15 @@
                             </span>
                         </label>
 
-                        <!-- Specific Students -->
+                        <!-- One specific student -->
                         <label class="flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors"
                                :class="!shareAll ? 'border-primary bg-primary/5' : 'border-base-300'">
                             <input type="radio" name="share_with_all_students_radio" value="specific"
                                    class="radio radio-primary"
                                    @change="shareAll = false">
                             <span>
-                                <span class="block font-semibold">Specific Students</span>
-                                <span class="block text-sm text-base-content/60">Choose which students can see this</span>
+                                <span class="block font-semibold">One specific student</span>
+                                <span class="block text-sm text-base-content/60">Assign this resource to a single student or child</span>
                             </span>
                         </label>
                     </div>
@@ -93,19 +93,21 @@
                     <!-- Hidden field carrying the actual value -->
                     <input type="hidden" name="share_with_all_students" :value="shareAll ? 'true' : 'false'">
 
-                    <!-- Student Selector (shown when Specific Students is chosen) -->
-                    {% if students %}
+                    <!-- Recipient selector (shown when a specific student is chosen) -->
+                    {% if recipients %}
                     <div x-show="!shareAll" x-transition class="mt-4">
-                        <div class="font-semibold mb-2 text-sm">Select students:</div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto p-3 bg-base-200 rounded-lg">
-                            {% for student in students %}
-                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-base-300">
-                                <input type="checkbox" name="student_ids" value="{{ student.id }}"
-                                       class="checkbox checkbox-sm checkbox-primary">
-                                <span class="text-sm">{{ student.name }}</span>
-                            </label>
+                        <div class="font-semibold mb-2 text-sm">Assign to:</div>
+                        <select name="recipient" class="select select-bordered w-full">
+                            <option value="">— Select a student —</option>
+                            {% for r in recipients %}
+                            <option value="{{ r.value }}" {% if r.value == current_recipient %}selected{% endif %}>
+                                {{ r.name }}{% if r.guardian %} (Guardian: {{ r.guardian }}){% endif %}
+                            </option>
                             {% endfor %}
-                        </div>
+                        </select>
+                        <label class="label">
+                            <span class="label-text-alt">Children are listed individually, so a guardian's children are shown separately.</span>
+                        </label>
                     </div>
                     {% else %}
                     <div x-show="!shareAll" x-transition class="mt-4">

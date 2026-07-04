@@ -2016,13 +2016,13 @@ class TeacherDocumentLibraryView(TeacherProfileCompletedMixin, TemplateView):
         standalone_documents = StandaloneDocument.objects.filter(
             teacher=self.request.user,
             is_active=True
-        ).prefetch_related('shared_with_students').order_by('-uploaded_at')
+        ).select_related('child_profile__guardian').prefetch_related('shared_with_students').order_by('-uploaded_at')
 
         # Get this teacher's standalone URLs
         standalone_urls = StandaloneUrl.objects.filter(
             teacher=self.request.user,
             is_active=True
-        ).prefetch_related('shared_with_students').order_by('-created_at')
+        ).select_related('child_profile__guardian').prefetch_related('shared_with_students').order_by('-created_at')
 
         context['documents'] = documents
         context['urls'] = urls
@@ -2057,36 +2057,106 @@ def edit_lesson_document(request, pk):
     return render(request, 'private_teaching/teacher_lesson_document_edit.html', {'doc': doc})
 
 
+def _standalone_share_recipients(teacher):
+    """
+    Build the list of individual share targets for a teacher's standalone resources.
+
+    Each accepted-lesson student becomes its own recipient. Crucially, child
+    students are listed individually (keyed by child_profile) so that a guardian
+    with several children yields one entry per child — this is what lets a
+    resource record *which* child it is for.
+
+    Returns a list of dicts: {'value', 'name', 'guardian', 'sort_key'} where
+    value is 'child:<uuid>' or 'adult:<user_id>'.
+    """
+    lessons = Lesson.objects.filter(
+        teacher=teacher,
+        approved_status=Lesson.ApprovalStatus.ACCEPTED,
+        is_deleted=False,
+    ).select_related('student', 'lesson_request__child_profile')
+
+    recipients = []
+    seen = set()
+    for lesson in lessons:
+        lr = lesson.lesson_request
+        if lr and lr.is_child_lesson and lr.child_profile:
+            key = ('child', str(lr.child_profile.id))
+            if key in seen:
+                continue
+            seen.add(key)
+            guardian = lesson.student.get_full_name() or lesson.student.username
+            recipients.append({
+                'value': f'child:{lr.child_profile.id}',
+                'name': lr.child_profile.full_name,
+                'guardian': guardian,
+                'sort_key': lr.child_profile.full_name.lower(),
+            })
+        else:
+            key = ('adult', lesson.student.id)
+            if key in seen:
+                continue
+            seen.add(key)
+            name = lesson.student.get_full_name() or lesson.student.username
+            recipients.append({
+                'value': f'adult:{lesson.student.id}',
+                'name': name,
+                'guardian': None,
+                'sort_key': name.lower(),
+            })
+    recipients.sort(key=lambda r: r['sort_key'])
+    return recipients
+
+
+def _resolve_standalone_recipient(teacher, recipient_value):
+    """
+    Validate a submitted recipient value against the teacher's students.
+
+    Returns (child_profile_or_None, guardian_or_student_user, error_or_None).
+    The user returned is who gets access (added to shared_with_students) and
+    notified — the guardian for a child target, or the adult student directly.
+    """
+    valid = {r['value'] for r in _standalone_share_recipients(teacher)}
+    if recipient_value not in valid:
+        return None, None, 'Please choose a valid student, or "All Students".'
+
+    from apps.accounts.models import ChildProfile
+    kind, _, rid = recipient_value.partition(':')
+    if kind == 'child':
+        child = ChildProfile.objects.select_related('guardian').filter(id=rid).first()
+        if not child:
+            return None, None, 'Selected child could not be found.'
+        return child, child.guardian, None
+    user = User.objects.filter(id=rid).first()
+    if not user:
+        return None, None, 'Selected student could not be found.'
+    return None, user, None
+
+
+def _current_standalone_recipient_value(resource):
+    """Return the recipient selector value ('child:<uuid>'/'adult:<id>') for an
+    existing standalone resource, or '' if it isn't targeted at a single recipient."""
+    if resource.child_profile_id:
+        return f'child:{resource.child_profile_id}'
+    students = list(resource.shared_with_students.all())
+    if len(students) == 1:
+        return f'adult:{students[0].id}'
+    return ''
+
+
 @login_required
 def upload_standalone_document(request):
     """Teacher uploads a standalone document to share with students"""
-    # Build student list for the specific-students selector
-    student_lessons = Lesson.objects.filter(
-        teacher=request.user,
-        approved_status=Lesson.ApprovalStatus.ACCEPTED,
-        is_deleted=False
-    ).select_related('student', 'lesson_request__child_profile').order_by('student').distinct('student')
-
-    students = []
-    seen = set()
-    for lesson in student_lessons:
-        sid = lesson.student.id
-        if sid not in seen:
-            seen.add(sid)
-            if lesson.lesson_request and lesson.lesson_request.is_child_lesson:
-                display = lesson.lesson_request.student_display_name
-            else:
-                display = lesson.student.get_full_name() or lesson.student.username
-            students.append({'id': sid, 'name': display})
-    students.sort(key=lambda x: x['name'].lower())
+    recipients = _standalone_share_recipients(request.user)
 
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
         description = request.POST.get('description', '').strip()
         share_all = request.POST.get('share_with_all_students') == 'true'
-        student_ids = request.POST.getlist('student_ids')
+        recipient_value = request.POST.get('recipient', '').strip()
         uploaded_file = request.FILES.get('document')
 
+        child_profile = None
+        target_user = None
         errors = []
         if not title:
             errors.append('Title is required.')
@@ -2096,8 +2166,13 @@ def upload_standalone_document(request):
             errors.append('Only PDF files are accepted.')
         elif uploaded_file.size > 20 * 1024 * 1024:
             errors.append('File must be under 20MB.')
-        if not share_all and not student_ids:
-            errors.append('Please select at least one student, or choose "All Students".')
+        if not share_all:
+            if not recipient_value:
+                errors.append('Please choose a student, or "All Students".')
+            else:
+                child_profile, target_user, rec_error = _resolve_standalone_recipient(request.user, recipient_value)
+                if rec_error:
+                    errors.append(rec_error)
 
         if errors:
             for e in errors:
@@ -2109,14 +2184,19 @@ def upload_standalone_document(request):
                 description=description,
                 document=uploaded_file,
                 share_with_all_students=share_all,
+                child_profile=child_profile,
             )
-            if not share_all and student_ids:
-                doc.shared_with_students.set(User.objects.filter(id__in=student_ids))
+            if not share_all and target_user:
+                doc.shared_with_students.set([target_user])
             try:
                 from apps.private_teaching.notifications import StudentNotificationService
                 if share_all:
                     notify_students = User.objects.filter(
-                        id__in=[s['id'] for s in students]
+                        id__in=Lesson.objects.filter(
+                            teacher=request.user,
+                            approved_status=Lesson.ApprovalStatus.ACCEPTED,
+                            is_deleted=False,
+                        ).values_list('student__id', flat=True)
                     )
                 else:
                     notify_students = doc.shared_with_students.all()
@@ -2127,28 +2207,53 @@ def upload_standalone_document(request):
             return redirect('private_teaching:teacher_library')
 
     return render(request, 'private_teaching/teacher_standalone_upload.html', {
-        'students': students,
+        'recipients': recipients,
     })
 
 
 @login_required
 def edit_standalone_document(request, pk):
-    """Teacher edits the title/description of a standalone document"""
+    """Teacher edits the title/description and share target of a standalone document"""
     doc = get_object_or_404(StandaloneDocument, pk=pk, teacher=request.user)
+    recipients = _standalone_share_recipients(request.user)
 
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
         description = request.POST.get('description', '').strip()
+        share_all = request.POST.get('share_with_all_students') == 'true'
+        recipient_value = request.POST.get('recipient', '').strip()
+
+        child_profile = None
+        target_user = None
+        errors = []
         if not title:
-            messages.error(request, 'Title is required.')
+            errors.append('Title is required.')
+        if not share_all:
+            if not recipient_value:
+                errors.append('Please choose a student, or "All Students".')
+            else:
+                child_profile, target_user, rec_error = _resolve_standalone_recipient(request.user, recipient_value)
+                if rec_error:
+                    errors.append(rec_error)
+
+        if errors:
+            for e in errors:
+                messages.error(request, e)
         else:
             doc.title = title
             doc.description = description
-            doc.save(update_fields=['title', 'description'])
+            doc.share_with_all_students = share_all
+            doc.child_profile = child_profile
+            doc.save(update_fields=['title', 'description', 'share_with_all_students', 'child_profile'])
+            doc.shared_with_students.set([target_user] if (not share_all and target_user) else [])
             messages.success(request, 'Resource updated.')
             return redirect('private_teaching:teacher_library')
 
-    return render(request, 'private_teaching/teacher_standalone_document_edit.html', {'doc': doc})
+    return render(request, 'private_teaching/teacher_standalone_document_edit.html', {
+        'doc': doc,
+        'recipients': recipients,
+        'current_recipient': _current_standalone_recipient_value(doc),
+    })
 
 
 @login_required
@@ -2165,39 +2270,29 @@ def delete_standalone_document(request, pk):
 @login_required
 def add_standalone_url(request):
     """Teacher adds a standalone URL to share with students"""
-    student_lessons = Lesson.objects.filter(
-        teacher=request.user,
-        approved_status=Lesson.ApprovalStatus.ACCEPTED,
-        is_deleted=False
-    ).select_related('student', 'lesson_request__child_profile').order_by('student').distinct('student')
-
-    students = []
-    seen = set()
-    for lesson in student_lessons:
-        sid = lesson.student.id
-        if sid not in seen:
-            seen.add(sid)
-            if lesson.lesson_request and lesson.lesson_request.is_child_lesson:
-                display = lesson.lesson_request.student_display_name
-            else:
-                display = lesson.student.get_full_name() or lesson.student.username
-            students.append({'id': sid, 'name': display})
-    students.sort(key=lambda x: x['name'].lower())
+    recipients = _standalone_share_recipients(request.user)
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         url = request.POST.get('url', '').strip()
         description = request.POST.get('description', '').strip()
         share_all = request.POST.get('share_with_all_students') == 'true'
-        student_ids = request.POST.getlist('student_ids')
+        recipient_value = request.POST.get('recipient', '').strip()
 
+        child_profile = None
+        target_user = None
         errors = []
         if not name:
             errors.append('Name is required.')
         if not url:
             errors.append('URL is required.')
-        if not share_all and not student_ids:
-            errors.append('Please select at least one student, or choose "All Students".')
+        if not share_all:
+            if not recipient_value:
+                errors.append('Please choose a student, or "All Students".')
+            else:
+                child_profile, target_user, rec_error = _resolve_standalone_recipient(request.user, recipient_value)
+                if rec_error:
+                    errors.append(rec_error)
 
         if errors:
             for e in errors:
@@ -2209,13 +2304,20 @@ def add_standalone_url(request):
                 url=url,
                 description=description,
                 share_with_all_students=share_all,
+                child_profile=child_profile,
             )
-            if not share_all and student_ids:
-                standalone_url.shared_with_students.set(User.objects.filter(id__in=student_ids))
+            if not share_all and target_user:
+                standalone_url.shared_with_students.set([target_user])
             try:
                 from apps.private_teaching.notifications import StudentNotificationService
                 if share_all:
-                    notify_students = User.objects.filter(id__in=[s['id'] for s in students])
+                    notify_students = User.objects.filter(
+                        id__in=Lesson.objects.filter(
+                            teacher=request.user,
+                            approved_status=Lesson.ApprovalStatus.ACCEPTED,
+                            is_deleted=False,
+                        ).values_list('student__id', flat=True)
+                    )
                 else:
                     notify_students = standalone_url.shared_with_students.all()
                 StudentNotificationService.send_standalone_url_notification(standalone_url, notify_students)
@@ -2225,24 +2327,38 @@ def add_standalone_url(request):
             return redirect('private_teaching:teacher_library')
 
     return render(request, 'private_teaching/teacher_standalone_url_add.html', {
-        'students': students,
+        'recipients': recipients,
     })
 
 
 @login_required
 def edit_standalone_url(request, pk):
-    """Teacher edits the name, URL, or description of a standalone URL"""
+    """Teacher edits the name, URL, description and share target of a standalone URL"""
     standalone_url = get_object_or_404(StandaloneUrl, pk=pk, teacher=request.user)
+    recipients = _standalone_share_recipients(request.user)
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         url = request.POST.get('url', '').strip()
         description = request.POST.get('description', '').strip()
+        share_all = request.POST.get('share_with_all_students') == 'true'
+        recipient_value = request.POST.get('recipient', '').strip()
+
+        child_profile = None
+        target_user = None
         errors = []
         if not name:
             errors.append('Name is required.')
         if not url:
             errors.append('URL is required.')
+        if not share_all:
+            if not recipient_value:
+                errors.append('Please choose a student, or "All Students".')
+            else:
+                child_profile, target_user, rec_error = _resolve_standalone_recipient(request.user, recipient_value)
+                if rec_error:
+                    errors.append(rec_error)
+
         if errors:
             for e in errors:
                 messages.error(request, e)
@@ -2250,11 +2366,18 @@ def edit_standalone_url(request, pk):
             standalone_url.name = name
             standalone_url.url = url
             standalone_url.description = description
-            standalone_url.save(update_fields=['name', 'url', 'description'])
+            standalone_url.share_with_all_students = share_all
+            standalone_url.child_profile = child_profile
+            standalone_url.save(update_fields=['name', 'url', 'description', 'share_with_all_students', 'child_profile'])
+            standalone_url.shared_with_students.set([target_user] if (not share_all and target_user) else [])
             messages.success(request, 'Link updated.')
             return redirect('private_teaching:teacher_library')
 
-    return render(request, 'private_teaching/teacher_standalone_url_edit.html', {'surl': standalone_url})
+    return render(request, 'private_teaching/teacher_standalone_url_edit.html', {
+        'surl': standalone_url,
+        'recipients': recipients,
+        'current_recipient': _current_standalone_recipient_value(standalone_url),
+    })
 
 
 @login_required

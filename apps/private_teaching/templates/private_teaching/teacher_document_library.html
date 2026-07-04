@@ -53,6 +53,9 @@
                             <td>
                                 {% if doc.share_with_all_students %}
                                     <span class="badge badge-success badge-sm">All Students</span>
+                                {% elif doc.child_profile %}
+                                    <span class="badge badge-outline badge-sm mr-1">{{ doc.child_profile.full_name }}</span>
+                                    <span class="block text-xs text-base-content/60">(Guardian: {{ doc.child_profile.guardian.get_full_name|default:doc.child_profile.guardian.username }})</span>
                                 {% else %}
                                     <div class="text-sm">
                                         {% for student in doc.shared_with_students.all %}
@@ -132,6 +135,9 @@
                             <td>
                                 {% if surl.share_with_all_students %}
                                     <span class="badge badge-success badge-sm">All Students</span>
+                                {% elif surl.child_profile %}
+                                    <span class="badge badge-outline badge-sm mr-1">{{ surl.child_profile.full_name }}</span>
+                                    <span class="block text-xs text-base-content/60">(Guardian: {{ surl.child_profile.guardian.get_full_name|default:surl.child_profile.guardian.username }})</span>
                                 {% else %}
                                     <div class="text-sm">
                                         {% for student in surl.shared_with_students.all %}
