@@ -734,7 +734,7 @@
                                     </td>
                                     <td class="text-center text-lg">
                                         {% if data.latest_attempt and data.latest_attempt.submitted_at %}
-                                            <a href="{% url 'private_teaching:teacher_quiz_attempt_results' data.latest_attempt.id %}" class="btn btn-sm btn-outline">
+                                            <a href="{% url 'quizzes:teacher_quiz_attempt_results' data.latest_attempt.id %}" class="btn btn-sm btn-outline">
                                                 <i class="fas fa-chart-bar mr-1"></i>View Latest
                                             </a>
                                         {% else %}
