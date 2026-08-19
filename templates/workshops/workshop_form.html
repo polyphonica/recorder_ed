@@ -180,10 +180,23 @@
                         <label class="label">
                             <span class="label-text font-medium">Category</span>
                         </label>
-                        {{ form.category }}
+                        <div x-show="!showNewCategory">
+                            {{ form.category }}
+                        </div>
+                        <div x-show="showNewCategory" x-transition>
+                            {{ form.new_category_name }}
+                        </div>
                         {% if form.category.errors %}
                             <div class="text-error text-sm mt-1">{{ form.category.errors.0 }}</div>
                         {% endif %}
+                        {% if form.new_category_name.errors %}
+                            <div class="text-error text-sm mt-1">{{ form.new_category_name.errors.0 }}</div>
+                        {% endif %}
+                        <button type="button" class="btn btn-ghost btn-xs text-gray-400 self-start mt-1"
+                                @click="showNewCategory = !showNewCategory; if (!showNewCategory) { $root.querySelector('[name=new_category_name]').value = '' }">
+                            <i class="fas" :class="showNewCategory ? 'fa-list' : 'fa-plus'"></i>
+                            <span x-text="showNewCategory ? 'Choose an existing category instead' : 'Add new category'"></span>
+                        </button>
                     </div>
 
                     <div class="form-control">
@@ -766,6 +779,7 @@ function workshopWizard() {
         currentStep: 1,
         isEditMode: {{ object|yesno:'true,false' }},
         showSlug: false,
+        showNewCategory: false,
 
         deliveryMethod: '{{ form.delivery_method.value|default:"online" }}',
         isFree: {{ form.is_free.value|yesno:'true,false' }},
@@ -893,7 +907,7 @@ function workshopWizard() {
         refreshReview() {
             this.review = {
                 title: this.getFieldValue('title'),
-                category: this.getFieldValue('category'),
+                category: this.showNewCategory ? (this.getFieldValue('new_category_name') || 'New category') : this.getFieldValue('category'),
                 difficulty_level: this.getFieldValue('difficulty_level'),
                 delivery_method: this.getFieldValue('delivery_method'),
                 short_description: this.getFieldValue('short_description'),
@@ -956,7 +970,7 @@ function workshopWizard() {
             {% if form.errors %}
             // Navigate to the first step that has server-side errors
             const fieldToStep = {
-                'title': 1, 'slug': 1, 'category': 1, 'difficulty_level': 1,
+                'title': 1, 'slug': 1, 'category': 1, 'new_category_name': 1, 'difficulty_level': 1,
                 'short_description': 1, 'delivery_method': 1,
                 'description': 2, 'learning_objectives': 2, 'prerequisites': 2,
                 'materials_needed': 2,
@@ -985,6 +999,10 @@ function workshopWizard() {
             // If slug has an error, auto-show the slug field
             if (errorFields.includes('slug')) {
                 this.showSlug = true;
+            }
+            // If the new-category field has an error, auto-show it
+            if (errorFields.includes('new_category_name')) {
+                this.showNewCategory = true;
             }
             if (firstErrorStep === 6) this.$nextTick(() => this.refreshReview());
             {% endif %}

@@ -124,6 +124,15 @@ class WorkshopRegistrationForm(forms.ModelForm):
 class WorkshopForm(forms.ModelForm):
     """Form for creating and editing workshops"""
 
+    new_category_name = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered w-full',
+            'placeholder': 'e.g. Beginner Techniques'
+        })
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Make price field not required since it's handled in clean() method
@@ -280,6 +289,7 @@ class WorkshopForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
+
         is_free = cleaned_data.get('is_free')
         price = cleaned_data.get('price')
         is_series = cleaned_data.get('is_series')
@@ -323,6 +333,25 @@ class WorkshopForm(forms.ModelForm):
             cleaned_data['series_description'] = ''
 
         return cleaned_data
+
+    def save(self, commit=True):
+        # If a new category name was typed, create (or reuse) it and use it in
+        # place of whatever was selected in the category dropdown. Deferred to
+        # save() rather than clean() so it only happens on an actual persisted save.
+        new_category_name = (self.cleaned_data.get('new_category_name') or '').strip()
+        if new_category_name:
+            category = WorkshopCategory.objects.filter(name__iexact=new_category_name).first()
+            if not category:
+                from django.utils.text import slugify
+                base_slug = slugify(new_category_name) or 'category'
+                slug = base_slug
+                suffix = 2
+                while WorkshopCategory.objects.filter(slug=slug).exists():
+                    slug = f'{base_slug}-{suffix}'
+                    suffix += 1
+                category = WorkshopCategory.objects.create(name=new_category_name, slug=slug)
+            self.instance.category = category
+        return super().save(commit=commit)
 
 
 class WorkshopSessionForm(forms.ModelForm):
