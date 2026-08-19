@@ -1,0 +1,109 @@
+{% comment %}
+Shared "register interest" form for a workshop — used both when no sessions are
+scheduled yet, and (for overseas visitors) alongside an already-scheduled session
+that isn't at a convenient time. Expects `workshop`, `referral_source` and
+`interest_form_token` from the parent context; `heading`/`subheading` from `with`.
+{% endcomment %}
+<div class="card bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/20">
+    <div class="card-body">
+        <h4 class="card-title text-lg mb-3">
+            <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+            </svg>
+            {{ heading|default:"Request This Workshop" }}
+        </h4>
+        <p class="text-sm text-base-content/80 mb-4">
+            {{ subheading|default:"Get notified when sessions are scheduled and help us plan the best times for everyone." }}
+        </p>
+
+        <form method="post" action="{% url 'workshops:request_interest' workshop.slug %}" class="space-y-3">
+            {% csrf_token %}
+            <input type="hidden" name="form_loaded_at" value="{{ interest_form_token }}">
+            <input type="hidden" name="referral_source" value="{{ referral_source }}">
+            <div style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
+                <label for="interest-website-{{ workshop.slug }}">Website</label>
+                <input type="text" id="interest-website-{{ workshop.slug }}" name="website" tabindex="-1" autocomplete="off">
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Email for notifications</span>
+                </label>
+                <input type="email" name="email" value="{% if user.is_authenticated %}{{ user.email }}{% endif %}"
+                       class="input input-bordered input-sm" required>
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Where you'll be joining from</span>
+                </label>
+                <select name="country" class="select select-bordered select-sm">
+                    <option value="GB">United Kingdom</option>
+                    <option value="US">United States</option>
+                    <option value="CA">Canada</option>
+                    <option value="AU">Australia</option>
+                    <option value="NZ">New Zealand</option>
+                    <option value="IE">Ireland</option>
+                    <option value="NL">Netherlands</option>
+                    <option value="DE">Germany</option>
+                    <option value="ZA">South Africa</option>
+                    <option value="OTHER">Other</option>
+                </select>
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Preferred timing (your local time)</span>
+                </label>
+                <select name="preferred_timing" class="select select-bordered select-sm">
+                    <option value="flexible">I'm flexible</option>
+                    <option value="weekday_morning">Weekday Mornings</option>
+                    <option value="weekday_afternoon">Weekday Afternoons</option>
+                    <option value="weekday_evening">Weekday Evenings</option>
+                    <option value="weekend_morning">Weekend Mornings</option>
+                    <option value="weekend_afternoon">Weekend Afternoons</option>
+                    <option value="weekend_evening">Weekend Evenings</option>
+                </select>
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Experience level (optional)</span>
+                </label>
+                <select name="experience_level" class="select select-bordered select-sm">
+                    <option value="">Select your level</option>
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                    <option value="mixed">Mixed Ability</option>
+                </select>
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Special requests or topics of interest (optional)</span>
+                </label>
+                <textarea name="special_requests"
+                          class="textarea textarea-bordered textarea-sm"
+                          rows="2"
+                          placeholder="Any specific topics you'd like covered or accessibility needs..."></textarea>
+            </div>
+
+            <div class="form-control">
+                <label class="cursor-pointer label">
+                    <span class="label-text text-sm">Notify me immediately when sessions are available</span>
+                    <input type="checkbox" name="notify_immediately" checked class="checkbox checkbox-sm checkbox-primary">
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-sm w-full">
+                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+                </svg>
+                {{ button_label|default:"Notify Me When Available" }}
+            </button>
+        </form>
+    </div>
+</div>

@@ -566,11 +566,11 @@ class WorkshopInterestNotificationService(BaseNotificationService):
                 recipient_list=[interest.email],
                 default_subject='Workshop Interest Confirmation',
                 fail_silently=False,
-                log_description=f"Interest confirmation to {interest.user.username} for workshop {interest.workshop.title}"
+                log_description=f"Interest confirmation to {interest.email} for workshop {interest.workshop.title}"
             )
 
         except Exception as e:
-            logger.error(f"Failed to send interest confirmation to {interest.user.username}: {str(e)}")
+            logger.error(f"Failed to send interest confirmation to {interest.email}: {str(e)}")
             return False
 
     @staticmethod
@@ -606,11 +606,11 @@ class WorkshopInterestNotificationService(BaseNotificationService):
                 recipient_list=[interest.email],
                 default_subject=f'New Session Available - {interest.workshop.title}',
                 fail_silently=False,
-                log_description=f"New session notification to {interest.user.username} for workshop {interest.workshop.title}"
+                log_description=f"New session notification to {interest.email} for workshop {interest.workshop.title}"
             )
 
         except Exception as e:
-            logger.error(f"Failed to send new session notification to {interest.user.username}: {str(e)}")
+            logger.error(f"Failed to send new session notification to {interest.email}: {str(e)}")
             return False
 
     @staticmethod

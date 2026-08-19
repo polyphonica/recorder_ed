@@ -306,6 +306,13 @@ class WorkshopDetailView(DetailView):
         # Published testimonials
         testimonials = workshop.testimonials.filter(is_published=True)
 
+        # Campaign tag from marketing links (e.g. ?src=ars-newsletter) and a signed
+        # timestamp for the interest-request form's spam check (see WorkshopInterestView.post)
+        from django.core import signing
+        import time
+        referral_source = self.request.GET.get('src', '')
+        interest_form_token = signing.dumps(time.time())
+
         context.update({
             'upcoming_sessions': upcoming_sessions,
             'pre_materials': pre_materials,
@@ -315,6 +322,8 @@ class WorkshopDetailView(DetailView):
             'user_is_registered': user_is_registered,
             'current_terms': current_terms,
             'testimonials': testimonials,
+            'referral_source': referral_source,
+            'interest_form_token': interest_form_token,
         })
 
         # Add cart session IDs for logged-in users
@@ -1274,8 +1283,27 @@ class InstructorDashboardView(InstructorRequiredMixin, TemplateView):
                     'label': timing_labels.get(row['preferred_timing'], row['preferred_timing']),
                     'count': row['count'],
                 })
+
+            country_qs = WorkshopInterest.objects.filter(
+                workshop_id__in=workshop_ids,
+                is_active=True
+            ).values('workshop_id', 'country').annotate(
+                count=Count('id')
+            ).order_by('workshop_id', '-count')
+            country_map = {}
+            country_labels = dict(WorkshopInterest.COUNTRY_CHOICES)
+            for row in country_qs:
+                wid = row['workshop_id']
+                if wid not in country_map:
+                    country_map[wid] = []
+                country_map[wid].append({
+                    'label': country_labels.get(row['country'], row['country']),
+                    'count': row['count'],
+                })
+
             for summary in workshop_interest_summary:
                 summary['timing_preferences'] = timing_map.get(summary['workshop__id'], [])
+                summary['country_breakdown'] = country_map.get(summary['workshop__id'], [])
 
         # Simple direct counts - only count active sessions
         total_sessions = WorkshopSession.objects.filter(workshop__instructor=user, is_active=True).count()
@@ -2431,55 +2459,91 @@ class TakeAttendanceView(LoginRequiredMixin, View):
 
 
 class WorkshopInterestView(CreateView):
-    """Handle workshop interest requests for workshops without available sessions"""
+    """Handle workshop interest requests — either waiting for sessions to be scheduled,
+    or (anonymous, from overseas newsletter links) wanting a session at a different time."""
     model = WorkshopInterest
     form_class = WorkshopInterestForm
     template_name = 'workshops/workshop_detail.html'
-    
+
+    GENERIC_SUCCESS_MESSAGE = (
+        'Great! We\'ve recorded your interest in this workshop. '
+        'Check your email for confirmation.'
+    )
+
     def dispatch(self, request, *args, **kwargs):
         self.workshop = get_object_or_404(Workshop, slug=kwargs['slug'], status=Workshop.Status.PUBLISHED)
         return super().dispatch(request, *args, **kwargs)
-    
+
+    def post(self, request, *args, **kwargs):
+        # Honeypot: bots fill the hidden website field, humans don't
+        if request.POST.get('website'):
+            messages.success(request, self.GENERIC_SUCCESS_MESSAGE)
+            return redirect('workshops:detail', slug=self.workshop.slug)
+
+        # Time check: reject submissions that arrive under 5 seconds after page load
+        from django.core import signing
+        import time
+        try:
+            load_time = signing.loads(request.POST.get('form_loaded_at', ''), max_age=3600)
+            too_fast = (time.time() - load_time) < 5
+        except signing.BadSignature:
+            too_fast = True
+
+        if too_fast:
+            messages.success(request, self.GENERIC_SUCCESS_MESSAGE)
+            return redirect('workshops:detail', slug=self.workshop.slug)
+
+        return super().post(request, *args, **kwargs)
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['workshop'] = self.workshop
         kwargs['user'] = self.request.user if self.request.user.is_authenticated else None
         return kwargs
-    
+
     def form_valid(self, form):
-        # Check if user already has an interest request for this workshop
+        # Check if this person already has an interest request for this workshop —
+        # by account when signed in, otherwise by the email they entered.
         if self.request.user.is_authenticated:
             existing_interest = WorkshopInterest.objects.filter(
                 workshop=self.workshop,
                 user=self.request.user,
                 is_active=True
             ).first()
+        else:
+            existing_interest = WorkshopInterest.objects.filter(
+                workshop=self.workshop,
+                user__isnull=True,
+                email=form.cleaned_data['email'],
+                is_active=True
+            ).first()
 
-            if existing_interest:
-                messages.info(
-                    self.request,
-                    'You have already requested to be notified about this workshop. '
-                    'We\'ll update your preferences.'
-                )
-                # Update existing interest with new data
-                for field in ['email', 'preferred_timing', 'experience_level', 'special_requests', 'notify_immediately']:
-                    setattr(existing_interest, field, form.cleaned_data[field])
-                existing_interest.save()
+        if existing_interest:
+            messages.info(
+                self.request,
+                'You have already requested to be notified about this workshop. '
+                'We\'ll update your preferences.'
+            )
+            # Update existing interest with new data
+            for field in ['email', 'country', 'preferred_timing', 'experience_level',
+                          'special_requests', 'notify_immediately', 'referral_source']:
+                setattr(existing_interest, field, form.cleaned_data[field])
+            existing_interest.save()
 
-                # Send confirmation email for updated interest
-                try:
-                    WorkshopInterestNotificationService.send_interest_confirmation(existing_interest)
-                except Exception as e:
-                    # Log error but don't fail the request
-                    import logging
-                    logger = logging.getLogger(__name__)
-                    logger.error(f"Failed to send interest confirmation email: {str(e)}")
+            # Send confirmation email for updated interest
+            try:
+                WorkshopInterestNotificationService.send_interest_confirmation(existing_interest)
+            except Exception as e:
+                # Log error but don't fail the request
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to send interest confirmation email: {str(e)}")
 
-                messages.success(
-                    self.request,
-                    'Your workshop request has been updated! Check your email for confirmation.'
-                )
-                return redirect('workshops:detail', slug=self.workshop.slug)
+            messages.success(
+                self.request,
+                'Your workshop request has been updated! Check your email for confirmation.'
+            )
+            return redirect('workshops:detail', slug=self.workshop.slug)
 
         # Create new interest request
         interest = form.save()
@@ -3547,11 +3611,32 @@ class EmailInterestedView(LoginRequiredMixin, TemplateView):
             for t in timing_breakdown
         ]
 
+        # Country breakdown — which markets are interested in this workshop
+        country_breakdown = interests.values('country').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        country_labels = dict(WorkshopInterest.COUNTRY_CHOICES)
+        country_summary = [
+            {'label': country_labels.get(c['country'], c['country']), 'count': c['count']}
+            for c in country_breakdown
+        ]
+
+        # Referral source breakdown — which newsletter/partner link is converting
+        referral_breakdown = interests.exclude(referral_source='').values('referral_source').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        referral_summary = [
+            {'label': r['referral_source'], 'count': r['count']}
+            for r in referral_breakdown
+        ]
+
         context.update({
             'workshop': workshop,
             'interests': interests,
             'total_count': interests.count(),
             'timing_summary': timing_summary,
+            'country_summary': country_summary,
+            'referral_summary': referral_summary,
         })
         return context
 
@@ -3587,10 +3672,11 @@ class EmailInterestedView(LoginRequiredMixin, TemplateView):
             seen_emails.add(email)
 
             try:
+                student_name = interest.user.get_full_name() if interest.user else ''
                 context = {
                     'subject': subject,
                     'message': message_body,
-                    'student_name': interest.user.get_full_name() or interest.user.username,
+                    'student_name': student_name or email,
                     'workshop': workshop,
                     'instructor': request.user,
                     'instructor_name': request.user.get_full_name() or request.user.username,
@@ -3609,7 +3695,7 @@ class EmailInterestedView(LoginRequiredMixin, TemplateView):
                     failed_count += 1
             except Exception as e:
                 import logging
-                logging.getLogger(__name__).error(f"Failed to email interested user {interest.user.username}: {e}")
+                logging.getLogger(__name__).error(f"Failed to email interested user {email}: {e}")
                 failed_count += 1
 
         if sent_count > 0:

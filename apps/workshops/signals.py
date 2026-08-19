@@ -115,7 +115,7 @@ def notify_interested_users_on_new_session(sender, instance, created, **kwargs):
                     interest.save(update_fields=['has_been_notified', 'notification_sent_at'])
                     notification_count += 1
             except Exception as e:
-                logger.error(f"Failed to notify interested user {interest.user.username}: {str(e)}")
+                logger.error(f"Failed to notify interested user {interest.email}: {str(e)}")
 
         if notification_count > 0:
             logger.info(f"Sent {notification_count} new session notifications for workshop '{instance.workshop.title}'")

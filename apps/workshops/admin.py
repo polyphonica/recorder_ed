@@ -325,20 +325,20 @@ class WorkshopMaterialAdmin(admin.ModelAdmin):
 @admin.register(WorkshopInterest)
 class WorkshopInterestAdmin(admin.ModelAdmin):
     list_display = [
-        'workshop', 'user', 'email', 'preferred_timing_display', 
+        'workshop', 'user', 'email', 'country', 'referral_source', 'preferred_timing_display',
         'is_active', 'has_been_notified', 'created_at'
     ]
     list_filter = [
-        'workshop', 'preferred_timing', 'experience_level', 
+        'workshop', 'country', 'preferred_timing', 'experience_level',
         'is_active', 'has_been_notified', 'notify_immediately',
         'created_at'
     ]
-    search_fields = ['user__username', 'user__first_name', 'user__last_name', 'email', 'workshop__title']
+    search_fields = ['user__username', 'user__first_name', 'user__last_name', 'email', 'workshop__title', 'referral_source']
     readonly_fields = ['created_at', 'updated_at', 'notification_sent_at']
-    
+
     fieldsets = (
         ('Basic Information', {
-            'fields': ('workshop', 'user', 'email')
+            'fields': ('workshop', 'user', 'email', 'country', 'referral_source')
         }),
         ('Preferences', {
             'fields': ('preferred_timing', 'experience_level', 'special_requests')

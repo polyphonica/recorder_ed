@@ -928,7 +928,8 @@ class WorkshopMaterial(models.Model):
 
 
 class WorkshopInterest(models.Model):
-    """Track user interest in workshops that don't have available sessions"""
+    """Track interest in a workshop — either waiting for sessions to be scheduled,
+    or (for overseas visitors) wanting a session at a different, region-friendly time."""
     TIMING_PREFERENCES = [
         ('weekday_morning', 'Weekday Mornings'),
         ('weekday_afternoon', 'Weekday Afternoons'),
@@ -938,22 +939,52 @@ class WorkshopInterest(models.Model):
         ('weekend_evening', 'Weekend Evenings'),
         ('flexible', 'Flexible'),
     ]
-    
+
+    COUNTRY_CHOICES = [
+        ('GB', 'United Kingdom'),
+        ('US', 'United States'),
+        ('CA', 'Canada'),
+        ('AU', 'Australia'),
+        ('NZ', 'New Zealand'),
+        ('IE', 'Ireland'),
+        ('NL', 'Netherlands'),
+        ('DE', 'Germany'),
+        ('ZA', 'South Africa'),
+        ('OTHER', 'Other'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     workshop = models.ForeignKey(Workshop, on_delete=models.CASCADE, related_name='interest_requests')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='workshop_interests')
-    
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='workshop_interests',
+        null=True, blank=True,
+        help_text="Blank for anonymous interest requests (e.g. from overseas newsletter links)"
+    )
+
     # Contact Information
     email = models.EmailField(help_text="We'll notify you when sessions become available")
-    
+
+    country = models.CharField(
+        max_length=10,
+        choices=COUNTRY_CHOICES,
+        default='GB',
+        help_text="Where you'll be joining from"
+    )
+
+    referral_source = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Campaign/partner tag captured from a ?src= link, e.g. an overseas newsletter"
+    )
+
     # Preferences
     preferred_timing = models.CharField(
-        max_length=20, 
-        choices=TIMING_PREFERENCES, 
+        max_length=20,
+        choices=TIMING_PREFERENCES,
         default='flexible',
         help_text="When would you prefer to attend?"
     )
-    
+
     # Additional Details
     experience_level = models.CharField(
         max_length=20, 
@@ -988,17 +1019,29 @@ class WorkshopInterest(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['workshop', 'user']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['workshop', 'user'],
+                condition=models.Q(user__isnull=False),
+                name='unique_workshop_user_interest',
+            ),
+            models.UniqueConstraint(
+                fields=['workshop', 'email'],
+                condition=models.Q(user__isnull=True),
+                name='unique_workshop_anon_email_interest',
+            ),
+        ]
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['workshop', 'is_active']),
             models.Index(fields=['user', 'is_active']),
             models.Index(fields=['has_been_notified', 'is_active']),
         ]
-    
+
     def __str__(self):
-        return f"{self.user.full_name_or_username()} interested in {self.workshop.title}"
-    
+        who = self.user.full_name_or_username() if self.user else self.email
+        return f"{who} interested in {self.workshop.title}"
+
     @property
     def formatted_timing(self):
         """Return human-readable timing preference"""

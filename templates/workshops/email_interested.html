@@ -49,6 +49,46 @@
     </div>
     {% endif %}
 
+    {% if country_summary %}
+    <!-- Country Summary -->
+    <div class="card bg-base-200 mb-6">
+        <div class="card-body">
+            <h3 class="font-semibold text-lg mb-3">
+                <i class="fas fa-globe mr-2 text-secondary"></i>Where They're From
+            </h3>
+            <p class="text-sm text-base-content/60 mb-3">Use this to judge whether an overseas-friendly session time is worth scheduling.</p>
+            <div class="flex flex-wrap gap-3">
+                {% for c in country_summary %}
+                <div class="bg-base-100 rounded-lg px-4 py-2 text-center">
+                    <div class="text-lg font-bold text-primary">{{ c.count }}</div>
+                    <div class="text-xs text-base-content/60">{{ c.label }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if referral_summary %}
+    <!-- Referral Source Summary -->
+    <div class="card bg-base-200 mb-6">
+        <div class="card-body">
+            <h3 class="font-semibold text-lg mb-3">
+                <i class="fas fa-bullhorn mr-2 text-secondary"></i>Where They Heard About This
+            </h3>
+            <p class="text-sm text-base-content/60 mb-3">Tagged from campaign links (e.g. ?src=ars-newsletter) — see which newsletters/partners are converting.</p>
+            <div class="flex flex-wrap gap-3">
+                {% for r in referral_summary %}
+                <div class="bg-base-100 rounded-lg px-4 py-2 text-center">
+                    <div class="text-lg font-bold text-primary">{{ r.count }}</div>
+                    <div class="text-xs text-base-content/60">{{ r.label }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Quick Templates -->
     <div class="card bg-base-100 shadow-xl mb-6" x-data="{ open: false }">
         <div class="card-body">
@@ -144,16 +184,20 @@
                         <tr>
                             <th>Name</th>
                             <th>Email</th>
+                            <th>Country</th>
                             <th>Preferred Timing</th>
+                            <th>Source</th>
                             <th>Requested</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for interest in interests %}
                         <tr>
-                            <td>{{ interest.user.get_full_name|default:interest.user.username }}</td>
+                            <td>{% if interest.user %}{{ interest.user.get_full_name|default:interest.user.username }}{% else %}<span class="text-base-content/50">—</span>{% endif %}</td>
                             <td>{{ interest.email }}</td>
+                            <td>{{ interest.get_country_display }}</td>
                             <td><span class="badge badge-ghost badge-sm">{{ interest.formatted_timing }}</span></td>
+                            <td class="text-sm text-base-content/60">{{ interest.referral_source|default:"—" }}</td>
                             <td class="text-sm text-base-content/60">{{ interest.created_at|date:"M j, Y" }}</td>
                         </tr>
                         {% endfor %}

@@ -725,13 +725,16 @@ class WorkshopInterestForm(forms.ModelForm):
     class Meta:
         model = WorkshopInterest
         fields = [
-            'email', 'preferred_timing', 'experience_level', 
-            'special_requests', 'notify_immediately'
+            'email', 'country', 'preferred_timing', 'experience_level',
+            'special_requests', 'notify_immediately', 'referral_source'
         ]
         widgets = {
             'email': forms.EmailInput(attrs={
                 'class': 'input input-bordered input-sm w-full',
                 'placeholder': 'your.email@recorder-ed.com'
+            }),
+            'country': forms.Select(attrs={
+                'class': 'select select-bordered select-sm w-full'
             }),
             'preferred_timing': forms.Select(attrs={
                 'class': 'select select-bordered select-sm w-full'
@@ -747,25 +750,29 @@ class WorkshopInterestForm(forms.ModelForm):
             'notify_immediately': forms.CheckboxInput(attrs={
                 'class': 'checkbox checkbox-sm checkbox-primary'
             }),
+            'referral_source': forms.HiddenInput(),
         }
-    
+
     def __init__(self, *args, **kwargs):
         self.workshop = kwargs.pop('workshop', None)
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        
+        self.fields['referral_source'].required = False
+
         # Pre-fill email if user is authenticated
         if self.user and self.user.is_authenticated:
             self.fields['email'].initial = self.user.email
-    
+
     def save(self, commit=True):
         instance = super().save(commit=False)
-        
+
         if self.workshop:
             instance.workshop = self.workshop
         if self.user and self.user.is_authenticated:
             instance.user = self.user
-            
+        else:
+            instance.user = None
+
         if commit:
             instance.save()
         return instance

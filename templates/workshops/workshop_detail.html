@@ -689,98 +689,14 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Request Workshop Form -->
-                                    <div class="card bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/20">
-                                        <div class="card-body">
-                                            <h4 class="card-title text-lg mb-3">
-                                                <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
-                                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
-                                                </svg>
-                                                Request This Workshop
-                                            </h4>
-                                            <p class="text-sm text-base-content/80 mb-4">
-                                                Get notified when sessions are scheduled and help us plan the best times for everyone.
-                                            </p>
-                                            
-                                            {% if user.is_authenticated %}
-                                                <form method="post" action="{% url 'workshops:request_interest' workshop.slug %}" class="space-y-3">
-                                                    {% csrf_token %}
-                                                    
-                                                    <div class="form-control">
-                                                        <label class="label">
-                                                            <span class="label-text">Email for notifications</span>
-                                                        </label>
-                                                        <input type="email" name="email" value="{{ user.email }}" 
-                                                               class="input input-bordered input-sm" required>
-                                                    </div>
-                                                    
-                                                    <div class="form-control">
-                                                        <label class="label">
-                                                            <span class="label-text">Preferred timing</span>
-                                                        </label>
-                                                        <select name="preferred_timing" class="select select-bordered select-sm">
-                                                            <option value="flexible">I'm flexible</option>
-                                                            <option value="weekday_morning">Weekday Mornings</option>
-                                                            <option value="weekday_afternoon">Weekday Afternoons</option>
-                                                            <option value="weekday_evening">Weekday Evenings</option>
-                                                            <option value="weekend_morning">Weekend Mornings</option>
-                                                            <option value="weekend_afternoon">Weekend Afternoons</option>
-                                                            <option value="weekend_evening">Weekend Evenings</option>
-                                                        </select>
-                                                    </div>
-                                                    
-                                                    <div class="form-control">
-                                                        <label class="label">
-                                                            <span class="label-text">Experience level (optional)</span>
-                                                        </label>
-                                                        <select name="experience_level" class="select select-bordered select-sm">
-                                                            <option value="">Select your level</option>
-                                                            <option value="beginner">Beginner</option>
-                                                            <option value="intermediate">Intermediate</option>
-                                                            <option value="advanced">Advanced</option>
-                                                            <option value="mixed">Mixed Ability</option>
-                                                        </select>
-                                                    </div>
-                                                    
-                                                    <div class="form-control">
-                                                        <label class="label">
-                                                            <span class="label-text">Special requests or topics of interest (optional)</span>
-                                                        </label>
-                                                        <textarea name="special_requests" 
-                                                                  class="textarea textarea-bordered textarea-sm" 
-                                                                  rows="2"
-                                                                  placeholder="Any specific topics you'd like covered or accessibility needs..."></textarea>
-                                                    </div>
-                                                    
-                                                    <div class="form-control">
-                                                        <label class="cursor-pointer label">
-                                                            <span class="label-text text-sm">Notify me immediately when sessions are available</span>
-                                                            <input type="checkbox" name="notify_immediately" checked class="checkbox checkbox-sm checkbox-primary">
-                                                        </label>
-                                                    </div>
-                                                    
-                                                    <button type="submit" class="btn btn-primary btn-sm w-full">
-                                                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
-                                                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
-                                                        </svg>
-                                                        Notify Me When Available
-                                                    </button>
-                                                </form>
-                                            {% else %}
-                                                <div class="text-center">
-                                                    <p class="text-sm text-base-content/70 mb-3">
-                                                        Sign in to request this workshop and get notified when sessions are available.
-                                                    </p>
-                                                    <a href="{% url 'login' %}?next={{ request.get_full_path }}"
-                                                       class="btn btn-primary btn-sm">
-                                                        Sign In to Request
-                                                    </a>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
+                                    {% include 'workshops/_interest_request_form.html' %}
+                                </div>
+                            {% endif %}
+
+                            {% if upcoming_sessions or workshop.has_upcoming_sessions %}
+                                <!-- Overseas / different-time interest capture -->
+                                <div class="mt-4">
+                                    {% include 'workshops/_interest_request_form.html' with heading="Can't Make This Time?" subheading="Tell us where you're joining from — if there's enough interest from your region, we'll look at scheduling a session at a friendlier time. In the meantime you'll be first to know about the recording." button_label="Let Us Know" %}
                                 </div>
                             {% endif %}
 

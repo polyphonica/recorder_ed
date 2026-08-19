@@ -1,7 +1,7 @@
 {% load humanize %}
 Subject: New Session Available - {{ workshop.title }}
 
-Hi {{ user.first_name|default:user.username }},
+Hi {% if user %}{{ user.first_name|default:user.username }}{% else %}there{% endif %},
 
 Great news! A new session has been scheduled for "{{ workshop.title }}" - a workshop you expressed interest in.
 
