@@ -110,18 +110,6 @@ class WorkshopListView(SearchableListViewMixin, ListView):
     }
     default_sort = 'featured'
 
-    def dispatch(self, request, *args, **kwargs):
-        # If user is logged in and is a student (not a teacher), redirect to their dashboard
-        # UNLESS they explicitly want to browse workshops (via ?browse=all query param)
-        if request.user.is_authenticated and hasattr(request.user, 'profile'):
-            profile = request.user.profile
-            # Allow students to browse if they have the browse parameter
-            browse_param = request.GET.get('browse')
-            # Redirect students to their dashboard (but not teachers or if browsing)
-            if profile.is_student and not profile.is_teacher and browse_param != 'all':
-                return redirect('workshops:student_dashboard')
-        return super().dispatch(request, *args, **kwargs)
-
     def get_queryset(self):
         # Annotate with next session date for sorting
         # This finds the earliest upcoming session for each workshop
