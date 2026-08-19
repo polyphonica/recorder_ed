@@ -50,10 +50,10 @@
                                 allowfullscreen></iframe>
                     </div>
                 {% elif workshop.featured_image %}
-                    <figure class="mb-6">
-                        <img src="{{ workshop.featured_image.url }}" 
+                    <figure class="mb-6 h-64 lg:h-80 bg-slate-100 rounded-lg">
+                        <img src="{{ workshop.featured_image.url }}"
                              alt="{{ workshop.title }}"
-                             class="w-full h-64 lg:h-80 object-cover rounded-lg" />
+                             class="w-full h-full object-contain rounded-lg" />
                     </figure>
                 {% endif %}
 

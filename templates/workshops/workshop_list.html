@@ -140,10 +140,10 @@
                 {% for workshop in workshops %}
                     <div class="card bg-slate-50 shadow-xl hover:shadow-2xl transition-shadow duration-300">
                         {% if workshop.featured_image %}
-                            <figure>
-                                <img src="{{ workshop.featured_image.url }}" 
+                            <figure class="h-48 bg-slate-100">
+                                <img src="{{ workshop.featured_image.url }}"
                                      alt="{{ workshop.title }}"
-                                     class="w-full h-48 object-cover" />
+                                     class="w-full h-full object-contain" />
                             </figure>
                         {% else %}
                             <figure class="bg-gradient-to-br from-primary/20 to-secondary/20 h-48 flex items-center justify-center">

@@ -5,20 +5,25 @@ import sys
 import os
 
 
-def optimize_workshop_image(image_field, target_width=1600, target_height=800, quality=85):
+def optimize_workshop_image(image_field, max_width=1600, max_height=800, quality=85):
     """
     Resize and optimize an uploaded workshop image.
 
     This function:
     - Converts images to RGB (handles PNG transparency)
-    - Crops to 2:1 aspect ratio (centered)
-    - Resizes to target dimensions
+    - Shrinks the image to fit within max_width x max_height, preserving its
+      original aspect ratio — never crops and never enlarges a smaller image
     - Optimizes for web delivery
+
+    Cropping to a fixed aspect ratio was deliberately removed: it destructively
+    cut off content (e.g. staves from sheet-music exports) that didn't happen to
+    be centered in the source image. Display-time framing (letterboxing to a
+    consistent card size) is handled in the templates instead, via `object-fit`.
 
     Args:
         image_field: Django ImageField instance
-        target_width: Desired width in pixels (default: 1600)
-        target_height: Desired height in pixels (default: 800)
+        max_width: Maximum width in pixels (default: 1600)
+        max_height: Maximum height in pixels (default: 800)
         quality: JPEG quality 1-100 (default: 85 - good balance)
 
     Returns:
@@ -44,25 +49,9 @@ def optimize_workshop_image(image_field, target_width=1600, target_height=800, q
         elif img.mode != 'RGB':
             img = img.convert('RGB')
 
-        # Calculate aspect ratio
-        original_width, original_height = img.size
-        target_ratio = target_width / target_height
-        original_ratio = original_width / original_height
-
-        # Crop to target aspect ratio (2:1) using center crop
-        if original_ratio > target_ratio:
-            # Image is wider than target ratio - crop width (left/right)
-            new_width = int(original_height * target_ratio)
-            left = (original_width - new_width) // 2
-            img = img.crop((left, 0, left + new_width, original_height))
-        elif original_ratio < target_ratio:
-            # Image is taller than target ratio - crop height (top/bottom)
-            new_height = int(original_width / target_ratio)
-            top = (original_height - new_height) // 2
-            img = img.crop((0, top, original_width, top + new_height))
-
-        # Resize to target dimensions using high-quality Lanczos resampling
-        img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
+        # Shrink to fit within the bounding box (no-op if already smaller);
+        # preserves aspect ratio and never upscales
+        img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
 
         # Save to BytesIO buffer
         output = BytesIO()
