@@ -463,7 +463,21 @@ class CustomPasswordResetForm(PasswordResetForm):
     """
     Custom password reset form that sends HTML emails with RECORDER-ED branding.
     Overrides the default Django password reset to send multipart emails.
+
+    Also tells the user directly if no account matches the email they entered,
+    rather than Django's default silent "check your email regardless" behaviour —
+    a deliberate choice for this site (small, non-adversarial user base) over the
+    usual security default of not confirming whether an account exists.
     """
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email and not User.objects.filter(email__iexact=email, is_active=True).exists():
+            raise forms.ValidationError(
+                "We couldn't find an account with that email address. "
+                "Please check for typos, or create a new account if you haven't registered yet."
+            )
+        return email
 
     def send_mail(self, subject_template_name, email_template_name,
                   context, from_email, to_email, html_email_template_name=None):
