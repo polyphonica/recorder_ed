@@ -664,10 +664,15 @@ class WorkshopCheckoutSuccessView(BaseCheckoutSuccessView):
                 print(f"Failed to send instructor notification: {e}")
 
     def get_context_extras(self, obj):
+        from apps.payments.models import VoucherRedemption
+        redemption = VoucherRedemption.objects.filter(
+            workshop_registration=obj
+        ).select_related('voucher').first()
         return {
             'registration': obj,
             'workshop': obj.session.workshop,
             'session': obj.session,
+            'voucher_code': redemption.voucher.code if redemption else '',
         }
 
 
@@ -3167,10 +3172,21 @@ class CheckoutSuccessView(LoginRequiredMixin, TemplateView):
         context['session_id'] = session_id
 
         # Get recent registrations for this user
-        recent_registrations = WorkshopRegistration.objects.filter(
+        recent_registrations = list(WorkshopRegistration.objects.filter(
             student=self.request.user,
             payment_status='completed'
-        ).select_related('session__workshop').order_by('-paid_at')[:5]
+        ).select_related('session__workshop').order_by('-paid_at')[:5])
+
+        from apps.payments.models import VoucherRedemption
+        redemptions = VoucherRedemption.objects.filter(
+            workshop_registration__in=recent_registrations
+        ).select_related('voucher')
+        code_by_registration_id = {
+            redemption.workshop_registration_id: redemption.voucher.code
+            for redemption in redemptions
+        }
+        for registration in recent_registrations:
+            registration.voucher_code = code_by_registration_id.get(registration.id, '')
 
         context['registrations'] = recent_registrations
         return context

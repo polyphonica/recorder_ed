@@ -120,11 +120,13 @@ document.addEventListener('DOMContentLoaded', function() {
             transaction_id: "{{ enrollment.stripe_payment_intent_id|default:enrollment.id }}",
             value: {{ enrollment.payment_amount|default:0 }},
             currency: "GBP",
+            {% if voucher_code %}coupon: "{{ voucher_code|escapejs }}",{% endif %}
             items: [{
                 item_id: "course_{{ course.id }}",
                 item_name: "{{ course.title|escapejs }}",
                 item_category: "courses",
                 item_category2: "{{ course.get_grade_display|default:'General'|escapejs }}",
+                {% if voucher_code %}coupon: "{{ voucher_code|escapejs }}",{% endif %}
                 price: {{ enrollment.payment_amount|default:0 }},
                 quantity: 1
             }]

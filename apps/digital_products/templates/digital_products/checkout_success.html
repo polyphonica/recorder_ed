@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
             item_name: "{{ purchase.product.title|escapejs }}",
             item_category: "digital_products",
             item_category2: "{{ purchase.product.category.name|default:'Uncategorized'|escapejs }}",
+            {% if voucher_code %}coupon: "{{ voucher_code|escapejs }}",{% endif %}
             price: {{ purchase.payment_amount|default:0 }},
             quantity: 1
         });
@@ -89,6 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
             transaction_id: "{{ purchases.0.stripe_payment_intent_id|default:'DP_' }}{{ request.user.id }}_{{ purchases.0.id|default:'' }}",
             value: totalValue,
             currency: "GBP",
+            {% if voucher_code %}coupon: "{{ voucher_code|escapejs }}",{% endif %}
             items: items
         });
     }

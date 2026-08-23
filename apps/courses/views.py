@@ -1511,10 +1511,15 @@ class CourseCheckoutSuccessView(BaseCheckoutSuccessView):
                 pass  # Webhook will handle it
 
     def get_context_extras(self, obj):
+        from apps.payments.models import VoucherRedemption
+        redemption = VoucherRedemption.objects.filter(
+            course_enrollment=obj
+        ).select_related('voucher').first()
         return {
             'enrollment': obj,
             'course': obj.course,
             'child': obj.child_profile,
+            'voucher_code': redemption.voucher.code if redemption else '',
         }
 
 

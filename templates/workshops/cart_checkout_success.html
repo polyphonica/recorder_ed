@@ -143,6 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
             item_name: "{{ registration.session.workshop.title|escapejs }}",
             item_category: "workshops",
             item_category2: "{{ registration.session.workshop.category.name|default:'Uncategorized'|escapejs }}",
+            {% if registration.voucher_code %}coupon: "{{ registration.voucher_code|escapejs }}",{% endif %}
             price: {{ registration.payment_amount|default:0 }},
             quantity: 1
         });

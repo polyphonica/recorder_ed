@@ -178,6 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
             item_name: "{{ item.lesson.subject.subject|escapejs }} - Private Lesson",
             item_category: "private_teaching",
             item_category2: "{{ item.lesson.subject.subject|escapejs }}",
+            {% if voucher_code %}coupon: "{{ voucher_code|escapejs }}",{% endif %}
             price: {{ item.price_paid|default:0 }},
             quantity: 1
         });
@@ -187,6 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
             transaction_id: "{{ order.stripe_payment_intent_id|default:order.order_number }}",
             value: {{ order.total_amount|default:0 }},
             currency: "GBP",
+            {% if voucher_code %}coupon: "{{ voucher_code|escapejs }}",{% endif %}
             items: items
         });
     }

@@ -129,11 +129,13 @@ document.addEventListener('DOMContentLoaded', function() {
             transaction_id: "{{ registration.stripe_payment_intent_id|default:registration.id }}",
             value: {{ registration.payment_amount|default:0 }},
             currency: "GBP",
+            {% if voucher_code %}coupon: "{{ voucher_code|escapejs }}",{% endif %}
             items: [{
                 item_id: "workshop_{{ workshop.id }}",
                 item_name: "{{ workshop.title|escapejs }}",
                 item_category: "workshops",
                 item_category2: "{{ workshop.category.name|default:'Uncategorized'|escapejs }}",
+                {% if voucher_code %}coupon: "{{ voucher_code|escapejs }}",{% endif %}
                 price: {{ registration.payment_amount|default:0 }},
                 quantity: 1
             }]

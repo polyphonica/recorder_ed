@@ -422,9 +422,21 @@ class CheckoutSuccessView(LoginRequiredMixin, View):
         current_purchases = recent_purchases.filter(paid_at__gte=five_minutes_ago)[:10]
         total_amount = sum(p.payment_amount or 0 for p in current_purchases)
 
+        # VoucherRedemption has no FK to ProductPurchase, so match it the same way
+        # the transaction itself is matched above: most recent redemption for this
+        # student in this domain within the checkout window.
+        from apps.payments.models import VoucherRedemption
+        redemption = VoucherRedemption.objects.filter(
+            student=request.user,
+            domain='digital_products',
+            redeemed_at__gte=five_minutes_ago
+        ).select_related('voucher').order_by('-redeemed_at').first()
+        voucher_code = redemption.voucher.code if redemption else ''
+
         context = {
             'purchases': current_purchases if current_purchases.exists() else recent_purchases[:5],
             'total_amount': total_amount,
+            'voucher_code': voucher_code,
         }
         return render(request, self.template_name, context)
 

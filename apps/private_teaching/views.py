@@ -1741,10 +1741,16 @@ class CheckoutSuccessView(StudentProfileCompletedMixin, BaseCheckoutSuccessView)
             'lesson__student'
         ).all()
 
+        from apps.payments.models import VoucherRedemption
+        redemption = VoucherRedemption.objects.filter(
+            private_lesson_order=obj
+        ).select_related('voucher').first()
+
         return {
             'order': obj,
             'order_items': order_items,
             'payment_pending': obj.payment_status == 'pending',
+            'voucher_code': redemption.voucher.code if redemption else '',
         }
 
 
