@@ -23,12 +23,20 @@ cd "$PROJECT_DIR" || {
     exit 1
 }
 
-set -a
-source .env
-set +a
+# .env holds raw values (e.g. SECRET_KEY has shell-special characters),
+# so read only the keys we need instead of sourcing the whole file.
+env_var() {
+    grep -E "^$1=" .env | head -1 | cut -d '=' -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'\$//"
+}
+
+DB_NAME=$(env_var DB_NAME)
+DB_USER=$(env_var DB_USER)
+DB_PASSWORD=$(env_var DB_PASSWORD)
+DB_HOST=$(env_var DB_HOST)
+DB_PORT=$(env_var DB_PORT)
 
 if [ -z "$DB_NAME" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASSWORD" ]; then
-    echo "Missing DB_NAME/DB_USER/DB_PASSWORD after sourcing .env" >> "$LOG_FILE"
+    echo "Missing DB_NAME/DB_USER/DB_PASSWORD in .env" >> "$LOG_FILE"
     exit 1
 fi
 
