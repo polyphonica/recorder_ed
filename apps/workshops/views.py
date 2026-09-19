@@ -87,6 +87,27 @@ def create_terms_acceptance(registration, request_or_session_data):
     return terms_acceptance
 
 
+def published_workshops_queryset():
+    """Base queryset of published workshops, annotated with next_session_date.
+
+    Shared by WorkshopListView and WorkshopCardPreviewView so the "which
+    workshops are publicly listed, and when do they next run" logic lives
+    in one place.
+    """
+    return Workshop.objects.filter(status=Workshop.Status.PUBLISHED).select_related(
+        'instructor', 'category'
+    ).prefetch_related('sessions').annotate(
+        next_session_date=Min(
+            'sessions__start_datetime',
+            filter=Q(
+                sessions__start_datetime__gte=timezone.now(),
+                sessions__is_active=True,
+                sessions__is_cancelled=False
+            )
+        )
+    )
+
+
 class WorkshopListView(SearchableListViewMixin, ListView):
     """Display list of workshops with filtering and search"""
     model = Workshop
@@ -114,20 +135,7 @@ class WorkshopListView(SearchableListViewMixin, ListView):
     default_sort = 'featured'
 
     def get_queryset(self):
-        # Annotate with next session date for sorting
-        # This finds the earliest upcoming session for each workshop
-        queryset = Workshop.objects.filter(status=Workshop.Status.PUBLISHED).select_related(
-            'instructor', 'category'
-        ).prefetch_related('sessions').annotate(
-            next_session_date=Min(
-                'sessions__start_datetime',
-                filter=Q(
-                    sessions__start_datetime__gte=timezone.now(),
-                    sessions__is_active=True,
-                    sessions__is_cancelled=False
-                )
-            )
-        )
+        queryset = published_workshops_queryset()
 
         # Category filtering from URL kwargs
         category_slug = self.kwargs.get('category_slug')
@@ -138,7 +146,7 @@ class WorkshopListView(SearchableListViewMixin, ListView):
         queryset = self.filter_queryset(queryset)
 
         return queryset
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 

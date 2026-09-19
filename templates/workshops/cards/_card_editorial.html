@@ -1,0 +1,103 @@
+{% comment %}
+Variant C: Editorial. Closest to today's info density, just de-badged and
+without the colored availability alert boxes: image, title, short
+description, date/time, instructor, price — all as plain text. Category,
+level, delivery method, tags, duration etc. are shown as badges on the
+workshop detail page only. Whole card links to the workshop detail page; the
+CTA button remains a second, independently-clickable link on top of the
+stretched overlay. A defined border darkens to the primary colour on hover.
+{% endcomment %}
+<div class="card group bg-slate-50 border-2 border-slate-300 shadow-md hover:border-primary hover:shadow-xl transition-all duration-300 relative">
+    <a href="{% url 'workshops:detail' workshop.slug %}" class="absolute inset-0 z-0 rounded-2xl" aria-label="View {{ workshop.title }}"></a>
+
+    {% if workshop.featured_image %}
+        <figure class="h-48 bg-slate-100">
+            <img src="{{ workshop.featured_image.url }}"
+                 alt="{{ workshop.title }}"
+                 class="w-full h-full object-contain" />
+        </figure>
+    {% else %}
+        <figure class="bg-gradient-to-br from-primary/20 to-secondary/20 h-48 flex items-center justify-center">
+            <div class="text-center">
+                <svg class="w-16 h-16 mx-auto text-primary/60 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="text-primary/60 font-medium">{{ workshop.category.name }}</p>
+            </div>
+        </figure>
+    {% endif %}
+
+    <div class="card-body">
+        <p class="text-xs font-medium text-base-content/50 uppercase tracking-wide">{% if workshop.category %}{{ workshop.category.name }} &middot; {% endif %}{{ workshop.get_difficulty_level_display }} &middot; {% if workshop.delivery_method == 'hybrid' %}Hybrid{% else %}{{ workshop.get_delivery_method_display }}{% endif %}</p>
+        <h2 class="card-title text-lg group-hover:text-primary transition-colors">{{ workshop.title }}</h2>
+        <p class="text-base-content/70 text-sm line-clamp-3">{{ workshop.short_description }}</p>
+
+        <div class="flex items-center gap-4 text-sm text-base-content/60 mt-2">
+            <div class="flex items-center gap-1">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 9h12v8H4V9z"></path>
+                </svg>
+                {% if workshop.next_session %}
+                    <span>{{ workshop.next_session.start_datetime|date:"M j, g:i A" }}</span>
+                {% else %}
+                    <span>Dates coming soon</span>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-1">
+                <div class="avatar placeholder">
+                    <div class="bg-neutral text-neutral-content rounded-full w-5">
+                        <span class="text-xs">
+                            {% if workshop.instructor.first_name %}
+                                {{ workshop.instructor.first_name|first|upper }}
+                            {% else %}
+                                {{ workshop.instructor.username|first|upper }}
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <span>{{ workshop.instructor.full_name_or_username }}</span>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center mt-3">
+            <div>
+                {% if workshop.is_free %}
+                    <div class="text-lg font-bold text-success">Free</div>
+                {% elif workshop.is_series %}
+                    {% if workshop.require_full_series_registration %}
+                        <div class="text-lg font-bold text-primary">£{{ workshop.series_price|floatformat:2 }} for {{ workshop.series_session_count }} sessions</div>
+                        {% if workshop.has_series_discount %}
+                            <div class="text-xs text-success font-semibold mt-1">Save £{{ workshop.series_savings|floatformat:2 }}!</div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-lg font-bold text-primary">From £{{ workshop.price|floatformat:2 }}/session</div>
+                        {% if workshop.has_series_discount %}
+                            <div class="text-xs text-success font-semibold mt-1">Series discount available</div>
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                    <div class="text-lg font-bold text-primary">£{{ workshop.price|floatformat:2 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="card-actions">
+                {% if workshop.has_available_sessions %}
+                    <a href="{% url 'workshops:detail' workshop.slug %}"
+                       class="btn btn-primary btn-sm relative z-10">
+                        View Sessions
+                    </a>
+                {% elif workshop.has_upcoming_sessions %}
+                    <a href="{% url 'workshops:detail' workshop.slug %}"
+                       class="btn btn-secondary btn-sm relative z-10">
+                        Join Waitlist
+                    </a>
+                {% else %}
+                    <a href="{% url 'workshops:detail' workshop.slug %}"
+                       class="btn btn-warning btn-sm relative z-10">
+                        Notify Me
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
