@@ -6,28 +6,31 @@ level, delivery method, tags, duration etc. are shown as badges on the
 workshop detail page only. Whole card links to the workshop detail page; the
 CTA button remains a second, independently-clickable link on top of the
 stretched overlay. A defined border darkens to the primary colour on hover.
+The image is an inset, rounded, fixed 3:2 frame filled with object-cover so every
+card lines up whatever the upload's shape. This is display-only: the stored file
+is never cropped (see optimize_workshop_image).
 {% endcomment %}
-<div class="card group bg-slate-50 border-2 border-slate-300 shadow-md hover:border-primary hover:shadow-xl transition-all duration-300 relative">
+<div class="card group bg-base-100 border-2 border-slate-300 shadow-md hover:border-primary hover:shadow-xl transition-all duration-300 relative">
     <a href="{% url 'workshops:detail' workshop.slug %}" class="absolute inset-0 z-0 rounded-2xl" aria-label="View {{ workshop.title }}"></a>
 
-    {% if workshop.featured_image %}
-        <figure class="h-48 bg-slate-100">
+    <figure class="px-3 pt-3">
+        {% if workshop.featured_image %}
             <img src="{{ workshop.featured_image.url }}"
                  alt="{{ workshop.title }}"
-                 class="w-full h-full object-contain" />
-        </figure>
-    {% else %}
-        <figure class="bg-gradient-to-br from-primary/20 to-secondary/20 h-48 flex items-center justify-center">
-            <div class="text-center">
-                <svg class="w-16 h-16 mx-auto text-primary/60 mb-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <p class="text-primary/60 font-medium">{{ workshop.category.name }}</p>
+                 class="w-full aspect-[3/2] object-cover rounded-xl" />
+        {% else %}
+            <div class="w-full aspect-[3/2] rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                <div class="text-center">
+                    <svg class="w-16 h-16 mx-auto text-primary/60 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="text-primary/60 font-medium">{{ workshop.category.name }}</p>
+                </div>
             </div>
-        </figure>
-    {% endif %}
+        {% endif %}
+    </figure>
 
-    <div class="card-body">
+    <div class="card-body p-5">
         <p class="text-xs font-medium text-base-content/50 uppercase tracking-wide">{% if workshop.category %}{{ workshop.category.name }} &middot; {% endif %}{{ workshop.get_difficulty_level_display }} &middot; {% if workshop.delivery_method == 'hybrid' %}Hybrid{% else %}{{ workshop.get_delivery_method_display }}{% endif %}</p>
         <h2 class="card-title text-lg group-hover:text-primary transition-colors">{{ workshop.title }}</h2>
         <p class="text-base-content/70 text-sm line-clamp-3">{{ workshop.short_description }}</p>
