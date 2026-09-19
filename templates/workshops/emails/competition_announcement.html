@@ -1,0 +1,66 @@
+{% extends "emails/base.html" %}
+
+{% block header_color %}#3b82f6{% endblock %}
+{% block header_gradient %}linear-gradient(135deg, #3b82f6 0%, #2563eb 100%){% endblock %}
+{% block header_subtitle %}WORKSHOPS - Competition{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ student_name }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    {{ instructor_name }} has set up a competition for the workshop you are registered for,
+    <strong>{{ workshop.title }}</strong> ({{ session.start_datetime|date:"l, d F Y" }}). You're invited to enter!
+</p>
+
+<!-- The Question -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 600; color: #2563eb;">
+                The Question
+            </h2>
+            <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #333333; white-space: pre-line;">{{ competition.question }}</p>
+        </td>
+    </tr>
+</table>
+
+<!-- Enter Button -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ enter_url }}" style="display: inline-block; padding: 14px 28px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">
+                Enter the Competition
+            </a>
+        </td>
+    </tr>
+</table>
+
+<!-- How to enter -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 25px 0; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
+    <tr>
+        <td style="padding: 20px;">
+            <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #d97706;">
+                How to Enter
+            </h3>
+            <ol style="margin: 0; padding: 0 0 0 20px; font-size: 14px; line-height: 1.8; color: #333333;">
+                <li>Click <strong>Enter the Competition</strong> above (log in to your account if asked).</li>
+                <li>Read the question and choose the answer you think is correct.</li>
+                <li>Submit your answer.</li>
+            </ol>
+        </td>
+    </tr>
+</table>
+
+<ul style="margin: 0 0 25px 0; padding: 0 0 0 20px; font-size: 14px; line-height: 1.8; color: #333333;">
+    <li>Each person can enter once, so choose carefully.</li>
+    <li>Only correct answers go into the prize draw. The winner is picked at random from those.</li>
+    {% if competition.draw_datetime %}<li>The winner will be drawn after {{ competition.draw_datetime|date:"l, d F Y" }} at {{ competition.draw_datetime|time:"H:i" }}.</li>{% endif %}
+    <li>You can also enter from your <a href="{{ my_registrations_url }}" style="color: #3b82f6;">registrations page</a> &mdash; look for the "Enter Competition" button.</li>
+</ul>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    Good luck!
+</p>
+{% endblock %}

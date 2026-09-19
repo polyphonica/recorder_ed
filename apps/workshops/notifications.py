@@ -733,3 +733,146 @@ class WorkshopReminderNotificationService(BaseNotificationService):
                 f"{session.id}: {str(e)}"
             )
             return False
+
+
+class WorkshopCompetitionNotificationService(BaseNotificationService):
+    """Service for sending workshop competition emails"""
+
+    # Same statuses EnterCompetitionView accepts as "registered for the session"
+    ELIGIBLE_STATUSES = ['registered', 'promoted', 'attended']
+
+    @staticmethod
+    def send_competition_announcement(competition):
+        """
+        Tell session participants about a new competition and how to enter it.
+
+        One email per account (a guardian with several children registered gets one,
+        since competition entries are unique per user). Returns the number sent.
+        """
+        from .models import WorkshopRegistration
+
+        service = WorkshopCompetitionNotificationService
+        session = competition.session
+        workshop = session.workshop
+
+        registrations = (
+            WorkshopRegistration.objects
+            .filter(session=session, status__in=service.ELIGIBLE_STATUSES)
+            .select_related('student')
+            .order_by('registration_date')
+        )
+
+        enter_url = service.build_absolute_url(
+            'workshops:enter_competition', {'competition_id': competition.id}
+        )
+        my_registrations_url = service.build_absolute_url('workshops:my_registrations')
+        site_name = service.get_site_name()
+        instructor_name = service.get_display_name(workshop.instructor, 'Your instructor')
+
+        sent_count = 0
+        notified_student_ids = set()
+        for registration in registrations:
+            student = registration.student
+            if student.id in notified_student_ids:
+                continue
+            notified_student_ids.add(student.id)
+
+            try:
+                if not service.check_opt_out(student, 'workshop_email_notifications'):
+                    logger.info(
+                        f"Student {student.username} has opted out of workshop emails — "
+                        f"skipping competition announcement for competition {competition.id}"
+                    )
+                    continue
+
+                is_valid, student_email = service.validate_email(student, 'Student')
+                if not is_valid:
+                    continue
+
+                # For child registrations registration.email holds the guardian's address
+                recipient_email = registration.email if registration.email else student_email
+
+                context = {
+                    'competition': competition,
+                    'session': session,
+                    'workshop': workshop,
+                    'student_name': student.first_name or student.username,
+                    'instructor_name': instructor_name,
+                    'enter_url': enter_url,
+                    'my_registrations_url': my_registrations_url,
+                    'site_name': site_name,
+                }
+
+                if service.send_templated_email(
+                    template_path='workshops/emails/competition_announcement.txt',
+                    context=context,
+                    recipient_list=[recipient_email],
+                    default_subject=f'Competition: {workshop.title}',
+                    fail_silently=False,
+                    log_description=(
+                        f"Competition announcement to {student.username} "
+                        f"({recipient_email}) for competition {competition.id}"
+                    )
+                ):
+                    sent_count += 1
+
+            except Exception as e:
+                logger.error(
+                    f"Failed to send competition announcement to {student.username} "
+                    f"for competition {competition.id}: {str(e)}",
+                    exc_info=True
+                )
+
+        return sent_count
+
+    @staticmethod
+    def send_winner_notification(competition):
+        """
+        Tell the winning entrant they've won. Not gated on the workshop-email opt-out:
+        it's a personal prize notice rather than a broadcast.
+        """
+        service = WorkshopCompetitionNotificationService
+        try:
+            entry = competition.winner
+            if not entry:
+                logger.warning(f"Competition {competition.id} has no winner — nothing to send")
+                return False
+
+            # Entries are stored against the guardian account for child entrants
+            is_valid, email = service.validate_email(entry.participant, 'Competition winner')
+            if not is_valid:
+                return False
+
+            session = competition.session
+            workshop = session.workshop
+
+            context = {
+                'competition': competition,
+                'session': session,
+                'workshop': workshop,
+                'winner_name': entry.display_name,
+                'is_child': entry.child_profile_id is not None,
+                'recipient_name': entry.participant.first_name or entry.participant.username,
+                'instructor_name': service.get_display_name(workshop.instructor, 'Your instructor'),
+                'site_name': service.get_site_name(),
+            }
+
+            return service.send_templated_email(
+                template_path='workshops/emails/competition_winner.txt',
+                context=context,
+                recipient_list=[email],
+                default_subject=f'You won the {workshop.title} competition!',
+                fail_silently=False,
+                log_description=(
+                    f"Competition winner notification to {entry.participant.username} "
+                    f"({email}) for competition {competition.id}"
+                )
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Failed to send competition winner notification for competition "
+                f"{competition.id}: {str(e)}",
+                exc_info=True
+            )
+            return False

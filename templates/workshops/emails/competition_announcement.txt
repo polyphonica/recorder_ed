@@ -1,0 +1,28 @@
+Subject: Competition: win a prize in {{ workshop.title }} — {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ student_name }},
+
+{{ instructor_name }} has set up a competition for the workshop you are registered for, "{{ workshop.title }}" ({{ session.start_datetime|date:"l, d F Y" }}). You're invited to enter!
+
+THE QUESTION:
+{{ competition.question }}
+
+HOW TO ENTER:
+1. Open the entry page: {{ enter_url }}
+   (Log in to your account if asked.)
+2. Read the question and choose the answer you think is correct.
+3. Submit your answer.
+
+Good to know:
+- Each person can enter once, so choose carefully.
+- Only correct answers go into the prize draw. The winner is picked at random from those.{% if competition.draw_datetime %}
+- The winner will be drawn after {{ competition.draw_datetime|date:"l, d F Y" }} at {{ competition.draw_datetime|time:"H:i" }}.{% endif %}
+- You can also enter any time from your registrations page (look for the "Enter Competition" button): {{ my_registrations_url }}
+
+Good luck!
+
+Best regards,
+The {{ site_name }} Team

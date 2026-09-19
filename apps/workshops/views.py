@@ -30,6 +30,9 @@ from .forms import (
 from .mixins import InstructorRequiredMixin
 from .notifications import WorkshopInterestNotificationService
 from apps.payments.voucher_service import VoucherService, VoucherValidationError
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def create_terms_acceptance(registration, request_or_session_data):
@@ -4134,7 +4137,20 @@ class CreateCompetitionView(InstructorRequiredMixin, View):
                         if answer.order == 0:
                             answer.order = i
                         answer.save()
-                messages.success(request, 'Competition created successfully.')
+                emailed_count = 0
+                try:
+                    from .notifications import WorkshopCompetitionNotificationService
+                    emailed_count = WorkshopCompetitionNotificationService.send_competition_announcement(competition)
+                except Exception:
+                    logger.exception(f'Failed to send competition announcement for competition {competition.id}')
+                if emailed_count:
+                    messages.success(
+                        request,
+                        f'Competition created and emailed to {emailed_count} '
+                        f'participant{"s" if emailed_count != 1 else ""}.'
+                    )
+                else:
+                    messages.success(request, 'Competition created successfully.')
                 return redirect('workshops:manage_competition', competition_id=competition.id)
         return render(request, self.template_name, {
             'session': session,
@@ -4192,6 +4208,11 @@ class DrawWinnerView(InstructorRequiredMixin, View):
         competition.winner = winner_entry
         competition.is_active = False
         competition.save(update_fields=['winner', 'is_active'])
+        try:
+            from .notifications import WorkshopCompetitionNotificationService
+            WorkshopCompetitionNotificationService.send_winner_notification(competition)
+        except Exception:
+            logger.exception(f'Failed to send winner notification for competition {competition.id}')
         eligible_names = [e.display_name for e in eligible]
         return JsonResponse({
             'winner_name': winner_entry.display_name,

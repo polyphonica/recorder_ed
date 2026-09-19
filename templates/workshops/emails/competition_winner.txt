@@ -1,0 +1,15 @@
+Subject: You won the {{ workshop.title }} competition! — {{ site_name }}
+
+{{ site_name }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hello {{ recipient_name }},
+
+Congratulations! {% if is_child %}{{ winner_name }} has{% else %}You have{% endif %} been drawn as the winner of the competition for "{{ workshop.title }}" ({{ session.start_datetime|date:"l, d F Y" }}).
+
+{{ instructor_name }} will be in touch with you about your prize. If you have any questions in the meantime, just reply to their message or contact us.
+
+Thank you for taking part, and well done!
+
+Best regards,
+The {{ site_name }} Team
