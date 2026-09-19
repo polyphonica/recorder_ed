@@ -3,13 +3,15 @@ from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.core import mail
+from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import ChildProfile
+from .forms import WorkshopForm
 from .models import (
-    Workshop, WorkshopSession, WorkshopRegistration, WorkshopCompetition,
+    Workshop, WorkshopCategory, WorkshopSession, WorkshopRegistration, WorkshopCompetition,
     WorkshopCompetitionAnswer, WorkshopCompetitionEntry,
 )
 from .notifications import WorkshopCompetitionNotificationService
@@ -302,3 +304,55 @@ class CompetitionEmailTests(TestCase):
         competition.entries.all().delete()
         self.assertEqual(self.client.post(url).status_code, 400)
         self.assertEqual(len(mail.outbox), 0)
+
+
+class WorkshopCategoryRequiredTests(TestCase):
+    """A workshop can't be saved without a category (choose one, or type a new one)."""
+
+    def setUp(self):
+        self.instructor = User.objects.create_user('teacher', 'teacher@example.com', 'pw')
+        self.category = WorkshopCategory.objects.create(name='Technique', slug='technique')
+
+    def _form(self, **overrides):
+        data = {
+            'title': 'Articulation', 'slug': 'articulation',
+            'short_description': 's', 'description': 'd', 'learning_objectives': 'l',
+            'difficulty_level': 'beginner', 'delivery_method': 'online',
+            'duration_value': 60, 'duration_unit': 'minutes',
+            'is_free': 'on', 'status': 'draft',
+        }
+        data.update(overrides)
+        return WorkshopForm(data=data)
+
+    def test_form_rejects_missing_category(self):
+        form = self._form()
+        self.assertFalse(form.is_valid())
+        self.assertIn('category', form.errors)
+
+    def test_form_rejects_blank_new_category_name(self):
+        form = self._form(new_category_name='   ')
+        self.assertFalse(form.is_valid())
+        self.assertIn('category', form.errors)
+
+    def test_form_accepts_selected_category(self):
+        form = self._form(category=self.category.id)
+        self.assertNotIn('category', form.errors)
+
+    def test_form_accepts_new_category_name_and_creates_it_on_save(self):
+        form = self._form(new_category_name='Ensemble Playing')
+        self.assertNotIn('category', form.errors)
+        self.assertTrue(form.is_valid(), form.errors)
+        workshop = form.save(commit=False)
+        workshop.instructor = self.instructor
+        workshop.save()
+        self.assertEqual(workshop.category.name, 'Ensemble Playing')
+
+    def test_model_validation_rejects_missing_category(self):
+        """Covers the admin, which validates through the model rather than WorkshopForm."""
+        workshop = Workshop(
+            title='X', slug='x', description='d', short_description='s',
+            learning_objectives='l', instructor=self.instructor,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            workshop.full_clean()
+        self.assertIn('category', ctx.exception.message_dict)

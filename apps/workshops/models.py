@@ -108,7 +108,9 @@ class Workshop(models.Model):
     
     # Organization
     instructor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='workshops')
-    category = models.ForeignKey(WorkshopCategory, on_delete=models.SET_NULL, null=True, blank=True)
+    # blank=False makes every ModelForm (incl. the admin) require a category. null=True is kept
+    # because older workshops have none and deleting a category sets this to NULL.
+    category = models.ForeignKey(WorkshopCategory, on_delete=models.SET_NULL, null=True, blank=False)
     tags = models.CharField(max_length=200, blank=True, help_text="Comma-separated tags")
     
     # Difficulty and Duration

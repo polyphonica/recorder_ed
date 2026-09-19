@@ -139,6 +139,9 @@ class WorkshopForm(forms.ModelForm):
         self.fields['price'].required = False
         # Sort categories alphabetically
         self.fields['category'].queryset = WorkshopCategory.objects.filter(is_active=True).order_by('name')
+        # A category is mandatory, but it may come from the dropdown OR the "Add new category"
+        # input, so the requirement is enforced in clean() instead of on the field.
+        self.fields['category'].required = False
 
     class Meta:
         model = Workshop
@@ -289,6 +292,12 @@ class WorkshopForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
+
+        # Checked first so it's reported alongside any other errors rather than after the
+        # price/series checks below raise.
+        new_category_name = (cleaned_data.get('new_category_name') or '').strip()
+        if 'category' not in self.errors and not cleaned_data.get('category') and not new_category_name:
+            self.add_error('category', 'Please choose a category or add a new one.')
 
         is_free = cleaned_data.get('is_free')
         price = cleaned_data.get('price')
