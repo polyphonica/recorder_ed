@@ -3,6 +3,8 @@ Forms for teacher applications.
 """
 from django import forms
 from django.utils import timezone
+
+from apps.core.turnstile import TurnstileField
 from .models import TeacherApplication
 
 
@@ -90,6 +92,8 @@ class TeacherApplicationForm(forms.ModelForm):
             '(4) Formal qualifications are not required but teaching competence will be assessed'
         )
     )
+
+    turnstile = TurnstileField()
 
     class Meta:
         model = TeacherApplication

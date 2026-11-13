@@ -321,12 +321,12 @@
                     </div>
                 </div>
 
-                <!-- reCAPTCHA v3 (invisible) -->
-                <div class="form-control">
-                    {{ form.captcha }}
-                    {% if form.captcha.errors %}
+                <!-- Cloudflare Turnstile -->
+                <div class="form-control mt-6">
+                    {{ form.turnstile }}
+                    {% if form.turnstile.errors %}
                         <label class="label">
-                            <span class="label-text-alt text-error">{{ form.captcha.errors.0 }}</span>
+                            <span class="label-text-alt text-error">{{ form.turnstile.errors.0 }}</span>
                         </label>
                     {% endif %}
                 </div>

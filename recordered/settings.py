@@ -71,7 +71,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_ckeditor_5',
     'django_filters',
-    'django_recaptcha',  # django-recaptcha v4+
     'tailwind',
     'theme',
     'simple_history',
@@ -99,7 +98,6 @@ INSTALLED_APPS = [
     'assignments',
     'apps.lesson_templates',
     'apps.creator_studio',  # Creator Studio - teaching tools for all instructors
-    'ckeditor_poc',  # POC app for testing CKEditor in isolation
     'apps.aural_training',  # Aural training for interval recognition
     'apps.sight_reading',  # Sight-reading training for private lessons
 ]
@@ -674,10 +672,8 @@ import os
 CKEDITOR_5_UPLOADS_PATH = os.path.join(MEDIA_ROOT, "uploads/")
 
 # ============================================
-# Google reCAPTCHA v3 Configuration
+# Cloudflare Turnstile (bot protection on public forms)
 # ============================================
-RECAPTCHA_PUBLIC_KEY = config('RECAPTCHA_PUBLIC_KEY', default='')
-RECAPTCHA_PRIVATE_KEY = config('RECAPTCHA_PRIVATE_KEY', default='')
-# reCAPTCHA v3 specific settings
-RECAPTCHA_REQUIRED_SCORE = 0.5  # Score threshold (0.0 - 1.0, higher = stricter)
-RECAPTCHA_DOMAIN = 'www.google.com'  # Use 'www.recaptcha.net' in China
+# Leave blank to disable - forms then rely on honeypot/timing checks only
+TURNSTILE_SITE_KEY = config('TURNSTILE_SITE_KEY', default='')
+TURNSTILE_SECRET_KEY = config('TURNSTILE_SECRET_KEY', default='')

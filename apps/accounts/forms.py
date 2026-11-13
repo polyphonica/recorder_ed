@@ -9,8 +9,7 @@ from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
-from django_recaptcha.fields import ReCaptchaField
-from django_recaptcha.widgets import ReCaptchaV3
+from apps.core.turnstile import TurnstileField
 
 # Spam bots sign up with names like "DavidRoachUB" (camel-case name plus two
 # capital letters) and Gmail addresses padded with dots ("th.u.ghra.hytj57h7")
@@ -166,6 +165,8 @@ class CustomUserCreationForm(UserCreationForm):
         help_text="Used to calculate the child's age"
     )
 
+    turnstile = TurnstileField()
+
     class Meta:
         model = User
         fields = ('email', 'password1', 'password2')
@@ -318,25 +319,6 @@ class ChildProfileForm(forms.ModelForm):
                 raise forms.ValidationError("Date of birth cannot be in the future.")
 
         return dob
-
-
-class PublicSignUpForm(CustomUserCreationForm):
-    """Public signup form - adds invisible reCAPTCHA v3 to block bot signups"""
-
-    captcha = ReCaptchaField(
-        widget=ReCaptchaV3(
-            attrs={
-                'required_score': 0.5,
-            }
-        ),
-        label=''  # No label for invisible reCAPTCHA v3
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Without keys the widget's JS blocks submission entirely, so skip it
-        if not (settings.RECAPTCHA_PUBLIC_KEY and settings.RECAPTCHA_PRIVATE_KEY):
-            del self.fields['captcha']
 
 
 class UserProfileForm(forms.ModelForm):
@@ -513,6 +495,8 @@ class CustomPasswordResetForm(PasswordResetForm):
     a deliberate choice for this site (small, non-adversarial user base) over the
     usual security default of not confirming whether an account exists.
     """
+
+    turnstile = TurnstileField()
 
     def clean_email(self):
         email = self.cleaned_data.get('email')

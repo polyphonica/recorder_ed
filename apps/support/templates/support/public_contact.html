@@ -103,12 +103,12 @@
                         {% endif %}
                     </div>
 
-                    <!-- reCAPTCHA v3 (invisible) -->
+                    <!-- Cloudflare Turnstile -->
                     <div class="form-control">
-                        {{ form.captcha }}
-                        {% if form.captcha.errors %}
+                        {{ form.turnstile }}
+                        {% if form.turnstile.errors %}
                             <label class="label">
-                                <span class="label-text-alt text-error">{{ form.captcha.errors.0 }}</span>
+                                <span class="label-text-alt text-error">{{ form.turnstile.errors.0 }}</span>
                             </label>
                         {% endif %}
                     </div>

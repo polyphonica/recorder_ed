@@ -1,21 +1,12 @@
 from django import forms
-from django.conf import settings
-from django_recaptcha.fields import ReCaptchaField
-from django_recaptcha.widgets import ReCaptchaV3
+from apps.core.turnstile import TurnstileField
 from .models import Ticket, TicketMessage, TicketAttachment
 
 
 class PublicTicketForm(forms.ModelForm):
     """Form for anonymous/public users to create support tickets"""
 
-    captcha = ReCaptchaField(
-        widget=ReCaptchaV3(
-            attrs={
-                'required_score': 0.5,
-            }
-        ),
-        label=''  # No label for invisible reCAPTCHA v3
-    )
+    turnstile = TurnstileField()
 
     class Meta:
         model = Ticket
@@ -46,12 +37,6 @@ class PublicTicketForm(forms.ModelForm):
             'category': 'Select the category that best matches your issue',
             'description': 'The more details you provide, the faster we can help you',
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Without keys the widget's JS blocks submission entirely, so skip it
-        if not (settings.RECAPTCHA_PUBLIC_KEY and settings.RECAPTCHA_PRIVATE_KEY):
-            del self.fields['captcha']
 
 
 class AuthenticatedTicketForm(forms.ModelForm):

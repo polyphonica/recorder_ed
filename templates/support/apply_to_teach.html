@@ -304,6 +304,16 @@
                             </div>
                         </div>
 
+                        <!-- Cloudflare Turnstile -->
+                        <div class="form-control mb-6">
+                            {{ form.turnstile }}
+                            {% if form.turnstile.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.turnstile.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+
                         <!-- Submit Button -->
                         <div class="flex gap-4 justify-end">
                             <a href="{% url 'core:about' %}" class="btn btn-ghost">Cancel</a>

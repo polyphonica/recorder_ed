@@ -9,9 +9,10 @@ from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, DetailView
 from django.contrib.auth.views import LoginView
-from .forms import CustomUserCreationForm, PublicSignUpForm, UserProfileForm, ChildProfileForm, AccountTransferForm
+from .forms import CustomUserCreationForm, UserProfileForm, ChildProfileForm, AccountTransferForm
 from .models import UserProfile, ChildProfile
 from .email_verification import send_verification_email
+from apps.core.turnstile import ERROR_MESSAGE as TURNSTILE_ERROR_MESSAGE, verify_turnstile
 from django.db import transaction
 from apps.teacher_applications.models import TeacherApplication, TeacherOnboarding
 from apps.teacher_applications.notifications import teacher_signup_token
@@ -51,7 +52,7 @@ class CustomLoginView(LoginView):
 
 
 class SignUpView(CreateView):
-    form_class = PublicSignUpForm
+    form_class = CustomUserCreationForm
     template_name = 'registration/signup.html'
 
     def get_context_data(self, **kwargs):
@@ -514,6 +515,10 @@ def resend_verification_public_view(request):
     User provides their email address.
     """
     if request.method == 'POST':
+        if not verify_turnstile(request):
+            messages.error(request, TURNSTILE_ERROR_MESSAGE)
+            return redirect('accounts:resend_verification_public')
+
         email = request.POST.get('email', '').strip()
 
         if not email:

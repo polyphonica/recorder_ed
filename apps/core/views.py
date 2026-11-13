@@ -1,11 +1,9 @@
 from abc import ABC, abstractmethod
 from django.shortcuts import render, redirect
-from django.views.generic import TemplateView, FormView
+from django.views.generic import TemplateView
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
 from django.db.models import Q
-from .forms import ContactForm, ProfileForm, FilterForm
 
 
 class PrivacyPolicyView(TemplateView):
@@ -130,28 +128,6 @@ class ComponentShowcaseView(TemplateView):
             ]
         })
         return context
-
-
-class FormExampleView(FormView):
-    template_name = 'core/forms.html'
-    form_class = ContactForm
-    success_url = reverse_lazy('core:forms')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update({
-            'profile_form': ProfileForm(),
-            'filter_form': FilterForm(),
-        })
-        return context
-
-    def form_valid(self, form):
-        messages.success(self.request, 'Thank you for your message! We\'ll get back to you soon.')
-        return super().form_valid(form)
-
-    def form_invalid(self, form):
-        messages.error(self.request, 'Please correct the errors below.')
-        return super().form_invalid(form)
 
 
 class InteractiveView(TemplateView):

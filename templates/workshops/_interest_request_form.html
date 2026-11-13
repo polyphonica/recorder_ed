@@ -4,6 +4,7 @@ scheduled yet, and (for overseas visitors) alongside an already-scheduled sessio
 that isn't at a convenient time. Expects `workshop`, `referral_source` and
 `interest_form_token` from the parent context; `heading`/`subheading` from `with`.
 {% endcomment %}
+{% load turnstile %}
 <div class="card bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/20">
     <div class="card-body">
         <h4 class="card-title text-lg mb-3">
@@ -96,6 +97,8 @@ that isn't at a convenient time. Expects `workshop`, `referral_source` and
                     <input type="checkbox" name="notify_immediately" checked class="checkbox checkbox-sm checkbox-primary">
                 </label>
             </div>
+
+            {% turnstile_widget %}
 
             <button type="submit" class="btn btn-primary btn-sm w-full">
                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">

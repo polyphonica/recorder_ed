@@ -4,6 +4,8 @@ from dateutil.relativedelta import relativedelta
 from django import forms
 from django.contrib.auth.models import User
 from django.utils import timezone
+
+from apps.core.turnstile import TurnstileField
 from .models import Workshop, WorkshopSession, WorkshopRegistration, WorkshopCategory, WorkshopInterest, WorkshopMaterial, WorkshopTestimonial, WorkshopCompetition, WorkshopCompetitionAnswer
 
 
@@ -759,7 +761,9 @@ class WorkshopFilterForm(forms.Form):
 
 class WorkshopInterestForm(forms.ModelForm):
     """Form for requesting interest in a workshop without available sessions"""
-    
+
+    turnstile = TurnstileField()
+
     class Meta:
         model = WorkshopInterest
         fields = [
