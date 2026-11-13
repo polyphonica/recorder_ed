@@ -73,6 +73,11 @@
 
                 <form method="post">
                 {% csrf_token %}
+                <input type="hidden" name="form_loaded_at" value="{{ form_token }}">
+                <div style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
+                    <label for="website">Website</label>
+                    <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+                </div>
                 {% if request.GET.next %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
                 {% endif %}
@@ -314,6 +319,16 @@
                             </label>
                         {% endif %}
                     </div>
+                </div>
+
+                <!-- reCAPTCHA v3 (invisible) -->
+                <div class="form-control">
+                    {{ form.captcha }}
+                    {% if form.captcha.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.captcha.errors.0 }}</span>
+                        </label>
+                    {% endif %}
                 </div>
 
                 <div class="form-control mt-6">

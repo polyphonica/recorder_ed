@@ -1,3 +1,6 @@
+import time
+
+from django.core import signing
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.models import User
@@ -6,7 +9,7 @@ from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, DetailView
 from django.contrib.auth.views import LoginView
-from .forms import CustomUserCreationForm, UserProfileForm, ChildProfileForm, AccountTransferForm
+from .forms import CustomUserCreationForm, PublicSignUpForm, UserProfileForm, ChildProfileForm, AccountTransferForm
 from .models import UserProfile, ChildProfile
 from .email_verification import send_verification_email
 from django.db import transaction
@@ -48,8 +51,39 @@ class CustomLoginView(LoginView):
 
 
 class SignUpView(CreateView):
-    form_class = CustomUserCreationForm
+    form_class = PublicSignUpForm
     template_name = 'registration/signup.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_token'] = signing.dumps(time.time())
+        return context
+
+    def post(self, request, *args, **kwargs):
+        # Honeypot: bots fill the hidden website field, humans don't
+        if request.POST.get('website'):
+            return self._fake_success()
+
+        # Time check: reject submissions that arrive under 5 seconds after page load
+        try:
+            load_time = signing.loads(request.POST.get('form_loaded_at', ''), max_age=3600)
+            too_fast = (time.time() - load_time) < 5
+        except signing.BadSignature:
+            too_fast = True
+        if too_fast:
+            return self._fake_success()
+
+        return super().post(request, *args, **kwargs)
+
+    def _fake_success(self):
+        """Show bots the normal success screen without creating an account"""
+        messages.success(
+            self.request,
+            'Account created successfully! We sent a verification email. '
+            'Please check your inbox and click the verification link to complete your registration.',
+            extra_tags='signup_success'
+        )
+        return redirect(self.get_success_url())
 
     def get_success_url(self):
         # Redirect back to signup page to show success message

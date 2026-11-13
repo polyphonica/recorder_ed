@@ -1,3 +1,5 @@
+import re
+
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordResetForm
 from django.contrib.auth.models import User
@@ -7,6 +9,13 @@ from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
+from django_recaptcha.fields import ReCaptchaField
+from django_recaptcha.widgets import ReCaptchaV3
+
+# Spam bots sign up with names like "DavidRoachUB" (camel-case name plus two
+# capital letters) and Gmail addresses padded with dots ("th.u.ghra.hytj57h7")
+SPAM_NAME_RE = re.compile(r'[a-z][A-Z]{2}$')
+GMAIL_DOMAINS = ('gmail.com', 'googlemail.com')
 
 class CustomUserCreationForm(UserCreationForm):
     # Account type selection
@@ -186,7 +195,23 @@ class CustomUserCreationForm(UserCreationForm):
                 'Please use a different email or try logging in.'
             )
 
+        local_part, _, domain = email.partition('@')
+        if domain in GMAIL_DOMAINS and local_part.count('.') >= 3:
+            raise forms.ValidationError('Please enter a valid email address.')
+
         return email
+
+    def _clean_name(self, field):
+        name = self.cleaned_data.get(field, '').strip()
+        if SPAM_NAME_RE.search(name):
+            raise forms.ValidationError('Please enter your real name.')
+        return name
+
+    def clean_first_name(self):
+        return self._clean_name('first_name')
+
+    def clean_last_name(self):
+        return self._clean_name('last_name')
 
     def clean(self):
         """Validate fields based on account type"""
@@ -293,6 +318,19 @@ class ChildProfileForm(forms.ModelForm):
                 raise forms.ValidationError("Date of birth cannot be in the future.")
 
         return dob
+
+
+class PublicSignUpForm(CustomUserCreationForm):
+    """Public signup form - adds invisible reCAPTCHA v3 to block bot signups"""
+
+    captcha = ReCaptchaField(
+        widget=ReCaptchaV3(
+            attrs={
+                'required_score': 0.5,
+            }
+        ),
+        label=''  # No label for invisible reCAPTCHA v3
+    )
 
 
 class UserProfileForm(forms.ModelForm):
