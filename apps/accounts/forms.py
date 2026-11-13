@@ -332,6 +332,12 @@ class PublicSignUpForm(CustomUserCreationForm):
         label=''  # No label for invisible reCAPTCHA v3
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Without keys the widget's JS blocks submission entirely, so skip it
+        if not (settings.RECAPTCHA_PUBLIC_KEY and settings.RECAPTCHA_PRIVATE_KEY):
+            del self.fields['captcha']
+
 
 class UserProfileForm(forms.ModelForm):
     class Meta:
