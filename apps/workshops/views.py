@@ -1496,44 +1496,42 @@ class EditWorkshopView(SuccessMessageMixin, UserFilterMixin, LoginRequiredMixin,
 
 
 class DuplicateWorkshopView(LoginRequiredMixin, View):
-    """Duplicate an existing workshop as a new draft."""
+    """Duplicate an existing workshop as a new draft, optionally with sessions and materials.
 
-    # Fields to copy from the original workshop
-    COPY_FIELDS = [
-        'title', 'description', 'short_description',
-        'learning_objectives', 'prerequisites', 'materials_needed',
-        'category_id', 'tags', 'difficulty_level',
-        'duration_value', 'duration_unit',
-        'promo_video_url',
-        'is_free', 'price',
-        'is_series', 'series_price', 'series_description',
-        'require_full_series_registration',
-        'delivery_method',
-        'venue_name', 'venue_address', 'venue_city', 'venue_postcode',
-        'venue_map_link', 'venue_notes', 'max_venue_capacity',
-    ]
+    The options come from the Duplicate dialog on the instructor's workshop list;
+    the copying itself lives in duplication.py.
+    """
 
     def post(self, request, slug):
+        from .duplication import duplicate_workshop
+        from .forms import DuplicateWorkshopForm
+
         original = get_object_or_404(Workshop, slug=slug, instructor=request.user)
+        form = DuplicateWorkshopForm(request.POST)
+        if not form.is_valid():
+            errors = '; '.join(e for errs in form.errors.values() for e in errs)
+            messages.error(request, f'Could not duplicate "{original.title}": {errors}')
+            return redirect('workshops:instructor_workshops')
 
-        # Build new workshop from original's fields
-        new_workshop = Workshop(instructor=request.user, status=Workshop.Status.DRAFT, is_featured=False)
-        for field in self.COPY_FIELDS:
-            setattr(new_workshop, field, getattr(original, field))
+        data = form.cleaned_data
+        new_workshop = duplicate_workshop(
+            original,
+            title=data['title'],
+            first_session_date=data['first_session_date'],
+            copy_materials=data['copy_materials'],
+        )
 
-        # Make title and slug unique
-        new_workshop.title = f'{original.title} (Copy)'
-        base_slug = original.slug + '-copy'
-        slug_candidate = base_slug
-        counter = 1
-        while Workshop.objects.filter(slug=slug_candidate).exists():
-            slug_candidate = f'{base_slug}-{counter}'
-            counter += 1
-        new_workshop.slug = slug_candidate
-
-        new_workshop.save()
-        messages.success(request, f'Workshop duplicated as "{new_workshop.title}". You can now edit it and add sessions.')
-        return redirect('workshops:edit_workshop', slug=new_workshop.slug)
+        session_count = new_workshop.sessions.count()
+        if session_count:
+            detail = f' with {session_count} session{"s" if session_count != 1 else ""}'
+            next_step = "Check the dates (meeting links aren't copied), then publish when ready."
+            redirect_to = 'workshops:manage_sessions'
+        else:
+            detail = ''
+            next_step = 'Review the details and add sessions, then publish when ready.'
+            redirect_to = 'workshops:edit_workshop'
+        messages.success(request, f'Created draft "{new_workshop.title}"{detail}. {next_step}')
+        return redirect(redirect_to, slug=new_workshop.slug)
 
 
 class TogglePublishView(LoginRequiredMixin, View):

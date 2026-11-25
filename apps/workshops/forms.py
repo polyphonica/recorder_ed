@@ -909,3 +909,24 @@ CompetitionAnswerFormSet = forms.inlineformset_factory(
     validate_min=True,
     can_delete=True,
 )
+
+
+class DuplicateWorkshopForm(forms.Form):
+    """Options for duplicating a workshop as a new draft."""
+
+    title = forms.CharField(max_length=200)
+    copy_sessions = forms.BooleanField(required=False)
+    first_session_date = forms.DateField(required=False)
+    copy_materials = forms.BooleanField(required=False)
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('copy_sessions'):
+            first = cleaned.get('first_session_date')
+            if not first:
+                self.add_error('first_session_date', 'Choose a date for the first session.')
+            elif first < timezone.localdate():
+                self.add_error('first_session_date', 'The first session date must be today or later.')
+        else:
+            cleaned['first_session_date'] = None
+        return cleaned

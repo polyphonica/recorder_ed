@@ -172,12 +172,65 @@
                                    target="_blank">
                                     <i class="fas fa-eye mr-2"></i>Preview
                                 </a>
-                                <form method="post" action="{% url 'workshops:duplicate_workshop' workshop.slug %}" class="w-full">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-outline btn-sm w-full">
-                                        <i class="fas fa-copy mr-2"></i>Duplicate
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-outline btn-sm w-full"
+                                        onclick="document.getElementById('duplicate-{{ workshop.pk }}').showModal()">
+                                    <i class="fas fa-copy mr-2"></i>Duplicate
+                                </button>
+                                <dialog id="duplicate-{{ workshop.pk }}" class="modal">
+                                    <div class="modal-box text-left" x-data="{ copySessions: false }">
+                                        <h3 class="text-lg font-semibold mb-1">Duplicate workshop</h3>
+                                        <p class="text-sm text-base-content/70 mb-4">
+                                            Creates a new draft with the same details, venue, pricing and image.
+                                        </p>
+                                        <form method="post" action="{% url 'workshops:duplicate_workshop' workshop.slug %}" class="space-y-4">
+                                            {% csrf_token %}
+                                            <label class="block w-full">
+                                                <span class="block text-sm font-medium mb-1">Title for the new workshop</span>
+                                                <input type="text" name="title" value="{{ workshop.title }}" maxlength="200" required
+                                                       class="input input-bordered w-full">
+                                            </label>
+
+                                            {% if workshop.total_sessions %}
+                                            <div class="space-y-2">
+                                                <label class="label cursor-pointer justify-start gap-3">
+                                                    <input type="checkbox" name="copy_sessions" class="checkbox checkbox-primary checkbox-sm"
+                                                           x-model="copySessions">
+                                                    <span class="text-sm">Copy sessions to new dates</span>
+                                                </label>
+                                                <div x-show="copySessions" class="pl-8">
+                                                    <label class="block w-full">
+                                                        <span class="block text-sm mb-1">Date of the first session</span>
+                                                        <input type="date" name="first_session_date" class="input input-bordered input-sm w-full"
+                                                               :required="copySessions">
+                                                    </label>
+                                                    <p class="text-xs text-base-content/60 mt-1">
+                                                        The other sessions keep the same spacing and times of day.
+                                                        Cancelled sessions, registrations and meeting links aren't copied.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+
+                                            <label class="label cursor-pointer justify-start gap-3">
+                                                <input type="checkbox" name="copy_materials" class="checkbox checkbox-primary checkbox-sm">
+                                                <span class="text-sm">
+                                                    Copy materials
+                                                    <span class="block text-xs text-base-content/60"
+                                                          x-text="copySessions ? 'Workshop-wide and session materials' : 'Workshop-wide materials only'"></span>
+                                                </span>
+                                            </label>
+
+                                            <div class="modal-action">
+                                                <button type="button" class="btn btn-ghost btn-sm"
+                                                        onclick="this.closest('dialog').close()">Cancel</button>
+                                                <button type="submit" class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-copy mr-2"></i>Create copy
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+                                </dialog>
                                 <a href="{% url 'workshops:delete_workshop' workshop.slug %}"
                                    class="btn btn-error btn-outline btn-sm w-full">
                                     <i class="fas fa-trash mr-2"></i>Delete
