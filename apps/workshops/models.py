@@ -1006,11 +1006,6 @@ class WorkshopInterest(models.Model):
         help_text="Notify me as soon as sessions are scheduled"
     )
     
-    notify_summary = models.BooleanField(
-        default=False,
-        help_text="Send me monthly summaries of new workshop opportunities"
-    )
-    
     # Status
     is_active = models.BooleanField(default=True)
     has_been_notified = models.BooleanField(default=False)

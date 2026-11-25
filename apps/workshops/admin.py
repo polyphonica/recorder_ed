@@ -344,7 +344,7 @@ class WorkshopInterestAdmin(admin.ModelAdmin):
             'fields': ('preferred_timing', 'experience_level', 'special_requests')
         }),
         ('Notifications', {
-            'fields': ('notify_immediately', 'notify_summary', 'is_active')
+            'fields': ('notify_immediately', 'is_active')
         }),
         ('Status', {
             'fields': ('has_been_notified', 'notification_sent_at')
