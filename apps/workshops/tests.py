@@ -596,3 +596,90 @@ class DuplicateWorkshopTests(TestCase):
         response = self.client.get(reverse('workshops:instructor_workshops'))
         self.assertContains(response, f'id="duplicate-{self.original.pk}"')
         self.assertContains(response, 'name="first_session_date"')
+
+
+class VenueTests(TestCase):
+    """Saved venues: saving from the workshop wizard, filling it, and My Venues."""
+
+    def setUp(self):
+        from .models import Venue
+        self.Venue = Venue
+        self.instructor = User.objects.create_user('teacher', 'teacher@example.com', 'pw')
+        self.instructor.profile.is_teacher = True
+        self.instructor.profile.profile_completed = True
+        self.instructor.profile.save()
+        self.client.force_login(self.instructor)
+        self.category = WorkshopCategory.objects.create(name='Technique', slug='technique')
+
+    def _workshop_data(self, **overrides):
+        data = {
+            'title': 'Articulation', 'slug': 'articulation', 'category': self.category.id,
+            'short_description': 's', 'description': 'd', 'learning_objectives': 'l',
+            'difficulty_level': 'beginner', 'delivery_method': 'in_person',
+            'duration_value': 60, 'duration_unit': 'minutes',
+            'is_free': 'on', 'status': 'draft',
+            'venue_name': "St John's Hall", 'venue_address': '1 Church Lane',
+            'venue_city': 'Bristol', 'venue_postcode': 'BS1 1AA',
+            'venue_notes': 'Side door', 'max_venue_capacity': 30,
+        }
+        data.update(overrides)
+        return data
+
+    def test_ticking_save_venue_creates_a_saved_venue(self):
+        self.client.post(reverse('workshops:create_workshop'), self._workshop_data(save_venue='on'))
+        self.assertTrue(Workshop.objects.filter(slug='articulation').exists())
+        venue = self.Venue.objects.get(instructor=self.instructor)
+        self.assertEqual((venue.name, venue.city, venue.max_capacity, venue.notes),
+                         ("St John's Hall", 'Bristol', 30, 'Side door'))
+
+    def test_saving_again_updates_venue_with_same_name(self):
+        self.Venue.objects.create(instructor=self.instructor, name="st john's hall", city='Old')
+        self.client.post(reverse('workshops:create_workshop'), self._workshop_data(save_venue='on'))
+        self.assertEqual(self.Venue.objects.count(), 1)
+        self.assertEqual(self.Venue.objects.get().city, 'Bristol')
+
+    def test_not_ticked_or_online_does_not_save(self):
+        self.client.post(reverse('workshops:create_workshop'), self._workshop_data())
+        self.client.post(reverse('workshops:create_workshop'),
+                         self._workshop_data(slug='online-one', delivery_method='online', save_venue='on'))
+        self.assertEqual(Workshop.objects.count(), 2)
+        self.assertEqual(self.Venue.objects.count(), 0)
+
+    def test_wizard_offers_only_own_saved_venues(self):
+        self.Venue.objects.create(instructor=self.instructor, name='Quaker Meeting House', city='Bath')
+        other = User.objects.create_user('other', 'o@example.com', 'pw')
+        self.Venue.objects.create(instructor=other, name='Secret Studio')
+        response = self.client.get(reverse('workshops:create_workshop'))
+        self.assertContains(response, 'Quaker Meeting House, Bath')
+        self.assertContains(response, 'id="saved-venues-data"')
+        self.assertNotContains(response, 'Secret Studio')
+
+    def test_my_venues_add_edit_remove(self):
+        self.client.post(reverse('workshops:venue_create'), {'name': 'Hall A', 'city': 'Leeds'})
+        venue = self.Venue.objects.get()
+        self.assertContains(self.client.get(reverse('workshops:venue_list')), 'Hall A')
+        self.client.post(reverse('workshops:venue_edit', args=[venue.pk]), {'name': 'Hall B', 'city': 'York'})
+        venue.refresh_from_db()
+        self.assertEqual((venue.name, venue.city), ('Hall B', 'York'))
+        self.client.post(reverse('workshops:venue_delete', args=[venue.pk]))
+        self.assertFalse(self.Venue.objects.exists())
+
+    def test_duplicate_venue_name_rejected(self):
+        self.Venue.objects.create(instructor=self.instructor, name='Hall A')
+        response = self.client.post(reverse('workshops:venue_create'), {'name': 'hall a'})
+        self.assertContains(response, 'already have a saved venue')
+        self.assertEqual(self.Venue.objects.count(), 1)
+
+    def test_cannot_touch_another_instructors_venue(self):
+        other = User.objects.create_user('other', 'o@example.com', 'pw')
+        venue = self.Venue.objects.create(instructor=other, name='Theirs')
+        self.assertEqual(self.client.get(reverse('workshops:venue_edit', args=[venue.pk])).status_code, 404)
+        self.assertEqual(self.client.post(reverse('workshops:venue_delete', args=[venue.pk])).status_code, 404)
+        self.assertTrue(self.Venue.objects.filter(pk=venue.pk).exists())
+
+    def test_my_venues_requires_instructor(self):
+        student = User.objects.create_user('student', 's@example.com', 'pw')
+        student.profile.profile_completed = True
+        student.profile.save()
+        self.client.force_login(student)
+        self.assertEqual(self.client.get(reverse('workshops:venue_list')).status_code, 403)

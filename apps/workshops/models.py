@@ -72,9 +72,79 @@ class WorkshopCategory(models.Model):
     class Meta:
         verbose_name_plural = "Workshop Categories"
         ordering = ['name']
-    
+
     def __str__(self):
         return self.name
+
+
+class Venue(models.Model):
+    """An instructor's saved venue, used to fill in a workshop's venue fields.
+
+    Workshops keep their own copy of the venue details (the venue_* fields), so
+    editing or deleting a saved venue never changes existing workshops or what past
+    confirmation emails said.
+    """
+
+    # Venue field -> Workshop field
+    WORKSHOP_FIELDS = {
+        'name': 'venue_name',
+        'address': 'venue_address',
+        'city': 'venue_city',
+        'postcode': 'venue_postcode',
+        'map_link': 'venue_map_link',
+        'notes': 'venue_notes',
+        'max_capacity': 'max_venue_capacity',
+    }
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    instructor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='workshop_venues')
+    name = models.CharField(max_length=200)
+    address = models.TextField(blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    postcode = models.CharField(max_length=20, blank=True)
+    map_link = models.URLField(blank=True, help_text="Link to Google Maps, Apple Maps, etc.")
+    notes = models.TextField(blank=True, help_text="Parking, entrance, accessibility info")
+    max_capacity = models.PositiveIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['instructor', 'name'], name='unique_venue_name_per_instructor'),
+        ]
+
+    def __str__(self):
+        return f'{self.name}, {self.city}' if self.city else self.name
+
+    def as_workshop_fields(self):
+        """Venue details keyed by Workshop field name (blank values as '')."""
+        return {
+            workshop_field: '' if getattr(self, field) is None else getattr(self, field)
+            for field, workshop_field in self.WORKSHOP_FIELDS.items()
+        }
+
+    @classmethod
+    def save_from_workshop(cls, workshop):
+        """Save a workshop's venue details to its instructor's venues.
+
+        Matches an existing saved venue by name (ignoring case) and updates it,
+        otherwise creates a new one. Returns the venue, or None if no venue name.
+        """
+        name = (workshop.venue_name or '').strip()
+        if not name:
+            return None
+        values = {
+            field: getattr(workshop, workshop_field)
+            for field, workshop_field in cls.WORKSHOP_FIELDS.items() if field != 'name'
+        }
+        venue = cls.objects.filter(instructor=workshop.instructor, name__iexact=name).first()
+        if venue is None:
+            venue = cls(instructor=workshop.instructor, name=name)
+        for field, value in values.items():
+            setattr(venue, field, value if value is not None or field == 'max_capacity' else '')
+        venue.save()
+        return venue
 
 
 class Workshop(models.Model):

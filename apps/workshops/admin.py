@@ -12,7 +12,7 @@ from .models import (
     WorkshopRegistration, WorkshopMaterial, WorkshopInterest,
     WorkshopCartItem, WorkshopTermsAndConditions, TermsAcceptance,
     WorkshopTestimonial, WorkshopCompetition, WorkshopCompetitionAnswer,
-    WorkshopCompetitionEntry,
+    WorkshopCompetitionEntry, Venue,
 )
 
 
@@ -515,3 +515,10 @@ class WorkshopCompetitionAdmin(admin.ModelAdmin):
 admin.site.site_header = "RECORDER-ED Workshop Admin"
 admin.site.site_title = "Workshop Admin"
 admin.site.index_title = "Workshop Management"
+
+
+@admin.register(Venue)
+class VenueAdmin(admin.ModelAdmin):
+    list_display = ('name', 'city', 'postcode', 'instructor', 'updated_at')
+    search_fields = ('name', 'city', 'postcode', 'instructor__username', 'instructor__email')
+    list_filter = ('city',)

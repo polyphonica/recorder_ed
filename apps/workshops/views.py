@@ -19,13 +19,13 @@ from .models import (
     Workshop, WorkshopCategory, WorkshopSession,
     WorkshopRegistration, WorkshopMaterial, WorkshopInterest,
     WorkshopTermsAndConditions, TermsAcceptance, SessionEmailLog,
-    WorkshopTestimonial, WorkshopCompetition, WorkshopCompetitionEntry,
+    WorkshopTestimonial, WorkshopCompetition, WorkshopCompetitionEntry, Venue,
 )
 from .forms import (
     WorkshopRegistrationForm, WorkshopForm, WorkshopSessionForm,
     BatchSessionForm, WorkshopFilterForm, WorkshopInterestForm,
     WorkshopMaterialForm, FeedbackForm, TestimonialForm,
-    WorkshopCompetitionForm, CompetitionAnswerFormSet,
+    WorkshopCompetitionForm, CompetitionAnswerFormSet, VenueForm,
 )
 from .mixins import InstructorRequiredMixin
 from .notifications import WorkshopInterestNotificationService
@@ -90,9 +90,8 @@ def create_terms_acceptance(registration, request_or_session_data):
 def published_workshops_queryset():
     """Base queryset of published workshops, annotated with next_session_date.
 
-    Shared by WorkshopListView and WorkshopCardPreviewView so the "which
-    workshops are publicly listed, and when do they next run" logic lives
-    in one place.
+    Used by WorkshopListView; keeps the "which workshops are publicly listed,
+    and when do they next run" logic in one place.
     """
     return Workshop.objects.filter(status=Workshop.Status.PUBLISHED).select_related(
         'instructor', 'category'
@@ -1470,7 +1469,28 @@ Return ONLY valid JSON with no markdown fences or explanation."""
         return JsonResponse(data)
 
 
-class CreateWorkshopView(SuccessMessageMixin, SetUserFieldMixin, LoginRequiredMixin, CreateView):
+class SavedVenuesMixin:
+    """Wizard support for saved venues: offers them in the Venue step, and saves the
+    workshop's venue to the instructor's venues when "Save this venue" is ticked."""
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['saved_venues'] = [
+            {'id': str(v.pk), 'label': str(v), **v.as_workshop_fields()}
+            for v in Venue.objects.filter(instructor=self.request.user)
+        ]
+        return context
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if form.cleaned_data.get('save_venue') and self.object.delivery_method in ('in_person', 'hybrid'):
+            venue = Venue.save_from_workshop(self.object)
+            if venue:
+                messages.info(self.request, f'Saved "{venue.name}" to My Venues.')
+        return response
+
+
+class CreateWorkshopView(SavedVenuesMixin, SuccessMessageMixin, SetUserFieldMixin, LoginRequiredMixin, CreateView):
     """Create new workshop. Uses SuccessMessageMixin and SetUserFieldMixin."""
     model = Workshop
     form_class = WorkshopForm
@@ -1483,7 +1503,7 @@ class CreateWorkshopView(SuccessMessageMixin, SetUserFieldMixin, LoginRequiredMi
         return reverse('workshops:manage_sessions', kwargs={'slug': self.object.slug})
 
 
-class EditWorkshopView(SuccessMessageMixin, UserFilterMixin, LoginRequiredMixin, UpdateView):
+class EditWorkshopView(SavedVenuesMixin, SuccessMessageMixin, UserFilterMixin, LoginRequiredMixin, UpdateView):
     """Edit existing workshop. Uses SuccessMessageMixin and UserFilterMixin."""
     model = Workshop
     form_class = WorkshopForm
@@ -1493,6 +1513,53 @@ class EditWorkshopView(SuccessMessageMixin, UserFilterMixin, LoginRequiredMixin,
 
     def get_success_url(self):
         return reverse('workshops:instructor_workshops')
+
+
+class VenueListView(InstructorRequiredMixin, ListView):
+    """An instructor's saved venues ("My Venues")."""
+    template_name = 'workshops/venue_list.html'
+    context_object_name = 'venues'
+
+    def get_queryset(self):
+        return Venue.objects.filter(instructor=self.request.user)
+
+
+class VenueFormViewMixin(InstructorRequiredMixin):
+    model = Venue
+    form_class = VenueForm
+    template_name = 'workshops/venue_form.html'
+
+    def get_queryset(self):
+        return Venue.objects.filter(instructor=self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['instructor'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        form.instance.instructor = self.request.user
+        messages.success(self.request, f'Saved "{form.instance.name}".')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('workshops:venue_list')
+
+
+class VenueCreateView(VenueFormViewMixin, CreateView):
+    pass
+
+
+class VenueUpdateView(VenueFormViewMixin, UpdateView):
+    pk_url_kwarg = 'venue_id'
+
+
+class VenueDeleteView(InstructorRequiredMixin, View):
+    def post(self, request, venue_id):
+        venue = get_object_or_404(Venue, pk=venue_id, instructor=request.user)
+        venue.delete()
+        messages.success(request, f'Removed "{venue.name}" from My Venues. Workshops using it are unchanged.')
+        return redirect('workshops:venue_list')
 
 
 class DuplicateWorkshopView(LoginRequiredMixin, View):

@@ -7,7 +7,7 @@ urlpatterns = [
     # Workshop listing and discovery
     path('', views.WorkshopListView.as_view(), name='list'),
     path('category/<slug:category_slug>/', views.WorkshopListView.as_view(), name='category'),
-    
+
     # Smart dashboard routing (must come before workshop detail to avoid slug conflict)
     path('dashboard/', views.DashboardRedirectView.as_view(), name='dashboard'),
     path('my/dashboard/', views.StudentDashboardView.as_view(), name='student_dashboard'),
@@ -21,6 +21,10 @@ urlpatterns = [
     path('instructor/workshop/create/', views.CreateWorkshopView.as_view(), name='create_workshop'),
     path('instructor/workshop/<slug:slug>/edit/', views.EditWorkshopView.as_view(), name='edit_workshop'),
     path('instructor/workshop/<slug:slug>/delete/', views.WorkshopDeleteView.as_view(), name='delete_workshop'),
+    path('instructor/venues/', views.VenueListView.as_view(), name='venue_list'),
+    path('instructor/venues/new/', views.VenueCreateView.as_view(), name='venue_create'),
+    path('instructor/venues/<uuid:venue_id>/edit/', views.VenueUpdateView.as_view(), name='venue_edit'),
+    path('instructor/venues/<uuid:venue_id>/delete/', views.VenueDeleteView.as_view(), name='venue_delete'),
     path('instructor/workshop/<slug:slug>/duplicate/', views.DuplicateWorkshopView.as_view(), name='duplicate_workshop'),
     path('instructor/workshop/<slug:slug>/toggle-publish/', views.TogglePublishView.as_view(), name='toggle_publish'),
     path('instructor/workshop/<slug:slug>/sessions/', views.ManageSessionsView.as_view(), name='manage_sessions'),

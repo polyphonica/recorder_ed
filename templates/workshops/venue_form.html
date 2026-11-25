@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Edit Venue{% else %}Add Venue{% endif %} - My Venues{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+    <div class="mb-8">
+        <div class="breadcrumbs text-sm">
+            <ul>
+                <li><a href="{% url 'workshops:instructor_dashboard' %}">Instructor Dashboard</a></li>
+                <li><a href="{% url 'workshops:venue_list' %}">My Venues</a></li>
+                <li>{% if object %}Edit{% else %}Add{% endif %}</li>
+            </ul>
+        </div>
+        <h1 class="text-3xl font-bold mt-4">{% if object %}Edit {{ object.name }}{% else %}Add Venue{% endif %}</h1>
+        {% if object %}
+        <p class="text-base-content/70 mt-2">Changes apply when you next choose this venue; existing workshops keep their current details.</p>
+        {% endif %}
+    </div>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-error">{{ form.non_field_errors.0 }}</div>
+                {% endif %}
+                {% for field in form %}
+                <div>
+                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium mb-1">
+                        {{ field.label }}{% if field.field.required %} <span class="text-error">*</span>{% endif %}
+                    </label>
+                    {{ field }}
+                    {% if field.help_text %}<p class="text-xs text-base-content/60 mt-1">{{ field.help_text }}</p>{% endif %}
+                    {% if field.errors %}<p class="text-error text-sm mt-1">{{ field.errors.0 }}</p>{% endif %}
+                </div>
+                {% endfor %}
+                <div class="flex justify-end gap-2 pt-2">
+                    <a href="{% url 'workshops:venue_list' %}" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save mr-2"></i>Save Venue
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

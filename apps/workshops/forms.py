@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 from apps.core.turnstile import TurnstileField
-from .models import Workshop, WorkshopSession, WorkshopRegistration, WorkshopCategory, WorkshopInterest, WorkshopMaterial, WorkshopTestimonial, WorkshopCompetition, WorkshopCompetitionAnswer
+from .models import Workshop, WorkshopSession, WorkshopRegistration, WorkshopCategory, WorkshopInterest, WorkshopMaterial, WorkshopTestimonial, WorkshopCompetition, WorkshopCompetitionAnswer, Venue
 
 
 TIMEZONE_CHOICES = [
@@ -134,6 +134,10 @@ class WorkshopForm(forms.ModelForm):
             'placeholder': 'e.g. Beginner Techniques'
         })
     )
+
+    # Not a model field: when ticked, the venue details are saved to the instructor's
+    # venues for reuse (handled in the view after the workshop is saved).
+    save_venue = forms.BooleanField(required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -910,7 +914,6 @@ CompetitionAnswerFormSet = forms.inlineformset_factory(
     can_delete=True,
 )
 
-
 class DuplicateWorkshopForm(forms.Form):
     """Options for duplicating a workshop as a new draft."""
 
@@ -930,3 +933,38 @@ class DuplicateWorkshopForm(forms.Form):
         else:
             cleaned['first_session_date'] = None
         return cleaned
+
+
+class VenueForm(forms.ModelForm):
+    """Add or edit one of an instructor's saved venues."""
+
+    class Meta:
+        model = Venue
+        fields = ['name', 'address', 'city', 'postcode', 'max_capacity', 'map_link', 'notes']
+        labels = {
+            'postcode': 'Post code',
+            'max_capacity': 'Max capacity',
+            'map_link': 'Map link',
+        }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'input input-bordered w-full', 'placeholder': "e.g. St John's Church Hall"}),
+            'address': forms.Textarea(attrs={'class': 'textarea textarea-bordered w-full', 'rows': 3}),
+            'city': forms.TextInput(attrs={'class': 'input input-bordered w-full'}),
+            'postcode': forms.TextInput(attrs={'class': 'input input-bordered w-full'}),
+            'max_capacity': forms.NumberInput(attrs={'class': 'input input-bordered w-full', 'min': 1}),
+            'map_link': forms.URLInput(attrs={'class': 'input input-bordered w-full', 'placeholder': 'https://maps.google.com/...'}),
+            'notes': forms.Textarea(attrs={'class': 'textarea textarea-bordered w-full', 'rows': 3}),
+        }
+
+    def __init__(self, *args, instructor=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instructor = instructor
+
+    def clean_name(self):
+        name = self.cleaned_data['name'].strip()
+        clash = Venue.objects.filter(instructor=self.instructor, name__iexact=name)
+        if self.instance.pk:
+            clash = clash.exclude(pk=self.instance.pk)
+        if clash.exists():
+            raise forms.ValidationError('You already have a saved venue with this name.')
+        return name
