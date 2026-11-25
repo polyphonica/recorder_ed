@@ -1,40 +1,34 @@
-{% load humanize %}
-Subject: New Session Available - {{ workshop.title }}
+{% autoescape off %}Subject: {{ subject }}
 
 Hi {% if user %}{{ user.first_name|default:user.username }}{% else %}there{% endif %},
 
-Great news! A new session has been scheduled for "{{ workshop.title }}" - a workshop you expressed interest in.
-
-Session Details:
-- Date: {{ session.start_datetime|date:"l, F j, Y" }}
-- Time: {{ session.start_datetime|time:"g:i A" }} - {{ session.end_datetime|time:"g:i A" }}
+{% if session_count == 1 %}A new date has been scheduled for "{{ workshop.title }}", a workshop you expressed interest in.{% else %}{{ session_count }} new dates have been scheduled for "{{ workshop.title }}", a workshop you expressed interest in.{% endif %}
+{% for session in sessions %}
+{% if session.session_title %}{{ session.session_title }}
+{% endif %}- Date: {{ session.start_datetime|date:"l, d F Y" }}
+- Time: {{ session.start_datetime|time:"H:i" }} – {{ session.end_datetime|time:"H:i" }}
+- Delivery: {{ session.get_session_delivery_override_display|default:workshop.get_delivery_method_display }}
+{% if session.is_session_in_person and workshop.venue_name %}- Venue: {{ workshop.venue_name }}{% if workshop.venue_city %}, {{ workshop.venue_city }}{% endif %}
+{% endif %}{% if session.is_full %}- Currently full (waitlist available)
+{% else %}- Places available: {{ session.spots_remaining }}
+{% endif %}{% if not workshop.require_full_series_registration %}- Register: {{ session.registration_url }}
+{% endif %}{% endfor %}
+Workshop details:
 - Instructor: {{ workshop.instructor.get_full_name|default:workshop.instructor.username }}
-- Delivery: {{ session.effective_delivery_method|title }}
-{% if session.is_session_online and session.meeting_url %}- Meeting URL: {{ session.meeting_url }}{% endif %}
-{% if session.is_session_in_person %}{% if workshop.venue_name %}- Venue: {{ workshop.venue_name }}{% endif %}{% if workshop.full_venue_address %}
-- Address: {{ workshop.full_venue_address }}{% endif %}{% endif %}
-- Available Spots: {{ session.spots_remaining }}/{{ session.max_participants }}
-{% if session.is_full %}- Status: Currently Full (Waitlist Available){% endif %}
-
-Workshop Overview:
+- Duration: {{ workshop.duration_display }}
+- Level: {{ workshop.get_difficulty_level_display }}
+{% if workshop.is_free %}- Price: Free{% else %}- Price: £{{ workshop.price }}{% endif %}
+{% if workshop.is_series and workshop.require_full_series_registration %}
+This workshop is a series: registration covers all sessions together.
+{% endif %}
 {{ workshop.short_description }}
 
-{% if not session.is_full %}Register now to secure your spot!{% else %}Join the waitlist to be notified if a spot opens up.{% endif %}
-
-Register here: {{ registration_url }}
-
-Workshop Details:
-- Duration: {{ workshop.duration_display }}
-- Difficulty: {{ workshop.get_difficulty_level_display }}
-{% if not workshop.is_free %}- Price: {{ workshop.price }}{% else %}- Price: Free{% endif %}
-
-View full workshop details and register: {{ workshop_url }}
+View the workshop and register: {{ workshop_url }}
 
 ---
 
-You're receiving this email because you requested to be notified when sessions for "{{ workshop.title }}" become available. To manage your notification preferences, visit your dashboard.
-
-Questions? Reply to this email or contact the instructor.
+You're receiving this email because you asked to be notified when dates for "{{ workshop.title }}" are scheduled.
 
 Best regards,
 The {{ site_name }} Team
+{% endautoescape %}

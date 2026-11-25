@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -86,39 +87,44 @@ def process_waitlist_on_capacity_change(sender, instance, created, **kwargs):
                         print(f"Failed to send instructor waitlist promotion notification: {e}")
 
 
+def queue_interest_notifications(workshop_id):
+    """Email interested users about new sessions once the current transaction commits.
+
+    Deferring to on_commit means sessions saved together (e.g. admin inlines, which run
+    inside one transaction) are reported in one email per person: the first callback
+    sends everything, and later ones find nothing new. Note bulk_create() fires no
+    signals, so callers using it must call this directly.
+    """
+    def _send():
+        from .notifications import WorkshopInterestNotificationService
+        try:
+            workshop = Workshop.objects.get(pk=workshop_id)
+            WorkshopInterestNotificationService.notify_interested_users(workshop)
+        except Exception as e:
+            logger.error(f"Failed to send interest notifications for workshop {workshop_id}: {e}")
+
+    transaction.on_commit(_send)
+
+
 @receiver(post_save, sender=WorkshopSession)
 def notify_interested_users_on_new_session(sender, instance, created, **kwargs):
-    """Notify users who expressed interest when a new session is created"""
+    """Notify users who expressed interest when a new session is created."""
     if created and instance.is_active:
-        from .notifications import WorkshopInterestNotificationService
-        import logging
-        logger = logging.getLogger(__name__)
+        queue_interest_notifications(instance.workshop_id)
 
-        # Get all active interest requests for this workshop that want immediate notifications
-        interested_users = WorkshopInterest.objects.filter(
-            workshop=instance.workshop,
-            is_active=True,
-            notify_immediately=True,
-            has_been_notified=False
-        )
 
-        notification_count = 0
-        for interest in interested_users:
-            try:
-                # Send notification email
-                success = WorkshopInterestNotificationService.send_new_session_notification(interest, instance)
+@receiver(post_save, sender=Workshop)
+def notify_interested_users_on_publish(sender, instance, **kwargs):
+    """Send any held-back session notifications when a workshop is (re)published.
 
-                if success:
-                    # Mark as notified
-                    interest.has_been_notified = True
-                    interest.notification_sent_at = timezone.now()
-                    interest.save(update_fields=['has_been_notified', 'notification_sent_at'])
-                    notification_count += 1
-            except Exception as e:
-                logger.error(f"Failed to notify interested user {interest.email}: {str(e)}")
-
-        if notification_count > 0:
-            logger.info(f"Sent {notification_count} new session notifications for workshop '{instance.workshop.title}'")
+    Skips saves that only touch other fields (e.g. counter updates) to avoid needless
+    queries. Saving an already-published workshop is harmless: nothing is re-sent.
+    """
+    update_fields = kwargs.get('update_fields')
+    if update_fields is not None and 'status' not in update_fields:
+        return
+    if instance.status == Workshop.Status.PUBLISHED:
+        queue_interest_notifications(instance.pk)
 
 
 @receiver(pre_save, sender=Workshop)

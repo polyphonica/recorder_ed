@@ -1797,6 +1797,9 @@ class ManageSessionsView(LoginRequiredMixin, TemplateView):
             for s in session_dicts
         ]
         WorkshopSession.objects.bulk_create(sessions)
+        # bulk_create skips post_save, so trigger interest emails explicitly (one per person)
+        from .signals import queue_interest_notifications
+        queue_interest_notifications(workshop.pk)
         messages.success(request, f'{len(sessions)} sessions created successfully!')
         return redirect('workshops:manage_sessions', slug=workshop.slug)
 

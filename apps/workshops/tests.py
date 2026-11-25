@@ -356,3 +356,111 @@ class WorkshopCategoryRequiredTests(TestCase):
         with self.assertRaises(ValidationError) as ctx:
             workshop.full_clean()
         self.assertIn('category', ctx.exception.message_dict)
+
+
+@override_settings(
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    CELERY_TASK_ALWAYS_EAGER=True,
+)
+class InterestNotificationTests(TestCase):
+    """People who registered interest get one email per batch of new dates."""
+
+    def setUp(self):
+        from .models import WorkshopInterest
+        self.instructor = User.objects.create_user(
+            'teacher', 'teacher@example.com', 'pw', first_name='Tina', last_name='Teacher'
+        )
+        self.workshop = Workshop.objects.create(
+            title='Baroque Articulation', slug='baroque-articulation',
+            description='d', short_description='s', learning_objectives='l',
+            instructor=self.instructor, status=Workshop.Status.PUBLISHED,
+        )
+        self.member = User.objects.create_user('sam', 'sam@example.com', 'pw', first_name='Sam')
+        self.member_interest = WorkshopInterest.objects.create(
+            workshop=self.workshop, user=self.member, email='sam@example.com',
+        )
+        self.guest_interest = WorkshopInterest.objects.create(
+            workshop=self.workshop, email='guest@example.com',
+        )
+        mail.outbox = []
+
+    def _session(self, days):
+        start = timezone.now() + timedelta(days=days)
+        return WorkshopSession(
+            workshop=self.workshop, start_datetime=start, end_datetime=start + timedelta(hours=2),
+        )
+
+    def _create_session(self, days):
+        with self.captureOnCommitCallbacks(execute=True):
+            session = self._session(days)
+            session.save()
+        return session
+
+    def _bulk_create(self, *days):
+        from .signals import queue_interest_notifications
+        with self.captureOnCommitCallbacks(execute=True):
+            WorkshopSession.objects.bulk_create([self._session(d) for d in days])
+            queue_interest_notifications(self.workshop.pk)
+
+    def _emails_to(self, address):
+        return [m for m in mail.outbox if address in m.to]
+
+    def test_single_session_emails_each_interested_person_once(self):
+        self._create_session(7)
+        self.assertEqual(len(mail.outbox), 2)
+        member_mail = self._emails_to('sam@example.com')[0]
+        self.assertEqual(member_mail.subject, 'New date for Baroque Articulation')
+        self.assertIn('Hi Sam', member_mail.body)
+        self.assertIn('Hi there', self._emails_to('guest@example.com')[0].body)
+
+    def test_batch_sends_one_email_listing_every_date(self):
+        self._bulk_create(7, 14, 21)
+        self.assertEqual(len(mail.outbox), 2)
+        member_mail = self._emails_to('sam@example.com')[0]
+        self.assertEqual(member_mail.subject, '3 new dates for Baroque Articulation')
+        self.assertEqual(member_mail.body.count('- Date:'), 3)
+
+    def test_later_sessions_trigger_a_new_email_with_only_the_new_dates(self):
+        self._create_session(7)
+        mail.outbox = []
+        self._bulk_create(30, 37)
+        member_mail = self._emails_to('sam@example.com')[0]
+        self.assertEqual(member_mail.subject, '2 new dates for Baroque Articulation')
+        self.assertEqual(member_mail.body.count('- Date:'), 2)
+
+    def test_draft_workshop_holds_emails_until_published(self):
+        self.workshop.status = Workshop.Status.DRAFT
+        self.workshop.save()
+        self._bulk_create(7, 14)
+        self.assertEqual(mail.outbox, [])
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self.workshop.status = Workshop.Status.PUBLISHED
+            self.workshop.save(update_fields=['status'])
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(self._emails_to('sam@example.com')[0].subject,
+                         '2 new dates for Baroque Articulation')
+
+    def test_resaving_published_workshop_does_not_resend(self):
+        self._create_session(7)
+        mail.outbox = []
+        with self.captureOnCommitCallbacks(execute=True):
+            self.workshop.save()
+        self.assertEqual(mail.outbox, [])
+
+    def test_past_cancelled_and_opted_out_are_skipped(self):
+        self.guest_interest.notify_immediately = False
+        self.guest_interest.save()
+        cancelled = self._session(7)
+        cancelled.is_cancelled = True
+        with self.captureOnCommitCallbacks(execute=True):
+            cancelled.save()
+            past = self._session(-3)
+            past.save()
+        self.assertEqual(mail.outbox, [])
+
+    def test_html_version_lists_each_date(self):
+        self._bulk_create(7, 14)
+        html = self._emails_to('guest@example.com')[0].alternatives[0][0]
+        self.assertIn('Hi there', html)
+        self.assertEqual(html.count('Register for this date'), 2)

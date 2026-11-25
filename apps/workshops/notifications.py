@@ -584,33 +584,89 @@ class WorkshopInterestNotificationService(BaseNotificationService):
         return WorkshopInterestNotificationService.build_absolute_url('workshops:list')
 
     @staticmethod
-    def send_new_session_notification(interest, session):
-        """Send notification email when a new session is created for a workshop of interest"""
+    def notify_interested_users(workshop):
+        """Email everyone interested in `workshop` about upcoming sessions they haven't heard about.
+
+        Each person gets at most one email per call, listing every new date. A session
+        counts as new for a person if it was created after they were last emailed (or,
+        if never emailed, after they registered interest).
+
+        Safe to call repeatedly: once someone has been emailed, the same sessions are
+        never sent to them again. Nothing is sent while the workshop is unpublished, so
+        sessions added to a draft are held back until it is published.
+
+        Returns the number of emails sent.
+        """
+        from .models import Workshop
+
+        if workshop.status != Workshop.Status.PUBLISHED:
+            return 0
+
+        upcoming = list(
+            workshop.sessions.filter(
+                is_active=True,
+                is_cancelled=False,
+                start_datetime__gte=timezone.now(),
+            ).order_by('start_datetime')
+        )
+        if not upcoming:
+            return 0
+
+        interests = workshop.interest_requests.filter(
+            is_active=True, notify_immediately=True
+        ).select_related('user')
+
+        sent = 0
+        for interest in interests:
+            since = interest.notification_sent_at or interest.created_at
+            new_sessions = [s for s in upcoming if s.created_at > since]
+            if not new_sessions:
+                continue
+            if WorkshopInterestNotificationService.send_new_sessions_notification(interest, new_sessions):
+                interest.has_been_notified = True
+                interest.notification_sent_at = timezone.now()
+                interest.save(update_fields=['has_been_notified', 'notification_sent_at'])
+                sent += 1
+
+        if sent:
+            logger.info(f"Sent {sent} new-session notifications for workshop '{workshop.title}'")
+        return sent
+
+    @staticmethod
+    def send_new_sessions_notification(interest, sessions):
+        """Send one email listing new sessions for a workshop the person is interested in."""
         try:
-            # Build URLs
-            workshop_url = WorkshopInterestNotificationService._build_workshop_url(interest.workshop)
-            registration_url = WorkshopInterestNotificationService._build_registration_url(session)
+            workshop = interest.workshop
+            for session in sessions:
+                session.registration_url = WorkshopInterestNotificationService._build_registration_url(session)
+
+            count = len(sessions)
+            if count == 1:
+                subject = f'New date for {workshop.title}'
+            else:
+                subject = f'{count} new dates for {workshop.title}'
 
             context = {
                 'interest': interest,
-                'workshop': interest.workshop,
-                'session': session,
+                'workshop': workshop,
+                'sessions': sessions,
+                'session_count': count,
+                'subject': subject,
                 'user': interest.user,
-                'workshop_url': workshop_url,
-                'registration_url': registration_url,
+                'workshop_url': WorkshopInterestNotificationService._build_workshop_url(workshop),
             }
 
             return WorkshopInterestNotificationService.send_templated_email(
                 template_path='workshops/emails/new_session_notification.txt',
                 context=context,
                 recipient_list=[interest.email],
-                default_subject=f'New Session Available - {interest.workshop.title}',
+                default_subject=subject,
                 fail_silently=False,
-                log_description=f"New session notification to {interest.email} for workshop {interest.workshop.title}"
+                log_description=f"New sessions notification ({count}) to {interest.email} for workshop {workshop.title}"
             )
 
         except Exception as e:
-            logger.error(f"Failed to send new session notification to {interest.email}: {str(e)}")
+            logger.error(f"Failed to send new sessions notification to {interest.email}: {str(e)}")
             return False
 
     @staticmethod
