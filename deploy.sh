@@ -28,9 +28,10 @@ python manage.py migrate --noinput
 echo "📁 Collecting static files..."
 python manage.py collectstatic --noinput
 
-# Restart Gunicorn
-echo "🔄 Restarting Gunicorn..."
-sudo systemctl restart gunicorn
+# Restart the app and the Celery worker (so background tasks run the new code)
+echo "🔄 Restarting Gunicorn and Celery..."
+sudo systemctl restart gunicorn_recordered
+sudo systemctl restart celery_recordered
 
 # Restart Nginx (optional, usually not needed)
 # sudo systemctl restart nginx
@@ -38,7 +39,7 @@ sudo systemctl restart gunicorn
 echo "✅ Deployment complete!"
 echo ""
 echo "📊 Checking service status..."
-sudo systemctl status gunicorn --no-pager -l
+sudo systemctl status gunicorn_recordered celery_recordered --no-pager -l
 
 echo ""
 echo "🎉 Deployment finished successfully!"
