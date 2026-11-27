@@ -1,6 +1,6 @@
 # Practice Log Audio Clips: Implementation Plan
 
-**Status:** Proposed · **Date:** 2026-11-25 · **App:** `apps/practice`
+**Status:** Proposed · **Date:** 2026-11-25 (revised 2026-11-27 after review) · **App:** `apps/practice`
 
 ## Summary
 
@@ -30,7 +30,9 @@ Let students record short audio excerpts of passages, scales or exercises they'r
    - **Title** (e.g. "Telemann Sonata in F, 2nd mvt", "G major 2 octaves")
    - **What do you want help with?** (e.g. "bars 12–16, the slur to top E cracks")
    - Optional link to an audioplayer `Piece`.
-4. Save. The teacher gets an email.
+4. Save. The teacher gets an email once the clips have been processed.
+
+   On **Log practice** the entry doesn't exist yet, so each kept clip is uploaded straight away as a *pending* clip (`entry=None`, owned by the uploader). The form sends the pending clip IDs with the entry, and the save links them to the new entry. Pending clips never linked are deleted after 24 hours. On **Edit practice** clips attach to the existing entry directly.
 5. When the teacher replies, the student gets an email, and the reply (text and/or audio) appears under the clip in the practice log.
 
 For child accounts, the guardian (the `student` user on the entry, with `child_profile` set) does the recording or shares it. No separate approval step is needed, because the child doesn't have their own login.
@@ -51,11 +53,18 @@ For child accounts, the guardian (the `student` user on the entry, with `child_p
 | Max clip length | 90 s | Auto-stop in the recorder; checked again on the server |
 | Max clips per entry | 3 | |
 | Max teacher reply length | 3 min | Teacher demonstrations may need longer |
-| Max upload size | 10 MB | Below the nginx `client_max_body_size` of 15 MB |
-| Accepted upload types | webm, ogg, mp4/m4a, mp3, wav | Content-sniffed, not trusted from the extension |
-| Retention | 12 months after the last reply | Either party can **Keep** a clip to exempt it |
+| Max upload size | 10 MB | Checked in the browser before upload and again in the view (see below) |
+| Accepted upload types | webm, ogg, mp4/m4a, mp3, wav, aiff | Content-sniffed, not trusted from the extension. AIFF because Mac users export it |
+| Retention | 12 months after the last activity | Last reply, or creation if never replied to. Either party can **Keep** a clip to exempt it |
+| Pending clips | 24 hours | Uploaded on Log practice but never attached to a saved entry |
 
 Put these in `settings.py` (`PRACTICE_CLIP_MAX_SECONDS`, etc.) so they can be tuned.
+
+**Where the upload size is enforced.** nginx allows 50 MB per request on production (`client_max_body_size 50M`). That limit is for the Creator Studio audio converter, which takes uncompressed AIFF/WAV backing tracks up to 45 MB, and it stays as it is. Django's `DATA_UPLOAD_MAX_MEMORY_SIZE` / `FILE_UPLOAD_MAX_MEMORY_SIZE` don't limit file size. So the 10 MB clip limit is enforced:
+1. in the recorder JS, before uploading, so the user gets an instant message, and
+2. in `AddClipView` / `AddClipReplyView` (`file.size`), before anything is saved or queued.
+
+No separate nginx `location` for the clip URLs: it would duplicate the proxy config for little gain. Phone recordings are about 1 MB; the 10 MB limit mainly matters for the upload fallback (90 s of AIFF is about 15 MB, and is rejected).
 
 Rough storage: Opus at about 64 kbps is about 0.5 MB per minute. 50 students × 3 clips a week × 1 minute is about 4 GB a year before retention deletes anything.
 
@@ -73,8 +82,9 @@ class PracticeClip(models.Model):
                       ('failed', 'Failed')]
 
     id = UUIDField(primary_key=True, default=uuid4, editable=False)
-    entry = ForeignKey(PracticeEntry, on_delete=CASCADE, related_name='clips')
-    uploaded_by = ForeignKey(User, on_delete=SET_NULL, null=True)
+    entry = ForeignKey(PracticeEntry, on_delete=CASCADE, related_name='clips',
+                       null=True, blank=True)   # None while pending (Log practice)
+    uploaded_by = ForeignKey(User, on_delete=SET_NULL, null=True)  # owner of a pending clip
 
     kind = CharField(max_length=20, choices=KIND_CHOICES)
     title = CharField(max_length=200)
@@ -87,13 +97,16 @@ class PracticeClip(models.Model):
     status = CharField(max_length=20, choices=STATUS_CHOICES, default='processing')
 
     teacher_listened_at = DateTimeField(null=True, blank=True)
+    teacher_notified_at = DateTimeField(null=True, blank=True)  # see Notifications
     resolved_at = DateTimeField(null=True, blank=True)   # teacher replied or marked done
     keep = BooleanField(default=False)                   # exempt from retention
+    last_activity_at = DateTimeField(auto_now_add=True)  # bumped on each reply; drives retention
     created_at = DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['created_at']
-        indexes = [Index(fields=['entry']), Index(fields=['resolved_at', 'created_at'])]
+        indexes = [Index(fields=['entry']), Index(fields=['resolved_at', 'created_at']),
+                   Index(fields=['keep', 'last_activity_at'])]
 
 
 class PracticeClipReply(models.Model):
@@ -104,13 +117,20 @@ class PracticeClipReply(models.Model):
     original_file = FileField(storage=private_storage, upload_to=reply_upload_path, blank=True)
     audio_file = FileField(storage=private_storage, upload_to=reply_upload_path, blank=True)
     duration_seconds = PositiveIntegerField(null=True, blank=True)
-    status = CharField(max_length=20, default='ready')   # 'processing' when audio attached
+    status = CharField(max_length=20, choices=PracticeClip.STATUS_CHOICES,
+                       default='ready')                  # 'processing' when audio attached
     read_at = DateTimeField(null=True, blank=True)       # student opened it
     created_at = DateTimeField(auto_now_add=True)
-    # constraint: text or original_file must be set
+
+    class Meta:
+        constraints = [CheckConstraint(
+            condition=~Q(text='') | ~Q(original_file='') | ~Q(audio_file=''),
+            name='practice_clip_reply_has_content')]
 ```
 
-- Upload paths are made from UUIDs, not names: `practice_clips/<entry_id>/<uuid>.<ext>`.
+- Upload paths are made from UUIDs, not names: `practice_clips/<uploader_id>/<uuid>.<ext>` (the entry may not exist yet, so the path can't use its ID).
+- **Clip count limit:** check "3 per entry" inside a transaction with `select_for_update()` on the entry (or on the uploader's pending clips), so two quick uploads can't both pass a count-then-create check.
+- **File deletion:** always delete files in `transaction.on_commit`, so a rolled-back delete doesn't lose them. This applies to deleting clips, the cascade, retention, and removing `original_file` after processing.
 - Add `history = HistoricalRecords()`? **No.** The audit value is low, and history would keep metadata for deleted clips. Deletions are instead recorded in the application log.
 - Optional, later: let students send a short follow-up reply in the thread ("tried it, better?"). The model already allows this.
 
@@ -133,7 +153,7 @@ Uploads today go to `MEDIA_ROOT`, which nginx serves publicly at `/media/`. Clip
        alias /var/www/recorder_ed/private_media/;
    }
    ```
-4. Add `private_media/` to `.gitignore` and to the backup script / `deploy.sh` checks.
+4. Add `private_media/` to `.gitignore` and to the backup script / `deploy.sh` checks. Do both the nginx block and the backup change in **phase 1**: without the `internal` location, `X-Accel-Redirect` returns 404 on production while staging (which uses `FileResponse`) works, so the bug wouldn't show up in testing.
 
 ---
 
@@ -164,7 +184,7 @@ The same component handles the teacher's audio replies, with a `max-seconds` set
 5. Save `audio_file` and `duration_seconds`, set `status='ready'`, and delete `original_file`.
 6. **Then** send the notification email, so the teacher never gets an email for a clip that isn't playable yet.
 
-`pydub` is already in requirements, but calling `ffmpeg`/`ffprobe` directly with `subprocess` (argument list, no shell, timeout) is simpler and avoids the extra layer. **Add ffmpeg to the server provisioning** (`apt install ffmpeg` on production and staging), and note it in `DEPLOYMENT_GUIDE.md`.
+Reuse or extend `apps/creator_studio/services/audio_processor.py`, which already calls ffmpeg through `subprocess`, rather than writing a second wrapper. Use an argument list, no shell, and a timeout. **ffmpeg is already installed on production** (`VPS_MIGRATION.md`, for pydub); check staging and note it in `DEPLOYMENT_GUIDE.md`. Confirm the Celery worker service is running on production, since clips stay at `processing` without it.
 
 Staging runs Celery tasks immediately in the request (`CELERY_TASK_ALWAYS_EAGER = True`), so processing happens during the upload request there. That's fine at these sizes.
 
@@ -174,7 +194,7 @@ Staging runs Celery tasks immediately in the request (`CELERY_TASK_ALWAYS_EAGER 
 
 Extend `PracticeNotificationService` (`apps/practice/notifications.py`):
 
-- `send_clip_shared_notification(clip)` → teacher: "<Student> shared a clip: <title>". Send it once per entry save, not once per clip, if several clips are uploaded together.
+- `send_clip_shared_notification(entry)` → teacher: "<Student> shared a clip: <title>" (or "shared 3 clips"). One email per batch, not per clip. Each clip is processed in its own task, so batching works like this: when a clip becomes `ready`, lock the entry's clips; if any are still `processing`, do nothing; otherwise collect the ready clips with `teacher_notified_at` unset, set it on them, and send one email listing them. Failed clips don't hold up the email. Pending clips (no entry yet) wait until they're linked, and the save runs the same check.
 - `send_clip_reply_notification(reply)` → student/guardian: "<Teacher> replied to your clip: <title>".
 - Both go through the existing `send_email_task` (async, with retries).
 - Emails link to the page, never to the audio file.
@@ -185,6 +205,7 @@ Extend `PracticeNotificationService` (`apps/practice/notifications.py`):
 
 | URL | View | Who |
 |---|---|---|
+| `practice/clips/upload/` | `UploadPendingClipView` (POST, JSON) | Student (on Log practice) |
 | `practice/<uuid:entry_id>/clips/add/` | `AddClipView` (POST, JSON) | Entry owner |
 | `practice/clips/<uuid:pk>/delete/` | `DeleteClipView` | Entry owner (or teacher) |
 | `practice/clips/<uuid:pk>/audio/` | `ClipAudioView` | Owner, teacher |
@@ -195,7 +216,12 @@ Extend `PracticeNotificationService` (`apps/practice/notifications.py`):
 | `teacher/clips/<uuid:pk>/done/` | mark resolved without reply | Teacher |
 | `practice/clip-replies/<uuid:pk>/audio/` | `ClipReplyAudioView` | Owner, teacher |
 
-All views check ownership through the entry (`entry.student == request.user` or `entry.teacher == request.user`), using a shared helper. Rate-limit the add and reply endpoints.
+All views check access with one shared helper:
+- **Student side:** `entry.student == request.user` (adult or guardian), or `clip.uploaded_by == request.user` for a pending clip.
+- **Teacher side:** `entry.teacher == request.user` **and** an accepted, non-deleted `Lesson` between that teacher and the entry's student still exists. This is the same check the practice views already use, so a former teacher loses access.
+- Superusers: always.
+
+**Rate limiting:** there's no rate limiting in the project yet. Add a small cache-based counter (e.g. 20 uploads per user per hour for add/upload, 30 for replies) using Django's cache. Make sure `CACHES` points at Redis on production, because the default local-memory cache counts per gunicorn worker.
 
 ---
 
@@ -213,11 +239,11 @@ All views check ownership through the entry (`entry.student == request.user` or 
 ## Privacy, safeguarding and retention
 
 - **Access:** only the student/guardian, the assigned teacher and superusers. No sharing links, downloads hidden in the UI (`controlsList="nodownload"`, which is a courtesy, not a security measure).
-- **Teacher change:** if a student's teacher relationship ends, the former teacher loses access (the check uses `entry.teacher` *and* an active relationship check). Decide and document this rule.
+- **Teacher change:** a teacher has access only while an accepted, non-deleted `Lesson` with the student exists (see URLs and views). When the relationship ends, the former teacher loses access; the student keeps the clips and replies.
 - **Deletion:**
   - Students/guardians can delete their own clips at any time, which deletes the files immediately.
   - Deleting a practice entry or the account cascades to its clips and files. Delete the files in a `post_delete` signal, or through a task for reliability.
-- **Retention task:** a daily Celery beat or cron job that deletes clips and replies where `keep=False` and the last activity was more than 12 months ago. Log the counts.
+- **Retention task:** a management command, `purge_practice_clips`, run daily by cron (like the lesson reminders; there's no Celery beat). It deletes clips and their replies where `keep=False` and `last_activity_at` is more than 12 months ago, plus pending clips older than 24 hours. Log the counts.
 - **Privacy policy:** add a section on practice recordings: purpose, who can hear them, retention, and how to delete them. Children's recordings are made and shared by the guardian.
 - **Backups:** include `private_media/` in backups. Deleted clips will remain in older backups until those expire; say so in the policy.
 - **No AI or third-party processing** of recordings without separate consent.
@@ -226,11 +252,14 @@ All views check ownership through the entry (`entry.student == request.user` or 
 
 ## Testing
 
-`apps/practice/tests/test_clips.py`:
-- Permissions: owner, guardian, teacher, other teacher, other student, anonymous → correct 200/404 on every view, including the audio endpoints.
-- Limits: 4th clip rejected, oversize upload rejected, over-length audio rejected after processing.
+`apps/practice/tests/test_clips.py` (create `apps/practice/tests/` as a package; run it with the label `apps.practice.tests`):
+- Permissions: owner, guardian, teacher, other teacher, former teacher (lesson no longer accepted), other student, another guardian, anonymous → correct 200/404 on every view, including the audio endpoints.
+- Pending clips: uploaded on Log practice, linked on save, can't be linked to someone else's entry, purged after 24 hours.
+- Limits: 4th clip rejected (including two concurrent uploads), oversize upload rejected in the view before saving, over-length audio rejected after processing.
+- Reply constraint: a reply with neither text nor audio is rejected.
 - Processing: a fixture webm and m4a convert to a playable m4a and get a duration (skip if ffmpeg is missing in CI).
-- Notifications: sent after processing, not before; batched per entry.
+- Notifications: sent after processing, not before; one email for a batch of clips; a failed clip doesn't block the email.
+- Rate limit: the 21st upload in an hour is refused.
 - Retention: old unkept clips deleted with their files, kept clips left alone.
 - Cascade: deleting an entry removes its files from disk.
 
@@ -240,12 +269,12 @@ Manual testing: iOS Safari, Android Chrome, desktop Chrome/Firefox/Safari, with 
 
 ## Delivery phases
 
-1. **Backend:** models, migration, private storage, serving view and nginx `internal` location, processing task, permissions and tests.
+1. **Backend:** models, migration, private storage, serving view, nginx `internal` location and backup of `private_media/`, processing task, permissions, rate limiting and tests.
 2. **Student recording:** recorder component, upload fallback, clip UI on entry form and practice log.
 3. **Teacher side:** inbox, clip detail, text and audio replies, nav badge, notifications in both directions.
 4. **Housekeeping:** retention task, delete cascade, privacy policy, print view, deployment docs (ffmpeg, `PRIVATE_MEDIA_ROOT`, nginx).
 
-Ship phases 1–4 together, since audio replies are wanted from the start. Use the usual feature branch → staging → test → main → production. Test on real phones on staging before merging.
+Ship phases 1–4 together to production, since audio replies are wanted from the start. Use the usual feature branch → staging → test → main → production. Consider putting phases 1–2 on staging early, so real phone recordings can be collected while phase 3 is built. Test on real phones on staging before merging.
 
 ## Later ideas
 
