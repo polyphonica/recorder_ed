@@ -80,14 +80,14 @@ class AutoConvertAudioFileFieldTests(TestCase):
         self.assertIn('Unsupported file type', str(ctx.exception))
 
     def test_rejects_oversized_file(self):
-        """Should reject files over 10MB."""
+        """Should reject files over 45MB."""
         from django import forms
 
         field = AutoConvertAudioFileField(required=False)
 
         mock_file = MagicMock()
         mock_file.name = 'test.mp3'
-        mock_file.size = 15 * 1024 * 1024  # 15MB
+        mock_file.size = 50 * 1024 * 1024  # 50MB
 
         with self.assertRaises(forms.ValidationError) as ctx:
             field.clean(mock_file)

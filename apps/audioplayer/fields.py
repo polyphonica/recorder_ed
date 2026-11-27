@@ -16,7 +16,9 @@ class AutoConvertAudioFileField(forms.FileField):
     """
 
     ALLOWED_EXTENSIONS = ['.mp3', '.wav', '.aiff', '.aif']
-    MAX_FILE_SIZE = 25 * 1024 * 1024  # 25MB per stem
+    # Uncompressed AIFF/WAV is ~10 MB per minute. nginx allows 50 MB per
+    # request, so several large stems must be saved one at a time.
+    MAX_FILE_SIZE = 45 * 1024 * 1024  # 45MB per stem
 
     def clean(self, data, initial=None):
         """
