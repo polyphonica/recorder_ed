@@ -18,7 +18,7 @@
         <label class="btn btn-sm btn-outline" x-show="recState !== 'recording'">
             <i class="fas fa-file-audio" aria-hidden="true"></i>
             <span x-text="supported ? 'Or choose a file' : 'Choose a recording'"></span>
-            <input type="file" accept="audio/*" capture class="hidden" @change="chooseFile($event)">
+            <input type="file" accept="audio/*" class="hidden" @change="chooseFile($event)">
         </label>
 
         <span class="text-sm text-base-content/70" x-show="recState === 'recording'"
@@ -41,9 +41,11 @@
         </div>
     </template>
 
-    <p class="text-xs text-base-content/70" x-show="recState === 'idle' || recState === 'requesting'">
-        Up to <span x-text="formatTime(maxSeconds)"></span>. Recording stops automatically at the limit.
-    </p>
+    <div class="text-xs text-base-content/70 space-y-1" x-show="recState === 'idle' || recState === 'requesting'">
+        <p x-show="supported">Up to <span x-text="formatTime(maxSeconds)"></span>. Recording stops automatically at the limit.</p>
+        <p>Using a recording from your phone? Trim it to under <span x-text="formatTime(maxSeconds)"></span> in your recorder app first.</p>
+        <p x-show="isIOS">To use a Voice Memo: open it, tap <strong>Share</strong> &gt; <strong>Save to Files</strong>, then choose it here.</p>
+    </div>
 
     <div class="alert alert-warning text-sm" x-show="recState === 'denied'" role="alert">
         <i class="fas fa-microphone-slash" aria-hidden="true"></i>

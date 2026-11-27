@@ -105,6 +105,9 @@
             recState: 'idle',   // idle | requesting | recording | recorded | denied
             supported: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia &&
                            typeof MediaRecorder !== 'undefined'),
+            // iPadOS reports itself as a Mac, so also check for touch
+            isIOS: /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
             elapsed: 0,
             level: 0,
             blob: null,
@@ -256,7 +259,8 @@
                     this.elapsed = d;
                     if (d > this.maxSeconds + 2) {
                         this.recError = 'This recording is ' + formatTime(d) + ' long. The limit is ' +
-                            formatTime(this.maxSeconds) + ', so it will be rejected.';
+                            formatTime(this.maxSeconds) + ', so it will be rejected. ' +
+                            'Please trim it in your recorder app and choose it again.';
                     }
                 }
             },
