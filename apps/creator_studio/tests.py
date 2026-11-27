@@ -157,11 +157,11 @@ class AudioConverterFormTests(TestCase):
             self.assertIn('Unsupported file type', str(form.errors['audio_file']))
 
     def test_file_size_limit(self):
-        """Should reject files over 20MB."""
+        """Should reject files over 45MB."""
         from apps.creator_studio.forms import AudioConverterForm
 
         mock_file = MagicMock()
-        mock_file.size = 25 * 1024 * 1024  # 25MB
+        mock_file.size = 50 * 1024 * 1024  # 50MB
         mock_file.name = 'test.mp3'
 
         form = AudioConverterForm(

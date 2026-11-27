@@ -160,7 +160,7 @@ class AudioConverterView(InstructorRequiredMixin, FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Audio Converter'
-        context['max_file_size_mb'] = 20
+        context['max_file_size_mb'] = AudioConverterForm.MAX_FILE_SIZE_MB
         return context
 
     def form_valid(self, form):

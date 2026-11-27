@@ -9,6 +9,9 @@ from django import forms
 class AudioConverterForm(forms.Form):
     """Form for audio conversion parameters."""
 
+    # Uncompressed AIFF/WAV is ~10 MB per minute; nginx allows 50 MB per request.
+    MAX_FILE_SIZE_MB = 45
+
     FORMAT_CHOICES = [
         ('mp3', 'MP3 - Compressed, widely compatible'),
         ('wav', 'WAV - Uncompressed, high quality'),
@@ -19,7 +22,7 @@ class AudioConverterForm(forms.Form):
 
     audio_file = forms.FileField(
         label='Audio File',
-        help_text='Supported formats: MP3, WAV, OGG, M4A, AAC, AIFF. Max size: 20MB.'
+        help_text='Supported formats: MP3, WAV, OGG, M4A, AAC, AIFF. Max size: 45MB.'
     )
 
     output_format = forms.ChoiceField(
@@ -61,8 +64,8 @@ class AudioConverterForm(forms.Form):
     def clean_audio_file(self):
         file = self.cleaned_data['audio_file']
 
-        # Check file size (20MB limit from settings)
-        max_size = 20 * 1024 * 1024
+        # Check file size
+        max_size = self.MAX_FILE_SIZE_MB * 1024 * 1024
         if file.size > max_size:
             raise forms.ValidationError(
                 f'File size exceeds {max_size // (1024*1024)}MB limit.'
