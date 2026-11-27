@@ -1,6 +1,6 @@
 # Practice Log Audio Clips: Implementation Plan
 
-**Status:** Built on branch `practice-audio-clips`, awaiting staging tests · **Date:** 2026-11-25 (revised 2026-11-27) · **App:** `apps/practice`
+**Status:** Released to production 2026-11-27 (upload flow tested on staging; browser recording still to be tested on phones over HTTPS) · **Date:** 2026-11-25 (revised 2026-11-27) · **App:** `apps/practice`
 
 ## Summary
 
