@@ -64,7 +64,7 @@ For child accounts, the guardian (the `student` user on the entry, with `child_p
 
 Put these in `settings.py` (`PRACTICE_CLIP_MAX_SECONDS`, etc.) so they can be tuned.
 
-**Where the upload size is enforced.** nginx allows 50 MB per request on production (`client_max_body_size 50M`). That limit is for the Creator Studio audio converter, which takes uncompressed AIFF/WAV backing tracks up to 45 MB, and it stays as it is. Django's `DATA_UPLOAD_MAX_MEMORY_SIZE` / `FILE_UPLOAD_MAX_MEMORY_SIZE` don't limit file size. So the 10 MB clip limit is enforced:
+**Where the upload size is enforced.** nginx allows 100 MB per request on production (`client_max_body_size 100M`). That limit is for the Creator Studio audio converter, which takes uncompressed AIFF/WAV backing tracks up to 45 MB, and it stays as it is. Django's `DATA_UPLOAD_MAX_MEMORY_SIZE` / `FILE_UPLOAD_MAX_MEMORY_SIZE` don't limit file size. So the 10 MB clip limit is enforced:
 1. in the recorder JS, before uploading, so the user gets an instant message, and
 2. in `AddClipView` / `AddClipReplyView` (`file.size`), before anything is saved or queued.
 

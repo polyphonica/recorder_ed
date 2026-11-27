@@ -9,7 +9,7 @@ from django import forms
 class AudioConverterForm(forms.Form):
     """Form for audio conversion parameters."""
 
-    # Uncompressed AIFF/WAV is ~10 MB per minute; nginx allows 50 MB per request.
+    # Uncompressed AIFF/WAV is ~10 MB per minute; nginx allows 100 MB per request.
     MAX_FILE_SIZE_MB = 45
 
     FORMAT_CHOICES = [

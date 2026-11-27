@@ -222,7 +222,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Upload handling
 # These do NOT cap uploaded file size. The real limits are:
-#   - nginx client_max_body_size 50M (production), sized for large AIFF/WAV
+#   - nginx client_max_body_size 100M (production), sized for large AIFF/WAV
 #     uploads to the Creator Studio audio converter and play-along stems
 #   - each form/view's own size check (e.g. AudioConverterForm.MAX_FILE_SIZE_MB)
 # DATA_UPLOAD_MAX_MEMORY_SIZE: limit on the non-file part of a request body.
