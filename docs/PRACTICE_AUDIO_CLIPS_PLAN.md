@@ -1,6 +1,6 @@
 # Practice Log Audio Clips: Implementation Plan
 
-**Status:** Proposed · **Date:** 2026-11-25 (revised 2026-11-27 after review) · **App:** `apps/practice`
+**Status:** Built on branch `practice-audio-clips`, awaiting staging tests · **Date:** 2026-11-25 (revised 2026-11-27) · **App:** `apps/practice`
 
 ## Summary
 
@@ -294,3 +294,50 @@ Release phases 1–4 together. Use the usual feature branch → staging → test
 - "Progress on this passage": play earlier clips with the same title side by side.
 - Attach a clip to a lesson's notes, for discussion in the next lesson.
 - Share the recorder component with the Aural Trainer redesign (sing-back and clap-back tests).
+
+---
+
+## As built (2026-11-27)
+
+Differences from the plan above:
+- **No link to an audioplayer `Piece`** in the first release. The clip's title does that job; add the link later if it's wanted.
+- **Teachers can't delete clips.** They mark them done; deleting stays with the student/guardian, who owns the recording.
+- **Failed processing isn't emailed.** The clip shows the reason ("longer than 90 seconds", "doesn't look like an audio file") on the form and in the practice log.
+- **ffmpeg code:** a small `apps/practice/audio.py` (ffprobe + ffmpeg through `subprocess`) rather than Creator Studio's `AudioProcessor`, which uses pydub and writes temporary files under the public `MEDIA_ROOT`.
+- **Replies** have a `from_teacher` flag, and `status='none'` for text-only replies. The database rule is "text, or audio was attached".
+- **Teacher nav:** a **Clips** link with a count badge in the private-teaching teacher nav, which now also shows on practice pages.
+
+Main files: `apps/practice/clips.py` (access rules, limits, notifications), `clip_views.py`, `tasks.py`, `audio.py`, `signals.py`, `management/commands/purge_practice_clips.py`, `static/js/audio-recorder.js`, `templates/practice/partials/`, `templates/practice/teacher_clip_*.html`. Tests: `apps/practice/tests/test_clips.py` (need a working ffmpeg).
+
+## Deployment steps
+
+**Staging** (old IONOS server):
+1. `ffmpeg -version` works.
+2. `mkdir -p /var/www/recorder_ed_staging/private_media && chown www-data:www-data` it (staging's `PRIVATE_MEDIA_ROOT` default).
+3. Pull the branch, `migrate`, `collectstatic`, restart gunicorn. Staging serves audio through Django (`PRIVATE_MEDIA_X_ACCEL` stays False) and runs Celery tasks in the request.
+
+**Production** (after merging to main):
+1. Add to `.env`:
+   ```
+   CACHE_REDIS_URL=redis://localhost:6379/1
+   PRIVATE_MEDIA_ROOT=/var/www/recorder_ed/private_media
+   PRIVATE_MEDIA_X_ACCEL=True
+   ```
+2. `mkdir -p /var/www/recorder_ed/private_media && chown www-data:www-data /var/www/recorder_ed/private_media && chmod 750 /var/www/recorder_ed/private_media`
+3. In `/etc/nginx/sites-enabled/recorder_ed`, inside the HTTPS `server` block, next to `location /media/`:
+   ```nginx
+   location /protected/ {
+       internal;
+       alias /var/www/recorder_ed/private_media/;
+   }
+   ```
+   Then `nginx -t && systemctl reload nginx`. Without this, audio returns 404 on production.
+4. `git pull`, then `./deploy.sh` (migrate, collectstatic, restart gunicorn_recordered and celery_recordered).
+5. Add to root's crontab:
+   ```
+   30 3 * * * cd /var/www/recorder_ed && /var/www/recorder_ed/venv/bin/python3 manage.py purge_practice_clips >> /var/log/recordered/practice_clips.log 2>&1
+   ```
+6. Check: record a clip as a test student, confirm it plays for the student and teacher, and that another account gets a 404 on the audio URL.
+
+`private_media/` is under `/var/www/recorder_ed`, so the whole-server Backup Package should already include it. Confirm that in the IONOS backup settings.
+
