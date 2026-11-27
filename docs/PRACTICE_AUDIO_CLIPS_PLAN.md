@@ -11,6 +11,9 @@ Let students record short audio excerpts of passages, scales or exercises they'r
 - **Included in the practice log.** Not a paid extra.
 - **Audio replies from the start**, as well as text replies.
 - **Audio only.** No video.
+- **Student follow-up replies in the first release** ("tried it, better?").
+- **All phases released together**, tested on staging first.
+- **Loudness normalisation optional.** Recorders have limited dynamics, so normalising doesn't distort what the teacher hears.
 
 ### Goals
 - Make it quick to record on a phone: record → listen back → keep or redo → send.
@@ -34,6 +37,7 @@ Let students record short audio excerpts of passages, scales or exercises they'r
 
    On **Log practice** the entry doesn't exist yet, so each kept clip is uploaded straight away as a *pending* clip (`entry=None`, owned by the uploader). The form sends the pending clip IDs with the entry, and the save links them to the new entry. Pending clips never linked are deleted after 24 hours. On **Edit practice** clips attach to the existing entry directly.
 5. When the teacher replies, the student gets an email, and the reply (text and/or audio) appears under the clip in the practice log.
+6. The student or guardian can send a follow-up in the same thread (text and/or a recording of up to 90 s). This reopens the clip in the teacher's inbox and emails the teacher.
 
 For child accounts, the guardian (the `student` user on the entry, with `child_profile` set) does the recording or shares it. No separate approval step is needed, because the child doesn't have their own login.
 
@@ -112,14 +116,14 @@ class PracticeClip(models.Model):
 class PracticeClipReply(models.Model):
     id = UUIDField(primary_key=True, default=uuid4, editable=False)
     clip = ForeignKey(PracticeClip, on_delete=CASCADE, related_name='replies')
-    author = ForeignKey(User, on_delete=SET_NULL, null=True)   # teacher (or student follow-up)
+    author = ForeignKey(User, on_delete=SET_NULL, null=True)   # teacher, or student/guardian follow-up
     text = TextField(blank=True)
     original_file = FileField(storage=private_storage, upload_to=reply_upload_path, blank=True)
     audio_file = FileField(storage=private_storage, upload_to=reply_upload_path, blank=True)
     duration_seconds = PositiveIntegerField(null=True, blank=True)
     status = CharField(max_length=20, choices=PracticeClip.STATUS_CHOICES,
                        default='ready')                  # 'processing' when audio attached
-    read_at = DateTimeField(null=True, blank=True)       # student opened it
+    read_at = DateTimeField(null=True, blank=True)       # the other party opened it
     created_at = DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -132,7 +136,7 @@ class PracticeClipReply(models.Model):
 - **Clip count limit:** check "3 per entry" inside a transaction with `select_for_update()` on the entry (or on the uploader's pending clips), so two quick uploads can't both pass a count-then-create check.
 - **File deletion:** always delete files in `transaction.on_commit`, so a rolled-back delete doesn't lose them. This applies to deleting clips, the cascade, retention, and removing `original_file` after processing.
 - Add `history = HistoricalRecords()`? **No.** The audit value is low, and history would keep metadata for deleted clips. Deletions are instead recorded in the application log.
-- Optional, later: let students send a short follow-up reply in the thread ("tried it, better?"). The model already allows this.
+- **Follow-ups:** a reply by the student/guardian sets `resolved_at = None` (back in the teacher's inbox) and bumps `last_activity_at`. Its audio limit is the clip limit (90 s), not the teacher's 3 min. Whose reply it is comes from `author == entry.teacher`.
 
 ---
 
@@ -180,7 +184,7 @@ The same component handles the teacher's audio replies, with a `max-seconds` set
 1. Check the type by content sniffing (ffprobe), not by the extension or browser-supplied content type.
 2. Check duration with `ffprobe`, and reject anything over the limit plus 2 s of tolerance (`status='failed'`, notify the uploader).
 3. Convert with ffmpeg to **AAC in .m4a at 96 kbps, mono**. This plays in every browser, including older iOS Safari.
-4. Optionally normalise loudness (`loudnorm`) so quiet student recordings are audible. Don't trim silence automatically; it can cut a pickup note.
+4. Loudness normalisation (`loudnorm`) is optional and off by default (`PRACTICE_CLIP_NORMALISE = False`); recorders have limited dynamics, so it isn't needed to make clips audible. Don't trim silence automatically; it can cut a pickup note.
 5. Save `audio_file` and `duration_seconds`, set `status='ready'`, and delete `original_file`.
 6. **Then** send the notification email, so the teacher never gets an email for a clip that isn't playable yet.
 
@@ -196,6 +200,7 @@ Extend `PracticeNotificationService` (`apps/practice/notifications.py`):
 
 - `send_clip_shared_notification(entry)` → teacher: "<Student> shared a clip: <title>" (or "shared 3 clips"). One email per batch, not per clip. Each clip is processed in its own task, so batching works like this: when a clip becomes `ready`, lock the entry's clips; if any are still `processing`, do nothing; otherwise collect the ready clips with `teacher_notified_at` unset, set it on them, and send one email listing them. Failed clips don't hold up the email. Pending clips (no entry yet) wait until they're linked, and the save runs the same check.
 - `send_clip_reply_notification(reply)` → student/guardian: "<Teacher> replied to your clip: <title>".
+- `send_clip_followup_notification(reply)` → teacher: "<Student> followed up on: <title>".
 - Both go through the existing `send_email_task` (async, with retries).
 - Emails link to the page, never to the audio file.
 
@@ -214,6 +219,7 @@ Extend `PracticeNotificationService` (`apps/practice/notifications.py`):
 | `teacher/clips/<uuid:pk>/` | `TeacherClipDetailView` (marks listened) | Teacher of that entry |
 | `teacher/clips/<uuid:pk>/reply/` | `AddClipReplyView` (text and/or audio) | Teacher |
 | `teacher/clips/<uuid:pk>/done/` | mark resolved without reply | Teacher |
+| `practice/clips/<uuid:pk>/reply/` | `AddStudentFollowUpView` (text and/or audio) | Entry owner |
 | `practice/clip-replies/<uuid:pk>/audio/` | `ClipReplyAudioView` | Owner, teacher |
 
 All views check access with one shared helper:
@@ -221,14 +227,14 @@ All views check access with one shared helper:
 - **Teacher side:** `entry.teacher == request.user` **and** an accepted, non-deleted `Lesson` between that teacher and the entry's student still exists. This is the same check the practice views already use, so a former teacher loses access.
 - Superusers: always.
 
-**Rate limiting:** there's no rate limiting in the project yet. Add a small cache-based counter (e.g. 20 uploads per user per hour for add/upload, 30 for replies) using Django's cache. Make sure `CACHES` points at Redis on production, because the default local-memory cache counts per gunicorn worker.
+**Rate limiting:** there's no rate limiting in the project yet. Add a small cache-based counter (e.g. 20 uploads per user per hour for add/upload, 30 for replies and follow-ups) using Django's cache. `settings.py` has no `CACHES` setting, so Django uses its default in-memory cache, which is separate in each gunicorn worker (production runs 3), so a user could get 3× the limit. Add a `CACHES` setting pointing at the Redis server Celery already uses (`django.core.cache.backends.redis.RedisCache`, a different Redis database number from the broker) as part of phase 1.
 
 ---
 
 ## Templates and UI
 
 - **Practice entry form:** a Clips section with the recorder and a list of attached clips (player, title, note, delete).
-- **Student practice log** (`practice_log`): clips shown inline under each entry, with the reply thread. A "New reply" badge until `read_at` is set.
+- **Student practice log** (`practice_log`): clips shown inline under each entry, with the reply thread and a **Follow up** button (text box and recorder). A "New reply" badge until `read_at` is set.
 - **Teacher student practice view** (`teacher_student_practice`): clips inline, with a reply button.
 - **Teacher clip inbox:** a new page, plus a nav badge with the count of unresolved clips.
 - **Print view** (`practice_log_print`): list clip titles and notes, plus text replies. Audio is omitted.
@@ -260,6 +266,7 @@ All views check access with one shared helper:
 - Processing: a fixture webm and m4a convert to a playable m4a and get a duration (skip if ffmpeg is missing in CI).
 - Notifications: sent after processing, not before; one email for a batch of clips; a failed clip doesn't block the email.
 - Rate limit: the 21st upload in an hour is refused.
+- Follow-ups: owner can follow up, others get 404; a follow-up reopens a resolved clip, emails the teacher, and is limited to 90 s.
 - Retention: old unkept clips deleted with their files, kept clips left alone.
 - Cascade: deleting an entry removes its files from disk.
 
@@ -271,15 +278,19 @@ Manual testing: iOS Safari, Android Chrome, desktop Chrome/Firefox/Safari, with 
 
 1. **Backend:** models, migration, private storage, serving view, nginx `internal` location and backup of `private_media/`, processing task, permissions, rate limiting and tests.
 2. **Student recording:** recorder component, upload fallback, clip UI on entry form and practice log.
-3. **Teacher side:** inbox, clip detail, text and audio replies, nav badge, notifications in both directions.
+3. **Teacher side and threads:** inbox, clip detail, text and audio replies, student follow-ups, nav badge, notifications in both directions.
 4. **Housekeeping:** retention task, delete cascade, privacy policy, print view, deployment docs (ffmpeg, `PRIVATE_MEDIA_ROOT`, nginx).
 
-Ship phases 1–4 together to production, since audio replies are wanted from the start. Use the usual feature branch → staging → test → main → production. Consider putting phases 1–2 on staging early, so real phone recordings can be collected while phase 3 is built. Test on real phones on staging before merging.
+Release phases 1–4 together. Use the usual feature branch → staging → test → main → production, and test on real phones on staging before merging.
+
+**Before release, check on production and staging:**
+- The Celery worker service is running (`systemctl list-units | grep -i celery`). Without it, clips stay "Processing" for ever. Staging runs tasks in the request, so it won't catch this.
+- `ffmpeg -version` works on staging (it's already on production).
+- Redis is running, for the new `CACHES` setting.
 
 ## Later ideas
 
 - Comments pinned to points in a clip ("at 0:14…").
 - "Progress on this passage": play earlier clips with the same title side by side.
-- Student follow-up replies in the thread.
 - Attach a clip to a lesson's notes, for discussion in the next lesson.
 - Share the recorder component with the Aural Trainer redesign (sing-back and clap-back tests).
