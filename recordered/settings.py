@@ -220,9 +220,14 @@ STORAGES = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# File upload size limits
-# Set to 20MB to match nginx client_max_body_size (15MB) with some headroom
-# This allows uploading multiple audio files for playalong pieces
+# Upload handling
+# These do NOT cap uploaded file size. The real limits are:
+#   - nginx client_max_body_size 50M (production), sized for large AIFF/WAV
+#     uploads to the Creator Studio audio converter and play-along stems
+#   - each form/view's own size check (e.g. AudioConverterForm.MAX_FILE_SIZE_MB)
+# DATA_UPLOAD_MAX_MEMORY_SIZE: limit on the non-file part of a request body.
+# FILE_UPLOAD_MAX_MEMORY_SIZE: uploads larger than this are streamed to a temp
+#   file instead of being held in memory.
 DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # 20MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # 20MB
 
