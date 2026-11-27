@@ -66,6 +66,7 @@ STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
 # Media — separate directory so staging uploads don't mix with production
 # ------------------------------------------------------------------
 MEDIA_ROOT = '/var/www/recorder_ed_staging/media/'
+PRIVATE_MEDIA_ROOT = config('PRIVATE_MEDIA_ROOT', default='/var/www/recorder_ed_staging/private_media/')
 
 # ------------------------------------------------------------------
 # Site URL

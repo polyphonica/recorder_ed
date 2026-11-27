@@ -59,3 +59,28 @@ class PracticeEntryAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('student', 'child_profile', 'teacher', 'lesson_request')
+
+
+from .models import PracticeClip, PracticeClipReply  # noqa: E402
+
+
+class PracticeClipReplyInline(admin.TabularInline):
+    model = PracticeClipReply
+    extra = 0
+    fields = ['author', 'from_teacher', 'text', 'status', 'duration_seconds', 'read_at', 'created_at']
+    readonly_fields = fields
+    can_delete = False
+
+
+@admin.register(PracticeClip)
+class PracticeClipAdmin(admin.ModelAdmin):
+    """Metadata only: the audio is private and is played through the site."""
+    list_display = ['title', 'kind', 'entry', 'uploaded_by', 'status', 'duration_seconds',
+                    'resolved_at', 'keep', 'created_at']
+    list_filter = ['status', 'kind', 'keep']
+    search_fields = ['title', 'uploaded_by__username', 'uploaded_by__email']
+    exclude = ['original_file', 'audio_file']
+    readonly_fields = ['entry', 'uploaded_by', 'duration_seconds',
+                       'status', 'failure_reason', 'teacher_listened_at', 'teacher_notified_at',
+                       'resolved_at', 'last_activity_at', 'created_at']
+    inlines = [PracticeClipReplyInline]

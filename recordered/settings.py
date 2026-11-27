@@ -132,6 +132,7 @@ TEMPLATES = [
                 'apps.private_teaching.context_processors.cart_context',
                 'apps.workshops.context_processors.unified_cart_context',
                 'apps.messaging.context_processors.unread_messages',  # Unified messaging (includes course messages)
+                'apps.practice.context_processors.practice_clip_inbox',  # Teacher clip inbox badge
                 'apps.accounts.context_processors.email_verification_status',
                 'apps.admin_portal.context_processors.admin_metrics',  # Admin portal metrics
             ],
@@ -286,6 +287,40 @@ CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/
 CELERY_RESULT_BACKEND = None  # No result tracking needed for email tasks
 CELERY_TASK_ALWAYS_EAGER = config('CELERY_TASK_ALWAYS_EAGER', default=False, cast=bool)
 CELERY_TASK_EAGER_PROPAGATES = True  # Surface exceptions in eager/test mode
+
+# Cache — used for rate limiting. Must be shared by all gunicorn workers in
+# production, so point CACHE_REDIS_URL at Redis (a different database number
+# from the Celery broker, e.g. redis://localhost:6379/1). Without it, each
+# process gets its own in-memory cache.
+CACHE_REDIS_URL = config('CACHE_REDIS_URL', default='')
+if CACHE_REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': CACHE_REDIS_URL,
+        }
+    }
+
+# Private media — files that must never be publicly served (practice clips).
+# Outside MEDIA_ROOT, which nginx serves publicly at /media/.
+PRIVATE_MEDIA_ROOT = config('PRIVATE_MEDIA_ROOT', default=str(BASE_DIR / 'private_media'))
+# True in production: audio is streamed by nginx through an `internal`
+# location (/protected/ -> PRIVATE_MEDIA_ROOT) using X-Accel-Redirect.
+# False: Django streams the file itself (development, staging).
+PRIVATE_MEDIA_X_ACCEL = config('PRIVATE_MEDIA_X_ACCEL', default=False, cast=bool)
+
+# Practice log audio clips
+PRACTICE_CLIP_MAX_SECONDS = 90           # student clips and follow-ups
+PRACTICE_CLIP_REPLY_MAX_SECONDS = 180    # teacher replies
+PRACTICE_CLIP_DURATION_TOLERANCE = 2     # seconds over the limit still accepted
+PRACTICE_CLIP_MAX_PER_ENTRY = 3
+PRACTICE_CLIP_MAX_UPLOAD_MB = 10
+PRACTICE_CLIP_RETENTION_DAYS = 365
+PRACTICE_CLIP_PENDING_HOURS = 24         # unattached clips from Log practice
+PRACTICE_CLIP_MAX_PENDING = 10           # unattached clips per user at once
+PRACTICE_CLIP_NORMALISE = False          # loudnorm when converting
+PRACTICE_CLIP_UPLOADS_PER_HOUR = 20
+PRACTICE_CLIP_REPLIES_PER_HOUR = 30
 
 # Development settings
 INTERNAL_IPS = [

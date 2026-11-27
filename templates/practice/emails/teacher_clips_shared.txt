@@ -1,0 +1,17 @@
+Subject: {{ student_name }} shared {% if clip_count == 1 %}a practice clip: {{ clips.0.title }}{% else %}{{ clip_count }} practice clips{% endif %}
+
+Hello {{ teacher_name }},
+
+{{ student_name }} has shared {% if clip_count == 1 %}a recording{% else %}{{ clip_count }} recordings{% endif %} from their practice on {{ practice_entry.practice_date|date:"l, F j, Y" }} and would like your feedback.
+
+{% for clip in clips %}- {{ clip.title }} ({{ clip.get_kind_display }}, {{ clip.duration_seconds }}s){% if clip.note %}
+  "{{ clip.note }}"{% endif %}
+{% endfor %}
+Listen and reply:
+{{ first_clip_url }}
+
+All clips waiting for you:
+{{ inbox_url }}
+
+Best regards,
+The {{ site_name }} Team

@@ -1,0 +1,115 @@
+{% comment %}
+Clips section on Log practice / Edit practice.
+Context: upload_url, initial_clips (list), clip_max_seconds, clip_max_per_entry,
+clip_max_upload_mb, clip_kinds, pending (True on Log practice: send clip IDs with the form).
+{% endcomment %}
+{{ initial_clips|json_script:"initial-clips-data" }}
+<div class="card bg-base-200"
+     x-data="practiceClipManager({
+        uploadUrl: '{{ upload_url }}',
+        statusUrlTemplate: '{% url 'practice:clip_status' pk='00000000-0000-0000-0000-000000000000' %}',
+        maxSeconds: {{ clip_max_seconds }},
+        maxClips: {{ clip_max_per_entry }},
+        maxUploadMb: {{ clip_max_upload_mb }},
+        initialClips: JSON.parse(document.getElementById('initial-clips-data').textContent)
+     })">
+    <div class="card-body">
+        <h2 class="card-title">
+            <i class="fas fa-microphone-alt" aria-hidden="true"></i>
+            Clips for Your Teacher
+        </h2>
+        <p class="text-sm text-base-content/70">
+            Record a short excerpt of a passage, scale or exercise you'd like help with (up to {{ clip_max_per_entry }} clips,
+            each up to {{ clip_max_seconds }} seconds). Only you and your teacher can listen to them.
+        </p>
+
+        {% if pending %}
+            <template x-for="clip in clips" :key="clip.id">
+                <input type="hidden" name="pending_clip_ids" :value="clip.id">
+            </template>
+        {% endif %}
+
+        <!-- Attached clips -->
+        <div class="space-y-2 mt-2" x-show="clips.length">
+            <template x-for="clip in clips" :key="clip.id">
+                <div class="bg-base-100 rounded-lg p-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="min-w-0">
+                            <p class="font-semibold truncate" x-text="clip.title"></p>
+                            <p class="text-xs text-base-content/70">
+                                <span x-text="clip.kind"></span>
+                                <template x-if="clip.duration_seconds"><span x-text="' · ' + formatTime(clip.duration_seconds)"></span></template>
+                            </p>
+                        </div>
+                        <button type="button" class="btn btn-xs btn-ghost text-error" @click="removeClip(clip)"
+                                :aria-label="'Remove clip ' + clip.title">
+                            <i class="fas fa-trash" aria-hidden="true"></i> Remove
+                        </button>
+                    </div>
+                    <p class="text-sm mt-1" x-show="clip.note" x-text="clip.note"></p>
+                    <div class="mt-2">
+                        <template x-if="clip.status === 'ready'">
+                            <audio controls controlsList="nodownload" preload="none" :src="clip.audio_url" class="clip-audio"></audio>
+                        </template>
+                        <template x-if="clip.status === 'processing'">
+                            <p class="text-sm text-base-content/70"><span class="loading loading-spinner loading-sm" aria-hidden="true"></span> Processing&hellip;</p>
+                        </template>
+                        <template x-if="clip.status === 'failed'">
+                            <p class="text-sm text-error"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                                <span x-text="clip.failure_reason || 'This recording could not be processed.'"></span>
+                                Please remove it and try again.</p>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- Add a clip -->
+        <div class="mt-2" x-show="!adding && canAddMore()">
+            <button type="button" class="btn btn-sm btn-outline btn-primary" @click="startAdding()">
+                <i class="fas fa-plus" aria-hidden="true"></i> Add a clip
+            </button>
+        </div>
+        <p class="text-sm text-base-content/70 mt-2" x-show="!canAddMore()">
+            You've added the maximum of {{ clip_max_per_entry }} clips for this entry.
+        </p>
+
+        <div class="bg-base-100 rounded-lg p-4 mt-2 space-y-3" x-show="adding" x-cloak>
+            {% include "practice/partials/recorder_controls.html" %}
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="form-control">
+                    <label class="label" for="clip-kind"><span class="label-text font-semibold">What is it?</span></label>
+                    <select id="clip-kind" class="select select-bordered w-full" x-model="kind">
+                        {% for value, label in clip_kinds %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-control md:col-span-2">
+                    <label class="label" for="clip-title"><span class="label-text font-semibold">Title <span class="text-error">*</span></span></label>
+                    <input id="clip-title" type="text" maxlength="200" class="input input-bordered w-full" x-model="title" @keydown.enter.prevent
+                           placeholder="e.g. Telemann Sonata in F, 2nd mvt  or  G major, 2 octaves">
+                </div>
+            </div>
+            <div class="form-control">
+                <label class="label" for="clip-note"><span class="label-text font-semibold">What would you like help with?</span></label>
+                <textarea id="clip-note" rows="2" maxlength="2000" class="textarea textarea-bordered w-full" x-model="note"
+                          placeholder="e.g. bars 12–16, the slur up to top E cracks"></textarea>
+            </div>
+
+            <div x-show="uploading">
+                <progress class="progress progress-primary w-full" max="100" :value="progress" aria-label="Upload progress"></progress>
+            </div>
+            <p class="text-sm text-error" x-show="uploadError" x-text="uploadError" role="alert"></p>
+
+            <div class="flex flex-wrap justify-end gap-2">
+                <button type="button" class="btn btn-sm btn-ghost" @click="cancelAdding()" :disabled="uploading">Cancel</button>
+                <button type="button" class="btn btn-sm btn-primary" @click="attachClip()"
+                        :disabled="uploading || recState === 'recording' || !blob">
+                    <i class="fas fa-paperclip" aria-hidden="true"></i> Keep and attach
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,58 @@
+{# Recorder controls. Used inside an x-data built on recorderMixin (static/js/audio-recorder.js). #}
+<div class="space-y-2">
+    <p class="sr-only" aria-live="polite" x-text="statusText"></p>
+
+    <div class="flex flex-wrap items-center gap-2">
+        <template x-if="supported && recState !== 'recording'">
+            <button type="button" class="btn btn-sm btn-primary" @click="startRecording()" :disabled="recState === 'requesting'">
+                <i class="fas fa-microphone" aria-hidden="true"></i>
+                <span x-text="recState === 'recorded' ? 'Record again' : 'Record'"></span>
+            </button>
+        </template>
+        <template x-if="recState === 'recording'">
+            <button type="button" class="btn btn-sm btn-error" @click="stopRecording()">
+                <i class="fas fa-stop" aria-hidden="true"></i> Stop
+            </button>
+        </template>
+
+        <label class="btn btn-sm btn-outline" x-show="recState !== 'recording'">
+            <i class="fas fa-file-audio" aria-hidden="true"></i>
+            <span x-text="supported ? 'Or choose a file' : 'Choose a recording'"></span>
+            <input type="file" accept="audio/*" capture class="hidden" @change="chooseFile($event)">
+        </label>
+
+        <span class="text-sm text-base-content/70" x-show="recState === 'recording'"
+              role="timer" :aria-label="'Recorded ' + formatTime(elapsed) + ' of ' + formatTime(maxSeconds)">
+            <i class="fas fa-circle text-error" aria-hidden="true"></i>
+            <span x-text="formatTime(elapsed)"></span> / <span x-text="formatTime(maxSeconds)"></span>
+        </span>
+    </div>
+
+    <div class="clip-level-meter" x-show="recState === 'recording'" aria-hidden="true">
+        <div class="clip-level-meter-fill" :style="levelStyle()"></div>
+    </div>
+
+    <template x-if="recState === 'recorded' && blobUrl">
+        <div class="flex flex-wrap items-center gap-2">
+            <audio controls preload="metadata" :src="blobUrl" @loadedmetadata="onPreviewLoaded($event)" class="clip-audio"></audio>
+            <button type="button" class="btn btn-sm btn-ghost" @click="redoRecording()">
+                <i class="fas fa-redo" aria-hidden="true"></i> Redo
+            </button>
+        </div>
+    </template>
+
+    <p class="text-xs text-base-content/70" x-show="recState === 'idle' || recState === 'requesting'">
+        Up to <span x-text="formatTime(maxSeconds)"></span>. Recording stops automatically at the limit.
+    </p>
+
+    <div class="alert alert-warning text-sm" x-show="recState === 'denied'" role="alert">
+        <i class="fas fa-microphone-slash" aria-hidden="true"></i>
+        <div>
+            <p class="font-semibold">The microphone is blocked.</p>
+            <p x-text="micHelpText"></p>
+            <p class="mt-1">Or use "Choose a recording" to upload one made with your phone's voice recorder.</p>
+        </div>
+    </div>
+
+    <p class="text-sm text-error" x-show="recError" x-text="recError" role="alert"></p>
+</div>

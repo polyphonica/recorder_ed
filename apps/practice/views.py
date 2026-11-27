@@ -4,7 +4,8 @@ from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
-from django.db.models import Count, Q, Sum, Avg
+from django.conf import settings
+from django.db.models import Count, Q, Sum, Avg, Prefetch
 
 from apps.private_teaching.mixins import (
     StudentProfileCompletedMixin,
@@ -12,11 +13,31 @@ from apps.private_teaching.mixins import (
     TeacherProfileCompletedMixin,
 )
 from lessons.models import Lesson
-from .models import PracticeEntry
+from .clips import clip_json, link_pending_clips
+from .models import PracticeClip, PracticeClipReply, PracticeEntry
 from .forms import PracticeEntryForm
 from .notifications import PracticeNotificationService
 
 User = get_user_model()
+
+
+def clips_prefetch():
+    """Clips with their replies, for showing threads under practice entries."""
+    return Prefetch(
+        'clips',
+        queryset=PracticeClip.objects.order_by('created_at').prefetch_related(
+            Prefetch('replies', queryset=PracticeClipReply.objects.select_related('author').order_by('created_at'))
+        ),
+    )
+
+
+def clip_settings_context():
+    return {
+        'clip_max_seconds': settings.PRACTICE_CLIP_MAX_SECONDS,
+        'clip_max_per_entry': settings.PRACTICE_CLIP_MAX_PER_ENTRY,
+        'clip_max_upload_mb': settings.PRACTICE_CLIP_MAX_UPLOAD_MB,
+        'clip_kinds': PracticeClip.Kind.choices,
+    }
 
 
 class LogPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateView):
@@ -35,8 +56,39 @@ class LogPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateVi
         ).values_list('teacher__id', flat=True).distinct()
 
         context['teachers'] = User.objects.filter(id__in=teacher_ids).select_related('profile')
+        context.update(clip_settings_context())
+        context['initial_clips'] = []
 
         return context
+
+    def render_form(self, request, form):
+        """Re-show the form with errors, keeping any clips already uploaded."""
+        context = {
+            'form': form,
+            'teachers': User.objects.filter(
+                id__in=Lesson.objects.filter(
+                    student=request.user,
+                    approved_status=Lesson.ApprovalStatus.ACCEPTED,
+                    is_deleted=False
+                ).values_list('teacher__id', flat=True).distinct()
+            ).select_related('profile'),
+            'initial_clips': [clip_json(c) for c in PracticeClip.objects.filter(
+                id__in=self.pending_clip_ids(request), uploaded_by=request.user, entry__isnull=True,
+            )],
+        }
+        context.update(clip_settings_context())
+        return render(request, self.template_name, context)
+
+    @staticmethod
+    def pending_clip_ids(request):
+        import uuid
+        ids = []
+        for value in request.POST.getlist('pending_clip_ids'):
+            try:
+                ids.append(uuid.UUID(value))
+            except ValueError:
+                pass
+        return ids
 
     def post(self, request, *args, **kwargs):
         form = PracticeEntryForm(request.POST, user=request.user)
@@ -62,36 +114,21 @@ class LogPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateVi
                         practice_entry.teacher = teacher
                     else:
                         messages.error(request, 'Invalid teacher selected.')
-                        return render(request, self.template_name, {
-                            'form': form,
-                            'teachers': User.objects.filter(
-                                id__in=Lesson.objects.filter(
-                                    student=request.user,
-                                    approved_status=Lesson.ApprovalStatus.ACCEPTED,
-                                    is_deleted=False
-                                ).values_list('teacher__id', flat=True).distinct()
-                            ).select_related('profile')
-                        })
-                except User.DoesNotExist:
+                        return self.render_form(request, form)
+                except (User.DoesNotExist, ValueError):
                     messages.error(request, 'Teacher not found.')
-                    return render(request, self.template_name, {
-                        'form': form,
-                        'teachers': User.objects.filter(
-                            id__in=Lesson.objects.filter(
-                                student=request.user,
-                                approved_status=Lesson.ApprovalStatus.ACCEPTED,
-                                is_deleted=False
-                            ).values_list('teacher__id', flat=True).distinct()
-                        ).select_related('profile')
-                    })
+                    return self.render_form(request, form)
 
             practice_entry.save()
+            linked = link_pending_clips(request.user, practice_entry, self.pending_clip_ids(request))
 
             if practice_entry.teacher:
                 PracticeNotificationService.send_practice_logged_notification(practice_entry)
 
             # Show success message emphasizing exam/performance prep if applicable
             success_msg = 'Practice session logged successfully!'
+            if linked:
+                success_msg += f" {linked} clip{'s' if linked != 1 else ''} shared with your teacher."
             if practice_entry.preparing_for_exam:
                 success_msg += ' Keep up the great exam preparation work!'
             elif practice_entry.preparing_for_performance:
@@ -100,16 +137,7 @@ class LogPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, TemplateVi
             messages.success(request, success_msg)
             return redirect('practice:practice_log')
 
-        return render(request, self.template_name, {
-            'form': form,
-            'teachers': User.objects.filter(
-                id__in=Lesson.objects.filter(
-                    student=request.user,
-                    approved_status=Lesson.ApprovalStatus.ACCEPTED,
-                    is_deleted=False
-                ).values_list('teacher__id', flat=True).distinct()
-            ).select_related('profile')
-        })
+        return self.render_form(request, form)
 
 
 class PracticeLogView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
@@ -122,7 +150,9 @@ class PracticeLogView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
     def get_queryset(self):
         queryset = PracticeEntry.objects.filter(
             student=self.request.user
-        ).select_related('teacher', 'teacher__profile', 'child_profile', 'lesson_request').order_by('-practice_date', '-created_at')
+        ).select_related('teacher', 'teacher__profile', 'child_profile', 'lesson_request').prefetch_related(
+            clips_prefetch()
+        ).order_by('-practice_date', '-created_at')
 
         child_id = self.request.GET.get('child')
         if child_id:
@@ -153,6 +183,20 @@ class PracticeLogView(StudentProfileCompletedMixin, StudentOnlyMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from datetime import timedelta, date
+
+        # Load this page's entries (with clips) now, so "New reply" badges
+        # render from the unread state, then mark those replies as read.
+        page_entries = list(context['practice_entries'])
+        context['practice_entries'] = page_entries
+        unread_reply_ids = [
+            reply.pk
+            for entry in page_entries for clip in entry.clips.all() for reply in clip.replies.all()
+            if reply.from_teacher and reply.read_at is None and reply.is_visible
+        ]
+        if unread_reply_ids:
+            PracticeClipReply.objects.filter(pk__in=unread_reply_ids).update(read_at=timezone.now())
+        context['clip_max_seconds'] = settings.PRACTICE_CLIP_MAX_SECONDS
+        context['clip_max_upload_mb'] = settings.PRACTICE_CLIP_MAX_UPLOAD_MB
 
         all_entries = PracticeEntry.objects.filter(student=self.request.user)
 
@@ -239,7 +283,9 @@ class PracticeLogPrintView(StudentProfileCompletedMixin, StudentOnlyMixin, ListV
     def get_queryset(self):
         queryset = PracticeEntry.objects.filter(
             student=self.request.user
-        ).select_related('teacher', 'teacher__profile', 'child_profile', 'lesson_request').order_by('-practice_date', '-created_at')
+        ).select_related('teacher', 'teacher__profile', 'child_profile', 'lesson_request').prefetch_related(
+            clips_prefetch()
+        ).order_by('-practice_date', '-created_at')
 
         child_id = self.request.GET.get('child')
         if child_id:
@@ -341,7 +387,9 @@ class TeacherStudentPracticeView(TeacherProfileCompletedMixin, ListView):
         queryset = PracticeEntry.objects.filter(
             student=student,
             teacher=self.request.user
-        ).select_related('child_profile', 'lesson_request').order_by('-practice_date', '-created_at')
+        ).select_related('child_profile', 'lesson_request').prefetch_related(
+            clips_prefetch()
+        ).order_by('-practice_date', '-created_at')
 
         exam_prep = self.request.GET.get('exam_prep')
         if exam_prep == 'yes':
@@ -483,6 +531,8 @@ class EditPracticeView(StudentProfileCompletedMixin, StudentOnlyMixin, UpdateVie
         ).values_list('teacher__id', flat=True).distinct()
 
         context['teachers'] = User.objects.filter(id__in=teacher_ids).select_related('profile')
+        context['initial_clips'] = [clip_json(c) for c in self.object.clips.all()]
+        context.update(clip_settings_context())
         return context
 
     def form_valid(self, form):

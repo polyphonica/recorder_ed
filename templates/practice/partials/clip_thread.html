@@ -1,0 +1,99 @@
+{% comment %}
+A clip with its reply thread, under a practice entry.
+Context: clip, viewer ('student' or 'teacher'), clip_max_seconds, clip_max_upload_mb,
+on_detail (teacher clip page: hide the link to itself).
+{% endcomment %}
+<div class="bg-base-100 rounded-lg p-3" id="clip-{{ clip.pk }}">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="min-w-0">
+            <p class="font-semibold">
+                <i class="fas fa-microphone-alt text-primary" aria-hidden="true"></i>
+                {{ clip.title }}
+            </p>
+            <p class="text-xs text-base-content/70">
+                {{ clip.get_kind_display }}{% if clip.duration_seconds %} &middot; {{ clip.duration_seconds }}s{% endif %}
+                {% if clip.keep %} &middot; <i class="fas fa-thumbtack" aria-hidden="true"></i> Kept{% endif %}
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            {% if viewer == 'teacher' %}
+                {% if not clip.resolved_at and clip.status == 'ready' %}
+                    <span class="badge badge-info badge-sm">Awaiting reply</span>
+                {% endif %}
+                {% if not on_detail %}
+                <a href="{% url 'practice:teacher_clip_detail' clip.pk %}" class="btn btn-xs btn-primary">
+                    <i class="fas fa-reply" aria-hidden="true"></i> Open and reply
+                </a>
+                {% endif %}
+            {% else %}
+                <form method="post" action="{% url 'practice:toggle_keep_clip' clip.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}#clip-{{ clip.pk }}">
+                    <button type="submit" class="btn btn-xs btn-ghost"
+                            title="{% if clip.keep %}Allow automatic deletion after 12 months{% else %}Keep this clip beyond 12 months{% endif %}">
+                        <i class="fas fa-thumbtack" aria-hidden="true"></i> {% if clip.keep %}Unkeep{% else %}Keep{% endif %}
+                    </button>
+                </form>
+                <form method="post" action="{% url 'practice:delete_clip' clip.pk %}"
+                      onsubmit="return confirm('Delete this clip and its replies? This cannot be undone.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn btn-xs btn-ghost text-error">
+                        <i class="fas fa-trash" aria-hidden="true"></i> Delete
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if clip.note %}<p class="text-sm mt-1 whitespace-pre-line">{{ clip.note }}</p>{% endif %}
+
+    <div class="mt-2">
+        {% if clip.status == 'ready' %}
+            <audio controls controlsList="nodownload" preload="none" src="{% url 'practice:clip_audio' clip.pk %}" class="clip-audio"></audio>
+        {% elif clip.status == 'processing' %}
+            <p class="text-sm text-base-content/70"><span class="loading loading-spinner loading-sm" aria-hidden="true"></span> Processing&hellip; refresh in a moment.</p>
+        {% else %}
+            <p class="text-sm text-error"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                {{ clip.failure_reason|default:"This recording could not be processed." }}</p>
+        {% endif %}
+    </div>
+
+    {% with replies=clip.replies.all %}
+        {% if replies %}
+            <div class="space-y-2 mt-3">
+                {% for reply in replies %}
+                        <div class="border-l-4 {% if reply.from_teacher %}border-primary{% else %}border-base-300{% endif %} pl-4">
+                            <p class="text-xs text-base-content/70">
+                                <span class="font-semibold">{% if reply.from_teacher %}{% if viewer == 'teacher' %}You{% else %}{{ reply.author.get_full_name|default:"Your teacher" }}{% endif %}{% else %}{% if viewer == 'student' %}You{% else %}{{ reply.author.get_full_name|default:"Student" }}{% endif %}{% endif %}</span>
+                                &middot; {{ reply.created_at|date:"j M Y, H:i" }}
+                                {% if viewer == 'student' and reply.from_teacher and not reply.read_at %}<span class="badge badge-success badge-sm ml-1">New reply</span>{% endif %}
+                                {% if viewer == 'teacher' and not reply.from_teacher and not reply.read_at %}<span class="badge badge-info badge-sm ml-1">New</span>{% endif %}
+                            </p>
+                            {% if reply.text %}<p class="text-sm whitespace-pre-line">{{ reply.text }}</p>{% endif %}
+                            {% if reply.status == 'ready' %}
+                                <audio controls controlsList="nodownload" preload="none" src="{% url 'practice:clip_reply_audio' reply.pk %}" class="clip-audio mt-1"></audio>
+                            {% elif reply.status == 'processing' %}
+                                <p class="text-xs text-base-content/70"><span class="loading loading-spinner loading-sm" aria-hidden="true"></span> Recording processing&hellip;</p>
+                            {% elif reply.status == 'failed' %}
+                                <p class="text-xs text-error">The recording couldn't be processed: {{ reply.failure_reason }}</p>
+                            {% endif %}
+                        </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    {% if viewer == 'student' and clip.status == 'ready' and clip.entry_id %}
+        <div class="collapse collapse-arrow bg-base-200 mt-3">
+            <input type="checkbox" aria-label="Follow up on {{ clip.title }}">
+            <div class="collapse-title text-sm font-medium">
+                <i class="fas fa-reply mr-1" aria-hidden="true"></i> Follow up
+            </div>
+            <div class="collapse-content">
+                {% url 'practice:clip_follow_up' clip.pk as follow_up_url %}
+                {% include "practice/partials/reply_form.html" with form_url=follow_up_url form_id=clip.pk max_seconds=clip_max_seconds max_upload_mb=clip_max_upload_mb placeholder="e.g. Tried it slower with the new fingering. Better?" submit_label="Send follow-up" %}
+            </div>
+        </div>
+    {% endif %}
+</div>

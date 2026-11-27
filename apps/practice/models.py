@@ -1,4 +1,9 @@
+import os
+
+from django.conf import settings
+from django.core.files.storage import FileSystemStorage
 from django.db import models
+from django.utils import timezone
 from django.contrib.auth import get_user_model
 import uuid
 
@@ -143,3 +148,141 @@ class PracticeEntry(models.Model):
         if self.preparing_for_performance:
             types.append('Performance')
         return ', '.join(types) if types else None
+
+
+# ---------------------------------------------------------------------------
+# Practice clips: short recordings a student shares for teacher feedback
+# ---------------------------------------------------------------------------
+
+class PrivateMediaStorage(FileSystemStorage):
+    """Files that must never be publicly served (outside MEDIA_ROOT).
+
+    Reads PRIVATE_MEDIA_ROOT each time, so it follows settings overrides.
+    No public URL: files are served by permission-checked views only.
+    """
+
+    @property
+    def base_location(self):
+        return settings.PRIVATE_MEDIA_ROOT
+
+    @property
+    def location(self):
+        return os.path.abspath(self.base_location)
+
+    def url(self, name):
+        raise NotImplementedError("Private files have no public URL")
+
+
+def private_storage():
+    """A callable so migrations don't capture the server's path."""
+    return PrivateMediaStorage()
+
+
+def clip_upload_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()[:6] or '.bin'
+    owner = instance.uploaded_by_id or 'unknown'
+    return f'practice_clips/{owner}/{uuid.uuid4()}{ext}'
+
+
+def reply_upload_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()[:6] or '.bin'
+    return f'practice_clip_replies/{instance.clip_id}/{uuid.uuid4()}{ext}'
+
+
+class AudioStatus(models.TextChoices):
+    NONE = 'none', 'No audio'
+    PROCESSING = 'processing', 'Processing'
+    READY = 'ready', 'Ready'
+    FAILED = 'failed', 'Failed'
+
+
+class PracticeClip(models.Model):
+    """A short recording attached to a practice entry, for teacher feedback.
+
+    While a student is still filling in Log practice, the clip has no entry
+    yet ("pending") and belongs to `uploaded_by`.
+    """
+
+    class Kind(models.TextChoices):
+        PIECE = 'piece', 'Piece'
+        SCALE = 'scale', 'Scale'
+        EXERCISE = 'exercise', 'Exercise'
+        OTHER = 'other', 'Other'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    entry = models.ForeignKey(
+        PracticeEntry, on_delete=models.CASCADE, related_name='clips',
+        null=True, blank=True,
+        help_text="Empty while pending (uploaded on Log practice, entry not yet saved)",
+    )
+    uploaded_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name='practice_clips',
+    )
+
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.PIECE)
+    title = models.CharField(max_length=200)
+    note = models.TextField(blank=True, help_text="What the student wants help with")
+
+    original_file = models.FileField(storage=private_storage, upload_to=clip_upload_path, blank=True)
+    audio_file = models.FileField(storage=private_storage, upload_to=clip_upload_path, blank=True)
+    duration_seconds = models.PositiveIntegerField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=AudioStatus.choices, default=AudioStatus.PROCESSING)
+    failure_reason = models.CharField(max_length=200, blank=True)
+
+    teacher_listened_at = models.DateTimeField(null=True, blank=True)
+    teacher_notified_at = models.DateTimeField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True, help_text="Teacher replied or marked done")
+    keep = models.BooleanField(default=False, help_text="Exempt from automatic deletion")
+    last_activity_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['resolved_at', 'created_at']),
+            models.Index(fields=['keep', 'last_activity_at']),
+        ]
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def is_pending(self):
+        return self.entry_id is None
+
+
+class PracticeClipReply(models.Model):
+    """A message in a clip's thread: a teacher reply or a student follow-up."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clip = models.ForeignKey(PracticeClip, on_delete=models.CASCADE, related_name='replies')
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='practice_clip_replies')
+    from_teacher = models.BooleanField(default=True)
+    text = models.TextField(blank=True)
+
+    original_file = models.FileField(storage=private_storage, upload_to=reply_upload_path, blank=True)
+    audio_file = models.FileField(storage=private_storage, upload_to=reply_upload_path, blank=True)
+    duration_seconds = models.PositiveIntegerField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=AudioStatus.choices, default=AudioStatus.NONE)
+    failure_reason = models.CharField(max_length=200, blank=True)
+
+    read_at = models.DateTimeField(null=True, blank=True, help_text="When the other party opened it")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+        constraints = [
+            models.CheckConstraint(
+                # Text, or audio (processing, ready, or failed and shown as such)
+                condition=~models.Q(text='') | ~models.Q(status='none'),
+                name='practice_clip_reply_has_content',
+            ),
+        ]
+
+    def __str__(self):
+        return f"Reply to {self.clip}"
+
+    @property
+    def is_visible(self):
+        """Text replies show at once; audio replies once processed (text still shows)."""
+        return bool(self.text) or self.status == AudioStatus.READY

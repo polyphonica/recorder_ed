@@ -1,0 +1,15 @@
+Subject: {{ student_name }} followed up on: {{ clip.title }}
+
+Hello {{ teacher_name }},
+
+{{ student_name }} has followed up on the practice clip "{{ clip.title }}".
+{% if reply.text %}
+{{ reply.text }}
+{% endif %}{% if has_audio %}
+They also sent a new recording.
+{% endif %}
+Listen and reply:
+{{ clip_url }}
+
+Best regards,
+The {{ site_name }} Team

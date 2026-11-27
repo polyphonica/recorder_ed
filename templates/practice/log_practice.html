@@ -209,6 +209,14 @@
                 </div>
             </div>
 
+            <!-- Clips for the teacher -->
+            {% if entry %}{% url 'practice:add_clip' entry.id as upload_url %}{% else %}{% url 'practice:upload_pending_clip' as upload_url %}{% endif %}
+            {% if entry %}
+                {% include "practice/partials/clip_manager.html" with upload_url=upload_url pending=False %}
+            {% else %}
+                {% include "practice/partials/clip_manager.html" with upload_url=upload_url pending=True %}
+            {% endif %}
+
             <!-- Submit Buttons -->
             <div class="flex gap-4 justify-end">
                 <a href="{% url 'practice:practice_log' %}" class="btn btn-ghost">Cancel</a>
@@ -220,4 +228,9 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% include "practice/partials/clip_styles.html" %}
+<script src="{% static 'js/audio-recorder.js' %}"></script>
 {% endblock %}

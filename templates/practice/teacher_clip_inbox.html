@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Practice Clips{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'private_teaching:home' %}">Private Teaching</a></li>
+            <li><a href="{% url 'private_teaching:teacher_dashboard' %}">Teacher Dashboard</a></li>
+            <li>Practice Clips</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <div class="mb-6">
+            <h1 class="text-4xl font-bold">Practice Clips</h1>
+            <p class="text-base-content/70 mt-2">Recordings your students have shared for feedback, oldest first.</p>
+        </div>
+
+        {% if clips %}
+            <div class="space-y-3">
+                {% for clip in clips %}
+                    <a href="{% url 'practice:teacher_clip_detail' clip.pk %}" class="card bg-base-200 hover:shadow-lg transition block">
+                        <div class="card-body p-4">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="min-w-0">
+                                    <p class="font-semibold">{{ clip.title }}</p>
+                                    <p class="text-sm text-base-content/70">
+                                        {{ clip.entry.practicing_student_name }} &middot; {{ clip.get_kind_display }}
+                                        {% if clip.duration_seconds %} &middot; {{ clip.duration_seconds }}s{% endif %}
+                                    </p>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    {% if not clip.teacher_listened_at %}<span class="badge badge-info badge-sm">New</span>{% elif clip.replies.exists %}<span class="badge badge-warning badge-sm">Follow-up</span>{% endif %}
+                                    <span class="text-xs text-base-content/70">{{ clip.last_activity_at|timesince }} ago</span>
+                                </div>
+                            </div>
+                            {% if clip.note %}<p class="text-sm mt-1">{{ clip.note|truncatechars:160 }}</p>{% endif %}
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+            {% if is_paginated %}
+                <div class="flex justify-center mt-6">
+                    <div class="join">
+                        {% if page_obj.has_previous %}<a class="join-item btn btn-sm" href="?page={{ page_obj.previous_page_number }}">&laquo;</a>{% endif %}
+                        <span class="join-item btn btn-sm">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                        {% if page_obj.has_next %}<a class="join-item btn btn-sm" href="?page={{ page_obj.next_page_number }}">&raquo;</a>{% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="card bg-base-200">
+                <div class="card-body text-center py-12">
+                    <i class="fas fa-check-circle text-4xl text-success" aria-hidden="true"></i>
+                    <p class="text-lg font-semibold mt-2">You're all caught up</p>
+                    <p class="text-base-content/70">New clips from your students will appear here.</p>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if recent_done %}
+            <h2 class="text-xl font-bold mt-8 mb-3">Recently answered</h2>
+            <div class="space-y-2">
+                {% for clip in recent_done %}
+                    <a href="{% url 'practice:teacher_clip_detail' clip.pk %}" class="flex flex-wrap items-center justify-between gap-2 bg-base-200 rounded-lg p-3 hover:shadow-lg transition">
+                        <span class="min-w-0 truncate">{{ clip.title }} <span class="text-sm text-base-content/70">&middot; {{ clip.entry.practicing_student_name }}</span></span>
+                        <span class="text-xs text-base-content/70">{{ clip.resolved_at|timesince }} ago</span>
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

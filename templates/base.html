@@ -373,7 +373,7 @@
     </nav>
 
     <!-- Tier 2: Domain-Specific Navigation -->
-    {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace in 'private_teaching,lessons,expenses,audioplayer,assignments,aural_training,sight_reading' %}
+    {% if user.is_authenticated and not user.is_staff and request.resolver_match.namespace in 'private_teaching,lessons,expenses,audioplayer,assignments,aural_training,sight_reading,practice' %}
         <div class="bg-base-300 shadow-sm">
             <div class="container mx-auto">
                 <div class="navbar justify-center py-2">
@@ -385,6 +385,7 @@
                             <li><a href="{% url 'private_teaching:teacher_students' %}" class="{% if request.resolver_match.url_name == 'teacher_students' %}bg-primary text-primary-content{% endif %}">My Students</a></li>
                             <li><a href="{% url 'private_teaching:teacher_schedule' %}" class="{% if request.resolver_match.url_name == 'teacher_schedule' %}bg-primary text-primary-content{% endif %}">Schedule</a></li>
                             <li><a href="{% url 'private_teaching:calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}bg-primary text-primary-content{% endif %}">Calendar</a></li>
+                            <li><a href="{% url 'practice:teacher_clip_inbox' %}" class="{% if request.resolver_match.url_name == 'teacher_clip_inbox' or request.resolver_match.url_name == 'teacher_clip_detail' %}bg-primary text-primary-content{% endif %}" aria-label="Practice clips{% if practice_clip_inbox_count %}, {{ practice_clip_inbox_count }} waiting{% endif %}">Clips{% if practice_clip_inbox_count %} <span class="badge badge-sm badge-error" aria-hidden="true">{{ practice_clip_inbox_count }}</span>{% endif %}</a></li>
                             <li class="dropdown dropdown-end">
                                 <label tabindex="0" class="btn btn-ghost btn-sm"><i class="fas fa-chalkboard-teacher mr-1"></i>Teaching</label>
                                 <ul tabindex="0" class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-52">

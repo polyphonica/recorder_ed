@@ -1,0 +1,45 @@
+{% extends "emails/base.html" %}
+
+{% block header_gradient %}linear-gradient(135deg, #0891b2 0%, #0e7490 100%){% endblock %}
+{% block header_subtitle %}PRIVATE LESSONS - Practice Clips{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    Hello {{ teacher_name }},
+</p>
+
+<p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+    <strong>{{ student_name }}</strong> has shared {% if clip_count == 1 %}a recording{% else %}{{ clip_count }} recordings{% endif %}
+    from their practice on <strong>{{ practice_entry.practice_date|date:"l, F j, Y" }}</strong> and would like your feedback.
+</p>
+
+{% for clip in clips %}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 12px 0; background-color: #f0f9ff; border-left: 4px solid #0891b2; border-radius: 6px;">
+    <tr>
+        <td style="padding: 16px 20px;">
+            <h2 style="margin: 0 0 6px 0; font-size: 15px; font-weight: 600; color: #0e7490;">
+                {{ clip.title }}
+            </h2>
+            <p style="margin: 0; font-size: 13px; color: #6b7280;">{{ clip.get_kind_display }} &middot; {{ clip.duration_seconds }}s</p>
+            {% if clip.note %}
+            <p style="margin: 8px 0 0 0; font-size: 14px; line-height: 1.6; color: #374151;">{{ clip.note }}</p>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+{% endfor %}
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 15px 0 25px 0;">
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <a href="{{ first_clip_url }}" style="display: inline-block; padding: 14px 28px; background-color: #0891b2; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">
+                Listen and Reply
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: #6b7280; text-align: center;">
+    <a href="{{ inbox_url }}" style="color: #0891b2;">See all clips waiting for you</a>
+</p>
+{% endblock %}

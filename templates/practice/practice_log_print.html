@@ -395,6 +395,20 @@
                             <div class="entry-section-content">{{ entry.teacher_feedback }}</div>
                         </div>
                     {% endif %}
+
+                    {% for clip in entry.clips.all %}
+                        <div class="entry-section">
+                            <div class="entry-section-title">Clip: {{ clip.title }} ({{ clip.get_kind_display }}{% if clip.duration_seconds %}, {{ clip.duration_seconds }}s{% endif %})</div>
+                            {% if clip.note %}<div class="entry-section-content">{{ clip.note }}</div>{% endif %}
+                            {% for reply in clip.replies.all %}
+                                {% if reply.text %}
+                                    <div class="entry-section-content" style="margin-top: 4px; padding-left: 10px; border-left: 3px solid #d1d5db;">
+                                        <strong>{% if reply.from_teacher %}Teacher{% else %}Follow-up{% endif %}:</strong> {{ reply.text|linebreaksbr }}
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
                 </div>
             {% endfor %}
         {% else %}

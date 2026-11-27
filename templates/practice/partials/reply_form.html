@@ -1,0 +1,33 @@
+{% comment %}
+Text and/or recorded reply in a clip thread.
+Context: form_url, form_id (unique on the page), max_seconds, max_upload_mb,
+placeholder, submit_label.
+{% endcomment %}
+<div x-data="practiceReplyForm({ url: '{{ form_url }}', maxSeconds: {{ max_seconds }}, maxUploadMb: {{ max_upload_mb }} })"
+     class="space-y-2">
+    <label class="sr-only" for="{{ form_id }}-text">Reply</label>
+    <textarea id="{{ form_id }}-text" rows="3" maxlength="5000" class="textarea textarea-bordered w-full" x-model="text"
+              placeholder="{{ placeholder }}"></textarea>
+
+    <div x-show="!showRecorder">
+        <button type="button" class="btn btn-sm btn-outline" @click="showRecorder = true">
+            <i class="fas fa-microphone" aria-hidden="true"></i> Add a recording
+        </button>
+    </div>
+    <div x-show="showRecorder" x-cloak class="bg-base-100 rounded-lg p-3">
+        {% include "practice/partials/recorder_controls.html" %}
+    </div>
+
+    <div x-show="sending && blob">
+        <progress class="progress progress-primary w-full" max="100" :value="progress" aria-label="Upload progress"></progress>
+    </div>
+    <p class="text-sm text-error" x-show="sendError" x-text="sendError" role="alert"></p>
+
+    <div class="flex justify-end">
+        <button type="button" class="btn btn-sm btn-primary" @click="send()" :disabled="sending || recState === 'recording'">
+            <span class="loading loading-spinner loading-sm" x-show="sending" aria-hidden="true"></span>
+            <i class="fas fa-paper-plane" aria-hidden="true" x-show="!sending"></i>
+            {{ submit_label }}
+        </button>
+    </div>
+</div>

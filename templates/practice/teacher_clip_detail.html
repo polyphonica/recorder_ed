@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ clip.title }} · Practice Clip{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-base-100">
+    <div class="breadcrumbs text-sm px-4 py-2 bg-base-200">
+        <ul>
+            <li><a href="{% url 'private_teaching:teacher_dashboard' %}">Teacher Dashboard</a></li>
+            <li><a href="{% url 'practice:teacher_clip_inbox' %}">Practice Clips</a></li>
+            <li>{{ clip.title }}</li>
+        </ul>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold">{{ clip.title }}</h1>
+            <p class="text-base-content/70 mt-2">
+                {{ entry.practicing_student_name }} &middot; {{ clip.get_kind_display }}
+                &middot; shared {{ clip.created_at|date:"j M Y" }}
+                &middot; <a class="link link-primary" href="{% url 'practice:teacher_student_practice' student_id=entry.student_id %}#clip-{{ clip.pk }}">practice entry for {{ entry.practice_date|date:"j M Y" }}</a>
+            </p>
+        </div>
+
+        {% include "practice/partials/clip_thread.html" with viewer='teacher' on_detail=True %}
+
+        <div class="card bg-base-200 mt-6">
+            <div class="card-body">
+                <h2 class="card-title text-lg">Reply</h2>
+                {% url 'practice:add_clip_reply' clip.pk as reply_url %}
+                {% include "practice/partials/reply_form.html" with form_url=reply_url form_id="teacher-reply" max_seconds=reply_max_seconds max_upload_mb=max_upload_mb placeholder="Practice advice for this passage..." submit_label="Send reply" %}
+            </div>
+        </div>
+
+        <div class="flex flex-wrap justify-end gap-2 mt-4">
+            <form method="post" action="{% url 'practice:toggle_keep_clip' clip.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-ghost">
+                    <i class="fas fa-thumbtack" aria-hidden="true"></i> {% if clip.keep %}Unkeep{% else %}Keep beyond 12 months{% endif %}
+                </button>
+            </form>
+            {% if not clip.resolved_at %}
+                <form method="post" action="{% url 'practice:mark_clip_done' clip.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline" title="Remove from your inbox without replying, e.g. to cover it in the next lesson">
+                        <i class="fas fa-check" aria-hidden="true"></i> Mark as done without replying
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+
+        {% if earlier_clips %}
+            <h2 class="text-xl font-bold mt-8 mb-3">Earlier clips of "{{ clip.title }}"</h2>
+            <div class="space-y-2">
+                {% for earlier in earlier_clips %}
+                    <div class="bg-base-200 rounded-lg p-3">
+                        <p class="text-sm"><a class="link link-primary" href="{% url 'practice:teacher_clip_detail' earlier.pk %}">{{ earlier.created_at|date:"j M Y" }}</a>
+                            {% if earlier.duration_seconds %}&middot; {{ earlier.duration_seconds }}s{% endif %}</p>
+                        <audio controls controlsList="nodownload" preload="none" src="{% url 'practice:clip_audio' earlier.pk %}" class="clip-audio mt-1"></audio>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% include "practice/partials/clip_styles.html" %}
+<script src="{% static 'js/audio-recorder.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,15 @@
+Subject: {{ teacher_name }} replied to your clip: {{ clip.title }}
+
+Hello {{ student_name }},
+
+{{ teacher_name }} has replied to your practice clip "{{ clip.title }}".
+{% if reply.text %}
+{{ reply.text }}
+{% endif %}{% if has_audio %}
+{{ teacher_name }} also recorded an audio reply for you to listen to.
+{% endif %}
+View the reply in your practice log:
+{{ practice_log_url }}
+
+Best regards,
+The {{ site_name }} Team
