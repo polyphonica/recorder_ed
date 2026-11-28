@@ -348,3 +348,98 @@ class LibraryShowToggleTests(TestCase):
             response = self.client.get('/audioplayer/library/', {'mode': 'browse_all', 'show': 'collections'})
         self.assertContains(response, 'Collections (1)')
         self.assertContains(response, 'name="show" value="collections"')
+
+
+class CopyrightLockTests(TestCase):
+    def setUp(self):
+        from .models import Composer, PieceCollection, CollectionPiece
+        self.PieceCollection, self.CollectionPiece = PieceCollection, CollectionPiece
+        from django.contrib.auth import get_user_model
+        self.teacher = get_user_model().objects.create_user('lock_teacher', password='x')
+        self.giesbert = Composer.objects.create(name='Giesbert', in_copyright=True)
+        self.handel = Composer.objects.create(name='Handel')
+        self.duet = Piece.objects.create(title='Duet', composer=self.giesbert, is_public=False,
+                                         created_by=self.teacher)
+        self.sonata = Piece.objects.create(title='Sonata', composer=self.handel, is_public=True,
+                                           created_by=self.teacher)
+
+    def test_piece_by_in_copyright_composer_cannot_be_saved_public(self):
+        self.duet.is_public = True
+        self.duet.save()
+        self.duet.refresh_from_db()
+        self.assertFalse(self.duet.is_public)
+
+    def test_piece_clean_explains_why(self):
+        from django.core.exceptions import ValidationError
+        self.duet.is_public = True
+        with self.assertRaises(ValidationError) as ctx:
+            self.duet.full_clean()
+        self.assertIn('is_public', ctx.exception.message_dict)
+
+    def test_piece_marked_in_copyright_even_if_composer_is_not(self):
+        self.sonata.in_copyright = True  # e.g. a modern arrangement
+        self.sonata.save()
+        self.sonata.refresh_from_db()
+        self.assertFalse(self.sonata.is_public)
+
+    def test_public_domain_piece_can_be_public(self):
+        self.sonata.save()
+        self.sonata.refresh_from_db()
+        self.assertTrue(self.sonata.is_public)
+
+    def test_marking_composer_makes_pieces_and_collections_private(self):
+        col = self.PieceCollection.objects.create(title='Handel works', is_public=True)
+        self.CollectionPiece.objects.create(collection=col, piece=self.sonata, order=0)
+        self.handel.in_copyright = True
+        self.handel.save()
+        self.sonata.refresh_from_db(); col.refresh_from_db()
+        self.assertFalse(self.sonata.is_public)
+        self.assertFalse(col.is_public)
+
+    def test_adding_locked_piece_makes_public_collection_private(self):
+        col = self.PieceCollection.objects.create(title='Mixed', is_public=True)
+        self.CollectionPiece.objects.create(collection=col, piece=self.duet, order=0)
+        col.refresh_from_db()
+        self.assertFalse(col.is_public)
+
+    def test_collection_with_locked_piece_cannot_be_saved_public(self):
+        col = self.PieceCollection.objects.create(title='Duets', is_public=False)
+        self.CollectionPiece.objects.create(collection=col, piece=self.duet, order=0)
+        col.is_public = True
+        col.save()
+        col.refresh_from_db()
+        self.assertFalse(col.is_public)
+
+    def test_collection_by_in_copyright_composer_cannot_be_public(self):
+        col = self.PieceCollection.objects.create(title='G', composer=self.giesbert, is_public=True)
+        col.refresh_from_db()
+        self.assertFalse(col.is_public)
+
+    def collection_form(self, col, pieces, is_public):
+        from .forms import PieceCollectionForm
+        from django.http import QueryDict
+        data = QueryDict(mutable=True)
+        data.update({'title': col.title, 'grade_level': 'N/A'})
+        if is_public:
+            data['is_public'] = 'on'
+        data.setlist('pieces', [str(p.id) for p in pieces])
+        return PieceCollectionForm(data, instance=col, user=self.teacher)
+
+    def test_collection_form_rejects_public_with_locked_piece_selected(self):
+        col = self.PieceCollection.objects.create(title='C', is_public=False)
+        form = self.collection_form(col, [self.duet], is_public=True)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(list(form.errors), ['is_public'])
+
+    def test_collection_form_allows_public_after_removing_locked_piece(self):
+        col = self.PieceCollection.objects.create(title='C', is_public=False)
+        self.CollectionPiece.objects.create(collection=col, piece=self.duet, order=0)
+        form = self.collection_form(col, [self.sonata], is_public=True)
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_piece_form_rejects_public_for_in_copyright_composer(self):
+        from .forms import PieceForm
+        form = PieceForm({'title': 'New duet', 'composer': self.giesbert.id, 'grade_level': 'N/A',
+                          'is_public': 'on'})
+        self.assertFalse(form.is_valid())
+        self.assertEqual(list(form.errors), ['is_public'])

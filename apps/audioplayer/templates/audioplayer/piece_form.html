@@ -395,6 +395,21 @@
                             <p class="mt-2 text-sm font-medium text-red-600">{{ form.show_in_library.errors.0 }}</p>
                             {% endif %}
                         </div>
+
+                        <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                {{ form.in_copyright }}
+                                <span class="flex-1">
+                                    <span class="block text-base font-semibold text-gray-900">{{ form.in_copyright.label }}</span>
+                                    <span class="block text-sm text-gray-600 mt-1">{{ form.in_copyright.help_text }}</span>
+                                    {% if piece.composer.in_copyright %}
+                                    <span class="block text-sm text-gray-600 mt-1">
+                                        <i class="fas fa-lock mr-1"></i>{{ piece.composer.name }} is marked as in copyright, so this piece is locked to private either way.
+                                    </span>
+                                    {% endif %}
+                                </span>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>

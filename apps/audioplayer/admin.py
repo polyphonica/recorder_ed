@@ -4,9 +4,9 @@ from .models import Piece, Stem, LessonPiece, Composer, Tag, PieceCollection, Le
 
 @admin.register(Composer)
 class ComposerAdmin(admin.ModelAdmin):
-    list_display = ['name', 'period', 'piece_count', 'created_at']
+    list_display = ['name', 'period', 'in_copyright', 'piece_count', 'created_at']
     search_fields = ['name', 'period']
-    list_filter = ['period', 'created_at']
+    list_filter = ['in_copyright', 'period', 'created_at']
     ordering = ['name']
 
     def piece_count(self, obj):
@@ -100,7 +100,7 @@ class PieceAdmin(admin.ModelAdmin):
             'fields': ('description',)
         }),
         ('Visibility & Owner', {
-            'fields': ('is_public', 'show_in_library', 'created_by'),
+            'fields': ('is_public', 'show_in_library', 'in_copyright', 'created_by'),
             'description': 'is_public controls overall visibility. show_in_library controls whether the piece appears individually in the library (uncheck for pieces only accessed via collections).'
         }),
     )

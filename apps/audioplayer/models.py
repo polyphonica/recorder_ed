@@ -10,6 +10,24 @@ from apps.core.validators import (
 from .storage import protected_storage
 
 
+COPYRIGHT_HELP = (
+    "Still in copyright: can only be given to your own students, "
+    "never made public in the library."
+)
+COPYRIGHT_LOCK_MESSAGE = (
+    "This can't be made public because it contains music still in copyright. "
+    "Assign it to your students instead."
+)
+
+
+def make_copyright_items_private(pieces):
+    """Make these pieces, and any public collection containing them, private."""
+    pieces.filter(is_public=True).update(is_public=False)
+    PieceCollection.objects.filter(
+        is_public=True, collection_memberships__piece__in=pieces
+    ).update(is_public=False)
+
+
 class Composer(models.Model):
     """
     Normalized composer/artist entity to avoid duplication and enable filtering.
@@ -31,6 +49,10 @@ class Composer(models.Model):
         blank=True,
         help_text="e.g., Baroque, Classical, Romantic, Traditional, Contemporary"
     )
+    in_copyright = models.BooleanField(
+        default=False,
+        help_text=COPYRIGHT_HELP + " Applies to every piece by this composer."
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -41,6 +63,12 @@ class Composer(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.in_copyright:
+            make_copyright_items_private(Piece.objects.filter(composer=self))
+            PieceCollection.objects.filter(composer=self, is_public=True).update(is_public=False)
 
 
 class Tag(models.Model):
@@ -181,6 +209,30 @@ class PieceCollection(models.Model):
     def piece_count(self):
         return self.collection_memberships.count()
 
+    @property
+    def is_copyright_locked(self):
+        """True if the collection's composer, or any piece in it, is in copyright."""
+        if self.composer_id and self.composer.in_copyright:
+            return True
+        # A form that is about to change the pieces sets _pending_piece_ids,
+        # so the check uses the pieces being saved rather than the old ones
+        pending = getattr(self, '_pending_piece_ids', None)
+        if pending is not None:
+            return Piece.objects.copyright_locked().filter(pk__in=pending).exists()
+        if not self.pk:
+            return False
+        return Piece.objects.copyright_locked().filter(collection_memberships__collection=self).exists()
+
+    def clean(self):
+        super().clean()
+        if self.is_public and self.is_copyright_locked:
+            raise ValidationError({'is_public': COPYRIGHT_LOCK_MESSAGE})
+
+    def save(self, *args, **kwargs):
+        if self.is_public and self.is_copyright_locked:
+            self.is_public = False
+        super().save(*args, **kwargs)
+
 
 class CollectionPiece(models.Model):
     """
@@ -211,6 +263,17 @@ class CollectionPiece(models.Model):
 
     def __str__(self):
         return f'{self.piece.title} in {self.collection.title}'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Adding a piece in copyright makes a public collection private
+        if self.piece.is_copyright_locked:
+            PieceCollection.objects.filter(pk=self.collection_id, is_public=True).update(is_public=False)
+
+
+class PieceQuerySet(models.QuerySet):
+    def copyright_locked(self):
+        return self.filter(models.Q(in_copyright=True) | models.Q(composer__in_copyright=True))
 
 
 class Piece(models.Model):
@@ -328,6 +391,11 @@ class Piece(models.Model):
         help_text="If unchecked, piece won't appear individually in library (useful for pieces only accessed via collections)"
     )
 
+    in_copyright = models.BooleanField(
+        default=False,
+        help_text=COPYRIGHT_HELP + " Use for a modern arrangement or edition even when the composer isn't."
+    )
+
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -345,8 +413,26 @@ class Piece(models.Model):
         verbose_name = 'Playalong Piece'
         verbose_name_plural = 'Playalong Pieces'
 
+    objects = PieceQuerySet.as_manager()
+
     def __str__(self):
         return self.title
+
+    @property
+    def is_copyright_locked(self):
+        return self.in_copyright or bool(self.composer_id and self.composer.in_copyright)
+
+    def clean(self):
+        super().clean()
+        if self.is_public and self.is_copyright_locked:
+            raise ValidationError({'is_public': COPYRIGHT_LOCK_MESSAGE})
+
+    def save(self, *args, **kwargs):
+        if self.is_public and self.is_copyright_locked:
+            self.is_public = False
+        super().save(*args, **kwargs)
+        if self.pk and self.is_copyright_locked:
+            make_copyright_items_private(Piece.objects.filter(pk=self.pk))
 
     @property
     def collections(self):

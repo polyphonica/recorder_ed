@@ -90,6 +90,18 @@
                     </label>
                 </div>
 
+                <!-- Copyright -->
+                <div class="form-control">
+                    <label class="label cursor-pointer justify-start gap-3">
+                        {{ form.in_copyright }}
+                        <span class="label-text font-semibold">{{ form.in_copyright.label }}</span>
+                    </label>
+                    {{ form.in_copyright.errors }}
+                    <label class="label">
+                        <span class="label-text-alt">{{ form.in_copyright.help_text }}</span>
+                    </label>
+                </div>
+
                 <!-- Biography -->
                 <div class="form-control">
                     <label class="label" for="{{ form.bio.id_for_label }}">

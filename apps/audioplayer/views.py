@@ -991,7 +991,7 @@ def composer_create(request):
     class ComposerCreateForm(forms.ModelForm):
         class Meta:
             model = Composer
-            fields = ['name', 'dates', 'period', 'bio']
+            fields = ['name', 'dates', 'period', 'in_copyright', 'bio']
             widgets = {
                 'name': forms.TextInput(attrs={
                     'class': 'input input-bordered w-full',
@@ -1008,12 +1008,14 @@ def composer_create(request):
                 'bio': CKEditor5Widget(
                     attrs={'class': 'django_ckeditor_5'},
                     config_name='default'
-                )
+                ),
+                'in_copyright': forms.CheckboxInput(attrs={'class': 'checkbox'}),
             }
             labels = {
                 'name': 'Composer Name',
                 'dates': 'Dates',
                 'period': 'Period/Era',
+                'in_copyright': 'Music still in copyright',
                 'bio': 'Biography'
             }
             help_texts = {
@@ -1051,7 +1053,7 @@ def composer_edit(request, pk):
     class ComposerEditForm(forms.ModelForm):
         class Meta:
             model = Composer
-            fields = ['name', 'dates', 'period', 'bio']
+            fields = ['name', 'dates', 'period', 'in_copyright', 'bio']
             widgets = {
                 'name': forms.TextInput(attrs={
                     'class': 'input input-bordered w-full',
@@ -1068,12 +1070,14 @@ def composer_edit(request, pk):
                 'bio': CKEditor5Widget(
                     attrs={'class': 'django_ckeditor_5'},
                     config_name='default'
-                )
+                ),
+                'in_copyright': forms.CheckboxInput(attrs={'class': 'checkbox'}),
             }
             labels = {
                 'name': 'Composer Name',
                 'dates': 'Dates',
                 'period': 'Period/Era',
+                'in_copyright': 'Music still in copyright',
                 'bio': 'Biography'
             }
             help_texts = {

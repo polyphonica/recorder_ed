@@ -56,7 +56,8 @@ class PieceForm(forms.ModelForm):
         model = Piece
         fields = [
             'title', 'composer', 'grade_level', 'genre', 'difficulty',
-            'tags', 'description', 'svg_image', 'pdf_score', 'pdf_score_title', 'is_public', 'show_in_library'
+            'tags', 'description', 'svg_image', 'pdf_score', 'pdf_score_title', 'is_public', 'show_in_library',
+            'in_copyright'
         ]
         widgets = {
             'title': forms.TextInput(attrs={
@@ -101,6 +102,9 @@ class PieceForm(forms.ModelForm):
             'show_in_library': forms.CheckboxInput(attrs={
                 'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
             }),
+            'in_copyright': forms.CheckboxInput(attrs={
+                'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
+            }),
         }
         labels = {
             'title': 'Piece Title',
@@ -115,6 +119,7 @@ class PieceForm(forms.ModelForm):
             'pdf_score_title': 'PDF Title (Optional)',
             'is_public': 'Make publicly visible in library',
             'show_in_library': 'Show as individual piece in library',
+            'in_copyright': 'Music still in copyright',
         }
         help_texts = {
             'svg_image': 'Upload an image to display below the player for on-screen practice',
@@ -400,6 +405,21 @@ class PieceCollectionForm(forms.ModelForm):
                 ).order_by(preserved_order)
             else:
                 self.fields['pieces'].initial = Piece.objects.none()
+
+    def _selected_piece_ids(self):
+        ids = []
+        for pid in self.data.getlist('pieces'):
+            try:
+                ids.append(int(pid))
+            except (ValueError, TypeError):
+                pass
+        return ids
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # The model's copyright check should look at the pieces being saved
+        self.instance._pending_piece_ids = self._selected_piece_ids()
+        return cleaned_data
 
     def save(self, commit=True):
         instance = super().save(commit=commit)

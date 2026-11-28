@@ -171,8 +171,16 @@
                             <span class="flex-1">
                                 <span class="block text-base font-semibold text-gray-900">{{ form.is_public.label }}</span>
                                 <span class="block text-sm text-gray-600 mt-1">{{ form.is_public.help_text }}</span>
+                                {% if collection.is_copyright_locked %}
+                                <span class="block text-sm text-gray-600 mt-1">
+                                    <i class="fas fa-lock mr-1"></i>This collection contains music still in copyright, so it stays private. Assign it to your students instead.
+                                </span>
+                                {% endif %}
                             </span>
                         </label>
+                        {% if form.is_public.errors %}
+                        <p class="mt-2 text-sm font-medium text-red-600">{{ form.is_public.errors.0 }}</p>
+                        {% endif %}
                     </div>
                 </div>
             </div>
