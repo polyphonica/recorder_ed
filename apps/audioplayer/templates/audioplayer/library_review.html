@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Library review - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <nav class="breadcrumbs text-sm mb-2">
+        <ul>
+            <li><a href="{% url 'audioplayer:piece_list' %}">Manage Library</a></li>
+            <li>Review lists</li>
+        </ul>
+    </nav>
+    <h1 class="text-3xl font-bold mb-2">Review lists</h1>
+    <p class="text-base-content/70 mb-8">Working lists for preparing the public library. They update as you make changes.</p>
+
+    <!-- 1. Candidates for collections -->
+    <section class="mb-12">
+        <h2 class="text-2xl font-bold mb-2">1. Pieces not in a collection ({{ loose_total }})</h2>
+        <p class="text-sm text-base-content/70 mb-4">Grouped by composer. Movements of one work, or related exercises, may be clearer as a collection.</p>
+        {% for group in collection_candidates %}
+        <div class="card bg-base-100 shadow-md mb-4">
+            <div class="card-body">
+                <h3 class="card-title text-lg">
+                    {% if group.composer %}{{ group.composer.name }}{% else %}No composer{% endif %}
+                    {% if group.composer.in_copyright %}<span class="badge badge-warning badge-sm">In copyright</span>{% endif %}
+                </h3>
+                {% if group.suggested_title %}
+                <p class="text-sm"><i class="fas fa-lightbulb text-warning mr-1"></i>Possible collection: <strong>{{ group.suggested_title }}</strong></p>
+                {% endif %}
+                {% if group.existing %}
+                <p class="text-sm"><i class="fas fa-folder text-secondary mr-1"></i>Existing collections with this composer:
+                    {% for c in group.existing %}<a href="{% url 'audioplayer:collection_edit' pk=c.pk %}" class="link">{{ c.title }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}
+                </p>
+                {% endif %}
+                <ul class="mt-2 space-y-1">
+                    {% for piece in group.pieces %}
+                    <li class="text-sm">
+                        <a href="{% url 'audioplayer:piece_edit' pk=piece.pk %}" class="link link-primary">{{ piece.title }}</a>
+                        {% if piece.is_public %}<span class="badge badge-success badge-sm ml-1">Public</span>{% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-base-content/70">Every piece is in a collection.</p>
+        {% endfor %}
+        <a href="{% url 'audioplayer:collection_create' %}" class="btn btn-sm btn-secondary"><i class="fas fa-folder-plus mr-2"></i>Create a collection</a>
+    </section>
+
+    <!-- 2. No sheet music -->
+    <section class="mb-12">
+        <h2 class="text-2xl font-bold mb-2">2. Out of copyright, with no sheet music to download ({{ pieces_without_score|length }} piece{{ pieces_without_score|length|pluralize }}, {{ collections_without_score|length }} collection{{ collections_without_score|length|pluralize }})</h2>
+        <p class="text-sm text-base-content/70 mb-4">
+            No PDF on the piece, and none on a collection it's in. A collection's PDF counts for all its pieces,
+            so for exercises in a collection one PDF on the collection may be enough.
+        </p>
+        {% if collections_without_score %}
+        <h3 class="font-bold mb-2">Collections</h3>
+        <ul class="mb-6 space-y-1">
+            {% for c in collections_without_score %}
+            <li class="text-sm"><a href="{% url 'audioplayer:collection_edit' pk=c.pk %}" class="link link-primary">{{ c.title }}</a> <span class="text-base-content/60">({{ c.piece_count }} pieces)</span></li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% if pieces_without_score %}
+        <h3 class="font-bold mb-2">Pieces</h3>
+        <div class="overflow-x-auto">
+            <table class="table table-sm">
+                <thead><tr><th>Piece</th><th>Composer</th><th>In collection</th><th>Score image</th></tr></thead>
+                <tbody>
+                    {% for row in pieces_without_score %}
+                    <tr>
+                        <td><a href="{% url 'audioplayer:piece_edit' pk=row.piece.pk %}" class="link link-primary">{{ row.piece.title }}</a></td>
+                        <td>{% if row.piece.composer %}{{ row.piece.composer.name }}{% else %}<span class="text-base-content/50">none</span>{% endif %}</td>
+                        <td>{% for c in row.collections %}{{ c.title }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-base-content/50">—</span>{% endfor %}</td>
+                        <td>{% if row.piece.svg_image %}<i class="fas fa-image text-success" title="Has an on-screen score image"></i>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- 3. Data checks -->
+    <section class="mb-12">
+        <h2 class="text-2xl font-bold mb-2">3. Worth checking ({{ checks|length }})</h2>
+        {% if checks %}
+        <ul class="space-y-1">
+            {% for check in checks %}
+            <li class="text-sm"><i class="fas fa-exclamation-triangle text-warning mr-1"></i><a href="{% url 'audioplayer:piece_edit' pk=check.piece.pk %}" class="link link-primary">{{ check.piece.title }}</a>: {{ check.problem }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-base-content/70">Nothing to check.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+{# Teachers only: reminder that the public can't see the library yet #}
+{% if not playalong_library_open %}
+<div class="alert alert-warning mb-6">
+    <i class="fas fa-lock"></i>
+    <span>The Play-Along Library isn't open to the public yet: visitors and students see a "coming soon" page. Open it from <a href="{% url 'audioplayer:piece_list' %}" class="link font-semibold">Manage Library</a>.</span>
+</div>
+{% endif %}

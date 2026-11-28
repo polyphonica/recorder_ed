@@ -226,9 +226,18 @@ Phases 1 and 2 can go live together for a launch. The others follow independentl
 | Products | `manage.py move_playalong_products_to_library` (run once): publishes linked collections/pieces and archives the product. Archived play-along product pages redirect to the library. New products can't be play-alongs |
 | Terms | Section 6.3 in `templates/core/terms.html` |
 
+### Coming soon (added 28 Nov 2026)
+The library starts **closed** (`LibrarySettings.is_open`, one row, default closed). While closed, visitors and
+students get `playalongs/coming_soon.html` instead of the library, the home strip and Digital Products banner say
+"coming soon", sitemap items are left out, and public items are only visible to teachers. Assigned play-alongs keep
+working for students. Teachers open or close it with the bar at the top of Manage Library. Manage Library also has
+**Review lists** (`/audioplayer/pieces/review/`): pieces not in a collection (with suggested collection titles),
+out-of-copyright music with nothing to download, and data checks (missing composers, possible duplicates).
+
 ### Deploy steps (each server)
-1. Deploy as usual (migrations run).
-2. `python manage.py move_playalong_products_to_library --dry-run`, then without `--dry-run`.
+1. Deploy as usual (migrations run). The library starts closed.
+2. At launch, not before (it archives the products, and the free Williams sonata keeps bringing sign-ups until then):
+   `python manage.py move_playalong_products_to_library --dry-run`, then without `--dry-run`.
 3. Add the daily cron line:
    `15 3 * * * cd /var/www/recorder_ed && venv/bin/python manage.py expire_playalong_permissions >> /var/log/recordered/playalongs.log 2>&1`
 4. Mark featured items and fill in edition details in Manage Library.

@@ -11,9 +11,10 @@ from urllib.parse import quote
 from django.contrib import messages
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 from django.urls import reverse
 
-from .models import Composer, Piece, PieceCollection
+from .models import Composer, LibrarySettings, Piece, PieceCollection, library_is_open
 from .views import (
     _can_access_collection,
     _can_access_piece,
@@ -86,7 +87,25 @@ def _schema(request, name, description, composer=None, url=None):
 
 # ----- Landing page -----------------------------------------------------------
 
+def _coming_soon(request):
+    """Shown instead of the public library until it opens."""
+    context = _seo(
+        request,
+        'New Play-Along Library coming soon | Recorder-ed',
+        'A free library of recorder play-alongs, with Recorder-ed Editions of early music, is coming soon.',
+    )
+    context['can_manage'] = _is_teacher(request.user)
+    return render(request, 'playalongs/coming_soon.html', context)
+
+
+def _closed_for(request):
+    """True if this request should get the coming-soon page."""
+    return not library_is_open() and not _is_teacher(get_viewer(request))
+
+
 def library_home(request):
+    if _closed_for(request):
+        return _coming_soon(request)
     pieces = _public_pieces()
     collections = _public_collections()
 
@@ -197,6 +216,8 @@ def collection_page(request, slug):
 
 
 def composer_page(request, slug):
+    if _closed_for(request):
+        return redirect('playalongs:home')
     composer = get_object_or_404(Composer, slug=slug)
     pieces = _public_pieces().filter(composer=composer)
     collections = _public_collections().filter(
@@ -218,6 +239,24 @@ def composer_page(request, slug):
     }
     context.update(_seo(request, f'{composer.name} — recorder play-alongs | {SITE_NAME}', description))
     return render(request, 'playalongs/composer.html', context)
+
+
+@require_POST
+def set_library_open(request):
+    """Teachers open the library to the public, or close it again."""
+    if not _is_teacher(request.user):
+        return redirect('playalongs:home')
+    settings = LibrarySettings.load()
+    settings.is_open = request.POST.get('open') == '1'
+    if settings.is_open and not settings.opened_at:
+        from django.utils import timezone
+        settings.opened_at = timezone.now()
+    settings.save()
+    if settings.is_open:
+        messages.success(request, 'The Play-Along Library is now open to the public.')
+    else:
+        messages.success(request, 'The Play-Along Library is closed: visitors see the coming-soon page.')
+    return redirect('audioplayer:piece_list')
 
 
 def editions_page(request):

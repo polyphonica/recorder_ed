@@ -13,6 +13,7 @@ urlpatterns = [
 
     # Teacher - Piece Library Management
     path('pieces/', views.piece_list, name='piece_list'),
+    path('pieces/review/', views.library_review, name='library_review'),
     path('pieces/create/', views.piece_create, name='piece_create'),
     path('pieces/<int:pk>/', views.piece_detail, name='piece_detail'),
     path('pieces/<int:pk>/edit/', views.piece_edit, name='piece_edit'),

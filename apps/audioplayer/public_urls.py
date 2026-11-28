@@ -10,6 +10,7 @@ urlpatterns = [
     path('', public_views.library_home, name='home'),
     path('library/', PlayAlongLibraryView.as_view(), name='library'),
     path('editions/', public_views.editions_page, name='editions'),
+    path('open/', public_views.set_library_open, name='set_open'),
     path('piece/<slug:slug>/', public_views.piece_page, name='piece'),
     path('collection/<slug:slug>/', public_views.collection_page, name='collection'),
     path('composer/<slug:slug>/', public_views.composer_page, name='composer'),

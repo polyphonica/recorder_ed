@@ -6,7 +6,7 @@ from django.db import transaction
 from django.db.models import Q, Count, Max
 from django.views.generic import TemplateView
 from functools import wraps
-from .models import Piece, Stem, LessonPiece, Composer, Tag, PieceCollection, CollectionPiece
+from .models import Piece, Stem, LessonPiece, Composer, Tag, PieceCollection, CollectionPiece, library_is_open
 from .forms import PieceForm, StemFormSet, PieceCollectionForm
 from apps.courses.models import Lesson
 
@@ -103,6 +103,91 @@ def piece_list(request):
         'title': 'My Playalong Library'
     }
     return render(request, 'audioplayer/piece_list.html', context)
+
+
+def _suggested_collection_title(titles):
+    """A collection title from what a group of piece titles share, or ''."""
+    import os
+    words = [t.split() for t in titles]
+    prefix = os.path.commonprefix(words)
+    suffix = os.path.commonprefix([list(reversed(w)) for w in words])[::-1]
+    best = prefix if len(prefix) >= len(suffix) else suffix
+    title = ' '.join(best).strip(' :-,')
+    for word in ('from', 'First', 'Second', 'Third', 'Fourth', 'Movement'):
+        if title.endswith(' ' + word):
+            title = title[: -len(word) - 1]
+        if title.startswith(word + ' '):
+            title = title[len(word) + 1:]
+    return title if len(title) >= 6 else ''
+
+
+@teacher_required
+def library_review(request):
+    """
+    Working lists for preparing the public library: pieces that could go into
+    a collection, out-of-copyright music with nothing to download, and data
+    that looks wrong.
+    """
+    from collections import defaultdict
+    pieces = Piece.objects.filter(created_by=request.user).select_related('composer').prefetch_related(
+        'collection_memberships__collection')
+    collections = PieceCollection.objects.filter(created_by=request.user).select_related('composer').prefetch_related(
+        'collection_memberships__piece__composer')
+
+    # 1. Pieces not in any collection, grouped by composer
+    loose_by_composer = defaultdict(list)
+    for piece in pieces:
+        if not piece.collection_memberships.all():
+            loose_by_composer[piece.composer].append(piece)
+    collection_candidates = []
+    for composer, group in sorted(loose_by_composer.items(), key=lambda kv: (kv[0].name if kv[0] else 'zzz')):
+        existing = [c for c in collections if composer and any(
+            m.piece.composer_id == composer.id for m in c.collection_memberships.all())]
+        collection_candidates.append({
+            'composer': composer,
+            'pieces': sorted(group, key=lambda p: p.title),
+            'suggested_title': _suggested_collection_title([p.title for p in group]) if len(group) > 1 else '',
+            'existing': existing,
+        })
+
+    # 2. Out of copyright, but no sheet music to download
+    collection_pdf_ids = {c.pk for c in collections if c.pdf_score}
+    pieces_without_score = []
+    for piece in pieces:
+        if piece.is_in_copyright or piece.pdf_score:
+            continue
+        member_of = [m.collection for m in piece.collection_memberships.all()]
+        if any(c.pk in collection_pdf_ids for c in member_of):
+            continue
+        pieces_without_score.append({'piece': piece, 'collections': member_of})
+    pieces_without_score.sort(key=lambda x: ((x['piece'].composer.name if x['piece'].composer else 'zzz'), x['piece'].title))
+    collections_without_score = [c for c in collections if not c.pdf_score and not c.is_in_copyright]
+
+    # 3. Data that looks wrong
+    checks = []
+    for collection in collections:
+        members = [m.piece for m in collection.collection_memberships.all()]
+        composers = {p.composer for p in members if p.composer}
+        for piece in members:
+            if not piece.composer and len(composers) == 1:
+                checks.append({'piece': piece, 'problem': f'No composer, but the rest of "{collection.title}" is by {next(iter(composers)).name}'})
+    seen = defaultdict(list)
+    for piece in pieces:
+        seen[(piece.composer_id, piece.title.strip().lower())].append(piece)
+    for group in seen.values():
+        if len(group) > 1:
+            for piece in group:
+                where = ', '.join(m.collection.title for m in piece.collection_memberships.all()) or 'no collection'
+                checks.append({'piece': piece, 'problem': f'Possible duplicate: {len(group)} pieces called "{piece.title}" ({where})'})
+
+    return render(request, 'audioplayer/library_review.html', {
+        'collection_candidates': collection_candidates,
+        'loose_total': sum(len(c['pieces']) for c in collection_candidates),
+        'pieces_without_score': pieces_without_score,
+        'collections_without_score': collections_without_score,
+        'checks': checks,
+        'title': 'Library review',
+    })
 
 
 @teacher_required
@@ -594,8 +679,13 @@ def _student_assigned_ids(user):
 
 
 def _can_access_collection(user, collection):
-    """Public collections, any collection for teachers, or one assigned to the student."""
-    if collection.is_public or _is_teacher(user) or user.is_staff:
+    """
+    Public collections (once the library is open), any collection for
+    teachers, or one assigned to the student.
+    """
+    if _is_teacher(user) or user.is_staff:
+        return True
+    if collection.is_public and library_is_open():
         return True
     if not user.is_authenticated:
         return False
@@ -605,14 +695,14 @@ def _can_access_collection(user, collection):
 
 def _can_access_piece(user, piece):
     """
-    Public pieces, any piece for teachers, a piece assigned to the student,
-    or a piece inside a collection the user can open.
+    Public pieces (once the library is open), any piece for teachers, a piece
+    assigned to the student, or a piece inside a collection the user can open.
     """
-    if piece.is_public or _is_teacher(user) or user.is_staff:
+    if _is_teacher(user) or user.is_staff:
         return True
-    if PieceCollection.objects.filter(
+    if library_is_open() and (piece.is_public or PieceCollection.objects.filter(
         collection_memberships__piece=piece, is_public=True
-    ).exists():
+    ).exists()):
         return True
     if not user.is_authenticated:
         return False
@@ -664,6 +754,12 @@ class PlayAlongLibraryView(TemplateView):
     """
     template_name = 'audioplayer/library.html'
 
+    def get(self, request, *args, **kwargs):
+        # Before the library opens, visitors get the coming-soon page
+        if not library_is_open() and not get_viewer(request).is_authenticated:
+            return redirect('playalongs:home')
+        return super().get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         viewer = get_viewer(self.request)
@@ -678,6 +774,7 @@ class PlayAlongLibraryView(TemplateView):
         period = self.request.GET.get('period', '').strip()
 
         is_teacher = _is_teacher(viewer)
+        library_open = library_is_open()
         # Only students have a "From my teacher" tab
         is_student_view = viewer.is_authenticated and not is_teacher
         view_mode = self.request.GET.get('mode', 'my_pieces' if is_student_view else 'browse_all')
@@ -692,6 +789,10 @@ class PlayAlongLibraryView(TemplateView):
             collections = PieceCollection.objects.filter(
                 collection_q
             ).distinct().prefetch_related('collection_memberships__piece__stems', 'tags')
+        elif not library_open and not is_teacher:
+            # The public library isn't open yet
+            pieces = pieces.none()
+            collections = PieceCollection.objects.none()
         else:
             # Everything public. Pieces marked "only through collections" stay out of the list.
             pieces = pieces.filter(is_public=True, show_in_library=True)
@@ -835,6 +936,7 @@ class PlayAlongLibraryView(TemplateView):
             ).exclude(period='').values_list('period', flat=True)
         }, key=str.lower)
         context['is_student_view'] = is_student_view
+        context['library_open'] = library_open
         context['as_visitor'] = self.request.GET.get('as_visitor') == '1' and not viewer.is_authenticated
 
         return context

@@ -129,6 +129,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'apps.core.context_processors.google_analytics',
+                'apps.audioplayer.context_processors.playalong_library',  # Library open or coming soon
                 'apps.private_teaching.context_processors.cart_context',
                 'apps.workshops.context_processors.unified_cart_context',
                 'apps.messaging.context_processors.unread_messages',  # Unified messaging (includes course messages)

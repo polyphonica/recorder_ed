@@ -7,7 +7,7 @@ from django.urls import reverse
 from apps.workshops.models import Workshop
 from apps.courses.models import Course
 from django.db.models import Q
-from apps.audioplayer.models import Composer, Piece, PieceCollection
+from apps.audioplayer.models import Composer, Piece, PieceCollection, library_is_open
 
 
 class StaticViewSitemap(Sitemap):
@@ -22,9 +22,7 @@ class StaticViewSitemap(Sitemap):
             'courses:list',
             'private_teaching:home',
             'playalongs:home',
-            'playalongs:library',
-            'playalongs:editions',
-        ]
+        ] + (['playalongs:library', 'playalongs:editions'] if library_is_open() else [])
 
     def location(self, item):
         return reverse(item)
@@ -66,6 +64,8 @@ class PlayalongPieceSitemap(Sitemap):
     priority = 0.7
 
     def items(self):
+        if not library_is_open():
+            return []
         return Piece.objects.filter(is_public=True, show_in_library=True).order_by('pk')
 
     def lastmod(self, obj):
@@ -78,6 +78,8 @@ class PlayalongCollectionSitemap(Sitemap):
     priority = 0.7
 
     def items(self):
+        if not library_is_open():
+            return []
         return PieceCollection.objects.filter(is_public=True).order_by('pk')
 
     def lastmod(self, obj):
@@ -90,6 +92,8 @@ class PlayalongComposerSitemap(Sitemap):
     priority = 0.6
 
     def items(self):
+        if not library_is_open():
+            return []
         return Composer.objects.filter(
             Q(pieces__is_public=True, pieces__show_in_library=True) |
             Q(pieces__collection_memberships__collection__is_public=True)

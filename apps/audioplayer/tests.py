@@ -230,6 +230,8 @@ class ProtectedPlayalongFileTests(TestCase):
 
 class LibraryPlayerAccessTests(TestCase):
     def setUp(self):
+        from .models import LibrarySettings
+        LibrarySettings.objects.create(pk=1, is_open=True)
         self.override = override_settings(ALLOWED_HOSTS=['testserver'])
         self.override.enable()
         self.public = Piece.objects.create(title='Public', is_public=True)
@@ -290,6 +292,8 @@ class CourseLessonPlayerAccessTests(TestCase):
 
 class LibraryShowToggleTests(TestCase):
     def setUp(self):
+        from .models import LibrarySettings
+        LibrarySettings.objects.create(pk=1, is_open=True)
         from .models import Composer, PieceCollection, CollectionPiece
         self.mattheson = Composer.objects.create(name='Johann Mattheson')
         self.giesbert = Composer.objects.create(name='Franz J. Giesbert')
@@ -609,6 +613,8 @@ class PlayalongPermissionTests(TestCase):
 @override_settings(ALLOWED_HOSTS=['testserver'])
 class PlayalongPublicPagesTests(TestCase):
     def setUp(self):
+        from .models import LibrarySettings
+        LibrarySettings.objects.create(pk=1, is_open=True)
         from .models import Composer, PieceCollection, CollectionPiece
         self.mattheson = Composer.objects.create(name='Johann Mattheson', period='Baroque', bio='<p>Bio</p>')
         self.sonata = Piece.objects.create(title='Sonata', composer=self.mattheson, is_public=True)
@@ -767,3 +773,89 @@ class PlayalongSignupTests(TestCase):
         mail.outbox = []
         self.client.get(reverse('accounts:verify_email', kwargs={'uidb64': uid, 'token': token}))
         self.assertFalse(any('Play-Along Library' in m.subject for m in mail.outbox))
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'])
+class LibraryComingSoonTests(TestCase):
+    """Until the library opens, only teachers and assigned students see anything."""
+
+    def setUp(self):
+        from .models import Composer, PieceCollection
+        self.piece = Piece.objects.create(title='Sonata', is_public=True)
+        self.col = PieceCollection.objects.create(title='Sonatas', is_public=True)
+
+    def test_closed_by_default(self):
+        from .models import library_is_open
+        self.assertFalse(library_is_open())
+
+    def test_visitors_see_coming_soon(self):
+        response = self.client.get('/playalongs/')
+        self.assertContains(response, 'New Play-Along Library coming soon!')
+        self.assertRedirects(self.client.get('/playalongs/library/'), '/playalongs/', fetch_redirect_response=False)
+        self.assertEqual(self.client.get(self.piece.get_absolute_url()).status_code, 302)
+        self.assertEqual(self.client.get(f'/audioplayer/library/piece/{self.piece.id}/pieces-json/').status_code, 302)
+
+    def test_home_page_says_coming_soon(self):
+        self.assertContains(self.client.get('/'), 'New Play-Along Library coming soon!')
+
+    def test_students_browse_tab_is_empty_but_assigned_still_works(self):
+        from apps.private_teaching.models import StudentPieceAssignment
+        teacher = _teacher()
+        student = _user('soon_student')
+        private = Piece.objects.create(title='Assigned', is_public=False)
+        StudentPieceAssignment.objects.create(student=student, piece=private, teacher=teacher, status='active')
+        self.client.force_login(student)
+        browse = self.client.get('/playalongs/library/', {'mode': 'browse_all'})
+        self.assertEqual(len(browse.context['pieces']), 0)
+        mine = self.client.get('/playalongs/library/', {'mode': 'my_pieces'})
+        self.assertEqual([p.title for p in mine.context['pieces']], ['Assigned'])
+        self.assertEqual(self.client.get(private.get_absolute_url()).status_code, 200)
+
+    def test_teachers_see_everything_and_can_open_it(self):
+        from .models import library_is_open
+        self.client.force_login(_teacher())
+        self.assertEqual(self.client.get(self.piece.get_absolute_url()).status_code, 200)
+        self.assertNotContains(self.client.get('/playalongs/'), 'New Play-Along Library coming soon!')
+        self.client.post(reverse('playalongs:set_open'), {'open': '1'})
+        self.assertTrue(library_is_open())
+        self.client.logout()
+        self.assertEqual(self.client.get(self.piece.get_absolute_url()).status_code, 200)
+
+    def test_students_cannot_open_it(self):
+        from .models import library_is_open
+        self.client.force_login(_user('pushy'))
+        self.client.post(reverse('playalongs:set_open'), {'open': '1'})
+        self.assertFalse(library_is_open())
+
+    def test_sitemap_has_no_items_while_closed(self):
+        xml = self.client.get('/sitemap.xml').content.decode()
+        self.assertNotIn(self.piece.get_absolute_url(), xml)
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'])
+class LibraryReviewTests(TestCase):
+    def test_review_lists(self):
+        from .models import Composer, PieceCollection, CollectionPiece
+        from .views import _suggested_collection_title
+        teacher = _teacher()
+        williams = Composer.objects.create(name='William Williams')
+        giesbert = Composer.objects.create(name='Giesbert', in_copyright=True)
+        for t in ['Sonata for 2 Recorders First Movement Adagio', 'Sonata for 2 Recorders Second Movement Largo']:
+            Piece.objects.create(title=t, composer=williams, created_by=teacher)
+        col = PieceCollection.objects.create(title='Duets Part 1', created_by=teacher)
+        for t, c in [('Exercise 1', giesbert), ('Exercise 2', None)]:
+            CollectionPiece.objects.create(collection=col, piece=Piece.objects.create(title=t, composer=c, created_by=teacher))
+        Piece.objects.create(title='Exercise 1', composer=giesbert, created_by=teacher)
+        self.client.force_login(teacher)
+        ctx = self.client.get(reverse('audioplayer:library_review')).context
+        williams_group = [g for g in ctx['collection_candidates'] if g['composer'] == williams][0]
+        self.assertEqual(williams_group['suggested_title'], 'Sonata for 2 Recorders')
+        no_score = [r['piece'].title for r in ctx['pieces_without_score']]
+        self.assertIn('Sonata for 2 Recorders First Movement Adagio', no_score)
+        self.assertNotIn('Exercise 1', no_score)  # in copyright
+        problems = ' '.join(c['problem'] for c in ctx['checks'])
+        self.assertIn('No composer', problems)
+        self.assertIn('Possible duplicate', problems)
+        self.assertEqual(_suggested_collection_title(
+            ['3rd Movement Largo from Sonata in B-flat Major TWV41:B3',
+             '4th Movement Vivace from Sonata in B-flat Major TWV41:B3']), 'Sonata in B-flat Major TWV41:B3')

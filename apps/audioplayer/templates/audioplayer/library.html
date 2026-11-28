@@ -38,6 +38,14 @@
         {% endif %}
     </div>
 
+    {% if is_teacher %}{% include "playalongs/_closed_notice.html" %}{% endif %}
+    {% if not library_open and not is_teacher and view_mode == 'browse_all' %}
+    <div class="alert alert-info mb-6">
+        <i class="fas fa-music"></i>
+        <span>The new Play-Along Library is coming soon. <a href="{% url 'playalongs:home' %}" class="link font-semibold">Find out more</a></span>
+    </div>
+    {% endif %}
+
     <!-- View Mode Tabs (students only) -->
     {% if is_student_view %}
     <div class="tabs tabs-boxed mb-6">

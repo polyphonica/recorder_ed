@@ -776,3 +776,33 @@ class LessonCollection(models.Model):
 
     def __str__(self):
         return f'{self.collection.title} in {self.lesson.lesson_title}'
+
+
+class LibrarySettings(models.Model):
+    """
+    Site-wide settings for the public Play-Along Library (a single row).
+    While the library is closed, visitors and students see a "coming soon"
+    page; teachers see everything so they can prepare it.
+    """
+    is_open = models.BooleanField(
+        default=False,
+        help_text="Open the Play-Along Library to the public. While closed, visitors see a coming-soon page."
+    )
+    opened_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Play-Along Library settings'
+        verbose_name_plural = 'Play-Along Library settings'
+
+    def __str__(self):
+        return 'Play-Along Library: ' + ('open' if self.is_open else 'coming soon')
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
+def library_is_open():
+    return LibrarySettings.objects.filter(pk=1, is_open=True).exists()
