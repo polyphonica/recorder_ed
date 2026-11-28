@@ -7,6 +7,7 @@ from apps.core.validators import (
     SHEET_MUSIC_IMAGE_VALIDATORS,
     SHEET_MUSIC_PDF_VALIDATORS,
 )
+from .storage import protected_storage
 
 
 class Composer(models.Model):
@@ -106,6 +107,7 @@ class PieceCollection(models.Model):
     # Full score PDF for download (shared across all pieces in collection)
     pdf_score = models.FileField(
         upload_to='audioplayer/collection_pdfs/',
+        storage=protected_storage,
         null=True,
         blank=True,
         validators=SHEET_MUSIC_PDF_VALIDATORS,
@@ -250,6 +252,7 @@ class Piece(models.Model):
     title = models.CharField(max_length=200)
     svg_image = models.FileField(
         upload_to='audioplayer/svg_images/',
+        storage=protected_storage,
         null=True,
         blank=True,
         validators=SHEET_MUSIC_IMAGE_VALIDATORS,
@@ -258,6 +261,7 @@ class Piece(models.Model):
 
     pdf_score = models.FileField(
         upload_to='audioplayer/pdf_scores/',
+        storage=protected_storage,
         null=True,
         blank=True,
         validators=SHEET_MUSIC_PDF_VALIDATORS,
@@ -371,6 +375,7 @@ class Stem(models.Model):
     )
     audio_file = models.FileField(
         upload_to='audioplayer/stems/',
+        storage=protected_storage,
         validators=AUDIO_VALIDATORS,
         help_text="MP3 or WAV audio file (max 15MB)"
     )

@@ -181,20 +181,8 @@ def audio_player(request, lesson_id):
     """Student playback interface for a lesson's playalong pieces"""
     lesson = get_object_or_404(Lesson, pk=lesson_id)
 
-    # TODO: Add enrollment/access check
-    # if not request.user.is_authenticated:
-    #     return redirect('accounts:login')
-    #
-    # # Check if user is enrolled or is the instructor
-    # is_enrolled = lesson.course.enrollments.filter(
-    #     student=request.user,
-    #     is_active=True
-    # ).exists()
-    # is_instructor = lesson.course.instructor == request.user
-    #
-    # if not (is_enrolled or is_instructor):
-    #     messages.error(request, 'You must be enrolled in this course to access this lesson.')
-    #     return redirect('courses:detail', slug=lesson.course.slug)
+    if not _can_access_course_lesson(request.user, lesson):
+        return _deny_library_access(request)
 
     # Get count of visible pieces
     piece_count = lesson.lesson_pieces.filter(is_visible=True).count()
@@ -214,7 +202,8 @@ def pieces_json(request, lesson_id):
     """
     lesson = get_object_or_404(Lesson, pk=lesson_id)
 
-    # TODO: Add same access check as audio_player view
+    if not _can_access_course_lesson(request.user, lesson):
+        return _deny_library_access(request)
 
     # Get pieces through the LessonPiece relationship
     lesson_pieces = LessonPiece.objects.filter(
@@ -541,6 +530,20 @@ def _can_access_piece(user, piece):
     return PieceCollection.objects.filter(
         collection_q, collection_memberships__piece=piece
     ).exists()
+
+
+def _can_access_course_lesson(user, lesson):
+    """Same rule as the course lesson pages: owner, enrolled student, or a public preview lesson."""
+    from apps.courses.models import Course, CourseEnrollment
+    course = lesson.topic.course
+    if (lesson.is_preview and lesson.status == Lesson.Status.PUBLISHED
+            and course.status == Course.Status.PUBLISHED):
+        return True
+    if not user.is_authenticated:
+        return False
+    if user.is_staff or course.is_owned_by(user):
+        return True
+    return CourseEnrollment.objects.filter(course=course, student=user, is_active=True).exists()
 
 
 def _deny_library_access(request):
@@ -1237,3 +1240,40 @@ def collection_reorder_pieces(request, pk):
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
+# ===== PROTECTED PLAYALONG FILES =====
+
+def protected_file(request, token, filename):
+    """
+    Serve a playalong file (stem, score PDF or notation image) from private
+    storage. The signed token is the permission: it is only handed out by
+    pages that have already checked access, and it expires within 12 hours.
+    """
+    from django.conf import settings
+    from django.http import FileResponse, HttpResponse
+    import mimetypes
+    import os
+    from .storage import read_token, protected_storage, WINDOW_SECONDS
+
+    name = read_token(token)
+    if name is None or os.path.basename(name) != filename:
+        raise Http404
+
+    content_type = mimetypes.guess_type(name)[0] or 'application/octet-stream'
+    if settings.PRIVATE_MEDIA_X_ACCEL:
+        response = HttpResponse(content_type=content_type)
+        response['X-Accel-Redirect'] = '/protected/' + name
+    else:
+        try:
+            response = FileResponse(protected_storage().open(name, 'rb'), content_type=content_type)
+        except FileNotFoundError:
+            raise Http404
+
+    # Browsers may keep it for as long as the link is valid, but not shared caches
+    response['Cache-Control'] = f'private, max-age={WINDOW_SECONDS}'
+    response['X-Content-Type-Options'] = 'nosniff'
+    if content_type == 'image/svg+xml':
+        # Uploaded SVGs must not be able to run scripts if opened directly
+        response['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+    return response

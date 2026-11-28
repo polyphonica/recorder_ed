@@ -7,6 +7,9 @@ urlpatterns = [
     # Play-Along Library (Student & Teacher)
     path('library/', views.PlayAlongLibraryView.as_view(), name='library'),
 
+    # Signed, expiring links to private playalong files (see storage.py)
+    path('files/<str:token>/<str:filename>', views.protected_file, name='protected_file'),
+
     # Teacher - Piece Library Management
     path('pieces/', views.piece_list, name='piece_list'),
     path('pieces/create/', views.piece_create, name='piece_create'),
