@@ -561,6 +561,11 @@ class PlayAlongLibraryView(TemplateView):
             if not self.request.user.is_authenticated:
                 pieces = pieces.filter(is_public=True, show_in_library=True)
 
+        # Remember what this user can see before filtering, so the composer
+        # dropdown only offers composers that will actually return results
+        visible_pieces = pieces
+        visible_collections = collections
+
         # Apply filters
         if search_query:
             pieces = pieces.filter(
@@ -584,21 +589,30 @@ class PlayAlongLibraryView(TemplateView):
         if tag_id:
             pieces = pieces.filter(tags__id=tag_id)
 
-        # Apply filters to collections as well (if we have any)
-        if collections.exists():
-            if search_query:
-                collections = collections.filter(
-                    Q(title__icontains=search_query) |
-                    Q(description__icontains=search_query)
-                )
-            if grade_level:
-                collections = collections.filter(grade_level=grade_level)
-            if genre:
-                collections = collections.filter(genre=genre)
-            if difficulty:
-                collections = collections.filter(difficulty=difficulty)
-            if tag_id:
-                collections = collections.filter(tags__id=tag_id)
+        # Apply filters to collections as well. Search and composer also match
+        # the pieces inside a collection (collections have no composer of their own)
+        if search_query:
+            collections = collections.filter(
+                Q(title__icontains=search_query) |
+                Q(description__icontains=search_query) |
+                Q(collection_memberships__piece__title__icontains=search_query) |
+                Q(collection_memberships__piece__composer__name__icontains=search_query)
+            )
+        if composer_id:
+            collections = collections.filter(
+                collection_memberships__piece__composer_id=composer_id
+            )
+        if grade_level:
+            collections = collections.filter(grade_level=grade_level)
+        if genre:
+            collections = collections.filter(genre=genre)
+        if difficulty:
+            collections = collections.filter(difficulty=difficulty)
+        if tag_id:
+            collections = collections.filter(tags__id=tag_id)
+
+        pieces = pieces.distinct()
+        collections = collections.distinct()
 
         # Order by title
         pieces = pieces.order_by('title')
@@ -610,7 +624,10 @@ class PlayAlongLibraryView(TemplateView):
         collections = collections[:50]  # Show up to 50 collections
 
         # Get filter options for dropdowns
-        composers = Composer.objects.all().order_by('name')
+        composers = Composer.objects.filter(
+            Q(pieces__in=visible_pieces) |
+            Q(pieces__collection_memberships__collection__in=visible_collections)
+        ).distinct().order_by('name')
         tags = Tag.objects.all().order_by('name')
 
         # Add to context
