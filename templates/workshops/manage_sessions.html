@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load teacher_tasks %}
 {% load humanize %}
 
 {% block title %}Manage Sessions - {{ workshop.title }}{% endblock %}
@@ -40,6 +41,8 @@
             </div>
         </div>
     </div>
+
+    {% task_panel workshop %}
 
     <!-- Create New Session -->
     <div class="bg-base-100 rounded-lg shadow p-6 mb-8"

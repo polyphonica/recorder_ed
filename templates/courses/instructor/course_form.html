@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load teacher_tasks %}
 {% load static %}
 
 {% block title %}{% if object %}Edit{% else %}Create{% endif %} Course - Courses{% endblock %}
@@ -19,6 +20,8 @@
                 {% endif %}
             </p>
         </div>
+
+        {% if object.pk %}{% task_panel object %}{% endif %}
 
         <!-- Form -->
         <div class="card bg-base-100 shadow-xl">

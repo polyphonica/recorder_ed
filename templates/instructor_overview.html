@@ -19,6 +19,36 @@
             </div>
         </div>
 
+        <!-- Tasks: today -->
+        <div class="card bg-base-100 shadow-lg border-l-4 border-primary mb-6">
+            <div class="card-body">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="card-title"><i class="fas fa-tasks text-primary mr-2"></i>Today</h2>
+                    <a href="{% url 'teacher_tasks:list' %}" class="btn btn-sm btn-ghost">All tasks{% if tasks_open_count %} ({{ tasks_open_count }}){% endif %} <i class="fas fa-arrow-right ml-1"></i></a>
+                </div>
+                {% if tasks_today or tasks_next %}
+                <ul class="space-y-1">
+                    {% for task in tasks_today %}
+                    <li class="text-sm flex flex-wrap items-center gap-2">
+                        <span class="badge badge-sm {% if task.is_overdue %}badge-error{% else %}badge-warning{% endif %}">{% if task.is_overdue %}Overdue{% else %}Today{% endif %}</span>
+                        <span>{{ task.title }}</span>
+                        {% with link=task.link %}{% if link %}<a href="{{ link.url }}" class="badge badge-outline badge-sm"><i class="fas {{ link.icon }} mr-1"></i>{{ link.label }}</a>{% endif %}{% endwith %}
+                    </li>
+                    {% endfor %}
+                    {% for task in tasks_next %}
+                    <li class="text-sm flex flex-wrap items-center gap-2 text-base-content/70">
+                        <span class="badge badge-ghost badge-sm">{% if task.due_date %}{{ task.due_date|date:"D j M" }}{% else %}No date{% endif %}</span>
+                        <span>{{ task.title }}</span>
+                        {% with link=task.link %}{% if link %}<a href="{{ link.url }}" class="badge badge-outline badge-sm"><i class="fas {{ link.icon }} mr-1"></i>{{ link.label }}</a>{% endif %}{% endwith %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-sm text-base-content/70">Nothing to do. <a href="{% url 'teacher_tasks:list' %}" class="link">Add a task</a></p>
+                {% endif %}
+            </div>
+        </div>
+
         <!-- Domain Cards Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
 

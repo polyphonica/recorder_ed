@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Tasks - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">Tasks</h1>
+            <p class="text-base-content/70 mt-1">Your to-do list across all your teaching. Only you can see it.</p>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mb-4">{% for message in messages %}<div class="alert alert-{{ message.tags }} mb-2">{{ message }}</div>{% endfor %}</div>
+    {% endif %}
+
+    <!-- Quick add -->
+    <form method="post" action="{% url 'teacher_tasks:create' %}" class="card bg-base-200 mb-6">
+        <div class="card-body p-4">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <div class="flex flex-wrap gap-2">
+                {{ form.title }}
+                {{ form.area }}
+                {{ form.due_date }}
+                <button type="submit" class="btn btn-primary"><i class="fas fa-plus mr-1"></i>Add</button>
+            </div>
+            <p class="text-xs text-base-content/60 mt-1">
+                Tip: tasks about a student, workshop, course, product or play-along can also be added from that item's page, and link back to it.
+            </p>
+        </div>
+    </form>
+
+    <!-- Area filter -->
+    <div class="flex flex-wrap gap-2 mb-6" role="group" aria-label="Filter by area">
+        <a href="?{% if show_done %}done=1{% endif %}" class="btn btn-sm {% if not selected_area %}btn-primary{% else %}btn-ghost{% endif %}">All{% if open_all %} ({{ open_all }}){% endif %}</a>
+        {% for value, label, count in areas %}
+        <a href="?area={{ value }}{% if show_done %}&done=1{% endif %}" class="btn btn-sm {% if selected_area == value %}btn-primary{% else %}btn-ghost{% endif %}">{{ label }}{% if count %} ({{ count }}){% endif %}</a>
+        {% endfor %}
+    </div>
+
+    <!-- Groups -->
+    {% for key, label, tasks in groups %}
+        {% if tasks %}
+        <section class="mb-6">
+            <h2 class="text-lg font-bold mb-1 {% if key == 'overdue' %}text-error{% endif %}">{{ label }} ({{ tasks|length }})</h2>
+            <ul>
+                {% for task in tasks %}{% include "teacher_tasks/_task_row.html" with next=request.get_full_path %}{% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+    {% endfor %}
+
+    {% if not open_total %}
+    <div class="text-center py-10 text-base-content/60">
+        <i class="fas fa-check-circle text-4xl mb-3"></i>
+        <p>{% if selected_area %}Nothing to do here.{% else %}Nothing to do. Add a task above.{% endif %}</p>
+    </div>
+    {% endif %}
+
+    <!-- Done -->
+    <div class="mt-8">
+        {% if show_done %}
+        <h2 class="text-lg font-bold mb-1">Done</h2>
+        <ul>
+            {% for task in done_tasks %}{% include "teacher_tasks/_task_row.html" with next=request.get_full_path %}{% empty %}<li class="text-sm text-base-content/60">Nothing done yet.</li>{% endfor %}
+        </ul>
+        <a href="?{% if selected_area %}area={{ selected_area }}{% endif %}" class="link text-sm">Hide done tasks</a>
+        {% elif done_count %}
+        <a href="?done=1{% if selected_area %}&area={{ selected_area }}{% endif %}" class="link text-sm">Show done tasks ({{ done_count }})</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

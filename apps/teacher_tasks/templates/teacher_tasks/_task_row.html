@@ -1,0 +1,51 @@
+{# One task. Expects `task`, `next`, optional `in_panel` (hide the link chip, it's the page's own item). #}
+<li class="py-2 border-b border-base-200">
+    <div class="flex items-start gap-3">
+        <form method="post" action="{% url 'teacher_tasks:toggle' pk=task.pk %}" class="pt-1">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            <input type="checkbox" class="checkbox checkbox-sm" {% if task.is_done %}checked{% endif %}
+                   onchange="this.form.submit()" aria-label="{% if task.is_done %}Mark as not done{% else %}Mark as done{% endif %}: {{ task.title }}">
+        </form>
+        <div class="flex-1 min-w-0">
+            <details>
+                <summary class="cursor-pointer" style="list-style: none;">
+                    <span class="{% if task.is_done %}line-through text-base-content/50{% endif %}">{{ task.title }}</span>
+                    {% if task.notes %}<i class="fas fa-sticky-note text-base-content/40 ml-1" title="Has notes"></i>{% endif %}
+                    <span class="flex flex-wrap gap-1 mt-1">
+                        {% if not in_panel %}
+                            {% with link=task.link %}{% if link %}
+                            <a href="{{ link.url }}" class="badge badge-outline badge-sm" onclick="event.stopPropagation()"><i class="fas {{ link.icon }} mr-1"></i>{{ link.label }}</a>
+                            {% endif %}{% endwith %}
+                            {% if task.area != 'general' %}<span class="badge badge-ghost badge-sm">{{ task.get_area_display }}</span>{% endif %}
+                        {% endif %}
+                        {% if task.due_date and not task.is_done %}
+                        <span class="badge badge-sm {% if task.is_overdue %}badge-error{% elif task.group == 'today' %}badge-warning{% else %}badge-ghost{% endif %}">
+                            <i class="far fa-calendar mr-1"></i>{{ task.due_date|date:"D j M" }}
+                        </span>
+                        {% endif %}
+                        {% if task.is_done %}<span class="badge badge-ghost badge-sm">Done {{ task.done_at|date:"j M" }}</span>{% endif %}
+                    </span>
+                </summary>
+                <form method="post" action="{% url 'teacher_tasks:update' pk=task.pk %}" class="mt-3 space-y-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next }}">
+                    <input type="text" name="title" value="{{ task.title }}" maxlength="300" required class="input input-bordered input-sm w-full" aria-label="Title">
+                    <textarea name="notes" rows="3" class="textarea w-full" placeholder="Notes" aria-label="Notes">{{ task.notes }}</textarea>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <select name="area" class="select select-bordered select-sm" aria-label="Area">
+                            {% for value, label in area_choices %}<option value="{{ value }}" {% if task.area == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                        <input type="date" name="due_date" value="{{ task.due_date|date:'Y-m-d' }}" class="input input-bordered input-sm" aria-label="Due date">
+                        <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                    </div>
+                </form>
+                <form method="post" action="{% url 'teacher_tasks:delete' pk=task.pk %}" class="mt-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next }}">
+                    <button type="submit" class="btn btn-xs btn-ghost text-error"><i class="fas fa-trash mr-1"></i>Delete task</button>
+                </form>
+            </details>
+        </div>
+    </div>
+</li>

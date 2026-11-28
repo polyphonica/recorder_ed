@@ -1,0 +1,25 @@
+{# Tasks for one item (a student, workshop, course, product, piece or collection), on that item's page #}
+{% if show %}
+<div class="card bg-base-100 shadow-md border border-base-200 mb-6">
+    <div class="card-body p-5">
+        <div class="flex items-center justify-between">
+            <h2 class="card-title text-lg"><i class="fas fa-tasks text-primary mr-2"></i>Tasks for {{ link_label }}</h2>
+            <a href="{% url 'teacher_tasks:list' %}" class="link text-sm">All tasks</a>
+        </div>
+        {% if tasks %}
+        <ul>
+            {% for task in tasks %}{% include "teacher_tasks/_task_row.html" %}{% endfor %}
+        </ul>
+        {% endif %}
+        <form method="post" action="{% url 'teacher_tasks:create' %}" class="flex flex-wrap gap-2 mt-2">
+            <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+            <input type="hidden" name="next" value="{{ next }}">
+            <input type="hidden" name="link" value="{{ link_token }}">
+            <input type="hidden" name="area" value="general">
+            <input type="text" name="title" maxlength="300" required placeholder="Add a task for {{ link_label }}…" class="input input-bordered input-sm flex-1" aria-label="New task">
+            <input type="date" name="due_date" class="input input-bordered input-sm" aria-label="Due date">
+            <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-plus mr-1"></i>Add</button>
+        </form>
+    </div>
+</div>
+{% endif %}

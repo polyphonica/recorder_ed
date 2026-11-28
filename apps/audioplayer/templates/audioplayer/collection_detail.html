@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load teacher_tasks %}
 {% load static %}
 
 {% block title %}{{ collection.title }} - {{ block.super }}{% endblock %}
@@ -51,6 +52,8 @@
             <p class="text-gray-700">{{ collection.description }}</p>
         </div>
         {% endif %}
+
+        {% task_panel collection %}
 
         <!-- PDF Download -->
         {% if collection.pdf_score %}

@@ -57,6 +57,7 @@ urlpatterns = [
     path('products/', include('apps.digital_products.urls')),
     path('audioplayer/', include('apps.audioplayer.urls')),
     path('playalongs/', include('apps.audioplayer.public_urls')),
+    path('tasks/', include('apps.teacher_tasks.urls')),
     path('messages/', include('apps.messaging.urls')),
     path('support/', include('apps.support.urls')),
     path('help/', include('apps.help_center.urls')),

@@ -172,6 +172,14 @@ class DomainSelectorView(TemplateView):
         from apps.audioplayer.views import library_summary
         context['playalongs'] = library_summary(user)
 
+        # --- Tasks: overdue, today, then the next few ---
+        from apps.teacher_tasks.models import Task
+        open_tasks = Task.objects.filter(owner=user).open().select_related('content_type')
+        local_today = timezone.localdate()
+        context['tasks_today'] = list(open_tasks.filter(due_date__lte=local_today))
+        context['tasks_next'] = list(open_tasks.exclude(due_date__lte=local_today)[:5])
+        context['tasks_open_count'] = open_tasks.count()
+
         return context
 
 

@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'apps.payments',
     'apps.private_teaching',
     'apps.practice',
+    'apps.teacher_tasks',
     'apps.exams',
     'apps.scheduling',
     'apps.quizzes',
@@ -130,6 +131,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'apps.core.context_processors.google_analytics',
                 'apps.audioplayer.context_processors.playalong_library',  # Library open or coming soon
+                'apps.teacher_tasks.context_processors.teacher_tasks',  # Tasks due badge for teachers
                 'apps.private_teaching.context_processors.cart_context',
                 'apps.workshops.context_processors.unified_cart_context',
                 'apps.messaging.context_processors.unread_messages',  # Unified messaging (includes course messages)

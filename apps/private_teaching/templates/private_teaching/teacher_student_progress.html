@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load teacher_tasks %}
 {% load static %}
 
 {% block title %}{% if child_profiles %}{{ child_profiles.0.full_name }}{% else %}{{ student.get_full_name }}{% endif %} - Student Progress{% endblock %}
@@ -34,6 +35,8 @@
             </div>
         </div>
     </div>
+
+    {% task_panel student %}
 
     <!-- Student Overview Card -->
     <div class="card card-section shadow-xl mb-6">

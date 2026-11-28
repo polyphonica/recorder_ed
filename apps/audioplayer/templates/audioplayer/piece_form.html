@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load teacher_tasks %}
 {% load static %}
 
 {% block title %}{{ title }} - {{ block.super }}{% endblock %}
@@ -65,6 +66,8 @@
             </div>
         </div>
         {% endif %}
+
+        {% if piece.pk %}{% task_panel piece %}{% endif %}
 
         <!-- Form -->
         <form method="post" enctype="multipart/form-data" class="space-y-8">
