@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Play-Alongs - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">Play-Alongs</h1>
+            <p class="text-base-content/70 mt-2">Your play-along library: for your students, courses and the public library</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'audioplayer:piece_create' %}" class="btn btn-primary"><i class="fas fa-plus mr-2"></i>New Piece</a>
+            <a href="{% url 'audioplayer:collection_create' %}" class="btn btn-secondary"><i class="fas fa-folder-plus mr-2"></i>New Collection</a>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} mb-2">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% include "audioplayer/_library_open_bar.html" with next=request.path %}
+
+    <!-- Figures -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <a href="{% url 'audioplayer:piece_list' %}?filter=pieces" class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
+            <div class="card-body text-center">
+                <div class="text-3xl font-bold text-primary">{{ summary.piece_total }}</div>
+                <div class="text-sm text-base-content/70">Pieces · {{ summary.public_pieces }} public</div>
+            </div>
+        </a>
+        <a href="{% url 'audioplayer:piece_list' %}?filter=collections" class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
+            <div class="card-body text-center">
+                <div class="text-3xl font-bold text-secondary">{{ summary.collection_total }}</div>
+                <div class="text-sm text-base-content/70">Collections · {{ summary.public_collections }} public</div>
+            </div>
+        </a>
+        <a href="{% url 'audioplayer:piece_list' %}?filter=attention" class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
+            <div class="card-body text-center">
+                <div class="text-3xl font-bold {% if summary.attention %}text-warning{% endif %}">{{ summary.attention }}</div>
+                <div class="text-sm text-base-content/70">Need attention</div>
+            </div>
+        </a>
+        <a href="{% url 'audioplayer:library_review' %}" class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
+            <div class="card-body text-center">
+                <div class="text-3xl font-bold">{{ summary.loose_pieces }}</div>
+                <div class="text-sm text-base-content/70">Pieces not in a collection</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Permissions -->
+        <div class="card bg-base-100 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title"><i class="fas fa-file-signature mr-2"></i>Permissions expiring soon</h2>
+                {% if summary.expiring %}
+                <ul class="space-y-1">
+                    {% for row in summary.expiring %}{% with item=row.item %}
+                    <li class="text-sm">
+                        <strong>{{ item.permission_expires|date:"j M Y" }}</strong> ·
+                        {% if row.is_collection %}<a href="{% url 'audioplayer:collection_edit' pk=item.pk %}" class="link">{{ item }}</a>{% else %}<a href="{% url 'audioplayer:piece_edit' pk=item.pk %}" class="link">{{ item }}</a>{% endif %}
+                        {% if item.permission_granted_by %}<span class="text-base-content/60">({{ item.permission_granted_by }})</span>{% endif %}
+                    </li>{% endwith %}
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-sm text-base-content/70">None in the next 60 days. You'll also get an email 30 days before one expires.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Shortcuts -->
+        <div class="card bg-base-100 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title"><i class="fas fa-link mr-2"></i>Shortcuts</h2>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="{% url 'audioplayer:piece_list' %}" class="link link-primary">Pieces &amp; collections</a> — edit, publish, view as a visitor</li>
+                    <li><a href="{% url 'audioplayer:library_review' %}" class="link link-primary">Review lists</a> — collection candidates, missing sheet music, data checks</li>
+                    <li><a href="{% url 'audioplayer:composer_list' %}" class="link link-primary">Composers</a> — biographies and copyright status</li>
+                    <li><a href="{% url 'playalongs:home' %}" class="link link-primary">Public library</a> — {% if summary.featured %}{{ summary.featured }} featured item{{ summary.featured|pluralize }}{% else %}no featured items yet{% endif %}</li>
+                    <li><a href="{% url 'playalongs:library' %}?as_visitor=1" class="link link-primary">View as a visitor</a></li>
+                    <li><a href="{% url 'creator_studio:home' %}" class="link link-primary">Creator Studio</a> — convert audio and make notation images</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

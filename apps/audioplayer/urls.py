@@ -12,6 +12,7 @@ urlpatterns = [
     path('files/<str:token>/<str:filename>', views.protected_file, name='protected_file'),
 
     # Teacher - Piece Library Management
+    path('manage/', views.library_dashboard, name='library_dashboard'),
     path('pieces/', views.piece_list, name='piece_list'),
     path('pieces/review/', views.library_review, name='library_review'),
     path('pieces/create/', views.piece_create, name='piece_create'),

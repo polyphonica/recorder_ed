@@ -859,3 +859,49 @@ class LibraryReviewTests(TestCase):
         self.assertEqual(_suggested_collection_title(
             ['3rd Movement Largo from Sonata in B-flat Major TWV41:B3',
              '4th Movement Vivace from Sonata in B-flat Major TWV41:B3']), 'Sonata in B-flat Major TWV41:B3')
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'])
+class PlayalongsTeacherAreaTests(TestCase):
+    """Play-Alongs is its own area for teachers, not part of Private Lessons."""
+
+    def setUp(self):
+        import datetime
+        self.teacher = _teacher()
+        Piece.objects.create(title='Loose', created_by=self.teacher, is_public=False)
+        Piece.objects.create(title='Expiring', created_by=self.teacher, audio_permission=True,
+                             permission_expires=timezone.localdate() + datetime.timedelta(days=10))
+        self.client.force_login(self.teacher)
+
+    def test_overview_page(self):
+        response = self.client.get(reverse('audioplayer:library_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        summary = response.context['summary']
+        self.assertEqual(summary['piece_total'], 2)
+        self.assertEqual(summary['loose_pieces'], 2)
+        self.assertEqual([r['item'].title for r in summary['expiring']], ['Expiring'])
+        self.assertContains(response, 'Open the library')
+
+    def test_teacher_menu_and_tabs(self):
+        html = self.client.get(reverse('audioplayer:piece_list')).content.decode()
+        self.assertIn(reverse('audioplayer:library_dashboard'), html)
+        self.assertIn('Review lists', html)
+        # The Private Lessons tabs aren't shown in the Play-Alongs area
+        self.assertNotIn('>My Students<', html)
+
+    def test_private_lessons_keeps_its_shortcut(self):
+        html = self.client.get(reverse('private_teaching:teacher_dashboard')).content.decode()
+        self.assertIn('>My Students<', html)
+        self.assertIn(reverse('audioplayer:library_dashboard'), html)
+
+    def test_teacher_home_page_card(self):
+        response = self.client.get('/')
+        self.assertEqual(response.context['playalongs']['piece_total'], 2)
+        self.assertContains(response, 'Coming soon')
+
+    def test_open_switch_returns_to_overview(self):
+        response = self.client.post(reverse('playalongs:set_open'),
+                                    {'open': '1', 'next': reverse('audioplayer:library_dashboard')})
+        self.assertEqual(response['Location'], reverse('audioplayer:library_dashboard'))
+        response = self.client.post(reverse('playalongs:set_open'), {'open': '0', 'next': 'https://evil.example.com/'})
+        self.assertNotIn('evil', response['Location'])

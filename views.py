@@ -168,6 +168,10 @@ class DomainSelectorView(TemplateView):
             'total': workshop_rev + course_rev + product_rev,
         }
 
+        # --- Play-Alongs ---
+        from apps.audioplayer.views import library_summary
+        context['playalongs'] = library_summary(user)
+
         return context
 
 

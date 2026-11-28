@@ -71,6 +71,47 @@ def _attention_issues(item, is_collection):
     return issues
 
 
+def library_summary(user):
+    """
+    The state of a teacher's play-along library, for the Play-Alongs
+    overview page and the card on the teacher home page.
+    """
+    import datetime
+    from django.utils import timezone
+    pieces = list(Piece.objects.filter(created_by=user).select_related('composer').prefetch_related(
+        'collection_memberships__collection'))
+    collections = list(PieceCollection.objects.filter(created_by=user).select_related('composer').prefetch_related(
+        'collection_memberships__piece'))
+    attention = sum(1 for p in pieces if _attention_issues(p, False)) + sum(
+        1 for c in collections if _attention_issues(c, True))
+    soon = timezone.localdate() + datetime.timedelta(days=60)
+    expiring = sorted(
+        [{'item': item, 'is_collection': isinstance(item, PieceCollection)}
+         for item in pieces + collections
+         if item.audio_permission and item.permission_expires and item.permission_expires <= soon],
+        key=lambda row: row['item'].permission_expires)
+    return {
+        'is_open': library_is_open(),
+        'piece_total': len(pieces),
+        'collection_total': len(collections),
+        'public_pieces': sum(1 for p in pieces if p.is_public),
+        'public_collections': sum(1 for c in collections if c.is_public),
+        'featured': sum(1 for item in pieces + collections if item.is_featured),
+        'attention': attention,
+        'expiring': expiring,
+        'loose_pieces': sum(1 for p in pieces if not p.collection_memberships.all()),
+    }
+
+
+@teacher_required
+def library_dashboard(request):
+    """Overview of the Play-Along Library for teachers."""
+    return render(request, 'audioplayer/library_dashboard.html', {
+        'summary': library_summary(request.user),
+        'title': 'Play-Alongs',
+    })
+
+
 @teacher_required
 def piece_list(request):
     """List all pieces and collections created by the logged-in teacher"""

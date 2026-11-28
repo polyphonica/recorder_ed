@@ -256,7 +256,11 @@ def set_library_open(request):
         messages.success(request, 'The Play-Along Library is now open to the public.')
     else:
         messages.success(request, 'The Play-Along Library is closed: visitors see the coming-soon page.')
-    return redirect('audioplayer:piece_list')
+    from django.utils.http import url_has_allowed_host_and_scheme
+    next_url = request.POST.get('next')
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        return redirect(next_url)
+    return redirect('audioplayer:library_dashboard')
 
 
 def editions_page(request):

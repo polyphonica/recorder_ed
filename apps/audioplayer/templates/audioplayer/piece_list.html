@@ -33,27 +33,7 @@
     </div>
     {% endif %}
 
-    <!-- Public library open / coming soon -->
-    <div class="alert {% if playalong_library_open %}alert-success{% else %}alert-warning{% endif %} mb-6">
-        <i class="fas {% if playalong_library_open %}fa-globe{% else %}fa-lock{% endif %}"></i>
-        <span>
-            {% if playalong_library_open %}
-            The Play-Along Library is <strong>open</strong>: visitors can see everything you've made public.
-            {% else %}
-            The Play-Along Library is <strong>closed</strong>: visitors and students see a "coming soon" page, even for items you've made public. Your students can still play what you've assigned them.
-            {% endif %}
-        </span>
-        <form method="post" action="{% url 'playalongs:set_open' %}">
-            {% csrf_token %}
-            {% if playalong_library_open %}
-            <input type="hidden" name="open" value="0">
-            <button type="submit" class="btn btn-sm btn-ghost">Close the library</button>
-            {% else %}
-            <input type="hidden" name="open" value="1">
-            <button type="submit" class="btn btn-sm btn-primary">Open the library</button>
-            {% endif %}
-        </form>
-    </div>
+    {% include "audioplayer/_library_open_bar.html" with next=request.get_full_path %}
 
     <!-- Filter Tabs -->
     <div class="tabs tabs-boxed mb-6 bg-base-200 p-1">

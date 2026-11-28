@@ -1,0 +1,22 @@
+{# Open / coming-soon status with the switch. Optional `next` to return to. #}
+<div class="alert {% if playalong_library_open %}alert-success{% else %}alert-warning{% endif %} mb-6">
+    <i class="fas {% if playalong_library_open %}fa-globe{% else %}fa-lock{% endif %}"></i>
+    <span>
+        {% if playalong_library_open %}
+        The Play-Along Library is <strong>open</strong>: visitors can see everything you've made public.
+        {% else %}
+        The Play-Along Library is <strong>closed</strong>: visitors and students see a "coming soon" page, even for items you've made public. Your students can still play what you've assigned them.
+        {% endif %}
+    </span>
+    <form method="post" action="{% url 'playalongs:set_open' %}">
+        {% csrf_token %}
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+        {% if playalong_library_open %}
+        <input type="hidden" name="open" value="0">
+        <button type="submit" class="btn btn-sm btn-ghost">Close the library</button>
+        {% else %}
+        <input type="hidden" name="open" value="1">
+        <button type="submit" class="btn btn-sm btn-primary">Open the library</button>
+        {% endif %}
+    </form>
+</div>
