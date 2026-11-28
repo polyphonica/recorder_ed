@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Introduction -->
+    <section class="text-center max-w-3xl mx-auto mb-12">
+        <div class="text-5xl mb-4">🎶</div>
+        <h1 class="text-4xl font-bold mb-4">The Recorder-ed Play-Along Library</h1>
+        <p class="text-lg text-base-content/70 mb-6">
+            Free play-alongs for recorder players. Each piece is recorded part by part, so you can
+            silence your own part and play with the others. Early music comes with our own
+            Recorder-ed Editions to download.
+        </p>
+        <div class="flex flex-wrap justify-center gap-4">
+            <a href="{% url 'playalongs:library' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-music mr-2"></i>
+                Start browsing
+            </a>
+            {% if not user.is_authenticated %}
+            <a href="{% url 'accounts:signup' %}?next={% url 'playalongs:library' %}" class="btn btn-outline btn-lg">
+                Create a free account
+            </a>
+            {% endif %}
+        </div>
+        <p class="text-sm text-base-content/60 mt-4">
+            {{ piece_total }} piece{{ piece_total|pluralize }} and {{ collection_total }} collection{{ collection_total|pluralize }}{% if edition_total %}, {{ edition_total }} with a Recorder-ed Edition{% endif %}.
+        </p>
+    </section>
+
+    <!-- How it works -->
+    <section class="mb-12">
+        <h2 class="text-2xl font-bold text-center mb-6">How it works</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <div class="card bg-base-200">
+                <div class="card-body text-center">
+                    <div class="text-4xl mb-2"><i class="fas fa-search text-primary"></i></div>
+                    <h3 class="font-bold text-lg">1. Choose a piece</h3>
+                    <p class="text-sm text-base-content/70">Browse by composer, grade or period, or search for a title.</p>
+                </div>
+            </div>
+            <div class="card bg-base-200">
+                <div class="card-body text-center">
+                    <div class="text-4xl mb-2"><i class="fas fa-volume-mute text-primary"></i></div>
+                    <h3 class="font-bold text-lg">2. Mute your part</h3>
+                    <p class="text-sm text-base-content/70">Every part is a separate track. Silence yours, or solo another to learn it.</p>
+                </div>
+            </div>
+            <div class="card bg-base-200">
+                <div class="card-body text-center">
+                    <div class="text-4xl mb-2"><i class="fas fa-play-circle text-primary"></i></div>
+                    <h3 class="font-bold text-lg">3. Play along</h3>
+                    <p class="text-sm text-base-content/70">Practise with the other players, as often as you like.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {% if featured %}
+    <!-- Featured -->
+    <section class="mb-12">
+        <h2 class="text-2xl font-bold mb-6">Featured</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for item in featured %}
+                {% include "playalongs/_item_card.html" %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Browse by -->
+    <section class="mb-12">
+        <h2 class="text-2xl font-bold mb-6">Browse</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% if composers %}
+            <div class="card bg-base-100 shadow-md">
+                <div class="card-body">
+                    <h3 class="font-bold text-lg mb-2"><i class="fas fa-user mr-2"></i>By composer</h3>
+                    <ul class="space-y-1">
+                        {% for composer in composers %}
+                        <li><a href="{{ composer.get_absolute_url }}" class="link link-hover">{{ composer.name }}</a>{% if composer.dates %} <span class="text-xs text-base-content/60">({{ composer.dates }})</span>{% endif %}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+            {% if grades %}
+            <div class="card bg-base-100 shadow-md">
+                <div class="card-body">
+                    <h3 class="font-bold text-lg mb-2"><i class="fas fa-graduation-cap mr-2"></i>By grade</h3>
+                    <ul class="space-y-1">
+                        {% for value, label in grades %}
+                        <li><a href="{% url 'playalongs:library' %}?grade={{ value }}" class="link link-hover">{{ label }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+            {% if periods %}
+            <div class="card bg-base-100 shadow-md">
+                <div class="card-body">
+                    <h3 class="font-bold text-lg mb-2"><i class="fas fa-clock mr-2"></i>By period</h3>
+                    <ul class="space-y-1">
+                        {% for period in periods %}
+                        <li><a href="{% url 'playalongs:library' %}?period={{ period|urlencode }}" class="link link-hover">{{ period }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Editions -->
+    <section class="card bg-base-200 mb-12">
+        <div class="card-body">
+            <h2 class="card-title text-2xl"><i class="fas fa-book-open text-primary mr-2"></i>Recorder-ed Editions</h2>
+            <p>
+                Our editions of early music are prepared from original prints and manuscripts, with editorial
+                suggestions clearly marked. They're free to download with an account, for personal study and teaching.
+            </p>
+            <p>
+                Some play-alongs are of music still in copyright. For those we provide the recording, with the
+                publisher's permission, and tell you where to buy the music.
+            </p>
+            <div class="card-actions">
+                <a href="{% url 'playalongs:editions' %}" class="link link-primary">About our editions &amp; copyright</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Next step -->
+    <section class="text-center max-w-3xl mx-auto">
+        <h2 class="text-2xl font-bold mb-3">Want feedback on your playing?</h2>
+        <p class="text-base-content/70 mb-6">
+            Play-alongs are a great way to practise. For personal guidance, try a private lesson, a workshop or a course.
+        </p>
+        <div class="flex flex-wrap justify-center gap-4">
+            <a href="{% url 'private_teaching:home' %}" class="btn btn-outline">Private lessons</a>
+            <a href="{% url 'workshops:list' %}" class="btn btn-outline">Workshops</a>
+            <a href="{% url 'courses:list' %}" class="btn btn-outline">Courses</a>
+        </div>
+    </section>
+</div>
+{% endblock %}

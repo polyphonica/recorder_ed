@@ -1,0 +1,68 @@
+{# Library page & copyright settings, shared by the piece and collection forms. Expects `form` and `item_label`. #}
+<div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+    <div class="flex items-center gap-3 mb-2">
+        <div class="w-1.5 h-8 bg-indigo-600 rounded-full"></div>
+        <h2 class="text-2xl font-bold text-gray-900">Library page &amp; copyright</h2>
+    </div>
+    <p class="text-sm text-gray-600 mb-6">
+        What visitors see about the sheet music on this {{ item_label }}'s public page.
+        <a href="{% url 'playalongs:editions' %}" target="_blank" class="link">How this is explained to players</a>
+    </p>
+
+    <div class="space-y-8">
+        <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+            <label class="flex items-start gap-3 cursor-pointer">
+                {{ form.is_featured }}
+                <span class="flex-1">
+                    <span class="block text-base font-semibold text-gray-900">{{ form.is_featured.label }}</span>
+                    <span class="block text-sm text-gray-600 mt-1">{{ form.is_featured.help_text }}</span>
+                </span>
+            </label>
+        </div>
+
+        <fieldset>
+            <legend class="text-lg font-bold text-gray-900 mb-1">Recorder-ed Edition <span class="text-sm font-normal text-gray-600">(music out of copyright)</span></legend>
+            <p class="text-sm text-gray-600 mb-4">Upload the edition as the PDF score above. These details appear beside it.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% include "audioplayer/_library_field.html" with field=form.edition_source %}
+                {% include "audioplayer/_library_field.html" with field=form.edition_editor %}
+            </div>
+            {% include "audioplayer/_library_field.html" with field=form.edition_notes %}
+        </fieldset>
+
+        <fieldset>
+            <legend class="text-lg font-bold text-gray-900 mb-1">Get the music <span class="text-sm font-normal text-gray-600">(music still in copyright)</span></legend>
+            <p class="text-sm text-gray-600 mb-4">Where players can buy their own copy. Needed before music still in copyright can be public.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% include "audioplayer/_library_field.html" with field=form.music_source_title %}
+                {% include "audioplayer/_library_field.html" with field=form.music_publisher %}
+                {% include "audioplayer/_library_field.html" with field=form.music_edition %}
+                {% include "audioplayer/_library_field.html" with field=form.music_purchase_url %}
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend class="text-lg font-bold text-gray-900 mb-1">Permission to publish the audio <span class="text-sm font-normal text-gray-600">(music still in copyright)</span></legend>
+            <p class="text-sm text-gray-600 mb-4">
+                Record the copyright holder's permission here. Without it, music still in copyright stays private and only
+                reaches the students you assign it to.{% if item_label == 'collection' %} Permission recorded on a collection covers every piece in it.{% endif %}
+            </p>
+            <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200 mb-4">
+                <label class="flex items-start gap-3 cursor-pointer">
+                    {{ form.audio_permission }}
+                    <span class="flex-1">
+                        <span class="block text-base font-semibold text-gray-900">{{ form.audio_permission.label }}</span>
+                        <span class="block text-sm text-gray-600 mt-1">{{ form.audio_permission.help_text }}</span>
+                    </span>
+                </label>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {% include "audioplayer/_library_field.html" with field=form.permission_granted_by %}
+                {% include "audioplayer/_library_field.html" with field=form.permission_date %}
+                {% include "audioplayer/_library_field.html" with field=form.permission_expires %}
+            </div>
+            {% include "audioplayer/_library_field.html" with field=form.permission_notes %}
+            {% include "audioplayer/_library_field.html" with field=form.permission_document %}
+        </fieldset>
+    </div>
+</div>

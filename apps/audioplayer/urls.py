@@ -1,11 +1,12 @@
 from django.urls import path
-from . import views
+from . import public_views, views
 
 app_name = 'audioplayer'
 
 urlpatterns = [
     # Play-Along Library (Student & Teacher)
-    path('library/', views.PlayAlongLibraryView.as_view(), name='library'),
+    # The library moved to /playalongs/; these keep old links working
+    path('library/', public_views.old_library_redirect, name='library'),
 
     # Signed, expiring links to private playalong files (see storage.py)
     path('files/<str:token>/<str:filename>', views.protected_file, name='protected_file'),
@@ -21,6 +22,7 @@ urlpatterns = [
     path('collections/', views.collection_list, name='collection_list'),
     path('collections/create/', views.collection_create, name='collection_create'),
     path('collections/<int:pk>/', views.collection_detail, name='collection_detail'),
+    path('collections/<int:pk>/publish/', views.collection_publish, name='collection_publish'),
     path('collections/<int:pk>/edit/', views.collection_edit, name='collection_edit'),
     path('collections/<int:pk>/delete/', views.collection_delete, name='collection_delete'),
     path('collections/<int:pk>/reorder/', views.collection_reorder_pieces, name='collection_reorder_pieces'),
@@ -40,11 +42,11 @@ urlpatterns = [
     path('private-lesson/<uuid:lesson_id>/pieces-json/', views.private_lesson_pieces_json, name='private_lesson_pieces_json'),
 
     # Student - Playback Interface (Library Pieces)
-    path('library/piece/<int:piece_id>/player/', views.library_piece_player, name='library_piece_player'),
+    path('library/piece/<int:piece_id>/player/', public_views.old_piece_player_redirect, name='library_piece_player'),
     path('library/piece/<int:piece_id>/pieces-json/', views.library_piece_json, name='library_piece_json'),
 
     # Student - Playback Interface (Library Collections)
-    path('library/collection/<int:collection_id>/player/', views.library_collection_player, name='library_collection_player'),
+    path('library/collection/<int:collection_id>/player/', public_views.old_collection_player_redirect, name='library_collection_player'),
     path('library/collection/<int:collection_id>/pieces-json/', views.library_collection_json, name='library_collection_json'),
 
     # Purchaser - Playback Interface (Digital Product purchases)

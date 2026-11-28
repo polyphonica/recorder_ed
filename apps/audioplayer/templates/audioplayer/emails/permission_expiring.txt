@@ -1,0 +1,11 @@
+{% autoescape off %}Subject: Play-along permission expires on {{ expires|date:"j F Y" }}: {{ item }}
+
+Hello {{ teacher_name }},
+
+The permission to publish the audio of "{{ item }}"{% if item.permission_granted_by %} (granted by {{ item.permission_granted_by }}){% endif %} expires on {{ expires|date:"j F Y" }}.
+
+After that date it will go private again: only students you have assigned it to will be able to play it.
+
+If the permission has been renewed, update the expiry date here:
+{{ edit_url }}
+{% endautoescape %}

@@ -1,0 +1,14 @@
+{% autoescape off %}Subject: Welcome to the Recorder-ed Play-Along Library
+
+Hello {{ user_name }},
+
+Thank you for joining Recorder-ed. Your free account lets you play every piece in the Play-Along Library in full, mute and solo the parts, and download our Recorder-ed Editions.
+{% if suggestions %}
+A few pieces to start with:
+{% for item in suggestions %}- {{ item.title }}: {{ item.url }}
+{% endfor %}{% endif %}
+Browse the library: {{ library_url }}
+
+When you'd like personal feedback on your playing, Recorder-ed also offers private lessons, workshops and courses:
+{{ home_url }}
+{% endautoescape %}

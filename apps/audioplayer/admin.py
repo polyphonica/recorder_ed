@@ -54,7 +54,17 @@ class PieceCollectionAdmin(admin.ModelAdmin):
             'fields': ('grade_level', 'genre', 'difficulty', 'tags')
         }),
         ('Visibility & Owner', {
-            'fields': ('is_public', 'created_by')
+            'fields': ('is_public', 'in_copyright', 'created_by')
+        }),
+        ('Library page & copyright', {
+            'classes': ('collapse',),
+            'fields': (
+                'slug', 'is_featured',
+                ('edition_source', 'edition_editor'), 'edition_notes',
+                ('music_source_title', 'music_publisher'), ('music_edition', 'music_purchase_url'),
+                'audio_permission', ('permission_granted_by', 'permission_date', 'permission_expires'),
+                'permission_notes', 'permission_document',
+            ),
         }),
     )
 
@@ -102,6 +112,16 @@ class PieceAdmin(admin.ModelAdmin):
         ('Visibility & Owner', {
             'fields': ('is_public', 'show_in_library', 'in_copyright', 'created_by'),
             'description': 'is_public controls overall visibility. show_in_library controls whether the piece appears individually in the library (uncheck for pieces only accessed via collections).'
+        }),
+        ('Library page & copyright', {
+            'classes': ('collapse',),
+            'fields': (
+                'slug', 'is_featured',
+                ('edition_source', 'edition_editor'), 'edition_notes',
+                ('music_source_title', 'music_publisher'), ('music_edition', 'music_purchase_url'),
+                'audio_permission', ('permission_granted_by', 'permission_date', 'permission_expires'),
+                'permission_notes', 'permission_document',
+            ),
         }),
     )
 

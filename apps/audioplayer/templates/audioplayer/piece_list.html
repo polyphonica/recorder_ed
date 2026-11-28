@@ -46,7 +46,15 @@
             <i class="fas fa-folder-open mr-2"></i>
             Collections Only
         </a>
+        <a href="?filter=attention" class="tab {% if view_filter == 'attention' %}tab-active{% endif %}">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            Needs attention ({{ attention_count }})
+        </a>
     </div>
+
+    <p class="text-sm text-base-content/70 mb-6">
+        <a href="{% url 'playalongs:library' %}?as_visitor=1" class="link">See the library as a visitor sees it</a>
+    </p>
 
     {% if collections or pieces %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -62,6 +70,7 @@
                     </h2>
                     <span class="badge badge-secondary badge-sm">Collection</span>
                 </div>
+                {% include "audioplayer/_status_badges.html" with item=collection %}
 
                 <!-- Collection Info -->
                 <div class="text-sm text-base-content/70 space-y-1 mt-3">
@@ -97,9 +106,21 @@
 
                 <!-- Actions -->
                 <div class="card-actions justify-end mt-4">
-                    <a href="{% url 'audioplayer:library_collection_player' collection_id=collection.id %}" class="btn btn-sm btn-ghost" title="Preview player">
+                    <a href="{{ collection.get_absolute_url }}" class="btn btn-sm btn-ghost" title="Preview player">
                         <i class="fas fa-play"></i>
                     </a>
+                    <a href="{{ collection.get_absolute_url }}?as_visitor=1" class="btn btn-sm btn-ghost" title="View as a visitor sees it">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    {% if not collection.is_public or collection.issues %}
+                    <form method="post" action="{% url 'audioplayer:collection_publish' pk=collection.id %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-ghost" title="Make this collection and all its pieces public">
+                            <i class="fas fa-globe mr-1"></i>
+                            Publish
+                        </button>
+                    </form>
+                    {% endif %}
                     <a href="{% url 'audioplayer:collection_detail' pk=collection.id %}" class="btn btn-sm btn-ghost" title="See and edit the pieces in this collection">
                         <i class="fas fa-list mr-1"></i>
                         Pieces
@@ -132,6 +153,7 @@
                         <span class="badge badge-primary badge-sm">Piece</span>
                     </div>
                 </div>
+                {% include "audioplayer/_status_badges.html" with item=piece %}
 
                 <!-- Piece Info -->
                 <div class="text-sm text-base-content/70 space-y-1 mt-3">
@@ -161,8 +183,11 @@
 
                 <!-- Actions -->
                 <div class="card-actions justify-end mt-4">
-                    <a href="{% url 'audioplayer:library_piece_player' piece_id=piece.id %}" class="btn btn-sm btn-ghost" title="Preview">
+                    <a href="{{ piece.get_absolute_url }}" class="btn btn-sm btn-ghost" title="Preview">
                         <i class="fas fa-play"></i>
+                    </a>
+                    <a href="{{ piece.get_absolute_url }}?as_visitor=1" class="btn btn-sm btn-ghost" title="View as a visitor sees it">
+                        <i class="fas fa-eye"></i>
                     </a>
                     <a href="{% url 'audioplayer:piece_edit' pk=piece.id %}" class="btn btn-sm btn-primary">
                         <i class="fas fa-edit mr-1"></i>

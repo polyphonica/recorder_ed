@@ -345,7 +345,7 @@ class LibraryShowToggleTests(TestCase):
 
     def test_page_renders_toggle(self):
         with override_settings(ALLOWED_HOSTS=['testserver']):
-            response = self.client.get('/audioplayer/library/', {'mode': 'browse_all', 'show': 'collections'})
+            response = self.client.get('/playalongs/library/', {'mode': 'browse_all', 'show': 'collections'})
         self.assertContains(response, 'Collections (1)')
         self.assertContains(response, 'name="show" value="collections"')
 
@@ -477,3 +477,293 @@ class CollectionPieceEditLinkTests(TestCase):
         }, request=self.request)
         self.assertIn("'/audioplayer/pieces/0/edit/'.replace('/0/'", html)
         self.assertIn('href="${pieceEditUrl(piece.id)}"', html)
+
+
+# ===== Free Play-Along Library =====
+
+import datetime
+import io
+
+from django.contrib.auth import get_user_model
+from django.core import mail
+from django.urls import reverse
+from django.utils import timezone
+
+
+def _user(username, teacher=False):
+    user = get_user_model().objects.create_user(username, email=f'{username}@example.com', password='x')
+    user.profile.is_teacher = teacher
+    # Complete profiles, so the profile-completion middleware lets them through
+    user.profile.profile_completed = True
+    user.profile.email_verified = True
+    user.profile.save()
+    return user
+
+
+def _teacher(username='lib_teacher'):
+    return _user(username, teacher=True)
+
+
+EMAIL_SETTINGS = dict(
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    CELERY_TASK_ALWAYS_EAGER=True,
+)
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'], **EMAIL_SETTINGS)
+class PlayalongPermissionTests(TestCase):
+    """Permission recorded for in-copyright music lifts the lock for the audio only."""
+
+    def setUp(self):
+        from .models import Composer, PieceCollection, CollectionPiece
+        self.PieceCollection, self.CollectionPiece = PieceCollection, CollectionPiece
+        self.giesbert = Composer.objects.create(name='Giesbert', in_copyright=True)
+        self.duet = Piece.objects.create(title='Duet', composer=self.giesbert, is_public=False)
+
+    def test_piece_with_permission_can_be_public(self):
+        self.duet.audio_permission = True
+        self.duet.music_source_title = 'Giesbert Method'
+        self.duet.is_public = True
+        self.duet.full_clean()
+        self.duet.save()
+        self.duet.refresh_from_db()
+        self.assertTrue(self.duet.is_public)
+        self.assertEqual(self.duet.copyright_status, 'permitted')
+
+    def test_expired_permission_does_not_count(self):
+        self.duet.audio_permission = True
+        self.duet.permission_expires = timezone.localdate() - datetime.timedelta(days=1)
+        self.duet.is_public = True
+        self.duet.save()
+        self.duet.refresh_from_db()
+        self.assertFalse(self.duet.is_public)
+
+    def test_collection_permission_covers_its_pieces(self):
+        col = self.PieceCollection.objects.create(title='Duets', is_public=False, audio_permission=True,
+                                                  music_source_title='Giesbert Method')
+        self.CollectionPiece.objects.create(collection=col, piece=self.duet, order=0)
+        col.is_public = True
+        col.save()
+        col.refresh_from_db()
+        self.assertTrue(col.is_public)
+        self.assertTrue(self.duet.is_cleared)
+        self.assertEqual(self.duet.music_source(), col)
+        self.assertEqual(self.duet.permission_source(), col)
+
+    def test_public_in_copyright_needs_music_source(self):
+        from django.core.exceptions import ValidationError
+        self.duet.audio_permission = True
+        self.duet.is_public = True
+        with self.assertRaises(ValidationError) as ctx:
+            self.duet.full_clean()
+        self.assertIn('music_source_title', ctx.exception.message_dict)
+
+    def test_no_sheet_music_on_in_copyright_piece(self):
+        from django.core.exceptions import ValidationError
+        root = tempfile.mkdtemp()
+        with override_settings(PRIVATE_MEDIA_ROOT=root):
+            self.duet.pdf_score.save('x.pdf', ContentFile(b'%PDF-1.4 test'), save=False)
+            with self.assertRaises(ValidationError) as ctx:
+                self.duet.full_clean()
+        shutil.rmtree(root, ignore_errors=True)
+        self.assertIn('pdf_score', ctx.exception.message_dict)
+
+    def test_score_hidden_from_players_for_in_copyright(self):
+        from django.contrib.auth.models import AnonymousUser
+        from .views import _score_url
+        self.duet.svg_image.name = 'audioplayer/svg_images/x.png'
+        self.assertIsNone(_score_url(self.duet, 'svg_image', AnonymousUser()))
+        self.assertIsNotNone(_score_url(self.duet, 'svg_image', _teacher()))
+
+    def test_pdf_needs_an_account(self):
+        from django.contrib.auth.models import AnonymousUser
+        from .views import _score_url
+        piece = Piece.objects.create(title='Sonata', is_public=True)
+        piece.pdf_score.name = 'audioplayer/pdf_scores/s.pdf'
+        self.assertIsNone(_score_url(piece, 'pdf_score', AnonymousUser()))
+        student = get_user_model().objects.create_user('pdf_student', password='x')
+        self.assertIsNotNone(_score_url(piece, 'pdf_score', student))
+
+    def test_expiry_command_makes_private_and_reminds(self):
+        from .models import Composer
+        today = timezone.localdate()
+        teacher = _teacher()
+        self.duet.created_by = teacher
+        self.duet.audio_permission = True
+        self.duet.music_source_title = 'Method'
+        self.duet.is_public = True
+        self.duet.save()
+        Piece.objects.filter(pk=self.duet.pk).update(permission_expires=today - datetime.timedelta(days=1))
+        soon = Piece.objects.create(title='Soon', composer=self.giesbert, created_by=teacher, audio_permission=True,
+                                    music_source_title='Method', is_public=True,
+                                    permission_expires=today + datetime.timedelta(days=30))
+        call_command('expire_playalong_permissions', stdout=io.StringIO())
+        self.duet.refresh_from_db(); soon.refresh_from_db()
+        self.assertFalse(self.duet.is_public)
+        self.assertTrue(soon.is_public)
+        subjects = [m.subject for m in mail.outbox]
+        self.assertTrue(any('made private' in s for s in subjects), subjects)
+        self.assertTrue(any('expires' in s for s in subjects), subjects)
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'])
+class PlayalongPublicPagesTests(TestCase):
+    def setUp(self):
+        from .models import Composer, PieceCollection, CollectionPiece
+        self.mattheson = Composer.objects.create(name='Johann Mattheson', period='Baroque', bio='<p>Bio</p>')
+        self.sonata = Piece.objects.create(title='Sonata', composer=self.mattheson, is_public=True)
+        self.private = Piece.objects.create(title='Draft', composer=self.mattheson, is_public=False)
+        self.col = PieceCollection.objects.create(title='Sonatas', is_public=True)
+        CollectionPiece.objects.create(collection=self.col, piece=self.sonata, order=0)
+
+    def test_pages_open_to_visitors(self):
+        for url in ['/playalongs/', '/playalongs/library/', '/playalongs/editions/',
+                    self.sonata.get_absolute_url(), self.col.get_absolute_url(), self.mattheson.get_absolute_url()]:
+            self.assertEqual(self.client.get(url).status_code, 200, url)
+
+    def test_slugs_are_readable(self):
+        self.assertEqual(self.sonata.get_absolute_url(), '/playalongs/piece/johann-mattheson-sonata/')
+        self.assertEqual(self.col.get_absolute_url(), '/playalongs/collection/sonatas/')
+
+    def test_private_piece_page_needs_login(self):
+        response = self.client.get(self.private.get_absolute_url())
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/accounts/login/', response['Location'])
+
+    def test_visitors_get_preview(self):
+        html = self.client.get(self.sonata.get_absolute_url()).content.decode()
+        self.assertIn('id="is-preview" value="true"', html)
+        self.assertIn('id="preview-signup"', html)
+
+    def test_logged_in_players_get_full_player(self):
+        self.client.force_login(_user('player'))
+        context = self.client.get(self.sonata.get_absolute_url()).context
+        self.assertFalse(context['is_preview'])
+
+    def test_visitor_library_shows_collections(self):
+        response = self.client.get('/playalongs/library/')
+        self.assertEqual(len(response.context['collections']), 1)
+        self.assertFalse(response.context['is_student_view'])
+
+    def test_period_filter(self):
+        response = self.client.get('/playalongs/library/', {'period': 'baroque'})
+        self.assertEqual(len(response.context['pieces']), 1)
+        response = self.client.get('/playalongs/library/', {'period': 'Romantic'})
+        self.assertEqual(len(response.context['pieces']), 0)
+
+    def test_teacher_can_view_as_visitor(self):
+        self.client.force_login(_teacher())
+        response = self.client.get('/playalongs/library/', {'as_visitor': '1'})
+        self.assertFalse(response.context['is_teacher'])
+        self.assertTrue(response.context['as_visitor'])
+        response = self.client.get(self.sonata.get_absolute_url(), {'as_visitor': '1'})
+        self.assertTrue(response.context['is_preview'])
+
+    def test_old_addresses_redirect(self):
+        response = self.client.get('/audioplayer/library/?search=x')
+        self.assertEqual(response['Location'], '/playalongs/library/?search=x')
+        response = self.client.get(f'/audioplayer/library/piece/{self.sonata.id}/player/')
+        self.assertEqual(response['Location'], self.sonata.get_absolute_url())
+
+    def test_sitemap_lists_public_items_only(self):
+        xml = self.client.get('/sitemap.xml').content.decode()
+        self.assertIn(self.sonata.get_absolute_url(), xml)
+        self.assertIn(self.col.get_absolute_url(), xml)
+        self.assertIn(self.mattheson.get_absolute_url(), xml)
+        self.assertNotIn(self.private.slug, xml)
+
+    def test_home_page_links_to_library(self):
+        self.assertContains(self.client.get('/'), reverse('playalongs:home'))
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'])
+class PlayalongManagementTests(TestCase):
+    def setUp(self):
+        from .models import Composer, PieceCollection, CollectionPiece
+        self.teacher = _teacher()
+        self.col = PieceCollection.objects.create(title='Exercises', is_public=False, created_by=self.teacher)
+        self.pieces = [Piece.objects.create(title=f'Ex {i}', is_public=False, created_by=self.teacher) for i in range(2)]
+        for i, p in enumerate(self.pieces):
+            CollectionPiece.objects.create(collection=self.col, piece=p, order=i)
+        self.client.force_login(self.teacher)
+
+    def test_publish_collection_makes_it_and_its_pieces_public(self):
+        self.client.post(reverse('audioplayer:collection_publish', kwargs={'pk': self.col.pk}))
+        self.col.refresh_from_db()
+        self.assertTrue(self.col.is_public)
+        self.assertTrue(all(Piece.objects.get(pk=p.pk).is_public for p in self.pieces))
+
+    def test_publish_refuses_locked_collection(self):
+        from .models import Composer
+        g = Composer.objects.create(name='G', in_copyright=True)
+        Piece.objects.filter(pk=self.pieces[0].pk).update(composer=g)
+        self.client.post(reverse('audioplayer:collection_publish', kwargs={'pk': self.col.pk}))
+        self.col.refresh_from_db()
+        self.assertFalse(self.col.is_public)
+
+    def test_needs_attention_lists_public_items_without_edition(self):
+        from .views import _attention_issues
+        Piece.objects.filter(pk=self.pieces[0].pk).update(is_public=True)
+        piece = Piece.objects.get(pk=self.pieces[0].pk)
+        self.assertIn('Public, but no edition PDF yet', _attention_issues(piece, False))
+        self.col.is_public = True
+        self.col.save()
+        self.assertTrue(any('private piece' in i for i in _attention_issues(self.col, True)))
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'])
+class PlayalongProductMoveTests(TestCase):
+    def test_play_along_products_move_into_library(self):
+        from apps.digital_products.models import DigitalProduct, DigitalProductCollection
+        from .models import PieceCollection
+        teacher = _teacher()
+        col = PieceCollection.objects.create(title='Williams Sonata', is_public=False)
+        product = DigitalProduct.objects.create(
+            slug='williams', title='Williams Sonata', description='x', short_description='x', teacher=teacher,
+            product_type='play_along', price=0, status='published')
+        DigitalProductCollection.objects.create(product=product, collection=col)
+        call_command('move_playalong_products_to_library', stdout=io.StringIO())
+        col.refresh_from_db(); product.refresh_from_db()
+        self.assertTrue(col.is_public)
+        self.assertEqual(product.status, 'archived')
+        response = self.client.get('/products/product/williams/')
+        self.assertEqual(response['Location'], col.get_absolute_url())
+
+    def test_new_products_cannot_be_play_alongs(self):
+        from apps.digital_products.forms import ProductForm
+        choices = [c[0] for c in ProductForm().fields['product_type'].choices]
+        self.assertNotIn('play_along', choices)
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'], **EMAIL_SETTINGS)
+class PlayalongSignupTests(TestCase):
+    def test_login_returns_to_the_page_asked_for(self):
+        user = get_user_model().objects.create_user('back', email='back@example.com', password='pw-12345!')
+        response = self.client.post('/accounts/login/?next=/playalongs/piece/x/',
+                                    {'username': 'back@example.com', 'password': 'pw-12345!',
+                                     'next': '/playalongs/piece/x/'})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], '/playalongs/piece/x/')
+
+    def test_login_ignores_unsafe_next(self):
+        get_user_model().objects.create_user('safe', email='safe@example.com', password='pw-12345!')
+        response = self.client.post('/accounts/login/', {'username': 'safe@example.com', 'password': 'pw-12345!',
+                                                         'next': 'https://evil.example.com/'})
+        self.assertNotIn('evil', response.get('Location', ''))
+
+    def test_welcome_email_sent_once_on_verification(self):
+        from apps.accounts.email_verification import email_verification_token
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+        user = get_user_model().objects.create_user('lib', email='lib@example.com', password='x')
+        user.profile.signup_source = 'playalongs'
+        user.profile.save()
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = email_verification_token.make_token(user)
+        mail.outbox = []
+        self.client.get(reverse('accounts:verify_email', kwargs={'uidb64': uid, 'token': token}))
+        self.assertTrue(any('Play-Along Library' in m.subject for m in mail.outbox), [m.subject for m in mail.outbox])
+        # A second click on the link doesn't send it again
+        mail.outbox = []
+        self.client.get(reverse('accounts:verify_email', kwargs={'uidb64': uid, 'token': token}))
+        self.assertFalse(any('Play-Along Library' in m.subject for m in mail.outbox))

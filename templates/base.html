@@ -112,6 +112,7 @@
                         <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold{% endif %}">Private Lessons</a></li>
                         <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold{% endif %}">Courses</a></li>
                         <li><a href="{% url 'digital_products:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'digital_products' %}font-bold{% endif %}">Digital Products</a></li>
+                        <li><a href="{% url 'playalongs:home' %}" class="{% if request.resolver_match.namespace == 'playalongs' %}font-bold{% endif %}">Play-Alongs</a></li>
                         <li><a href="{% url 'creator_studio:home' %}" class="{% if request.resolver_match.namespace == 'creator_studio' %}font-bold{% endif %}"><i class="fas fa-palette mr-1"></i>Creator Studio</a></li>
                         <li><a href="{% url 'payments:finance_dashboard' %}" class="{% if request.resolver_match.namespace == 'payments' %}font-bold{% endif %}"><i class="fas fa-chart-line mr-1"></i>Finance</a></li>
                         <li class="border-t mt-2 pt-2"><a href="{% url 'support:my_tickets' %}"><i class="fas fa-life-ring mr-1"></i>Support</a></li>
@@ -122,6 +123,7 @@
                         <li><a href="{% url pt_url %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold{% endif %}">Private Lessons</a></li>
                         <li><a href="{% url 'courses:list' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold{% endif %}">Courses</a></li>
                         <li><a href="{% url 'digital_products:catalog' %}" class="{% if request.resolver_match.namespace == 'digital_products' %}font-bold{% endif %}">Digital Products</a></li>
+                        <li><a href="{% url 'playalongs:home' %}" class="{% if request.resolver_match.namespace == 'playalongs' %}font-bold{% endif %}">Play-Alongs</a></li>
                         <li class="border-t mt-2 pt-2"><a href="{% url 'help_center:home' %}"><i class="fas fa-book-open mr-1"></i>Help Center</a></li>
                         <li><a href="{% url 'support:public_contact' %}"><i class="fas fa-life-ring mr-1"></i>Support</a></li>
                     {% endif %}
@@ -145,6 +147,7 @@
                     <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold bg-primary text-primary-content{% endif %}">Private Lessons</a></li>
                     <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold bg-primary text-primary-content{% endif %}">Courses</a></li>
                     <li><a href="{% url 'digital_products:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'digital_products' %}font-bold bg-primary text-primary-content{% endif %}">Digital Products</a></li>
+                    <li><a href="{% url 'playalongs:home' %}" class="{% if request.resolver_match.namespace == 'playalongs' %}font-bold bg-primary text-primary-content{% endif %}">Play-Alongs</a></li>
                     <li><a href="{% url 'creator_studio:home' %}" class="{% if request.resolver_match.namespace == 'creator_studio' %}font-bold bg-primary text-primary-content{% endif %}"><i class="fas fa-palette mr-1"></i>Creator Studio</a></li>
                     <li><a href="{% url 'payments:finance_dashboard' %}" class="{% if request.resolver_match.namespace == 'payments' %}font-bold bg-primary text-primary-content{% endif %}"><i class="fas fa-chart-line mr-2"></i>Finance</a></li>
                 {% else %}
@@ -154,6 +157,7 @@
                     <li><a href="{% url pt_url %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold bg-primary text-primary-content{% endif %}">Private Lessons</a></li>
                     <li><a href="{% url 'courses:list' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold bg-primary text-primary-content{% endif %}">Courses</a></li>
                     <li><a href="{% url 'digital_products:catalog' %}" class="{% if request.resolver_match.namespace == 'digital_products' %}font-bold bg-primary text-primary-content{% endif %}">Digital Products</a></li>
+                    <li><a href="{% url 'playalongs:home' %}" class="{% if request.resolver_match.namespace == 'playalongs' %}font-bold bg-primary text-primary-content{% endif %}">Play-Alongs</a></li>
                 {% endif %}
             </ul>
         </div>
@@ -400,7 +404,7 @@
                             <li class="dropdown dropdown-end">
                                 <label tabindex="0" class="btn btn-ghost btn-sm"><i class="fas fa-folder-open mr-1"></i>Resources</label>
                                 <ul tabindex="0" class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-52">
-                                    <li><a href="{% url 'audioplayer:library' %}"><i class="fas fa-music mr-2"></i>Play-Along Library</a></li>
+                                    <li><a href="{% url 'playalongs:library' %}"><i class="fas fa-music mr-2"></i>Play-Along Library</a></li>
                                     <li><a href="{% url 'audioplayer:composer_list' %}"><i class="fas fa-user mr-2"></i>Composers</a></li>
                                     <li><a href="{% url 'audioplayer:piece_list' %}"><i class="fas fa-guitar mr-2"></i>Pieces</a></li>
                                     <li><a href="{% url 'private_teaching:teacher_library' %}"><i class="fas fa-book mr-2"></i>Documents</a></li>
@@ -422,7 +426,7 @@
                             <li><a href="{% url 'private_teaching:my_lessons' %}" class="{% if request.resolver_match.url_name == 'my_lessons' %}bg-primary text-primary-content{% endif %}">My Lessons</a></li>
                             <li><a href="{% url 'assignments:student_library' %}" class="{% if request.resolver_match.namespace == 'assignments' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-tasks mr-1"></i>Assignments</a></li>
                             <li><a href="{% url 'private_teaching:calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}bg-primary text-primary-content{% endif %}">Calendar</a></li>
-                            <li><a href="{% url 'audioplayer:library' %}" class="{% if request.resolver_match.namespace == 'audioplayer' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-music mr-1"></i>Play-Along Library</a></li>
+                            <li><a href="{% url 'playalongs:library' %}" class="{% if request.resolver_match.namespace == 'audioplayer' or request.resolver_match.namespace == 'playalongs' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-music mr-1"></i>Play-Along Library</a></li>
                             <li><a href="{% url 'aural_training:student_training' %}" class="{% if request.resolver_match.namespace == 'aural_training' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-headphones mr-1"></i>Aural Training</a></li>
                             <li><a href="{% url 'sight_reading:student_assignments' %}" class="{% if request.resolver_match.namespace == 'sight_reading' %}bg-primary text-primary-content{% endif %}"><i class="fas fa-music mr-1"></i>Sight Reading</a></li>
                         {% endif %}
@@ -548,6 +552,7 @@
     <footer class="footer footer-center p-10 bg-base-200 text-base-content rounded mt-16" role="contentinfo">
         <div class="grid grid-flow-col gap-4">
             <a href="{% url 'core:about' %}" class="link link-hover">About Us</a>
+            <a href="{% url 'playalongs:home' %}" class="link link-hover">Free Play-Alongs</a>
             <a href="{% url 'support:apply_to_teach' %}" class="link link-hover font-semibold">Teach With Us</a>
             <a href="{% url 'core:privacy' %}" class="link link-hover">Privacy Policy</a>
             <a href="{% url 'core:terms' %}" class="link link-hover">Terms & Conditions</a>

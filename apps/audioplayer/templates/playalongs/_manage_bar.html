@@ -1,0 +1,17 @@
+{# Teacher tools on public pages #}
+{% if can_manage %}
+<div class="alert mb-6">
+    <i class="fas fa-tools"></i>
+    <span>
+        {% if as_visitor %}You're viewing this page as a visitor sees it.{% else %}Teacher view.{% endif %}
+    </span>
+    <div class="flex gap-2">
+        {% if as_visitor %}
+        <a href="{{ request.path }}" class="btn btn-sm btn-ghost">Back to teacher view</a>
+        {% else %}
+        <a href="{{ request.path }}?as_visitor=1" class="btn btn-sm btn-ghost">View as visitor</a>
+        {% endif %}
+        {% if edit_url %}<a href="{{ edit_url }}" class="btn btn-sm btn-primary">Edit</a>{% endif %}
+    </div>
+</div>
+{% endif %}

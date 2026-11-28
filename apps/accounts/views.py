@@ -17,8 +17,16 @@ from django.db import transaction
 from apps.teacher_applications.models import TeacherApplication, TeacherOnboarding
 from apps.teacher_applications.notifications import teacher_signup_token
 from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode, url_has_allowed_host_and_scheme
 from django.utils.encoding import force_bytes
+
+
+def safe_next_url(request, url):
+    """url if it is a safe place on this site to send the user, else None."""
+    if url and url_has_allowed_host_and_scheme(url, allowed_hosts={request.get_host()},
+                                               require_https=request.is_secure()):
+        return url
+    return None
 
 
 class CustomLoginView(LoginView):
@@ -31,7 +39,7 @@ class CustomLoginView(LoginView):
     def dispatch(self, request, *args, **kwargs):
         # If user is already authenticated, redirect them away from login page
         if request.user.is_authenticated:
-            return redirect(self.get_redirect_url_for_authenticated_user())
+            return redirect(self.get_redirect_url() or self.get_redirect_url_for_authenticated_user())
         return super().dispatch(request, *args, **kwargs)
 
     def get_redirect_url_for_authenticated_user(self):
@@ -46,6 +54,11 @@ class CustomLoginView(LoginView):
         # Check if user is staff
         if self.request.user.is_staff:
             return reverse('admin_portal:dashboard')
+
+        # Back to the page that asked them to log in (e.g. a play-along)
+        next_url = self.get_redirect_url()
+        if next_url:
+            return next_url
 
         # Redirect all non-staff users to domain selector
         return reverse('domain_selector')
@@ -140,6 +153,14 @@ class SignUpView(CreateView):
         # Store email in session for resend functionality
         self.request.session['pending_verification_email'] = user.email
 
+        # Remember where they signed up from, to send them back after verifying
+        next_url = safe_next_url(self.request, self.request.POST.get('next'))
+        if next_url:
+            self.request.session['signup_next'] = next_url
+            if next_url.startswith('/playalongs/'):
+                profile.signup_source = 'playalongs'
+                profile.save(update_fields=['signup_source'])
+
         # Send verification email
         email_sent = False
         error_message = None
@@ -193,9 +214,12 @@ def profile_setup_view(request):
             messages.success(request, 'Profile completed successfully!')
 
             # Check for stored 'next' URL from signup
-            next_url = request.session.pop('signup_next', None)
+            next_url = safe_next_url(request, request.session.pop('signup_next', None))
             if next_url:
                 return redirect(next_url)
+            if profile.signup_source == 'playalongs':
+                # Verified in a different browser: still take them back to the library
+                return redirect('playalongs:library')
 
             # Redirect to domain selector to choose which domain to explore
             return redirect('domain_selector')
@@ -456,6 +480,8 @@ def verify_email_view(request, uidb64, token):
     user = verify_token(uidb64, token)
 
     if user is not None:
+        first_verification = not user.profile.email_verified
+
         # Mark email as verified
         user.profile.email_verified = True
         user.profile.email_verified_at = timezone.now()
@@ -463,6 +489,10 @@ def verify_email_view(request, uidb64, token):
 
         # Log the user in after successful verification
         login(request, user, backend='apps.core.backends.EmailBackend')
+
+        if first_verification and user.profile.signup_source == 'playalongs':
+            from apps.audioplayer.notifications import PlayalongNotificationService
+            PlayalongNotificationService.send_library_welcome(user)
 
         messages.success(
             request,

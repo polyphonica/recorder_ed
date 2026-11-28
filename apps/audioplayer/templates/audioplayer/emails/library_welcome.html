@@ -1,0 +1,23 @@
+{% extends "emails/base.html" %}
+{% block title %}Welcome to the Play-Along Library{% endblock %}
+{% block header_subtitle %}Welcome to the Play-Along Library{% endblock %}
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; color: #111827;">Hello <strong>{{ user_name }}</strong>,</p>
+<p style="margin: 0 0 20px 0; font-size: 16px; color: #374151;">
+    Thank you for joining Recorder-ed. Your free account lets you play every piece in the Play-Along Library in full,
+    mute and solo the parts, and download our Recorder-ed Editions.
+</p>
+{% if suggestions %}
+<p style="margin: 0 0 8px 0; font-size: 16px; color: #374151;">A few pieces to start with:</p>
+<ul style="margin: 0 0 20px 0; padding-left: 20px; font-size: 16px; color: #374151;">
+    {% for item in suggestions %}<li><a href="{{ item.url }}" style="color: #4f46e5;">{{ item.title }}</a></li>{% endfor %}
+</ul>
+{% endif %}
+<p style="margin: 0 0 20px 0;">
+    <a href="{{ library_url }}" style="display: inline-block; background-color: #4f46e5; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">Browse the library</a>
+</p>
+<p style="margin: 0 0 20px 0; font-size: 14px; color: #6b7280;">
+    When you'd like personal feedback on your playing, Recorder-ed also offers
+    <a href="{{ home_url }}" style="color: #4f46e5;">private lessons, workshops and courses</a>.
+</p>
+{% endblock %}

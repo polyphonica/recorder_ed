@@ -1,0 +1,78 @@
+{# What the page says about the sheet music: a Recorder-ed Edition, or where to get the music #}
+{% if copyright_status == 'public_domain' %}
+    {% if edition_item.pdf_score or edition_item.edition_source or edition_item.edition_notes or edition_item.svg_image %}
+    <div class="card bg-base-200 mb-6">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-book-open text-primary mr-2"></i>
+                Recorder-ed Edition
+            </h2>
+            {% if edition_item.editor_name or edition_item.edition_source %}
+            <p class="text-sm text-base-content/70">
+                {% if edition_item.editor_name %}Edited by {{ edition_item.editor_name }}{% endif %}{% if edition_item.editor_name and edition_item.edition_source %}, from {% elif edition_item.edition_source %}From {% endif %}{{ edition_item.edition_source }}.
+            </p>
+            {% endif %}
+            {% if edition_item.edition_notes %}
+            <div class="text-base-content/80 mt-2">{{ edition_item.edition_notes|linebreaks }}</div>
+            {% endif %}
+            {% if edition_item.pdf_score %}
+                {% if is_preview %}
+                <p class="mt-2">
+                    <i class="fas fa-file-pdf text-error mr-2"></i>
+                    <a href="{{ signup_url }}" class="link link-primary">Create a free account</a> to download the score.
+                    Already have one? <a href="{{ login_url }}" class="link link-primary">Log in</a>.
+                </p>
+                {% else %}
+                <p class="mt-2">
+                    <i class="fas fa-file-pdf text-error mr-2"></i>
+                    The score is ready to download below the player.
+                </p>
+                {% endif %}
+            {% endif %}
+            <p class="text-xs text-base-content/60 mt-3">
+                Free for personal study and teaching. Please don't redistribute or sell it.
+                <a href="{% url 'playalongs:editions' %}" class="link">About our editions</a>
+            </p>
+        </div>
+    </div>
+    {% endif %}
+{% else %}
+    <div class="card bg-base-200 mb-6">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-book text-secondary mr-2"></i>
+                Bring your own copy
+            </h2>
+            <p>
+                This music is still in copyright, so the sheet music isn't included.
+                To play along, you'll need your own copy{% if music_source %}:{% else %}.{% endif %}
+            </p>
+            {% if music_source %}
+            <div class="mt-2">
+                <p class="font-semibold">{{ music_source.music_source_title }}</p>
+                {% if music_source.music_publisher or music_source.music_edition %}
+                <p class="text-sm text-base-content/70">
+                    {{ music_source.music_publisher }}{% if music_source.music_publisher and music_source.music_edition %}, {% endif %}{{ music_source.music_edition }}
+                </p>
+                {% endif %}
+                {% if music_source.music_purchase_url %}
+                <a href="{{ music_source.music_purchase_url }}" target="_blank" rel="noopener"
+                   class="btn btn-sm btn-secondary mt-3"
+                   onclick="if (typeof gtag === 'function') gtag('event', 'get_music_click', {playalong_title: '{{ title|escapejs }}'});">
+                    <i class="fas fa-shopping-cart mr-2"></i>
+                    Get the music
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% if permission_source and permission_source.permission_granted_by %}
+            <p class="text-xs text-base-content/60 mt-3">
+                The recording is provided with the kind permission of {{ permission_source.permission_granted_by }}.
+            </p>
+            {% endif %}
+            <p class="text-xs text-base-content/60 mt-1">
+                <a href="{% url 'playalongs:editions' %}" class="link">Why some play-alongs need your own copy</a>
+            </p>
+        </div>
+    </div>
+{% endif %}

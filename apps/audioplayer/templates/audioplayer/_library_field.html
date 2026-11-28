@@ -1,0 +1,8 @@
+<div class="form-control mb-4">
+    <label class="label" for="{{ field.id_for_label }}">
+        <span class="label-text font-semibold">{{ field.label }}</span>
+    </label>
+    {{ field }}
+    {% if field.help_text %}<span class="text-xs text-gray-600 mt-1">{{ field.help_text }}</span>{% endif %}
+    {% if field.errors %}<p class="mt-1 text-sm font-medium text-red-600">{{ field.errors.0 }}</p>{% endif %}
+</div>

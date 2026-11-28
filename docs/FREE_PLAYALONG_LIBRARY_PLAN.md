@@ -1,6 +1,6 @@
 # Free Play-Along Library — Plan
 
-Status: **proposed** (28 Nov 2026). Nothing in this plan is built yet unless marked as done.
+Status: **built** (28 Nov 2026), on staging for testing. Decisions taken: the recommended option for each question in section 14. See "As built" at the end.
 
 ## 1. Goal
 
@@ -207,3 +207,28 @@ Phases 1 and 2 can go live together for a launch. The others follow independentl
 5. **"Get the music" links:** plain links, or affiliate links where available?
 6. **Permission expiry:** do you want expiry dates and reminders, or are permissions open-ended?
 7. **Featured items** for launch: which three to six?
+
+
+## As built (28 Nov 2026)
+
+| Plan item | Where |
+|---|---|
+| Public pages | `apps/audioplayer/public_views.py`, `public_urls.py` (namespace `playalongs`, mounted at `/playalongs/`), templates in `apps/audioplayer/templates/playalongs/` |
+| Addresses | `/playalongs/` landing, `/playalongs/library/`, `/playalongs/piece/<slug>/`, `/playalongs/collection/<slug>/`, `/playalongs/composer/<slug>/`, `/playalongs/editions/`. Old `/audioplayer/library/...` player addresses redirect (301). JSON endpoints unchanged. |
+| Piece and collection pages | Built on `audioplayer/audio_player.html`, which now has blocks `player_breadcrumbs`, `player_header`, `player_after`, `player_back` |
+| Data | `LibraryItemFields` abstract model (slug, featured, permission, "Get the music", edition) on Piece and PieceCollection; `Composer.slug`; `PieceCollection.in_copyright`; `UserProfile.signup_source`. Migrations audioplayer 0016–0018, accounts 0018 |
+| Copyright rules | `Piece.is_copyright_locked` / `PieceCollection.is_copyright_locked` now allow a valid permission (own, or a collection's for its pieces). `clean()` also requires "Get the music" details for public in-copyright items and rejects sheet music on in-copyright items. `views._score_url` hides scores of in-copyright items from everyone but teachers, and PDFs from visitors |
+| Preview | Visitors get 30 seconds and disabled track controls (`audio_player.js`, `#is-preview`). The audio files themselves are still reachable through the JSON, so this is a nudge, not a lock |
+| Accounts | Log-in now honours `?next=`; sign-up remembers `next` and marks library sign-ups (`signup_source='playalongs'`); first email verification sends the library welcome email |
+| Analytics | GA4 events `playalong_view`, `playalong_play`, `edition_download`, `get_music_click`, `playalong_signup` |
+| Management | Status badges, "Needs attention" tab, "Publish" (collection and its pieces), "View as visitor" (`?as_visitor=1`), Featured, permission fields, composer counts |
+| Expiry | `manage.py expire_playalong_permissions` (daily): makes expired items private, emails 30 days ahead and on expiry |
+| Products | `manage.py move_playalong_products_to_library` (run once): publishes linked collections/pieces and archives the product. Archived play-along product pages redirect to the library. New products can't be play-alongs |
+| Terms | Section 6.3 in `templates/core/terms.html` |
+
+### Deploy steps (each server)
+1. Deploy as usual (migrations run).
+2. `python manage.py move_playalong_products_to_library --dry-run`, then without `--dry-run`.
+3. Add the daily cron line:
+   `15 3 * * * cd /var/www/recorder_ed && venv/bin/python manage.py expire_playalong_permissions >> /var/log/recordered/playalongs.log 2>&1`
+4. Mark featured items and fill in edition details in Manage Library.

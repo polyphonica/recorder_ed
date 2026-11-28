@@ -1,0 +1,82 @@
+{% extends "audioplayer/audio_player.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_head %}
+{{ block.super }}
+<script type="application/ld+json">{{ schema_json|safe }}</script>
+<script>
+    if (typeof gtag === 'function') gtag('event', 'playalong_view', {playalong_title: '{{ title|escapejs }}', preview: {% if is_preview %}true{% else %}false{% endif %}});
+</script>
+{% endblock %}
+
+{% block player_breadcrumbs %}
+<nav class="breadcrumbs text-sm mb-6">
+    <ul>
+        <li><a href="{% url 'playalongs:home' %}">Play-Along Library</a></li>
+        {% if composer %}<li><a href="{{ composer.get_absolute_url }}">{{ composer.name }}</a></li>{% endif %}
+        <li>{{ piece.title }}</li>
+    </ul>
+</nav>
+{% endblock %}
+
+{% block player_header %}
+{% include "playalongs/_manage_bar.html" %}
+<section class="mb-6">
+    <h1 class="text-3xl font-bold mb-2">{{ piece.title }}</h1>
+    {% if composer %}
+    <p class="text-lg text-base-content/70 mb-4">
+        by <a href="{{ composer.get_absolute_url }}" class="link link-hover">{{ composer.name }}</a>
+        {% if composer.dates %}({{ composer.dates }}){% endif %}
+    </p>
+    {% endif %}
+    <div class="flex flex-wrap gap-2 mb-4">
+        {% if piece.grade_level and piece.grade_level != 'N/A' %}<span class="badge badge-outline">{{ piece.get_grade_level_display }}</span>{% endif %}
+        {% if piece.difficulty %}<span class="badge badge-outline">{{ piece.get_difficulty_display }}</span>{% endif %}
+        {% if piece.genre %}<span class="badge badge-outline">{{ piece.get_genre_display }}</span>{% endif %}
+        {% if copyright_status == 'public_domain' and piece.pdf_score %}<span class="badge badge-primary">Recorder-ed Edition included</span>{% endif %}
+        {% if copyright_status != 'public_domain' %}<span class="badge badge-secondary">Bring your own copy</span>{% endif %}
+    </div>
+    {% if piece.description %}<p class="mb-4">{{ piece.description }}</p>{% endif %}
+    <p class="text-sm text-base-content/70">
+        Press <strong>Play</strong> to hear all the parts. Use <strong>Mute</strong> to silence your part and play along,
+        or <strong>Solo</strong> to hear one part on its own.
+    </p>
+</section>
+{% include "playalongs/_preview_signup.html" %}
+{% include "playalongs/_music_panel.html" %}
+{% endblock %}
+
+{% block player_after %}
+<div class="mt-8">
+    {% include "playalongs/_lessons_prompt.html" %}
+    {% include "playalongs/_composer_bio.html" %}
+
+    {% if collections %}
+    <h2 class="text-xl font-bold mb-3">Also in</h2>
+    <ul class="mb-6 space-y-1">
+        {% for collection in collections %}
+        <li><a href="{{ collection.get_absolute_url }}" class="link link-primary">{{ collection.title }}</a></li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if related_pieces %}
+    <h2 class="text-xl font-bold mb-3">More by {{ composer.name }}</h2>
+    <ul class="mb-6 space-y-1">
+        {% for other in related_pieces %}
+        <li><a href="{{ other.get_absolute_url }}" class="link link-primary">{{ other.title }}</a></li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block player_back %}
+<div class="mt-8 mb-8 text-center">
+    <a href="{% url 'playalongs:library' %}" class="btn btn-primary">
+        <i class="fas fa-arrow-left mr-2"></i>
+        Browse the library
+    </a>
+</div>
+{% endblock %}

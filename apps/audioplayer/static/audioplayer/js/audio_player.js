@@ -14,6 +14,46 @@ let stemsData = [];          // Stores stem definitions per instance for deferre
 let activeInstance = null;    // Which instance currently has a loaded playlist (or null)
 let isInitializing = false;  // Guard against double-init during async load
 
+// ----- Public library: preview for visitors, analytics, lessons prompt -----
+const PREVIEW_SECONDS = 30;
+let playTracked = [];        // Instances whose first play has been reported
+
+function isPreviewMode() {
+    return document.getElementById('is-preview')?.value === 'true';
+}
+
+function trackEvent(name, params = {}) {
+    if (typeof gtag !== 'function') return;
+    const title = document.getElementById('playalong-title')?.value;
+    gtag('event', name, Object.assign(title ? { playalong_title: title } : {}, params));
+}
+
+function showPreviewEnd() {
+    const panel = document.getElementById('preview-signup');
+    if (!panel) return;
+    panel.classList.remove('hidden');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function disablePreviewControls() {
+    document.querySelectorAll('#players-container .track-column button, #players-container .track-column input')
+        .forEach(el => {
+            el.disabled = true;
+            el.title = 'Create a free account to mute, solo and adjust parts';
+        });
+}
+
+function notePlayForLessonsPrompt() {
+    const prompt = document.getElementById('lessons-prompt');
+    if (!prompt) return;
+    let plays = 0;
+    try {
+        plays = parseInt(localStorage.getItem('recordered_playalong_plays') || '0', 10) + 1;
+        localStorage.setItem('recordered_playalong_plays', String(plays));
+    } catch (e) { return; }
+    if (plays >= 3) prompt.classList.remove('hidden');
+}
+
 /**
  * Initialize all audio players for pieces in a lesson (legacy function for backwards compatibility)
  */
@@ -149,6 +189,14 @@ function setupTimeUpdateListener(instance) {
         if (seekSlider && duration > 0) {
             const newValue = (position / duration) * 1000;
             seekSlider.value = newValue;
+        }
+
+        // Visitors hear a preview, then are invited to create a free account
+        if (isPreviewMode() && isPlaying[instance] && position >= PREVIEW_SECONDS) {
+            eventEmitters[instance].emit('stop');
+            resetPlayerUI(instance);
+            showPreviewEnd();
+            return;
         }
 
         // Detect when playback reaches the end
@@ -446,6 +494,12 @@ async function togglePlay(instance, button) {
     button.classList.add('playing');
     eventEmitters[instance].emit('select', 0, 0); // Ensure playback always starts from the beginning
     eventEmitters[instance].emit('play');
+
+    if (!playTracked[instance]) {
+        playTracked[instance] = true;
+        trackEvent('playalong_play', { preview: isPreviewMode() });
+        notePlayForLessonsPrompt();
+    }
 }
 
 /**
@@ -635,6 +689,7 @@ async function initCollectionPlayers(collectionsData, startingPieceIndex) {
             pdfLink.href = collection.pdf_score;
             pdfLink.target = '_blank';
             pdfLink.download = '';
+        pdfLink.addEventListener('click', () => trackEvent('edition_download'));
             pdfLink.style.cssText = 'display: inline-flex; align-items: center; background: white; color: #667eea; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-weight: 500;';
 
             let pdfIcon = document.createElement('i');
@@ -883,6 +938,7 @@ async function createPiecePlayer(piece, pieceIndex, container, isInCollection = 
         pdfLink.href = piece.pdf_score;
         pdfLink.target = '_blank';
         pdfLink.download = '';
+        pdfLink.addEventListener('click', () => trackEvent('edition_download'));
         pdfLink.classList.add('btn', 'btn-primary', 'btn-outline');
 
         let pdfIcon = document.createElement('i');
@@ -987,6 +1043,8 @@ window.onload = async () => {
 
                 currentPieceIndex = await initCollectionPlayers(collectionsData, currentPieceIndex);
             }
+
+            if (isPreviewMode()) disablePreviewControls();
         } else {
             document.getElementById('players-container').innerHTML =
                 '<p style="text-align: center; color: #666; padding: 40px;">No playalong pieces available.</p>';

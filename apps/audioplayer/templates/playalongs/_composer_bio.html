@@ -1,0 +1,15 @@
+{% if composer and composer.bio %}
+<div class="card bg-base-100 shadow-md mb-6">
+    <div class="card-body">
+        <h2 class="card-title">
+            <i class="fas fa-user mr-2"></i>
+            About {{ composer.name }}
+            {% if composer.dates %}<span class="text-base font-normal text-base-content/70">({{ composer.dates }})</span>{% endif %}
+        </h2>
+        <div class="prose max-w-none">{{ composer.bio|safe }}</div>
+        <div class="card-actions justify-end">
+            <a href="{{ composer.get_absolute_url }}" class="link link-primary">More by {{ composer.name }}</a>
+        </div>
+    </div>
+</div>
+{% endif %}

@@ -1,0 +1,23 @@
+{# Public/private and copyright status for a piece or collection card. Expects `item`. #}
+<div class="flex flex-wrap gap-1 mt-2">
+    {% if item.is_public %}
+    <span class="badge badge-success badge-sm">Public</span>
+    {% else %}
+    <span class="badge badge-ghost badge-sm">Private</span>
+    {% endif %}
+    {% with status=item.copyright_status %}
+    {% if status == 'public_domain' %}
+    <span class="badge badge-outline badge-sm">Public domain</span>
+    {% elif status == 'permitted' %}
+    <span class="badge badge-outline badge-sm" title="Audio published with permission">In copyright · permission</span>
+    {% else %}
+    <span class="badge badge-warning badge-sm" title="Can only be assigned to your students">In copyright · students only</span>
+    {% endif %}
+    {% endwith %}
+    {% if item.is_featured %}<span class="badge badge-primary badge-sm">Featured</span>{% endif %}
+</div>
+{% if item.issues %}
+<ul class="text-xs text-warning mt-2 space-y-1">
+    {% for issue in item.issues %}<li><i class="fas fa-exclamation-triangle mr-1"></i>{{ issue }}</li>{% endfor %}
+</ul>
+{% endif %}

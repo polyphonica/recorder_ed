@@ -56,6 +56,7 @@ urlpatterns = [
     path('creator-studio/', include('apps.creator_studio.urls')),  # Creator Studio tools
     path('products/', include('apps.digital_products.urls')),
     path('audioplayer/', include('apps.audioplayer.urls')),
+    path('playalongs/', include('apps.audioplayer.public_urls')),
     path('messages/', include('apps.messaging.urls')),
     path('support/', include('apps.support.urls')),
     path('help/', include('apps.help_center.urls')),

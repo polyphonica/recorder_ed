@@ -4,6 +4,49 @@ from .models import Piece, Stem, LessonPiece, Composer, Tag, PieceCollection, Co
 from .fields import AutoConvertAudioFileField
 
 
+
+LIBRARY_FIELDS = [
+    'is_featured',
+    'edition_source', 'edition_editor', 'edition_notes',
+    'music_source_title', 'music_publisher', 'music_edition', 'music_purchase_url',
+    'audio_permission', 'permission_granted_by', 'permission_date', 'permission_expires',
+    'permission_notes', 'permission_document',
+]
+_TEXT = 'input input-bordered w-full'
+_CHECK = 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
+LIBRARY_WIDGETS = {
+    'is_featured': forms.CheckboxInput(attrs={'class': _CHECK}),
+    'audio_permission': forms.CheckboxInput(attrs={'class': _CHECK}),
+    'edition_source': forms.TextInput(attrs={'class': _TEXT}),
+    'edition_editor': forms.TextInput(attrs={'class': _TEXT}),
+    'edition_notes': forms.Textarea(attrs={'class': 'textarea textarea-bordered w-full', 'rows': 3}),
+    'music_source_title': forms.TextInput(attrs={'class': _TEXT}),
+    'music_publisher': forms.TextInput(attrs={'class': _TEXT}),
+    'music_edition': forms.TextInput(attrs={'class': _TEXT}),
+    'music_purchase_url': forms.URLInput(attrs={'class': _TEXT, 'placeholder': 'https://'}),
+    'permission_granted_by': forms.TextInput(attrs={'class': _TEXT}),
+    'permission_date': forms.DateInput(attrs={'class': _TEXT, 'type': 'date'}, format='%Y-%m-%d'),
+    'permission_expires': forms.DateInput(attrs={'class': _TEXT, 'type': 'date'}, format='%Y-%m-%d'),
+    'permission_notes': forms.Textarea(attrs={'class': 'textarea textarea-bordered w-full', 'rows': 2}),
+    'permission_document': forms.ClearableFileInput(attrs={'class': 'file-input file-input-bordered w-full'}),
+}
+LIBRARY_LABELS = {
+    'is_featured': 'Feature on the library landing page',
+    'edition_source': 'Source',
+    'edition_editor': 'Editor',
+    'edition_notes': 'Preface or editorial notes',
+    'music_source_title': 'Publication',
+    'music_publisher': 'Publisher',
+    'music_edition': 'Edition / catalogue number',
+    'music_purchase_url': 'Where to buy it',
+    'audio_permission': 'Permission granted to publish the audio',
+    'permission_granted_by': 'Granted by',
+    'permission_date': 'Date granted',
+    'permission_expires': 'Expires',
+    'permission_notes': 'Notes',
+    'permission_document': 'Letter or email',
+}
+
 class PieceForm(forms.ModelForm):
     """Form for creating/editing playalong pieces"""
 
@@ -57,7 +100,7 @@ class PieceForm(forms.ModelForm):
         fields = [
             'title', 'composer', 'grade_level', 'genre', 'difficulty',
             'tags', 'description', 'svg_image', 'pdf_score', 'pdf_score_title', 'is_public', 'show_in_library',
-            'in_copyright'
+            'in_copyright', *LIBRARY_FIELDS
         ]
         widgets = {
             'title': forms.TextInput(attrs={
@@ -105,6 +148,7 @@ class PieceForm(forms.ModelForm):
             'in_copyright': forms.CheckboxInput(attrs={
                 'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
             }),
+            **LIBRARY_WIDGETS,
         }
         labels = {
             'title': 'Piece Title',
@@ -120,6 +164,7 @@ class PieceForm(forms.ModelForm):
             'is_public': 'Make publicly visible in library',
             'show_in_library': 'Show as individual piece in library',
             'in_copyright': 'Music still in copyright',
+            **LIBRARY_LABELS,
         }
         help_texts = {
             'svg_image': 'Upload an image to display below the player for on-screen practice',
@@ -322,7 +367,8 @@ class PieceCollectionForm(forms.ModelForm):
         model = PieceCollection
         fields = [
             'title', 'description', 'composer', 'grade_level', 'genre',
-            'difficulty', 'tags', 'pdf_score', 'pdf_score_title', 'is_public'
+            'difficulty', 'tags', 'pdf_score', 'pdf_score_title', 'is_public', 'in_copyright',
+            *LIBRARY_FIELDS,
         ]
         widgets = {
             'title': forms.TextInput(attrs={
@@ -361,8 +407,14 @@ class PieceCollectionForm(forms.ModelForm):
             'is_public': forms.CheckboxInput(attrs={
                 'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
             }),
+            'in_copyright': forms.CheckboxInput(attrs={
+                'class': 'w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-4 focus:ring-blue-100 cursor-pointer'
+            }),
+            **LIBRARY_WIDGETS,
         }
         labels = {
+            'in_copyright': 'Music still in copyright',
+            **LIBRARY_LABELS,
             'title': 'Collection Title',
             'description': 'Description',
             'composer': 'Composer/Arranger',

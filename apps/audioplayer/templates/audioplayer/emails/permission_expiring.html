@@ -1,0 +1,16 @@
+{% extends "emails/base.html" %}
+{% block title %}Play-along permission expiring{% endblock %}
+{% block header_subtitle %}Play-along permission expiring{% endblock %}
+{% block content %}
+<p style="margin: 0 0 20px 0; font-size: 16px; color: #111827;">Hello <strong>{{ teacher_name }}</strong>,</p>
+<p style="margin: 0 0 20px 0; font-size: 16px; color: #374151;">
+    The permission to publish the audio of <strong>{{ item }}</strong>{% if item.permission_granted_by %} (granted by {{ item.permission_granted_by }}){% endif %}
+    expires on <strong>{{ expires|date:"j F Y" }}</strong>.
+</p>
+<p style="margin: 0 0 20px 0; font-size: 16px; color: #374151;">
+    After that date it will go private again: only students you have assigned it to will be able to play it.
+</p>
+<p style="margin: 0 0 20px 0;">
+    <a href="{{ edit_url }}" style="display: inline-block; background-color: #4f46e5; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">Update the permission</a>
+</p>
+{% endblock %}

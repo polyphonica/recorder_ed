@@ -99,6 +99,20 @@ class ProductDetailView(DetailView):
     slug_field = 'slug'
     slug_url_kwarg = 'slug'
 
+    def get(self, request, *args, **kwargs):
+        # Play-alongs moved to the free library: send old product links there
+        moved = DigitalProduct.objects.filter(
+            slug=kwargs.get('slug'), product_type='play_along', status='archived'
+        ).prefetch_related('product_collections__collection', 'product_pieces__piece').first()
+        if moved:
+            for link in moved.product_collections.all():
+                if link.collection.is_public:
+                    return redirect(link.collection.get_absolute_url(), permanent=True)
+            for link in moved.product_pieces.all():
+                if link.piece.is_public:
+                    return redirect(link.piece.get_absolute_url(), permanent=True)
+        return super().get(request, *args, **kwargs)
+
     def get_queryset(self):
         qs = DigitalProduct.objects.select_related(
             'teacher',

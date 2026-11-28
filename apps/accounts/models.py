@@ -108,6 +108,10 @@ class UserProfile(models.Model):
     # Email verification
     email_verified = models.BooleanField(default=False, help_text="Whether the user has verified their email address")
     email_verified_at = models.DateTimeField(null=True, blank=True, help_text="When the email was verified")
+    signup_source = models.CharField(
+        max_length=50, blank=True,
+        help_text="Where the account was created from, e.g. 'playalongs' for the Play-Along Library"
+    )
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)

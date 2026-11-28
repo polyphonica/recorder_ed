@@ -32,7 +32,7 @@
                 </div>
 
                 <div class="flex gap-2">
-                    <a href="{% url 'audioplayer:library_collection_player' collection_id=collection.pk %}" class="btn btn-success">
+                    <a href="{{ collection.get_absolute_url }}" class="btn btn-success">
                         <i class="fas fa-play mr-2"></i>
                         Play Collection
                     </a>

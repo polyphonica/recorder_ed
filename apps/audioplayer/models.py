@@ -1,6 +1,11 @@
+import datetime
+
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
 from apps.core.validators import (
     AUDIO_VALIDATORS,
@@ -20,12 +25,111 @@ COPYRIGHT_LOCK_MESSAGE = (
 )
 
 
+MISSING_MUSIC_SOURCE_MESSAGE = (
+    "Music still in copyright can only be public with a \"Get the music\" source, "
+    "so players know where to buy their copy."
+)
+NO_SCORE_IN_COPYRIGHT_MESSAGE = (
+    "Sheet music can't be attached to music still in copyright. "
+    "Players use their own copy instead."
+)
+
+
+def valid_permission_q(prefix=''):
+    """Q for items whose audio permission is recorded and hasn't expired."""
+    today = timezone.localdate()
+    return (
+        models.Q(**{f'{prefix}audio_permission': True}) &
+        (models.Q(**{f'{prefix}permission_expires__isnull': True}) |
+         models.Q(**{f'{prefix}permission_expires__gte': today}))
+    )
+
+
+def unique_slug(model, value, instance_pk=None, max_length=200):
+    """A slug for value that no other row of model uses."""
+    base = slugify(value)[:max_length].strip('-') or 'item'
+    slug, n = base, 2
+    while model.objects.filter(slug=slug).exclude(pk=instance_pk).exists():
+        suffix = f'-{n}'
+        slug = base[:max_length - len(suffix)] + suffix
+        n += 1
+    return slug
+
+
 def make_copyright_items_private(pieces):
-    """Make these pieces, and any public collection containing them, private."""
+    """Make these pieces, and any public collection containing them without permission, private."""
     pieces.filter(is_public=True).update(is_public=False)
     PieceCollection.objects.filter(
         is_public=True, collection_memberships__piece__in=pieces
-    ).update(is_public=False)
+    ).exclude(valid_permission_q()).update(is_public=False)
+
+
+class LibraryItemFields(models.Model):
+    """
+    Fields shared by pieces and collections for the public library:
+    copyright permission, where to get the music, and edition details.
+    """
+    slug = models.SlugField(max_length=220, unique=True, blank=True,
+                            help_text="Web address of the public page. Filled in automatically.")
+    is_featured = models.BooleanField(
+        default=False, help_text="Show on the Play-Along Library landing page"
+    )
+
+    # Permission to publish the audio of music still in copyright
+    audio_permission = models.BooleanField(
+        default=False,
+        help_text="The copyright holder has given permission to publish the audio"
+    )
+    permission_granted_by = models.CharField(max_length=200, blank=True,
+                                             help_text="e.g. Schott Music Ltd")
+    permission_date = models.DateField(null=True, blank=True)
+    permission_expires = models.DateField(
+        null=True, blank=True,
+        help_text="Leave blank if the permission doesn't expire. It goes private again after this date."
+    )
+    permission_notes = models.TextField(blank=True, help_text="Terms, contact, reference number")
+    permission_document = models.FileField(
+        upload_to='audioplayer/permissions/', storage=protected_storage, blank=True,
+        help_text="The letter or email granting permission (private, only you can see it)"
+    )
+
+    # "Get the music" (music still in copyright)
+    music_source_title = models.CharField(
+        max_length=255, blank=True,
+        help_text="The publication players need, e.g. \"Giesbert: Method for the Treble Recorder\""
+    )
+    music_publisher = models.CharField(max_length=200, blank=True, help_text="e.g. Schott Music")
+    music_edition = models.CharField(max_length=100, blank=True, help_text="Edition or catalogue number, e.g. ED 2561")
+    music_purchase_url = models.URLField(blank=True, help_text="Where to buy it (publisher or shop page)")
+
+    # Recorder-ed Edition (public domain)
+    edition_source = models.CharField(
+        max_length=255, blank=True,
+        help_text="The source your edition is made from, e.g. \"Op. 1, Amsterdam 1708 (facsimile)\""
+    )
+    edition_editor = models.CharField(max_length=200, blank=True,
+                                      help_text="Leave blank to use your own name")
+    edition_notes = models.TextField(blank=True, help_text="Short preface or editorial notes shown on the page")
+
+    class Meta:
+        abstract = True
+
+    @property
+    def has_valid_permission(self):
+        if not self.audio_permission:
+            return False
+        return self.permission_expires is None or self.permission_expires >= timezone.localdate()
+
+    @property
+    def editor_name(self):
+        if self.edition_editor:
+            return self.edition_editor
+        user = getattr(self, 'created_by', None)
+        return (user.get_full_name() or user.username) if user else ''
+
+    def _ensure_slug(self, value):
+        if not self.slug:
+            self.slug = unique_slug(type(self), value, self.pk)
 
 
 class Composer(models.Model):
@@ -53,6 +157,7 @@ class Composer(models.Model):
         default=False,
         help_text=COPYRIGHT_HELP + " Applies to every piece by this composer."
     )
+    slug = models.SlugField(max_length=220, unique=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -65,10 +170,16 @@ class Composer(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = unique_slug(Composer, self.name, self.pk)
         super().save(*args, **kwargs)
         if self.in_copyright:
-            make_copyright_items_private(Piece.objects.filter(composer=self))
-            PieceCollection.objects.filter(composer=self, is_public=True).update(is_public=False)
+            make_copyright_items_private(Piece.objects.filter(composer=self).copyright_locked())
+            PieceCollection.objects.filter(composer=self, is_public=True).exclude(
+                valid_permission_q()).update(is_public=False)
+
+    def get_absolute_url(self):
+        return reverse('playalongs:composer', kwargs={'slug': self.slug})
 
 
 class Tag(models.Model):
@@ -88,7 +199,7 @@ class Tag(models.Model):
         return self.name
 
 
-class PieceCollection(models.Model):
+class PieceCollection(LibraryItemFields):
     """
     A collection of related pieces (e.g., "Syncopation Exercises", "Scale Patterns").
     Allows grouping multiple pieces together for easier assignment and organization.
@@ -186,6 +297,10 @@ class PieceCollection(models.Model):
         default=True,
         help_text="If checked, collection appears in library for all students"
     )
+    in_copyright = models.BooleanField(
+        default=False,
+        help_text=COPYRIGHT_HELP + " Use for a modern arrangement or book, even when the composers aren't."
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -209,29 +324,60 @@ class PieceCollection(models.Model):
     def piece_count(self):
         return self.collection_memberships.count()
 
-    @property
-    def is_copyright_locked(self):
-        """True if the collection's composer, or any piece in it, is in copyright."""
-        if self.composer_id and self.composer.in_copyright:
-            return True
+    def _member_pieces(self):
         # A form that is about to change the pieces sets _pending_piece_ids,
-        # so the check uses the pieces being saved rather than the old ones
+        # so the checks use the pieces being saved rather than the old ones
         pending = getattr(self, '_pending_piece_ids', None)
         if pending is not None:
-            return Piece.objects.copyright_locked().filter(pk__in=pending).exists()
+            return Piece.objects.filter(pk__in=pending)
         if not self.pk:
+            return Piece.objects.none()
+        return Piece.objects.filter(collection_memberships__collection=self)
+
+    @property
+    def is_in_copyright(self):
+        """The collection itself, its composer, or any piece in it is in copyright."""
+        if self.in_copyright or (self.composer_id and self.composer.in_copyright):
+            return True
+        return self._member_pieces().in_copyright().exists()
+
+    @property
+    def is_copyright_locked(self):
+        """In copyright without permission, so it can't be public."""
+        if self.has_valid_permission:
             return False
-        return Piece.objects.copyright_locked().filter(collection_memberships__collection=self).exists()
+        if self.in_copyright or (self.composer_id and self.composer.in_copyright):
+            return True
+        return self._member_pieces().copyright_locked().exists()
+
+    @property
+    def copyright_status(self):
+        """'public_domain', 'permitted' or 'students_only'."""
+        if not self.is_in_copyright:
+            return 'public_domain'
+        return 'students_only' if self.is_copyright_locked else 'permitted'
 
     def clean(self):
         super().clean()
+        errors = {}
+        in_copyright = self.is_in_copyright
         if self.is_public and self.is_copyright_locked:
-            raise ValidationError({'is_public': COPYRIGHT_LOCK_MESSAGE})
+            errors['is_public'] = COPYRIGHT_LOCK_MESSAGE
+        elif self.is_public and in_copyright and not self.music_source_title:
+            errors['music_source_title'] = MISSING_MUSIC_SOURCE_MESSAGE
+        if in_copyright and self.pdf_score:
+            errors['pdf_score'] = NO_SCORE_IN_COPYRIGHT_MESSAGE
+        if errors:
+            raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
+        self._ensure_slug(self.title)
         if self.is_public and self.is_copyright_locked:
             self.is_public = False
         super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse('playalongs:collection', kwargs={'slug': self.slug})
 
 
 class CollectionPiece(models.Model):
@@ -266,17 +412,29 @@ class CollectionPiece(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Adding a piece in copyright makes a public collection private
+        # Adding a piece in copyright without permission makes a public collection private
         if self.piece.is_copyright_locked:
-            PieceCollection.objects.filter(pk=self.collection_id, is_public=True).update(is_public=False)
+            PieceCollection.objects.filter(pk=self.collection_id, is_public=True).exclude(
+                valid_permission_q()).update(is_public=False)
 
 
 class PieceQuerySet(models.QuerySet):
-    def copyright_locked(self):
+    def in_copyright(self):
         return self.filter(models.Q(in_copyright=True) | models.Q(composer__in_copyright=True))
 
+    def cleared(self):
+        """Pieces with audio permission of their own or through a collection."""
+        permitted_collections = PieceCollection.objects.filter(valid_permission_q())
+        through_collection = CollectionPiece.objects.filter(
+            collection__in=permitted_collections).values('piece_id')
+        return self.filter(valid_permission_q() | models.Q(pk__in=through_collection))
 
-class Piece(models.Model):
+    def copyright_locked(self):
+        """In copyright and without permission."""
+        return self.in_copyright().exclude(pk__in=self.cleared().values('pk'))
+
+
+class Piece(LibraryItemFields):
     """
     A playalong piece with title, optional sheet music, and metadata for library organization.
     Reusable across multiple lessons. Can be standalone or part of a collection.
@@ -419,20 +577,80 @@ class Piece(models.Model):
         return self.title
 
     @property
-    def is_copyright_locked(self):
+    def is_in_copyright(self):
         return self.in_copyright or bool(self.composer_id and self.composer.in_copyright)
+
+    @property
+    def permitted_collections(self):
+        if not self.pk:
+            return PieceCollection.objects.none()
+        return PieceCollection.objects.filter(
+            valid_permission_q(), collection_memberships__piece=self)
+
+    @property
+    def is_cleared(self):
+        return self.has_valid_permission or self.permitted_collections.exists()
+
+    @property
+    def is_copyright_locked(self):
+        """In copyright without permission, so it can't be public."""
+        return self.is_in_copyright and not self.is_cleared
+
+    @property
+    def copyright_status(self):
+        """'public_domain', 'permitted' or 'students_only'."""
+        if not self.is_in_copyright:
+            return 'public_domain'
+        return 'students_only' if self.is_copyright_locked else 'permitted'
+
+    def music_source(self, collection=None):
+        """
+        The item whose "Get the music" details apply: the piece's own, else the
+        collection it is being played in, else any collection with details.
+        """
+        if self.music_source_title:
+            return self
+        if collection is not None and collection.music_source_title:
+            return collection
+        if not self.pk:
+            return None
+        return PieceCollection.objects.filter(
+            collection_memberships__piece=self).exclude(music_source_title='').first()
+
+    def permission_source(self, collection=None):
+        """The item whose recorded permission covers this piece, if any."""
+        if self.has_valid_permission:
+            return self
+        if collection is not None and collection.has_valid_permission:
+            return collection
+        return self.permitted_collections.first()
 
     def clean(self):
         super().clean()
+        errors = {}
+        in_copyright = self.is_in_copyright
         if self.is_public and self.is_copyright_locked:
-            raise ValidationError({'is_public': COPYRIGHT_LOCK_MESSAGE})
+            errors['is_public'] = COPYRIGHT_LOCK_MESSAGE
+        elif self.is_public and in_copyright and not self.music_source():
+            errors['music_source_title'] = MISSING_MUSIC_SOURCE_MESSAGE
+        if in_copyright and self.pdf_score:
+            errors['pdf_score'] = NO_SCORE_IN_COPYRIGHT_MESSAGE
+        if in_copyright and self.svg_image:
+            errors['svg_image'] = NO_SCORE_IN_COPYRIGHT_MESSAGE
+        if errors:
+            raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
+        composer = self.composer.name if self.composer_id else ''
+        self._ensure_slug(f'{composer} {self.title}' if composer else self.title)
         if self.is_public and self.is_copyright_locked:
             self.is_public = False
         super().save(*args, **kwargs)
         if self.pk and self.is_copyright_locked:
             make_copyright_items_private(Piece.objects.filter(pk=self.pk))
+
+    def get_absolute_url(self):
+        return reverse('playalongs:piece', kwargs={'slug': self.slug})
 
     @property
     def collections(self):

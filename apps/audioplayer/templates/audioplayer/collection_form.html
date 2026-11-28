@@ -173,7 +173,7 @@
                                 <span class="block text-sm text-gray-600 mt-1">{{ form.is_public.help_text }}</span>
                                 {% if collection.is_copyright_locked %}
                                 <span class="block text-sm text-gray-600 mt-1">
-                                    <i class="fas fa-lock mr-1"></i>This collection contains music still in copyright, so it stays private. Assign it to your students instead.
+                                    <i class="fas fa-lock mr-1"></i>This collection contains music still in copyright, so it stays private until permission is recorded below. Until then, assign it to your students.
                                 </span>
                                 {% endif %}
                             </span>
@@ -226,6 +226,19 @@
                     <ul id="pieces-list" class="space-y-2"></ul>
                     {% endif %}
                 </div>
+            </div>
+
+            {% include "audioplayer/_library_fields.html" with item_label="collection" %}
+
+            <!-- Collection copyright -->
+            <div class="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                <label class="flex items-start gap-3 cursor-pointer">
+                    {{ form.in_copyright }}
+                    <span class="flex-1">
+                        <span class="block text-base font-semibold text-gray-900">{{ form.in_copyright.label }}</span>
+                        <span class="block text-sm text-gray-600 mt-1">{{ form.in_copyright.help_text }}</span>
+                    </span>
+                </label>
             </div>
 
             <!-- Submit -->

@@ -51,7 +51,10 @@
                     <tbody>
                         {% for composer in composers %}
                         <tr>
-                            <td class="font-semibold">{{ composer.name }}</td>
+                            <td class="font-semibold">
+                                {{ composer.name }}
+                                {% if composer.in_copyright %}<span class="badge badge-warning badge-sm ml-1">In copyright</span>{% endif %}
+                            </td>
                             <td>
                                 {% if composer.period %}
                                     <span class="badge badge-outline">{{ composer.period }}</span>
@@ -60,7 +63,9 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <span class="badge badge-primary">{{ composer.pieces.count }}</span>
+                                <span class="badge badge-primary">{{ composer.piece_total }}</span>
+                                <span class="text-xs text-base-content/70 ml-1">{{ composer.public_total }} public</span>
+                                {% if composer.public_total %}<a href="{{ composer.get_absolute_url }}" class="link text-xs ml-1">Public page</a>{% endif %}
                             </td>
                             <td>
                                 {% if composer.bio %}

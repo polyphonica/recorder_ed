@@ -1,0 +1,16 @@
+{# A piece or collection card. Expects `item`. #}
+<a href="{{ item.get_absolute_url }}" class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow{% if item.piece_count %} border-l-4 border-secondary{% endif %}">
+    <div class="card-body">
+        <h3 class="card-title">{{ item.title }}</h3>
+        {% if item.composer %}<p class="text-sm text-base-content/70">{{ item.composer.name }}</p>{% endif %}
+        {% if item.description %}<p class="text-sm text-base-content/60">{{ item.description|truncatewords:18 }}</p>{% endif %}
+        <div class="flex flex-wrap gap-2 mt-2">
+            {% if item.copyright_status == 'public_domain' %}
+                {% if item.pdf_score %}<span class="badge badge-primary badge-sm">Edition included</span>{% endif %}
+            {% else %}
+                <span class="badge badge-secondary badge-sm">Bring your own copy</span>
+            {% endif %}
+            {% if item.grade_level and item.grade_level != 'N/A' %}<span class="badge badge-outline badge-sm">{{ item.get_grade_level_display }}</span>{% endif %}
+        </div>
+    </div>
+</a>

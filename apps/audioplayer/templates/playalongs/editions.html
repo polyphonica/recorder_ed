@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+    <nav class="breadcrumbs text-sm mb-6">
+        <ul>
+            <li><a href="{% url 'playalongs:home' %}">Play-Along Library</a></li>
+            <li>About our editions &amp; copyright</li>
+        </ul>
+    </nav>
+
+    <h1 class="text-3xl font-bold mb-6">About our editions &amp; copyright</h1>
+
+    <div class="prose max-w-none">
+        <h2>Recorder-ed Editions</h2>
+        <p>
+            Music by composers who died more than 70 years ago is out of copyright. For these pieces we
+            prepare our own Recorder-ed Editions, working from original prints, manuscripts or facsimiles
+            rather than from modern editions.
+        </p>
+        <p>
+            Each edition names its source. Anything we have added, such as ornaments, breathing marks or
+            suggested slurs, is shown as an editorial suggestion, so you can tell it apart from what the
+            composer wrote.
+        </p>
+
+        <h2>How you may use them</h2>
+        <ul>
+            <li>Download and print them for your own study and practice.</li>
+            <li>Teachers may use them with their own pupils.</li>
+            <li>Please don't share the files publicly, upload them elsewhere, or sell them. Link to the play-along page instead.</li>
+        </ul>
+        <p>Downloading an edition needs a free Recorder-ed account.</p>
+
+        <h2>Music still in copyright</h2>
+        <p>
+            Some play-alongs are of music that is still in copyright. We only publish these recordings with
+            the permission of the copyright holder, and we never include the sheet music.
+        </p>
+        <p>
+            To play along you'll need your own copy. Each of these pieces tells you which publication it
+            comes from and where to buy it. Buying the music supports the composers and publishers who
+            make it available.
+        </p>
+
+        <h2>Questions</h2>
+        <p>
+            If you hold the rights to a piece and have a question about how it is used here, please
+            <a href="{% url 'support:public_contact' %}">contact us</a>.
+        </p>
+    </div>
+
+    <div class="mt-8 text-center">
+        <a href="{% url 'playalongs:library' %}" class="btn btn-primary">Browse the library</a>
+    </div>
+</div>
+{% endblock %}

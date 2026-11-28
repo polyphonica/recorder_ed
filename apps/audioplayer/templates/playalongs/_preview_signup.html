@@ -1,0 +1,21 @@
+{# Shown to visitors when the preview ends #}
+{% if is_preview %}
+<div id="preview-signup" class="hidden alert alert-info shadow-lg mb-6" role="status">
+    <i class="fas fa-music"></i>
+    <div>
+        <h3 class="font-bold">That was a preview</h3>
+        <p class="text-sm">Create a free account to play the whole piece, mute and solo the parts, and download editions.</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="{{ signup_url }}" class="btn btn-sm btn-primary">Create free account</a>
+        <a href="{{ login_url }}" class="btn btn-sm btn-ghost">Log in</a>
+    </div>
+</div>
+<div class="alert mb-6">
+    <i class="fas fa-info-circle"></i>
+    <span>
+        You're hearing a 30-second preview.
+        <a href="{{ signup_url }}" class="link link-primary">Create a free account</a> to play in full and use all the controls.
+    </span>
+</div>
+{% endif %}

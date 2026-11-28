@@ -1,0 +1,9 @@
+{% autoescape off %}Subject: Play-along made private: {{ item }}
+
+Hello {{ teacher_name }},
+
+The permission to publish the audio of "{{ item }}" expired on {{ expires|date:"j F Y" }}, so it is now private. Students you have assigned it to can still play it.
+
+If the permission has been renewed, update it and make it public again here:
+{{ edit_url }}
+{% endautoescape %}

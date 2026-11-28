@@ -25,29 +25,121 @@ def teacher_required(view_func):
     return wrapper
 
 
+# ===== SHEET MUSIC IN PLAYER DATA =====
+
+def _score_url(item, field, user):
+    """
+    URL of a piece's or collection's score image or PDF for the player, or None.
+    Music still in copyright never gets sheet music, except for teachers
+    checking their own uploads. PDF downloads need a (free) account.
+    """
+    file = getattr(item, field)
+    if not file:
+        return None
+    is_teacher = user.is_authenticated and (user.is_staff or _is_teacher(user))
+    if item.is_in_copyright and not is_teacher:
+        return None
+    if field == 'pdf_score' and not user.is_authenticated:
+        return None
+    return file.url
+
+
 # ===== TEACHER VIEWS - Piece Library Management =====
+
+def _attention_issues(item, is_collection):
+    """Things about a library item the teacher may want to sort out."""
+    import datetime
+    from django.utils import timezone
+    issues = []
+    status = item.copyright_status
+    if item.is_public and status == 'public_domain' and not item.pdf_score:
+        issues.append('Public, but no edition PDF yet')
+    if item.is_public and status == 'permitted':
+        source = item.music_source_title if is_collection else item.music_source()
+        if not source:
+            issues.append('No "Get the music" details')
+    if item.audio_permission and item.permission_expires:
+        days = (item.permission_expires - timezone.localdate()).days
+        if days < 0:
+            issues.append(f'Permission expired on {item.permission_expires:%d %b %Y}')
+        elif days <= 60:
+            issues.append(f'Permission expires on {item.permission_expires:%d %b %Y}')
+    if is_collection and item.is_public:
+        private = item.collection_memberships.filter(piece__is_public=False).count()
+        if private:
+            issues.append(f'{private} private piece{"s" if private != 1 else ""} playable through this public collection')
+    return issues
+
 
 @teacher_required
 def piece_list(request):
     """List all pieces and collections created by the logged-in teacher"""
-    # Get filter from query params
-    view_filter = request.GET.get('filter', 'all')  # 'all', 'pieces', 'collections'
+    # 'all', 'pieces', 'collections' or 'attention'
+    view_filter = request.GET.get('filter', 'all')
 
-    pieces = Piece.objects.filter(
+    pieces = list(Piece.objects.filter(
         created_by=request.user
-    ).prefetch_related('stems', 'lesson_assignments__lesson', 'collection_memberships__collection')
+    ).select_related('composer').prefetch_related('stems', 'lesson_assignments__lesson', 'collection_memberships__collection'))
 
-    collections = PieceCollection.objects.filter(
+    collections = list(PieceCollection.objects.filter(
         created_by=request.user
-    ).prefetch_related('collection_memberships__piece__stems', 'tags')
+    ).select_related('composer').prefetch_related('collection_memberships__piece__stems', 'tags'))
+
+    for piece in pieces:
+        piece.issues = _attention_issues(piece, is_collection=False)
+    for collection in collections:
+        collection.issues = _attention_issues(collection, is_collection=True)
+
+    attention_count = sum(1 for item in pieces + collections if item.issues)
+    if view_filter == 'attention':
+        pieces = [p for p in pieces if p.issues]
+        collections = [c for c in collections if c.issues]
 
     context = {
-        'pieces': pieces if view_filter in ['all', 'pieces'] else [],
-        'collections': collections if view_filter in ['all', 'collections'] else [],
+        'pieces': pieces if view_filter in ['all', 'pieces', 'attention'] else [],
+        'collections': collections if view_filter in ['all', 'collections', 'attention'] else [],
         'view_filter': view_filter,
+        'attention_count': attention_count,
         'title': 'My Playalong Library'
     }
     return render(request, 'audioplayer/piece_list.html', context)
+
+
+@teacher_required
+def collection_publish(request, pk):
+    """Make a collection and all its pieces public in one step, where the copyright lock allows."""
+    from django.core.exceptions import ValidationError
+    collection = get_object_or_404(PieceCollection, pk=pk, created_by=request.user)
+    if request.method != 'POST':
+        return redirect('audioplayer:piece_list')
+
+    collection.is_public = True
+    try:
+        collection.clean()
+    except ValidationError as exc:
+        for errors in exc.message_dict.values():
+            for error in errors:
+                messages.error(request, f'"{collection.title}" can\'t be published: {error}')
+        return redirect('audioplayer:piece_list')
+
+    with transaction.atomic():
+        collection.save()
+        kept_private = 0
+        for membership in collection.collection_memberships.select_related('piece__composer'):
+            piece = membership.piece
+            if not piece.is_public:
+                piece.is_public = True
+                piece.save()  # the copyright lock may keep it private
+                if not piece.is_public:
+                    kept_private += 1
+
+    collection.refresh_from_db()
+    if not collection.is_public:
+        messages.error(request, f'"{collection.title}" stays private: it contains music still in copyright without permission.')
+    else:
+        note = f' {kept_private} piece(s) stay private because of copyright, but play through the collection.' if kept_private else ''
+        messages.success(request, f'"{collection.title}" and its pieces are now public.{note}')
+    return redirect('audioplayer:piece_list')
 
 
 @teacher_required
@@ -225,8 +317,8 @@ def pieces_json(request, lesson_id):
         piece_data = {
             'title': lp.piece.title,
             'stems': stems_data,
-            'svg_image': lp.piece.svg_image.url if lp.piece.svg_image else None,
-            'pdf_score': lp.piece.pdf_score.url if lp.piece.pdf_score else None,
+            'svg_image': _score_url(lp.piece, 'svg_image', request.user),
+            'pdf_score': _score_url(lp.piece, 'pdf_score', request.user),
             'pdf_score_title': lp.piece.pdf_score_title if lp.piece.pdf_score_title else None,
             'order': lp.order,
             'description': lp.piece.description if lp.piece.description else None,
@@ -383,8 +475,8 @@ def private_lesson_pieces_json(request, lesson_id):
         piece_data = {
             'title': lp.piece.title,
             'stems': stems_data,
-            'svg_image': lp.piece.svg_image.url if lp.piece.svg_image else None,
-            'pdf_score': lp.piece.pdf_score.url if lp.piece.pdf_score else None,
+            'svg_image': _score_url(lp.piece, 'svg_image', request.user),
+            'pdf_score': _score_url(lp.piece, 'pdf_score', request.user),
             'pdf_score_title': lp.piece.pdf_score_title if lp.piece.pdf_score_title else None,
             'order': lp.order,
             'description': lp.piece.description if lp.piece.description else None,
@@ -425,7 +517,7 @@ def private_lesson_pieces_json(request, lesson_id):
             piece_data = {
                 'title': piece.title,
                 'stems': stems_data,
-                'svg_image': piece.svg_image.url if piece.svg_image else None,
+                'svg_image': _score_url(piece, 'svg_image', request.user),
                 'order': cp.order,
                 'description': piece.description if piece.description else None,
             }
@@ -433,7 +525,7 @@ def private_lesson_pieces_json(request, lesson_id):
 
         collection_data = {
             'title': collection.title,
-            'pdf_score': collection.pdf_score.url if collection.pdf_score else None,
+            'pdf_score': _score_url(collection, 'pdf_score', request.user),
             'pdf_score_title': collection.pdf_score_title if collection.pdf_score_title else None,
             'order': lc.order,
             'pieces': collection_pieces,
@@ -554,15 +646,27 @@ def _deny_library_access(request):
     raise Http404
 
 
+def get_viewer(request):
+    """
+    The user the public library is shown for. Teachers can add ?as_visitor=1
+    to see a page exactly as a logged-out visitor would.
+    """
+    from django.contrib.auth.models import AnonymousUser
+    if request.GET.get('as_visitor') == '1' and _is_teacher(request.user):
+        return AnonymousUser()
+    return request.user
+
+
 class PlayAlongLibraryView(TemplateView):
     """
-    Play-along library for students and teachers.
-    Shows pieces from assigned lessons + all public pieces for browsing.
+    The Play-Along Library. Visitors and teachers browse everything public;
+    students also have a tab of what their teacher has given them.
     """
     template_name = 'audioplayer/library.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        viewer = get_viewer(self.request)
 
         # Get filter parameters
         search_query = self.request.GET.get('search', '').strip()
@@ -571,45 +675,29 @@ class PlayAlongLibraryView(TemplateView):
         genre = self.request.GET.get('genre', '').strip()
         difficulty = self.request.GET.get('difficulty', '').strip()
         tag_id = self.request.GET.get('tag', '').strip()
-        view_mode = self.request.GET.get('mode', 'my_pieces')  # 'my_pieces' or 'browse_all'
+        period = self.request.GET.get('period', '').strip()
 
-        # Determine if user is teacher
-        is_teacher = _is_teacher(self.request.user)
+        is_teacher = _is_teacher(viewer)
+        # Only students have a "From my teacher" tab
+        is_student_view = viewer.is_authenticated and not is_teacher
+        view_mode = self.request.GET.get('mode', 'my_pieces' if is_student_view else 'browse_all')
+        if not is_student_view or view_mode not in ('my_pieces', 'browse_all'):
+            view_mode = 'browse_all'
 
-        # Base queryset - will be filtered based on mode
         pieces = Piece.objects.select_related('composer').prefetch_related('tags', 'stems')
 
-        # Collections for students (will be populated below)
-        collections = PieceCollection.objects.none()
-
-        if view_mode == 'my_pieces' and self.request.user.is_authenticated:
-            # Show content based on user role
-            if is_teacher:
-                # Teachers see the same as "Browse All" - this view is a student preview
-                # For management, teachers use /audioplayer/pieces/
-                pieces = pieces.filter(is_public=True, show_in_library=True)
-                collections = PieceCollection.objects.filter(
-                    is_public=True
-                ).prefetch_related('collection_memberships__piece__stems', 'tags')
-            else:
-                # Students see pieces and collections assigned to them
-                piece_q, collection_q = _student_assigned_ids(self.request.user)
-                pieces = pieces.filter(piece_q).distinct()
-                collections = PieceCollection.objects.filter(
-                    collection_q
-                ).distinct().prefetch_related('collection_memberships__piece__stems', 'tags')
-
-        elif view_mode == 'browse_all':
-            # Show all public pieces and collections (both teachers and students)
-            # Respect show_in_library setting - pieces marked as hidden shouldn't appear
+        if view_mode == 'my_pieces':
+            piece_q, collection_q = _student_assigned_ids(viewer)
+            pieces = pieces.filter(piece_q).distinct()
+            collections = PieceCollection.objects.filter(
+                collection_q
+            ).distinct().prefetch_related('collection_memberships__piece__stems', 'tags')
+        else:
+            # Everything public. Pieces marked "only through collections" stay out of the list.
             pieces = pieces.filter(is_public=True, show_in_library=True)
             collections = PieceCollection.objects.filter(
                 is_public=True
             ).prefetch_related('collection_memberships__piece__stems', 'tags')
-        else:
-            # Default to empty if not authenticated
-            if not self.request.user.is_authenticated:
-                pieces = pieces.filter(is_public=True, show_in_library=True)
 
         # Remember what this user can see before filtering, so the composer
         # dropdown only offers composers that will actually return results
@@ -639,6 +727,9 @@ class PlayAlongLibraryView(TemplateView):
         if tag_id:
             pieces = pieces.filter(tags__id=tag_id)
 
+        if period:
+            pieces = pieces.filter(composer__period__iexact=period)
+
         # Apply filters to collections as well. Search and composer also match
         # the pieces inside a collection (collections have no composer of their own)
         if search_query:
@@ -660,6 +751,11 @@ class PlayAlongLibraryView(TemplateView):
             collections = collections.filter(difficulty=difficulty)
         if tag_id:
             collections = collections.filter(tags__id=tag_id)
+        if period:
+            collections = collections.filter(
+                Q(composer__period__iexact=period) |
+                Q(collection_memberships__piece__composer__period__iexact=period)
+            )
 
         pieces = pieces.distinct()
         collections = collections.distinct()
@@ -729,28 +825,19 @@ class PlayAlongLibraryView(TemplateView):
         context['show'] = show
         context['show_options'] = show_options
         context['has_filters'] = any([
-            search_query, composer_id, grade_level, genre, difficulty, tag_id, show != 'all'
+            search_query, composer_id, grade_level, genre, difficulty, tag_id, period, show != 'all'
         ])
+        context['selected_period'] = period
+        context['period_choices'] = sorted({
+            p for p in Composer.objects.filter(
+                Q(pieces__in=visible_pieces) |
+                Q(pieces__collection_memberships__collection__in=visible_collections)
+            ).exclude(period='').values_list('period', flat=True)
+        }, key=str.lower)
+        context['is_student_view'] = is_student_view
+        context['as_visitor'] = self.request.GET.get('as_visitor') == '1' and not viewer.is_authenticated
 
         return context
-
-
-def library_piece_player(request, piece_id):
-    """
-    Audio player page for a single piece from the library.
-    Access rules: see _can_access_piece.
-    """
-    piece = get_object_or_404(Piece, pk=piece_id)
-    if not _can_access_piece(request.user, piece):
-        return _deny_library_access(request)
-
-    context = {
-        'piece': piece,
-        'piece_count': 1,
-        'title': f'Play: {piece.title}',
-        'is_library_player': True  # Flag to help template know this is library mode
-    }
-    return render(request, 'audioplayer/audio_player.html', context)
 
 
 def library_piece_json(request, piece_id):
@@ -775,37 +862,14 @@ def library_piece_json(request, piece_id):
     piece_data = {
         'title': piece.title,
         'stems': stems_data,
-        'svg_image': piece.svg_image.url if piece.svg_image else None,
-        'pdf_score': piece.pdf_score.url if piece.pdf_score else None,
+        'svg_image': _score_url(piece, 'svg_image', request.user),
+        'pdf_score': _score_url(piece, 'pdf_score', request.user),
         'pdf_score_title': piece.pdf_score_title if piece.pdf_score_title else None,
         'order': 0,  # Single piece, so order is always 0
         'description': piece.description if piece.description else None,
     }
 
     return JsonResponse({'pieces_data': [piece_data]})
-
-
-def library_collection_player(request, collection_id):
-    """
-    Audio player page for a collection from the library.
-    Displays all pieces in the collection with their audio players.
-    """
-    collection = get_object_or_404(
-        PieceCollection.objects.prefetch_related('collection_memberships__piece__stems'),
-        pk=collection_id
-    )
-    if not _can_access_collection(request.user, collection):
-        return _deny_library_access(request)
-
-    piece_count = collection.collection_memberships.count()
-
-    context = {
-        'collection': collection,
-        'piece_count': piece_count,
-        'title': f'Play: {collection.title}',
-        'is_library_collection': True  # Flag to help template know this is collection mode
-    }
-    return render(request, 'audioplayer/audio_player.html', context)
 
 
 def library_collection_json(request, collection_id):
@@ -837,7 +901,7 @@ def library_collection_json(request, collection_id):
         piece_data = {
             'title': piece.title,
             'stems': stems_data,
-            'svg_image': piece.svg_image.url if piece.svg_image else None,
+            'svg_image': _score_url(piece, 'svg_image', request.user),
             'order': cp.order,
             'description': piece.description if piece.description else None,
         }
@@ -845,7 +909,7 @@ def library_collection_json(request, collection_id):
 
     collection_data = {
         'title': collection.title,
-        'pdf_score': collection.pdf_score.url if collection.pdf_score else None,
+        'pdf_score': _score_url(collection, 'pdf_score', request.user),
         'pdf_score_title': collection.pdf_score_title if collection.pdf_score_title else None,
         'order': 0,
         'pieces': collection_pieces,
@@ -921,8 +985,8 @@ def digital_product_pieces_json(request, purchase_id):
         pieces_data.append({
             'title': piece.title,
             'stems': stems_data,
-            'svg_image': piece.svg_image.url if piece.svg_image else None,
-            'pdf_score': piece.pdf_score.url if piece.pdf_score else None,
+            'svg_image': _score_url(piece, 'svg_image', request.user),
+            'pdf_score': _score_url(piece, 'pdf_score', request.user),
             'pdf_score_title': piece.pdf_score_title or None,
             'order': dp.order,
             'description': piece.description or None,
@@ -947,8 +1011,8 @@ def digital_product_pieces_json(request, purchase_id):
             collection_pieces.append({
                 'title': piece.title,
                 'stems': stems_data,
-                'svg_image': piece.svg_image.url if piece.svg_image else None,
-                'pdf_score': piece.pdf_score.url if piece.pdf_score else None,
+                'svg_image': _score_url(piece, 'svg_image', request.user),
+                'pdf_score': _score_url(piece, 'pdf_score', request.user),
                 'pdf_score_title': piece.pdf_score_title if hasattr(piece, 'pdf_score_title') else None,
                 'order': cp.order,
                 'description': piece.description or None,
@@ -956,7 +1020,7 @@ def digital_product_pieces_json(request, purchase_id):
 
         collections_data.append({
             'title': collection.title,
-            'pdf_score': collection.pdf_score.url if collection.pdf_score else None,
+            'pdf_score': _score_url(collection, 'pdf_score', request.user),
             'pdf_score_title': collection.pdf_score_title or None,
             'order': dc.order,
             'pieces': collection_pieces,
@@ -973,7 +1037,10 @@ def digital_product_pieces_json(request, purchase_id):
 @teacher_required
 def composer_list(request):
     """List all composers for teacher management"""
-    composers = Composer.objects.prefetch_related('pieces').order_by('name')
+    composers = Composer.objects.annotate(
+        piece_total=Count('pieces', distinct=True),
+        public_total=Count('pieces', filter=Q(pieces__is_public=True), distinct=True),
+    ).order_by('name')
 
     context = {
         'composers': composers,

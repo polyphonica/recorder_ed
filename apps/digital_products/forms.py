@@ -79,6 +79,13 @@ class ProductForm(forms.ModelForm):
         self.teacher = kwargs.pop('teacher', None)
         super().__init__(*args, **kwargs)
 
+        # Play-alongs are free in the Play-Along Library now, so new products
+        # can't be play-alongs. Existing ones keep the type so they still work.
+        if self.instance.product_type != 'play_along':
+            self.fields['product_type'].choices = [
+                c for c in self.fields['product_type'].choices if c[0] != 'play_along'
+            ]
+
         # Make description optional for drafts
         if not self.instance.pk or self.instance.status == 'draft':
             self.fields['description'].required = False

@@ -78,6 +78,9 @@
                     <label for="website">Website</label>
                     <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
                 </div>
+                {% if request.GET.next|slice:":12" == "/playalongs/" %}
+                <script>if (typeof gtag === 'function') gtag('event', 'playalong_signup');</script>
+                {% endif %}
                 {% if request.GET.next %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
                 {% endif %}

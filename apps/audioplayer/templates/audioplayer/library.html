@@ -1,42 +1,55 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Play-Along Library - {{ block.super }}{% endblock %}
+{% block title %}Browse the Play-Along Library - {{ block.super }}{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Header -->
     <div class="flex justify-between items-center mb-8">
         <div>
+            <nav class="breadcrumbs text-sm mb-2">
+                <ul>
+                    <li><a href="{% url 'playalongs:home' %}">Play-Along Library</a></li>
+                    <li>Browse</li>
+                </ul>
+            </nav>
             <h1 class="text-3xl font-bold">Play-Along Library</h1>
             <p class="text-base-content/70 mt-2">
                 {% if is_teacher %}
-                    Preview the public library as students see it
+                    The public library, as everyone sees it
+                {% elif as_visitor %}
+                    You're viewing the library as a visitor sees it
                 {% else %}
-                    Browse and practice with multi-track playalong pieces
+                    Free multi-track play-alongs: mute your part and play along
                 {% endif %}
             </p>
         </div>
         {% if is_teacher %}
-        <a href="{% url 'audioplayer:piece_list' %}" class="btn btn-primary">
-            <i class="fas fa-cog mr-2"></i>
-            Manage Library
-        </a>
+        <div class="flex gap-2">
+            <a href="?as_visitor=1" class="btn btn-ghost">View as visitor</a>
+            <a href="{% url 'audioplayer:piece_list' %}" class="btn btn-primary">
+                <i class="fas fa-cog mr-2"></i>
+                Manage Library
+            </a>
+        </div>
+        {% elif as_visitor %}
+        <a href="{% url 'playalongs:library' %}" class="btn btn-ghost">Back to teacher view</a>
         {% endif %}
     </div>
 
     <!-- View Mode Tabs (students only) -->
-    {% if not is_teacher %}
+    {% if is_student_view %}
     <div class="tabs tabs-boxed mb-6">
         <a class="tab {% if view_mode == 'my_pieces' %}tab-active{% endif %}"
            href="?mode=my_pieces">
             <i class="fas fa-book-reader mr-2"></i>
-            My Assigned Pieces
+            From my teacher
         </a>
         <a class="tab {% if view_mode == 'browse_all' %}tab-active{% endif %}"
            href="?mode=browse_all">
             <i class="fas fa-globe mr-2"></i>
-            Browse All
+            Library
         </a>
     </div>
     {% endif %}
@@ -48,6 +61,7 @@
                 <!-- Preserve mode -->
                 <input type="hidden" name="mode" value="{{ view_mode }}">
                 {% if show != 'all' %}<input type="hidden" name="show" value="{{ show }}">{% endif %}
+                {% if as_visitor %}<input type="hidden" name="as_visitor" value="1">{% endif %}
 
                 <!-- Search -->
                 <div class="form-control">
@@ -121,6 +135,21 @@
                     </select>
                 </div>
 
+                {% if period_choices %}
+                <!-- Period Filter -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Period</span>
+                    </label>
+                    <select name="period" class="select select-bordered">
+                        <option value="">All Periods</option>
+                        {% for value in period_choices %}
+                        <option value="{{ value }}" {% if selected_period|lower == value|lower %}selected{% endif %}>{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
                 <!-- Tag Filter -->
                 <div class="form-control">
                     <label class="label">
@@ -142,7 +171,7 @@
                         <i class="fas fa-filter mr-2"></i>
                         Apply Filters
                     </button>
-                    <a href="?mode={{ view_mode }}" class="btn btn-ghost">
+                    <a href="?mode={{ view_mode }}{% if as_visitor %}&as_visitor=1{% endif %}" class="btn btn-ghost">
                         <i class="fas fa-times"></i>
                     </a>
                 </div>
@@ -198,11 +227,12 @@
                             {{ collection.get_difficulty_display }}
                         </p>
                         {% endif %}
-                        {% if collection.pdf_score %}
-                        <p>
-                            <i class="fas fa-file-pdf mr-2 text-error"></i>
-                            PDF worksheet included
-                        </p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        {% if collection.copyright_status == 'public_domain' %}
+                            {% if collection.pdf_score %}<span class="badge badge-primary badge-sm">Recorder-ed Edition included</span>{% endif %}
+                        {% else %}
+                            <span class="badge badge-secondary badge-sm">Bring your own copy</span>
                         {% endif %}
                     </div>
 
@@ -215,7 +245,7 @@
 
                     <!-- Actions -->
                     <div class="card-actions justify-end mt-4 pt-4 border-t">
-                        <a href="{% url 'audioplayer:library_collection_player' collection_id=collection.id %}" class="btn btn-sm btn-secondary">
+                        <a href="{{ collection.get_absolute_url }}{% if as_visitor %}?as_visitor=1{% endif %}" class="btn btn-sm btn-secondary">
                             <i class="fas fa-play mr-2"></i>
                             View & Play
                         </a>
@@ -285,6 +315,13 @@
                         <strong>{{ piece.stems.count }}</strong> track{{ piece.stems.count|pluralize }}
                     </p>
                 </div>
+                <div class="flex flex-wrap gap-2 mt-2">
+                    {% if piece.copyright_status == 'public_domain' %}
+                        {% if piece.pdf_score %}<span class="badge badge-primary badge-sm">Recorder-ed Edition included</span>{% endif %}
+                    {% else %}
+                        <span class="badge badge-secondary badge-sm">Bring your own copy</span>
+                    {% endif %}
+                </div>
 
                 <!-- Tags -->
                 {% if piece.tags.all %}
@@ -306,7 +343,7 @@
 
                 <!-- Actions -->
                 <div class="card-actions justify-end mt-4 pt-4 border-t">
-                    <a href="{% url 'audioplayer:library_piece_player' piece_id=piece.id %}" class="btn btn-sm btn-primary">
+                    <a href="{{ piece.get_absolute_url }}{% if as_visitor %}?as_visitor=1{% endif %}" class="btn btn-sm btn-primary">
                         <i class="fas fa-play mr-2"></i>
                         View & Play
                     </a>
@@ -335,7 +372,7 @@
             {% if is_teacher %}
                 No Public Content Yet
             {% elif view_mode == 'my_pieces' %}
-                No Assigned Content Yet
+                Nothing From Your Teacher Yet
             {% else %}
                 No Pieces Found
             {% endif %}
@@ -348,7 +385,7 @@
                     No public playalong pieces or collections are available yet. Create content and mark it as public for students to browse.
                 {% endif %}
             {% elif view_mode == 'my_pieces' %}
-                Your teacher hasn't assigned any playalong pieces or collections yet. Try browsing all available pieces!
+                Your teacher hasn't given you any play-alongs yet. In the meantime, everything in the library is free to use.
             {% else %}
                 {% if has_filters %}
                     Nothing matches your current filters. Try adjusting your search criteria.
@@ -365,7 +402,7 @@
         {% elif view_mode == 'my_pieces' %}
         <a href="?mode=browse_all" class="btn btn-primary">
             <i class="fas fa-globe mr-2"></i>
-            Browse All Pieces
+            Browse the library
         </a>
         {% else %}
         <a href="?mode={{ view_mode }}" class="btn btn-ghost">

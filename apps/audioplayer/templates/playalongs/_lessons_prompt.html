@@ -1,0 +1,17 @@
+{# Shown by audio_player.js after a few plays, to logged-in players who aren't teachers #}
+{% if show_lessons_prompt %}
+<div id="lessons-prompt" class="hidden card bg-base-200 mb-6">
+    <div class="card-body">
+        <h2 class="card-title">
+            <i class="fas fa-comments text-primary mr-2"></i>
+            Enjoying the play-alongs?
+        </h2>
+        <p>Get personal feedback on your playing in a private lesson, or join a workshop.</p>
+        <div class="card-actions mt-2">
+            <a href="{% url 'private_teaching:home' %}" class="btn btn-sm btn-primary">Private lessons</a>
+            <a href="{% url 'workshops:list' %}" class="btn btn-sm btn-ghost">Workshops</a>
+            <a href="{% url 'courses:list' %}" class="btn btn-sm btn-ghost">Courses</a>
+        </div>
+    </div>
+</div>
+{% endif %}
