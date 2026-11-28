@@ -664,6 +664,34 @@ class PlayAlongLibraryView(TemplateView):
         pieces = pieces.distinct()
         collections = collections.distinct()
 
+        # Show pieces, collections or both. Counts are taken first so the
+        # toggle can say how many of each match the other filters.
+        show = self.request.GET.get('show', 'all')
+        if show not in ('all', 'pieces', 'collections'):
+            show = 'all'
+        piece_total = pieces.count()
+        collection_total = collections.count()
+        if show == 'pieces':
+            collections = PieceCollection.objects.none()
+        elif show == 'collections':
+            pieces = Piece.objects.none()
+
+        show_options = []
+        for value, label, count in [
+            ('all', 'All', piece_total + collection_total),
+            ('pieces', 'Pieces', piece_total),
+            ('collections', 'Collections', collection_total),
+        ]:
+            params = self.request.GET.copy()
+            if value == 'all':
+                params.pop('show', None)
+            else:
+                params['show'] = value
+            show_options.append({
+                'value': value, 'label': label, 'count': count,
+                'url': '?' + params.urlencode(),
+            })
+
         # Order by title
         pieces = pieces.order_by('title')
         collections = collections.order_by('title')
@@ -698,6 +726,11 @@ class PlayAlongLibraryView(TemplateView):
         context['selected_genre'] = genre
         context['selected_difficulty'] = difficulty
         context['selected_tag'] = tag_id
+        context['show'] = show
+        context['show_options'] = show_options
+        context['has_filters'] = any([
+            search_query, composer_id, grade_level, genre, difficulty, tag_id, show != 'all'
+        ])
 
         return context
 

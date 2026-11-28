@@ -47,6 +47,7 @@
             <form method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Preserve mode -->
                 <input type="hidden" name="mode" value="{{ view_mode }}">
+                {% if show != 'all' %}<input type="hidden" name="show" value="{{ show }}">{% endif %}
 
                 <!-- Search -->
                 <div class="form-control">
@@ -146,6 +147,20 @@
                     </a>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Show pieces, collections or both -->
+    <div class="flex items-center gap-3 mb-6">
+        <span class="text-sm text-base-content/70">Show:</span>
+        <div class="join" role="group" aria-label="Show pieces, collections or both">
+            {% for option in show_options %}
+            <a href="{{ option.url }}"
+               class="join-item btn btn-sm {% if show == option.value %}btn-primary{% endif %}"
+               {% if show == option.value %}aria-current="true"{% endif %}>
+                {{ option.label }} ({{ option.count }})
+            </a>
+            {% endfor %}
         </div>
     </div>
 
@@ -327,16 +342,16 @@
         </h2>
         <p class="text-base-content/70 mb-8">
             {% if is_teacher %}
-                {% if search_query or selected_composer or selected_grade or selected_genre or selected_difficulty or selected_tag %}
-                    No pieces match your current filters. Try adjusting your search criteria.
+                {% if has_filters %}
+                    Nothing matches your current filters. Try adjusting your search criteria.
                 {% else %}
                     No public playalong pieces or collections are available yet. Create content and mark it as public for students to browse.
                 {% endif %}
             {% elif view_mode == 'my_pieces' %}
                 Your teacher hasn't assigned any playalong pieces or collections yet. Try browsing all available pieces!
             {% else %}
-                {% if search_query or selected_composer or selected_grade or selected_genre or selected_difficulty or selected_tag %}
-                    No pieces match your current filters. Try adjusting your search criteria.
+                {% if has_filters %}
+                    Nothing matches your current filters. Try adjusting your search criteria.
                 {% else %}
                     No playalong pieces are currently available in the library.
                 {% endif %}

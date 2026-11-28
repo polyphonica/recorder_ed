@@ -286,3 +286,65 @@ class CourseLessonPlayerAccessTests(TestCase):
         with override_settings(ALLOWED_HOSTS=['testserver']):
             response = self.client.get(f'/audioplayer/lesson/{self.lesson.id}/pieces-json/')
         self.assertEqual(response.status_code, 302)
+
+
+class LibraryShowToggleTests(TestCase):
+    def setUp(self):
+        from .models import Composer, PieceCollection, CollectionPiece
+        self.mattheson = Composer.objects.create(name='Johann Mattheson')
+        self.giesbert = Composer.objects.create(name='Franz J. Giesbert')
+        self.sonata = Piece.objects.create(title='Sonata', composer=self.mattheson, is_public=True)
+        duet = Piece.objects.create(title='Duet', composer=self.giesbert, is_public=True, show_in_library=False)
+        self.duets = PieceCollection.objects.create(title='Giesbert Duets', is_public=True)
+        CollectionPiece.objects.create(collection=self.duets, piece=duet, order=0)
+
+    def context(self, query):
+        from django.contrib.auth.models import AnonymousUser
+        from django.test import RequestFactory
+        from .views import PlayAlongLibraryView
+        request = RequestFactory().get('/audioplayer/library/', query)
+        request.user = AnonymousUser()
+        view = PlayAlongLibraryView()
+        view.setup(request)
+        return view.get_context_data()
+
+    def test_all_shows_both_with_counts(self):
+        ctx = self.context({'mode': 'browse_all'})
+        self.assertEqual(len(ctx['pieces']), 1)
+        self.assertEqual(len(ctx['collections']), 1)
+        counts = {o['value']: o['count'] for o in ctx['show_options']}
+        self.assertEqual(counts, {'all': 2, 'pieces': 1, 'collections': 1})
+        self.assertFalse(ctx['has_filters'])
+
+    def test_pieces_only(self):
+        ctx = self.context({'mode': 'browse_all', 'show': 'pieces'})
+        self.assertEqual(len(ctx['pieces']), 1)
+        self.assertEqual(len(ctx['collections']), 0)
+        self.assertTrue(ctx['has_filters'])
+
+    def test_collections_only(self):
+        ctx = self.context({'mode': 'browse_all', 'show': 'collections'})
+        self.assertEqual(len(ctx['pieces']), 0)
+        self.assertEqual(len(ctx['collections']), 1)
+
+    def test_invalid_value_means_all(self):
+        ctx = self.context({'mode': 'browse_all', 'show': 'nonsense'})
+        self.assertEqual(ctx['show'], 'all')
+
+    def test_counts_follow_other_filters(self):
+        ctx = self.context({'mode': 'browse_all', 'composer': str(self.giesbert.id)})
+        counts = {o['value']: o['count'] for o in ctx['show_options']}
+        self.assertEqual(counts, {'all': 1, 'pieces': 0, 'collections': 1})
+
+    def test_toggle_links_keep_other_filters(self):
+        ctx = self.context({'mode': 'browse_all', 'search': 'Giesbert', 'show': 'pieces'})
+        urls = {o['value']: o['url'] for o in ctx['show_options']}
+        self.assertIn('search=Giesbert', urls['collections'])
+        self.assertIn('show=collections', urls['collections'])
+        self.assertNotIn('show=', urls['all'])
+
+    def test_page_renders_toggle(self):
+        with override_settings(ALLOWED_HOSTS=['testserver']):
+            response = self.client.get('/audioplayer/library/', {'mode': 'browse_all', 'show': 'collections'})
+        self.assertContains(response, 'Collections (1)')
+        self.assertContains(response, 'name="show" value="collections"')
