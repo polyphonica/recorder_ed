@@ -21,7 +21,7 @@
                         {% endif %}
                         {% if task.due_date and not task.is_done %}
                         <span class="badge badge-sm {% if task.is_overdue %}badge-error{% elif task.group == 'today' %}badge-warning{% else %}badge-ghost{% endif %}">
-                            <i class="far fa-calendar mr-1"></i>{{ task.due_date|date:"D j M" }}
+                            <i class="far fa-calendar mr-1"></i>{% if task.is_overdue %}Overdue: was due{% else %}Due{% endif %} {{ task.due_date|date:"D j M" }}
                         </span>
                         {% endif %}
                         {% if task.is_done %}<span class="badge badge-ghost badge-sm">Done {{ task.done_at|date:"j M" }}</span>{% endif %}
@@ -32,14 +32,21 @@
                     <input type="hidden" name="next" value="{{ next }}">
                     <input type="text" name="title" value="{{ task.title }}" maxlength="300" required class="input input-bordered input-sm w-full" aria-label="Title">
                     <textarea name="notes" rows="3" class="textarea w-full" placeholder="Notes" aria-label="Notes">{{ task.notes }}</textarea>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <select name="area" class="select select-bordered select-sm" aria-label="Area">
+                    <div class="flex flex-wrap items-end gap-2">
+                        <label class="flex flex-col gap-1">
+                            <span class="text-xs text-base-content/70">Area</span>
+                        <select name="area" class="select select-bordered select-sm">
                             {% for value, label in area_choices %}<option value="{{ value }}" {% if task.area == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
                         </select>
-                        <input type="date" name="due_date" value="{{ task.due_date|date:'Y-m-d' }}" class="input input-bordered input-sm" aria-label="Due date">
+                        </label>
+                        <label class="flex flex-col gap-1">
+                            <span class="text-xs text-base-content/70">Due date (optional)</span>
+                            <input type="date" name="due_date" value="{{ task.due_date|date:'Y-m-d' }}" class="input input-bordered input-sm">
+                        </label>
                         <button type="submit" class="btn btn-sm btn-primary">Save</button>
                     </div>
                 </form>
+                <p class="text-xs text-base-content/60 mt-2">Added {{ task.created_at|date:"j M Y" }}</p>
                 <form method="post" action="{% url 'teacher_tasks:delete' pk=task.pk %}" class="mt-2">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ next }}">

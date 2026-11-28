@@ -20,10 +20,19 @@
         <div class="card-body p-4">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <div class="flex flex-wrap gap-2">
-                {{ form.title }}
-                {{ form.area }}
-                {{ form.due_date }}
+            <div class="flex flex-wrap items-end gap-2">
+                <label class="flex flex-col gap-1 flex-1">
+                    <span class="text-xs text-base-content/70">Task</span>
+                    {{ form.title }}
+                </label>
+                <label class="flex flex-col gap-1">
+                    <span class="text-xs text-base-content/70">Area</span>
+                    {{ form.area }}
+                </label>
+                <label class="flex flex-col gap-1">
+                    <span class="text-xs text-base-content/70">Due date (optional)</span>
+                    {{ form.due_date }}
+                </label>
                 <button type="submit" class="btn btn-primary"><i class="fas fa-plus mr-1"></i>Add</button>
             </div>
             <p class="text-xs text-base-content/60 mt-1">

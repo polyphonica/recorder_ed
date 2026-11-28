@@ -30,14 +30,14 @@
                 <ul class="space-y-1">
                     {% for task in tasks_today %}
                     <li class="text-sm flex flex-wrap items-center gap-2">
-                        <span class="badge badge-sm {% if task.is_overdue %}badge-error{% else %}badge-warning{% endif %}">{% if task.is_overdue %}Overdue{% else %}Today{% endif %}</span>
+                        <span class="badge badge-sm {% if task.is_overdue %}badge-error{% else %}badge-warning{% endif %}">{% if task.is_overdue %}Overdue{% else %}Due today{% endif %}</span>
                         <span>{{ task.title }}</span>
                         {% with link=task.link %}{% if link %}<a href="{{ link.url }}" class="badge badge-outline badge-sm"><i class="fas {{ link.icon }} mr-1"></i>{{ link.label }}</a>{% endif %}{% endwith %}
                     </li>
                     {% endfor %}
                     {% for task in tasks_next %}
                     <li class="text-sm flex flex-wrap items-center gap-2 text-base-content/70">
-                        <span class="badge badge-ghost badge-sm">{% if task.due_date %}{{ task.due_date|date:"D j M" }}{% else %}No date{% endif %}</span>
+                        <span class="badge badge-ghost badge-sm">{% if task.due_date %}Due {{ task.due_date|date:"D j M" }}{% else %}No due date{% endif %}</span>
                         <span>{{ task.title }}</span>
                         {% with link=task.link %}{% if link %}<a href="{{ link.url }}" class="badge badge-outline badge-sm"><i class="fas {{ link.icon }} mr-1"></i>{{ link.label }}</a>{% endif %}{% endwith %}
                     </li>

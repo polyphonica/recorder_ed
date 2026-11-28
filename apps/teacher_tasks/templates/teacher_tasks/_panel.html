@@ -11,13 +11,19 @@
             {% for task in tasks %}{% include "teacher_tasks/_task_row.html" %}{% endfor %}
         </ul>
         {% endif %}
-        <form method="post" action="{% url 'teacher_tasks:create' %}" class="flex flex-wrap gap-2 mt-2">
+        <form method="post" action="{% url 'teacher_tasks:create' %}" class="flex flex-wrap items-end gap-2 mt-2">
             <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
             <input type="hidden" name="next" value="{{ next }}">
             <input type="hidden" name="link" value="{{ link_token }}">
             <input type="hidden" name="area" value="general">
-            <input type="text" name="title" maxlength="300" required placeholder="Add a task for {{ link_label }}…" class="input input-bordered input-sm flex-1" aria-label="New task">
-            <input type="date" name="due_date" class="input input-bordered input-sm" aria-label="Due date">
+            <label class="flex flex-col gap-1 flex-1">
+                <span class="text-xs text-base-content/70">New task</span>
+                <input type="text" name="title" maxlength="300" required placeholder="Add a task for {{ link_label }}…" class="input input-bordered input-sm w-full">
+            </label>
+            <label class="flex flex-col gap-1">
+                <span class="text-xs text-base-content/70">Due date (optional)</span>
+                <input type="date" name="due_date" class="input input-bordered input-sm">
+            </label>
             <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-plus mr-1"></i>Add</button>
         </form>
     </div>
