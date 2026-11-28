@@ -108,6 +108,7 @@
                         <li><a href="{% url 'support:staff_dashboard' %}"><i class="fas fa-headset mr-1"></i>Support Dashboard</a></li>
                     {% elif user.is_authenticated and user.is_instructor %}
                         {# Teacher mobile navigation #}
+                        <li><a href="{% url 'domain_selector' %}" class="{% if request.resolver_match.url_name == 'domain_selector' %}font-bold{% endif %}"><i class="fas fa-home mr-1"></i>Dashboard</a></li>
                         <li><a href="{% url 'workshops:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold{% endif %}">Workshops</a></li>
                         <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold{% endif %}">Private Lessons</a></li>
                         <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold{% endif %}">Courses</a></li>
@@ -130,7 +131,7 @@
                     {% endif %}
                 </ul>
             </div>
-            <a class="btn btn-ghost text-xl font-bold" href="{% url 'domain_selector' %}">
+            <a class="btn btn-ghost text-xl font-bold" href="{% url 'domain_selector' %}"{% if user.is_authenticated and user.is_instructor %} title="Your dashboard" aria-label="RECORDER-ED: your dashboard"{% endif %}>
                 RECORDER-ED
             </a>
         </div>
@@ -144,6 +145,7 @@
                     <li><a href="{% url 'support:staff_dashboard' %}" class="{% if request.resolver_match.url_name == 'staff_dashboard' %}font-bold bg-primary text-primary-content{% endif %}"><i class="fas fa-headset mr-2"></i>Support Dashboard</a></li>
                 {% elif user.is_authenticated and user.is_instructor %}
                     {# Teacher navigation - goes to dashboards #}
+                    <li><a href="{% url 'domain_selector' %}" class="{% if request.resolver_match.url_name == 'domain_selector' %}font-bold bg-primary text-primary-content{% endif %}"><i class="fas fa-home mr-1"></i>Dashboard</a></li>
                     <li><a href="{% url 'workshops:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'workshops' %}font-bold bg-primary text-primary-content{% endif %}">Workshops</a></li>
                     <li><a href="{% url 'private_teaching:teacher_dashboard' %}" class="{% if request.resolver_match.namespace == 'private_teaching' %}font-bold bg-primary text-primary-content{% endif %}">Private Lessons</a></li>
                     <li><a href="{% url 'courses:instructor_dashboard' %}" class="{% if request.resolver_match.namespace == 'courses' %}font-bold bg-primary text-primary-content{% endif %}">Courses</a></li>
@@ -290,6 +292,8 @@
 
                         <!-- Teacher menu items - contextual by app -->
                         {% elif user.is_instructor %}
+                            <li><a href="{% url 'domain_selector' %}"><i class="fas fa-home mr-2"></i>My Dashboard</a></li>
+                            <div class="divider my-1"></div>
                             {% if request.resolver_match.namespace == 'workshops' %}
                                 {# WORKSHOPS APP MENU #}
                                 <li class="menu-title"><span>My Workshops</span></li>
@@ -320,6 +324,8 @@
                                 <li><a href="{% url 'courses:instructor_dashboard' %}"><i class="fas fa-graduation-cap mr-2"></i>Courses Dashboard</a></li>
                                 <li><a href="{% url 'private_teaching:teacher_dashboard' %}"><i class="fas fa-user-tie mr-2"></i>Private Lessons Dashboard</a></li>
                                 <li><a href="{% url 'digital_products:teacher_dashboard' %}"><i class="fas fa-download mr-2"></i>Digital Products Dashboard</a></li>
+                                <li><a href="{% url 'audioplayer:library_dashboard' %}"><i class="fas fa-music mr-2"></i>Play-Alongs</a></li>
+                                <li><a href="{% url 'teacher_tasks:list' %}"><i class="fas fa-tasks mr-2"></i>Tasks</a></li>
                             {% endif %}
 
                             <div class="divider my-1"></div>

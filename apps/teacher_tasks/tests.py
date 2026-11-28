@@ -109,3 +109,22 @@ class TaskTests(TestCase):
         self.assertEqual([t.title for t in response.context['tasks_today']], ['Due now'])
         self.assertEqual([t.title for t in response.context['tasks_next']], ['Later'])
         self.assertContains(response, reverse('teacher_tasks:list'))
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'])
+class TeacherDashboardLinkTests(TestCase):
+    def test_teachers_have_a_dashboard_link_everywhere(self):
+        self.client.force_login(_user('dash_teacher'))
+        html = self.client.get(reverse('teacher_tasks:list')).content.decode()
+        self.assertIn('<i class="fas fa-home mr-1"></i>Dashboard', html)
+        self.assertIn('My Dashboard', html)
+        self.assertIn('title="Your dashboard"', html)
+        # Highlighted on the dashboard itself
+        home = self.client.get('/').content.decode()
+        self.assertIn('font-bold bg-primary text-primary-content"><i class="fas fa-home mr-1"></i>Dashboard', home)
+
+    def test_students_menus_unchanged(self):
+        self.client.force_login(_user('dash_student', teacher=False))
+        html = self.client.get('/').content.decode()
+        self.assertNotIn('My Dashboard', html)
+        self.assertNotIn('title="Your dashboard"', html)
