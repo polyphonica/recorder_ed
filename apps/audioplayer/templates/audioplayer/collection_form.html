@@ -444,6 +444,11 @@ function renderSelectedPieces() {
                         title="Move down">
                     <i class="fas fa-chevron-down"></i>
                 </button>
+                <a href="${pieceEditUrl(piece.id)}" target="_blank" rel="noopener"
+                   class="btn btn-xs btn-ghost"
+                   title="Edit this piece (opens in a new tab)">
+                    <i class="fas fa-edit"></i>
+                </a>
                 <button type="button" onclick="removePiece(${piece.id})"
                         class="btn btn-xs btn-ghost text-error"
                         title="Remove">
@@ -453,6 +458,10 @@ function renderSelectedPieces() {
         `;
         list.appendChild(li);
     });
+}
+
+function pieceEditUrl(pieceId) {
+    return '{% url "audioplayer:piece_edit" pk=0 %}'.replace('/0/', '/' + pieceId + '/');
 }
 
 function escapeHtml(text) {

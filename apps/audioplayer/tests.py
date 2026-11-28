@@ -443,3 +443,37 @@ class CopyrightLockTests(TestCase):
                           'is_public': 'on'})
         self.assertFalse(form.is_valid())
         self.assertEqual(list(form.errors), ['is_public'])
+
+
+class CollectionPieceEditLinkTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from django.test import RequestFactory
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        from .models import PieceCollection, CollectionPiece
+        self.teacher = get_user_model().objects.create_user('link_teacher', password='x')
+        self.piece = Piece.objects.create(title='Exercise 1', created_by=self.teacher)
+        self.collection = PieceCollection.objects.create(title='Duets', created_by=self.teacher)
+        CollectionPiece.objects.create(collection=self.collection, piece=self.piece, order=0)
+        self.request = RequestFactory().get('/')
+        self.request.user = self.teacher
+        self.request.session = {}
+        self.request._messages = FallbackStorage(self.request)
+
+    def test_library_collection_card_links_to_pieces_page(self):
+        from django.template.loader import render_to_string
+        from django.urls import reverse
+        html = render_to_string('audioplayer/piece_list.html', {
+            'pieces': [], 'collections': [self.collection], 'view_filter': 'all', 'title': 'x',
+        }, request=self.request)
+        self.assertIn(reverse('audioplayer:collection_detail', kwargs={'pk': self.collection.pk}), html)
+
+    def test_collection_form_builds_piece_edit_links(self):
+        from django.template.loader import render_to_string
+        from .forms import PieceCollectionForm
+        html = render_to_string('audioplayer/collection_form.html', {
+            'form': PieceCollectionForm(instance=self.collection, user=self.teacher),
+            'collection': self.collection, 'collection_pieces': [], 'title': 'x', 'submit_text': 'Save',
+        }, request=self.request)
+        self.assertIn("'/audioplayer/pieces/0/edit/'.replace('/0/'", html)
+        self.assertIn('href="${pieceEditUrl(piece.id)}"', html)
