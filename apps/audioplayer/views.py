@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
@@ -464,6 +464,93 @@ def private_lesson_pieces_json(request, lesson_id):
 
 # ===== PLAY-ALONG LIBRARY VIEWS =====
 
+def _is_teacher(user):
+    return (
+        user.is_authenticated and
+        hasattr(user, 'profile') and
+        user.profile.is_teacher
+    )
+
+
+def _student_assigned_ids(user):
+    """
+    Piece and collection IDs assigned to a student, either directly
+    (active/completed assignments) or through a paid, accepted lesson.
+    Returns (piece_id_q, collection_id_q) as Q objects on 'id'.
+    """
+    from lessons.models import Lesson as PrivateLesson, PrivateLessonPiece, PrivateLessonCollection
+    from apps.private_teaching.models import StudentPieceAssignment, StudentCollectionAssignment
+
+    student_lessons = PrivateLesson.objects.filter(
+        student=user,
+        approved_status=PrivateLesson.ApprovalStatus.ACCEPTED,
+        payment_status='completed',
+        status=PrivateLesson.Status.ASSIGNED,
+        is_deleted=False
+    ).values_list('id', flat=True)
+
+    student_piece_ids = StudentPieceAssignment.objects.filter(
+        student=user,
+        status__in=['active', 'completed']
+    ).values_list('piece_id', flat=True)
+    lesson_piece_ids = PrivateLessonPiece.objects.filter(
+        lesson_id__in=student_lessons
+    ).values_list('piece_id', flat=True)
+
+    student_collection_ids = StudentCollectionAssignment.objects.filter(
+        student=user,
+        status__in=['active', 'completed']
+    ).values_list('collection_id', flat=True)
+    lesson_collection_ids = PrivateLessonCollection.objects.filter(
+        lesson_id__in=student_lessons,
+        is_visible=True
+    ).values_list('collection_id', flat=True)
+
+    return (
+        Q(id__in=student_piece_ids) | Q(id__in=lesson_piece_ids),
+        Q(id__in=student_collection_ids) | Q(id__in=lesson_collection_ids),
+    )
+
+
+def _can_access_collection(user, collection):
+    """Public collections, any collection for teachers, or one assigned to the student."""
+    if collection.is_public or _is_teacher(user) or user.is_staff:
+        return True
+    if not user.is_authenticated:
+        return False
+    _, collection_q = _student_assigned_ids(user)
+    return PieceCollection.objects.filter(collection_q, pk=collection.pk).exists()
+
+
+def _can_access_piece(user, piece):
+    """
+    Public pieces, any piece for teachers, a piece assigned to the student,
+    or a piece inside a collection the user can open.
+    """
+    if piece.is_public or _is_teacher(user) or user.is_staff:
+        return True
+    if PieceCollection.objects.filter(
+        collection_memberships__piece=piece, is_public=True
+    ).exists():
+        return True
+    if not user.is_authenticated:
+        return False
+    piece_q, collection_q = _student_assigned_ids(user)
+    if Piece.objects.filter(piece_q, pk=piece.pk).exists():
+        return True
+    return PieceCollection.objects.filter(
+        collection_q, collection_memberships__piece=piece
+    ).exists()
+
+
+def _deny_library_access(request):
+    """Send anonymous visitors to log in; otherwise behave as if it doesn't exist."""
+    if not request.user.is_authenticated:
+        from django.contrib.auth.views import redirect_to_login
+        return redirect_to_login(request.get_full_path())
+    raise Http404
+
+
 class PlayAlongLibraryView(TemplateView):
     """
     Play-along library for students and teachers.
@@ -484,11 +571,7 @@ class PlayAlongLibraryView(TemplateView):
         view_mode = self.request.GET.get('mode', 'my_pieces')  # 'my_pieces' or 'browse_all'
 
         # Determine if user is teacher
-        is_teacher = (
-            self.request.user.is_authenticated and
-            hasattr(self.request.user, 'profile') and
-            self.request.user.profile.is_teacher
-        )
+        is_teacher = _is_teacher(self.request.user)
 
         # Base queryset - will be filtered based on mode
         pieces = Piece.objects.select_related('composer').prefetch_related('tags', 'stems')
@@ -507,46 +590,10 @@ class PlayAlongLibraryView(TemplateView):
                 ).prefetch_related('collection_memberships__piece__stems', 'tags')
             else:
                 # Students see pieces and collections assigned to them
-                from lessons.models import Lesson as PrivateLesson, PrivateLessonPiece, PrivateLessonCollection
-                from apps.private_teaching.models import StudentPieceAssignment, StudentCollectionAssignment
-
-                # Get piece IDs from student-level assignments (active + completed)
-                student_piece_ids = StudentPieceAssignment.objects.filter(
-                    student=self.request.user,
-                    status__in=['active', 'completed']
-                ).values_list('piece_id', flat=True).distinct()
-
-                # Also include pieces from lesson-level assignments (backward compat)
-                student_lessons = PrivateLesson.objects.filter(
-                    student=self.request.user,
-                    approved_status=PrivateLesson.ApprovalStatus.ACCEPTED,
-                    payment_status='completed',
-                    status=PrivateLesson.Status.ASSIGNED,
-                    is_deleted=False
-                ).values_list('id', flat=True)
-
-                lesson_piece_ids = PrivateLessonPiece.objects.filter(
-                    lesson_id__in=student_lessons
-                ).values_list('piece_id', flat=True).distinct()
-
-                pieces = pieces.filter(
-                    Q(id__in=student_piece_ids) | Q(id__in=lesson_piece_ids)
-                ).distinct()
-
-                # Get collection IDs from student-level assignments
-                student_collection_ids = StudentCollectionAssignment.objects.filter(
-                    student=self.request.user,
-                    status__in=['active', 'completed']
-                ).values_list('collection_id', flat=True).distinct()
-
-                # Also include collections from lesson-level assignments
-                lesson_collection_ids = PrivateLessonCollection.objects.filter(
-                    lesson_id__in=student_lessons,
-                    is_visible=True
-                ).values_list('collection_id', flat=True).distinct()
-
+                piece_q, collection_q = _student_assigned_ids(self.request.user)
+                pieces = pieces.filter(piece_q).distinct()
                 collections = PieceCollection.objects.filter(
-                    Q(id__in=student_collection_ids) | Q(id__in=lesson_collection_ids)
+                    collection_q
                 ).distinct().prefetch_related('collection_memberships__piece__stems', 'tags')
 
         elif view_mode == 'browse_all':
@@ -655,9 +702,11 @@ class PlayAlongLibraryView(TemplateView):
 def library_piece_player(request, piece_id):
     """
     Audio player page for a single piece from the library.
-    Accessible by any authenticated user.
+    Access rules: see _can_access_piece.
     """
     piece = get_object_or_404(Piece, pk=piece_id)
+    if not _can_access_piece(request.user, piece):
+        return _deny_library_access(request)
 
     context = {
         'piece': piece,
@@ -674,6 +723,8 @@ def library_piece_json(request, piece_id):
     Used by the audio player JavaScript.
     """
     piece = get_object_or_404(Piece, pk=piece_id)
+    if not _can_access_piece(request.user, piece):
+        return _deny_library_access(request)
 
     # Build stems data - match format used by lesson endpoints
     stems_data = [
@@ -707,6 +758,8 @@ def library_collection_player(request, collection_id):
         PieceCollection.objects.prefetch_related('collection_memberships__piece__stems'),
         pk=collection_id
     )
+    if not _can_access_collection(request.user, collection):
+        return _deny_library_access(request)
 
     piece_count = collection.collection_memberships.count()
 
@@ -725,6 +778,8 @@ def library_collection_json(request, collection_id):
     Used by the audio player JavaScript.
     """
     collection = get_object_or_404(PieceCollection, pk=collection_id)
+    if not _can_access_collection(request.user, collection):
+        return _deny_library_access(request)
 
     collection_pieces = []
 
